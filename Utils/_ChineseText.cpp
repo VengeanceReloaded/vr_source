@@ -551,9 +551,9 @@ STR16 pDisplayBodyTypeInfoText[] =
 	L"Miniskirt",
 	L"F Civilian", //10
 	L"Kid w/ Hat",
-	L"Humvee",
+	L"Pickup",
 	L"Eldorado",
-	L"Icecream Truck",
+	L"Military Jeep",
 	L"Jeep", //15
 	L"Kid Civilian",
 	L"Domestic Cow",
@@ -2481,8 +2481,8 @@ CHAR16 zDialogActions[1][ SMALL_STRING_LENGTH ] =
 STR16 pVehicleStrings[] =
 {
  L"凯迪拉克",
- L"悍马",	// a hummer jeep/truck -- military vehicle
- L"冰激凌车",
+ L"皮卡车", // a hummer jeep/truck -- military vehicle
+ L"吉普",
  L"吉普",
  L"坦克",
  L"直升飞机",
@@ -2491,8 +2491,8 @@ STR16 pVehicleStrings[] =
 STR16 pShortVehicleStrings[] =
 {
 	L"凯迪拉克",
-	L"悍马",				// the HMVV
-	L"冰激凌车",
+	L"皮卡车",				// the HMVV
+	L"吉普",
 	L"吉普",
 	L"坦克",
 	L"直升飞机", 				// the helicopter
@@ -2501,8 +2501,8 @@ STR16 pShortVehicleStrings[] =
 STR16	zVehicleName[] =
 {
 	L"凯迪拉克",
-	L"悍马",			//a military jeep. This is a brand name.
-	L"冰激凌车",			// Ice cream truck
+	L"皮卡车",			//a military jeep. This is a brand name.
+	L"吉普",			// Ice cream truck
 	L"吉普",
 	L"坦克",
 	L"直升飞机", 		//an abbreviation for Helicopter
