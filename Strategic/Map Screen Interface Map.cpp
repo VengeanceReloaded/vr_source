@@ -5056,7 +5056,7 @@ void BlitMineText( INT16 sMapX, INT16 sMapY )
 		GetScreenXYFromMapXY( ( INT16 )( sMapX ), ( INT16 )( sMapY ), &sScreenX, &sScreenY );
 
 		// set coordinates for start of mine text
-		sScreenX += MAP_GRID_X / 2;			// centered around middle of mine square
+		//sScreenX += MAP_GRID_X / 2;			// centered around middle of mine square
 		sScreenY += MAP_GRID_Y + 1;			// slightly below
 	}
 
@@ -5075,7 +5075,8 @@ void BlitMineText( INT16 sMapX, INT16 sMapY )
 	// display associated town name, followed by "mine"
 	swprintf( wString, L"%s %s", pTownNames[ GetTownAssociatedWithMine( GetMineIndexForSector( sMapX, sMapY ) ) ],  pwMineStrings[ 0 ] );
 	AdjustXForLeftMapEdge(wString, &sScreenX);
-	mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+	//mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+	mprintf( sScreenX , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );	// left align
 	ubLineCnt++;
 
 
@@ -5084,7 +5085,8 @@ void BlitMineText( INT16 sMapX, INT16 sMapY )
 	{
 		swprintf( wString, L"%s", pwMineStrings[ 5 ] );
 		AdjustXForLeftMapEdge(wString, &sScreenX);
-		mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+		//mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+		mprintf( sScreenX , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );	// left align
 		ubLineCnt++;
 	}
 	else
@@ -5092,7 +5094,8 @@ void BlitMineText( INT16 sMapX, INT16 sMapY )
 	{
 		swprintf( wString, L"%s", pwMineStrings[ 6 ] );
 		AdjustXForLeftMapEdge(wString, &sScreenX);
-		mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+		//mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+		mprintf( sScreenX , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );	// left align
 		ubLineCnt++;
 	}
 	else
@@ -5100,7 +5103,8 @@ void BlitMineText( INT16 sMapX, INT16 sMapY )
 	{
 		swprintf( wString, L"%s", pwMineStrings[ 7 ] );
 		AdjustXForLeftMapEdge(wString, &sScreenX);
-		mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+		//mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
+		mprintf( sScreenX , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );	// left align
 		ubLineCnt++;
 	}
 
@@ -5136,7 +5140,8 @@ void BlitMineText( INT16 sMapX, INT16 sMapY )
 		}
 
 		AdjustXForLeftMapEdge(wString, &sScreenX);
-		mprintf( ( sScreenX - StringPixLengthArg( MAP_FONT, wcslen(wString), wString ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ), wString );
+		//mprintf( ( sScreenX - StringPixLengthArg( MAP_FONT, wcslen(wString), wString ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ), wString );
+		mprintf( sScreenX , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ), wString );	// left align
 		ubLineCnt++;
 	}
 
