@@ -2692,7 +2692,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"你同意支付%s吗？",
 	L"你要接受免费治疗吗?",
-	L"你同意让佣兵和Daryl结婚吗?",
+	L"Agree to assist Dick?", // TODO.Translate
 	L"钥匙面板",
 	L"你不能这样用EPC。",
 	L"不杀Krott?",
@@ -3523,7 +3523,7 @@ STR16 pHistoryStrings[] =
 	L"启用作弊",
 	L"食物会在明天送达Omerta",
 	//21-25
-	L"%s离队并成为了Daryl Hick的妻子",
+	L"%s non-platonically assisted Babyface", // TODO.Translate
 	L"%s的合同到期了。",
 	L"招募了%s。",
 	L"Enrico抱怨进展缓慢",
@@ -3563,7 +3563,7 @@ STR16 pHistoryStrings[] =
 	L"收到在Balime的有钱人的捐款。",
 	L"遇到一个叫Jake的废品商人。",
 	L"一个流浪者给了我们一张电子钥匙卡。",
-	L"贿赂了Walter，让他打开地下室的门。",
+	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
 	//56-60
 	L"如果Dave有汽油，他会免费进行加油。",
 	L"贿赂Pablo。",
@@ -6050,11 +6050,13 @@ STR16 MPClientMessage[] =
 	L"Spectator mode disabled",
 	L"Choose client to kick from game. #1: <Cancel>, #2: %S, #3: %S, #4: %S",
 	// 75
-	L"Team #%d is wiped out.",
+	L"Team %s is wiped out.",
 	L"Client failed to start. Terminating.",
 	L"Client disconnected and shutdown.",
 	L"Client is not running.",
 	L"INFO: If the game is stuck (the opponents progress bar is not moving), notify the server to press ALT + E to give the turn back to you!",	// TODO.Translate
+	// 80
+	L"AI's turn - %d left",		// TODO.Translate
 };
 
 STR16 gszMPEdgesText[] =

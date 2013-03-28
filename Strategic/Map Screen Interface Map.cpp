@@ -984,6 +984,10 @@ UINT32 DrawMap( void )
 		{
 			DrawBullseye();
 		}
+		else if(is_networked)
+		{
+			DrawBullseye();//haydent (allow client to see map deployment bullseye)
+		}
 	}
 	else
 	{

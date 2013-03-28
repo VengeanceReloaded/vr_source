@@ -2693,7 +2693,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Zgadzasz się zapłacić %s?",
 	L"Zgadzasz się na darmowe leczenie?",
-	L"Zgadasz się na małżeństwo z Darylem?",
+	L"Agree to assist Dick?", // TODO.Translate
 	L"Kółko na klucze",
 	L"Nie możesz tego zrobić z eskortowaną osobą.",
 	L"Oszczędzić Krotta?",
@@ -3524,7 +3524,7 @@ STR16 pHistoryStrings[] =
 	L"Użyto kodu Cheat",
 	L"¯ywnoŚć powinna być jutro w Omercie",
 	//21-25
-	L"%s odchodzi, aby wziąć Ślub z Darylem Hickiem",
+	L"%s non-platonically assisted Babyface", // TODO.Translate
 	L"Wygasł kontrakt z - %s.",
 	L"%s zrekrutowany(na).",
 	L"Enrico narzeka na brak postępów",
@@ -3564,7 +3564,7 @@ STR16 pHistoryStrings[] =
 	L"Otrzymano darowiznę od bogatego goŚcia w Balime.",
 	L"Spotkano Jake'a, który prowadzi złomowisko.",
 	L"JakiŚ włóczęga dał nam elektroniczną kartę dostępu.",
-	L"Przekupiono Waltera, aby otworzył drzwi do piwnicy.",
+	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
 	//56-60
 	L"Dave oferuje darmowe tankowania, jeŚli będzie miał paliwo.",
 	L"Greased Pablo's palms.",
@@ -6055,11 +6055,13 @@ STR16 MPClientMessage[] =
 	L"Spectator mode disabled",
 	L"Choose client to kick from game. #1: <Cancel>, #2: %S, #3: %S, #4: %S",
 	// 75
-	L"Team #%d is wiped out.",
+	L"Team %s is wiped out.",
 	L"Client failed to start. Terminating.",
 	L"Client disconnected and shutdown.",
 	L"Client is not running.",
 	L"INFO: If the game is stuck (the opponents progress bar is not moving), notify the server to press ALT + E to give the turn back to you!",	// TODO.Translate
+	// 80
+	L"AI's turn - %d left",		// TODO.Translate
 };
 
 STR16 gszMPEdgesText[] =

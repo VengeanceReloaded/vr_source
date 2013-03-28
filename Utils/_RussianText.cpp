@@ -2691,7 +2691,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Вы согласны заплатить %s?",
 	L"Принять бесплатное лечение?",
-	L"Согласиться выйти замуж за Дэррела?",
+	L"Agree to assist Dick?", // TODO.Translate
 	L"Связка ключей",
 	L"С эскортируемыми этого сделать нельзя.",
 	L"Пощадить сержанта?",
@@ -3520,7 +3520,7 @@ STR16 pHistoryStrings[] =
 	L"Включен режим чит-кодов",
 	L"Провизия будет доставлена в Омерту завтра.",
 	//21-25
-	L"%s ушла, чтобы выйти замуж за Дерила Хика.",
+	L"%s non-platonically assisted Babyface", // TODO.Translate
 	L"Истек контракт у %s.",
 	L"Нанят(а) %s.",
 	L"Энрико сетует на отсутствие успехов в кампании.",
@@ -3560,7 +3560,7 @@ STR16 pHistoryStrings[] =
 	L"Один богатей из Балайма дал вам денег.",
 	L"Встретили старьевщика Джейка.",
 	L"Один бродяга дал нам электронную карточку.",
-	L"Вальтер подкуплен, он откроет дверь в подвал.",
+	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
 	//56-60
 	L"Дэйв заправит машину бесплатно, если будет бензин.",
 	L"Дали взятку Пабло.",
@@ -6029,11 +6029,13 @@ STR16 MPClientMessage[] =
 	L"Spectator mode disabled",
 	L"Укажите номер клиента, который нужно кикнуть. №1: <Отменить>, №2: %S, №3: %S, №4: %S",
 	// 75
-	L"Команда #%d уничтожена.",
+	L"Команда %s уничтожена.",
 	L"Ошибка при запуске клиента. Завершение операции.",
 	L"Клиент отсоединился и закрыт.",
 	L"Клиент не запущен.",
 	L"INFO: If the game is stuck (the opponents progress bar is not moving), notify the server to press ALT + E to give the turn back to you!",	// TODO.Translate
+	// 80
+	L"AI's turn - %d left",		// TODO.Translate
 };
 
 STR16 gszMPEdgesText[] =

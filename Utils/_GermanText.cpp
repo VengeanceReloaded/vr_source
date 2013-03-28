@@ -2696,7 +2696,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Mit der Zahlung von %s einverstanden?",
 	L"Gratisbehandlung akzeptieren?",
-	L"Daryl heiraten?",
+	L"Agree to assist Dick?", // TODO.Translate
 	L"Schlüsselring",
 	L"Das ist mit einem EPC nicht möglich.",
 	L"Krott verschonen?",
@@ -3476,7 +3476,7 @@ STR16 pHistoryStrings[] =
 	L"Cheat benutzt",
 	L"Essen ist morgen in Omerta",
 	//21-25
-	L"%s heiratet Daryl Hick",
+	L"%s non-platonically assisted Babyface", // TODO.Translate
 	L"%ss Vertrag abgelaufen.",
 	L"%s rekrutiert.",
 	L"Enrico sieht kaum Fortschritte",
@@ -3516,7 +3516,7 @@ STR16 pHistoryStrings[] =
 	L"Spende von Reichem aus Balime bekommen.",
 	L"Schrotthändler Jake getroffen.",
 	L"Ein Depp hat uns eine Codekarte gegeben.",
-	L"Walter bestochen, damit er Keller öffnet.",
+	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
 	//56-60
 	L"Wenn Dave Sprit hat, bekommen wir's gratis.",
 	L"Pablo bestochen.",
@@ -5881,11 +5881,13 @@ STR16 MPClientMessage[] =
 	L"Überwachungsmodus wurde ausgeschaltet",
 	L"Wählen Sie den Client, der gekickt werden soll. #1: <Abbruch>, #2: %S, #3: %S, #4: %S",
 	// 75
-	L"Team #%d wurde vernichtet",
+	L"Team %s wurde vernichtet",
 	L"Client konnte nicht gestartet werden. Beendigung.",
 	L"Client Verbindung aufgelöst und heruntergefahren.",
 	L"Client läuft nicht.",
 	L"INFO: Falls das Spiel hängen bleibt (die Statusanzeige beim Gegnerischen Zug bewegt sich nicht), informieren Sie den Server, dass dieser ALT + E drücken soll, um Ihnen den Spielzug wieder zu geben!",
+	// 80
+	L"AI's turn - %d left",		// TODO.Translate
 };
 
 STR16 gszMPEdgesText[] =

@@ -639,6 +639,22 @@ void ChatCallback (UINT8 ubResult);
 void HandleClientConnectionLost();
 void disconnected_callback(UINT8 ubResult);
 
+//hayden - i need this for message references
+CHAR16 TeamNameStrings[][30] =
+{
+	L"You", // player's turn
+	L"AI",
+	L"Creature",
+	L"Militia",
+	L"Civilian",
+	L"Player_Plan",// planning turn
+	L"Client #1",//hayden
+	L"Client #2",//hayden
+	L"Client #3",//hayden
+	L"Client #4",//hayden
+
+};
+
 // OJW - 20081222
 void send_gameover( void );
 void StartScoreScreen(); // this screen will send us to the multiplayer score screen
@@ -989,7 +1005,8 @@ void recieveHIT(RPCParameters *rpcParameters)
 	{
 		INT8 bTeam=pSoldier->bTeam;
 		INT32 iBullet = bTable[bTeam][SWeaponHit->iBullet].local_id;
-				
+		
+		StopBullet( iBullet );
 		RemoveBullet(iBullet);
 
 		//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"removed bullet" );	
@@ -1915,12 +1932,20 @@ void recieveINTERRUPT (RPCParameters *rpcParameters)
 	INT_STRUCT* INT = (INT_STRUCT*)rpcParameters->input;
 	SOLDIERTYPE* pOpponent = MercPtrs[ INT->Interrupted];
 
-	if(INT->bTeam==netbTeam)//for us or AI
+	if(INT->bTeam == netbTeam || (is_server && INT->bTeam == 1))//its for us or we are server and its for AI which we control
 	{
-		INT->bTeam=0;
-		INT->ubID=INT->ubID - ubID_prefix;
+		
+		if(INT->bTeam == netbTeam){//for me
+			INT->bTeam=0;
+			INT->ubID=INT->ubID - ubID_prefix;
+			AddTopMessage( PLAYER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+		}else{//for ai
+			//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"starting ai" );
+			AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+		}
 
-		for(int i=0; i <= INT->gubOutOfTurnPersons; i++)
+
+		for(int i=0; i <= INT->gubOutOfTurnPersons; i++)//this loop translates soldier id's from what they are in someone else's game to what they are locally
 		{
 			if((INT->gubOutOfTurnOrder[i] >= ubID_prefix) && (INT->gubOutOfTurnOrder[i] < (ubID_prefix+6)))
 			{
@@ -1930,21 +1955,26 @@ void recieveINTERRUPT (RPCParameters *rpcParameters)
 		memcpy(gubOutOfTurnOrder,INT->gubOutOfTurnOrder, sizeof(UINT8) * MAXMERCS);
 		gubOutOfTurnPersons = INT->gubOutOfTurnPersons;
 
-		// AI has interrupted
-		if (INT->bTeam == 1)
-		{
-			//AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
-		}
-		else
-		{
-			AddTopMessage( PLAYER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
-		}
-	}
 
-	// WANNE - MP: This seems to cause the HANG on AI interrupt where we have to press ALT + E on the server!
-	if(	INT->bTeam != 0)
+		//AddTopMessage( PLAYER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+//		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Recieved interrupt between %s and %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );
+
+
+	
+		 //start interrupt turn //real interrupt code
+			SOLDIERTYPE* pSoldier = MercPtrs[ INT->ubID ];
+			ManSeesMan(pSoldier,pOpponent,pOpponent->sGridNo,pOpponent->pathing.bLevel,2,1);
+			StartInterrupt();
+	
+
+	}
+	else//its not for us, make faux interrupt look while it happens
 	{
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, MPClientMessage[17] );
+	//this following section starts the interrupt, either with faux interrupt look, or real interrupt code, or nothing if already there
+
+	//if(	INT->bTeam != 0)//not for our team - hayden
+	//{
+		
 		//stop moving merc who was interrupted and init UI bar
 		SOLDIERTYPE* pMerc = MercPtrs[ INT->ubID ];	
 		pMerc->HaultSoldierFromSighting(TRUE);
@@ -1952,28 +1982,18 @@ void recieveINTERRUPT (RPCParameters *rpcParameters)
 		InitEnemyUIBar( 0, 0 );
 		fInterfacePanelDirty = DIRTYLEVEL2;
 		gTacticalStatus.fInterruptOccurred = TRUE;
-	}
-	else
-	{
-		//it for us ! :)
-		if(INT->gubOutOfTurnPersons==0)//indicates finished interrupt maybe can just call end interrupt
-		{
-			//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"old int finish" );
-		}
-		else //start our interrupt turn
-		{
-			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, MPClientMessage[37] );
 
-			SOLDIERTYPE* pSoldier = MercPtrs[ INT->ubID ];
-			ManSeesMan(pSoldier,pOpponent,pOpponent->sGridNo,pOpponent->pathing.bLevel,2,1);
-			StartInterrupt();
-		}
+		AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+		//this needed to add details of who's interrupt it is - hayden
+		
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Recieved interrupt with %s and %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );//was MPClientMessage[17], can be reconnected if text updated and translated
 	}
+
 }
 
 void intAI (SOLDIERTYPE *pSoldier )
 {
-	ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, MPClientMessage[17] );
+	//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"intAI with %s", TeamNameStrings[pSoldier->bTeam] );//was MPClientMessage[17], can be reconnected if text updated and translated
 	AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ pSoldier->bTeam ] );
 	gTacticalStatus.fInterruptOccurred = TRUE;		
 }
@@ -2334,8 +2354,8 @@ void recieveSETTINGS (RPCParameters *rpcParameters) //recive settings from serve
 		cDamageMultiplier=cl_lan->damageMultiplier;
 		cSameMercAllowed=cl_lan->sameMercAllowed;
 		
-		gsMercArriveSectorX=cl_lan->gsMercArriveSectorX;
-		gsMercArriveSectorY=cl_lan->gsMercArriveSectorY;
+		gsMercArriveSectorX = gGameExternalOptions.ubDefaultArrivalSectorX = cl_lan->gsMercArriveSectorX;
+		gsMercArriveSectorY = gGameExternalOptions.ubDefaultArrivalSectorY = cl_lan->gsMercArriveSectorY;
 
 		// WANNE - BMP: We have to initialize the map size here!!
 		InitializeWorldSize(gsMercArriveSectorX, gsMercArriveSectorY, 0);
@@ -2551,8 +2571,8 @@ void reapplySETTINGS()
 	gMercProfiles[ 68 ].sSalary = 2200; //iggy;
 
 	// Stuff from recieveSETTINGS
-	gsMercArriveSectorX=gMPServerSettings.gsMercArriveSectorX;
-	gsMercArriveSectorY=gMPServerSettings.gsMercArriveSectorY;
+	gsMercArriveSectorX = gGameExternalOptions.ubDefaultArrivalSectorX = gMPServerSettings.gsMercArriveSectorX;
+	gsMercArriveSectorY = gGameExternalOptions.ubDefaultArrivalSectorY = gMPServerSettings.gsMercArriveSectorY;
 
 	cGameType=gMPServerSettings.gameType;
 	cDisableMorale=gMPServerSettings.disableMorale;
@@ -2757,8 +2777,8 @@ void recieveMAPCHANGE( RPCParameters *rpcParameters )
 	else
 	{
 		// copy new map settings locally
-		gsMercArriveSectorX=cl_lan->gsMercArriveSectorX;
-		gsMercArriveSectorY=cl_lan->gsMercArriveSectorY;
+		gsMercArriveSectorX = gGameExternalOptions.ubDefaultArrivalSectorX = cl_lan->gsMercArriveSectorX;
+		gsMercArriveSectorY = gGameExternalOptions.ubDefaultArrivalSectorY = cl_lan->gsMercArriveSectorY;
 
 		ChangeSelectedMapSector( gsMercArriveSectorX, gsMercArriveSectorY, 0 );
 
@@ -4530,7 +4550,7 @@ void teamwiped ( void )
 void recieve_wipe (RPCParameters *rpcParameters)
 {
 	sc_struct* data = (sc_struct*)rpcParameters->input;
-	ScreenMsg( FONT_LTGREEN, MSG_INTERFACE, MPClientMessage[75], data->ubStartingTeam );
+	ScreenMsg( FONT_LTGREEN, MSG_INTERFACE, MPClientMessage[75], TeamNameStrings[data->ubStartingTeam] );
 	if(is_server)
 	{
 		if(gTacticalStatus.ubCurrentTeam==data->ubStartingTeam)EndTurn( data->ubStartingTeam+1 );	

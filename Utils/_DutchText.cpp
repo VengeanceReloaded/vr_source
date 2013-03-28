@@ -2689,7 +2689,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Ben je het eens met %s?",					// L"Do you agree to pay %s?",
 	L"Wil je kostenloze medische hulp?",			// L"Accept free medical treatment?",
-	L"Wil je trouwen met Daryl?",					// L"Agree to marry Daryl?",
+	L"Agree to assist Dick?", // TODO.Translate
 	L"Slot Ring Paneel",						// L"Key Ring Panel",
 	L"Dat kan niet met een EPC.",					// L"You cannot do that with an EPC.",
 	L"Krott sparen?",							// L"Spare Krott?",
@@ -3518,7 +3518,7 @@ STR16 pHistoryStrings[] =
 	L"Vals gespeeld",								// ("Cheat Used")
 	L"Voedsel zou morgen in Omerta moeten zijn",			// ("Food should be in Omerta by tomorrow")
 	//21-25
-	L"%s weggegaan, wordt Daryl Hick's vrouw",			// ("%s left team to become Daryl Hick's wife")
+	L"%s non-platonically assisted Babyface", // TODO.Translate
 	L"%s's contract afgelopen.",						// ("%s's contract expired.")
 	L"%s aangenomen.",							// ("%s was recruited.")
 	L"Enrico klaagde over de voortgang",				// ("Enrico complained about lack of progress")
@@ -3558,7 +3558,7 @@ STR16 pHistoryStrings[] =
 	L"Van rijke vent in Balime donatie gekregen.",			// ("Received donation from rich guy in Balime.")
 	L"Schroothandelaar Jake ontmoet.",					// ("Met a junkyard dealer named Jake.")
 	L"Vaag iemand gaf ons elektronische sleutelkaart.",		// ("Some bum gave us an electronic keycard.")
-	L"Walter omgekocht om kelderdeur open te maken.",		// ("Bribed Walter to unlock the door to the basement.")
+	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
 	//56-60
 	L"Als Dave gas heeft, geeft hij deze weg.",			// ("If Dave has gas, he'll provide free fillups.")
 	L"Geslijmd met Pablo.",							// ("Greased Pablo's palms.")
@@ -6046,11 +6046,13 @@ STR16 MPClientMessage[] =
 	L"Spectator mode disabled",
 	L"Choose client to kick from game. #1: <Cancel>, #2: %S, #3: %S, #4: %S",
 	// 75
-	L"Team #%d is wiped out.",
+	L"Team %s is wiped out.",
 	L"Client failed to start. Terminating.",
 	L"Client disconnected and shutdown.",
 	L"Client is not running.",
 	L"INFO: If the game is stuck (the opponents progress bar is not moving), notify the server to press ALT + E to give the turn back to you!",	// TODO.Translate
+	// 80
+	L"AI's turn - %d left",		// TODO.Translate
 };
 
 STR16 gszMPEdgesText[] =

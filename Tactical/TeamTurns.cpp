@@ -1017,7 +1017,7 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 	{
 		if ( pTempSoldier->bActive && pTempSoldier->bInSector && !pTempSoldier->aiData.bMoved && (pTempSoldier->bActionPoints == pTempSoldier->aiData.bIntStartAPs))
 		{
-			ubMinAPsToAttack = MinAPsToAttack( pTempSoldier, pTempSoldier->sLastTarget, FALSE );
+			ubMinAPsToAttack = MinAPsToAttack( pTempSoldier, pTempSoldier->sLastTarget, FALSE, 0 );
 			if ( (ubMinAPsToAttack <= pTempSoldier->bActionPoints) && (ubMinAPsToAttack > 0) )
 			{
 				pTempSoldier->aiData.bPassedLastInterrupt = TRUE;
@@ -1044,18 +1044,24 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 			nubFirstInterrupter = LATEST_INTERRUPT_GUY;
 			npSoldier = MercPtrs[nubFirstInterrupter];
 			nbTeam = npSoldier->bTeam;
+				
+			//pSoldier is interrupted //but its not available //needs calculating
+			//npSoldier,nbTeam is interruptor
+			//hayden
 
 #ifdef BETAVERSION
 			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"unchecked interrupt call area:(resume interrupted interrupt)...");
 #endif
-		
-			if ((nbTeam > 0) && (nbTeam <6 ) && is_server) //is AI and are server
+			// INTERRUPT is calculated on the server who controls AI
+			if (0)//(nbTeam > 0) && (nbTeam <6 ) && is_server) //the AI had interrupted someone //experiment with 0 as with doneaddindtointlist func
 			{
 				send_interrupt( npSoldier );
 				StartInterrupt();
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Continuing interrupt with %s and AI", TeamNameStrings[npSoldier->bTeam]);//tried to use pSoldier, but its not available. find another way to get correct team
 
 			}
-			else if(is_server && gTacticalStatus.ubCurrentTeam == 1)//  against ai
+			// INTERRUPT is calculated on the server who controls AI
+			else if(is_server && gTacticalStatus.ubCurrentTeam == 1)//its AI's turn (it got interrupted)
 			{
 				//hayden
 				send_interrupt( npSoldier );
@@ -1065,13 +1071,15 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 				else 
 					StartInterrupt();					
 				
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"AI is interrupted");
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Continuing interrupt of AI by %s", TeamNameStrings[npSoldier->bTeam]);
+
 			}
-			else
+			else if(gTacticalStatus.ubCurrentTeam == 0)//its our turn//else// pure client awarding interrupt resume //its our turn
 			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"interrupt for another team"); //may need more work.
+				
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Continuing interrupt with %s", TeamNameStrings[npSoldier->bTeam]);//this can be simplified if above comment is implemented
 				//ClearIntList();
-				//hayden
+				//hayden//may need more work.
 				StartInterrupt();
 				send_interrupt( npSoldier ); //
 			}
@@ -1110,6 +1118,7 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 
 		// change team
 		gTacticalStatus.ubCurrentTeam	= pSoldier->bTeam;
+
 		// switch appropriate messages & flags
 		if ( pSoldier->bTeam == OUR_TEAM)
 		{
@@ -1202,6 +1211,9 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 				// normal player's turn without readjusting time left in turn (for
 				// timed turns)
 				InitPlayerUIBar( 2 );
+				
+				// SANDRO - shouldn't we unset ui here too?
+				UnSetUIBusy( pSoldier->ubID );
 			}
 
 		}
@@ -1270,14 +1282,14 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 				}
 
 				// Signal UI done enemy's turn
-					if(is_client)
-	{
-		guiPendingOverrideEvent = LA_BEGINUIOURTURNLOCK;
-	}
-	else 
-	{
-		guiPendingOverrideEvent = LU_BEGINUILOCK;
-	}
+				if(is_client)
+				{
+					guiPendingOverrideEvent = LA_BEGINUIOURTURNLOCK;
+				}
+				else 
+				{
+					guiPendingOverrideEvent = LU_BEGINUILOCK;
+				}
 
 				ClearIntList();
 			}
@@ -1331,6 +1343,22 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 		fInterfacePanelDirty = DIRTYLEVEL2;
 
 	}
+
+#ifdef USE_HIGHSPEED_GAMELOOP_TIMER
+	if ( gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE] )
+	{
+		if (is_networked)
+		{
+			// Only allow fast forward mode on enemy team!
+			SetFastForwardMode( (gTacticalStatus.ubCurrentTeam == ENEMY_TEAM) );
+		}
+		else
+		{
+			// Allow fast forward mode on all teams except our team!
+			SetFastForwardMode( (gTacticalStatus.ubCurrentTeam != OUR_TEAM) );
+		}	
+	}
+#endif
 }
 
 
@@ -2107,11 +2135,15 @@ void DoneAddingToIntList( SOLDIERTYPE * pSoldier, BOOLEAN fChange, UINT8 ubInter
 				nubFirstInterrupter = LATEST_INTERRUPT_GUY;
 				npSoldier = MercPtrs[nubFirstInterrupter];
 				nbTeam = npSoldier->bTeam;
-								
-				// INTERRUPT is calculated on the server
-				if ((nbTeam > 0) && (nbTeam <6 ) && is_server) //is for AI and are server
-				{
-					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"interrupt for AI team");
+
+				//pSoldier is interrupted
+				//npSoldier is interruptor
+				//hayden
+
+				// INTERRUPT is calculated on the server who controls AI
+				if (0)//((nbTeam > 0) && (nbTeam <6 ) && is_server) //the AI has interrupted someone//made this 0 as interrupt should only be calculated by person whos turn it is
+				{ 
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Interrupt calculated between %s and AI", TeamNameStrings[pSoldier->bTeam]);
 					
 					// Only display the top message if we (the server) got interrupted
 					if (pSoldier->bTeam == 0)
@@ -2121,8 +2153,8 @@ void DoneAddingToIntList( SOLDIERTYPE * pSoldier, BOOLEAN fChange, UINT8 ubInter
 					StartInterrupt();
 
 				}
-				// INTERRUPT is calculated on the server
-				else if(is_server && gTacticalStatus.ubCurrentTeam == 1)//  against ai
+				// INTERRUPT is calculated on the server who controls AI
+				else if(is_server && gTacticalStatus.ubCurrentTeam == 1)//the AI has been interrupted
 				{
 					//hayden
 					send_interrupt( npSoldier ); //
@@ -2131,15 +2163,14 @@ void DoneAddingToIntList( SOLDIERTYPE * pSoldier, BOOLEAN fChange, UINT8 ubInter
 					else 
 						StartInterrupt();//
 					
-					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"AI is interrupted");
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Interrupt calculated with AI and %s", TeamNameStrings[npSoldier->bTeam]);
 				}
-				// INTERRUPT is calculated on the pure client
-				else if(gTacticalStatus.ubCurrentTeam == 0)//its our turn (we are moving)
-				{																	
-					ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, MPClientMessage[79]);
+				// INTERRUPT is calculated on the pure client or server
+				else if(gTacticalStatus.ubCurrentTeam == 0)//its our turn
+				{
+					//ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, MPClientMessage[79]);
 
 					send_interrupt( npSoldier );
-
 
 					SOLDIERTYPE* pMerc = MercPtrs[ gusSelectedSoldier ];
 					//AdjustNoAPToFinishMove( pMerc, TRUE );	
@@ -2149,7 +2180,9 @@ void DoneAddingToIntList( SOLDIERTYPE * pSoldier, BOOLEAN fChange, UINT8 ubInter
 					InitEnemyUIBar( 0, 0 );
 					fInterfacePanelDirty = DIRTYLEVEL2;
 					AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ nbTeam ] );
-					gTacticalStatus.fInterruptOccurred = TRUE;						
+					gTacticalStatus.fInterruptOccurred = TRUE;
+
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Interrupt calculated against You by %s", TeamNameStrings[npSoldier->bTeam]);
 				}
 				else
 				{

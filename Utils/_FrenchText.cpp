@@ -2691,7 +2691,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Etes-vous d'accord pour payer %s ?",
 	L"Acceptez-vous le traitement médical gratuit ?",
-	L"Voulez-vous épouser Daryl ?",
+	L"Agree to assist Dick?", // TODO.Translate
 	L"Trousseau de Clés",
 	L"Vous ne pouvez pas faire ça avec ce personnage.",
 	L"Epargner Krott ?",
@@ -3523,7 +3523,7 @@ STR16 pHistoryStrings[] =
 	L"Activation du mode triche",
 	L"Le ravitaillement devrait arriver demain à Omerta",
 	//21-25
-	L"%s a quitté l'escouade pour épouser Daryl Hick",
+	L"%s non-platonically assisted Babyface", // TODO.Translate
 	L"Expiration du contrat de %s.",
 	L"Recrutement de %s.",
 	L"Plainte d'Enrico pour manque de résultats",
@@ -3563,7 +3563,7 @@ STR16 pHistoryStrings[] =
 	L"Don provenant d'un homme influent de Balime.",
 	L"Rencontre avec Jake, vendeur de pièces détachées.",
 	L"Clé électronique reçue.",
-	L"Corruption de Walter pour ouvrir l'accès aux sous-sols.",
+	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
 	//56-60
 	L"Dave refait gratuitement le plein s'il a du carburant.",
 	L"Pot-de-vin donné à Pablo.",
@@ -6044,11 +6044,13 @@ STR16 MPClientMessage[] =
 	L"Mode spectateur désactivé",
 	L"Choisir le numéro du client a kické :",
 	// 75
-	L"La team #%d a été anéantie.",
+	L"La team %s a été anéantie.",
 	L"Le client n'as pas réussi à démarrer. Terminé.",
 	L"Le client s'est déconnecté et s'est fermé.",
 	L"Le client n'est pas démarré.",
 	L"INFO: Si le jeu est bloqué (la barre de progression des adversaires ne se déplace pas), notifier le au serveur en appuyant sur ALT + E pour aller directement à votre tour de jeu !",
+	// 80
+	L"AI's turn - %d left",		// TODO.Translate
 };
 
 STR16 gszMPEdgesText[] =
