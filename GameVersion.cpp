@@ -29,7 +29,7 @@ CHAR16 zVersionLabel[256]		= { L"Beta v. 0.98" };
 	CHAR16		zVersionLabel[256]		= { L"Vengeance: Reloaded 1.13.4870+ (no asserts)" };
 #endif
 										
-CHAR8		czVersionNumber[16]	= { "Build 12.09.21" };		//YY.MM.DD
+CHAR8		czVersionNumber[16]	= { "Build 13.03.28" };		//YY.MM.DD
 CHAR16		zTrackingNumber[16]	= { L"Z" };
 	
 
