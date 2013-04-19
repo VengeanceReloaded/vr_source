@@ -3541,7 +3541,7 @@ STR16 pHistoryStrings[] =
 	L"Frank talked about fighting matches in San Mona.",
 	L"A patient thinks he saw something in the mines.",
 	//36-40
-	L"Met someone named Devin - he sells explosives.",
+	L"Met someone named TNT - he sells explosives.",
 	L"Ran into the famous ex-AIM merc Mike!",
 	L"Met Tony - he deals in arms.",
 	L"Got a rocket rifle from Sergeant Krott.",
