@@ -2893,7 +2893,8 @@ STR16 pwMineStrings[] =
 	L"Тип руды",				// 10
 	L"Принадлежность",
 	L"Лояльность",
-//	L"Работ.шахтеры",
+	L"Oil Rig", // TODO.Translate
+//	L"Работ.шахтеры",			// 15
 };
 
 // blank sector strings

@@ -5076,8 +5076,16 @@ void BlitMineText( INT16 sMapX, INT16 sMapY )
 
 	ubMineIndex = GetMineIndexForSector( sMapX, sMapY );
 
-	// display associated town name, followed by "mine"
-	swprintf( wString, L"%s %s", pTownNames[ GetTownAssociatedWithMine( GetMineIndexForSector( sMapX, sMapY ) ) ],  pwMineStrings[ 0 ] );
+	if ( ubMineIndex < 3 )
+	{
+		// display associated town name, followed by "mine"
+		swprintf( wString, L"%s %s", pTownNames[ GetTownAssociatedWithMine( GetMineIndexForSector( sMapX, sMapY ) ) ],  pwMineStrings[ 0 ] );
+	}
+	else
+	{
+		// display associated town name, followed by "oil rig"
+		swprintf( wString, L"%s %s", pTownNames[ GetTownAssociatedWithMine( GetMineIndexForSector( sMapX, sMapY ) ) ],  pwMineStrings[ 14 ] );
+	}
 	AdjustXForLeftMapEdge(wString, &sScreenX);
 	//mprintf( ( sScreenX - StringPixLength( wString, MAP_FONT ) / 2 ) , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );
 	mprintf( sScreenX , sScreenY + ubLineCnt * GetFontHeight( MAP_FONT ) , wString );	// left align

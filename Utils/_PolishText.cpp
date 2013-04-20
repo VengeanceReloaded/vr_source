@@ -2895,7 +2895,8 @@ STR16 pwMineStrings[] =
 	L"Typ złoża",				// 10
 	L"Kontrola miasta",
 	L"LojalnoŚć miasta",
-//	L"Górnicy",
+	L"Oil Rig", // TODO.Translate
+//	L"Górnicy",					// 15
 };
 
 // blank sector strings

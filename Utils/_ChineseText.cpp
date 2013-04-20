@@ -2894,7 +2894,8 @@ STR16 pwMineStrings[] =
 	L"矿石类型",			// 10
 	L"占领度",
 	L"忠诚度",
-//	L"在岗矿工",
+	L"Oil Rig", // TODO.Translate
+//	L"在岗矿工",			// 15
 };
 
 // blank sector strings

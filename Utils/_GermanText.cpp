@@ -2889,7 +2889,8 @@ STR16 pwMineStrings[] =
 	L"Erzart",				// 10
 	L"Kontrolle über Stadt",
 	L"Loyalität der Stadt",
-//	L"Minenarbeiter",
+	L"Oil Rig", // TODO.Translate
+//	L"Minenarbeiter",		// 15
 };
 
 // blank sector strings

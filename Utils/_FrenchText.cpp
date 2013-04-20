@@ -2893,7 +2893,8 @@ STR16 pwMineStrings[] =
 	L"Type de minerai",				// 10
 	L"Contrôle de la ville",
 	L"Loyauté de la ville",
-//	L"Mineurs au travail",
+	L"Oil Rig", // TODO.Translate
+//	L"Mineurs au travail",			// 15
 };
 
 // blank sector strings

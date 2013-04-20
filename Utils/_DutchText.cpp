@@ -2891,7 +2891,8 @@ STR16 pwMineStrings[] =
 	L"Ertstype",				// 10
 	L"Gezag Dorp",
 	L"Loyaliteit Dorp",
-//	L"Mijnwerkers",
+	L"Oil Rig", // TODO.Translate
+//	L"Mijnwerkers",				// 15
 };
 
 // blank sector strings

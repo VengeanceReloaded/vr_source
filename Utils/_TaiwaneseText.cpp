@@ -2895,7 +2895,8 @@ STR16 pwMineStrings[] =
 	L"Ore Type",				// 10
 	L"Town Control",
 	L"Town Loyalty",
-//	L"Working Miners",
+	L"Oil Rig",
+//	L"Working Miners",			// 15
 };
 
 // blank sector strings

@@ -2444,34 +2444,15 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 				if ( fCtrl )
 				{
-#ifdef GERMAN
 					if ( gubCheatLevel == 3 )
 					{
 						gubCheatLevel++;
 						fGoodCheatLevelKey = TRUE;
 					}
-					else if ( gubCheatLevel == 5 )
-					{
-						gubCheatLevel++;
-						// ATE; We're done.... start cheat mode....
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_TWO ] );
-						SetHistoryFact( HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), -1, -1 );
-					}
 					else
 					{
 						RESET_CHEAT_LEVEL();
 					}
-#else
-					if ( gubCheatLevel == 1 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#endif
 				}
 				else if ( fAlt )
 				{
@@ -2741,37 +2722,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-#ifndef GERMAN
-					if ( gubCheatLevel == 2 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else if ( gubCheatLevel == 3 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else if ( gubCheatLevel == 5 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL( );
-					}
-#else
-					if ( gubCheatLevel == 6 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL( );
-					}
-#endif
 					//gGameSettings.fOptions[ TOPTION_HIDE_BULLETS ] ^= TRUE;
 				}
 				else
@@ -2813,9 +2763,14 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-					if ( CHEATER_CHEAT_LEVEL( ) )
+					if ( gubCheatLevel == 0 )
 					{
-						ToggleCliffDebug();
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+					}
+					else
+					{
+						RESET_CHEAT_LEVEL();
 					}
 				}
 				else
@@ -2825,7 +2780,15 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				break;
 
 			case 'C':
-				ToggleEnemyView();
+				if( fCtrl )
+				{
+					if ( CHEATER_CHEAT_LEVEL( ) )
+					{
+						ToggleCliffDebug();
+					}
+				}
+				else
+					ToggleEnemyView();
 				break;
 			case 'd':
 				if( gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT )
@@ -2879,12 +2842,27 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 						ToggleViewAllItems();
 					}
 				}
-#ifdef JA2BETAVERSION
+
 				else if( fCtrl )
 				{
-					ToggleMapEdgepoints();
-				}
+					if ( gubCheatLevel == 2 )
+					{
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+					}
+					else if ( gubCheatLevel == 5 )
+					{
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+					}
+					else
+					{
+						RESET_CHEAT_LEVEL();
+#ifdef JA2BETAVERSION
+						ToggleMapEdgepoints();
 #endif
+					}
+				}
 				else
 				{
 					SOLDIERTYPE *pSoldier;
@@ -3055,27 +3033,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 				if( fCtrl )
 				{
-#ifdef GERMAN
-					if ( gubCheatLevel == 1 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#else
-					if ( gubCheatLevel == 0 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#endif
 				}
 				else if ( fAlt )
 				{
@@ -3112,6 +3069,15 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 					{
 						*puiNewEvent = I_TESTHIT;
 					}
+					else if ( gubCheatLevel == 1 )
+					{
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+					}
+					else
+					{
+						RESET_CHEAT_LEVEL();
+					}
 				}
 				else
 				{
@@ -3147,26 +3113,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-#ifdef GERMAN
-					if ( gubCheatLevel == 0 )
-					{
-						fGoodCheatLevelKey = TRUE;
-						gubCheatLevel++;
-					}
-#else
-					if ( gubCheatLevel == 4 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-						// ATE; We're done.... start cheat mode....
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_TWO ] );
-						SetHistoryFact( HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), -1, -1 );
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#endif
 				}
 				else
 				{
@@ -3557,22 +3503,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-#ifdef GERMAN
-					if ( gubCheatLevel == 4 )
-					{
-						fGoodCheatLevelKey = TRUE;
-						gubCheatLevel++;
-#if 0
-						// ATE: Level one reached.....
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_ONE ] );
-#endif
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#endif
-
 #if 0
 					if ( INFORMATION_CHEAT_LEVEL( ) )
 					{
@@ -3777,19 +3707,28 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 
 			case 'r':
-				if( gusSelectedSoldier != NOBODY )
+				if( fCtrl )
+					{
+						if ( gubCheatLevel == 6 )
+						{
+							gubCheatLevel++;
+							fGoodCheatLevelKey = TRUE;
+							// ATE; We're done.... start cheat mode....
+							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_TWO ] );
+							SetHistoryFact( HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), -1, -1 );
+						}
+						else
+						{
+							RESET_CHEAT_LEVEL();
+						}
+					}				
+				else if( gusSelectedSoldier != NOBODY )
 				{
 					if( fAlt ) //reload selected merc's weapon
 					{
 						if ( CHEATER_CHEAT_LEVEL( ) )
 						{
 							ReloadWeapon( MercPtrs[ gusSelectedSoldier ], MercPtrs[ gusSelectedSoldier ]->ubAttackingHand );
-						}
-					}
-					else if( fCtrl )
-					{
-						if ( INFORMATION_CHEAT_LEVEL( ) )
-						{
 						}
 					}
 					else
@@ -3893,6 +3832,15 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 						//EnterCombatMode( gbPlayerNum );
 					}
+					else if ( gubCheatLevel == 4 )
+					{
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+					}
+					else
+					{
+						RESET_CHEAT_LEVEL();
+					}
 				}
 				else
 					ToggleTreeTops();
@@ -3969,18 +3917,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				{
 					INT32 cnt;
 					SOLDIERTYPE *pSoldier;
-
-#ifdef GERMAN
-					if ( gubCheatLevel == 2 )
-					{
-						fGoodCheatLevelKey = TRUE;
-						gubCheatLevel++;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#endif
 
 					if ( CHEATER_CHEAT_LEVEL( ) && gusSelectedSoldier != NOBODY )
 					{
@@ -4248,17 +4184,11 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 			}
 
-#ifdef GERMAN
-			if ( !fGoodCheatLevelKey && gubCheatLevel < 5 )
+
+			if ( !fGoodCheatLevelKey && gubCheatLevel < 6 )
 			{
 				RESET_CHEAT_LEVEL( );
 			}
-#else
-			if ( !fGoodCheatLevelKey && gubCheatLevel < 4 )
-			{
-				RESET_CHEAT_LEVEL( );
-			}
-#endif
 
 		}
 	}

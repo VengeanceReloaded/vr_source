@@ -389,8 +389,16 @@ void AddTextToMineBox( void )
 
 	ubMineIndex = GetMineIndexForSector( bCurrentTownMineSectorX, bCurrentTownMineSectorY );
 
-	// name of town followed by "mine"
-	swprintf( wString, L"%s %s", pTownNames[ GetTownAssociatedWithMine( ubMineIndex ) ], pwMineStrings[ 0 ] );
+	if ( ubMineIndex < 3 )
+	{
+		// name of town followed by "mine"
+		swprintf( wString, L"%s %s", pTownNames[ GetTownAssociatedWithMine( ubMineIndex ) ], pwMineStrings[ 0 ] );
+	}
+	else
+	{
+		// name of town followed by "oil rig"
+		swprintf( wString, L"%s %s", pTownNames[ GetTownAssociatedWithMine( ubMineIndex ) ], pwMineStrings[ 14 ] );
+	}
 	AddMonoString( &hStringHandle, wString );
 
 	// blank line
@@ -485,7 +493,7 @@ void AddTextToMineBox( void )
 
 /* gradual monster infestation concept was ditched, now simply IN PRODUCTION or SHUT DOWN
 		// percentage of miners working
-		swprintf( wString, L"%s:", pwMineStrings[ 14 ]);
+		swprintf( wString, L"%s:", pwMineStrings[ 15 ]);
 		AddMonoString( &hStringHandle, wString );
 		swprintf( wString, L"%d%%%%", gubMonsterMineInfestation[ gMineStatus[ ubMineIndex ].bMonsters ]);
 		AddSecondColumnMonoString( &hStringHandle, wString );
