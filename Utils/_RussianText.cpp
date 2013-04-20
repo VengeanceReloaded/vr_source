@@ -3538,7 +3538,7 @@ STR16 pHistoryStrings[] =
 	L"Фрэнк говорил что-то о боях в Сан-Моне.",
 	L"Пациенту кажется, что он что-то видел в шахтах.",
 	//36-40
-	L"Встретили Дэвина - торговца взрывчаткой.",
+	L"Met someone named TNT - he sells explosives.", // TODO.Translate
 	L"Пересеклись с бывшим наемником A.I.M., Майком!", 
 	L"Встретили Тони, торговца оружием.",
 	L"Получена ракетная винтовка от сержанта Кротта.",
@@ -3546,18 +3546,18 @@ STR16 pHistoryStrings[] =
 	//41-45
 	L"Шиз предлагает построить робота.",	//может, собрать робота?
 	L"Болтун может сделать варево, обманывающее жуков.",
-	L"Кит отошел от дел.",
+	L"Hank is out of business.", // TODO.Translate
 	L"Говард поставлял цианиды Дейдране.",
-	L"Встретили торговца Кита из Камбрии.",
+	L"Met Hank - all purpose dealer in Salinas.", // TODO.Translate
 	//46-50
-	L"Встретили Говарда, фармацевта из Балайма.",
+	L"Met Howard - deals pharmaceuticals in Malino.", // TODO.Translate
 	L"Встретили Перко. Он держит небольшую мастерскую.",
-	L"Встретили Сэма из Балайма. Он торгует железками.",
+	L"Met Sam of Malino - runs a hardware shop.", // TODO.Translate
 	L"Франц разбирается в электронике и других вещах.",
-	L"Арнольд держит мастерскую в Граме.",
+	L"Arnold runs a repair shop in Doran.", // TODO.Translate
 	//51-55
-	L"Фредо из Грама чинит электронику.",
-	L"Один богатей из Балайма дал вам денег.",
+	L"Fredo repairs electronics in Doran.", // TODO.Translate
+	L"Received donation from rich guy in Malino.", // TODO.Translate
 	L"Встретили старьевщика Джейка.",
 	L"Один бродяга дал нам электронную карточку.",
 	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate

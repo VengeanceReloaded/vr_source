@@ -3531,7 +3531,7 @@ STR16 pHistoryStrings[] =
 	L"Frank ha parlato di scontri a San Mona.",
 	L"Un paziente pensa che lui abbia visto qualcosa nella miniera.",
 	//36-40
-	L"Incontrato qualcuno di nome Devin - vende esplosivi.",
+	L"Incontrato qualcuno di nome TNT - vende esplosivi.",
 	L"Imbattutosi nel famoso ex-mercenario dell'A.I.M. Mike!",
 	L"Incontrato Tony - si occupa di armi.",
 	L"Preso un lanciamissili dal Sergente Krott.",
@@ -3539,18 +3539,18 @@ STR16 pHistoryStrings[] =
 	//41-45
 	L"Madlab ha proposto di costruire un robot.",
 	L"Gabby può effettuare operazioni di sabotaggio contro sistemi d'allarme.",
-	L"Keith è fuori dall'affare.",
+	L"Hank è fuori dall'affare.",
 	L"Howard ha fornito cianuro alla regina Deidranna.",
-	L"Incontrato Keith - si occupa di un po' di tutto a Cambria.",
+	L"Incontrato Hank - si occupa di un po' di tutto a Salinas.",
 	//46-50
-	L"Incontrato Howard - si occupa di farmaceutica a Balime",
+	L"Incontrato Howard - si occupa di farmaceutica a Malino",
 	L"Incontrato Perko - conduce una piccola impresa di riparazioni.",
-	L"Incontrato Sam di Balime - ha un negozio di hardware.",
+	L"Incontrato Sam di Malino - ha un negozio di hardware.",
 	L"Franz si occupa di elettronica e altro.",
-	L"Arnold possiede un'impresa di riparazioni a Grumm.",
+	L"Arnold possiede un'impresa di riparazioni a Doran.",
 	//51-55
-	L"Fredo si occupa di elettronica a Grumm.",
-	L"Donazione ricevuta da un ricco ragazzo a Balime.",
+	L"Fredo si occupa di elettronica a Doran.",
+	L"Donazione ricevuta da un ricco ragazzo a Malino.",
 	L"Incontrato un rivenditore di un deposito di robivecchi di nome Jake.",
 	L"Alcuni vagabondi ci hanno dato una scheda elettronica.",
 	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate

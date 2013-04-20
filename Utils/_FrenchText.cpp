@@ -3541,7 +3541,7 @@ STR16 pHistoryStrings[] =
 	L"Frank parle de combats organisés à San Mona.",
 	L"Un témoin pense avoir aperçu quelque chose dans les mines.",
 	//36-40
-	L"Rencontre avec Devin - vend des explosifs.",
+	L"Rencontre avec TNT - vend des explosifs.",
 	L"Rencontre avec Mike, le fameux ex-mercenaire de l'AIM !",
 	L"Rencontre avec Tony - vend des armes.",
 	L"Fusil à roquettes récupéré auprès du Sergent Krott.",
@@ -3549,18 +3549,18 @@ STR16 pHistoryStrings[] =
 	//41-45
 	L"Madlab propose de construire un robot.",
 	L"Gabby fait des décoctions rendant invisible aux créatures.",
-	L"Keith est hors-jeu.",
+	L"Hank est hors-jeu.",
 	L"Howard fournit du cyanure à la Reine Deidranna.",
-	L"Rencontre avec Keith - vendeur à Cambria.",
+	L"Rencontre avec Hank - vendeur à Salinas.",
 	//46-50
-	L"Rencontre avec Howard - pharmacien à Balime",
+	L"Rencontre avec Howard - pharmacien à Malino",
 	L"Rencontre avec Perko - réparateur en tous genres.",
-	L"Rencontre avec Sam de Balime - vendeur de matériel.",
+	L"Rencontre avec Sam de Malino - vendeur de matériel.",
 	L"Franz vend du matériel électronique.",
-	L"Arnold tient un magasin de réparations à Grumm.",
+	L"Arnold tient un magasin de réparations à Doran.",
 	//51-55
-	L"Fredo répare le matériel électronique à Grumm.",
-	L"Don provenant d'un homme influent de Balime.",
+	L"Fredo répare le matériel électronique à Doran.",
+	L"Don provenant d'un homme influent de Malino.",
 	L"Rencontre avec Jake, vendeur de pièces détachées.",
 	L"Clé électronique reçue.",
 	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate

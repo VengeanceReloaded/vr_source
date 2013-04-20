@@ -3542,7 +3542,7 @@ STR16 pHistoryStrings[] =
 	L"Frank opowiedział o walkach w San Monie.",
 	L"Pewien pacjent twierdzi, że widział coŚ w kopalni.",
 	//36-40
-	L"GoŚć o imieniu Devin sprzedaje materiały wybuchowe.",
+	L"GoŚć o imieniu TNT sprzedaje materiały wybuchowe.",
 	L"Spotkanie ze sławynm eks-najemnikiem A.I.M. - Mike'iem!",
 	L"Tony handluje bronią.",
 	L"Otrzymano karabin rakietowy od sierżanta Krotta.",
@@ -3550,18 +3550,18 @@ STR16 pHistoryStrings[] =
 	//41-45
 	L"Madlab zaoferował się zbudować robota.",
 	L"Gabby potrafi zrobić miksturę chroniącą przed robakami.",
-	L"Keith wypadł z interesu.",
+	L"Hank wypadł z interesu.",
 	L"Howard dostarczał cyjanek królowej Deidrannie.",
-	L"Spotkanie z handlarzem Keithem w Cambrii.",
+	L"Spotkanie z handlarzem Hank w Salinas.",
 	//46-50
-	L"Spotkanie z aptekarzem Howardem w Balime",
+	L"Spotkanie z aptekarzem Howardem w Malino",
 	L"Spotkanie z Perko, prowadzącym mały warsztat.",
-	L"Spotkanie z Samem z Balime - prowadzi sklep z narzędziami.",
+	L"Spotkanie z Samem z Malino - prowadzi sklep z narzędziami.",
 	L"Franz handluje sprzętem elektronicznym.",
-	L"Arnold prowadzi warsztat w Grumm.",
+	L"Arnold prowadzi warsztat w Doran.",
 	//51-55
-	L"Fredo naprawia sprzęt elektroniczny w Grumm.",
-	L"Otrzymano darowiznę od bogatego goŚcia w Balime.",
+	L"Fredo naprawia sprzęt elektroniczny w Doran.",
+	L"Otrzymano darowiznę od bogatego goŚcia w Malino.",
 	L"Spotkano Jake'a, który prowadzi złomowisko.",
 	L"JakiŚ włóczęga dał nam elektroniczną kartę dostępu.",
 	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate

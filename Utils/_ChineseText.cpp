@@ -3541,7 +3541,7 @@ STR16 pHistoryStrings[] =
 	L"Frank谈到了在San Mona的拳击比赛。",
 	L"一个病人说他在矿井里看到了一些东西。",
 	//36-40
-	L"遇到一个叫Devin的人，他出售爆炸物。",
+	L"遇到一个叫TNT的人，他出售爆炸物。",
 	L"偶遇Mike，前AIM名人！",
 	L"遇到Tony，他做武器买卖。",
 	L"从Krott中士那里得到一把火箭枪。",
@@ -3549,18 +3549,18 @@ STR16 pHistoryStrings[] =
 	//41-45
 	L"Madlab提议做一个机器人。",
 	L"Gabby能制作对付虫子的隐形药。",
-	L"Keith歇业了。",
+	L"Hank歇业了。",
 	L"Howard给Deidranna女王提供氰化物。",
-	L"遇到Keith -Cambria的杂货商。",
+	L"遇到Hank -Salinas的杂货商。",
 	//46-50
-	L"遇到Howrd，一个在Balime的医药商。",
+	L"遇到Howrd，一个在Malino的医药商。",
 	L"遇到Perko，他开了一家小修理档口。。",
-	L"遇到在Balime的Sam，他有一家五金店。",
+	L"遇到在Malino的Sam，他有一家五金店。",
 	L"Franz做电子产品和其他货物的生意。",
-	L"Arnold在Grumm开了一家修理店。",
+	L"Arnold在Doran开了一家修理店。",
 	//51-55
-	L"Fredo在Grumm修理电子产品。",
-	L"收到在Balime的有钱人的捐款。",
+	L"Fredo在Doran修理电子产品。",
+	L"收到在Malino的有钱人的捐款。",
 	L"遇到一个叫Jake的废品商人。",
 	L"一个流浪者给了我们一张电子钥匙卡。",
 	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate

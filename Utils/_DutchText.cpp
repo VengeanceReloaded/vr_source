@@ -3536,7 +3536,7 @@ STR16 pHistoryStrings[] =
 	L"Frank vertelde over knokwedstrijden in San Mona.",		// ("Frank talked about fighting matches in San Mona.")
 	L"Een patiënt dacht dat ie iets in de mijnen zag.",		// ("A patient thinks he saw something in the mines.")
 	//36-40
-	L"Pers. ontmoet; Devin - verkoopt explosieven.",		// ("Met someone named Devin - he sells explosives.")
+	L"Pers. ontmoet; TNT - verkoopt explosieven.",		// ("Met someone named Devin - he sells explosives.")
 	L"Beroemde ex-AIM huurling Mike ontmoet!",			// ("Ran into the famous ex-AIM merc Mike!")
 	L"Tony ontmoet - handelt in wapens.",				// ("Met Tony - he deals in arms.")
 	L"Raketwerper gekregen van Serg. Krott.",				// ("Got a rocket rifle from Sergeant Krott.")
@@ -3544,18 +3544,18 @@ STR16 pHistoryStrings[] =
 	//41-45
 	L"Madlab bood aan robot te bouwen.",				// ("Madlab offered to build a robot.")
 	L"Gabby maakt superbrouwsel tegen beesten.",			// ("Gabby can make stealth concoction for bugs.")
-	L"Keith is er mee opgehouden.",					// ("Keith is out of business.")
+	L"Hank is er mee opgehouden.",					// ("Keith is out of business.")
 	L"Howard geeft Koningin Deidranna cyanide.",			// ("Howard provided cyanide to Queen Deidranna.")
-	L"Keith ontmoet - handelaar in Cambria.",				// ("Met Keith - all purpose dealer in Cambria.")
+	L"Hank ontmoet - handelaar in Salinas.",				// ("Met Keith - all purpose dealer in Cambria.")
 	//46-50
-	L"Howard ontmoet - medicijnendealer in Balime",			// ("Met Howard - deals pharmaceuticals in Balime")
+	L"Howard ontmoet - medicijnendealer in Malino",			// ("Met Howard - deals pharmaceuticals in Balime")
 	L"Perko ontmoet - heeft reparatiebedrijfje.",			// ("Met Perko - runs a small repair business.")
-	L"Sam van Balime ontmoet - verkoopt ijzerwaren.",		// ("Met Sam of Balime - runs a hardware shop.")
+	L"Sam van Malino ontmoet - verkoopt ijzerwaren.",		// ("Met Sam of Balime - runs a hardware shop.")
 	L"Franz verkoopt elektronica en andere dingen.",		// ("Franz deals in electronics and other goods.")
-	L"Arnold runt reparatiezaak in Grumm.",				// ("Arnold runs a repair shop in Grumm.")
+	L"Arnold runt reparatiezaak in Doran.",				// ("Arnold runs a repair shop in Grumm.")
 	//51-55
-	L"Fredo repareert elektronica in Grumm.",				// ("Fredo repairs electronics in Grumm.")
-	L"Van rijke vent in Balime donatie gekregen.",			// ("Received donation from rich guy in Balime.")
+	L"Fredo repareert elektronica in Doran.",				// ("Fredo repairs electronics in Grumm.")
+	L"Van rijke vent in Malino donatie gekregen.",			// ("Received donation from rich guy in Balime.")
 	L"Schroothandelaar Jake ontmoet.",					// ("Met a junkyard dealer named Jake.")
 	L"Vaag iemand gaf ons elektronische sleutelkaart.",		// ("Some bum gave us an electronic keycard.")
 	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate

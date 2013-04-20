@@ -3494,7 +3494,7 @@ STR16 pHistoryStrings[] =
 	L"Frank erzählte von Kämpfen in San Mona.",
 	L"Patient denkt, er hat in den Minen etwas gesehen.",
 	//36-40
-	L"Devin getroffen - verkauft Sprengstoff",
+	L"TNT getroffen - verkauft Sprengstoff",
 	L"Berühmten Ex-AIM-Mann Mike getroffen!",
 	L"Tony getroffen - verkauft Waffen.",
 	L"Sergeant Krott gab mir Raketengewehr.",
@@ -3502,18 +3502,18 @@ STR16 pHistoryStrings[] =
 	//41-45
 	L"Madlab will Roboter bauen.",
 	L"Gabby kann Tinktur gegen Käfer machen.",
-	L"Keith nicht mehr im Geschäft.",
+	L"Hank nicht mehr im Geschäft.",
 	L"Howard lieferte Gift an Deidranna.",
-	L"Keith getroffen - verkauft alles in Cambria.",
+	L"Hank getroffen - verkauft alles in Salinas.",
 	//46-50
-	L"Howard getroffen - Apotheker in Balime",
+	L"Howard getroffen - Apotheker in Malino",
 	L"Perko getroffen - hat kleinen Reparaturladen.",
-	L"Sam aus Balime getroffen - hat Computerladen.",
+	L"Sam aus Malino getroffen - hat Computerladen.",
 	L"Franz hat Elektronik und andere Sachen.",
-	L"Arnold repariert Sachen in Grumm.",
+	L"Arnold repariert Sachen in Doran.",
 	//51-55
-	L"Fredo repariert Elektronik in Grumm.",
-	L"Spende von Reichem aus Balime bekommen.",
+	L"Fredo repariert Elektronik in Doran.",
+	L"Spende von Reichem aus Malino bekommen.",
 	L"Schrotthändler Jake getroffen.",
 	L"Ein Depp hat uns eine Codekarte gegeben.",
 	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
