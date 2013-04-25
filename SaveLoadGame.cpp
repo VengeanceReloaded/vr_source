@@ -3570,7 +3570,16 @@ BOOLEAN SaveGame( int ubSaveGameID, STR16 pGameDesc )
 	#ifdef JA2BETAVERSION
 		SaveGameFilePosition( FileGetPos( hFile ), "Lua global" );
 	#endif
+	if( !SaveHiddenTownToSaveGameFile( hFile ) )
+	{
+		ScreenMsg( FONT_MCOLOR_WHITE, MSG_ERROR, L"ERROR writing hidden tokermiwn");
+		goto FAILED_TO_SAVE;
 
+	#ifdef JA2BETAVERSION
+		SaveGameFilePosition( FileGetPos( hFile ), "Hidden Town" );
+	#endif	
+
+	}
 	//Close the saved game file
 	FileClose( hFile );
 
@@ -4975,6 +4984,25 @@ BOOLEAN LoadSavedGame( int ubSavedGameID )
 	#ifdef JA2BETAVERSION
 		LoadGameFilePosition( FileGetPos( hFile ), "Lua Global System" );
 	#endif
+	if( guiCurrentSaveGameVersion >= HIDDENTOWN_DATATYPE_CHANGE)
+	{
+		uiRelEndPerc += 1;
+		SetRelativeStartAndEndPercentage( 0, uiRelStartPerc, uiRelEndPerc, L"Load Hidden Towns..." );
+		RenderProgressBar( 0, 100 );
+		uiRelStartPerc = uiRelEndPerc;
+
+		if( !LoadHiddenTownFromLoadGameFile( hFile ) )
+		{
+			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("LoadHiddenTownFromLoadGameFile failed" ) );
+			FileClose( hFile );
+			return( FALSE );
+		}
+
+	#ifdef JA2BETAVERSION
+		LoadGameFilePosition( FileGetPos( hFile ), "Load Hidden Towns" );
+	#endif
+
+	}
 
 
 	//

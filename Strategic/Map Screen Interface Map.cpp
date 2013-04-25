@@ -593,6 +593,74 @@ void AnimateRoute( PathStPtr pPath );
 extern void EndConfirmMapMoveMode( void );
 extern BOOLEAN CanDrawSectorCursor( void );
 
+void DrawIconL(INT32 MAP_GRID_X2, INT32 MAP_GRID_Y2, INT32 i, INT32 Sector_X , INT32 Sector_Y ); //Legion
+UINT32	guiIcon2[256];
+ICON_FILE gHiddenIcon[ 256 ];
+ 
+#ifdef JA2UB
+void SetUpValidCampaignSectors( void );
+#endif
+
+BOOLEAN LoadHiddenTownFromLoadGameFile( HWFILE hFile );
+BOOLEAN SaveHiddenTownToSaveGameFile( HWFILE hFile );
+
+//--------------Legion 2----Jazz-----------
+
+void DrawIconL(INT32 MAP_GRID_X2, INT32 MAP_GRID_Y2, INT32 i, INT32 Sector_X , INT32 Sector_Y )
+{
+  UINT8 *pDestBuf2;
+  UINT32 uiDestPitchBYTES;
+  INT16 sX, sY;
+  HVOBJECT hHandle;
+  INT8 ubVidObjIndex = 0;
+
+	if( fZoomFlag )
+	{
+		pDestBuf2 = LockVideoSurface( guiSAVEBUFFER, &uiDestPitchBYTES );
+		SetClippingRegionAndImageWidth( uiDestPitchBYTES, MAP_VIEW_START_X+MAP_GRID_X - 1, MAP_VIEW_START_Y+MAP_GRID_Y - 1, MAP_VIEW_WIDTH+1,MAP_VIEW_HEIGHT-9 );
+		UnLockVideoSurface(guiSAVEBUFFER);
+
+		GetScreenXYFromMapXYStationary( Sector_X, Sector_Y, &sX, &sY );
+		sX += -MAP_GRID_X + MAP_GRID_X2;
+		sY += -MAP_GRID_Y - MAP_GRID_Y2;
+		ubVidObjIndex = 0;
+	}
+	else
+	{
+		GetScreenXYFromMapXY( Sector_X, Sector_Y, &sX, &sY );
+		
+		sX = (UINT16) (MAP_VIEW_START_X + MAP_GRID_X +  (MAP_GRID_X2 * MAP_GRID_X) / 10);
+		sY = (UINT16) (MAP_VIEW_START_Y + MAP_GRID_Y + ((MAP_GRID_Y2 * MAP_GRID_Y) / 10) + 1);
+		
+		/*
+		if (iResolution == 0)
+		{
+			sY += MAP_GRID_Y2;
+			sX += MAP_GRID_X2;
+		}
+		else if (iResolution == 1)
+		{
+			sY += + 5 + MAP_GRID_Y2;
+			sX += - MAP_GRID_X2 + 3;
+		}
+		else if (iResolution == 2)
+		{
+			sY += + 10 + MAP_GRID_Y2;
+			sX += - MAP_GRID_X2 + 10;
+		}
+		*/
+		ubVidObjIndex = 1;
+	}
+
+	// draw Tixa in its sector
+	GetVideoObject( &hHandle, guiIcon2[i]);
+	BltVideoObject( guiSAVEBUFFER, hHandle, ubVidObjIndex, sX, sY, VO_BLT_SRCTRANSPARENCY, NULL );
+}
+
+//-----------------------------------
+
+
+
 
 // This method outputs the numbers (1-16) and letters (A - P)
 void DrawMapIndexBigMap( BOOLEAN fSelectedCursorIsYellow )
@@ -724,6 +792,9 @@ UINT32 DrawMap( void )
 	SGPRect clip;
   INT16 cnt, cnt2;
 	INT32 iCounter = 0;
+	INT32 iCounter2 = 0;
+	INT16 pSectorX = 0, pSectorY = 0;
+	INT16 sBaseSectorValue = 0;
 
 	//MAP_VIEW_START_X = (SCREEN_WIDTH - 370);
 	//MAP_VIEW_START_Y = 10;
@@ -932,7 +1003,27 @@ UINT32 DrawMap( void )
 		// UNFORTUNATELY, WE CAN'T SHADE THESE ICONS AS PART OF SHADING THE MAP, BECAUSE FOR AIRSPACE, THE SHADE FUNCTION
 		// DOESN'T MERELY SHADE THE EXISTING MAP SURFACE, BUT INSTEAD GRABS THE ORIGINAL GRAPHICS FROM BIGMAP, AND CHANGES
 		// THEIR PALETTE.  BLITTING ICONS PRIOR TO SHADING WOULD MEAN THEY DON'T SHOW UP IN AIRSPACE VIEW AT ALL.
-
+		
+		for (cnt = 1; cnt < NUM_TOWNS; cnt++)
+		{
+			if ( gfHiddenTown[ cnt ] == TRUE )
+			{
+				if ( gfIconTown[ cnt ] == TRUE && gfDrawHiddenTown[ cnt ] == TRUE )
+				{
+					sBaseSectorValue = sBaseSectorList[ cnt-1 ];
+					pSectorX = SECTORX( sBaseSectorValue );
+					pSectorY = SECTORY( sBaseSectorValue );
+					
+					INT8 bTownId = GetTownIdForSector( pSectorX, pSectorY );
+					if ( /*bTownId != 0 &&*/ bTownId < NUM_TOWNS )
+					{
+						DrawIconL(gHiddenIcon[cnt].IconX, gHiddenIcon[cnt].IconY, cnt, pSectorX, pSectorY);
+					}		
+				}
+			}
+		}
+ 
+		/*
 		// if Orta found
 		if( fFoundOrta )
 		{
@@ -944,7 +1035,8 @@ UINT32 DrawMap( void )
 		{
 			DrawTixa();
 		}
-
+		*/
+		
 		// draw SAM sites
 		ShowSAMSitesOnStrategicMap( );
 
@@ -1085,7 +1177,8 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Map Screen1");
  	for( bTown = FIRST_TOWN; bTown < NUM_TOWNS; bTown++)
 	{
 		// skip Orta/Tixa until found
-		if( ( ( fFoundOrta != FALSE ) || ( bTown != ORTA ) ) && ( ( bTown != TIXA ) || ( fFoundTixa != FALSE) ) )
+		//if( ( ( fFoundOrta != FALSE ) || ( bTown != ORTA ) ) && ( ( bTown != TIXA ) || ( fFoundTixa != FALSE) ) )
+		if( gfHiddenTown[ bTown ] == TRUE )
 		{
 			swprintf( sString, L"%s", pTownNames[ bTown ] );
 
@@ -5203,7 +5296,8 @@ void BlitTownGridMarkers( void )
 	while( pTownNamesList[ iCounter ] != 0 )
 	{
 		// skip Orta/Tixa until found
-		if( ( ( fFoundOrta != FALSE ) || ( pTownNamesList[ iCounter ] != ORTA ) ) && ( ( pTownNamesList[ iCounter ] != TIXA ) || ( fFoundTixa != FALSE) ) )
+		//if( ( ( fFoundOrta != FALSE ) || ( pTownNamesList[ iCounter ] != ORTA ) ) && ( ( pTownNamesList[ iCounter ] != TIXA ) || ( fFoundTixa != FALSE) ) )
+		if( gfHiddenTown[ pTownNamesList[ iCounter ] ] == TRUE )
 		{
 			if( fZoomFlag )
 			{
@@ -7565,10 +7659,17 @@ void HideExistenceOfUndergroundMapSector( UINT8 ubSectorX, UINT8 ubSectorY )
 void InitMapSecrets( void )
 {
 	//UINT8 ubSamIndex;
+	INT32 iCounter2 = 0;
 
 	fFoundTixa = FALSE;
 	fFoundOrta = FALSE;
 
+	for( iCounter2 = 1; iCounter2 < NUM_TOWNS; iCounter2++ )
+		{
+			gfHiddenTown [ iCounter2 ] = gfHiddenTownTemp [ iCounter2 ]; 
+			gfDrawHiddenTown[ iCounter2 ] = FALSE; 
+			gfIconTown [ iCounter2 ] = gfIconTownTemp [ iCounter2 ]; 
+		}
 	//for( ubSamIndex = 0; ubSamIndex < NUMBER_OF_SAMS; ubSamIndex++ )
 	//{
 	//	fSamSiteFound[ ubSamIndex ] = fSamSiteFoundOrig[ ubSamIndex ];
@@ -7671,4 +7772,53 @@ void MilitiaDisbandYesNoBoxCallback( UINT8 bExitValue )
 	}
 
 	return;
+}
+BOOLEAN SaveHiddenTownToSaveGameFile( HWFILE hFile )
+{
+	UINT32	uiNumBytesWritten;
+
+	FileWrite( hFile, &gfHiddenTown, sizeof( gfHiddenTown), &uiNumBytesWritten );
+	if( uiNumBytesWritten != sizeof( gfHiddenTown ) )
+	{
+		return( FALSE );
+	}
+	
+	FileWrite( hFile, &gfDrawHiddenTown, sizeof( gfDrawHiddenTown), &uiNumBytesWritten );
+	if( uiNumBytesWritten != sizeof( gfDrawHiddenTown ) )
+	{
+		return( FALSE );
+	}
+	
+	FileWrite( hFile, &gfIconTown, sizeof( gfIconTown), &uiNumBytesWritten );
+	if( uiNumBytesWritten != sizeof( gfIconTown ) )
+	{
+		return( FALSE );
+	}
+	
+	return( TRUE );
+}
+
+BOOLEAN LoadHiddenTownFromLoadGameFile( HWFILE hFile )
+{
+	UINT32	uiNumBytesRead;
+
+	FileRead( hFile, &gfHiddenTown, sizeof( gfHiddenTown), &uiNumBytesRead );
+	if( uiNumBytesRead != sizeof( gfHiddenTown ) )
+	{
+		return( FALSE );
+	}
+	
+	FileRead( hFile, &gfDrawHiddenTown, sizeof( gfDrawHiddenTown), &uiNumBytesRead );
+	if( uiNumBytesRead != sizeof( gfDrawHiddenTown ) )
+	{
+		return( FALSE );
+	}
+	
+	FileRead( hFile, &gfIconTown, sizeof( gfIconTown), &uiNumBytesRead );
+	if( uiNumBytesRead != sizeof( gfIconTown ) )
+	{
+		return( FALSE );
+	}
+
+	return( TRUE );
 }

@@ -4,6 +4,7 @@
 #include "types.h"
 #include "soldier control.h"
 #include "FileMan.h"
+#include "mapscreen.h"
 
 //The maximum size for any team strategically speaking.	For example, we can't have more than 20 enemies, militia, or creatures at a time.
 //#define MAX_STRATEGIC_TEAM_SIZE	20
@@ -27,6 +28,13 @@ enum{
 extern INT16	gWorldSectorX;
 extern INT16	gWorldSectorY;
 extern INT8		gbWorldSectorZ;
+
+extern BOOLEAN	gfHiddenTown			[ MAX_TOWNS ];
+extern BOOLEAN	gfDrawHiddenTown		[ MAX_TOWNS ];
+extern BOOLEAN	gfDrawHiddenTownTemp	[ MAX_TOWNS ];
+extern BOOLEAN	gfHiddenTownTemp		[ MAX_TOWNS ];
+extern BOOLEAN	gfIconTown				[ MAX_TOWNS ];
+extern BOOLEAN	gfIconTownTemp			[ MAX_TOWNS ];
 
 // SAM definitions
 extern UINT8	NUMBER_OF_SAMS;

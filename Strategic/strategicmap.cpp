@@ -780,6 +780,12 @@ INT8 NUM_TOWNS;
 extern UINT8	gubTownRebelSentiment	[ MAX_TOWNS ];
 extern BOOLEAN	gfTownUsesLoyalty		[ MAX_TOWNS ];
 extern BOOLEAN	gfMilitiaAllowedInTown	[ MAX_TOWNS ];
+BOOLEAN	gfHiddenTown			[ MAX_TOWNS ];		// Info: Visible town are TRUE, hidden towns are FALSE
+BOOLEAN	gfDrawHiddenTown		[ MAX_TOWNS ];
+BOOLEAN	gfDrawHiddenTownTemp	[ MAX_TOWNS ];
+BOOLEAN	gfHiddenTownTemp		[ MAX_TOWNS ];
+BOOLEAN	gfIconTown				[ MAX_TOWNS ];
+BOOLEAN	gfIconTownTemp			[ MAX_TOWNS ];
 
 #define INVALID_TOWN_INDEX				-1
 
@@ -801,7 +807,14 @@ typedef enum
 	CITYTABLE_ELEMENT_TOWNPOINT_Y,
 	CITYTABLE_ELEMENT_USES_LOYALTY,
 	CITYTABLE_ELEMENT_REBEL_SENTIMENT,
-	CITYTABLE_ELEMENT_MILITIA
+	CITYTABLE_ELEMENT_MILITIA,
+	CITYTABLE_ELEMENT_HIDDENTOWN,
+	CITYTABLE_ELEMENT_ICONTOWN,
+	CITYTABLE_ELEMENT_ICONFILE,
+	CITYTABLE_ELEMENT_ICON_POSITION,
+	CITYTABLE_ELEMENT_ICON_POSITION_X,
+	CITYTABLE_ELEMENT_ICON_POSITION_Y
+	
 } CITYTABLE_PARSE_STAGE;
 
 typedef struct
@@ -814,6 +827,11 @@ typedef struct
 	UINT8	townRebelSentiment;
 	BOOLEAN	townMilitiaAllowed;
 	CHAR8	cityName[MAX_TOWN_NAME_LENGHT];
+	BOOLEAN HiddenTown;
+	BOOLEAN	TownIcon;
+	CHAR8	IconSTI[MAX_ICON_CHARS];
+	UINT8	ubPosIconX;
+	UINT8	ubPosIconY;
 } cityInfo;
 
 typedef struct
@@ -879,6 +897,25 @@ citytableStartElementHandle(void *userData, const XML_Char *name, const XML_Char
 				memset(gfTownUsesLoyalty,0,sizeof(gfTownUsesLoyalty));
 				memset(gubTownRebelSentiment,0,sizeof(gubTownRebelSentiment));
 				memset(gfMilitiaAllowedInTown,0,sizeof(gfMilitiaAllowedInTown));
+				memset(gfHiddenTown,0,sizeof(gfHiddenTown));
+				memset(gfHiddenTownTemp,0,sizeof(gfHiddenTownTemp));
+				memset(gfIconTown,0,sizeof(gfIconTown));
+				memset(gfIconTownTemp,0,sizeof(gfIconTownTemp));
+				memset(gfDrawHiddenTown,0,sizeof(gfDrawHiddenTown));
+				memset(gfDrawHiddenTownTemp,0,sizeof(gfDrawHiddenTownTemp));
+				
+				strncpy(gHiddenIcon[pData->curCityInfo.uiIndex].IconSti, pData->curCityInfo.IconSTI,MAX_ICON_CHARS);
+				
+				//if ( pData->curCityInfo.ubPosIconX < 0 )
+				//	gHiddenIcon[pData->curCityInfo.uiIndex].IconX = 0;
+				//else
+					gHiddenIcon[pData->curCityInfo.uiIndex].IconX = pData->curCityInfo.ubPosIconX;
+				
+				//if ( pData->curCityInfo.ubPosIconY < 0 )
+				//	gHiddenIcon[pData->curCityInfo.uiIndex].IconY = 0;
+				//else
+					gHiddenIcon[pData->curCityInfo.uiIndex].IconY = pData->curCityInfo.ubPosIconY;
+					
 			}
 
 			pData->maxReadDepth++; //we are not skipping this element
@@ -917,6 +954,38 @@ citytableStartElementHandle(void *userData, const XML_Char *name, const XML_Char
 			pData->curElement = CITYTABLE_ELEMENT_MILITIA;
 			pData->maxReadDepth++; //we are not skipping this element
 		}
+		else if(strcmp(name, "hiddenTown") == 0 && pData->curElement == CITYTABLE_ELEMENT_CITY)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_HIDDENTOWN;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "townIcon") == 0 && pData->curElement == CITYTABLE_ELEMENT_CITY)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_ICONTOWN;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "szIconFile") == 0 && pData->curElement == CITYTABLE_ELEMENT_CITY)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_ICONFILE;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		
+		else if(strcmp(name, "iconPosition") == 0 && pData->curElement == CITYTABLE_ELEMENT_CITY)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_ICON_POSITION;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "x") == 0 && pData->curElement == CITYTABLE_ELEMENT_ICON_POSITION)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_ICON_POSITION_X;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "y") == 0 && pData->curElement == CITYTABLE_ELEMENT_ICON_POSITION)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_ICON_POSITION_Y;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		
 		else if(strcmp(name, "baseSector") == 0 && pData->curElement == CITYTABLE_ELEMENT_CITY)
 		{
 			pData->curElement = CITYTABLE_ELEMENT_BASESECTOR;
@@ -968,6 +1037,7 @@ citytableCharacterDataHandle(void *userData, const XML_Char *str, int len)
 static void XMLCALL
 citytableEndElementHandle(void *userData, const XML_Char *name)
 {
+	char temp;
 	citytableParseData * pData = (citytableParseData *) userData;
 
 	if(pData->currentDepth <= pData->maxReadDepth) //we're at the end of an element that we've been reading
@@ -1018,6 +1088,34 @@ citytableEndElementHandle(void *userData, const XML_Char *name)
 				gfMilitiaAllowedInTown[pData->curCityInfo.uiIndex  ] = pData->curCityInfo.townMilitiaAllowed;
 				//mbstowcs( pTownNames[pData->curCityInfo.uiIndex], pData->curCityInfo.cityName, MAX_TOWN_NAME_LENGHT);
 				MultiByteToWideChar( CP_UTF8, 0, pData->curCityInfo.cityName, -1, pTownNames[pData->curCityInfo.uiIndex], MAX_TOWN_NAME_LENGHT);
+				
+				strncpy(gHiddenIcon[pData->curCityInfo.uiIndex].IconSti, pData->curCityInfo.IconSTI,MAX_ICON_CHARS);
+				
+				//if ( pData->curCityInfo.ubPosIconX < 0 )
+				//	gHiddenIcon[pData->curCityInfo.uiIndex].IconX = 0;
+				//else
+					gHiddenIcon[pData->curCityInfo.uiIndex].IconX = pData->curCityInfo.ubPosIconX;
+				
+				//if ( pData->curCityInfo.ubPosIconY < 0 )
+				//	gHiddenIcon[pData->curCityInfo.uiIndex].IconY = 0;
+				//else
+					gHiddenIcon[pData->curCityInfo.uiIndex].IconY = pData->curCityInfo.ubPosIconY;
+				
+				if ( pData->curCityInfo.HiddenTown == FALSE ) 
+				{
+					gfHiddenTown[pData->curCityInfo.uiIndex] = TRUE;
+					gfHiddenTownTemp[pData->curCityInfo.uiIndex] = gfHiddenTown[pData->curCityInfo.uiIndex];
+					gfDrawHiddenTown[pData->curCityInfo.uiIndex] = FALSE;	
+				}
+				else 
+				{
+					gfHiddenTown[pData->curCityInfo.uiIndex] = FALSE;
+					gfHiddenTownTemp[pData->curCityInfo.uiIndex] = gfHiddenTown[pData->curCityInfo.uiIndex];
+					gfDrawHiddenTown[pData->curCityInfo.uiIndex] = FALSE;
+				}
+
+				gfIconTown[pData->curCityInfo.uiIndex] = pData->curCityInfo.TownIcon;
+				gfIconTownTemp[pData->curCityInfo.uiIndex] = gfIconTown[pData->curCityInfo.uiIndex];
 			}
 			else if ( pData->curCityInfo.uiIndex != INVALID_TOWN_INDEX && localizedMapTextOnly)
 			{
@@ -1069,6 +1167,55 @@ citytableEndElementHandle(void *userData, const XML_Char *name)
 
 			pData->curCityInfo.townMilitiaAllowed = (BOOLEAN)atol(pData->szCharData);
 		}
+		else if(strcmp(name, "hiddenTown") == 0 && pData->curElement == CITYTABLE_ELEMENT_HIDDENTOWN)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_CITY;
+			
+			pData->curCityInfo.HiddenTown = (BOOLEAN)atol(pData->szCharData);
+		}		
+		else if(strcmp(name, "townIcon") == 0 && pData->curElement == CITYTABLE_ELEMENT_ICONTOWN)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_CITY;
+			
+			pData->curCityInfo.TownIcon = (INT32)atol(pData->szCharData);
+		}
+		else if(strcmp(name, "szIconFile") == 0 && pData->curElement == CITYTABLE_ELEMENT_ICONFILE)
+		{
+		
+			pData->curElement = CITYTABLE_ELEMENT_CITY;
+			
+			if(MAX_ICON_CHARS >= strlen(pData->szCharData))
+				strcpy(pData->curCityInfo.IconSTI,pData->szCharData);
+			else
+			{
+				strncpy(pData->curCityInfo.IconSTI,pData->szCharData,MAX_ICON_CHARS);
+				pData->curCityInfo.IconSTI[MAX_ICON_CHARS] = '\0';
+			}
+
+			for(int i=0;i<min((int)strlen(pData->szCharData),MAX_ICON_CHARS);i++)
+			{
+				temp = pData->szCharData[i];
+				pData->curCityInfo.IconSTI[i] = temp;
+			}
+		}
+		
+		else if(strcmp(name, "iconPosition") == 0 && pData->curElement == CITYTABLE_ELEMENT_ICON_POSITION)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_CITY;
+		}
+		else if(strcmp(name, "x") == 0 && pData->curElement == CITYTABLE_ELEMENT_ICON_POSITION_X)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_ICON_POSITION;
+
+			pData->curCityInfo.ubPosIconX = (INT32) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "y") == 0 && pData->curElement == CITYTABLE_ELEMENT_ICON_POSITION_Y)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_ICON_POSITION;
+
+			pData->curCityInfo.ubPosIconY = (INT32) atol(pData->szCharData);
+		}
+		
 		else if(strcmp(name, "baseSector") == 0 && pData->curElement == CITYTABLE_ELEMENT_BASESECTOR)
 		{
 			pData->curElement = CITYTABLE_ELEMENT_CITY;
@@ -1136,6 +1283,13 @@ BOOLEAN WriteInStrategicMapSectorTownNames(STR fileName)
 			FilePrintf(hFile,"\t\t\t<townRebelSentiment>%d</townRebelSentiment>\r\n", gubTownRebelSentiment[cnt] );
 
 			FilePrintf(hFile,"\t\t\t<townMilitiaAllowed>%d</townMilitiaAllowed>\r\n", gfMilitiaAllowedInTown[cnt] );
+			
+			if ( gfHiddenTown[cnt] == TRUE)
+			FilePrintf(hFile,"\t\t\t<hiddenTown>%d</hiddenTown>\r\n", 0 );
+			else
+			FilePrintf(hFile,"\t\t\t<hiddenTown>%d</hiddenTown>\r\n", 1 );
+			
+			FilePrintf(hFile,"\t\t\t<townIcon>%d</townIcon>\r\n", gfIconTown[cnt] );
 
 			FilePrintf(hFile,"\t\t\t<baseSector>\r\n");
 			FilePrintf(hFile,"\t\t\t\t<x>%d</x>\r\n",(sBaseSectorList[cnt-1]%16)+1);
@@ -3312,13 +3466,15 @@ void GetSectorIDString( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ , STR16 zS
 							wcscat( zString, pTownNames[ CAMBRIA ] );
 						break;
 					case SEC_J9: //Tixa
-						if( !fFoundTixa )
+						//if( !fFoundTixa )
+						if( gfHiddenTown[ TIXA ] == FALSE )
 							wcscat( zString, pLandTypeStrings[ SAND ] );
 						else
 							wcscat( zString, pTownNames[ TIXA ] );
 						break;
 					case SEC_K4: //Orta
-						if( !fFoundOrta )
+						//if( !fFoundOrta )
+						if( gfHiddenTown[ ORTA ] == FALSE )	
 							wcscat( zString, pLandTypeStrings[ SWAMP ] );
 						else
 							wcscat( zString, pTownNames[ ORTA ] );
