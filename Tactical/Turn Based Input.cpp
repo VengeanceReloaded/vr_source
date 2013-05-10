@@ -256,6 +256,9 @@ void	QueryTBWheel( UINT32 *puiNewEvent );
 void	QueryTBX1Button( UINT32 *puiNewEvent );
 void	QueryTBX2Button( UINT32 *puiNewEvent );
 
+void	ItemCreationCallBack( UINT8 ubResult );
+void	CheatCreateItem();
+
 void	GetTBMouseButtonInput( UINT32 *puiNewEvent )
 {
 	QueryTBLeftButton( puiNewEvent );
@@ -1422,6 +1425,33 @@ void GetPolledKeyboardInput( UINT32 *puiNewEvent )
 	}
 }
 
+UINT16 usitem = 0;
+
+void CheatCreateItem( )
+{
+	if ( gusSelectedSoldier != NOBODY )
+	{
+		INT16 status = 100;
+		FLOAT temperature = 0.0;
+		// Flugente: spawn items while debugging
+		OBJECTTYPE newobj;
+		CreateItem( usitem, status, &newobj );
+					
+		if ( !AutoPlaceObject( MercPtrs[ gusSelectedSoldier ], &newobj, FALSE ) )
+			AddItemToPool( MercPtrs[ gusSelectedSoldier ]->sGridNo, &newobj, 1, 0, 0, -1 );
+	}
+}
+
+void ItemCreationCallBack( UINT8 ubResult )
+{
+	if (ubResult == MSG_BOX_RETURN_OK && wcscmp(gszMsgBoxInputString,L"") > 0)
+	{
+		usitem = _wtoi( gszMsgBoxInputString );
+		CheatCreateItem( );
+
+	}
+	memset(gszMsgBoxInputString,0,sizeof(gszMsgBoxInputString));
+}
 
 extern	BOOLEAN		gfDisableRegionActive;
 extern	BOOLEAN		gfUserTurnRegionActive;
@@ -4034,6 +4064,28 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				//else if( gusSelectedSoldier != NOBODY )
 				break;
+
+			// added by Flugente
+			case  '.':
+				if ( fCtrl && fAlt ) //jikuja: Create item by reusing old entered number
+ 				{
+					if ( CHEATER_CHEAT_LEVEL( ) ) 
+					{
+						CheatCreateItem( );
+					}
+				}
+				else if ( fAlt )
+				{
+					if ( CHEATER_CHEAT_LEVEL( ) )
+ 					{
+						if ( gusSelectedSoldier != NOBODY )
+						{
+							DoMessageBox( MSG_BOX_BASIC_SMALL_BUTTONS, L"Enter ItemID", GAME_SCREEN, MSG_BOX_FLAG_INPUTBOX, ItemCreationCallBack, NULL );
+						}
+					}
+				}
+				break;
+
 			case 'z':
 				if( fCtrl )
 				{
