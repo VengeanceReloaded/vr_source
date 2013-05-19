@@ -4270,12 +4270,19 @@ STR16			AimSortText[] =
 
 	// sort by...
 
-	L"Prezzo",											
+	L"Prezzo",
 	L"Esperienza",
 	L"Mira",
-	L"Pronto socc.",
-	L"Esplosivi",
 	L"Meccanica",
+	L"Esplosivi",
+	L"Pronto socc.",
+	L"Salute",
+	L"Agilità",
+	L"Destrezza",
+	L"Forza",
+	L"Comando",
+	L"Saggezza",
+	L"Nome",
 
 	//Text of the links to other AIM pages
 
@@ -4466,12 +4473,19 @@ STR16			AimFiText[] =
 {
 	// displays the way in which the mercs were sorted
 
-	L"Prezzo ",
+	L"Prezzo",
 	L"Esperienza",
 	L"Mira",
-	L"Pronto socc.",
-	L"Esplosivi",
 	L"Meccanica",
+	L"Esplosivi",
+	L"Pronto socc.",
+	L"Salute",
+	L"Agilità",
+	L"Destrezza",
+	L"Forza",
+	L"Comando",
+	L"Saggezza",
+	L"Nome",
 
 	// The title of the page, the above text gets added at the end of this text
 

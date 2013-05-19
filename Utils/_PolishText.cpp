@@ -4284,12 +4284,19 @@ STR16			AimSortText[] =
 
 	// sort by...
 
-	L"Ceny",											
-	L"DoŚwiadczenia",
+	L"Ceny",
+	L"Doświadczenia",
 	L"Um. strzeleckich",
-	L"Um. med.",
-	L"Zn. mat. wyb.",
 	L"Zn. mechaniki",
+	L"Zn. mat. wyb.",
+	L"Um. med.",
+	L"Zdrowie",
+	L"Zwinność",
+	L"Sprawność",
+	L"Siła",
+	L"Um. dowodzenia",
+	L"Inteligencja",
+	L"Nazwisko",
 
 	//Text of the links to other AIM pages
 
@@ -4480,12 +4487,19 @@ STR16			AimFiText[] =
 {
 	// displays the way in which the mercs were sorted
 
-	L"ceny",
-	L"doŚwiadczenia",
-	L"um. strzeleckich",
-	L"um. medycznych",
-	L"zn. materiałów wyb.",
-	L"zn. mechaniki",
+	L"Ceny",
+	L"Doświadczenia",
+	L"Um. strzeleckich",
+	L"Zn. mechaniki",
+	L"Zn. mat. wyb.",
+	L"Um. med.",
+	L"Zdrowie",
+	L"Zwinność",
+	L"Sprawność",
+	L"Siła",
+	L"Um. dowodzenia",
+	L"Inteligencja",
+	L"Nazwisko",
 
 	// The title of the page, the above text gets added at the end of this text
 

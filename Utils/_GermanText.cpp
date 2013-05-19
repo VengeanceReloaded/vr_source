@@ -4171,12 +4171,19 @@ STR16 AimSortText[] =
 
 	// sort by...
 
-	L"Preis",											
+	L"Preis",
 	L"Erfahrung",
 	L"Treffsicherheit",
-	L"Medizin",
-	L"Sprengstoff",
 	L"Technik",
+	L"Sprengstoff",
+	L"Medizin",
+	L"Gesundheit",
+	L"Beweglichkeit",
+	L"Geschicklichkeit",
+	L"Kraft",
+	L"Führungsqualität",
+	L"Weisheit",
+	L"Name",
 
 	//Text of the links to other AIM pages
 
@@ -4349,9 +4356,16 @@ STR16 AimFiText[] =
 	L"Preis",
 	L"Erfahrung",
 	L"Treffsicherheit",
-	L"Medizin",
-	L"Sprengstoff",
 	L"Technik",
+	L"Sprengstoff",
+	L"Medizin",
+	L"Gesundheit",
+	L"Beweglichkeit",
+	L"Geschicklichkeit",
+	L"Kraft",
+	L"Führungsqualität",
+	L"Weisheit",
+	L"Name",
 
 	// The title of the page, the above text gets added at the end of this text
 	L"A.I.M.-Mitglieder ansteigend sortiert nach %s",
