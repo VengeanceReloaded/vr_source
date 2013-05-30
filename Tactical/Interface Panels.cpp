@@ -3343,6 +3343,51 @@ BOOLEAN HandleNailsVestFetish( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, UINT16 u
 	return( FALSE );
 }
 
+BOOLEAN HandleBabyfaceGlassesFetish( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, UINT16 usReplaceItem )
+{
+	BOOLEAN fRefuse = FALSE;
+
+	// OK are we Babyface?
+	if ( pSoldier->ubProfile == 73 )
+	{
+		// if this the HEAD1POS?
+		if ( uiHandPos == HEAD1POS )
+		{
+			// Are we trying to pick it up?
+			if ( usReplaceItem == NOTHING )
+			{
+				fRefuse = TRUE;
+			}
+			else
+			{
+				// ignore - never allow to exchange glasses
+				// Do we have nothing or the leather vest or kevlar leather vest?
+				//if ( Item[usReplaceItem].leatherjacket ||
+				//		usReplaceItem == COMPOUND18 ||
+				//		usReplaceItem == JAR_QUEEN_CREATURE_BLOOD )
+				//{
+				//	// This is good....
+				//	fRefuse = FALSE;
+				//}
+				//else
+				//{
+				//	fRefuse = TRUE;
+				//}
+				fRefuse = TRUE;
+			}
+
+			if ( fRefuse )
+			{
+				// Say quote!
+				TacticalCharacterDialogue( pSoldier, 62 );
+				return( TRUE );
+			}
+		}
+	}
+
+	return( FALSE );
+}
+
 BOOLEAN UIHandleItemPlacement( UINT8 ubHandPos, UINT16 usOldItemIndex, UINT16 usNewItemIndex, BOOLEAN fDeductPoints )
 {
 	if ( _KeyDown(CTRL) )
@@ -3476,6 +3521,12 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 				return;
 			}
 
+			// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
+			if ( HandleBabyfaceGlassesFetish( gpSMCurrentMerc, uiHandPos, NOTHING ) )
+			{
+				return;
+			}
+
 			if ( _KeyDown(CTRL) )
 			{
 				CleanUpStack( &( gpSMCurrentMerc->inv[ uiHandPos ] ), NULL );
@@ -3578,6 +3629,12 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 			{
 				// OK, check if this is Nails, and we're in the vest position , don't allow it to come off....
 				if ( HandleNailsVestFetish( gpSMCurrentMerc, uiHandPos, gpItemPointer->usItem ) )
+				{
+					return;
+				}
+
+				// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
+				if ( HandleBabyfaceGlassesFetish( gpSMCurrentMerc, uiHandPos, NOTHING ) )
 				{
 					return;
 				}

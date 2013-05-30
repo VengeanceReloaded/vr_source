@@ -791,6 +791,7 @@ void HandleCharBarRender( void );
 void RebuildWayPointsForAllSelectedCharsGroups( void );
 
 extern BOOLEAN HandleNailsVestFetish( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, UINT16 usReplaceItem );
+extern BOOLEAN HandleBabyfaceGlassesFetish( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, UINT16 usReplaceItem );
 
 BOOLEAN CharacterIsInTransitAndHasItemPickedUp( INT8 bCharacterNumber );
 
