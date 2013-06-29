@@ -369,6 +369,11 @@ STR16 gzIMPMinorTraitsHelpTextsScouting[]=
 	L"Verhindert, das Umzingeln der Gruppe durch Bloodcats\n",
 
 };
+STR16 gzIMPMinorTraitsHelpTextsDriver[]=
+{
+	L"+%d%s group traveling speed between sectors if traveling in vehicle (except helicopter)\n",
+	L"-%d%s fuel consumption when traveling in vehicle (except helicopter)\n",
+};
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"Keine Boni",

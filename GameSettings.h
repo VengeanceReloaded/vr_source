@@ -1248,6 +1248,13 @@ typedef struct
 	BOOLEAN fSCPreventsBloodcatsAmbushes;
 	BOOLEAN fSCThrowMessageIfAmbushPrevented;
 
+	// DRIVER
+	UINT8 ubDRGroupTimeSpentForTravellingVehicle;
+	UINT8 ubDRFuelSavedWhileTravellingVehicle;
+	UINT8 ubDRMaxBonusesToTravelSpeed;
+	UINT8 ubDRMaxSavedFuel;
+	BOOLEAN fDRSquadLeaderIsADriver;
+
 } SKILL_TRAIT_VALUES;
 
 // HEADROCK HAM 4: Constants used as coefficients by the various parts of the new CTH system.

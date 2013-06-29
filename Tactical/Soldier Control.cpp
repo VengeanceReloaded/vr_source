@@ -14507,25 +14507,28 @@ INT8 NUM_SKILL_TRAITS( SOLDIERTYPE * pSoldier, UINT8 uiSkillTraitNumber )
 
 	INT8 bNumberOfTraits = 0;
 	INT8 bNumMajorTraitsCounted = 0;
+	INT8 bMaxTraits = gSkillTraitValues.ubMaxNumberOfTraits;
+	INT8 bMaxMajorTraits = gSkillTraitValues.ubNumberOfMajorTraitsAllowed;
 
 	// check old/new traits
 	if (gGameOptions.fNewTraitSystem)
 	{
-		for ( INT8 bCnt = 0; bCnt < gSkillTraitValues.ubMaxNumberOfTraits; bCnt++ )
+	
+		for ( INT8 bCnt = 0; bCnt < min(30,bMaxTraits); bCnt++ )
 		{
-			if ( uiSkillTraitNumber > 0 && uiSkillTraitNumber <= NUM_MAJOR_TRAITS )
+			if ( TwoStagedTrait( uiSkillTraitNumber ) )
 			{
 				if ( pSoldier->stats.ubSkillTraits[ bCnt ] == uiSkillTraitNumber )
 				{
 					bNumberOfTraits++;
 					bNumMajorTraitsCounted++;
 				}
-				else if ( pSoldier->stats.ubSkillTraits[ bCnt ] > 0 && pSoldier->stats.ubSkillTraits[ bCnt ] <= NUM_MAJOR_TRAITS )
+				else if ( TwoStagedTrait( pSoldier->stats.ubSkillTraits[ bCnt ] ) )
 				{
 					bNumMajorTraitsCounted++;
 				}
 				// if we exceeded the allowed number of major traits, ignore the rest of them
-				if ( bNumMajorTraitsCounted >= gSkillTraitValues.ubNumberOfMajorTraitsAllowed )
+				if ( bNumMajorTraitsCounted >= min(20,bMaxMajorTraits) )
 				{
 					break;
 				}
@@ -14539,7 +14542,7 @@ INT8 NUM_SKILL_TRAITS( SOLDIERTYPE * pSoldier, UINT8 uiSkillTraitNumber )
 			}
 		}
 		// cannot have more than one same minor trait
-		if( uiSkillTraitNumber > NUM_MAJOR_TRAITS )
+		if( !TwoStagedTrait(uiSkillTraitNumber) )
 			return ( min(1, bNumberOfTraits) );
 		else
 			return ( min(2, bNumberOfTraits) );
@@ -14780,4 +14783,8 @@ UINT8 RegainDamagedStats( SOLDIERTYPE * pSoldier, UINT16 usAmountRegainedHundred
 	// Done, return what we healed
 	return( bStatsReturned );
 }
-				
+
+BOOLEAN TwoStagedTrait( UINT8 uiSkillTraitNumber )
+{
+	return( uiSkillTraitNumber > 0 && (uiSkillTraitNumber <= NUM_ORIGINAL_MAJOR_TRAITS || uiSkillTraitNumber == COVERT_NT) );
+}				

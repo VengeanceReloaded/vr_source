@@ -1935,6 +1935,13 @@ void LoadSkillTraitsExternalSettings()
 	gSkillTraitValues.fSCPreventsBloodcatsAmbushes = iniReader.ReadBoolean("Scouting","PREVENTS_BLOODCATS_AMBUSHES", TRUE);
 	gSkillTraitValues.fSCThrowMessageIfAmbushPrevented = iniReader.ReadBoolean("Scouting","SHOW_MESSAGE_IF_AMBUSH_PREVENTED", TRUE);
 
+	// DRIVING
+	gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle = iniReader.ReadInteger("Driver","GROUP_TIME_SPENT_FOR_TRAVELLING_IN_VEHICLE_REDUCTION", 30, 0, 100);
+	gSkillTraitValues.ubDRFuelSavedWhileTravellingVehicle = iniReader.ReadInteger("Driver","FUEL_SAVED_WHILE_TRAVELLING_IN_VEHICLE", 2, 0, 6);
+	gSkillTraitValues.ubDRMaxBonusesToTravelSpeed = iniReader.ReadInteger("Driver","MAX_STACKABLE_LESS_TRAVEL_TIME_BONUSES", 1, 0, 2);
+	gSkillTraitValues.ubDRMaxSavedFuel = iniReader.ReadInteger("Driver","MAX_STACKABLE_FUEL_SAVED", 1, 0, 6);
+	gSkillTraitValues.fDRSquadLeaderIsADriver = iniReader.ReadBoolean("Driver","SQUAD_LEADER_IS_A_DRIVER", FALSE);
+
 }
 
 

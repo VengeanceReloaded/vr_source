@@ -1903,39 +1903,53 @@ STR16 gzMercSkillText[] =
 // SANDRO - added this
 STR16 gzMercSkillTextNew[] = 
 {
-// Major traits
-L"Brak UmiejętnoŚci",
-L"Broń Automatyczna",
-L"Broń Ciężka",
-L"Strzelec Wyborowy",
-L"MyŚliwy",
-L"Pistolero",
-L"Walka Wręcz",
-L"Zastępca Szeryfa",
-L"Technik",
-L"Paramedyk",
-// Minor traits
-L"OburęcznoŚć",
-L"Walka Wręcz",
-L"Rzucanie",
-L"Operacje Nocne",
-L"UkradkowoŚć",
-L"Atletyka",
-L"Bodybuilding",
-L"Ładunki Wybuchowe",
-L"Uczenie",
-L"Zwiad",
-// second names for major skills
-L"Strzelec RKMu",
-L"Bombardier",
-L"Snajper",
-L"MyŚliwy",
-L"Pistolero",
-L"Sztuki Walki",
-L"Dowódca Drużyny",
-L"Inżynier",
-L"Doktor",
-L"Więcej...",
+	// Major traits
+	L"Brak Umiejętności",
+	L"Broń Automatyczna",
+	L"Broń Ciężka",
+	L"Strzelec Wyborowy",
+	L"Myśliwy",
+	L"Pistolero",
+	L"Walka Wręcz",
+	L"Zastępca Szeryfa",
+	L"Technik",
+	L"Paramedyk",	
+	// Minor traits
+	L"Oburęczność",
+	L"Walka Wręcz",
+	L"Rzucanie",
+	L"Operacje Nocne",
+	L"Ukradkowość",
+	L"Atletyka",
+	L"Bodybuilding",
+	L"Ładunki Wybuchowe",
+	L"Uczenie",
+	L"Zwiad",
+	// covert ops is a major trait that was added later
+	L"Tajne Operacje",		// 10	// TODO.Translate
+	L"Kierowca",
+	// second names for major skills
+	L"Strzelec RKMu",
+	L"Bombardier",
+	L"Snajper",
+	L"Myśliwy",
+	L"Pistolero",
+	L"Sztuki Walki",
+	L"Dowódca Drużyny",
+	L"Inżynier",
+	L"Doktor",
+	L"Placeholder",		// 30
+	L"Placeholder",
+	L"Placeholder",
+	L"Placeholder",
+	L"Placeholder",
+	L"Placeholder",		// 35
+	L"Placeholder",
+	L"Placeholder",
+	L"Placeholder",
+	L"Placeholder",		// 39
+	L"Szpieg",				// 40	// TODO.Translate
+	L"Więcej...",
 };
 //////////////////////////////////////////////////////////
 

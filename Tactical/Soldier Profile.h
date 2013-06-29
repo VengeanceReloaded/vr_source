@@ -87,6 +87,7 @@ extern BOOLEAN LoadNewSystemMercsToSaveGameFile( HWFILE hFile );
 
 enum NPCIDs
 {
+	IVAN = 7,
 	BIFF = 40,
 	HAYWIRE,
 	GASKET,

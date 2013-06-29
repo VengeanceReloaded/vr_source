@@ -367,6 +367,11 @@ STR16 gzIMPMinorTraitsHelpTextsScouting[]=
 	L"Prevents the bloodcats to ambush your squad\n",
 
 };
+STR16 gzIMPMinorTraitsHelpTextsDriver[]=
+{
+	L"+%d%s group traveling speed between sectors if traveling in vehicle (except helicopter)\n",
+	L"-%d%s fuel consumption when traveling in vehicle (except helicopter)\n",
+};
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"No bonuses",

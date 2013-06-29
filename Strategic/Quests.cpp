@@ -401,6 +401,18 @@ BOOLEAN PCInSameRoom( UINT8 ubProfileID )
 	return( FALSE );
 }
 
+BOOLEAN CheckTalkerIsABuddy( void )
+{
+	if (gpSrcSoldier && gpSrcSoldier->bTeam == gbPlayerNum && gpSrcSoldier->ubProfile != NO_PROFILE && gpDestSoldier->ubProfile != NO_PROFILE)
+	{
+		return( WhichBuddy(gpDestSoldier->ubProfile,gpSrcSoldier->ubProfile) != -1 );
+	}
+	else if (gpDestSoldier && gpDestSoldier->bTeam == gbPlayerNum && gpDestSoldier->ubProfile != NO_PROFILE && gpSrcSoldier->ubProfile != NO_PROFILE)
+	{
+		return( WhichBuddy(gpSrcSoldier->ubProfile,gpDestSoldier->ubProfile) != -1 );
+	}
+	return( FALSE );
+}
 
 BOOLEAN CheckTalkerStrong( void )
 {
@@ -481,6 +493,71 @@ INT8 NumMalesPresent( UINT8 ubProfileID )
 	return( bNumber );
 }
 
+BOOLEAN BuddyPresent( UINT8 ubProfileID )
+{
+	UINT32					uiLoop;
+	SOLDIERTYPE *		pNPC;
+	SOLDIERTYPE *		pSoldier;
+	INT32 sGridNo;
+
+	pNPC = FindSoldierByProfileID( ubProfileID, FALSE );
+	if (!pNPC)
+	{
+		return( FALSE );
+	}
+	sGridNo = pNPC->sGridNo;
+
+	for ( uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pSoldier = MercSlots[ uiLoop ];
+
+		if ( pSoldier && pSoldier->bTeam == gbPlayerNum && pSoldier->stats.bLife >= OKLIFE)
+		{
+			if ( pSoldier->ubProfile != NO_PROFILE && WhichBuddy( ubProfileID, pSoldier->ubProfile) != -1 )
+			{
+				if (PythSpacesAway( sGridNo, pSoldier->sGridNo ) <= 10)
+				{
+					return( TRUE );
+				}
+			}
+		}
+	}
+
+	return( FALSE );
+}
+
+BOOLEAN SpecificBuddyPresent( UINT8 ubProfileID, UINT8 specificBuddy )
+{
+	UINT32					uiLoop;
+	SOLDIERTYPE *		pNPC;
+	SOLDIERTYPE *		pSoldier;
+	INT32 sGridNo;
+
+	pNPC = FindSoldierByProfileID( ubProfileID, FALSE );
+	if (!pNPC)
+	{
+		return( FALSE );
+	}
+	sGridNo = pNPC->sGridNo;
+
+	for ( uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pSoldier = MercSlots[ uiLoop ];
+
+		if ( pSoldier && pSoldier->bTeam == gbPlayerNum && pSoldier->stats.bLife >= OKLIFE)
+		{
+			if ( pSoldier->ubProfile != NO_PROFILE && WhichBuddy( ubProfileID, pSoldier->ubProfile) == specificBuddy )
+			{
+				if (PythSpacesAway( sGridNo, pSoldier->sGridNo ) <= 10)
+				{
+					return( TRUE );
+				}
+			}
+		}
+	}
+
+	return( FALSE );
+}
 
 BOOLEAN FemalePresent( UINT8 ubProfileID )
 {
@@ -899,6 +976,21 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			break;
 		case FACT_DYNAMO_SPEAKING_OR_NEARBY:
 			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == DYNAMO || ( CheckNPCWithin( gpSrcSoldier->ubProfile, DYNAMO, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, DYNAMO ) ) ) );
+			break;
+		case FACT_IVAN_SPEAKING_OR_NEARBY:
+			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == IVAN || ( CheckNPCWithin( gpSrcSoldier->ubProfile, IVAN, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, IVAN ) ) ) );
+			break;
+		case FACT_BUDDY_SPEAKING:			
+			gubFact[usFact] = CheckTalkerIsABuddy();			 
+			break;
+		case FACT_BUDDY_SPEAKING_OR_NEARBY:			
+			gubFact[usFact] = (CheckTalkerIsABuddy() && BuddyPresent( ubProfileID ));			 
+			break;
+		case FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY:			
+			gubFact[usFact] = (CheckTalkerIsABuddy() && SpecificBuddyPresent( ubProfileID, 0 ));			 
+			break;
+		case FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY:			
+			gubFact[usFact] = (CheckTalkerIsABuddy() && SpecificBuddyPresent( ubProfileID, 1 ));			 
 			break;
 		case FACT_JOHN_EPC:
 			gubFact[usFact] = CheckNPCIsEPC( JOHN );

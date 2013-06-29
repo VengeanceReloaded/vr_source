@@ -1758,7 +1758,7 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 			// gotta be walking to get tougher
 			AwardExperienceForTravelling( pGroup );
 		}
-		else if( !IsGroupTheHelicopterGroup( pGroup ) )
+			else if( !IsGroupTheHelicopterGroup( pGroup ) )
 		{
 			SOLDIERTYPE *pSoldier;
 			INT32 iVehicleID;
@@ -1768,7 +1768,39 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 			pSoldier = GetSoldierStructureForVehicle( iVehicleID );
 			AssertMsg( pSoldier, "GroupArrival for vehicle group.	Invalid soldier pointer." );
 
-			SpendVehicleFuel( pSoldier, (INT16)(pGroup->uiTraverseTime*6) );
+			// see if we have any driver in here
+			UINT8 ubDriverHere = 0;
+			curr = pGroup->pPlayerList;
+			while( curr )
+			{
+				SOLDIERTYPE *checkSoldier = curr->pSoldier;
+				// merc has to be awake for bonus to count - remember, while travelling by vehicle they can be asleep!
+				if(!checkSoldier->flags.fMercAsleep)
+				{
+					if(gSkillTraitValues.fDRSquadLeaderIsADriver)
+					{
+						if(checkSoldier->flags.uiStatusFlags & ( SOLDIER_DRIVER ))
+						{
+							ubDriverHere += NUM_SKILL_TRAITS( checkSoldier, DRIVER_NT );
+						}
+					}
+					else
+					{
+						ubDriverHere += NUM_SKILL_TRAITS( checkSoldier, DRIVER_NT );
+					}
+				}
+				curr = curr->next;
+			}
+
+			if( ubDriverHere > gSkillTraitValues.ubDRMaxSavedFuel)
+			{
+				ubDriverHere=gSkillTraitValues.ubDRMaxSavedFuel;
+			}
+
+			if( ubDriverHere > 0 )
+				SpendVehicleFuel( pSoldier, (INT16)(pGroup->uiTraverseTime*(6 - ubDriverHere * gSkillTraitValues.ubDRFuelSavedWhileTravellingVehicle)) );
+			else
+				SpendVehicleFuel( pSoldier, (INT16)(pGroup->uiTraverseTime*6) );
 
 			if( !VehicleFuelRemaining( pSoldier ) )
 			{
@@ -3115,24 +3147,45 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 
 	///////////////////////////////////////////////////////////////////////////////
 	// SANDRO - STOMP traits - ranger reduces time needed for travelling around
+	// added driver reducing time while travelling with vevicle (anv)
 	if( pGroup->fPlayer && !fAir && gGameOptions.fNewTraitSystem)
 	{
 		// see if we have any ranger here
 		UINT8 ubRangerHere = 0;
+		// or driver
+		UINT8 ubDriverHere = 0;
 		curr = pGroup->pPlayerList;
 		while( curr )
 		{
 			pSoldier = curr->pSoldier;
-			if( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
-				ubRangerHere += NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
-
+			// merc has to be awake for bonus to count - remember, while travelling by vehicle they can be asleep!
+			if(!(pSoldier->flags.fMercAsleep))
+			{
+				if( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
+					ubRangerHere += NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
+				if( HAS_SKILL_TRAIT( pSoldier, DRIVER_NT ))
+				{
+					if(gSkillTraitValues.fDRSquadLeaderIsADriver)
+					{
+						if(pSoldier->flags.uiStatusFlags & ( SOLDIER_DRIVER ))
+						{
+							ubDriverHere += NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
+						}
+					}
+					else
+					{
+						ubDriverHere += NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
+					}
+				}
+			}
 			curr = curr->next;
 		}
 		// yes, we have...
-		if( ubRangerHere > 0 )
+		if( ubRangerHere > 0 || ubDriverHere > 0)
 		{
 			// no more than certain number of simultaneous bonuses
 			ubRangerHere = min( gSkillTraitValues.ubRAMaxBonusesToTravelSpeed, ubRangerHere );
+			ubDriverHere = min( gSkillTraitValues.ubDRMaxBonusesToTravelSpeed, ubDriverHere );
 			// on foot, the bonus should be higher
 			if( fFoot )
 			{
@@ -3142,8 +3195,15 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 			// all other types (except air)
 			else
 			{
+				
 				// however, we cannot be quicker than the helicopter
-				iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle )) / 100));
+				iBestTraverseTime = max( 
+										10, min(
+											(iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle )) / 100),
+											(iBestTraverseTime * (100 - ( ubDriverHere * gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle )) / 100)
+											)
+										);
+				//iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle )) / 100));
 			}
 		}
 	}

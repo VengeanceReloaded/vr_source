@@ -477,6 +477,13 @@ enum Facts
 	FACT_OK_USE_ICECREAM,																	//	307
 	FACT_KINGPIN_DEAD,//																			308
 
+	//for Iggy/Ivan meeting?
+	FACT_IVAN_SPEAKING_OR_NEARBY =																			310,
+	FACT_BUDDY_SPEAKING =																			311,
+	FACT_BUDDY_SPEAKING_OR_NEARBY =																			312,
+	FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY =																			313,
+	FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY =																			314,
+
 	FACT_KIDS_ARE_FREE =																			318,
 	FACT_PLAYER_IN_SAME_ROOM,//																319
 

@@ -369,6 +369,11 @@ STR16 gzIMPMinorTraitsHelpTextsScouting[]=
 	L"Prevents bloodcat ambushes on your squad\n",
 
 };
+STR16 gzIMPMinorTraitsHelpTextsDriver[]=
+{
+	L"+%d%s szybsza podróż pojazdem pomiędzy sektorami (poza helikopterem)\n",
+	L"-%d%s zużycie paliwa podczas podróży pojazdem (poza helikopterem)\n",
+};
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"No bonuses",

@@ -1416,6 +1416,8 @@ UINT8 GetSquadleadersCountInVicinity( SOLDIERTYPE * pSoldier, BOOLEAN fWithHighe
 UINT16 NumberOfDamagedStats( SOLDIERTYPE * pSoldier );
 UINT8 RegainDamagedStats( SOLDIERTYPE * pSoldier, UINT16 usAmountRegainedHundredths );
 
+BOOLEAN TwoStagedTrait( UINT8 uiSkillTraitNumber );		// Flugente: determine if this (new) trait has two stages
+
 //typedef struct
 class OLDSOLDIERTYPE_101
 {
