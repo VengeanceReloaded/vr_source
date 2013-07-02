@@ -11737,6 +11737,15 @@ BOOLEAN SetMercAsleep( SOLDIERTYPE *pSoldier, BOOLEAN fGiveWarning )
 		// put him to sleep
 		PutMercInAsleepState( pSoldier );
 
+		// was he driving a vehicle?
+		if(pSoldier->bAssignment == VEHICLE)
+		{
+			if( pSoldier->flags.uiStatusFlags & SOLDIER_DRIVER )
+			{
+				// he was, so time to designate a new driver
+				SetBestDriverForVehicle(  pSoldier->bVehicleID );
+			}
+		}
 		// successful
 		return( TRUE );
 	}
@@ -11789,6 +11798,17 @@ BOOLEAN SetMercAwake( SOLDIERTYPE *pSoldier, BOOLEAN fGiveWarning, BOOLEAN fForc
 	}
 
 	PutMercInAwakeState( pSoldier );
+
+	// was he a passenger of a vehicle? maybe he's a better driver than current one
+	if(pSoldier->bAssignment == VEHICLE)
+	{
+		if( pSoldier->flags.uiStatusFlags & SOLDIER_PASSENGER )
+		{
+			// time to designate a new driver
+			SetBestDriverForVehicle(  pSoldier->bVehicleID );
+		}
+	}
+
 	return( TRUE );
 }
 

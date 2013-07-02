@@ -1091,6 +1091,7 @@ typedef struct
 	UINT8 ubRAWeatherPenaltiesReduction;
 	//UINT8 ubRACamoEffectivenessBonus;
 	UINT8 ubRACamoWornountSpeedReduction;
+	BOOLEAN fRAAsleepInCarAndStillGetsTravellingReduction;
 
 	// GUNSLINGER
 	UINT8 ubGSFiringSpeedBonusPistols;
@@ -1253,7 +1254,7 @@ typedef struct
 	UINT8 ubDRFuelSavedWhileTravellingVehicle;
 	UINT8 ubDRMaxBonusesToTravelSpeed;
 	UINT8 ubDRMaxSavedFuel;
-	BOOLEAN fDRSquadLeaderIsADriver;
+	UINT8 ubDRStackableDriverAndRanger;
 
 } SKILL_TRAIT_VALUES;
 

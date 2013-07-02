@@ -588,8 +588,21 @@ BOOLEAN AddSoldierToVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 			}
 			else
 			{
-				// Set as driver...
-				pSoldier->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+				//check if entering guy is a better driver
+				if((NUM_SKILL_TRAITS( pSoldier, DRIVER_NT )>NUM_SKILL_TRAITS( GetDriver( iId ), DRIVER_NT )) || !(CanSoldierDriveVehicle( GetDriver( iId ), iId, FALSE )))
+				{
+					// Set previous driver as passenger
+					GetDriver( iId )->flags.uiStatusFlags &= ~SOLDIER_DRIVER;
+					GetDriver( iId )->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+					// Set new guy as driver...
+					pSoldier->flags.uiStatusFlags |= SOLDIER_DRIVER;
+					SetDriver( iId , pSoldier->ubID );
+				}
+				else
+				{
+					// Set as passenger...
+					pSoldier->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+				}
 			}
 
 			// Remove soldier's graphic
@@ -673,6 +686,7 @@ BOOLEAN RemoveSoldierFromVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 	INT32 iCounter = 0;
 	BOOLEAN fSoldierLeft = FALSE;
 	BOOLEAN	fSoldierFound = FALSE;
+	BOOLEAN fWasDriver = FALSE;
 	SOLDIERTYPE *pVehicleSoldier;
 	UINT8	iOldGroupID=0;
 
@@ -701,6 +715,10 @@ BOOLEAN RemoveSoldierFromVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 			pVehicleList[ iId ].pPassengers[ iCounter ]->sSectorX = pVehicleList[ iId ].sSectorX;
 			pVehicleList[ iId ].pPassengers[ iCounter ]->bSectorZ = ( INT8 )pVehicleList[ iId ].sSectorZ;
 			pVehicleList[ iId ].pPassengers[ iCounter ] = NULL;
+			if( pSoldier->flags.uiStatusFlags & SOLDIER_DRIVER )
+			{
+				fWasDriver = TRUE;
+			}
 
 
 			pSoldier->flags.uiStatusFlags &= ( ~( SOLDIER_DRIVER | SOLDIER_PASSENGER ) );
@@ -793,6 +811,12 @@ BOOLEAN RemoveSoldierFromVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 			}
 		}
 	}
+	else
+	{
+		// set new driver if needed
+		//DoScreenIndependantMessageBox(STR16(L"Set Best"),MSG_BOX_FLAG_OK,NULL);
+		
+	}
 
 
 	// if he got out of the chopper
@@ -814,7 +838,10 @@ BOOLEAN RemoveSoldierFromVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 		}
 
 	}
-
+	if(fSoldierLeft&&fWasDriver)
+	{
+		SetBestDriverForVehicle( iId );
+	}
 	// soldier successfully removed
 	return( TRUE );
 }
@@ -1618,6 +1645,9 @@ BOOLEAN ExitVehicle( SOLDIERTYPE *pSoldier )
 		}
 
 		PlayJA2Sample( pVehicleList[ pVehicle->bVehicleID ].iOutOfSound, RATE_11025, SoundVolume( HIGHVOLUME, pVehicle->sGridNo ), 1, SoundDir( pVehicle->sGridNo ) );
+		
+		SetBestDriverForVehicle( pVehicle->iVehicleId );
+
 		return( TRUE );
 	}
 
@@ -2501,6 +2531,89 @@ BOOLEAN OnlythisCanDriveVehicle( SOLDIERTYPE *pthis, INT32 iVehicleId )
 	return( TRUE );
 }
 
+SOLDIERTYPE *GetBestDriverInVehicle( INT32 iVehicleId )
+{
+	INT32 iCounter = 0;
+	INT8 iBestDriving = -1; 
+	SOLDIERTYPE *pSoldier = NULL;
+	SOLDIERTYPE *pDriver = NULL;
+	
+	for( iCounter = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; iCounter <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; iCounter++ )
+	{
+		// get the current soldier
+		pSoldier = &Menptr[ iCounter ];
+
+		if( pSoldier->bActive )
+		{
+			// don't count mercs who are asleep here
+			if ( CanSoldierDriveVehicle( pSoldier, iVehicleId, FALSE ) )
+			{
+				if( NUM_SKILL_TRAITS( pSoldier, DRIVER_NT ) > iBestDriving )
+				{
+					//that guy is the best so far
+					pDriver = pSoldier;
+					iBestDriving = NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
+				}
+			}
+		}
+	}
+	if( pDriver == NULL )
+	{
+		// well, we didn't find anyone, try to get one even if he's asleep
+		for( iCounter = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; iCounter <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; iCounter++ )
+		{
+			// get the current soldier
+			pSoldier = &Menptr[ iCounter ];
+
+			if( pSoldier->bActive )
+			{
+				// ignore if asleep this time 
+				if ( CanSoldierDriveVehicle( pSoldier, iVehicleId, TRUE ) )
+				{
+					if( NUM_SKILL_TRAITS( pSoldier, DRIVER_NT ) > iBestDriving )
+					{
+						//that guy is the best so far
+						pDriver = pSoldier;
+						iBestDriving = NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
+					}
+				}
+			}
+		}
+	}
+	// you're da man!
+	return( pDriver );
+}
+
+BOOLEAN SetBestDriverForVehicle( INT32 iVehicleId )
+{
+	SOLDIERTYPE *pBestDriver = NULL;
+	SOLDIERTYPE *pCurrentDriver = NULL;
+
+	pBestDriver = GetBestDriverInVehicle( iVehicleId );
+	pCurrentDriver = MercPtrs[ pVehicleList[ iVehicleId ].ubDriver ];
+	if( pBestDriver != NULL )
+	{
+		if( pBestDriver != pCurrentDriver )
+		{				
+			// there's a better driver than current one, replace current one with the best
+			pBestDriver->flags.uiStatusFlags |= SOLDIER_DRIVER;
+			pBestDriver->flags.uiStatusFlags &= ~SOLDIER_PASSENGER;
+			SetDriver( iVehicleId, pBestDriver->ubID );
+			// current "driver" may be not in a car anymore, check first
+			if( pCurrentDriver != NULL && pCurrentDriver->flags.uiStatusFlags & SOLDIER_DRIVER) 
+			{
+				pCurrentDriver->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+				pCurrentDriver->flags.uiStatusFlags &= ~SOLDIER_DRIVER;
+			}
+			
+		}
+	}
+	else
+	{
+		return ( FALSE );
+	}
+	return ( TRUE );
+}
 
 
 BOOLEAN IsSoldierInThisVehicleSquad( SOLDIERTYPE *pSoldier, INT8 bSquadNumber )

@@ -1776,6 +1776,7 @@ void LoadSkillTraitsExternalSettings()
 	gSkillTraitValues.ubRAWeatherPenaltiesReduction = iniReader.ReadInteger("Ranger","WEATHER_PENALTIES_REDUCTION", 50, 0, 100);
 	//gSkillTraitValues.ubRACamoEffectivenessBonus = iniReader.ReadInteger("Ranger","CAMO_EFFECTIVENESS_BONUS_PERCENT", 10, 0, 100);
 	gSkillTraitValues.ubRACamoWornountSpeedReduction = iniReader.ReadInteger("Ranger","CAMO_WORNOUT_SPEED_REDUCTION", 50, 0, 100);
+	gSkillTraitValues.fRAAsleepInCarAndStillGetsTravellingReduction= iniReader.ReadBoolean("Ranger","ASLEEP_IN_CAR_AND_STILL_GETS_TRAVELLING_REDUCTION", FALSE);
 
 	// GUNSLINGER
 	gSkillTraitValues.ubGSFiringSpeedBonusPistols = iniReader.ReadInteger("Gunslinger","FIRING_SPEED_BONUS_PISTOLS", 15, 0, 45);
@@ -1940,7 +1941,7 @@ void LoadSkillTraitsExternalSettings()
 	gSkillTraitValues.ubDRFuelSavedWhileTravellingVehicle = iniReader.ReadInteger("Driver","FUEL_SAVED_WHILE_TRAVELLING_IN_VEHICLE", 2, 0, 6);
 	gSkillTraitValues.ubDRMaxBonusesToTravelSpeed = iniReader.ReadInteger("Driver","MAX_STACKABLE_LESS_TRAVEL_TIME_BONUSES", 1, 0, 2);
 	gSkillTraitValues.ubDRMaxSavedFuel = iniReader.ReadInteger("Driver","MAX_STACKABLE_FUEL_SAVED", 1, 0, 6);
-	gSkillTraitValues.fDRSquadLeaderIsADriver = iniReader.ReadBoolean("Driver","SQUAD_LEADER_IS_A_DRIVER", FALSE);
+	gSkillTraitValues.ubDRStackableDriverAndRanger = iniReader.ReadInteger("Driver","STACKABLE_DRIVER_AND_RANGER", 2, 0, 2);
 
 }
 

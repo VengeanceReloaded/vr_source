@@ -1777,24 +1777,14 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 				// merc has to be awake for bonus to count - remember, while travelling by vehicle they can be asleep!
 				if(!checkSoldier->flags.fMercAsleep)
 				{
-					if(gSkillTraitValues.fDRSquadLeaderIsADriver)
-					{
-						if(checkSoldier->flags.uiStatusFlags & ( SOLDIER_DRIVER ))
-						{
-							ubDriverHere += NUM_SKILL_TRAITS( checkSoldier, DRIVER_NT );
-						}
-					}
-					else
-					{
 						ubDriverHere += NUM_SKILL_TRAITS( checkSoldier, DRIVER_NT );
-					}
 				}
 				curr = curr->next;
 			}
 
 			if( ubDriverHere > gSkillTraitValues.ubDRMaxSavedFuel)
 			{
-				ubDriverHere=gSkillTraitValues.ubDRMaxSavedFuel;
+				ubDriverHere = gSkillTraitValues.ubDRMaxSavedFuel;
 			}
 
 			if( ubDriverHere > 0 )
@@ -3159,24 +3149,16 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 		{
 			pSoldier = curr->pSoldier;
 			// merc has to be awake for bonus to count - remember, while travelling by vehicle they can be asleep!
-			if(!(pSoldier->flags.fMercAsleep))
+			if( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
 			{
-				if( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
-					ubRangerHere += NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
-				if( HAS_SKILL_TRAIT( pSoldier, DRIVER_NT ))
+				if(!(pSoldier->flags.fMercAsleep)||!gSkillTraitValues.fRAAsleepInCarAndStillGetsTravellingReduction)
 				{
-					if(gSkillTraitValues.fDRSquadLeaderIsADriver)
-					{
-						if(pSoldier->flags.uiStatusFlags & ( SOLDIER_DRIVER ))
-						{
-							ubDriverHere += NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
-						}
-					}
-					else
-					{
-						ubDriverHere += NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
-					}
+					ubRangerHere += NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
 				}
+			}
+			if( HAS_SKILL_TRAIT( pSoldier, DRIVER_NT ))
+			{
+				ubDriverHere += NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
 			}
 			curr = curr->next;
 		}
@@ -3197,13 +3179,36 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 			{
 				
 				// however, we cannot be quicker than the helicopter
-				iBestTraverseTime = max( 
-										10, min(
-											(iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle )) / 100),
-											(iBestTraverseTime * (100 - ( ubDriverHere * gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle )) / 100)
-											)
-										);
-				//iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle )) / 100));
+				switch( gSkillTraitValues.ubDRStackableDriverAndRanger )
+				{
+					// additive
+					case 1:
+					iBestTraverseTime = max( 
+											10, iBestTraverseTime *
+													(	100	- ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle ) 
+															- ( ubDriverHere * gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle )
+													) / 100
+	
+											);
+					break;
+					// multiply
+					case 2:
+					iBestTraverseTime = max( 
+											10,	iBestTraverseTime 
+													* (	100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle ) ) / 100
+													* (	100 - ( ubDriverHere * gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle ) ) / 100
+											);
+					break;
+					// no stacking
+					default:
+					iBestTraverseTime = max( 
+											10, min(
+													iBestTraverseTime * (	100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle ) ) / 100,
+													iBestTraverseTime * (	100 - ( ubDriverHere * gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle ) ) / 100
+												)
+											);
+					break;
+				}
 			}
 		}
 	}
