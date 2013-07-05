@@ -127,6 +127,9 @@ BOOLEAN InitializeGame(void)
 	// Load new ini - SANDRO
 	LoadSkillTraitsExternalSettings();
 
+    // anv - extended panels
+    LoadExtendedPanelsExternalSettings();
+
 	// HEADROCK HAM 4: Read CTH values
 	LoadCTHConstants();
 

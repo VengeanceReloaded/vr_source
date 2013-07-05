@@ -98,6 +98,9 @@ enum
 };
 extern STR16 gzDisplayCoverText[];
 
+// anv - extended panels
+extern STR16 pExtendedPanelStrings[];
+
 #endif
 
 

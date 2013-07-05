@@ -57,6 +57,8 @@
 
 #define				STOMP_SETTINGS_FILE				"Skills_Settings.ini" // SANDRO - file for STOMP
 
+#define             EXTENDED_PANELS_SETTINGS_FILE   "Extended_Panels.ini" // anv - extended panels
+
 // HEADROCK HAM 4: This file contains all the settings required to tweak the new Shooting Mechanism. There's lots of them.
 #define				CTH_COEFFICIENTS_FILE			"CTHConstants.ini"
 
@@ -67,6 +69,7 @@ GAME_OPTIONS		gGameOptions;
 // Snap: Options read from an INI file in the default of custom Data directory
 GAME_EXTERNAL_OPTIONS gGameExternalOptions;
 SKILL_TRAIT_VALUES gSkillTraitValues;  // SANDRO - added this one
+EXTENDED_PANELS_SETTINGS gExtendedPanelsSettings; // anv - extended panels
 CTH_CONSTANTS gGameCTHConstants;	// HEADROCK HAM 4: CTH constants
 
 extern	SGPFILENAME	gCheckFilenames[];
@@ -1945,6 +1948,19 @@ void LoadSkillTraitsExternalSettings()
 
 }
 
+void LoadExtendedPanelsExternalSettings()
+{
+	CIniReader iniReader(EXTENDED_PANELS_SETTINGS_FILE);
+	gExtendedPanelsSettings.bExtendedPanelsOn = iniReader.ReadBoolean("General Settings","EXTENDED_PANELS_ON", TRUE );
+    gExtendedPanelsSettings.uepMaxPanels = iniReader.ReadInteger("General Settings","MAX_NUMBER_OF_PANELS", 3, 0, 10 );
+    gExtendedPanelsSettings.uepExtendedPanelMaxRow = iniReader.ReadInteger("Dimensions","MAX_NUMBER_OF_ROWS", 8, 0, 20 );
+    gExtendedPanelsSettings.uepExtendedPanelMinWidth = iniReader.ReadInteger("Dimensions","MIN_COLUMN_WIDTH", 96, 0, 65535 );
+    gExtendedPanelsSettings.uepExtendedPanelXLShift = iniReader.ReadInteger("Dimensions","SHIFT_FROM_LEFT_BORDER", 14, 0 , 65535 );
+    gExtendedPanelsSettings.uepExtendedPanelXRShift = iniReader.ReadInteger("Dimensions","SHIFT_FROM_RIGHT_BORDER", 10, 0 , 65535 );
+    gExtendedPanelsSettings.uepExtendedPanelYShift = iniReader.ReadInteger("Dimensions","SHIFT_FROM_TOP_BORDER", 20, 0 , 65535 );
+    gExtendedPanelsSettings.uepExtendedPanelRowDist = iniReader.ReadInteger("Dimensions","DISTANCE_BETWEEN_ROWS", 10, 0 , 65535 );
+    gExtendedPanelsSettings.uepExtendedPanelColDist = iniReader.ReadInteger("Dimensions","DISTANCE_BETWEEN_COLUMNS", 8, 0 , 65535 ); 
+}
 
 INT16 DynamicAdjustAPConstants(INT16 iniReadValue, INT16 iniDefaultValue, BOOLEAN reverse)
 {

@@ -1258,6 +1258,20 @@ typedef struct
 
 } SKILL_TRAIT_VALUES;
 
+typedef struct
+{
+    BOOLEAN bExtendedPanelsOn;
+    UINT16 uepMaxPanels;
+    UINT16 uepExtendedPanelMaxRow;
+    UINT16 uepExtendedPanelMinWidth;
+    UINT16 uepExtendedPanelXLShift;
+    UINT16 uepExtendedPanelXRShift;
+    UINT16 uepExtendedPanelRowDist;
+    UINT16 uepExtendedPanelColDist;
+    UINT16 uepExtendedPanelYShift;
+
+} EXTENDED_PANELS_SETTINGS;
+
 // HEADROCK HAM 4: Constants used as coefficients by the various parts of the new CTH system.
 typedef struct
 {
@@ -1377,6 +1391,8 @@ extern GAME_EXTERNAL_OPTIONS gGameExternalOptions;
 
 extern SKILL_TRAIT_VALUES gSkillTraitValues;  // SANDRO - added this one
 
+extern EXTENDED_PANELS_SETTINGS gExtendedPanelsSettings; // anv - extended panels
+
 // HEADROCK HAM 4: CTH constants read from a separate INI file
 extern CTH_CONSTANTS gGameCTHConstants;
 
@@ -1388,6 +1404,8 @@ BOOLEAN LoadGameSettings();
 // Snap: Read options from an INI file in the default of custom Data directory
 void LoadGameExternalOptions();
 void LoadSkillTraitsExternalSettings(); // SANDRO - added this one
+// anv - extended panels
+void LoadExtendedPanelsExternalSettings();
 void LoadGameAPBPConstants();
 // HEADROCK HAM 4: Read CTH/Shooting coefficients from file
 void LoadCTHConstants();

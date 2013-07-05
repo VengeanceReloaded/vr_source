@@ -6890,4 +6890,13 @@ STR16 gzNCTHlabels[]=
 // HEADROCK HAM 4: End new UDB texts and tooltips
 //////////////////////////////////////////////////////
 
+// anv - extended panels
+STR16 pExtendedPanelStrings[] =
+{
+    // Battle stats
+	L"Statystyki bitewne",
+	L"Informacje o osobie",
+	L"Zatrudnienie",
+};
+
 #endif //POLISH

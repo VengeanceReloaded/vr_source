@@ -422,6 +422,10 @@ void InitDependingGameStyleOptions()
 	LoadGameExternalOptions();
 	// Load new STOMP ini - SANDRO
 	LoadSkillTraitsExternalSettings();
+
+    // anv - extended panels
+    LoadExtendedPanelsExternalSettings();
+
 	// HEADROCK HAM 4: CTH constants
 	LoadCTHConstants();
 
