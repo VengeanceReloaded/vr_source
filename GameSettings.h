@@ -1261,14 +1261,30 @@ typedef struct
 typedef struct
 {
     BOOLEAN bExtendedPanelsOn;
+    BOOLEAN bExtendedPanelsPresetFileLoaded;
+    STR8 bExtendedPanelsPresetFile;
     UINT16 uepMaxPanels;
-    UINT16 uepExtendedPanelMaxRow;
-    UINT16 uepExtendedPanelMinWidth;
-    UINT16 uepExtendedPanelXLShift;
-    UINT16 uepExtendedPanelXRShift;
-    UINT16 uepExtendedPanelRowDist;
-    UINT16 uepExtendedPanelColDist;
-    UINT16 uepExtendedPanelYShift;
+
+    STR8  sepFont;
+    UINT8  uepAwesomeColor;
+    UINT8  uepGreatColor;
+    UINT8  uepNormalColor;
+    UINT8  uepAwefulColor;
+    UINT16 uepMaxRow;
+    UINT16 uepMinWidth;
+    UINT16 uepXLShift;
+    UINT16 uepXRShift;
+    UINT16 uepRowDist;
+    UINT16 uepColDist;
+    UINT16 uepYShift;
+    UINT16 uepRowCapacity[32];
+
+    STR8  sepPanel[32][32];   
+    STR8  sepTypes[32][32];
+    STR8  sepLabelFonts[32][32];
+    STR8  sepValueFonts[32][32];
+    UINT8  sepLabelColors[32][32];
+    UINT8  sepValueColors[32][32];
 
 } EXTENDED_PANELS_SETTINGS;
 

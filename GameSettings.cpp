@@ -1952,14 +1952,55 @@ void LoadExtendedPanelsExternalSettings()
 {
 	CIniReader iniReader(EXTENDED_PANELS_SETTINGS_FILE);
 	gExtendedPanelsSettings.bExtendedPanelsOn = iniReader.ReadBoolean("General Settings","EXTENDED_PANELS_ON", TRUE );
-    gExtendedPanelsSettings.uepMaxPanels = iniReader.ReadInteger("General Settings","MAX_NUMBER_OF_PANELS", 3, 0, 10 );
-    gExtendedPanelsSettings.uepExtendedPanelMaxRow = iniReader.ReadInteger("Dimensions","MAX_NUMBER_OF_ROWS", 8, 0, 20 );
-    gExtendedPanelsSettings.uepExtendedPanelMinWidth = iniReader.ReadInteger("Dimensions","MIN_COLUMN_WIDTH", 96, 0, 65535 );
-    gExtendedPanelsSettings.uepExtendedPanelXLShift = iniReader.ReadInteger("Dimensions","SHIFT_FROM_LEFT_BORDER", 14, 0 , 65535 );
-    gExtendedPanelsSettings.uepExtendedPanelXRShift = iniReader.ReadInteger("Dimensions","SHIFT_FROM_RIGHT_BORDER", 10, 0 , 65535 );
-    gExtendedPanelsSettings.uepExtendedPanelYShift = iniReader.ReadInteger("Dimensions","SHIFT_FROM_TOP_BORDER", 20, 0 , 65535 );
-    gExtendedPanelsSettings.uepExtendedPanelRowDist = iniReader.ReadInteger("Dimensions","DISTANCE_BETWEEN_ROWS", 10, 0 , 65535 );
-    gExtendedPanelsSettings.uepExtendedPanelColDist = iniReader.ReadInteger("Dimensions","DISTANCE_BETWEEN_COLUMNS", 8, 0 , 65535 ); 
+    gExtendedPanelsSettings.bExtendedPanelsPresetFile = iniReader.ReadString("General Settings","PRESET_FILE","default");
+    gExtendedPanelsSettings.bExtendedPanelsPresetFileLoaded = FALSE;
+
+    STR8 sSettingsFile;
+    if( strcmp(gExtendedPanelsSettings.bExtendedPanelsPresetFile, "default") != 0 )
+        sSettingsFile = gExtendedPanelsSettings.bExtendedPanelsPresetFile;
+    else
+        sSettingsFile = EXTENDED_PANELS_SETTINGS_FILE;
+
+    CIniReader iniPresetReader(sSettingsFile);
+
+    gExtendedPanelsSettings.uepAwesomeColor = iniPresetReader.ReadInteger("Fonts","AWESOME_COLOR", 208, 0, 255 );
+    gExtendedPanelsSettings.uepGreatColor = iniPresetReader.ReadInteger("Fonts","GREAT_COLOR", 134, 0, 255 );
+    gExtendedPanelsSettings.uepNormalColor = iniPresetReader.ReadInteger("Fonts","NORMAL_COLOR", 136, 0, 255 );
+    gExtendedPanelsSettings.uepAwefulColor = iniPresetReader.ReadInteger("Fonts","AWEFUL_COLOR", 162, 0, 255 );
+    gExtendedPanelsSettings.sepFont = iniPresetReader.ReadString( "Fonts","FONT", "FONT10ARIAL" );
+
+    gExtendedPanelsSettings.uepMaxPanels = iniPresetReader.ReadInteger("Dimensions","MAX_NUMBER_OF_PANELS", 3, 0, 32 );
+    gExtendedPanelsSettings.uepMaxRow = iniPresetReader.ReadInteger("Dimensions","MAX_NUMBER_OF_ROWS", 8, 0, 32 );
+    gExtendedPanelsSettings.uepMinWidth = iniPresetReader.ReadInteger("Dimensions","MIN_COLUMN_WIDTH", 96, 0, 65535 );
+    gExtendedPanelsSettings.uepXLShift = iniPresetReader.ReadInteger("Dimensions","SHIFT_FROM_LEFT_BORDER", 14, 0 , 65535 );
+    gExtendedPanelsSettings.uepXRShift = iniPresetReader.ReadInteger("Dimensions","SHIFT_FROM_RIGHT_BORDER", 10, 0 , 65535 );
+    gExtendedPanelsSettings.uepYShift = iniPresetReader.ReadInteger("Dimensions","SHIFT_FROM_TOP_BORDER", 20, 0 , 65535 );
+    gExtendedPanelsSettings.uepRowDist = iniPresetReader.ReadInteger("Dimensions","DISTANCE_BETWEEN_ROWS", 10, 0 , 65535 );
+    gExtendedPanelsSettings.uepColDist = iniPresetReader.ReadInteger("Dimensions","DISTANCE_BETWEEN_COLUMNS", 8, 0 , 65535 );
+
+    CHAR8 sPanelName[256];
+    CHAR8 sPanelRowName[256];
+    // build sections and value names based on counters, and use them to read  the information
+    for(UINT16 uiPanel=0; uiPanel < gExtendedPanelsSettings.uepMaxPanels; uiPanel++)
+    {
+        sprintf(sPanelName, "Panel %d", uiPanel);
+        gExtendedPanelsSettings.uepRowCapacity[uiPanel] = iniPresetReader.ReadInteger(sPanelName,"ROWS", 0, 0, 10 );
+        for(UINT16 uiPanelRow=0; uiPanelRow < gExtendedPanelsSettings.uepRowCapacity[uiPanel]; uiPanelRow++)
+        {
+            sprintf(sPanelRowName, "ROW_%d", uiPanelRow );
+            gExtendedPanelsSettings.sepPanel[uiPanel][uiPanelRow] = iniPresetReader.ReadString(sPanelName,sPanelRowName, "EXTENDED_PANEL_EMPTY");
+            sprintf(sPanelRowName, "TYPE_%d", uiPanelRow );
+            gExtendedPanelsSettings.sepTypes[uiPanel][uiPanelRow] = iniPresetReader.ReadString(sPanelName,sPanelRowName, "BOTH");
+            sprintf(sPanelRowName, "LABEL_COLOR_%d", uiPanelRow );
+            gExtendedPanelsSettings.sepLabelColors[uiPanel][uiPanelRow] = iniPresetReader.ReadInteger(sPanelName,sPanelRowName, 0, 0, 255);
+            sprintf(sPanelRowName, "VALUE_COLOR_%d", uiPanelRow );
+            gExtendedPanelsSettings.sepValueColors[uiPanel][uiPanelRow] = iniPresetReader.ReadInteger(sPanelName,sPanelRowName, 0, 0, 255);
+            sprintf(sPanelRowName, "LABEL_FONT_%d", uiPanelRow );
+            gExtendedPanelsSettings.sepLabelFonts[uiPanel][uiPanelRow] = iniPresetReader.ReadString(sPanelName,sPanelRowName, gExtendedPanelsSettings.sepFont );
+            sprintf(sPanelRowName, "VALUE_FONT_%d", uiPanelRow );
+            gExtendedPanelsSettings.sepValueFonts[uiPanel][uiPanelRow] = iniPresetReader.ReadString(sPanelName,sPanelRowName, gExtendedPanelsSettings.sepFont );
+        }
+    }
 }
 
 INT16 DynamicAdjustAPConstants(INT16 iniReadValue, INT16 iniDefaultValue, BOOLEAN reverse)
