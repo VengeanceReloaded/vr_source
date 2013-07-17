@@ -1963,10 +1963,12 @@ void LoadExtendedPanelsExternalSettings()
 
     CIniReader iniPresetReader(sSettingsFile);
 
+	gExtendedPanelsSettings.uepDescriptionColor = iniPresetReader.ReadInteger("Fonts","DESCRIPTION_COLOR", 136, 0, 255 );
     gExtendedPanelsSettings.uepAwesomeColor = iniPresetReader.ReadInteger("Fonts","AWESOME_COLOR", 208, 0, 255 );
     gExtendedPanelsSettings.uepGreatColor = iniPresetReader.ReadInteger("Fonts","GREAT_COLOR", 134, 0, 255 );
     gExtendedPanelsSettings.uepNormalColor = iniPresetReader.ReadInteger("Fonts","NORMAL_COLOR", 136, 0, 255 );
-    gExtendedPanelsSettings.uepAwefulColor = iniPresetReader.ReadInteger("Fonts","AWEFUL_COLOR", 162, 0, 255 );
+	gExtendedPanelsSettings.uepPoorColor = iniPresetReader.ReadInteger("Fonts","POOR_COLOR", 138, 0, 255 );
+    gExtendedPanelsSettings.uepAwfulColor = iniPresetReader.ReadInteger("Fonts","AWFUL_COLOR", 162, 0, 255 );
     gExtendedPanelsSettings.sepFont = iniPresetReader.ReadString( "Fonts","FONT", "FONT10ARIAL" );
 
     gExtendedPanelsSettings.uepMaxPanels = iniPresetReader.ReadInteger("Dimensions","MAX_NUMBER_OF_PANELS", 3, 0, 32 );
@@ -2001,6 +2003,35 @@ void LoadExtendedPanelsExternalSettings()
             gExtendedPanelsSettings.sepValueFonts[uiPanel][uiPanelRow] = iniPresetReader.ReadString(sPanelName,sPanelRowName, gExtendedPanelsSettings.sepFont );
         }
     }
+
+	gExtendedPanelsSettings.uepAwesomeKills = iniPresetReader.ReadInteger("Kills Tresholds","AWESOME_KILLS", 1000, 0, 65535 );
+	gExtendedPanelsSettings.uepGreatKills = iniPresetReader.ReadInteger("Kills Tresholds","GREAT_KILLS", 100, 0, 65535 );
+	gExtendedPanelsSettings.uepPoorKills = iniPresetReader.ReadInteger("Kills Tresholds","POOR_KILLS", 10, 0, 65535 );
+	gExtendedPanelsSettings.uepAwfulKills = iniPresetReader.ReadInteger("Kills Tresholds","AWFUL_KILLS", 0, 0, 65535 );
+	gExtendedPanelsSettings.uepAwesomeAssists = iniPresetReader.ReadInteger("Assists Tresholds","AWESOME_ASSISTS", 1000, 0, 65535 );
+	gExtendedPanelsSettings.uepGreatAssists  = iniPresetReader.ReadInteger("Assists Tresholds","GREAT_ASSISTS", 100, 0, 65535 );
+	gExtendedPanelsSettings.uepPoorAssists  = iniPresetReader.ReadInteger("Assists Tresholds","POOR_ASSISTS", 10, 0, 65535 );
+	gExtendedPanelsSettings.uepAwfulAssists  = iniPresetReader.ReadInteger("Assists Tresholds","AWFUL_ASSISTS", 0, 0, 65535 );
+	gExtendedPanelsSettings.uepAwesomeBattles = iniPresetReader.ReadInteger("Assists Tresholds","AWESOME_BATTLES", 100, 0, 65535 );
+	gExtendedPanelsSettings.uepGreatBattles  = iniPresetReader.ReadInteger("Assists Tresholds","GREAT_BATTLES", 25, 0, 65535 );
+	gExtendedPanelsSettings.uepPoorBattles  = iniPresetReader.ReadInteger("Assists Tresholds","POOR_BATTLES", 5, 0, 65535 );
+	gExtendedPanelsSettings.uepAwfulBattles  = iniPresetReader.ReadInteger("Assists Tresholds","AWFUL_BATTLES", 0, 0, 65535 );
+	gExtendedPanelsSettings.uepAwesomeAchievements = iniPresetReader.ReadInteger("Achievements Tresholds","AWESOME_ACHIEVEMENTS", 50, 0, 65535 );
+	gExtendedPanelsSettings.uepGreatAchievements = iniPresetReader.ReadInteger("Achievements Tresholds","GREAT_ACHIEVEMENTS", 25, 0, 65535 );
+	gExtendedPanelsSettings.uepPoorAchievements = iniPresetReader.ReadInteger("Achievements Tresholds","POOR_ACHIEVEMENTS", 5, 0, 65535 );
+	gExtendedPanelsSettings.uepAwfulAchievements = iniPresetReader.ReadInteger("Achievements Tresholds","AWFUL_ACHIEVEMENTS", 0, 0, 65535 );
+	gExtendedPanelsSettings.uepAwesomeStats = iniPresetReader.ReadInteger("Stats Tresholds","AWESOME_STATS", 90, 0, 65535 );
+	gExtendedPanelsSettings.uepGreatStats = iniPresetReader.ReadInteger("Stats Tresholds","GREAT_STATS", 75, 0, 65535 );
+	gExtendedPanelsSettings.uepPoorStats = iniPresetReader.ReadInteger("Stats Tresholds","POOR_STATS", 20, 0, 65535 );
+	gExtendedPanelsSettings.uepAwfulStats = iniPresetReader.ReadInteger("Stats Tresholds","AWFUL_STATS", 0, 0, 65535 );
+	gExtendedPanelsSettings.uepAwesomeLevel = iniPresetReader.ReadInteger("Achievements Tresholds","AWESOME_LEVEL", 8, 0, 65535 );
+	gExtendedPanelsSettings.uepGreatLevel = iniPresetReader.ReadInteger("Achievements Tresholds","GREAT_LEVEL", 5, 0, 65535 );
+	gExtendedPanelsSettings.uepPoorLevel = iniPresetReader.ReadInteger("Achievements Tresholds","POOR_LEVEL", 3, 0, 65535 );
+	gExtendedPanelsSettings.uepAwfulLevel = iniPresetReader.ReadInteger("Achievements Tresholds","AWFUL_LEVEL", 1, 0, 65535 );
+	gExtendedPanelsSettings.uepAwesomeHitPercentage = iniPresetReader.ReadInteger("Hit Percentage Tresholds","HIT_PERCENTAGE_LEVEL", 90, 0, 65535 );
+	gExtendedPanelsSettings.uepGreatHitPercentage = iniPresetReader.ReadInteger("Hit Percentage Tresholds","HIT_PERCENTAGE_LEVEL", 75, 0, 65535 );
+	gExtendedPanelsSettings.uepPoorHitPercentage = iniPresetReader.ReadInteger("Hit Percentage Tresholds","HIT_PERCENTAGE_LEVEL", 20, 0, 65535 );
+	gExtendedPanelsSettings.uepAwfulHitPercentage = iniPresetReader.ReadInteger("Hit Percentage Tresholds","HIT_PERCENTAGE_LEVEL", 0, 0, 65535 );
 }
 
 INT16 DynamicAdjustAPConstants(INT16 iniReadValue, INT16 iniDefaultValue, BOOLEAN reverse)

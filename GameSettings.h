@@ -1266,10 +1266,12 @@ typedef struct
     UINT16 uepMaxPanels;
 
     STR8  sepFont;
+	UINT8  uepDescriptionColor;
     UINT8  uepAwesomeColor;
     UINT8  uepGreatColor;
     UINT8  uepNormalColor;
-    UINT8  uepAwefulColor;
+	UINT8  uepPoorColor;
+    UINT8  uepAwfulColor;
     UINT16 uepMaxRow;
     UINT16 uepMinWidth;
     UINT16 uepXLShift;
@@ -1285,6 +1287,36 @@ typedef struct
     STR8  sepValueFonts[32][32];
     UINT8  sepLabelColors[32][32];
     UINT8  sepValueColors[32][32];
+
+	//tresholds
+	UINT16 uepAwesomeKills;
+	UINT16 uepGreatKills;
+	UINT16 uepPoorKills;
+	UINT16 uepAwfulKills;
+	UINT16 uepAwesomeLevel;
+	UINT16 uepGreatLevel;
+	UINT16 uepPoorLevel;
+	UINT16 uepAwfulLevel;
+	UINT16 uepAwesomeAssists;
+	UINT16 uepGreatAssists;
+	UINT16 uepPoorAssists;
+	UINT16 uepAwfulAssists;
+	UINT16 uepAwesomeBattles;
+	UINT16 uepGreatBattles;
+	UINT16 uepPoorBattles;
+	UINT16 uepAwfulBattles;
+	UINT16 uepAwesomeAchievements;
+	UINT16 uepGreatAchievements;
+	UINT16 uepPoorAchievements;
+	UINT16 uepAwfulAchievements;
+	UINT16 uepAwesomeStats;
+	UINT16 uepGreatStats;
+	UINT16 uepPoorStats;
+	UINT16 uepAwfulStats;
+	UINT16 uepAwesomeHitPercentage;
+	UINT16 uepGreatHitPercentage;
+	UINT16 uepPoorHitPercentage;
+	UINT16 uepAwfulHitPercentage;
 
 } EXTENDED_PANELS_SETTINGS;
 

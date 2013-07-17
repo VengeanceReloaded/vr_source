@@ -7654,7 +7654,7 @@ EXTENDED_PANEL_STRING GetNameString(SOLDIERTYPE* pSoldier)
     EXTENDED_PANEL_STRING exps;
     swprintf(exps.sPanelStringLeft, L"%s", gMercProfiles[pSoldier->ubProfile].zName);
     swprintf(exps.sPanelStringRight, L"");
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -7672,15 +7672,17 @@ EXTENDED_PANEL_STRING GetKillsString(SOLDIERTYPE* pSoldier)
     swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_KILLS]);
     swprintf(exps.sPanelStringRight, L"%d", uiKills );
 
-    if( uiKills >= AWESOME_EXTENDED_PANEL_KILLS )
+    if( uiKills >= gExtendedPanelsSettings.uepAwesomeKills )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if(uiKills >= GREAT_EXTENDED_PANEL_KILLS)
+    else if(uiKills >= gExtendedPanelsSettings.uepGreatKills)
         exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if(uiKills <= AWEFUL_EXTENDED_PANEL_KILLS)
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+    else if(uiKills <= gExtendedPanelsSettings.uepAwfulKills)
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+    else if(uiKills <= gExtendedPanelsSettings.uepPoorKills)
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
     else
         exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     
     return exps;
 }
@@ -7696,7 +7698,7 @@ EXTENDED_PANEL_STRING GetShotsFiredString(SOLDIERTYPE* pSoldier)
     exps.sPanelStringLeft[wcslen(exps.sPanelStringLeft) - 4] = L'\0';
 
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;   
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;   
     return exps;
 }
 
@@ -7711,7 +7713,7 @@ EXTENDED_PANEL_STRING GetShotsHitString(SOLDIERTYPE* pSoldier)
     exps.sPanelStringLeft[wcslen(exps.sPanelStringLeft) - 4] = L'\0';
 
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;   
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;   
     return exps;
 }
 
@@ -7724,15 +7726,17 @@ EXTENDED_PANEL_STRING GetAssistsString(SOLDIERTYPE* pSoldier)
 						+gMercProfiles[pSoldier->ubProfile].records.usAssistsOthers;   
     swprintf(exps.sPanelStringRight, L"%d", uiAssists );
 
-    if( uiAssists >= AWESOME_EXTENDED_PANEL_ASSISTS )
+    if( uiAssists >= gExtendedPanelsSettings.uepAwesomeAssists )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiAssists >= GREAT_EXTENDED_PANEL_ASSISTS )
+    else if( uiAssists >= gExtendedPanelsSettings.uepGreatAssists )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiAssists <= AWEFUL_EXTENDED_PANEL_KILLS )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+    else if( uiAssists <= gExtendedPanelsSettings.uepAwfulAssists )
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	else if( uiAssists <= gExtendedPanelsSettings.uepPoorAssists )
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
     else
         exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
 
     return exps;
 }
@@ -7746,15 +7750,17 @@ EXTENDED_PANEL_STRING GetAchievementsString(SOLDIERTYPE* pSoldier)
     UINT16 uiAchievements = CalculateMercsAchievemntPercentage( pSoldier->ubProfile ); // achievements
     swprintf(exps.sPanelStringRight, L"%d %%",uiAchievements);
 
-    if( uiAchievements >= AWESOME_EXTENDED_PANEL_ACHIEVEMENTS )
+    if( uiAchievements >= gExtendedPanelsSettings.uepAwesomeAchievements )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiAchievements >= GREAT_EXTENDED_PANEL_ACHIEVEMENTS )
+    else if( uiAchievements >= gExtendedPanelsSettings.uepGreatAchievements )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiAchievements <= AWEFUL_EXTENDED_PANEL_ACHIEVEMENTS )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+    else if( uiAchievements <= gExtendedPanelsSettings.uepAwfulAchievements )
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	else if( uiAchievements <= gExtendedPanelsSettings.uepPoorAchievements)
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
     else
         exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
 
     return exps;
 }
@@ -7789,17 +7795,18 @@ EXTENDED_PANEL_STRING GetHitPercentageString(SOLDIERTYPE* pSoldier)
 		uiHits=0;
 	}
     swprintf( exps.sPanelStringRight, L"%d %%",uiHits);
-    if( uiHits >= AWESOME_EXTENDED_PANEL_HIT_PERCENTAGE )
+    if( uiHits >= gExtendedPanelsSettings.uepAwesomeAchievements )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiHits >= GREAT_EXTENDED_PANEL_HIT_PERCENTAGE )
+    else if( uiHits >= gExtendedPanelsSettings.uepGreatAchievements )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiHits <= AWEFUL_EXTENDED_PANEL_HIT_PERCENTAGE )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+    else if( uiHits <= gExtendedPanelsSettings.uepAwfulAchievements )
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	else if( uiHits <= gExtendedPanelsSettings.uepPoorAchievements )
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
     else
         exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
 
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     return exps;
 }
 
@@ -7811,15 +7818,17 @@ EXTENDED_PANEL_STRING GetBattlesString(SOLDIERTYPE* pSoldier)
     UINT16 uiBattles = gMercProfiles[pSoldier->ubProfile].records.usBattlesTactical//battles
 						+gMercProfiles[pSoldier->ubProfile].records.usBattlesTactical;
     swprintf( exps.sPanelStringRight, L"%d", uiBattles );
-    if( uiBattles >= AWESOME_EXTENDED_PANEL_BATTLES )
+    if( uiBattles >= gExtendedPanelsSettings.uepAwesomeBattles )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiBattles >= GREAT_EXTENDED_PANEL_BATTLES )
+    else if( uiBattles >= gExtendedPanelsSettings.uepGreatBattles )
         exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiBattles <= AWEFUL_EXTENDED_PANEL_BATTLES )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+    else if( uiBattles <= gExtendedPanelsSettings.uepAwfulBattles )
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	else if( uiBattles <= gExtendedPanelsSettings.uepPoorBattles )
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
     else
         exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     return exps;
 }
 
@@ -7831,7 +7840,7 @@ EXTENDED_PANEL_STRING GetTimesWoundedString(SOLDIERTYPE* pSoldier)
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedStabbed
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedPunched/2,
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedBlasted);
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -7867,7 +7876,7 @@ EXTENDED_PANEL_STRING *GetSkillsStrings(SOLDIERTYPE* pSoldier, UINT16 uiSkills)
                 swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
                 sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
                 swprintf( sRet[0].sPanelStringRight, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
-                sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+                sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
                 for( INT16 iC = 1; iC<uiSkills; iC++ )
                 {
                     sRet[iC].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
@@ -7883,7 +7892,7 @@ EXTENDED_PANEL_STRING *GetSkillsStrings(SOLDIERTYPE* pSoldier, UINT16 uiSkills)
 			    BOOLEAN fDisplayMoreTraits = FALSE;
 			    for ( UINT8 ubCnt = 0; ubCnt < bNumSkillTraits; ubCnt++ )
 			    {
-				    if ( (ubCnt + 1 == uiSkills) && (uiSkills<bNumSkillTraits))
+				    if ( (ubCnt + 1 == uiSkills) && (uiSkills<bNumSkillTraits)) // display "more..."
                     {
                         sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
                         if(ubCnt==0)
@@ -7896,9 +7905,14 @@ EXTENDED_PANEL_STRING *GetSkillsStrings(SOLDIERTYPE* pSoldier, UINT16 uiSkills)
 				    else
                     {
                         if ( ubTempSkillArray[ubCnt] > NEWTRAIT_MERCSKILL_EXPERTOFFSET )
-						    sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+						    sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;// double major trait
 					    else
-                            sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+						{
+							if ( ubTempSkillArray[ubCnt] < NUM_MAJOR_TRAITS )
+								sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;//single major trait
+							else
+								sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;// minor trait
+						}
                         sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
                         if(ubCnt==0)
                             swprintf( sRet[ubCnt].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
@@ -7965,7 +7979,7 @@ EXTENDED_PANEL_STRING *GetSkillsStrings(SOLDIERTYPE* pSoldier, UINT16 uiSkills)
 				if( bSkill1 == 0 && bSkill2 == 0 )
 				{
                     sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                    sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;	
+                    sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;	
                     swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
                     swprintf( sRet[0].sPanelStringRight, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
                     uiDisplayedSkills++;
@@ -8005,8 +8019,8 @@ EXTENDED_PANEL_STRING GetDisabilityString(SOLDIERTYPE* pSoldier)
     if(gMercProfiles[pSoldier->ubProfile].bDisability == 0)
         exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     else
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     
     return exps;
 }
@@ -8024,7 +8038,7 @@ EXTENDED_PANEL_STRING GetCharacterString(SOLDIERTYPE* pSoldier)
 	else
 		swprintf(exps.sPanelStringRight, L"%s",gzIMPCharacterTraitText[gMercProfiles[pSoldier->ubProfile].bAttitude]);
 
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8043,7 +8057,7 @@ EXTENDED_PANEL_STRING GetAttitudeOldString(SOLDIERTYPE* pSoldier)
         swprintf(exps.sPanelStringRight, L"");
     }
 
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8066,7 +8080,7 @@ EXTENDED_PANEL_STRING GetCurrentContractString(SOLDIERTYPE* pSoldier)
 		else
         {
 			swprintf( exps.sPanelStringRight, L"%d%s / %d%s", (iTimeLeftOnContract % uiMinutesInDay)/60, gpStrategicString[ STR_PB_HOURS_ABBREVIATION ], pSoldier->iTotalContractLength, gpStrategicString[ STR_PB_DAYS_ABBREVIATION ] );
-            exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+            exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
         }
 	}
 	else
@@ -8074,7 +8088,7 @@ EXTENDED_PANEL_STRING GetCurrentContractString(SOLDIERTYPE* pSoldier)
 		wcscpy( exps.sPanelStringRight, gpStrategicString[ STR_PB_NOTAPPLICABLE_ABBREVIATION ] );
         exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
 	}
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     return exps;
 }
 
@@ -8083,7 +8097,7 @@ EXTENDED_PANEL_STRING GetTotalServiceString(SOLDIERTYPE* pSoldier)
     EXTENDED_PANEL_STRING exps;
     swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TOTAL_SERVICE] );
     swprintf( exps.sPanelStringRight, L"%d %s",gMercProfiles[ pSoldier->ubProfile ].usTotalDaysServed, gpStrategicString[ STR_PB_DAYS_ABBREVIATION ] );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8095,7 +8109,7 @@ EXTENDED_PANEL_STRING GetTotalCostString(SOLDIERTYPE* pSoldier)
     swprintf( exps.sPanelStringRight, L"%d", gMercProfiles[ pSoldier->ubProfile ].uiTotalCostToDate );
     InsertCommasForDollarFigure( exps.sPanelStringRight );
     InsertDollarSignInToString( exps.sPanelStringRight );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8113,7 +8127,7 @@ EXTENDED_PANEL_STRING GetMedicalDepositString(SOLDIERTYPE* pSoldier)
 		swprintf( exps.sPanelStringRight, L"%d", gMercProfiles[ pSoldier->ubProfile ].sMedicalDepositAmount);
     InsertCommasForDollarFigure( exps.sPanelStringRight );
     InsertDollarSignInToString( exps.sPanelStringRight );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8141,7 +8155,7 @@ EXTENDED_PANEL_STRING GetDailyCostString(SOLDIERTYPE* pSoldier)
 	}
 	InsertCommasForDollarFigure( exps.sPanelStringRight );
 	InsertDollarSignInToString( exps.sPanelStringRight );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8151,7 +8165,7 @@ EXTENDED_PANEL_STRING GetSquadString(SOLDIERTYPE* pSoldier)
     EXTENDED_PANEL_STRING exps;
     swprintf(exps.sPanelStringLeft, L"%s", pUpperLeftMapScreenStrings[ 0 ]);
     swprintf(exps.sPanelStringRight, L"%s", pAssignmentStrings[pSoldier->bAssignment] );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8214,27 +8228,31 @@ EXTENDED_PANEL_STRING GetStatString(SOLDIERTYPE* pSoldier, UINT16 uiStat)
         swprintf(exps.sPanelStringRight, L"%d", uiStatValue );
         if(uiStat==EXTENDED_PANEL_EXP_LVL)
         {
-            if( uiStatValue >= AWESOME_EXTENDED_PANEL_EXP_LVL )
+            if( uiStatValue >= gExtendedPanelsSettings.uepAwesomeLevel )
                 exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-            else if( uiStatValue >= GREAT_EXTENDED_PANEL_EXP_LVL )
+            else if( uiStatValue >= gExtendedPanelsSettings.uepGreatLevel )
                 exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-            else if( uiStatValue <= AWEFUL_EXTENDED_PANEL_EXP_LVL )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+            else if( uiStatValue <= gExtendedPanelsSettings.uepAwfulLevel )
+                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+            else if( uiStatValue <= gExtendedPanelsSettings.uepPoorLevel )
+                exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
             else
                 exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
         }
         else
         {
-            if( uiStatValue >= AWESOME_EXTENDED_PANEL_STATS )
+            if( uiStatValue >= gExtendedPanelsSettings.uepAwesomeStats )
                 exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-            else if( uiStatValue >= GREAT_EXTENDED_PANEL_STATS )
+            else if( uiStatValue >= gExtendedPanelsSettings.uepGreatStats  )
                 exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-            else if( uiStatValue <= AWEFUL_EXTENDED_PANEL_STATS )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwefulColor;
+            else if( uiStatValue <= gExtendedPanelsSettings.uepAwfulStats  )
+                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+            else if( uiStatValue <= gExtendedPanelsSettings.uepPoorStats)
+                exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
             else
                 exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
         }
-        exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+        exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     }
     return exps;
 }
@@ -8244,7 +8262,7 @@ EXTENDED_PANEL_STRING GetEmptyString()
     EXTENDED_PANEL_STRING exps;
     swprintf(exps.sPanelStringLeft, L"");
     swprintf(exps.sPanelStringRight, L"");
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
@@ -8253,7 +8271,7 @@ EXTENDED_PANEL_STRING GetTextString(STR16 sStringL, STR16 sStringR)
     EXTENDED_PANEL_STRING exps;
     swprintf( exps.sPanelStringLeft, L"%s", sStringL );
     swprintf( exps.sPanelStringRight, L"%s", sStringR );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
     exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
     return exps;
 }
