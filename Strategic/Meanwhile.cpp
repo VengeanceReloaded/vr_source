@@ -337,8 +337,14 @@ void ScheduleMeanwhileEvent( MEANWHILE_DEFINITION *pMeanwhileDef, UINT32 uiTime 
 	gMercProfiles[ ELLIOT ].bNPCData++;
 	}
 
+	// this prevents "meanwhile..." from playing
 	// nope
 	//AddStrategicEvent( EVENT_MEANWHILE, uiTime, pMeanwhileDef->ubMeanwhileID );
+
+	// instead simulate that we saw cutscene
+	memcpy( &gCurrentMeanwhileDef, &(gMeanwhileDef[pMeanwhileDef->ubMeanwhileID]), sizeof( MEANWHILE_DEFINITION ) );
+	// and handle implications right away
+	ProcessImplicationsOfMeanwhile();
 }
 
 
@@ -727,51 +733,51 @@ void ProcessImplicationsOfMeanwhile( void )
 			ExecuteStrategicAIAction( NPC_ACTION_SEND_SOLDIERS_TO_DRASSEN, 13, 4 );
 			break;
 
-		case CREATURES:
-			// add Rat
-			HandleNPCDoAction( QUEEN, NPC_ACTION_ADD_RAT, 0 );
-			break;
+		//case CREATURES:
+		//	// add Rat
+		//	HandleNPCDoAction( QUEEN, NPC_ACTION_ADD_RAT, 0 );
+		//	break;
 
-		case AWOL_SCIENTIST:
-			{
-				INT16	sSectorX, sSectorY;
+		//case AWOL_SCIENTIST:
+		//	{
+		//		INT16	sSectorX, sSectorY;
 
-				StartQuest( QUEST_FIND_SCIENTIST, -1, -1 );
-				// place Madlab and robot!
-				if ( SectorInfo[ SECTOR( 7, MAP_ROW_H ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-				{
-					sSectorX = 7;
-					sSectorY = MAP_ROW_H;
-				}
-				else if ( SectorInfo[ SECTOR( 16, MAP_ROW_H ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-				{
-					sSectorX = 16;
-					sSectorY = MAP_ROW_H;
-				}
-				else if ( SectorInfo[ SECTOR( 11, MAP_ROW_I ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-				{
-					sSectorX = 11;
-					sSectorY = MAP_ROW_I;
-				}
-				else if ( SectorInfo[ SECTOR( 4, MAP_ROW_E ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-				{
-					sSectorX = 4;
-					sSectorY = MAP_ROW_E;
-				}
-				else
-				{
-					Assert( 0 );
-					return;
-				}
-				gMercProfiles[ MADLAB ].sSectorX = sSectorX;
-				gMercProfiles[ MADLAB ].sSectorY = sSectorY;
-				gMercProfiles[ MADLAB ].bSectorZ = 0;
+		//		StartQuest( QUEST_FIND_SCIENTIST, -1, -1 );
+		//		// place Madlab and robot!
+		//		if ( SectorInfo[ SECTOR( 7, MAP_ROW_H ) ].uiFlags & SF_USE_ALTERNATE_MAP )
+		//		{
+		//			sSectorX = 7;
+		//			sSectorY = MAP_ROW_H;
+		//		}
+		//		else if ( SectorInfo[ SECTOR( 16, MAP_ROW_H ) ].uiFlags & SF_USE_ALTERNATE_MAP )
+		//		{
+		//			sSectorX = 16;
+		//			sSectorY = MAP_ROW_H;
+		//		}
+		//		else if ( SectorInfo[ SECTOR( 11, MAP_ROW_I ) ].uiFlags & SF_USE_ALTERNATE_MAP )
+		//		{
+		//			sSectorX = 11;
+		//			sSectorY = MAP_ROW_I;
+		//		}
+		//		else if ( SectorInfo[ SECTOR( 4, MAP_ROW_E ) ].uiFlags & SF_USE_ALTERNATE_MAP )
+		//		{
+		//			sSectorX = 4;
+		//			sSectorY = MAP_ROW_E;
+		//		}
+		//		else
+		//		{
+		//			Assert( 0 );
+		//			return;
+		//		}
+		//		gMercProfiles[ MADLAB ].sSectorX = sSectorX;
+		//		gMercProfiles[ MADLAB ].sSectorY = sSectorY;
+		//		gMercProfiles[ MADLAB ].bSectorZ = 0;
 
-				gMercProfiles[ ROBOT ].sSectorX = sSectorX;
-				gMercProfiles[ ROBOT ].sSectorY = sSectorY;
-				gMercProfiles[ ROBOT ].bSectorZ = 0;
-			}
-			break;
+		//		gMercProfiles[ ROBOT ].sSectorX = sSectorX;
+		//		gMercProfiles[ ROBOT ].sSectorY = sSectorY;
+		//		gMercProfiles[ ROBOT ].bSectorZ = 0;
+		//	}
+		//	break;
 		case NW_SAM:
 			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, SAM_1_X, SAM_1_Y );
 			break;
