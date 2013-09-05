@@ -1816,6 +1816,14 @@ CHAR8 *GetDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN
 					sprintf( zFileName,"NPC_SPEECH\\%03d_%03d.wav",ubFileNumID,usQuoteNum );
 				}
 			}
+			// special check for characters who use RPC and NPC speech files together
+			// so we can set PROFILE_MISC_FLAG_FORCENPCQUOTE before calling a dialogue
+			// and revert this now without screwing around with events
+			if ( ubCharacterNum == SKYRIDER 
+				&& gMercProfiles[ ubCharacterNum ].ubMiscFlags & PROFILE_MISC_FLAG_FORCENPCQUOTE )
+			{
+				gMercProfiles[ ubCharacterNum ].ubMiscFlags &= ~PROFILE_MISC_FLAG_FORCENPCQUOTE;
+			}
 		}
 		else
 		{

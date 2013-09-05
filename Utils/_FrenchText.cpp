@@ -3224,10 +3224,13 @@ STR16 pSkyriderText[] =
 	L"Skyrider a reçu %d $", 			// skyrider was paid an amount of money
 	L"Skyrider attend toujours ses %d $", 		// skyrider is still owed an amount of money
 	L"Skyrider a fait le plein",	// skyrider has finished refueling
-	L"",//unused
-	L"",//unused
+	L"Helicopter ain't gonna fly itself. Assign pilot to Vehicle/Helicopter first.",
+	L"Yeah, sure, and chopper will just float by itself. You can't reassign pilot while helicopter is in the air!",
 	L"Skyrider est prêt à redécoller.", // Skyrider was grounded but has been freed
 	L"Skyrider n'a pas de passagers. Si vous voulez envoyer des mercenaires dans ce secteur, n'oubliez pas de les assigner à l'hélicoptère.",
+	L"Exhausted pilot passed out and lost control of the chopper! Who could expect that to happen?",
+	L"Drunken pilot lost control of the helicopter! Who could expect that to happen?",
+	L"Putting pilot to sleep while in the air? Not the best idea.",
 };
 
 

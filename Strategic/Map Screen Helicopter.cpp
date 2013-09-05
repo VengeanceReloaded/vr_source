@@ -40,6 +40,8 @@
 	#include "Scheduling.h"
 	// HEADROCK HAM 3.5: Added facility-based skyrider costs modifier
 	#include "Facilities.h"
+	//for check if heli pilot is drunk
+	#include "Drugs And Alcohol.h"
 #endif
 
 
@@ -59,6 +61,8 @@
 // maximum chance out of a hundred per unsafe sector that a SAM site in decent working condition will hit Skyrider
 #define MAX_SAM_SITE_ACCURACY		33
 
+// maximum chance out of a hundred sector that drunk pilot will crash helicopter
+#define DRUNK_PILOT_CRASH_CHANCE		33
 
 extern FACETYPE	*gpCurrentTalkingFace;
 extern UINT8			gubCurrentTalkingID;
@@ -276,6 +280,12 @@ BOOLEAN RemoveSoldierFromHelicopter( SOLDIERTYPE *pSoldier )
 		return( FALSE );
 	}
 
+	// are we trying to remove a pilot while helicopter is in the air
+	if( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier->ubProfile == SKYRIDER ) )
+	{
+		return( FALSE );
+	}
+
 	pSoldier->sSectorX = pVehicleList[ iHelicopterVehicleId ].sSectorX;
 	pSoldier->sSectorY = pVehicleList[ iHelicopterVehicleId ].sSectorY;
 	pSoldier->bSectorZ = 0;
@@ -302,6 +312,26 @@ BOOLEAN HandleHeliEnteringSector( INT16 sX, INT16 sY )
 		return( TRUE );
 	}
 
+	// check if Pilot fell asleep
+	if( HandlePilotFallingAsleep( sX, sY ) == TRUE )
+	{
+		// destroyed
+		return( TRUE );
+	}
+
+	//check if Pilot is drunk
+	if( HandleDrunkPilot( sX, sY ) == TRUE )
+	{
+		// destroyed
+		return( TRUE );
+	}
+
+	//check if Pilot is unable to fly for whatever other reasons
+	if( HandlePilotDisabledOthwerise( sX, sY ) == TRUE )
+	{
+		// destroyed
+		return( TRUE );
+	}
 
 	// count how many enemies are camped there or passing through
 	ubNumEnemies = NumEnemiesInSector( sX, sY );
@@ -631,8 +661,41 @@ BOOLEAN CanHelicopterFly( void )
 	return( TRUE );
 }
 
+BOOLEAN IsHelicopterPilotInHelicopter( void )
+{
+	BOOL isHe = FALSE;
+	// go through list of occupants in vehicles and count them
+	INT32 iCounter = 0;
+	INT32 iCount = 0;
+
+	for( iCounter = 0; iCounter < iSeatingCapacities[ pVehicleList[ 0 ].ubVehicleType ]; iCounter++ )
+	{
+		if( pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ] != NULL )
+		{
+			if( pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ]->ubProfile == SKYRIDER )
+			{
+				isHe = TRUE;
+			}
+		}
+	}
+
+	return( isHe );
+}
+
 BOOLEAN IsHelicopterPilotAvailable( void )
 {
+	// Skyrider is dead/wounded
+	if( gMercProfiles[ SKYRIDER ].bLife < OKLIFE )
+	{
+		return( FALSE );
+	}
+
+	// Skyrider is out of buisness
+	if( !( gMercProfiles[ SKYRIDER ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED ) )
+	{
+		return( FALSE );
+	}
+
 	// what is state of skyrider?
 	if( fSkyRiderAvailable == FALSE )
 	{
@@ -878,6 +941,11 @@ BOOLEAN HeliCharacterDialogue( SOLDIERTYPE *pSoldier, UINT16 usQuoteNum )
 {
 	// ARM: we could just return, but since various flags are often being set it's safer to honk so it gets fixed right!
 	Assert( fSkyRiderAvailable );
+	//UINT8 ubProfile = pSoldier->ubProfile;
+		
+	// since Skyrider can be recruited, we want to make sure he will use his NPC quote set
+	EnforceUsingCorrectQuoteSetBySkyrider();
+	// no worries, PROFILE_MISC_FLAG_FORCENPCQUOTE will be turned off in Dialogue Control after selectin quote files
 
 	return( CharacterDialogue( SKYRIDER, usQuoteNum, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE ) );
 }
@@ -1006,7 +1074,7 @@ UINT8 MoveAllInHelicopterToFootMovementGroup( void )
 		// get passenger
 		pSoldier = pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ];
 
-		if( pSoldier != NULL )
+		if( pSoldier != NULL && pSoldier->ubProfile != SKYRIDER)// we don't to kick out the pilot
 		{
 			// better really be in there!
 			Assert ( pSoldier->bAssignment == VEHICLE );
@@ -1044,6 +1112,12 @@ UINT8 MoveAllInHelicopterToFootMovementGroup( void )
 	return( ubGroupId );
 }
 
+void EnforceUsingCorrectQuoteSetBySkyrider()
+{
+	if( gMercProfiles[ SKYRIDER ].ubMiscFlags &= ~PROFILE_MISC_FLAG_FORCENPCQUOTE )
+		gMercProfiles[ SKYRIDER ].ubMiscFlags |= PROFILE_MISC_FLAG_FORCENPCQUOTE;
+	return;
+}
 
 
 void SkyRiderTalk( UINT16 usQuoteNum )
@@ -1095,10 +1169,12 @@ void HandleSkyRiderMonologueAboutEstoniRefuel( UINT32 uiSpecialCode )
 	switch( uiSpecialCode )
 	{
 		case( 0 ):
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_ESTONI_AIRSPACE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_ESTONI_REFUEL, 1 );
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
-		CharacterDialogue( SKYRIDER, SPIEL_ABOUT_ESTONI_AIRSPACE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
-
+			EnforceUsingCorrectQuoteSetBySkyrider();
+			CharacterDialogue( SKYRIDER, SPIEL_ABOUT_ESTONI_AIRSPACE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_ESTONI_AIRSPACE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_ESTONI_REFUEL, 2 );
 			break;
 
@@ -1124,11 +1200,14 @@ void HandleSkyRiderMonologueAboutDrassenSAMSite( UINT32 uiSpecialCode )
 			//gubCurrentTalkingID = SKYRIDER;
 
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogue( SKYRIDER, MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogueWithSpecialEvent( SKYRIDER, MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI , FALSE , TRUE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_DRASSEN_SAM_SITE, 1 );
 
 			if( SAMSitesUnderPlayerControl( SAM_2_X, SAM_2_Y ) == FALSE )
 			{
+				EnforceUsingCorrectQuoteSetBySkyrider();
 				CharacterDialogue( SKYRIDER, SECOND_HALF_OF_MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
 			}
 			else
@@ -1136,11 +1215,12 @@ void HandleSkyRiderMonologueAboutDrassenSAMSite( UINT32 uiSpecialCode )
 				// Ian says don't use the SAM site quote unless player has tried flying already
 				if ( CheckFact( FACT_SKYRIDER_USED_IN_MAPSCREEN, SKYRIDER ) )
 				{
+					EnforceUsingCorrectQuoteSetBySkyrider();
 					CharacterDialogue( SKYRIDER, SAM_SITE_TAKEN, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
 					gfSkyriderSaidCongratsOnTakingSAM = TRUE;
 				}
 			}
-
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogueWithSpecialEvent( SKYRIDER, MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI , FALSE , TRUE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_DRASSEN_SAM_SITE, 2 );
 			break;
 
@@ -1167,7 +1247,9 @@ void HandleSkyRiderMonologueAboutCambriaHospital( UINT32 uiSpecialCode )
 			//gubCurrentTalkingID = SKYRIDER;
 
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogue( SKYRIDER, MENTION_HOSPITAL_IN_CAMBRIA, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogueWithSpecialEvent( SKYRIDER, MENTION_HOSPITAL_IN_CAMBRIA, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI , FALSE , TRUE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_CAMBRIA_HOSPITAL, 1 );
 
 			// highlight Drassen hospital sector
@@ -1194,10 +1276,14 @@ void HandleSkyRiderMonologueAboutOtherSAMSites( UINT32 uiSpecialCode )
 			gubCurrentTalkingID = SKYRIDER;
 
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogue( SKYRIDER, SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_OTHER_SAM_SITES, 1 );
 
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogue( SKYRIDER, SECOND_HALF_OF_SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
+			EnforceUsingCorrectQuoteSetBySkyrider();
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_OTHER_SAM_SITES, 2 );
 
 			break;
@@ -1889,6 +1975,122 @@ BOOLEAN HandleSAMSiteAttackOfHelicopterInSector( INT16 sSectorX, INT16 sSectorY 
 	return( FALSE );
 }
 
+BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY )
+{
+	if ( FindSoldierByProfileID( SKYRIDER, FALSE ) != NULL )
+	{
+		// it shouldn't even be called otherwise, but it's better to check
+		if( ( IsHelicopterPilotInHelicopter() == TRUE ) && ( fHelicopterIsAirBorne == TRUE ) )
+		{
+			if( ( FindSoldierByProfileID( SKYRIDER, FALSE )->bBreathMax < BREATHMAX_GOTTA_STOP_MOVING ) )
+			 {
+				 // he's too tired to fly! we're all gonna die!
+				 StopTimeCompression();
+
+				// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
+				HeliCharacterDialogue( pSkyRider, HELI_GOING_DOWN );
+
+				// everyone die die die
+				// play sound
+				if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
+				{
+					// Destroy here if we cannot play streamed sound sample....
+						SkyriderDestroyed( );
+				}
+				else
+				{
+					// otherwise it's handled in the callback
+					// remove any arrival events for the helicopter's group
+					DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
+				}
+
+				// mock the player
+				if(pSkyriderText[ 7 ] != NULL)
+					ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 7 ]);
+
+				// special return code indicating heli was destroyed
+				return( TRUE );
+			 }
+		}
+	}
+	// still flying
+	return( FALSE );
+}
+
+BOOLEAN HandleDrunkPilot( INT16 sSectorX, INT16 sSectorY )
+{
+
+	if ( FindSoldierByProfileID( SKYRIDER, FALSE ) != NULL )
+	{
+		INT8 ubDrunkLevel = GetDrunkLevel( FindSoldierByProfileID( SKYRIDER, FALSE ) );
+		// it shouldn't even be called otherwise, but it's better to check
+		if( ( IsHelicopterPilotInHelicopter() == TRUE ) && ( fHelicopterIsAirBorne == TRUE ) )
+		{		
+			 if( ubDrunkLevel == BORDERLINE || ubDrunkLevel == DRUNK || ubDrunkLevel == HUNGOVER )
+			 {
+				 if( PreRandom(100) < DRUNK_PILOT_CRASH_CHANCE )
+				 {
+					 // don't drink and fly! we're all gonna die!
+					 StopTimeCompression();
+
+					// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
+					HeliCharacterDialogue( pSkyRider, HELI_GOING_DOWN );
+
+					// everyone die die die
+					// play sound
+					if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
+					{
+						// Destroy here if we cannot play streamed sound sample....
+						SkyriderDestroyed( );
+					}
+					else
+					{
+						// otherwise it's handled in the callback
+						// remove any arrival events for the helicopter's group
+						DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
+					}
+
+					// mock the player
+					if(pSkyriderText[ 8 ] != NULL)
+						ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 8 ]);
+
+					// special return code indicating heli was destroyed
+					return( TRUE );
+				 }
+			 }
+		}
+	}
+	//still flying
+	return( FALSE );
+}
+
+BOOLEAN HandlePilotDisabledOthwerise( INT16 sSectorX, INT16 sSectorY )
+{
+	// maybe he died of bleeding or poison or something else we couldn't foresee...
+	if( ( IsHelicopterPilotInHelicopter() == FALSE ) && ( fHelicopterIsAirBorne == TRUE ) && ( fHeliReturnStraightToBase == FALSE) )
+	{
+		// he lost control! we're all gonna die!
+		StopTimeCompression();
+
+		// everyone die die die
+		// play sound
+		if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
+		{
+			// Destroy here if we cannot play streamed sound sample....
+			SkyriderDestroyed( );
+		}
+		else
+		{
+			// otherwise it's handled in the callback
+			// remove any arrival events for the helicopter's group
+			DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
+		}
+		// special return code indicating heli was destroyed
+		return( TRUE );
+	}
+	// still flying
+	return( FALSE );
+}
 
 // are we at the end of the path for the heli?
 BOOLEAN EndOfHelicoptersPath( void )

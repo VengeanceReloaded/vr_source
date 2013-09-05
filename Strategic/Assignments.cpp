@@ -8072,6 +8072,8 @@ void RemoveMercMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason )
 	}
 }
 
+extern void MakeHeliReturnToBase( void );
+
 void BeginRemoveMercFromContract( SOLDIERTYPE *pSoldier )
 {
 	// This function will setup the quote, then start dialogue beginning the actual leave sequence
@@ -8128,6 +8130,13 @@ void BeginRemoveMercFromContract( SOLDIERTYPE *pSoldier )
 					TacticalCharacterDialogueWithSpecialEvent( pSoldier, 0, DIALOGUE_SPECIAL_EVENT_CONTRACT_ENDING, 1,0 );
 				}
 			}
+
+			// we fired chopper pilot while it's in the air, let's assume he won't catapult himself and just goes back to base
+			if( ( pSoldier->ubProfile == SKYRIDER ) && ( fHelicopterIsAirBorne == TRUE ) )
+			{
+				MakeHeliReturnToBase();
+			}
+
 
 			if( ( GetWorldTotalMin() - pSoldier->uiTimeOfLastContractUpdate ) < 60 * 3 )
 			{
@@ -11734,6 +11743,14 @@ BOOLEAN SetMercAsleep( SOLDIERTYPE *pSoldier, BOOLEAN fGiveWarning )
 {
 	if( CanCharacterSleep( pSoldier, fGiveWarning ) )
 	{
+		// he's the pilot, keep him awake
+		if( pSoldier->ubProfile == SKYRIDER  && pSoldier->bVehicleID == iHelicopterVehicleId && fHelicopterIsAirBorne )
+		{
+			if( pSkyriderText[ 9 ] != NULL)
+				DoScreenIndependantMessageBox( pSkyriderText[ 9 ], MSG_BOX_FLAG_OK, NULL );
+			return ( FALSE );
+		}
+
 		// put him to sleep
 		PutMercInAsleepState( pSoldier );
 

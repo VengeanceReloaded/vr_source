@@ -3222,10 +3222,13 @@ STR16 pSkyriderText[] =
 	L"Небесному Всаднику заплачено $%d", 			// skyrider was paid an amount of money
 	L"Вы все еще должны Небесному Всаднику $%d.", 		// skyrider is still owed an amount of money
 	L"Небесный Всадник завершил заправку.",	// skyrider has finished refueling
-	L"",//unused
-	L"",//unused
+	L"Helicopter ain't gonna fly itself. Assign pilot to Vehicle/Helicopter first.",
+	L"Yeah, sure, and chopper will just float by itself. You can't reassign pilot while helicopter is in the air!",
 	L"Небесный Всадник готов к полету.", // Skyrider was grounded but has been freed
 	L"У Небесного Всадника нет пассажиров. Если вы хотите переправить бойцов в этот сектор, посадите их в вертолет (приказ 'Машина/Вертолет')."
+	L"Exhausted pilot passed out and lost control of the chopper! Who could expect that to happen?",
+	L"Drunken pilot lost control of the helicopter! Who could expect that to happen?",
+	L"Putting pilot to sleep while in the air? Not the best idea.",
 };
 
 

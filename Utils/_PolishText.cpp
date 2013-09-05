@@ -3224,10 +3224,13 @@ STR16 pSkyriderText[] =
 	L"Skyriderowi zapłacono %d$", 			// skyrider was paid an amount of money
 	L"Skyriderowi trzeba jeszcze zapłacić %d$", 		// skyrider is still owed an amount of money
 	L"Skyrider zatankował",	// skyrider has finished refueling
-	L"",//unused
-	L"",//unused
+	L"Helikopter nie poleci bez pilota. Przydziel go poprzez POJAZD/HELIKOPTER.",
+	L"Tak, a helikopter będzie sie unosił w powietrzu sam bez niczyjej pomocy. Nie możesz zmienić przydziału pilota, gdy ten jest w powietrzu!",
 	L"Skyrider jest gotów do kolejnego lotu.", // Skyrider was grounded but has been freed
-	L"Skyrider nie ma pasażerów. JeŚli chcesz przetransportować najemników, zmień ich przydział na POJAZD/HELIKOPTER.",
+	L"Skyrider nie ma pasażerów. Jeśli chcesz przetransportować najemników, zmień ich przydział na POJAZD/HELIKOPTER.",
+	L"Wyczerpany pilot stracił przytomność i kontrolę nad helikopterem. Któż by się spodziewał?",
+	L"Schlany pilot stracił kontrolę nad śmigłowcem! Któż by się spodziewał?",
+	L"Śpioch za sterami? Nie najlepszy pomysł.",
 };
 
 

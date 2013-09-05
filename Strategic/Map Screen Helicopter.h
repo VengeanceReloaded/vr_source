@@ -178,6 +178,9 @@ BOOLEAN CanHelicopterFly( void );
 // is the pilot alive and on our side?
 BOOLEAN IsHelicopterPilotAvailable( void );
 
+// is the pilot sitting in the helicopter?
+BOOLEAN IsHelicopterPilotInHelicopter( void );
+
 // land the helicopter here
 void LandHelicopter( void );
 
@@ -220,6 +223,9 @@ void SetUpHelicopterForMovement( void );
 // number of passengers in helicopter
 INT32 GetNumberOfPassengersInHelicopter( void );
 
+// when Skyrider is hired, he still should use NPC quotes for helicopter flying
+void EnforceUsingCorrectQuoteSetBySkyrider( void );
+
 // skyrider talking to player
 void SkyRiderTalk( UINT16 usQuoteNum );
 
@@ -244,7 +250,15 @@ void HandleHelicopterOnGroundSkyriderProfile( void );
 
 BOOLEAN IsHelicopterOnGroundAtRefuelingSite( UINT8 ubRefuelingSite );
 
+extern void HeliCrashSoundStopCallback( void *pData );
+
 BOOLEAN HandleSAMSiteAttackOfHelicopterInSector( INT16 sSectorX, INT16 sSectorY );
+
+BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY );
+
+BOOLEAN HandleDrunkPilot( INT16 sSectorX, INT16 sSectorY );
+
+BOOLEAN HandlePilotDisabledOthwerise( INT16 sSectorX, INT16 sSectorY );
 
 // is the helicopter capable of taking off for the player?
 BOOLEAN CanHelicopterTakeOff( void );

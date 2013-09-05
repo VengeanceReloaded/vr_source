@@ -10454,6 +10454,13 @@ void TeamListAssignmentRegionBtnCallBack(MOUSE_REGION *pRegion, INT32 iReason )
 				return;
 			}
 
+			// if it's the pilot, and helicopter is in the air
+			if( ( pSoldier->ubProfile == SKYRIDER ) && ( fHelicopterIsAirBorne == TRUE ) )
+			{
+				DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 4 ], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL );
+				return;
+			}
+
 			bSelectedAssignChar = ( INT8 ) iValue + FIRSTmercTOdisplay;
 			RebuildAssignmentsBox( );
 
@@ -14812,6 +14819,14 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 	// should we allow it?
 	if( CanHelicopterFly( ) == TRUE )
 	{
+		
+		// is the pilot sitting in the helicopter
+		if( IsHelicopterPilotInHelicopter( ) == FALSE )
+		{
+			// he is not in helicopter?
+			DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 3 ], MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
+			return ( FALSE );
+		}
 		// if not warned already, and chopper empty, but mercs are in this sector
 		if ( !gfSkyriderEmptyHelpGiven &&
 			( GetNumberOfPassengersInHelicopter() == 0 ) &&
@@ -14821,6 +14836,8 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 			gfSkyriderEmptyHelpGiven = TRUE;
 			return( FALSE );
 		}
+		// Wake up pilot
+		SetMercAwake( FindSoldierByProfileID( SKYRIDER, FALSE ), FALSE, FALSE );
 
 		// say Yo!
 		if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE) SkyRiderTalk( SKYRIDER_SAYS_HI );
@@ -14852,6 +14869,12 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 
 void ExplainWhySkyriderCantFly( void )
 {
+	// Skyrider is dead or wounded
+	if( FindSoldierByProfileID( SKYRIDER, FALSE )->stats.bLife < OKLIFE )
+	{
+		return;
+	}
+
 	// do we owe him money?
 	if( gMercProfiles[ SKYRIDER ].iBalance < 0 )
 	{

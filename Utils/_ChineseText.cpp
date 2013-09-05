@@ -3223,10 +3223,13 @@ STR16 pSkyriderText[] =
 	L"付给 Skyrider $%d",	// skyrider was paid an amount of money
 	L"还欠 Skyrider $%d",	// skyrider is still owed an amount of money
 	L"Skyrider 完成补给汽油",// skyrider has finished refueling
-	L"",//unused
-	L"",//unused
+	L"Helicopter ain't gonna fly itself. Assign pilot to Vehicle/Helicopter first.",
+	L"Yeah, sure, and chopper will just float by itself. You can't reassign pilot while helicopter is in the air!",
 	L"Skyrider 已作好再次飞行的准备。", // Skyrider was grounded but has been freed
 	L"Skyrider 没有乘客。如果你试图运送这个分区的佣兵，首先要分配他们进入“交通工具”－>“直升飞机”。",
+	L"Exhausted pilot passed out and lost control of the chopper! Who could expect that to happen?",
+	L"Drunken pilot lost control of the helicopter! Who could expect that to happen?",
+	L"Putting pilot to sleep while in the air? Not the best idea.",
 };
 
 

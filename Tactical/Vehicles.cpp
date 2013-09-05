@@ -1349,6 +1349,7 @@ BOOLEAN KillAllInVehicle( INT32 iId )
 		return ( FALSE );
 	}
 
+	BOOLEAN bSuccess = TRUE;
 	// go through list of occupants and kill them
 	for( iCounter = 0; iCounter < iSeatingCapacities[ pVehicleList[ iId ].ubVehicleType ]; iCounter++ )
 	{
@@ -1356,10 +1357,13 @@ BOOLEAN KillAllInVehicle( INT32 iId )
 		{
 			if( KillPersonInVehicle( iId , pVehicleList[ iId ].pPassengers[ iCounter ] ) == FALSE )
 			{
-				return( FALSE );
+				// couldn't kill one guy and the rest gets a jail free card? unacceptable
+				//return( FALSE );
+				bSuccess = FALSE;
 			}
 		}
 	}
+	if( bSuccess == FALSE ) return ( FALSE );
 
 	return ( TRUE );
 }
