@@ -308,9 +308,9 @@ UINT16 MAP_MILITIA_BOX_POS_Y;
 // the max allowable towns militia in a sector
 #define MAP_MILITIA_MAP_X 4
 #define MAP_MILITIA_MAP_Y 20
-#define MAP_MILITIA_LOWER_ROW_Y 142
-#define NUMBER_OF_MILITIA_ICONS_PER_LOWER_ROW 25
-#define MILITIA_BOX_ROWS 3
+#define MAP_MILITIA_LOWER_ROW_Y 250
+#define NUMBER_OF_MILITIA_ICONS_PER_LOWER_ROW 50
+#define MILITIA_BOX_ROWS 6
 #define MILITIA_BOX_BOX_HEIGHT 36
 #define MILITIA_BOX_BOX_WIDTH 42
 
@@ -322,14 +322,15 @@ UINT16 MAP_MILITIA_BOX_POS_Y;
 
 #define MILITIA_BTN_OFFSET_X 26
 #define MILITIA_BTN_HEIGHT 11
-#define MILITIA_BOX_WIDTH 133
+#define MILITIA_BOX_WIDTH 266
 #define MILITIA_BOX_TEXT_OFFSET_Y 4
-#define MILITIA_BOX_UNASSIGNED_TEXT_OFFSET_Y 132
+#define MILITIA_BOX_UNASSIGNED_TEXT_OFFSET_Y 240
 #define MILITIA_BOX_TEXT_TITLE_HEIGHT 13
 
-#define MAP_MILITIA_BOX_AUTO_BOX_X 4
-#define MAP_MILITIA_BOX_AUTO_BOX_Y 167
-#define MAP_MILITIA_BOX_DONE_BOX_X 67
+#define MAP_MILITIA_BOX_AUTO_BOX_X 101
+#define MAP_MILITIA_BOX_AUTO_BOX_Y 275
+#define MAP_MILITIA_BOX_DONE_BOX_X 164
+#define MAP_MILITIA_BOX_REMOVE_BOX_X 38
 
 #define HELI_ICON					0
 #define HELI_SHADOW_ICON	1
@@ -341,8 +342,8 @@ UINT16 MAP_MILITIA_BOX_POS_Y;
 
 
 // the militia box buttons and images
-INT32 giMapMilitiaButtonImage[ 5 ];
-INT32 giMapMilitiaButton[ 5 ] = { -1, -1, -1, -1, -1 };
+INT32 giMapMilitiaButtonImage[ 6 ];
+INT32 giMapMilitiaButton[ 6 ] = { -1, -1, -1, -1, -1, -1 };
 
 
 INT16 gsMilitiaSectorButtonColors[]={
@@ -494,7 +495,7 @@ INT8 bSelectedContractChar = -1;
 BOOLEAN   fTempPathAlreadyDrawn = FALSE;
 
 // the regions for the mapscreen militia box
-MOUSE_REGION gMapScreenMilitiaBoxRegions[ 9 ];
+MOUSE_REGION gMapScreenMilitiaBoxRegions[ 36 ];
 MOUSE_REGION gMapScreenMilitiaRegion;
 
 // the mine icon
@@ -551,11 +552,13 @@ void DisplayUnallocatedMilitia( void );
 BOOLEAN IsThisMilitiaTownSectorAllowable( INT16 sSectorIndexValue );
 void DrawTownMilitiaName( void );
 void HandleShutDownOfMilitiaPanelIfPeopleOnTheCursor( INT16 sTownValue );
+void HandleRemovalOfAllTroopsAmongstSectors( void );
 void HandleEveningOutOfTroopsAmongstSectors( void );
 void CreateMilitiaPanelBottomButton( void );
 void DeleteMilitiaPanelBottomButton( void );
 void MilitiaDoneButtonCallback(GUI_BUTTON *btn,INT32 reason);
 void MilitiaAutoButtonCallback(GUI_BUTTON *btn,INT32 reason);
+void MilitiaRemoveButtonCallback(GUI_BUTTON *btn,INT32 reason);
 void MilitiaDisbandYesNoBoxCallback( UINT8 bExitValue ); // HEADROCK HAM 3.6: Disband militia callback
 void RenderShadingForUnControlledSectors( void );
 void DrawTownMilitiaForcesOnMap( void );
@@ -2050,21 +2053,23 @@ BOOLEAN ShadeMapElemZoomIn(INT16 sMapX, INT16 sMapY, INT32 iColor )
 
 void InitializeMilitiaPopup(void)
 {
-	// WANNE.MAP.TODO:
+	UINT16 xVal = 330;
+	UINT16 yVal = 25;
+
 	if (iResolution == 0)
 	{
-		MAP_MILITIA_BOX_POS_X = 400;
-		MAP_MILITIA_BOX_POS_Y = 125;
+		MAP_MILITIA_BOX_POS_X = xVal;
+		MAP_MILITIA_BOX_POS_Y = yVal;
 	}
 	else if (iResolution == 1)
 	{
-		MAP_MILITIA_BOX_POS_X = 400 + 77;
-		MAP_MILITIA_BOX_POS_Y = 125 + 116;
+		MAP_MILITIA_BOX_POS_X = xVal + 77;
+		MAP_MILITIA_BOX_POS_Y = yVal + 116;
 	}
 	else if (iResolution == 2)
 	{
-		MAP_MILITIA_BOX_POS_X = 400 + 190;
-		MAP_MILITIA_BOX_POS_Y = 125 + 285;
+		MAP_MILITIA_BOX_POS_X = xVal + 190;
+		MAP_MILITIA_BOX_POS_Y = yVal + 285;
 	}
 }
 
@@ -5783,7 +5788,7 @@ void CreateDestroyMilitiaPopUPRegions( void )
 	if( fShowMilitia && sSelectedMilitiaTown && !gfMilitiaPopupCreated )
 	{
 
-		for( iCounter = 0; iCounter < 9; iCounter++ )
+		for( iCounter = 0; iCounter < 36; iCounter++ )
 		{
 			MSYS_DefineRegion( &gMapScreenMilitiaBoxRegions[ iCounter ], ( INT16 ) ( MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + ( iCounter % MILITIA_BOX_ROWS ) * MILITIA_BOX_BOX_WIDTH ), ( INT16 )( MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + ( iCounter / MILITIA_BOX_ROWS ) * MILITIA_BOX_BOX_HEIGHT ), ( INT16 )( MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + ( ( ( iCounter  ) % MILITIA_BOX_ROWS ) + 1 ) * MILITIA_BOX_BOX_WIDTH ), ( INT16 )( MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_MAP_Y + ( ( ( iCounter ) / MILITIA_BOX_ROWS ) + 1 ) * MILITIA_BOX_BOX_HEIGHT ), MSYS_PRIORITY_HIGHEST - 3,
 							MSYS_NO_CURSOR, MilitiaRegionMoveCallback, MilitiaRegionClickCallback );
@@ -5801,7 +5806,7 @@ void CreateDestroyMilitiaPopUPRegions( void )
 	else if( gfMilitiaPopupCreated  && ( !fShowMilitia || !sSelectedMilitiaTown ) )
 	{
 
-		for( iCounter = 0; iCounter < 9; iCounter++ )
+		for( iCounter = 0; iCounter < 36; iCounter++ )
 		{
 			// remove region
 			MSYS_RemoveRegion( &gMapScreenMilitiaBoxRegions[ iCounter ] );
@@ -5842,7 +5847,7 @@ void RenderIconsPerSectorForSelectedTown( void )
 	GetVideoObject( &hVObject, guiMilitia );
 
 	// render icons for map
-	for( iCounter = 0; iCounter < 9; iCounter++ )
+	for( iCounter = 0; iCounter < 36; iCounter++ )
 	{
 		// grab current sector value
 		sCurrentSectorValue = sBaseSectorValue + ( ( iCounter % MILITIA_BOX_ROWS ) + ( iCounter / MILITIA_BOX_ROWS ) * ( 16 ) );
@@ -6296,9 +6301,13 @@ void DrawTownMilitiaName( void )
 	mprintf(  sX, sY, sString );
 
 	// might as well show the unassigned string
-	swprintf( sString, L"%s %s", pTownNames[ sSelectedMilitiaTown ], pMilitiaString[ 1 ] );
+	swprintf( sString, L"%s", pMilitiaString[ 1 ] );
 	FindFontCenterCoordinates( MAP_MILITIA_BOX_POS_X, MAP_MILITIA_BOX_POS_Y + MILITIA_BOX_UNASSIGNED_TEXT_OFFSET_Y, MILITIA_BOX_WIDTH, GetFontHeight( FONT10ARIAL ), sString, FONT10ARIAL, &sX, &sY );
 	mprintf(  sX, sY, sString );
+
+	// show the amount of unassigned militia
+	swprintf( sString, L"(%d/%d/%d/%d)", sGreensOnCursor, sRegularsOnCursor, sElitesOnCursor, sGreensOnCursor + sRegularsOnCursor + sElitesOnCursor );
+	mprintf(  MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X, MAP_MILITIA_BOX_POS_Y + MILITIA_BOX_UNASSIGNED_TEXT_OFFSET_Y, sString );	
 
 	return;
 }
@@ -6400,6 +6409,67 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Map Screen3");
 	return;
 }
 
+void HandleRemovalOfAllTroopsAmongstSectors( void )
+{
+	// even out troops among the town
+	INT32 iCounter = 0, iNumberUnderControl = 0, iNumberOfGreens = 0, iNumberOfRegulars = 0, iNumberOfElites = 0;
+	INT32 iNumberLeftOverGreen = 0, iNumberLeftOverRegular = 0, iNumberLeftOverElite = 0;
+	INT16 sBaseSectorValue = 0, sCurrentSectorValue = 0;
+	INT16 sSectorX = 0, sSectorY = 0;
+
+
+	// how many sectors in the selected town do we control?
+	iNumberUnderControl = GetTownSectorsUnderControl( ( INT8 ) sSelectedMilitiaTown );
+
+	// if none, there's nothing to be done!
+	if( !iNumberUnderControl )
+	{
+		return;
+	}
+
+
+	// get the sector value for the upper left corner
+	sBaseSectorValue = GetBaseSectorForCurrentTown( );
+
+	// render icons for map
+	for( iCounter = 0; iCounter < 36; iCounter++ )
+	{
+		// grab current sector value
+		sCurrentSectorValue = sBaseSectorValue + ( ( iCounter % MILITIA_BOX_ROWS ) + ( iCounter / MILITIA_BOX_ROWS ) * ( 16 ) );
+
+		sSectorX = SECTORX( sCurrentSectorValue );
+		sSectorY = SECTORY( sCurrentSectorValue );
+
+		// skip sectors not in the selected town (nearby other towns or wilderness SAM Sites)
+		if( GetTownIdForSector( sSectorX, sSectorY ) != sSelectedMilitiaTown )
+		{
+			continue;
+		}
+
+		if( !StrategicMap[ CALCULATE_STRATEGIC_INDEX( sSectorX, sSectorY ) ].fEnemyControlled )
+		{
+			// get number of each
+			iNumberOfGreens += SectorInfo[ sCurrentSectorValue ].ubNumberOfCivsAtLevel[ GREEN_MILITIA ];
+			iNumberOfRegulars += SectorInfo[ sCurrentSectorValue ].ubNumberOfCivsAtLevel[ REGULAR_MILITIA ];
+			iNumberOfElites += SectorInfo[ sCurrentSectorValue ].ubNumberOfCivsAtLevel[ ELITE_MILITIA ];
+			//zero out all numbers in sectors
+			SectorInfo[ sCurrentSectorValue ].ubNumberOfCivsAtLevel[ GREEN_MILITIA ] = 0;
+			SectorInfo[ sCurrentSectorValue ].ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] = 0;
+			SectorInfo[ sCurrentSectorValue ].ubNumberOfCivsAtLevel[ ELITE_MILITIA ] = 0;
+		}
+	}
+
+	// now add to those on the cursor
+	sGreensOnCursor += iNumberOfGreens;
+	sRegularsOnCursor += iNumberOfRegulars;
+	sElitesOnCursor += iNumberOfElites;
+
+	if( ( sGreensOnCursor > 0 ) || ( sRegularsOnCursor > 0 ) || ( sElitesOnCursor > 0 ) )
+		SpecifyButtonText( giMapMilitiaButton[ 4 ], pMilitiaButtonString[ 2 ] );
+
+	return;
+}
+
 void HandleEveningOutOfTroopsAmongstSectors( void )
 {
 	INT32 iMaxMilitiaPerSector = gGameExternalOptions.iMaxMilitiaPerSector;
@@ -6426,7 +6496,7 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Map Screen4");
 	sBaseSectorValue = GetBaseSectorForCurrentTown( );
 
 	// render icons for map
-	for( iCounter = 0; iCounter < 9; iCounter++ )
+	for( iCounter = 0; iCounter < 36; iCounter++ )
 	{
 		// grab current sector value
 		sCurrentSectorValue = sBaseSectorValue + ( ( iCounter % MILITIA_BOX_ROWS ) + ( iCounter / MILITIA_BOX_ROWS ) * ( 16 ) );
@@ -6527,6 +6597,8 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Map Screen4");
 	sRegularsOnCursor = 0;
 	sElitesOnCursor = 0;
 
+	SpecifyButtonText( giMapMilitiaButton[ 4 ], pMilitiaButtonString[ 1 ] );
+
 	return;
 }
 
@@ -6537,16 +6609,19 @@ void CreateMilitiaPanelBottomButton( void )
 	{
 		giMapMilitiaButtonImage[ 3 ]=  LoadButtonImage( "INTERFACE\\militia.sti" ,-1,1,-1,2,-1 );
 		giMapMilitiaButtonImage[ 4 ]=  LoadButtonImage( "INTERFACE\\militia.sti" ,-1,1,-1,2,-1 );
+		giMapMilitiaButtonImage[ 5 ]=  LoadButtonImage( "INTERFACE\\militia.sti" ,-1,1,-1,2,-1 );
 	}
 	else if (iResolution == 1)
 	{
 		giMapMilitiaButtonImage[ 3 ]=  LoadButtonImage( "INTERFACE\\militia_800x600.sti" ,-1,1,-1,2,-1 );
 		giMapMilitiaButtonImage[ 4 ]=  LoadButtonImage( "INTERFACE\\militia_800x600.sti" ,-1,1,-1,2,-1 );
+		giMapMilitiaButtonImage[ 5 ]=  LoadButtonImage( "INTERFACE\\militia_800x600.sti" ,-1,1,-1,2,-1 );
 	}
 	else if (iResolution == 2)
 	{
 		giMapMilitiaButtonImage[ 3 ]=  LoadButtonImage( "INTERFACE\\militia_1024x768.sti" ,-1,1,-1,2,-1 );
 		giMapMilitiaButtonImage[ 4 ]=  LoadButtonImage( "INTERFACE\\militia_1024x768.sti" ,-1,1,-1,2,-1 );
+		giMapMilitiaButtonImage[ 5 ]=  LoadButtonImage( "INTERFACE\\militia_1024x768.sti" ,-1,1,-1,2,-1 );
 	}
 
 	giMapMilitiaButton[ 3 ] = QuickCreateButton( giMapMilitiaButtonImage[ 3 ], MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_AUTO_BOX_X, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_BOX_AUTO_BOX_Y,
@@ -6557,6 +6632,10 @@ void CreateMilitiaPanelBottomButton( void )
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
 										BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK) MilitiaDoneButtonCallback );
 
+	giMapMilitiaButton[ 5 ] = QuickCreateButton( giMapMilitiaButtonImage[ 3 ], MAP_MILITIA_BOX_POS_X + MAP_MILITIA_BOX_REMOVE_BOX_X, MAP_MILITIA_BOX_POS_Y + MAP_MILITIA_BOX_AUTO_BOX_Y,
+										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
+										BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK) MilitiaRemoveButtonCallback );
+
 
 	SpecifyButtonFont( giMapMilitiaButton[ 3 ], FONT10ARIAL );
 	SpecifyButtonUpTextColors( giMapMilitiaButton[ 3 ], FONT_BLACK, FONT_BLACK );
@@ -6566,8 +6645,13 @@ void CreateMilitiaPanelBottomButton( void )
 	SpecifyButtonUpTextColors( giMapMilitiaButton[ 4 ], FONT_BLACK, FONT_BLACK );
 	SpecifyButtonDownTextColors( giMapMilitiaButton[ 4 ], FONT_BLACK, FONT_BLACK );
 
+	SpecifyButtonFont( giMapMilitiaButton[ 5 ], FONT10ARIAL );
+	SpecifyButtonUpTextColors( giMapMilitiaButton[ 5 ], FONT_BLACK, FONT_BLACK );
+	SpecifyButtonDownTextColors( giMapMilitiaButton[ 5 ], FONT_BLACK, FONT_BLACK );
+
 	SpecifyButtonText( giMapMilitiaButton[ 3 ], pMilitiaButtonString[ 0 ] );
 	SpecifyButtonText( giMapMilitiaButton[ 4 ], pMilitiaButtonString[ 1 ] );
+	SpecifyButtonText( giMapMilitiaButton[ 5 ], pMilitiaButtonString[ 3 ] );
 
 	// AUTO button help
 	SetButtonFastHelpText( giMapMilitiaButton[ 3 ], pMilitiaButtonsHelpText[ 3 ] );
@@ -6590,9 +6674,11 @@ void DeleteMilitiaPanelBottomButton( void )
 	// delete militia panel bottom
 	RemoveButton( giMapMilitiaButton[ 3 ] );
 	RemoveButton( giMapMilitiaButton[ 4 ] );
+	RemoveButton( giMapMilitiaButton[ 5 ] );
 
 	UnloadButtonImage( giMapMilitiaButtonImage[ 3 ] );
 	UnloadButtonImage( giMapMilitiaButtonImage[ 4 ] );
+	UnloadButtonImage( giMapMilitiaButtonImage[ 5 ] );
 
 	if( sSelectedMilitiaTown != 0 )
 	{
@@ -6662,26 +6748,55 @@ void MilitiaDoneButtonCallback(GUI_BUTTON *btn,INT32 reason)
 	return;
 }
 
+void MilitiaRemoveButtonCallback(GUI_BUTTON *btn,INT32 reason)
+{
+	if(reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
+	{
+	btn->uiFlags|=(BUTTON_CLICKED_ON);
+	}
+	else if(reason & MSYS_CALLBACK_REASON_LBUTTON_UP )
+	{
+		if( btn->uiFlags & BUTTON_CLICKED_ON )
+		{
+			btn->uiFlags &= ~( BUTTON_CLICKED_ON );
+
+			// remove all troops to pool
+			HandleRemovalOfAllTroopsAmongstSectors( );
+			fMapPanelDirty = TRUE;
+		}
+	}
+
+	return;
+}
 
 void RenderShadingForUnControlledSectors( void )
 {
 	// now render shading over any uncontrolled sectors
 	// get the sector value for the upper left corner
-	INT16 sBaseSectorValue = 0, sCurrentSectorValue = 0, sX = 0, sY = 0;
+	INT16 sBaseSectorValue = 0, sCurrentSectorValue = 0, sSectorX = 0, sSectorY = 0, sX = 0, sY = 0;
 	INT32 iCounter = 0;
 
 	// get the base sector value
 	sBaseSectorValue = GetBaseSectorForCurrentTown( );
 
 	// render icons for map
-	for( iCounter = 0; iCounter < 9; iCounter++ )
+	for( iCounter = 0; iCounter < 36; iCounter++ )
 	{
 		// grab current sector value
 		sCurrentSectorValue = sBaseSectorValue + ( ( iCounter % MILITIA_BOX_ROWS ) + ( iCounter / MILITIA_BOX_ROWS ) * ( 16 ) );
 
+		sSectorX = SECTORX( sCurrentSectorValue );
+		sSectorY = SECTORY( sCurrentSectorValue );
+
+		// skip sectors not in the selected town (nearby other towns or wilderness SAM Sites), already shaded in sti image
+		if( GetTownIdForSector( sSectorX, sSectorY ) != sSelectedMilitiaTown )
+		{
+			continue;
+		}
+
 		if( ( StrategicMap[ SECTOR_INFO_TO_STRATEGIC_INDEX( sCurrentSectorValue ) ].bNameId != BLANK_SECTOR ) &&
 			( ( StrategicMap[ SECTOR_INFO_TO_STRATEGIC_INDEX( sCurrentSectorValue ) ].fEnemyControlled ) ||
-				( NumHostilesInSector( ( INT16 ) SECTORX( sCurrentSectorValue ), ( INT16 ) SECTORY( sCurrentSectorValue ), 0 ) ) ) )
+				( NumHostilesInSector( sSectorX, sSectorY, 0 ) ) ) )
 		{
 			// shade this sector, not under our control
 			sX = MAP_MILITIA_BOX_POS_X + MAP_MILITIA_MAP_X + ( ( iCounter % MILITIA_BOX_ROWS ) * MILITIA_BOX_BOX_WIDTH );
@@ -7457,7 +7572,7 @@ BOOLEAN CanMilitiaAutoDistribute( void )
 	sBaseSectorValue = GetBaseSectorForCurrentTown( );
 
 	// render icons for map
-	for( iCounter = 0; iCounter < 9; iCounter++ )
+	for( iCounter = 0; iCounter < 36; iCounter++ )
 	{
 		// grab current sector value
 		sCurrentSectorValue = sBaseSectorValue + ( ( iCounter % MILITIA_BOX_ROWS ) + ( iCounter / MILITIA_BOX_ROWS ) * ( 16 ) );
@@ -7775,7 +7890,7 @@ BOOLEAN CanRedistributeMilitiaInSector( INT16 sClickedSectorX, INT16 sClickedSec
 	sBaseSectorValue = sBaseSectorList[ bClickedTownId - 1 ];
 
 	// render icons for map
-	for( iCounter = 0; iCounter < 9; iCounter++ )
+	for( iCounter = 0; iCounter < 36; iCounter++ )
 	{
 		// grab current sector value
 		sCurrentSectorValue = sBaseSectorValue + ( ( iCounter % MILITIA_BOX_ROWS ) + ( iCounter / MILITIA_BOX_ROWS ) * ( 16 ) );

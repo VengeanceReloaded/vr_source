@@ -1464,6 +1464,7 @@ STR16 pMilitiaButtonString[] =
 	L"自动", // auto place the militia troops for the player
 	L"完成", // done placing militia troops
 	L"解散", // L"Disband", // HEADROCK HAM 3.6: Disband militia
+	L"Unassign All", // move all milita troops to unassigned pool	// TODO.Translate
 };
 
 STR16 pConditionStrings[] =

@@ -1463,6 +1463,7 @@ STR16 pMilitiaButtonString[] =
 	L"Авто", // auto place the militia troops for the player
 	L"Готово", // done placing militia troops
 	L"Распустить", // HEADROCK HAM 3.6: Disband militia	//Disband
+	L"Unassign All", // move all milita troops to unassigned pool	// TODO.Translate
 };
 
 STR16 pConditionStrings[] = 
