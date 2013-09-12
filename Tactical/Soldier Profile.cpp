@@ -2603,7 +2603,7 @@ INT8 ProfileHasSkillTrait( INT32 ubProfileID, INT8 bSkillTrait )
 			}
 		}
 		// cannot have more than 1 rade of minor traits or 2 grades of a major traits
-		if( bSkillTrait > NUM_MAJOR_TRAITS )
+		if( bSkillTrait > DOCTOR_NT && bSkillTrait != COVERT_NT && bSkillTrait != PILOT_NT )
 			return ( min(1, bNumTraits) );
 		else
 			return ( min(2, bNumTraits) );

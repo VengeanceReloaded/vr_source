@@ -76,7 +76,7 @@ INT32 iSeatingCapacities[]={
 	6, // ice cream truck
 	6, // jeep
 	6, // tank
-	6, // helicopter
+	7, // helicopter (6+pilot)
 };
 
 
@@ -581,27 +581,63 @@ BOOLEAN AddSoldierToVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 			if ( GetNumberInVehicle(	iId ) == 1 )
 			{
 				// Set as driver...
-				pSoldier->flags.uiStatusFlags |= SOLDIER_DRIVER;
-
-				SetDriver( iId , pSoldier->ubID );
-
-			}
-			else
-			{
-				//check if entering guy is a better driver
-				if((NUM_SKILL_TRAITS( pSoldier, DRIVER_NT )>NUM_SKILL_TRAITS( GetDriver( iId ), DRIVER_NT )) || !(CanSoldierDriveVehicle( GetDriver( iId ), iId, FALSE )))
+				// But only if it's car, for heli first check if he can pilot (pilot trait or being Skyrider)
+				if( iId == iHelicopterVehicleId )
 				{
-					// Set previous driver as passenger
-					GetDriver( iId )->flags.uiStatusFlags &= ~SOLDIER_DRIVER;
-					GetDriver( iId )->flags.uiStatusFlags |= SOLDIER_PASSENGER;
-					// Set new guy as driver...
-					pSoldier->flags.uiStatusFlags |= SOLDIER_DRIVER;
-					SetDriver( iId , pSoldier->ubID );
+					if( NUM_SKILL_TRAITS( pSoldier, PILOT_NT )>0 || pSoldier->ubProfile == SKYRIDER )
+					{
+						pSoldier->flags.uiStatusFlags |= SOLDIER_DRIVER;
+						SetDriver( iId , pSoldier->ubID );
+					}
+					else
+					{
+						pSoldier->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+					}
 				}
 				else
 				{
-					// Set as passenger...
-					pSoldier->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+					pSoldier->flags.uiStatusFlags |= SOLDIER_DRIVER;
+					SetDriver( iId , pSoldier->ubID );
+				}
+			}
+			else
+			{
+				if( iId == iHelicopterVehicleId )
+				{
+					//check if entering guy is a better pilot
+					//ProfileHasSkillTrait(a
+					if((NUM_SKILL_TRAITS( pSoldier, PILOT_NT )>NUM_SKILL_TRAITS( GetDriver( iId ), PILOT_NT )) || !(CanSoldierDriveVehicle( GetDriver( iId ), iId, FALSE )))
+					{
+						// Set previous driver as passenger
+						GetDriver( iId )->flags.uiStatusFlags &= ~SOLDIER_DRIVER;
+						GetDriver( iId )->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+						// Set new guy as driver...
+						pSoldier->flags.uiStatusFlags |= SOLDIER_DRIVER;
+						SetDriver( iId , pSoldier->ubID );
+					}
+					else
+					{
+						// Set as passenger...
+						pSoldier->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+					}
+				}
+				else
+				{
+					//check if entering guy is a better driver
+					if((NUM_SKILL_TRAITS( pSoldier, DRIVER_NT )>NUM_SKILL_TRAITS( GetDriver( iId ), DRIVER_NT )) || !(CanSoldierDriveVehicle( GetDriver( iId ), iId, FALSE )))
+					{
+						// Set previous driver as passenger
+						GetDriver( iId )->flags.uiStatusFlags &= ~SOLDIER_DRIVER;
+						GetDriver( iId )->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+						// Set new guy as driver...
+						pSoldier->flags.uiStatusFlags |= SOLDIER_DRIVER;
+						SetDriver( iId , pSoldier->ubID );
+					}
+					else
+					{
+						// Set as passenger...
+						pSoldier->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+					}
 				}
 			}
 
@@ -715,7 +751,7 @@ BOOLEAN RemoveSoldierFromVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 			pVehicleList[ iId ].pPassengers[ iCounter ]->sSectorX = pVehicleList[ iId ].sSectorX;
 			pVehicleList[ iId ].pPassengers[ iCounter ]->bSectorZ = ( INT8 )pVehicleList[ iId ].sSectorZ;
 			pVehicleList[ iId ].pPassengers[ iCounter ] = NULL;
-			if( pSoldier->flags.uiStatusFlags & SOLDIER_DRIVER )
+			if( GetDriver( iId ) == pSoldier )
 			{
 				fWasDriver = TRUE;
 			}
@@ -840,7 +876,14 @@ BOOLEAN RemoveSoldierFromVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 	}
 	if(fSoldierLeft&&fWasDriver)
 	{
-		SetBestDriverForVehicle( iId );
+		if( iId == iHelicopterVehicleId )
+		{
+			SetBestPilotForAircraft( iId );
+		}
+		else
+		{
+			SetBestDriverForVehicle( iId );
+		}
 	}
 	// soldier successfully removed
 	return( TRUE );
@@ -1517,6 +1560,12 @@ BOOLEAN PutSoldierInVehicle( SOLDIERTYPE *pSoldier, INT8 bVehicleId )
 
 BOOLEAN TakeSoldierOutOfVehicle( SOLDIERTYPE *pSoldier )
 {
+	// if it's the pilot, and helicopter is in the air
+	if( ( pSoldier == GetDriver( iHelicopterVehicleId ) ) && ( fHelicopterIsAirBorne == TRUE ) )
+	{
+		DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 3 ], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL );
+		return (FALSE );
+	}
 	// if not in vehicle, don't take out, not much point, now is there?
 	if( pSoldier->bAssignment != VEHICLE )
 	{
@@ -1650,7 +1699,14 @@ BOOLEAN ExitVehicle( SOLDIERTYPE *pSoldier )
 
 		PlayJA2Sample( pVehicleList[ pVehicle->bVehicleID ].iOutOfSound, RATE_11025, SoundVolume( HIGHVOLUME, pVehicle->sGridNo ), 1, SoundDir( pVehicle->sGridNo ) );
 		
-		SetBestDriverForVehicle( pVehicle->iVehicleId );
+		if( pVehicle->iVehicleId == iHelicopterVehicleId )
+		{
+			SetBestPilotForAircraft( pVehicle->iVehicleId );
+		}
+		else
+		{
+			SetBestDriverForVehicle( pVehicle->iVehicleId );
+		}
 
 		return( TRUE );
 	}
@@ -2434,9 +2490,11 @@ BOOLEAN CanSoldierDriveVehicle( SOLDIERTYPE *pSoldier, INT32 iVehicleId, BOOLEAN
 		return( FALSE );
 	}
 
-	if ( iVehicleId == iHelicopterVehicleId )
+	if ( iVehicleId == iHelicopterVehicleId
+		&& ProfileHasSkillTrait( pSoldier->ubProfile, PILOT_NT ) == 0
+		&& pSoldier->ubProfile != SKYRIDER )
 	{
-		// only Skyrider can pilot the helicopter
+	//	nope // only Skyrider can pilot the helicopter
 		return( FALSE );
 	}
 
@@ -2542,21 +2600,24 @@ SOLDIERTYPE *GetBestDriverInVehicle( INT32 iVehicleId )
 	SOLDIERTYPE *pSoldier = NULL;
 	SOLDIERTYPE *pDriver = NULL;
 	
-	for( iCounter = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; iCounter <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; iCounter++ )
+	for( iCounter = 0; iCounter < iSeatingCapacities[ pVehicleList[ iVehicleId ].ubVehicleType ]; iCounter++ )
 	{
-		// get the current soldier
-		pSoldier = &Menptr[ iCounter ];
-
-		if( pSoldier->bActive )
+		if( pVehicleList[ iVehicleId ].pPassengers[ iCounter ] != NULL )
 		{
-			// don't count mercs who are asleep here
-			if ( CanSoldierDriveVehicle( pSoldier, iVehicleId, FALSE ) )
+			// get the current soldier
+			pSoldier =  pVehicleList[ iVehicleId ].pPassengers[ iCounter ];
+
+			if( pSoldier->bActive )
 			{
-				if( NUM_SKILL_TRAITS( pSoldier, DRIVER_NT ) > iBestDriving )
+				// don't count mercs who are asleep here
+				if ( CanSoldierDriveVehicle( pSoldier, iVehicleId, FALSE ) )
 				{
-					//that guy is the best so far
-					pDriver = pSoldier;
-					iBestDriving = NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
+					if( NUM_SKILL_TRAITS( pSoldier, DRIVER_NT ) > iBestDriving )
+					{
+						//that guy is the best so far
+						pDriver = pSoldier;
+						iBestDriving = NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
+					}
 				}
 			}
 		}
@@ -2586,6 +2647,40 @@ SOLDIERTYPE *GetBestDriverInVehicle( INT32 iVehicleId )
 	}
 	// you're da man!
 	return( pDriver );
+}
+
+// it's similare to GetBestDriverInVehicle, but better keep separate due to different handling of cars and helis
+SOLDIERTYPE *GetBestPilotInAircraft( INT32 iVehicleId )
+{
+	INT32 iCounter = 0;
+	INT8 iBestPiloting = -1; 
+	SOLDIERTYPE *pSoldier = NULL;
+	SOLDIERTYPE *pPilot = NULL;
+	
+	for( iCounter = 0; iCounter < iSeatingCapacities[ pVehicleList[ iVehicleId ].ubVehicleType ]; iCounter++ )
+	{
+		if( pVehicleList[ iVehicleId ].pPassengers[ iCounter ] != NULL )
+		{
+			// get the current soldier
+			pSoldier =  pVehicleList[ iVehicleId ].pPassengers[ iCounter ];
+
+			if( pSoldier->bActive )
+			{
+				// don't count mercs who are asleep here
+				if ( CanSoldierDriveVehicle( pSoldier, iVehicleId, FALSE ) )
+				{
+					if( ( NUM_SKILL_TRAITS( pSoldier, PILOT_NT ) > iBestPiloting ) || ( pSoldier->ubProfile == SKYRIDER ) )
+					{
+						//that guy is the best so far
+						pPilot = pSoldier;
+						iBestPiloting = NUM_SKILL_TRAITS( pSoldier, PILOT_NT );
+					}
+				}
+			}
+		}
+	}
+	// you're da man! (or not, can be NULL)
+	return( pPilot );
 }
 
 BOOLEAN SetBestDriverForVehicle( INT32 iVehicleId )
@@ -2619,6 +2714,36 @@ BOOLEAN SetBestDriverForVehicle( INT32 iVehicleId )
 	return ( TRUE );
 }
 
+BOOLEAN SetBestPilotForAircraft( INT32 iVehicleId )
+{
+	SOLDIERTYPE *pBestPilot = NULL;
+	SOLDIERTYPE *pCurrentPilot = NULL;
+
+	pBestPilot = GetBestPilotInAircraft( iVehicleId );
+	pCurrentPilot = GetDriver( iHelicopterVehicleId );
+	if( pBestPilot != NULL )
+	{
+		if( pBestPilot != pCurrentPilot )
+		{
+			// there's a better pilot than current one, replace current one with the best
+			pBestPilot->flags.uiStatusFlags |= SOLDIER_DRIVER;
+			pBestPilot->flags.uiStatusFlags &= ~SOLDIER_PASSENGER;
+			SetDriver( iVehicleId, pBestPilot->ubID );
+			// current "pilot" may be not in a heli anymore, check first
+			if( pCurrentPilot != NULL && pCurrentPilot->flags.uiStatusFlags & SOLDIER_DRIVER) 
+			{
+				pCurrentPilot->flags.uiStatusFlags |= SOLDIER_PASSENGER;
+				pCurrentPilot->flags.uiStatusFlags &= ~SOLDIER_DRIVER;
+			}
+			
+		}
+	}
+	else // pBestPilot == NULL
+	{
+		return ( FALSE );
+	}
+	return ( TRUE );
+}
 
 BOOLEAN IsSoldierInThisVehicleSquad( SOLDIERTYPE *pSoldier, INT8 bSquadNumber )
 {

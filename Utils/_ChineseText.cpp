@@ -3227,9 +3227,17 @@ STR16 pSkyriderText[] =
 	L"Yeah, sure, and chopper will just float by itself. You can't reassign pilot while helicopter is in the air!",
 	L"Skyrider 已作好再次飞行的准备。", // Skyrider was grounded but has been freed
 	L"Skyrider 没有乘客。如果你试图运送这个分区的佣兵，首先要分配他们进入“交通工具”－>“直升飞机”。",
-	L"Exhausted pilot passed out and lost control of the chopper! Who could expect that to happen?",
-	L"Drunken pilot lost control of the helicopter! Who could expect that to happen?",
+	L"Exhausted %s passed out and lost control of the chopper! Who could expect that to happen?",
+	L"Drunken %s lost control of the helicopter and crashed! Who could expect that to happen?",
 	L"Putting pilot to sleep while in the air? Not the best idea.",
+	L"%s was flying too low, poked the building rooftop and damaged the helicopter.", // 10
+	L"%s scratched the helicopter on a treetop!",
+	L"%s was flying too low over a dune and sand got inside the engine.",
+	L"%s was flying too low over water and it got inside the engine.",
+	L"%s wasn't paying enough attention and scratched the mountain peak, damaging the chopper.",
+	L"Strong wind shear caught the helicopter, and %s nearly lost control.", // 15
+	L"%s was flying over SAM launcher and caught the end of a missile with helicopter skid!",
+	L"Chopper got damaged because of %s's reckless flying.",
 };
 
 

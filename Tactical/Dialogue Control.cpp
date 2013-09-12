@@ -1784,11 +1784,11 @@ CHAR8 *GetDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN
 	}
 	//else if ( ubCharacterNum >= FIRST_RPC && ubCharacterNum < GASTON &&
 	//new profiles by Jazz
-	else if ( ( gProfilesRPC[ubCharacterNum].ProfilId == ubCharacterNum || gProfilesNPC[ubCharacterNum].ProfilId == ubCharacterNum || gProfilesVehicle[ubCharacterNum].ProfilId == ubCharacterNum ) &&	
+	// anv: moved brackets, now if PROFILE_MISC_FLAG_FORCENPCQUOTE is on, npc speech will be used even if character is not npc
+	else if ( ( ( gProfilesRPC[ubCharacterNum].ProfilId == ubCharacterNum || gProfilesNPC[ubCharacterNum].ProfilId == ubCharacterNum || gProfilesVehicle[ubCharacterNum].ProfilId == ubCharacterNum ) &&	
 			( !( gMercProfiles[ ubCharacterNum ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED )
-			|| ProfileCurrentlyTalkingInDialoguePanel( ubCharacterNum )
+			|| ProfileCurrentlyTalkingInDialoguePanel( ubCharacterNum ) ) )
 			|| (gMercProfiles[ ubCharacterNum ].ubMiscFlags & PROFILE_MISC_FLAG_FORCENPCQUOTE) )
-			)
 	{
 		ubFileNumID = ubCharacterNum;
 
@@ -1819,8 +1819,9 @@ CHAR8 *GetDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN
 			// special check for characters who use RPC and NPC speech files together
 			// so we can set PROFILE_MISC_FLAG_FORCENPCQUOTE before calling a dialogue
 			// and revert this now without screwing around with events
-			if ( ubCharacterNum == SKYRIDER 
-				&& gMercProfiles[ ubCharacterNum ].ubMiscFlags & PROFILE_MISC_FLAG_FORCENPCQUOTE )
+			if ( ( ProfileHasSkillTrait( ubCharacterNum, PILOT_NT ) > 0 || ubCharacterNum == SKYRIDER )
+				&& gMercProfiles[ ubCharacterNum ].ubMiscFlags & PROFILE_MISC_FLAG_FORCENPCQUOTE &&
+				!ProfileCurrentlyTalkingInDialoguePanel(ubCharacterNum) )
 			{
 				gMercProfiles[ ubCharacterNum ].ubMiscFlags &= ~PROFILE_MISC_FLAG_FORCENPCQUOTE;
 			}

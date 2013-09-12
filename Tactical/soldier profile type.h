@@ -152,13 +152,16 @@ typedef enum
 
 	// Flugente: new traits have to go here, even if they are major traits, as otherwise the existing traits in profiles get mixed up
 	COVERT_NT, // 20
-
 	DRIVER_NT, // 21
+	PILOT_NT, // 22
+
+	// when you add new major trait here, remember to add condition to ProfileHasSkillTrait or you're fucked
+	// and TwoStagedTrait, seriously
 
 	NUM_SKILLTRAITS_NT
 } SkillTraitNew;
 
-#define NUM_MAJOR_TRAITS 10
+#define NUM_MAJOR_TRAITS 11
 #define NUM_MINOR_TRAITS 11
 
 #define NUM_ORIGINAL_MAJOR_TRAITS 9

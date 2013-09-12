@@ -10455,7 +10455,7 @@ void TeamListAssignmentRegionBtnCallBack(MOUSE_REGION *pRegion, INT32 iReason )
 			}
 
 			// if it's the pilot, and helicopter is in the air
-			if( ( pSoldier->ubProfile == SKYRIDER ) && ( fHelicopterIsAirBorne == TRUE ) )
+			if( ( pSoldier == GetDriver( iHelicopterVehicleId ) ) && ( fHelicopterIsAirBorne == TRUE ) )
 			{
 				DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 4 ], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL );
 				return;
@@ -11282,7 +11282,9 @@ void RenderMapRegionBackground( void )
 	if( !fShowMapInventoryPool )
 	{
 		// if Skyrider can and wants to talk to us
-		if( IsHelicopterPilotAvailable( ) )
+		if( ( gMercProfiles[ SKYRIDER ].bLife > OKLIFE )
+			&& ( gMercProfiles[ SKYRIDER ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED )
+			&& ( fSkyRiderAvailable == TRUE ) )
 		{
 			// see if Skyrider has anything new to tell us
 			CheckAndHandleSkyriderMonologues( );
@@ -14818,8 +14820,7 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 {
 	// should we allow it?
 	if( CanHelicopterFly( ) == TRUE )
-	{
-		
+	{	
 		// is the pilot sitting in the helicopter
 		if( IsHelicopterPilotInHelicopter( ) == FALSE )
 		{
@@ -14827,6 +14828,14 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 			DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 3 ], MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
 			return ( FALSE );
 		}
+
+		// moved from IsHelicopterPilotAvailable, to block new destination, but not assigning to heli
+		// owe any money to skyrider?
+		if( gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].iBalance < 0 )
+		{
+			return( FALSE );
+		}
+
 		// if not warned already, and chopper empty, but mercs are in this sector
 		if ( !gfSkyriderEmptyHelpGiven &&
 			( GetNumberOfPassengersInHelicopter() == 0 ) &&
@@ -14837,11 +14846,13 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 			return( FALSE );
 		}
 		// Wake up pilot
-		SetMercAwake( FindSoldierByProfileID( SKYRIDER, FALSE ), FALSE, FALSE );
+		SetMercAwake( FindSoldierByProfileID( GetDriver(iHelicopterVehicleId)->ubProfile, FALSE ), FALSE, FALSE );
 
 		// say Yo!
-		if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE) SkyRiderTalk( SKYRIDER_SAYS_HI );
-
+		if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE) 
+		{
+			PilotTalk( SKYRIDER_SAYS_HI );
+		}
 		// start plotting helicopter movement
 		fPlotForHelicopter = TRUE;
 
@@ -14863,6 +14874,7 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 
 		return( FALSE );
 	}
+	return( FALSE );
 }
 
 
@@ -14870,16 +14882,16 @@ BOOLEAN RequestGiveSkyriderNewDestination( void )
 void ExplainWhySkyriderCantFly( void )
 {
 	// Skyrider is dead or wounded
-	if( FindSoldierByProfileID( SKYRIDER, FALSE )->stats.bLife < OKLIFE )
-	{
-		return;
-	}
+	//if( FindSoldierByProfileID( SKYRIDER, FALSE )->stats.bLife < OKLIFE )
+	//{
+	//	return;
+	//}
 
 	// do we owe him money?
-	if( gMercProfiles[ SKYRIDER ].iBalance < 0 )
+	if( gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].iBalance < 0 )
 	{
 		// overdue cash
-		SkyRiderTalk( OWED_MONEY_TO_SKYRIDER );
+		PilotTalk( OWED_MONEY_TO_SKYRIDER );
 		return;
 	}
 
@@ -14887,14 +14899,14 @@ void ExplainWhySkyriderCantFly( void )
 	if( fHeliReturnStraightToBase )
 	{
 		// returning to base
-		SkyRiderTalk( RETURN_TO_BASE );
+		PilotTalk( RETURN_TO_BASE );
 		return;
 	}
 
 	// grounded by enemies in sector?
 	if ( CanHelicopterTakeOff() == FALSE )
 	{
-		SkyRiderTalk( CHOPPER_NOT_ACCESSIBLE );
+		PilotTalk( CHOPPER_NOT_ACCESSIBLE );
 //		DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 4 ], MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
 		return;
 	}
@@ -14902,7 +14914,7 @@ void ExplainWhySkyriderCantFly( void )
 	// Drassen too disloyal to wanna help player?
 	if ( CheckFact( FACT_LOYALTY_LOW, SKYRIDER ) )
 	{
-		SkyRiderTalk( DOESNT_WANT_TO_FLY );
+		PilotTalk( DOESNT_WANT_TO_FLY );
 		return;
 	}
 
@@ -14950,7 +14962,7 @@ void HandleNewDestConfirmation( INT16 sMapX, INT16 sMapY )
 					( ( ubCurrentProgress - gubPlayerProgressSkyriderLastCommentedOn ) >= MIN_PROGRESS_FOR_SKYRIDER_QUOTE_DOING_WELL ) )
 			{
 				// kicking ass!
-				SkyRiderTalk( THINGS_ARE_GOING_WELL );
+				PilotTalk( THINGS_ARE_GOING_WELL );
 
 				gubPlayerProgressSkyriderLastCommentedOn = ubCurrentProgress;
 			}
@@ -14959,21 +14971,24 @@ void HandleNewDestConfirmation( INT16 sMapX, INT16 sMapY )
 					( ( gubPlayerProgressSkyriderLastCommentedOn - ubCurrentProgress ) >= MIN_REGRESS_FOR_SKYRIDER_QUOTE_DOING_BADLY ) )
 			{
 				// sucking rocks!
-				SkyRiderTalk( THINGS_ARE_GOING_BADLY );
+				PilotTalk( THINGS_ARE_GOING_BADLY );
 
 				gubPlayerProgressSkyriderLastCommentedOn = ubCurrentProgress;
 			}
 			else
 			{
 				// ordinary confirmation quote
-				if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE) SkyRiderTalk( CONFIRM_DESTINATION );
+				if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE)
+				{
+					PilotTalk( CONFIRM_DESTINATION );
+				}
 			}
 		}
 		//CHRISL: If we're allowing Skyrider to drop mercs into a hot LZ, we don't need Skyrider telling us he isn't going to drop the mercs off.
 		else if(gGameExternalOptions.ubSkyriderHotLZ == 0)
 		{
 			// ok, but... you know there are enemies there...
-			SkyRiderTalk( BELIEVED_ENEMY_SECTOR );
+			PilotTalk( BELIEVED_ENEMY_SECTOR );
 		}
 	}
 	else

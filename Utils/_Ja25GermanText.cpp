@@ -374,6 +374,15 @@ STR16 gzIMPMinorTraitsHelpTextsDriver[]=
 	L"+%d%s group traveling speed between sectors if traveling in vehicle (except helicopter)\n",
 	L"-%d%s fuel consumption when traveling in vehicle (except helicopter)\n",
 };
+STR16 gzIMPMajorTraitsHelpTextsPilot[]=
+{
+	L"Can pilot aircraft\n",
+	L"Can pilot aircraft like a pro\n",
+	L"+%d%s chance to dodge incoming enemy AA missile\n",
+	L"+%d%s chance of accidently damaging piloted aircraft\n",
+	L"+%d%s chance to notice enemies while flying over the sector\n",
+	
+};
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"Keine Boni",

@@ -60,6 +60,9 @@ extern	STR16 gzIMPMinorTraitsHelpTextsDemolitions[];
 extern	STR16 gzIMPMinorTraitsHelpTextsTeaching[];
 extern	STR16 gzIMPMinorTraitsHelpTextsScouting[];
 extern	STR16 gzIMPMinorTraitsHelpTextsDriver[];
+
+extern	STR16 gzIMPMajorTraitsHelpTextsPilot[];
+
 extern	STR16 gzIMPMinorTraitsHelpTextsNone[];
 
 extern STR16 gzIMPOldSkillTraitsHelpTexts[];

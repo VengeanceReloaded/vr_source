@@ -1946,6 +1946,13 @@ void LoadSkillTraitsExternalSettings()
 	gSkillTraitValues.ubDRMaxSavedFuel = iniReader.ReadInteger("Driver","MAX_STACKABLE_FUEL_SAVED", 1, 0, 6);
 	gSkillTraitValues.ubDRStackableDriverAndRanger = iniReader.ReadInteger("Driver","STACKABLE_DRIVER_AND_RANGER", 2, 0, 2);
 
+	// PILOTING
+	gSkillTraitValues.ubPILFlyboyAvoidSAMChance = iniReader.ReadInteger("Pilot","FLYBOY_CHANCE_TO_AVOID_SAM_ATTACK", 50, 0, 100);
+	gSkillTraitValues.ubPILAceAvoidSAMChance = iniReader.ReadInteger("Pilot","ACE_CHANCE_TO_AVOID_SAM_ATTACK", 67, 0, 100);
+	gSkillTraitValues.ubPILFlyboyAccidentChance = iniReader.ReadInteger("Pilot","FLYBOY_ACCIDENT_CHANCE", 10, 0, 100);
+	gSkillTraitValues.ubPILAceAccidentChance = iniReader.ReadInteger("Pilot","ACE_ACCIDENT_CHANCE", 0, 0, 100);
+	gSkillTraitValues.ubPILFlyboyNoticeEnemiesChance = iniReader.ReadInteger("Pilot","FLYBOY_NOTICE_ENEMIES_CHANCE", 40, 0, 100);
+	gSkillTraitValues.ubPILAceNoticeEnemiesChance = iniReader.ReadInteger("Pilot","ACE_NOTICE_ENEMIES_CHANCE", 60, 0, 100);
 }
 
 void LoadExtendedPanelsExternalSettings()

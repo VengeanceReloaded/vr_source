@@ -1256,6 +1256,14 @@ typedef struct
 	UINT8 ubDRMaxSavedFuel;
 	UINT8 ubDRStackableDriverAndRanger;
 
+	// PILOT
+	UINT8 ubPILFlyboyAvoidSAMChance;
+	UINT8 ubPILAceAvoidSAMChance;
+	UINT8 ubPILFlyboyAccidentChance;
+	UINT8 ubPILAceAccidentChance;
+	UINT8 ubPILFlyboyNoticeEnemiesChance;
+	UINT8 ubPILAceNoticeEnemiesChance;
+
 } SKILL_TRAIT_VALUES;
 
 typedef struct

@@ -224,10 +224,13 @@ void SetUpHelicopterForMovement( void );
 INT32 GetNumberOfPassengersInHelicopter( void );
 
 // when Skyrider is hired, he still should use NPC quotes for helicopter flying
-void EnforceUsingCorrectQuoteSetBySkyrider( void );
+void EnforceUsingCorrectQuoteSetByPilot( UINT8 ubProfile );
 
 // skyrider talking to player
 void SkyRiderTalk( UINT16 usQuoteNum );
+
+// any pilot talking to player
+void PilotTalk( UINT16 usQuoteNum );
 
 // sky rider monlogue events for mapscreen
 void HandleSkyRiderMonologueEvent( UINT32 uiEventCode, UINT32 uiSpecialCode );
@@ -253,6 +256,9 @@ BOOLEAN IsHelicopterOnGroundAtRefuelingSite( UINT8 ubRefuelingSite );
 extern void HeliCrashSoundStopCallback( void *pData );
 
 BOOLEAN HandleSAMSiteAttackOfHelicopterInSector( INT16 sSectorX, INT16 sSectorY );
+
+void ExplainAccidentReason( void );
+BOOLEAN HandlePilotDamagingHelicopterAccidently( INT16 sSectorX, INT16 sSectorY );
 
 BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY );
 

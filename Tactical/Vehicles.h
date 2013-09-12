@@ -226,7 +226,9 @@ BOOLEAN CanSoldierDriveVehicle( SOLDIERTYPE *pSoldier, INT32 iVehicleId, BOOLEAN
 BOOLEAN SoldierMustDriveVehicle( SOLDIERTYPE *pSoldier, INT32 iVehicleId, BOOLEAN fTryingToTravel );
 BOOLEAN OnlythisCanDriveVehicle( SOLDIERTYPE *pSoldier, INT32 iVehicleId );
 SOLDIERTYPE*	GetBestDriverInVehicle( INT32 iVehicleId );
+SOLDIERTYPE*	GetBestPilotInAircraft( INT32 iVehicleId );
 BOOLEAN SetBestDriverForVehicle( INT32 iVehicleId );
+BOOLEAN SetBestPilotForAircraft( INT32 iVehicleId );
 
 BOOLEAN IsEnoughSpaceInVehicle( INT32 iID );
 

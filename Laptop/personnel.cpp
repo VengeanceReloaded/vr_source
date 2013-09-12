@@ -7903,6 +7903,52 @@ void AssignPersonnelSkillTraitHelpText( UINT8 ubTraitNumber, BOOLEAN fExpertLeve
 				}
 				break;
 			}
+			case PILOT_NT:
+			{
+				swprintf( apStr, L"" );
+
+				if( fExpertLevel == TRUE )			
+				{
+					swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[1]);
+					wcscat( apStr, atStr );
+					if( gSkillTraitValues.ubPILAceAvoidSAMChance > 0 )
+					{
+						swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[2], gSkillTraitValues.ubPILAceAvoidSAMChance, L"%");
+						wcscat( apStr, atStr );
+					}
+					if( gSkillTraitValues.ubPILAceAccidentChance > 0 )
+					{
+						swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[3], gSkillTraitValues.ubPILAceAccidentChance, L"%");
+						wcscat( apStr, atStr );
+					}
+					if( gSkillTraitValues.ubPILAceNoticeEnemiesChance > 0 )
+					{
+						swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[4], gSkillTraitValues.ubPILAceNoticeEnemiesChance, L"%");
+						wcscat( apStr, atStr );
+					}
+				}
+				else
+				{
+					swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[0]);
+					wcscat( apStr, atStr );
+					if( gSkillTraitValues.ubPILFlyboyAvoidSAMChance > 0 )
+					{
+						swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[2], gSkillTraitValues.ubPILFlyboyAvoidSAMChance, L"%");
+						wcscat( apStr, atStr );
+					}
+					if( gSkillTraitValues.ubPILFlyboyAccidentChance > 0 )
+					{
+						swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[3], gSkillTraitValues.ubPILFlyboyAccidentChance, L"%");
+						wcscat( apStr, atStr );
+					}
+					if( gSkillTraitValues.ubPILFlyboyNoticeEnemiesChance > 0 )
+					{
+						swprintf( atStr, gzIMPMajorTraitsHelpTextsPilot[4], gSkillTraitValues.ubPILFlyboyNoticeEnemiesChance, L"%");
+						wcscat( apStr, atStr );
+					}
+				}
+				break;
+			}
 			case COVERT_NT:
 			{
 				break;

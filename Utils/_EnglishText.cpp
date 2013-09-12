@@ -1927,29 +1927,32 @@ STR16 gzMercSkillTextNew[] =
 	L"Scouting",		// 19
 	// covert ops is a major trait that was added later
 	L"Covert Ops",		// 20
-	L"Driver",		//21
+	L"Driver",			// 21
+	L"Flyboy",			// 22
 	// second names for major skills
-	L"Machinegunner",	//
+	L"Machinegunner",	// 23
 	L"Bombardier",
 	L"Sniper",
 	L"Ranger",
-	L"Gunfighter",		//
+	L"Gunfighter",
 	L"Martial Arts",
 	L"Squadleader",
 	L"Engineer",
-	L"Doctor",			// 	
+	L"Doctor",			// 31	
 	// placeholders for minor traits
-	L"Placeholder",		// 30
+	L"Placeholder",		// 32
 	L"Placeholder",
 	L"Placeholder",
 	L"Placeholder",
 	L"Placeholder",
-	L"Placeholder",		// 35
 	L"Placeholder",
 	L"Placeholder",
 	L"Placeholder",
-	L"Placeholder",		// 39
-	L"Spy",				// 40
+	L"Placeholder",
+	L"Placeholder",
+	L"Spy",				// 42
+	L"Placeholder",
+	L"Ace",		// 44
 	L"More...",
 };
 //////////////////////////////////////////////////////////
@@ -3221,16 +3224,25 @@ STR16 pTransactionAlternateText[] =
 
 STR16 pSkyriderText[] =
 {
-	L"Skyrider was paid $%d", 			// skyrider was paid an amount of money
-	L"Skyrider is still owed $%d", 		// skyrider is still owed an amount of money
-	L"Skyrider has finished refueling",	// skyrider has finished refueling
+	L"%s was paid $%d", 			// skyrider was paid an amount of money
+	L"%s is still owed $%d", 		// skyrider is still owed an amount of money
+	L"Pilot has finished refueling",	// skyrider has finished refueling
 	L"Helicopter ain't gonna fly itself. Assign pilot to Vehicle/Helicopter first.",
 	L"Yeah, sure, and chopper will just float by itself. You can't reassign pilot while helicopter is in the air!",
-	L"Skyrider is ready to fly once more.", // Skyrider was grounded but has been freed
-	L"Skyrider has no passengers.  If it is your intention to transport mercs in this sector, assign them to Vehicle/Helicopter first.",
-	L"Exhausted pilot passed out and lost control of the chopper! Who could expect that to happen?",
-	L"Drunken pilot lost control of the helicopter! Who could expect that to happen?",
+	L"Pilot is ready to fly once more.", // Skyrider was grounded but has been freed
+	L"Chopper has no passengers.  If it is your intention to transport mercs in this sector, assign them to Vehicle/Helicopter first.",
+	L"Exhausted %s passed out and lost control of the chopper! Who could expect that to happen?",
+	L"Drunken %s lost control of the helicopter and crashed! Who could expect that to happen?",
 	L"Putting pilot to sleep while in the air? Not the best idea.",
+	L"%s was flying too low, poked the building rooftop and damaged the helicopter.", // 10
+	L"%s scratched the helicopter on a treetop!",
+	L"%s was flying too low over a dune and sand got inside the engine.",
+	L"%s was flying too low over water and it got inside the engine.",
+	L"%s wasn't paying enough attention and scratched the mountain peak, damaging the chopper.",
+	L"Strong wind shear caught the helicopter, and %s nearly lost control.", // 15
+	L"%s was flying over SAM launcher and caught the end of a missile with helicopter skid!",
+	L"Chopper got damaged because of %s's reckless flying.",
+	
 };
 
 

@@ -2511,7 +2511,7 @@ void PlotPathForHelicopter( INT16 sX, INT16 sY )
 	//CHRISL: If we've plotted a path through enemy controlled airspace, we have a new Skyrider speech we want to hear.
 	if( GetNumUnSafeSectorsInPath( ) > 0 && !gGameSettings.fOptions[TOPTION_SILENT_SKYRIDER] )
 	{
-		HeliCharacterDialogue( pSkyRider, HELI_PATH_THROUGH_ENEMEY_AIRSPACE );
+		HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_PATH_THROUGH_ENEMEY_AIRSPACE );
 	}
 
 	// move to beginning of list

@@ -374,6 +374,15 @@ STR16 gzIMPMinorTraitsHelpTextsDriver[]=
 	L"+%d%s szybsza podróż pojazdem pomiędzy sektorami (poza helikopterem)\n",
 	L"-%d%s zużycie paliwa podczas podróży pojazdem (poza helikopterem)\n",
 };
+STR16 gzIMPMajorTraitsHelpTextsPilot[]=
+{
+	L"Potrafi sterować helikopterem\n",
+	L"Potrafi sterować helikopterem jak zawodowiec\n",
+	L"+%d%s szansy na uniknięcie pocisku ziemia-powietrze\n",
+	L"+%d%s szansy na przypadowe uszkodzenie śmigłowca w czasie lotu\n",
+	L"+%d%s szansy na zauważenie przeciwników w czasie lotu nad sektorem\n",
+	
+};
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"No bonuses",

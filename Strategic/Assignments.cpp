@@ -608,6 +608,17 @@ void ChangeSoldiersAssignment( SOLDIERTYPE *pSoldier, INT8 bAssignment )
 	fMapPanelDirty = TRUE;
 }
 
+// if it's the pilot, and helicopter is in the air
+BOOLEAN IsCharacterPilotingAndCantBeReassigned( SOLDIERTYPE * pSoldier )
+{
+	// if it's the pilot, and helicopter is in the air
+	if( ( pSoldier == GetDriver( iHelicopterVehicleId ) ) && ( fHelicopterIsAirBorne == TRUE ) )
+	{
+		DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 4 ], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL );
+		return (TRUE );
+	}
+	return(FALSE);
+}
 
 BOOLEAN BasicCanCharacterAssignment( SOLDIERTYPE * pSoldier, BOOLEAN fNotInCombat )
 {
@@ -616,6 +627,11 @@ BOOLEAN BasicCanCharacterAssignment( SOLDIERTYPE * pSoldier, BOOLEAN fNotInComba
 	if ( SectorIsImpassable( (INT16) SECTOR( pSoldier->sSectorX, pSoldier->sSectorY ) ) )
 	{
 		return( FALSE );
+	}
+	
+	if( IsCharacterPilotingAndCantBeReassigned(pSoldier) )
+	{
+		return (FALSE );
 	}
 
 	if ( fNotInCombat && pSoldier->bActive && pSoldier->bInSector && gTacticalStatus.fEnemyInSector )
@@ -1873,6 +1889,21 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 		}
 		else	// in a vehicle
 		{
+			// if this guy is a pilot
+			if ( pSoldier == GetDriver( iHelicopterVehicleId ) && fHelicopterIsAirBorne == TRUE )
+			{
+				// can't sleep while walking or driving a vehicle
+				if( fExplainWhyNot )
+				{
+					// is piloting, can't sleep
+					if( pSoldier == GetDriver(iHelicopterVehicleId) && fHelicopterIsAirBorne )
+					{
+						DoScreenIndependantMessageBox( pSkyriderText[ 9 ], MSG_BOX_FLAG_OK, NULL );
+						return ( FALSE );
+					}
+				}
+				return( FALSE );
+			}
 			// if this guy has to drive ('cause nobody else can)
 			if ( SoldierMustDriveVehicle( pSoldier, pSoldier->iVehicleId, FALSE ) )
 			{
@@ -1890,6 +1921,11 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 	}
 	else	// in a sector
 	{
+		// if it's the pilot, and helicopter is in the air
+		if( ( pSoldier == GetDriver( iHelicopterVehicleId ) ) && ( fHelicopterIsAirBorne == TRUE ) )
+		{
+			return (FALSE );
+		}
 		// if not above it all...
 		if ( !SoldierAboardAirborneHeli( pSoldier ) )
 		{
@@ -2054,6 +2090,12 @@ INT8 CanCharacterSquad( SOLDIERTYPE *pSoldier, INT8 bSquadValue )
 	if ( pSoldier->bAssignment == bSquadValue )
 	{
 		return( CHARACTER_CANT_JOIN_SQUAD_ALREADY_IN_IT );
+	}
+
+	// if guy is a pilot fail immediately
+	if( IsCharacterPilotingAndCantBeReassigned( pSoldier ) )
+	{
+		return ( CHARACTER_CANT_JOIN_SQUAD );
 	}
 
 	// is the character alive and well?
@@ -8132,7 +8174,7 @@ void BeginRemoveMercFromContract( SOLDIERTYPE *pSoldier )
 			}
 
 			// we fired chopper pilot while it's in the air, let's assume he won't catapult himself and just goes back to base
-			if( ( pSoldier->ubProfile == SKYRIDER ) && ( fHelicopterIsAirBorne == TRUE ) )
+			if( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier == GetDriver(iHelicopterVehicleId) ) )
 			{
 				MakeHeliReturnToBase();
 			}
@@ -11743,14 +11785,6 @@ BOOLEAN SetMercAsleep( SOLDIERTYPE *pSoldier, BOOLEAN fGiveWarning )
 {
 	if( CanCharacterSleep( pSoldier, fGiveWarning ) )
 	{
-		// he's the pilot, keep him awake
-		if( pSoldier->ubProfile == SKYRIDER  && pSoldier->bVehicleID == iHelicopterVehicleId && fHelicopterIsAirBorne )
-		{
-			if( pSkyriderText[ 9 ] != NULL)
-				DoScreenIndependantMessageBox( pSkyriderText[ 9 ], MSG_BOX_FLAG_OK, NULL );
-			return ( FALSE );
-		}
-
 		// put him to sleep
 		PutMercInAsleepState( pSoldier );
 
@@ -12420,203 +12454,211 @@ void SetAssignmentForList( INT8 bAssignment, INT8 bParam )
 
 			// assume it's NOT gonna work
 			fItWorked = FALSE;
-
-			switch( bAssignment )
+			// anv: if new assisgnment is the same, assume it's ok
+			if( pSoldier->bAssignment == bAssignment )
 			{
-				case( DOCTOR ):
-					// can character doctor?
-					if( CanCharacterDoctor( pSoldier ) )
-					{
-						// set as doctor
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						SetSoldierAssignment( pSoldier, DOCTOR, 0,0,0 );
-						fItWorked = TRUE;
-					}
-					break;
-				case( PATIENT ):
-					// can character patient?
-					if( CanCharacterPatient( pSoldier ) )
-					{
-						// set as patient
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						SetSoldierAssignment( pSoldier, PATIENT, 0,0,0 );
-						fItWorked = TRUE;
-					}
-					break;
-				case( VEHICLE ):
-					if( CanCharacterVehicle( pSoldier ) && IsThisVehicleAccessibleToSoldier( pSoldier, bParam ) )
-					{
-//						if ( IsEnoughSpaceInVehicle( bParam ) )
+				fItWorked = TRUE;
+				fRemoveFromSquad = FALSE;
+			}
+			else
+			{
+				switch( bAssignment )
+				{
+					case( DOCTOR ):
+						// can character doctor?
+						if( CanCharacterDoctor( pSoldier ) )
 						{
-							// if the vehicle is FULL, then this will return FALSE!
-							fItWorked = PutSoldierInVehicle( pSoldier, bParam );
-							// failure produces its own error popup
-							fNotifiedOfFailure = TRUE;
-						}
-					}
-					break;
-				case( REPAIR ):
-					if( CanCharacterRepair( pSoldier ) )
-					{
-						BOOLEAN fCanFixSpecificTarget = TRUE;
-
-						// make sure he can repair the SPECIFIC thing being repaired too (must be in its sector, for example)
-
-/*
-						if ( pSelectedSoldier->flags.fFixingSAMSite )
-						{
-							fCanFixSpecificTarget = CanSoldierRepairSAM( pSoldier, SAM_SITE_REPAIR_DIVISOR );
-						}
-						else
-*/
-						if ( pSelectedSoldier->bVehicleUnderRepairID != -1 )
-						{
-							fCanFixSpecificTarget = CanCharacterRepairVehicle( pSoldier, pSelectedSoldier->bVehicleUnderRepairID );
-						}
-						else if( pSoldier->flags.fFixingRobot )
-						{
-							fCanFixSpecificTarget = CanCharacterRepairRobot( pSoldier );
-						}
-
-						if ( fCanFixSpecificTarget )
-						{
-							// set as repair
+							// set as doctor
 							pSoldier->bOldAssignment = pSoldier->bAssignment;
-							SetSoldierAssignment( pSoldier, REPAIR, pSelectedSoldier->flags.fFixingSAMSite, pSelectedSoldier->flags.fFixingRobot, pSelectedSoldier->bVehicleUnderRepairID );
+							SetSoldierAssignment( pSoldier, DOCTOR, 0,0,0 );
 							fItWorked = TRUE;
 						}
-					}
-					break;
-				case( TRAIN_SELF ):
-					if( CanCharacterTrainStat( pSoldier, bParam , TRUE, FALSE ) )
-					{
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						SetSoldierAssignment( pSoldier, TRAIN_SELF, bParam, 0,0 );
-						fItWorked = TRUE;
-					}
-					break;
-				case( TRAIN_TOWN ):
-					if( CanCharacterTrainMilitia( pSoldier ) )
-					{
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						SetSoldierAssignment( pSoldier, TRAIN_TOWN, 0, 0, 0 );
-						fItWorked = TRUE;
-					}
-					break;
-				case( TRAIN_MOBILE ):
-					if( CanCharacterTrainMobileMilitia( pSoldier ) )
-					{
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						SetSoldierAssignment( pSoldier, TRAIN_MOBILE, 0, 0, 0 );
-						fItWorked = TRUE;
-					}
-					break;
-				case( TRAIN_TEAMMATE ):
-					if( CanCharacterTrainStat( pSoldier, bParam, FALSE, TRUE ) )
-					{
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						SetSoldierAssignment( pSoldier, TRAIN_TEAMMATE, bParam, 0,0 );
-						fItWorked = TRUE;
-					}
-					break;
-				case TRAIN_BY_OTHER:
-					if( CanCharacterTrainStat( pSoldier, bParam, TRUE, FALSE ) )
-					{
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						SetSoldierAssignment( pSoldier, TRAIN_BY_OTHER, bParam, 0,0 );
-						fItWorked = TRUE;
-					}
-					break;
-				
-				// HEADROCK HAM 3.6: Facility Staffing
-				case FACILITY_STAFF:
-					if ( CanCharacterFacility( pSoldier, bParam, FAC_STAFF ) )
-					{
-						pSoldier->bOldAssignment = pSoldier->bAssignment;
-						ChangeSoldiersAssignment( pSoldier, FACILITY_STAFF );
-						pSoldier->sFacilityTypeOperated = bParam;
-						fItWorked = TRUE;
-					}
-					break;
+						break;
+					case( PATIENT ):
+						// can character patient?
+						if( CanCharacterPatient( pSoldier ) )
+						{
+							// set as patient
+							pSoldier->bOldAssignment = pSoldier->bAssignment;
+							SetSoldierAssignment( pSoldier, PATIENT, 0,0,0 );
+							fItWorked = TRUE;
+						}
+						break;
+					case( VEHICLE ):
+						if( CanCharacterVehicle( pSoldier ) && IsThisVehicleAccessibleToSoldier( pSoldier, bParam ) )
+						{
+	//						if ( IsEnoughSpaceInVehicle( bParam ) )
+							{
+								// if the vehicle is FULL, then this will return FALSE!
+								fItWorked = PutSoldierInVehicle( pSoldier, bParam );
+								// failure produces its own error popup
+								fNotifiedOfFailure = TRUE;
+							}
+						}
+						break;
+					case( REPAIR ):
+						if( CanCharacterRepair( pSoldier ) )
+						{
+							BOOLEAN fCanFixSpecificTarget = TRUE;
 
-				case( SQUAD_1 ):
-				case( SQUAD_2 ):
-				case( SQUAD_3 ):
-				case( SQUAD_4 ):
-				case( SQUAD_5 ):
-				case( SQUAD_6 ):
-				case( SQUAD_7 ):
-				case( SQUAD_8 ):
-				case( SQUAD_9 ):
-				case( SQUAD_10 ):
-				case( SQUAD_11 ):
-				case( SQUAD_12 ):
-				case( SQUAD_13 ):
-				case( SQUAD_14 ):
-				case( SQUAD_15 ):
-				case( SQUAD_16 ):
-				case( SQUAD_17 ):
-				case( SQUAD_18 ):
-				case( SQUAD_19 ):
-				case( SQUAD_20 ):
-					bCanJoinSquad = CanCharacterSquad( pSoldier, ( INT8 )bAssignment );
+							// make sure he can repair the SPECIFIC thing being repaired too (must be in its sector, for example)
 
-					// if already in it, don't repor that as an error...
-					if ( ( bCanJoinSquad == CHARACTER_CAN_JOIN_SQUAD ) ||
-							( bCanJoinSquad == CHARACTER_CANT_JOIN_SQUAD_ALREADY_IN_IT ) )
-					{
-						if ( bCanJoinSquad == CHARACTER_CAN_JOIN_SQUAD )
+	/*
+							if ( pSelectedSoldier->flags.fFixingSAMSite )
+							{
+								fCanFixSpecificTarget = CanSoldierRepairSAM( pSoldier, SAM_SITE_REPAIR_DIVISOR );
+							}
+							else
+	*/
+							if ( pSelectedSoldier->bVehicleUnderRepairID != -1 )
+							{
+								fCanFixSpecificTarget = CanCharacterRepairVehicle( pSoldier, pSelectedSoldier->bVehicleUnderRepairID );
+							}
+							else if( pSoldier->flags.fFixingRobot )
+							{
+								fCanFixSpecificTarget = CanCharacterRepairRobot( pSoldier );
+							}
+
+							if ( fCanFixSpecificTarget )
+							{
+								// set as repair
+								pSoldier->bOldAssignment = pSoldier->bAssignment;
+								SetSoldierAssignment( pSoldier, REPAIR, pSelectedSoldier->flags.fFixingSAMSite, pSelectedSoldier->flags.fFixingRobot, pSelectedSoldier->bVehicleUnderRepairID );
+								fItWorked = TRUE;
+							}
+						}
+						break;
+					case( TRAIN_SELF ):
+						if( CanCharacterTrainStat( pSoldier, bParam , TRUE, FALSE ) )
 						{
 							pSoldier->bOldAssignment = pSoldier->bAssignment;
+							SetSoldierAssignment( pSoldier, TRAIN_SELF, bParam, 0,0 );
+							fItWorked = TRUE;
+						}
+						break;
+					case( TRAIN_TOWN ):
+						if( CanCharacterTrainMilitia( pSoldier ) )
+						{
+							pSoldier->bOldAssignment = pSoldier->bAssignment;
+							SetSoldierAssignment( pSoldier, TRAIN_TOWN, 0, 0, 0 );
+							fItWorked = TRUE;
+						}
+						break;
+					case( TRAIN_MOBILE ):
+						if( CanCharacterTrainMobileMilitia( pSoldier ) )
+						{
+							pSoldier->bOldAssignment = pSoldier->bAssignment;
+							SetSoldierAssignment( pSoldier, TRAIN_MOBILE, 0, 0, 0 );
+							fItWorked = TRUE;
+						}
+						break;
+					case( TRAIN_TEAMMATE ):
+						if( CanCharacterTrainStat( pSoldier, bParam, FALSE, TRUE ) )
+						{
+							pSoldier->bOldAssignment = pSoldier->bAssignment;
+							SetSoldierAssignment( pSoldier, TRAIN_TEAMMATE, bParam, 0,0 );
+							fItWorked = TRUE;
+						}
+						break;
+					case TRAIN_BY_OTHER:
+						if( CanCharacterTrainStat( pSoldier, bParam, TRUE, FALSE ) )
+						{
+							pSoldier->bOldAssignment = pSoldier->bAssignment;
+							SetSoldierAssignment( pSoldier, TRAIN_BY_OTHER, bParam, 0,0 );
+							fItWorked = TRUE;
+						}
+						break;
+				
+					// HEADROCK HAM 3.6: Facility Staffing
+					case FACILITY_STAFF:
+						if ( CanCharacterFacility( pSoldier, bParam, FAC_STAFF ) )
+						{
+							pSoldier->bOldAssignment = pSoldier->bAssignment;
+							ChangeSoldiersAssignment( pSoldier, FACILITY_STAFF );
+							pSoldier->sFacilityTypeOperated = bParam;
+							fItWorked = TRUE;
+						}
+						break;
 
-							// is the squad between sectors
-							if( Squad[ bAssignment ][ 0 ] )
+					case( SQUAD_1 ):
+					case( SQUAD_2 ):
+					case( SQUAD_3 ):
+					case( SQUAD_4 ):
+					case( SQUAD_5 ):
+					case( SQUAD_6 ):
+					case( SQUAD_7 ):
+					case( SQUAD_8 ):
+					case( SQUAD_9 ):
+					case( SQUAD_10 ):
+					case( SQUAD_11 ):
+					case( SQUAD_12 ):
+					case( SQUAD_13 ):
+					case( SQUAD_14 ):
+					case( SQUAD_15 ):
+					case( SQUAD_16 ):
+					case( SQUAD_17 ):
+					case( SQUAD_18 ):
+					case( SQUAD_19 ):
+					case( SQUAD_20 ):
+						bCanJoinSquad = CanCharacterSquad( pSoldier, ( INT8 )bAssignment );
+
+						// if already in it, don't repor that as an error...
+						if ( ( bCanJoinSquad == CHARACTER_CAN_JOIN_SQUAD ) ||
+								( bCanJoinSquad == CHARACTER_CANT_JOIN_SQUAD_ALREADY_IN_IT ) )
+						{
+							if ( bCanJoinSquad == CHARACTER_CAN_JOIN_SQUAD )
 							{
-								if( Squad[ bAssignment ][ 0 ]->flags.fBetweenSectors )
+								pSoldier->bOldAssignment = pSoldier->bAssignment;
+
+								// is the squad between sectors
+								if( Squad[ bAssignment ][ 0 ] )
 								{
-									// between sectors, remove from old mvt group
-									if ( pSoldier->bOldAssignment >= ON_DUTY )
+									if( Squad[ bAssignment ][ 0 ]->flags.fBetweenSectors )
 									{
-										// remove from group
-										// the guy wasn't in a sqaud, but moving through a sector?
-										if ( pSoldier->ubGroupID != 0 )
+										// between sectors, remove from old mvt group
+										if ( pSoldier->bOldAssignment >= ON_DUTY )
 										{
-											// now remove from mvt group
-											RemovePlayerFromGroup( pSoldier->ubGroupID, pSoldier );
+											// remove from group
+											// the guy wasn't in a sqaud, but moving through a sector?
+											if ( pSoldier->ubGroupID != 0 )
+											{
+												// now remove from mvt group
+												RemovePlayerFromGroup( pSoldier->ubGroupID, pSoldier );
+											}
 										}
 									}
 								}
+
+								if( pSoldier->bOldAssignment == VEHICLE )
+								{
+									TakeSoldierOutOfVehicle( pSoldier );
+								}
+								// remove from current squad, if any
+								RemoveCharacterFromSquads( pSoldier );
+
+								// able to add, do it
+								AddCharacterToSquad( pSoldier, bAssignment );
 							}
 
-							if( pSoldier->bOldAssignment == VEHICLE )
-							{
-								TakeSoldierOutOfVehicle( pSoldier );
-							}
-							// remove from current squad, if any
-							RemoveCharacterFromSquads( pSoldier );
-
-							// able to add, do it
-							AddCharacterToSquad( pSoldier, bAssignment );
+							fItWorked = TRUE;
+							fRemoveFromSquad = FALSE;	// already done, would screw it up!
 						}
+						break;
+
+					default:
+						// remove from current vehicle/squad, if any
+						if( pSoldier->bAssignment == VEHICLE )
+						{
+							TakeSoldierOutOfVehicle( pSoldier );
+						}
+						RemoveCharacterFromSquads( pSoldier );
+
+						AddCharacterToAnySquad( pSoldier );
 
 						fItWorked = TRUE;
 						fRemoveFromSquad = FALSE;	// already done, would screw it up!
-					}
-					break;
-
-				default:
-					// remove from current vehicle/squad, if any
-					if( pSoldier->bAssignment == VEHICLE )
-					{
-						TakeSoldierOutOfVehicle( pSoldier );
-					}
-					RemoveCharacterFromSquads( pSoldier );
-
-					AddCharacterToAnySquad( pSoldier );
-
-					fItWorked = TRUE;
-					fRemoveFromSquad = FALSE;	// already done, would screw it up!
-					break;
+						break;
+				}
 			}
 
 			if ( fItWorked )

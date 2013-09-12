@@ -281,7 +281,7 @@ BOOLEAN RemoveSoldierFromHelicopter( SOLDIERTYPE *pSoldier )
 	}
 
 	// are we trying to remove a pilot while helicopter is in the air
-	if( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier->ubProfile == SKYRIDER ) )
+	if( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier == GetDriver(iHelicopterVehicleId) ) )
 	{
 		return( FALSE );
 	}
@@ -307,6 +307,13 @@ BOOLEAN HandleHeliEnteringSector( INT16 sX, INT16 sY )
 
 	// check for SAM attack upon the chopper.	If it's destroyed by the attack, do nothing else here
 	if( HandleSAMSiteAttackOfHelicopterInSector( sX, sY ) == TRUE )
+	{
+		// destroyed
+		return( TRUE );
+	}
+
+	// check if pilot screwed up, and damaged helicopter
+	if( HandlePilotDamagingHelicopterAccidently( sX, sY ) == TRUE )
 	{
 		// destroyed
 		return( TRUE );
@@ -353,11 +360,11 @@ BOOLEAN HandleHeliEnteringSector( INT16 sX, INT16 sY )
 
 					if( Random( 2 ) )
 					{
-						HeliCharacterDialogue( pSkyRider, ENEMIES_SPOTTED_EN_ROUTE_IN_FRIENDLY_SECTOR_A );
+						HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), ENEMIES_SPOTTED_EN_ROUTE_IN_FRIENDLY_SECTOR_A );
 					}
 					else
 					{
-						HeliCharacterDialogue( pSkyRider, ENEMIES_SPOTTED_EN_ROUTE_IN_FRIENDLY_SECTOR_B );
+						HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), ENEMIES_SPOTTED_EN_ROUTE_IN_FRIENDLY_SECTOR_B );
 					}
 				}
 
@@ -393,7 +400,7 @@ BOOLEAN HandleHeliEnteringSector( INT16 sX, INT16 sY )
 			if ( ( GetNumberOfPassengersInHelicopter() > 0 ) /*|| !fHeliReturnStraightToBase*/ )
 			{
 				// arrived at destination
-				if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE) HeliCharacterDialogue( pSkyRider, ARRIVED_IN_NON_HOSTILE_SECTOR );
+				if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE) HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), ARRIVED_IN_NON_HOSTILE_SECTOR );
 				//StopTimeCompression();
 			}
 
@@ -409,9 +416,9 @@ BOOLEAN HandleHeliEnteringSector( INT16 sX, INT16 sY )
 			//CHRISL: Whether skyrider is set to silent or not, we should still say this if we aren't allowing landing in a hot lz.
 			//if(gGameSettings.fOptions[ TOPTION_SILENT_SKYRIDER ] == FALSE) 
 			if(gGameExternalOptions.ubSkyriderHotLZ == 0)
-				HeliCharacterDialogue( pSkyRider, ARRIVED_IN_HOSTILE_SECTOR );
+				HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), ARRIVED_IN_HOSTILE_SECTOR );
 			else
-				HeliCharacterDialogue( pSkyRider, HELI_HOT_DROP );
+				HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_HOT_DROP );
 			
 			PaySkyriderBill();
 			StopTimeCompression();
@@ -595,8 +602,9 @@ void SkyriderDestroyed( void )
 
 	// kill skyrider
 	fSkyRiderAvailable = FALSE;
-	SoldierSkyRider.stats.bLife = 0;
-	gMercProfiles[ SKYRIDER ].bLife = 0;
+	// nope! actual pilot will be killed anyway
+	//SoldierSkyRider.stats.bLife = 0;
+	//gMercProfiles[ SKYRIDER ].bLife = 0;
 
 	// heli no longer available
 	fHelicopterAvailable = FALSE;
@@ -663,38 +671,48 @@ BOOLEAN CanHelicopterFly( void )
 
 BOOLEAN IsHelicopterPilotInHelicopter( void )
 {
+	BOOL isHeIn = FALSE;
+	BOOL isHePilot = FALSE;
 	BOOL isHe = FALSE;
-	// go through list of occupants in vehicles and count them
 	INT32 iCounter = 0;
-	INT32 iCount = 0;
 
-	for( iCounter = 0; iCounter < iSeatingCapacities[ pVehicleList[ 0 ].ubVehicleType ]; iCounter++ )
+	//check if ubDriver can pilot helicopter
+	if( ProfileHasSkillTrait( GetDriver( iHelicopterVehicleId )->ubProfile, PILOT_NT ) 
+			|| GetDriver( iHelicopterVehicleId )->ubProfile == SKYRIDER )
+	{
+		isHePilot = TRUE;
+	}
+	//check if ubDriver is really inside
+	for( iCounter = 0; iCounter < iSeatingCapacities[ pVehicleList[ iHelicopterVehicleId ].ubVehicleType ]; iCounter++ )
 	{
 		if( pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ] != NULL )
 		{
-			if( pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ]->ubProfile == SKYRIDER )
+			if( pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ]->ubProfile == GetDriver( iHelicopterVehicleId )->ubProfile )
 			{
-				isHe = TRUE;
+				isHeIn = TRUE;
 			}
 		}
 	}
-
+	if( isHePilot == TRUE && isHeIn == TRUE )
+	{
+		isHe = TRUE;
+	}
 	return( isHe );
 }
 
 BOOLEAN IsHelicopterPilotAvailable( void )
 {
 	// Skyrider is dead/wounded
-	if( gMercProfiles[ SKYRIDER ].bLife < OKLIFE )
-	{
-		return( FALSE );
-	}
+	//if( gMercProfiles[ SKYRIDER ].bLife < OKLIFE )
+	//{
+	//	return( FALSE );
+	//}
 
 	// Skyrider is out of buisness
-	if( !( gMercProfiles[ SKYRIDER ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED ) )
-	{
-		return( FALSE );
-	}
+	//if( !( gMercProfiles[ SKYRIDER ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED ) )
+	//{
+	//	return( FALSE );
+	//}
 
 	// what is state of skyrider?
 	if( fSkyRiderAvailable == FALSE )
@@ -703,10 +721,10 @@ BOOLEAN IsHelicopterPilotAvailable( void )
 	}
 
 	// owe any money to skyrider?
-	if( gMercProfiles[ SKYRIDER ].iBalance < 0 )
-	{
-		return( FALSE );
-	}
+	//if( gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].iBalance < 0 )
+	//{
+	//	return( FALSE );
+	//}
 
 	// Drassen too disloyal to wanna help player?
 	if ( CheckFact( FACT_LOYALTY_LOW, SKYRIDER ) )
@@ -783,7 +801,8 @@ void HandleHeliHoverLong( void )
 		AddStrategicEvent( EVENT_HELICOPTER_HOVER_WAY_TOO_LONG, uiStartHoverTime + TIME_DELAY_FOR_HOVER_WAIT_TOO_LONG, 0 );
 
 		// inform player
-		HeliCharacterDialogue( pSkyRider, HOVERING_A_WHILE );
+		HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HOVERING_A_WHILE );
+
 
 		// stop time compression if it's on
 		StopTimeCompression( );
@@ -808,7 +827,8 @@ void HandleHeliHoverTooLong( void )
 
 
 	// hovered too long, inform player heli is returning to base
-	HeliCharacterDialogue( pSkyRider, RETURN_TO_BASE );
+	HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), RETURN_TO_BASE );
+
 
 	// If the sector is safe
 	if ( NumEnemiesInSector( pVehicleList[ iHelicopterVehicleId ].sSectorX, pVehicleList[ iHelicopterVehicleId ].sSectorY ) == 0 )
@@ -840,7 +860,20 @@ BOOLEAN DoesSkyriderNoticeEnemiesInSector( UINT8 ubNumEnemies )
 
 	// figure out what the chance is of seeing them
 	// make this relatively accurate most of the time, to encourage helicopter scouting by making it useful
-	ubChance = 60 + ubNumEnemies;
+	UINT8 ubProfile = GetDriver( iHelicopterVehicleId )->ubProfile;
+	if( ubProfile == SKYRIDER || ProfileHasSkillTrait( ubProfile, PILOT_NT) == 2 )
+	{
+		ubChance = min(100, ubNumEnemies + gSkillTraitValues.ubPILAceNoticeEnemiesChance);
+	}
+	else if( ProfileHasSkillTrait( ubProfile, PILOT_NT) == 1 )
+	{
+		ubChance = min(100, ubNumEnemies + gSkillTraitValues.ubPILFlyboyNoticeEnemiesChance);
+	}
+	else
+	{
+		// it shouldn't even happen
+		ubChance = 0;
+	}
 
 	if( PreRandom( 100 ) < ubChance )
 	{
@@ -944,10 +977,9 @@ BOOLEAN HeliCharacterDialogue( SOLDIERTYPE *pSoldier, UINT16 usQuoteNum )
 	//UINT8 ubProfile = pSoldier->ubProfile;
 		
 	// since Skyrider can be recruited, we want to make sure he will use his NPC quote set
-	EnforceUsingCorrectQuoteSetBySkyrider();
-	// no worries, PROFILE_MISC_FLAG_FORCENPCQUOTE will be turned off in Dialogue Control after selectin quote files
-
-	return( CharacterDialogue( SKYRIDER, usQuoteNum, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE ) );
+	EnforceUsingCorrectQuoteSetByPilot( pSoldier->ubProfile );
+	// since you have to hire him, let's use TacticalCharacterDialogue, no point in duplicating faces
+	return(TacticalCharacterDialogue( pSoldier, usQuoteNum ));
 }
 
 
@@ -1074,7 +1106,7 @@ UINT8 MoveAllInHelicopterToFootMovementGroup( void )
 		// get passenger
 		pSoldier = pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ];
 
-		if( pSoldier != NULL && pSoldier->ubProfile != SKYRIDER)// we don't to kick out the pilot
+		if( pSoldier != NULL && pSoldier != GetDriver( iHelicopterVehicleId ) )//(pSoldier->ubProfile != SKYRIDER))// we don't to kick out the pilot
 		{
 			// better really be in there!
 			Assert ( pSoldier->bAssignment == VEHICLE );
@@ -1112,10 +1144,9 @@ UINT8 MoveAllInHelicopterToFootMovementGroup( void )
 	return( ubGroupId );
 }
 
-void EnforceUsingCorrectQuoteSetBySkyrider()
+void EnforceUsingCorrectQuoteSetByPilot( UINT8 ubProfile )
 {
-	if( gMercProfiles[ SKYRIDER ].ubMiscFlags &= ~PROFILE_MISC_FLAG_FORCENPCQUOTE )
-		gMercProfiles[ SKYRIDER ].ubMiscFlags |= PROFILE_MISC_FLAG_FORCENPCQUOTE;
+	gMercProfiles[ ubProfile ].ubMiscFlags |= PROFILE_MISC_FLAG_FORCENPCQUOTE;
 	return;
 }
 
@@ -1123,13 +1154,22 @@ void EnforceUsingCorrectQuoteSetBySkyrider()
 void SkyRiderTalk( UINT16 usQuoteNum )
 {
 	// have skyrider talk to player
-	HeliCharacterDialogue( pSkyRider, usQuoteNum );
+	HeliCharacterDialogue( FindSoldierByProfileID( SKYRIDER, TRUE ), usQuoteNum );
 
 	fTeamPanelDirty = TRUE;
 
 	return;
 }
 
+void PilotTalk( UINT16 usQuoteNum )
+{
+	// have any pilot talk to player
+	HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), usQuoteNum );
+
+	fTeamPanelDirty = TRUE;
+
+	return;
+}
 
 void HandleSkyRiderMonologueEvent( UINT32 uiEventCode, UINT32 uiSpecialCode )
 {
@@ -1169,12 +1209,12 @@ void HandleSkyRiderMonologueAboutEstoniRefuel( UINT32 uiSpecialCode )
 	switch( uiSpecialCode )
 	{
 		case( 0 ):
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_ESTONI_AIRSPACE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_ESTONI_REFUEL, 1 );
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogue( SKYRIDER, SPIEL_ABOUT_ESTONI_AIRSPACE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_ESTONI_AIRSPACE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_ESTONI_REFUEL, 2 );
 			break;
 
@@ -1200,14 +1240,14 @@ void HandleSkyRiderMonologueAboutDrassenSAMSite( UINT32 uiSpecialCode )
 			//gubCurrentTalkingID = SKYRIDER;
 
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogue( SKYRIDER, MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogueWithSpecialEvent( SKYRIDER, MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI , FALSE , TRUE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_DRASSEN_SAM_SITE, 1 );
 
 			if( SAMSitesUnderPlayerControl( SAM_2_X, SAM_2_Y ) == FALSE )
 			{
-				EnforceUsingCorrectQuoteSetBySkyrider();
+				EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 				CharacterDialogue( SKYRIDER, SECOND_HALF_OF_MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
 			}
 			else
@@ -1215,12 +1255,12 @@ void HandleSkyRiderMonologueAboutDrassenSAMSite( UINT32 uiSpecialCode )
 				// Ian says don't use the SAM site quote unless player has tried flying already
 				if ( CheckFact( FACT_SKYRIDER_USED_IN_MAPSCREEN, SKYRIDER ) )
 				{
-					EnforceUsingCorrectQuoteSetBySkyrider();
+					EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 					CharacterDialogue( SKYRIDER, SAM_SITE_TAKEN, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
 					gfSkyriderSaidCongratsOnTakingSAM = TRUE;
 				}
 			}
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogueWithSpecialEvent( SKYRIDER, MENTION_DRASSEN_SAM_SITE, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI , FALSE , TRUE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_DRASSEN_SAM_SITE, 2 );
 			break;
 
@@ -1247,9 +1287,9 @@ void HandleSkyRiderMonologueAboutCambriaHospital( UINT32 uiSpecialCode )
 			//gubCurrentTalkingID = SKYRIDER;
 
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogue( SKYRIDER, MENTION_HOSPITAL_IN_CAMBRIA, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogueWithSpecialEvent( SKYRIDER, MENTION_HOSPITAL_IN_CAMBRIA, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI , FALSE , TRUE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_CAMBRIA_HOSPITAL, 1 );
 
 			// highlight Drassen hospital sector
@@ -1276,14 +1316,14 @@ void HandleSkyRiderMonologueAboutOtherSAMSites( UINT32 uiSpecialCode )
 			gubCurrentTalkingID = SKYRIDER;
 
 			// if special event data 2 is true, then do dialogue, else this is just a trigger for an event
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogue( SKYRIDER, SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_OTHER_SAM_SITES, 1 );
 
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogue( SKYRIDER, SECOND_HALF_OF_SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ], DIALOGUE_EXTERNAL_NPC_UI, FALSE, FALSE );
-			EnforceUsingCorrectQuoteSetBySkyrider();
+			EnforceUsingCorrectQuoteSetByPilot( SKYRIDER );
 			CharacterDialogueWithSpecialEvent( SKYRIDER, SPIEL_ABOUT_OTHER_SAM_SITES, uiExternalStaticNPCFaces[ SKYRIDER_EXTERNAL_FACE ] , DIALOGUE_EXTERNAL_NPC_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_SKYRIDERMAPSCREENEVENT ,SKYRIDER_MONOLOGUE_EVENT_OTHER_SAM_SITES, 2 );
 
 			break;
@@ -1921,10 +1961,16 @@ BOOLEAN HandleSAMSiteAttackOfHelicopterInSector( INT16 sSectorX, INT16 sSectorY 
 	ubChance = bSAMCondition;
 
 	// there's a fair chance of a miss even if the SAM site is in perfect working order
-	if (ubChance > MAX_SAM_SITE_ACCURACY)
-	{
-		ubChance = MAX_SAM_SITE_ACCURACY;
-	}
+	//if (ubChance > MAX_SAM_SITE_ACCURACY)
+	//{
+	//	ubChance = MAX_SAM_SITE_ACCURACY;
+	//}
+	if( ProfileHasSkillTrait( GetDriver( iHelicopterVehicleId )->ubProfile, PILOT_NT ) == 2 )
+		ubChance = max( 0, 100 - gSkillTraitValues.ubPILAceAvoidSAMChance );
+	else if( ProfileHasSkillTrait( GetDriver( iHelicopterVehicleId )->ubProfile, PILOT_NT ) == 1 )
+		ubChance = max( 0, 100 - gSkillTraitValues.ubPILFlyboyAvoidSAMChance );
+	else
+		ubChance = 100;
 
 	if( PreRandom( 100 ) < ubChance)
 	{
@@ -1937,34 +1983,34 @@ BOOLEAN HandleSAMSiteAttackOfHelicopterInSector( INT16 sSectorX, INT16 sSectorY 
 		// first hit?
 		if ( gubHelicopterHitsTaken == 1 )
 		{
-			HeliCharacterDialogue( pSkyRider, HELI_TOOK_MINOR_DAMAGE );
+			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_TOOK_MINOR_DAMAGE );
 		}
 		// second hit?
 		else if ( gubHelicopterHitsTaken == 2 )
 		{
 			// going back to base (no choice, dialogue says so)
-			HeliCharacterDialogue( pSkyRider, HELI_TOOK_MAJOR_DAMAGE );
+			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_TOOK_MAJOR_DAMAGE );
 			MakeHeliReturnToBase();
 		}
 		// third hit!
 		else
 		{
 			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
-			HeliCharacterDialogue( pSkyRider, HELI_GOING_DOWN );
+			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_GOING_DOWN );
 
 			// everyone die die die
 			// play sound
 			if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
-		{
-		// Destroy here if we cannot play streamed sound sample....
-				SkyriderDestroyed( );
-		}
-		else
-		{
-		// otherwise it's handled in the callback
-		// remove any arrival events for the helicopter's group
-		DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
-		}
+			{
+			// Destroy here if we cannot play streamed sound sample....
+					SkyriderDestroyed( );
+			}
+			else
+			{
+			// otherwise it's handled in the callback
+			// remove any arrival events for the helicopter's group
+			DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
+			}
 
 			// special return code indicating heli was destroyed
 			return( TRUE );
@@ -1975,20 +2021,139 @@ BOOLEAN HandleSAMSiteAttackOfHelicopterInSector( INT16 sSectorX, INT16 sSectorY 
 	return( FALSE );
 }
 
+void ExplainAccidentReason( INT16 sSectorX, INT16 sSectorY )
+{
+	// mock the player (according to terrain - give different reason of accident)
+	if ( SECTOR(sSectorX, sSectorY) ==  SEC_D2 || 
+		SECTOR(sSectorX, sSectorY) ==  SEC_D15 || 
+		SECTOR(sSectorX, sSectorY) ==  SEC_I8 || 
+		SECTOR(sSectorX, sSectorY) ==  SEC_N4 )
+	{
+		// SAM
+		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 16 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+	}
+	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == TOWN ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == FARMLAND ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == FARMLAND_ROAD )
+	{
+		// town/farm
+		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 10 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+	}
+	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SPARSE ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SPARSE_ROAD ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == DENSE ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == DENSE_ROAD || 
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == TROPICS ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == TROPICS_ROAD ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SWAMP ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SWAMP_ROAD )
+	{
+		// trees
+		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 11 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+	}
+	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SAND ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SAND_ROAD)
+	{
+		// desert
+		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 12 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+	}
+	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == WATER ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == COASTAL ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == NS_RIVER ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == EW_RIVER )
+	{
+		// water
+		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 13 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+	}
+	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == HILLS ||
+		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == HILLS_ROAD)
+	{
+		// hills
+		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 14 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+	}
+	else 
+	{
+		// other
+		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 15 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+	}
+}
+
+BOOLEAN HandlePilotDamagingHelicopterAccidently( INT16 sSectorX, INT16 sSectorY )
+{
+	UINT8 ubChance;
+
+	if( ProfileHasSkillTrait( GetDriver( iHelicopterVehicleId )->ubProfile, PILOT_NT ) == 2 )
+		ubChance = min( 100, gSkillTraitValues.ubPILAceAccidentChance );
+	else if( ProfileHasSkillTrait( GetDriver( iHelicopterVehicleId )->ubProfile, PILOT_NT ) == 1 )
+		ubChance = min( 100, gSkillTraitValues.ubPILFlyboyAccidentChance );
+	else
+		ubChance = 0;
+
+	if( PreRandom( 100 ) < ubChance)
+	{
+		// another hit!
+		gubHelicopterHitsTaken++;
+		// Took a hit!	Pause time so player can reconsider
+		StopTimeCompression();
+
+		// first hit?
+		if ( gubHelicopterHitsTaken == 1 )
+		{		
+			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_TOOK_MINOR_DAMAGE );
+			ExplainAccidentReason( sSectorX, sSectorY );
+		}
+		// second hit?
+		else if ( gubHelicopterHitsTaken == 2 )
+		{		
+			// going back to base (no choice, dialogue says so)
+			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_TOOK_MAJOR_DAMAGE );
+			MakeHeliReturnToBase();	
+			ExplainAccidentReason( sSectorX, sSectorY );
+		}
+		// third hit!
+		else
+		{		
+			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
+			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_GOING_DOWN );
+
+			// everyone die die die
+			// play sound
+			if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
+			{
+			// Destroy here if we cannot play streamed sound sample....
+					SkyriderDestroyed( );
+			}
+			else
+			{
+				// otherwise it's handled in the callback
+				// remove any arrival events for the helicopter's group
+				DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
+			}
+			ExplainAccidentReason( sSectorX, sSectorY );
+			// special return code indicating heli was destroyed
+			return( TRUE );
+		}
+	}
+	// still flying
+	return( FALSE );
+}
+
+
+
 BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY )
 {
-	if ( FindSoldierByProfileID( SKYRIDER, FALSE ) != NULL )
+	if ( GetDriver( iHelicopterVehicleId ) != NULL )
 	{
 		// it shouldn't even be called otherwise, but it's better to check
 		if( ( IsHelicopterPilotInHelicopter() == TRUE ) && ( fHelicopterIsAirBorne == TRUE ) )
 		{
-			if( ( FindSoldierByProfileID( SKYRIDER, FALSE )->bBreathMax < BREATHMAX_GOTTA_STOP_MOVING ) )
+			if( ( GetDriver( iHelicopterVehicleId )->bBreathMax < BREATHMAX_GOTTA_STOP_MOVING ) )
 			 {
 				 // he's too tired to fly! we're all gonna die!
 				 StopTimeCompression();
 
 				// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
-				HeliCharacterDialogue( pSkyRider, HELI_GOING_DOWN );
+				HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_GOING_DOWN );
 
 				// everyone die die die
 				// play sound
@@ -2006,7 +2171,7 @@ BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY )
 
 				// mock the player
 				if(pSkyriderText[ 7 ] != NULL)
-					ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 7 ]);
+					ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 7 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
 
 				// special return code indicating heli was destroyed
 				return( TRUE );
@@ -2020,9 +2185,9 @@ BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY )
 BOOLEAN HandleDrunkPilot( INT16 sSectorX, INT16 sSectorY )
 {
 
-	if ( FindSoldierByProfileID( SKYRIDER, FALSE ) != NULL )
+	if ( GetDriver( iHelicopterVehicleId ) != NULL )
 	{
-		INT8 ubDrunkLevel = GetDrunkLevel( FindSoldierByProfileID( SKYRIDER, FALSE ) );
+		INT8 ubDrunkLevel = GetDrunkLevel( GetDriver( iHelicopterVehicleId ) );
 		// it shouldn't even be called otherwise, but it's better to check
 		if( ( IsHelicopterPilotInHelicopter() == TRUE ) && ( fHelicopterIsAirBorne == TRUE ) )
 		{		
@@ -2034,7 +2199,7 @@ BOOLEAN HandleDrunkPilot( INT16 sSectorX, INT16 sSectorY )
 					 StopTimeCompression();
 
 					// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
-					HeliCharacterDialogue( pSkyRider, HELI_GOING_DOWN );
+					HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_GOING_DOWN );
 
 					// everyone die die die
 					// play sound
@@ -2052,7 +2217,7 @@ BOOLEAN HandleDrunkPilot( INT16 sSectorX, INT16 sSectorY )
 
 					// mock the player
 					if(pSkyriderText[ 8 ] != NULL)
-						ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 8 ]);
+						ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 8 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
 
 					// special return code indicating heli was destroyed
 					return( TRUE );
@@ -2108,11 +2273,17 @@ BOOLEAN EndOfHelicoptersPath( void )
 	return( FALSE );
 }
 
-
+// should be CantHelicopterTakeOff
 // check if helicopter can take off?
 BOOLEAN CanHelicopterTakeOff( void )
 {
 	INT16 sHelicopterSector = 0;
+
+	// if there's a pilot inside
+	if( IsHelicopterPilotInHelicopter() == FALSE )
+	{
+		return( TRUE );
+	}
 
 	// if it's already in the air
 	if( fHelicopterIsAirBorne == TRUE )
@@ -2404,9 +2575,12 @@ INT16 GetNumUnSafeSectorsInPath( void )
 }
 
 
-
+// actually it's more of a PayAnyPilotBill now
 void PaySkyriderBill( void)
 {
+	SOLDIERTYPE *pPilot = GetDriver( iHelicopterVehicleId );
+	UINT8 ubPilotProfile = GetDriver(iHelicopterVehicleId)->ubProfile;
+
 	// if we owe anything for the trip
 	if ( iTotalAccumulatedCostByPlayer > 0 )
 	{
@@ -2415,26 +2589,27 @@ void PaySkyriderBill( void)
 		{
 			// no problem, pay the man
 			// add the transaction
-			AddTransactionToPlayersBook( PAYMENT_TO_NPC, SKYRIDER, GetWorldTotalMin( ), -iTotalAccumulatedCostByPlayer );
-			ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 0 ], iTotalAccumulatedCostByPlayer );
+			AddTransactionToPlayersBook( PAYMENT_TO_NPC, ubPilotProfile, GetWorldTotalMin( ), -iTotalAccumulatedCostByPlayer );
+			ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 0 ], gMercProfiles[ ubPilotProfile ].zNickname, iTotalAccumulatedCostByPlayer );
 		}
 		else
 		{
 			// money owed
 			if( LaptopSaveInfo.iCurrentBalance > 0 )
 			{
-				ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 0 ], LaptopSaveInfo.iCurrentBalance );
-				gMercProfiles[ SKYRIDER ].iBalance = LaptopSaveInfo.iCurrentBalance - iTotalAccumulatedCostByPlayer;
+				ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 0 ], gMercProfiles[ ubPilotProfile ].zNickname, LaptopSaveInfo.iCurrentBalance );
+				gMercProfiles[ ubPilotProfile ].iBalance = LaptopSaveInfo.iCurrentBalance - iTotalAccumulatedCostByPlayer;
 				// add the transaction
-				AddTransactionToPlayersBook( PAYMENT_TO_NPC, SKYRIDER, GetWorldTotalMin( ), -LaptopSaveInfo.iCurrentBalance );
+				//AddTransactionToPlayersBook( PAYMENT_TO_NPC, SKYRIDER, GetWorldTotalMin( ), -LaptopSaveInfo.iCurrentBalance );
+				AddTransactionToPlayersBook( PAYMENT_TO_NPC, ubPilotProfile, GetWorldTotalMin( ), -LaptopSaveInfo.iCurrentBalance );
 			}
 			else
 			{
-				gMercProfiles[ SKYRIDER ].iBalance = - iTotalAccumulatedCostByPlayer;
+				gMercProfiles[ ubPilotProfile ].iBalance = - iTotalAccumulatedCostByPlayer;
 			}
 
-			HeliCharacterDialogue( pSkyRider, OWED_MONEY_TO_SKYRIDER );
-			ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 1 ], -gMercProfiles[ SKYRIDER ].iBalance );
+			HeliCharacterDialogue( pPilot, OWED_MONEY_TO_SKYRIDER );
+			ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 1 ], gMercProfiles[ ubPilotProfile ].zNickname, -gMercProfiles[ ubPilotProfile ].iBalance );
 
 			// kick everyone out! (we know we're in a safe sector if we're paying)
 			//CHRISL: This may no longer be the case but I'm not sure of a better way to handle things.
@@ -2452,30 +2627,37 @@ void PayOffSkyriderDebtIfAny( )
 {
 	INT32 iAmountOwed;
 	INT32 iPayAmount;
+	INT32 iCount;
 
-
-	iAmountOwed = - gMercProfiles[ SKYRIDER ].iBalance;
-
-	// if we owe him anything, and have any money
-	if ( ( iAmountOwed > 0 ) && ( LaptopSaveInfo.iCurrentBalance > 0 ) )
+	//now do it for all pilots
+	for( iCount = 0; iCount < NUM_PROFILES; iCount++ )
 	{
-		iPayAmount = min( iAmountOwed, LaptopSaveInfo.iCurrentBalance );
-
-		// pay the man what we can
-		gMercProfiles[ SKYRIDER ].iBalance += iPayAmount;
-		// add the transaction
-		AddTransactionToPlayersBook( PAYMENT_TO_NPC, SKYRIDER, GetWorldTotalMin( ), -iPayAmount );
-		// tell player
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 0 ], iPayAmount );
-
-		// now whaddawe owe?
-		iAmountOwed = - gMercProfiles[ SKYRIDER ].iBalance;
-
-		// if it wasn't enough
-		if ( iAmountOwed > 0 )
+		if( iCount == SKYRIDER || ProfileHasSkillTrait( iCount, PILOT_NT ) > 0 )
 		{
-			ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 1 ], iAmountOwed );
-			HeliCharacterDialogue( pSkyRider, OWED_MONEY_TO_SKYRIDER );
+			iAmountOwed = - gMercProfiles[ iCount ].iBalance;
+
+			// if we owe him anything, and have any money
+			if ( ( iAmountOwed > 0 ) && ( LaptopSaveInfo.iCurrentBalance > 0 ) )
+			{
+				iPayAmount = min( iAmountOwed, LaptopSaveInfo.iCurrentBalance );
+
+				// pay the man what we can
+				gMercProfiles[ iCount ].iBalance += iPayAmount;
+				// add the transaction
+				AddTransactionToPlayersBook( PAYMENT_TO_NPC, iCount, GetWorldTotalMin( ), -iPayAmount );
+				// tell player
+				ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 0 ], gMercProfiles[ iCount ].zNickname, iPayAmount );
+
+				// now whaddawe owe?
+				iAmountOwed = - gMercProfiles[ iCount ].iBalance;
+
+				// if it wasn't enough
+				if ( iAmountOwed > 0 )
+				{
+					ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 1 ], gMercProfiles[ iCount ].zNickname, iAmountOwed );
+					//HeliCharacterDialogue( pSkyRider, OWED_MONEY_TO_SKYRIDER );
+				}
+			}
 		}
 	}
 }

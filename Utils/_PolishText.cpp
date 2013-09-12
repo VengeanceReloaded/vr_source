@@ -3228,9 +3228,17 @@ STR16 pSkyriderText[] =
 	L"Tak, a helikopter będzie sie unosił w powietrzu sam bez niczyjej pomocy. Nie możesz zmienić przydziału pilota, gdy ten jest w powietrzu!",
 	L"Skyrider jest gotów do kolejnego lotu.", // Skyrider was grounded but has been freed
 	L"Skyrider nie ma pasażerów. Jeśli chcesz przetransportować najemników, zmień ich przydział na POJAZD/HELIKOPTER.",
-	L"Wyczerpany pilot stracił przytomność i kontrolę nad helikopterem. Któż by się spodziewał?",
-	L"Schlany pilot stracił kontrolę nad śmigłowcem! Któż by się spodziewał?",
+	L"Wyczerpany %s stracił przytomność i kontrolę nad helikopterem. Któż by się spodziewał?",
+	L"Schlany %s stracił kontrolę nad śmigłowcem! Któż by się spodziewał?",
 	L"Śpioch za sterami? Nie najlepszy pomysł.",
+	L"%s leciał za nisko i zahaczył o dach, uszkadzając helikopter.", // 10
+	L"%s zahaczył o czubek drzewa!",
+	L"%s przelatywał zbyt nisko nad wydmą i piach dostał się do silnika.",
+	L"%s przelatywał zbyt nisko nad wodą i zalał silnik.",
+	L"%s nie zachował należytej ostrożności i zahaczył o szczyt pagórka, uszkadzajac śmigłowiec.",
+	L"Silny podmuch wiatru porwał helikopter i %s niemal stracił kontrolę nad sterami.", // 15
+	L"%s przelatywał nad wyrzutnią SAM i zahaczył płozą o czubek rakiety!",
+	L"%s uszkodził maszynę swoim nieodpowiedzialnym pilotażem.",
 };
 
 
