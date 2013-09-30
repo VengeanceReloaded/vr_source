@@ -612,7 +612,7 @@ void ChangeSoldiersAssignment( SOLDIERTYPE *pSoldier, INT8 bAssignment )
 BOOLEAN IsCharacterPilotingAndCantBeReassigned( SOLDIERTYPE * pSoldier )
 {
 	// if it's the pilot, and helicopter is in the air
-	if( ( pSoldier == GetDriver( iHelicopterVehicleId ) ) && ( fHelicopterIsAirBorne == TRUE ) )
+	if( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier == GetDriver( iHelicopterVehicleId ) ) )
 	{
 		DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 4 ], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL );
 		return (TRUE );
@@ -1890,7 +1890,7 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 		else	// in a vehicle
 		{
 			// if this guy is a pilot
-			if ( pSoldier == GetDriver( iHelicopterVehicleId ) && fHelicopterIsAirBorne == TRUE )
+			if ( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier == GetDriver( iHelicopterVehicleId ) ) )
 			{
 				// can't sleep while walking or driving a vehicle
 				if( fExplainWhyNot )
@@ -1922,7 +1922,7 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 	else	// in a sector
 	{
 		// if it's the pilot, and helicopter is in the air
-		if( ( pSoldier == GetDriver( iHelicopterVehicleId ) ) && ( fHelicopterIsAirBorne == TRUE ) )
+		if( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier == GetDriver( iHelicopterVehicleId ) ) )
 		{
 			return (FALSE );
 		}

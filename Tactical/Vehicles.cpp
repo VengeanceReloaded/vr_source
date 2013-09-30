@@ -1561,7 +1561,7 @@ BOOLEAN PutSoldierInVehicle( SOLDIERTYPE *pSoldier, INT8 bVehicleId )
 BOOLEAN TakeSoldierOutOfVehicle( SOLDIERTYPE *pSoldier )
 {
 	// if it's the pilot, and helicopter is in the air
-	if( ( pSoldier == GetDriver( iHelicopterVehicleId ) ) && ( fHelicopterIsAirBorne == TRUE ) )
+	if( ( fHelicopterIsAirBorne == TRUE ) && ( pSoldier == GetDriver( iHelicopterVehicleId ) ) )
 	{
 		DoMapMessageBox( MSG_BOX_BASIC_STYLE, pSkyriderText[ 3 ], MAP_SCREEN, MSG_BOX_FLAG_OK, NULL );
 		return (FALSE );
