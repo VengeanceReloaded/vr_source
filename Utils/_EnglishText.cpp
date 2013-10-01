@@ -3503,6 +3503,14 @@ STR16 pFilesSenderList[] =
 	L"Intercept #4", // fourth intercept file
 	L"Intercept #5", // fifth intercept file
 	L"Intercept #6", // sixth intercept file
+	// anv: MIA
+	L"MIA #1",
+	L"MIA #2",
+	L"MIA #3",
+	L"MIA #4",
+	L"MIA #5",
+	L"MIA #6",
+	L"MIA #7",
 };
 
 // Text having to do with the History Log

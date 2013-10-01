@@ -92,6 +92,8 @@ INT32 giFilesPage = 0;
 #define SLAY_LENGTH 12
 #define ENRICO_LENGTH 0
 
+// anv: MIA file length
+#define MIA_LENGTH 12
 
 UINT8 ubFileRecordsLength[]={
 	ENRICO_LENGTH,
@@ -101,6 +103,14 @@ UINT8 ubFileRecordsLength[]={
 	SLAY_LENGTH,
 	SLAY_LENGTH,
 	SLAY_LENGTH,
+	MIA_LENGTH,
+	MIA_LENGTH,
+	MIA_LENGTH,
+	MIA_LENGTH,
+	MIA_LENGTH,
+	MIA_LENGTH,
+	MIA_LENGTH,
+	MIA_LENGTH,
 };
 
 UINT16 ubFileOffsets[]={
@@ -111,6 +121,13 @@ UINT16 ubFileOffsets[]={
 	3 * SLAY_LENGTH + ENRICO_LENGTH,
 	4 * SLAY_LENGTH + ENRICO_LENGTH,
 	5 * SLAY_LENGTH + ENRICO_LENGTH,
+	MIA_LENGTH + 5 * SLAY_LENGTH + ENRICO_LENGTH,
+	2 * MIA_LENGTH + 5 * SLAY_LENGTH + ENRICO_LENGTH,
+	3 * MIA_LENGTH + 5 * SLAY_LENGTH + ENRICO_LENGTH,
+	4 * MIA_LENGTH + 5 * SLAY_LENGTH + ENRICO_LENGTH,
+	5 * MIA_LENGTH + 5 * SLAY_LENGTH + ENRICO_LENGTH,
+	6 * MIA_LENGTH + 5 * SLAY_LENGTH + ENRICO_LENGTH,
+	7 * MIA_LENGTH + 5 * SLAY_LENGTH + ENRICO_LENGTH,
 };
 
 
@@ -123,6 +140,14 @@ UINT16 usProfileIdsForTerroristFiles[]={
 	110, // tiff
 	111, // t-rex
 	112, // elgin
+	// anv: MIA
+	84, // conrad
+	60, // frazzler
+	69, // fish
+	101, // bubba
+	140, // iggy
+	71, // joey
+	57, // miguel
 };
 // buttons for next and previous pages
 UINT32 giFilesPageButtons[ 2 ];
@@ -1830,6 +1855,24 @@ BOOLEAN AddFileAboutTerrorist( INT32 iProfileId )
 	for( iCounter = 1; iCounter < 7; iCounter++ )
 	{
 		if( usProfileIdsForTerroristFiles[ iCounter ] == iProfileId )
+		{
+			// checked, and this file is there
+				AddFilesToPlayersLog( ( UINT8 )iCounter, 0, 3, NULL, NULL );
+				return( TRUE );
+		}
+	}
+
+	return( FALSE );
+}
+
+// anv: add a file about this MIA
+BOOLEAN AddFileAboutMIA( INT32 iProfileId )
+{
+	INT32 iCounter = 0;
+
+	for( iCounter = 7; iCounter < 14; iCounter++ )
+	{
+		if( usProfileIdsForTerroristFiles[ iCounter + 1 ] == iProfileId )
 		{
 			// checked, and this file is there
 				AddFilesToPlayersLog( ( UINT8 )iCounter, 0, 3, NULL, NULL );

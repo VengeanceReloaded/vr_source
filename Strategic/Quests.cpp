@@ -36,6 +36,9 @@
 #include "BobbyRMailOrder.h"
 #include "connect.h"
 
+// anv: for MIA
+#include "files.h"
+#include "Soldier Profile.h"
 
 #define TESTQUESTS
 
@@ -1368,6 +1371,21 @@ void InternalStartQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN 
 	if ( gubQuest[ubQuest ] == QUESTNOTSTARTED )
 	{
 		gubQuest[ubQuest] = QUESTINPROGRESS;
+		// anv: for adding MIA files on quest start
+		switch (ubQuest)
+		{
+			case QUEST_FOOD_ROUTE:
+					UINT8		ubLoop;
+					ubLoop = 0;
+					while ( gubMIA[ ubLoop ] != 0 )
+					{
+						AddFileAboutMIA( gubMIA[ ubLoop ] );
+						ubLoop++;
+					}
+				break;
+			default :
+				break;
+		}
 
 	if ( fUpdateHistory )
 	{

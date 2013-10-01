@@ -3498,6 +3498,14 @@ STR16 pFilesSenderList[] =
 	L"4号通缉令",
 	L"5号通缉令",
 	L"6号通缉令",
+	// anv: MIA
+	L"MIA #1",
+	L"MIA #2",
+	L"MIA #3",
+	L"MIA #4",
+	L"MIA #5",
+	L"MIA #6",
+	L"MIA #7",
 };
 
 // Text having to do with the History Log

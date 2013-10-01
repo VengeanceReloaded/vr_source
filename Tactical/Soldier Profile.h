@@ -30,6 +30,10 @@ extern void RandomStats ();
 
 extern INT8 gbSkillTraitBonus[NUM_SKILLTRAITS_OT];
 extern UINT8 gubTerrorists[];
+
+// anv: for MIA
+extern UINT8 gubMIA[];
+
 extern INT16 gsTerroristSector[][5][2];
 extern BOOLEAN	gfPotentialTeamChangeDuringDeath;
 

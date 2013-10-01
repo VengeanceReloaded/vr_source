@@ -133,6 +133,9 @@ UINT8			gubBasicInventoryPositions[] = {
 
 #define NUM_TERRORISTS 6
 
+// anv: MIA
+#define NUM_MIA 7
+
 UINT8	gubTerrorists[NUM_TERRORISTS + 1] =
 {
 	DRUGGIST,
@@ -141,6 +144,19 @@ UINT8	gubTerrorists[NUM_TERRORISTS + 1] =
 	CHRIS,
 	TIFFANY,
 	T_REX,
+	0
+};
+
+// anv: MIA
+UINT8	gubMIA[NUM_MIA + 1] =
+{
+	84,
+	60,
+	69,
+	101,
+	140,
+	71,
+	57,
 	0
 };
 
