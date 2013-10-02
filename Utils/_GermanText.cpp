@@ -3574,8 +3574,11 @@ STR16 pHistoryStrings[] =
 	L"Bloodcats getötet",
 	L"%s wurde getötet",	
 	L"Carmen den Kopf eines Terroristen gegeben",
+	//76-80
 	L"Slay ist gegangen",						//Slay is a merc and has left the team
 	L"%s getötet",							//History log for when a merc kills an NPC or PC
+	L"Saved Enrico Chivaldori in Melino Palace.",
+	L"Gained access to Tracona territory.",
 };
 
 STR16 pHistoryLocations[] =

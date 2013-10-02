@@ -3624,8 +3624,11 @@ STR16 pHistoryStrings[] =
 	L"Wyrżnięto dzikie koty",
 	L"%s zabity(ta)",
 	L"Przekazano Carmenowi głowę terrorysty",
+	//76-80
 	L"Slay odszedł",
 	L"Zabito: %s",
+	L"Uratowano Enrico Chivaldori z Pałacu Melino.",
+	L"Uzyskano dostęp do terytorium Tracony.",
 };
 
 STR16 pHistoryLocations[] =

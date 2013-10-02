@@ -3623,8 +3623,11 @@ STR16 pHistoryStrings[] =
 	L"宰掉了血猫",
 	L"%s被干掉了",
 	L"把一个恐怖分子的头颅给了Carmen。",
+	//76-80
 	L"Slay走了",
 	L"干掉了%s",
+	L"Saved Enrico Chivaldori in Melino Palace.",
+	L"Gained access to Tracona territory.",
 };
 
 STR16 pHistoryLocations[] =

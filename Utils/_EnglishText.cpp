@@ -3628,8 +3628,11 @@ STR16 pHistoryStrings[] =
 	L"Slaughtered bloodcats",
 	L"%s was killed",
 	L"Gave Carmen a terrorist's head",
+	//76-80
 	L"Slay left",
 	L"Killed %s",
+	L"Saved Enrico Chivaldori in Melino Palace.",
+	L"Gained access to Tracona territory.",
 };
 
 STR16 pHistoryLocations[] =

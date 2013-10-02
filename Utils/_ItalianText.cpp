@@ -3614,8 +3614,11 @@ STR16 pHistoryStrings[] =
 	L"Massacrati dai Bloodcat",
 	L"%s è stato ucciso",
 	L"Data a Carmen la testa di un terrorista",
+	//76-80
 	L"Massacro sinistro",
 	L"Ucciso %s",
+	L"Saved Enrico Chivaldori in Melino Palace.",
+	L"Gained access to Tracona territory.",
 };
 
 STR16 pHistoryLocations[] =

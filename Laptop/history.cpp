@@ -1176,6 +1176,14 @@ void ProcessHistoryTransactionString(STR16 pString, HistoryUnitPtr pHistory)
 		case HISTORY_SLAY_MYSTERIOUSLY_LEFT:
 			swprintf( pString, pHistoryStrings[ pHistory->ubCode ] );
 			break;
+		// anv: VENGEANCE
+		case HISTORY_ENRICO:
+			swprintf( pString, pHistoryStrings[ HISTORY_ENRICO ], pTownNames[ pHistory->ubSecondCode ] );
+			break;
+		case HISTORY_TRACONA_ACCESS:
+			swprintf( pString, pHistoryStrings[ HISTORY_TRACONA_ACCESS ] );
+			break;
+
 	}
 }
 

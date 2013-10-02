@@ -4308,6 +4308,14 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					TriggerNPCRecord( WALTER, 15 );
 				}
 				break;
+			// anv: VENGEANCE
+			case NPC_ACTION_HISTORY_ENRICO:
+				AddHistoryToPlayersLog( HISTORY_ENRICO, 0, GetWorldTotalMin(), gWorldSectorX, gWorldSectorY );
+				break;
+			case NPC_ACTION_HISTORY_TRACONA_ACCESS:
+				AddHistoryToPlayersLog( HISTORY_TRACONA_ACCESS, 0, GetWorldTotalMin(), gWorldSectorX, gWorldSectorY );
+				break;
+
 			default:
 				ScreenMsg( FONT_MCOLOR_RED, MSG_TESTVERSION, L"No code support for NPC action %d", usActionCode );
 				break;

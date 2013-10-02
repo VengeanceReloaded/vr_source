@@ -3624,8 +3624,11 @@ STR16 pHistoryStrings[] =
 	L"Elimination des chats sauvages",
 	L"%s a été tué(e)",
 	L"Tête de terroriste donnée à Carmen",
+	//76-80
 	L"Reste Slay",
 	L"%s a été tué(e)",
+	L"Saved Enrico Chivaldori in Melino Palace.",
+	L"Gained access to Tracona territory.",
 };
 
 STR16 pHistoryLocations[] =

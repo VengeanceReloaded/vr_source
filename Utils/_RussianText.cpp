@@ -3620,8 +3620,11 @@ STR16 pHistoryStrings[] =
 	L"Все кошки-убийцы убиты",
 	L"%s был убит(а).",
 	L"Отдали Кармену голову террориста.",
+	//76-80
 	L"Убийца ушёл.",
 	L"%s убит(а) вашим отрядом.",
+	L"Saved Enrico Chivaldori in Melino Palace.",
+	L"Gained access to Tracona territory.",
 };
 
 STR16 pHistoryLocations[] =
