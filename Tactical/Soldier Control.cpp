@@ -223,7 +223,8 @@ BATTLESNDS_STRUCT	 gBattleSndsData[] =
 	"hit2",			0,				1,			1,		1,		1,
 	"laugh",		0,				1,			1,		1,		0,
 	"attn",			0,				1,			0,		1,		0,
-	"dying",		0,				1,			1,		1,		1,
+	"dying",		2,				1,			1,		1,		1,
+	"die",			0,				1,			1,		1,		1,
 	"humm",			0,				0,			0,		1,		1,
 	"noth",			0,				0,			0,		1,		1,
 	"gotit",		0,				0,			0,		1,		1,
@@ -231,7 +232,8 @@ BATTLESNDS_STRUCT	 gBattleSndsData[] =
 	"lmok2",		0,				1,			0,		1,		2,
 	"lmattn",		0,				1,			0,		1,		0,
 	"locked",		0,				0,			0,		1,		0,
-	"enem",			0,				1,			1,		1,		0,
+	"enem",			2,				1,			1,		1,		0,
+	"enemy",		0,				1,			1,		1,		0,
 };
 
 extern void ReduceAttachmentsOnGunForNonPlayerChars(SOLDIERTYPE *pSoldier, OBJECTTYPE * pObj);
@@ -9644,7 +9646,35 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 	// Randomize between sounds, if appropriate
 	if ( gBattleSndsData[ ubSoundID ].ubRandomVal != 0 )
 	{
-		ubSoundID = ubSoundID + (UINT8)Random( gBattleSndsData[ ubSoundID ].ubRandomVal );
+		// anv: but only randomize between files that do exist!
+		UINT8 ExistingSndsFilesIDs[255];
+		UINT8 ExistingSndsFiles = 0;
+		// ok, so far there's no more than 1 alternative defined for any sound, but it can change later, so
+		for( int i = 0; i < gBattleSndsData[ ubSoundID ].ubRandomVal; i++ )
+		{
+			sprintf( zFilename, "BATTLESNDS\\%03d_%s.wav", pSoldier->ubProfile, gBattleSndsData[ ubSoundID + i ].zName );
+			if( !FileExists( zFilename ) )
+			{
+				sprintf( zFilename, "BATTLESNDS\\%03d_%s.ogg", pSoldier->ubProfile, gBattleSndsData[ ubSoundID + i ].zName );
+				if( FileExists( zFilename ) )
+				{
+					ExistingSndsFilesIDs[ExistingSndsFiles] = ubSoundID + i;
+					ExistingSndsFiles++;
+				}
+			}
+			else
+			{
+				ExistingSndsFilesIDs[ExistingSndsFiles] = ubSoundID + i;
+				ExistingSndsFiles++;
+			}
+
+		}
+		if( ExistingSndsFiles > 0 )
+		{
+			ubSoundID = ExistingSndsFilesIDs[ (UINT8)Random( ExistingSndsFiles ) ];
+		}
+
+		//ubSoundID = ubSoundID + (UINT8)Random( gBattleSndsData[ ubSoundID ].ubRandomVal );
 
 	}
 
