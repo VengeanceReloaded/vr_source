@@ -997,6 +997,27 @@ typedef struct
 	
 	BOOLEAN fShowCamouflageFaces;
 
+	// VENGEANCE
+	BOOLEAN fMonochromaticRadarMap;
+	BOOLEAN fMonochromaticOverheadMap;
+	BOOLEAN fNoctovisionNightRadarMap;
+
+	UINT16 ubBaseChanceMercDiesOnAssignment;
+
+
+	// anv: mercs can become MIA instead of outright dead
+	BOOLEAN gfMercsGetMIAOnAssignment;
+	UINT16 ubBaseChanceMercGetsMIAOnAssignment;
+	UINT8 ubChanceMIAIsAlive; 
+	UINT8 ubChanceAliveMIADiesPerDay;
+	UINT8 ubChanceAliveMIAIsFoundPerDay;
+	UINT8 ubChanceAliveMIAIsMIAForeverPerDay;
+	UINT8 ubChanceDeadMIAIsFoundPerDay;
+	UINT8 ubChanceDeadMIAIsMIAForeverPerDay;
+
+	BOOLEAN fRandomizedDeathAndMIAEmails;
+	// /VENGEANCE
+
 	FLOAT gMercLevelUpSalaryIncreasePercentage;
 
 	UINT8 ubChanceTonyAvailable; // silversurfer/SANDRO

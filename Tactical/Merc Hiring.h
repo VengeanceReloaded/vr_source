@@ -46,6 +46,9 @@ INT8		HireMerc( MERC_HIRE_STRUCT *pHireMerc);
 void		MercArrivesCallback(	UINT8 ubSoldierID );
 BOOLEAN IsMercHireable( UINT8 ubMercID );
 BOOLEAN IsMercDead( UINT8 ubMercID );
+// VENGEANCE
+BOOLEAN IsMercMIA( UINT8 ubMercID );
+// /VENEGANCE
 UINT8		NumberOfMercsOnPlayerTeam();
 BOOLEAN IsTheSoldierAliveAndConcious( 	SOLDIERTYPE		*pSoldier );
 void		HandleMercArrivesQuotes( SOLDIERTYPE *pSoldier );

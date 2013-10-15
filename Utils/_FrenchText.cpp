@@ -3995,7 +3995,10 @@ STR16			MercInfo[] =
 	L"Décédé(e)",
 
 	L"Vous ne pouvez engager plus de 18 mercenaires.",
-	L"Indisponible",											
+	L"Indisponible",
+	// VENEGANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4484,6 +4487,10 @@ STR16			AimPopUpText[] =
 
 	L"Message pré-enregistré",
 	L"Message enregistré",
+
+	// VENGEANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4552,6 +4559,10 @@ STR16			AimFiText[] =
 	L"Absent(e)",
 	L"Décédé(e)",						//14
 	L"En mission",
+
+	// VENGEANCE
+	L"MIA",
+	// /VENGEANCE
 };
 
 

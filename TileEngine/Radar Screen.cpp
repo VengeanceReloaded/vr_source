@@ -170,8 +170,32 @@ BOOLEAN LoadRadarScreenBitmap(CHAR8 * aFilename )
 		if( GetVideoObject( &hVObject, gusRadarImage ) )
 		{
 				// ATE: Add a shade table!
-				hVObject->pShades[ 0 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 255, 255, 255, FALSE );
-				hVObject->pShades[ 1 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 100, 100, 100, FALSE );
+				// VENGEANCE
+				// anv: pShades[ 0 ] is a day radar map
+				if( gGameExternalOptions.fMonochromaticRadarMap == TRUE )
+				{
+					hVObject->pShades[ 0 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 352, 352, 352, TRUE );
+				}
+				else
+				{
+					hVObject->pShades[ 0 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 255, 255, 255, FALSE );
+				}
+				// anv: pShades[ 1 ] is a night radar map, noctovision takes precedence over b&w
+				if( gGameExternalOptions.fNoctovisionNightRadarMap == TRUE )
+				{
+					hVObject->pShades[ 1 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 160, 255, 160, TRUE );
+				}
+				else if( gGameExternalOptions.fMonochromaticRadarMap == TRUE )
+				{
+					hVObject->pShades[ 1 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 255, 255, 255, TRUE );
+				}
+				else
+				{
+					hVObject->pShades[ 1 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 100, 100, 100, FALSE );
+				}
+				// /VENGANCE
+				//hVObject->pShades[ 0 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 255, 255, 255, FALSE );
+				//hVObject->pShades[ 1 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 100, 100, 100, FALSE );
 		}
 	}
 

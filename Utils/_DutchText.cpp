@@ -3991,7 +3991,10 @@ STR16			MercInfo[] =
 	L"Overleden",
 
 	L"Lijkt erop dat je teveel huurlingen wil recruteren. Limiet is 18.",
-	L"Niet beschikbaar",											
+	L"Niet beschikbaar",
+	// VENEGANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4480,6 +4483,10 @@ STR16			AimPopUpText[] =
 
 	L"Opgenomen bericht",
 	L"Bericht opgenomen",
+
+	// VENGEANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4548,6 +4555,10 @@ STR16			AimFiText[] =
 	L"Afwezig",
 	L"Overleden",						//14
 	L"Op missie",
+
+	// VENGEANCE
+	L"MIA",
+	// /VENGEANCE
 };
 
 

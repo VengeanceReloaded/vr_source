@@ -327,6 +327,10 @@ void OpenMostRecentUnreadEmail( void );
 BOOLEAN DisplayNumberOfPagesToThisEmail( INT32 iViewerY );
 INT32 GetNumberOfPagesToEmail( );
 void PreProcessEmail( EmailPtr pMail );
+// VENGEANCE
+void ModifyDeathEmails( UINT16 usMessageId, INT32 *iResults, EmailPtr pMail, UINT8 ubNumberOfRecords );
+BOOLEAN ReplacePlaceNameWithProperData( CHAR16 *pFinishedString, EmailPtr pMail );
+// /VENGEANCE
 void ModifyInsuranceEmails( UINT16 usMessageId, INT32 *iResults, EmailPtr pMail, UINT8 ubNumberOfRecords );
 BOOLEAN ReplaceMercNameAndAmountWithProperData( CHAR16 *pFinishedString, EmailPtr pMail );
 BOOLEAN ReplaceBiffNameWithProperMercName( CHAR16 *pFinishedString, EmailPtr pMail, CHAR16 *pMercName );
@@ -3218,8 +3222,26 @@ BOOLEAN HandleMailSpecialMessages( UINT16 usMessageId, INT32 *iResults, EmailPtr
 			break;
 
 		case MERC_DIED_ON_OTHER_ASSIGNMENT:
-			ModifyInsuranceEmails( usMessageId, iResults, pMail, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH );
+			if(gGameExternalOptions.fRandomizedDeathAndMIAEmails)
+				ModifyDeathEmails( usMessageId, iResults, pMail, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH );
+			else
+				ModifyInsuranceEmails( usMessageId, iResults, pMail, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH );
 			break;
+
+		// VENGEANCE
+		case MERC_MIA_ON_OTHER_ASSIGNMENT:
+			if(gGameExternalOptions.fRandomizedDeathAndMIAEmails)
+				ModifyDeathEmails( usMessageId, iResults, pMail, MERC_MIA_ON_OTHER_ASSIGNMENT_LENGTH );
+			else
+				ModifyInsuranceEmails( usMessageId, iResults, pMail, MERC_MIA_ON_OTHER_ASSIGNMENT_LENGTH );
+			break;
+		case MERC_MIA_FOUND_ALIVE:
+			ModifyInsuranceEmails( usMessageId, iResults, pMail, MERC_MIA_FOUND_ALIVE_LENGTH );
+			break;
+		case MERC_MIA_FOUND_DEAD:
+			ModifyInsuranceEmails( usMessageId, iResults, pMail, MERC_MIA_FOUND_DEAD_LENGTH );
+			break;
+		// /VENGEANCE
 
 		case AIM_MEDICAL_DEPOSIT_REFUND:
 		case AIM_MEDICAL_DEPOSIT_NO_REFUND:
@@ -5360,7 +5382,63 @@ void PreProcessEmail( EmailPtr pMail )
 
 }
 
+// VENGEANCE
+void ModifyDeathEmails( UINT16 usMessageId, INT32 *iResults, EmailPtr pMail, UINT8 ubNumberOfRecords )
+{
+	INT32 iHeight=0;
+	RecordPtr pTempRecord;
+	CHAR16 pString[MAIL_STRING_SIZE];
+	CHAR16 pStringPlace[MAIL_STRING_SIZE];
+	CHAR16 pStringCause[MAIL_STRING_SIZE];
+	UINT8	ubCnt;
+	UINT16 usOriginalMessageId = usMessageId;
 
+	// Replace the name in the subject line
+//	swprintf( pMail->pSubject, gMercProfiles[ pMail->ubFirstData ].zNickname );
+
+	// set record ptr to head of list
+	pTempRecord=pMessageRecordList;
+
+	// increment height for size of one line
+	iHeight+=GetFontHeight( MESSAGE_FONT );
+
+	// list doesn't exist, reload
+	if( !pTempRecord )
+	{
+		for( ubCnt=0; ubCnt<ubNumberOfRecords; ubCnt++)
+		{
+			// read one record from email file
+			// anv: replace second record with random place and cause
+			if( ubCnt == 2 )
+			{
+				UINT32 uiPlaces = pMail->iFirstData % 100;
+				UINT32 uiCauses = ( pMail->iFirstData - uiPlaces ) / 100 ;
+				UINT32 uiMMOOA = MERC_MIA_ON_OTHER_ASSIGNMENT;
+				UINT32 uiMDOOA = MERC_DIED_ON_OTHER_ASSIGNMENT;
+				if(usOriginalMessageId == MERC_MIA_ON_OTHER_ASSIGNMENT )
+					LoadEncryptedDataFromFile( "BINARYDATA\\Email_MIA_Cause.edt", pStringCause, MAIL_STRING_SIZE * uiCauses, MAIL_STRING_SIZE );
+				else if(usOriginalMessageId == MERC_DIED_ON_OTHER_ASSIGNMENT )
+					LoadEncryptedDataFromFile( "BINARYDATA\\Email_Death_Cause.edt", pStringCause, MAIL_STRING_SIZE * uiCauses, MAIL_STRING_SIZE );
+				wcscpy( pString, pStringCause );
+				ReplacePlaceNameWithProperData( pString, pMail );
+			}
+			else
+				LoadEncryptedDataFromFile( "BINARYDATA\\Email.edt", pString, MAIL_STRING_SIZE * usMessageId, MAIL_STRING_SIZE );
+
+			//Replace the $MERCNAME$ and $AMOUNT$ with the mercs name and the amountm if the string contains the keywords.
+			ReplaceMercNameAndAmountWithProperData( pString, pMail );
+
+			// add to list
+			AddEmailRecordToList( pString );
+
+			usMessageId++;
+		}
+	}
+
+//
+	giPrevMessageId = giMessageId;
+}
+// /VENGEANCE
 void ModifyInsuranceEmails( UINT16 usMessageId, INT32 *iResults, EmailPtr pMail, UINT8 ubNumberOfRecords )
 {
 	INT32 iHeight=0;
@@ -5473,7 +5551,81 @@ BOOLEAN ReplaceBiffNameWithProperMercName( CHAR16 *pFinishedString, EmailPtr pMa
 	return( TRUE );
 }
 
+// VENGEANCE
+// anv: this will replace $PLACE$ in email with generated place name
+BOOLEAN ReplacePlaceNameWithProperData( CHAR16 *pFinishedString, EmailPtr pMail )
+{
+//	CHAR16		pTempString[MAIL_STRING_SIZE/2 + 1];
+	CHAR16		pTempString[MAIL_STRING_SIZE];
+	INT32			iLength=0;
+	INT32			iCurLocInSourceString=0;
+	INT32			iLengthOfSourceString = wcslen( pFinishedString );		//Get the length of the source string
+	CHAR16		*pPlaceNameString=NULL;
+	CHAR16		*pSubString=NULL;
+	BOOLEAN		fReplacingPlaceName = TRUE;
 
+	CHAR16	sMercName[ 32 ] = L"$PLACE$";	//Doesnt need to be translated, inside Email.txt and will be replaced by the mercs name
+	CHAR16	sSearchString[32];
+	CHAR16 pStringPlace[MAIL_STRING_SIZE];
+
+	//Copy the original string over to the temp string
+	wcscpy( pTempString, pFinishedString );
+
+	//Null out the string
+	pFinishedString[0] = L'\0';
+
+
+	//Keep looping through to replace all references to the keyword
+	while( iCurLocInSourceString < iLengthOfSourceString )
+	{
+		iLength = 0;
+		pSubString = NULL;
+
+		//Find out if the $PLACE$ is in the string
+		pPlaceNameString = wcsstr( &pTempString[ iCurLocInSourceString ], sMercName );
+
+		if( pPlaceNameString != NULL )
+		{
+			fReplacingPlaceName = TRUE;
+			pSubString = pPlaceNameString;
+			wcscpy( sSearchString, sMercName);
+		}
+		else
+		{
+			pSubString = NULL;
+		}
+
+		// if there is a substring
+		if( pSubString != NULL )
+		{
+			iLength = pSubString - &pTempString[ iCurLocInSourceString ];
+
+			//Copy the part of the source string upto the keyword
+			wcsncat( pFinishedString, &pTempString[ iCurLocInSourceString ], iLength );
+
+			//increment the source string counter by how far in the keyword is and by the length of the keyword
+			iCurLocInSourceString+= iLength + wcslen( sSearchString );
+
+			if( fReplacingPlaceName )
+			{
+				UINT32 uiPlaces = pMail->iFirstData % 100;
+				LoadEncryptedDataFromFile( "BINARYDATA\\Email_Death_MIA_Place.edt", pStringPlace, MAIL_STRING_SIZE * uiPlaces, MAIL_STRING_SIZE );
+				//add the olace name to the string
+				wcscat( pFinishedString, pStringPlace );
+			}
+		}
+		else
+		{
+			//add the rest of the string
+			wcscat( pFinishedString, &pTempString[ iCurLocInSourceString ] );
+
+			iCurLocInSourceString += wcslen( &pTempString[ iCurLocInSourceString ] );
+		}
+	}
+
+	return( TRUE );
+}
+// /VENGEANCE
 BOOLEAN ReplaceMercNameAndAmountWithProperData( CHAR16 *pFinishedString, EmailPtr pMail )
 {
 //	CHAR16		pTempString[MAIL_STRING_SIZE/2 + 1];

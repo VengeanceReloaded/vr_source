@@ -3962,6 +3962,21 @@ void MakeCivHostile( SOLDIERTYPE *pSoldier, INT8 bNewSide )
 				}
 			}
 		}
+		// VENGEANCE - Tracona and CIA operatives go bonkers when they notice Conman
+		if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP || pSoldier->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
+		{
+			// if Conman is in the sector and escorted, set fact that the escape has
+			// been noticed
+			if ( gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS )
+			{
+				SOLDIERTYPE * pConman = FindSoldierByProfileID( CONMAN, FALSE );
+				if ( pConman && pConman->bActive && pConman->bInSector )
+				{
+					SetFactTrue( FACT_CONMAN_NOTICED );
+				}
+			}
+		}
+		// /VENGANCE
 		if (pSoldier->ubProfile == BILLY)
 		{
 			// change orders

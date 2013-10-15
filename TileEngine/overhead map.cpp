@@ -44,6 +44,10 @@
 
 #include "connect.h"
 
+// VENGEANCE
+#include "GameSettings.h"	
+// /VENEGANCE
+
 #ifdef JA2EDITOR
 #include "Soldier Init List.h"
 extern SOLDIERINITNODE *gpSelected;
@@ -1948,6 +1952,12 @@ void CopyOverheadDBShadetablesFromTileset( )
 		for (uiLoop2 = 0; uiLoop2 < HVOBJECT_SHADE_TABLES; uiLoop2++)
 		{
 			gSmTileSurf[ uiLoop ].vo->pShades[ uiLoop2 ] = pTileSurf->vo->pShades[ uiLoop2 ];
+			// VENGEANCE
+			if( gGameExternalOptions.fMonochromaticOverheadMap	== TRUE )
+			{
+				gSmTileSurf[ uiLoop ].vo->pShades[ uiLoop2 ] = Create16BPPPaletteShaded( gSmTileSurf[ uiLoop ].vo->pPaletteEntry, 352, 352, 352, TRUE );
+			}
+			// /VENGEANCE
 		}
 	}
 

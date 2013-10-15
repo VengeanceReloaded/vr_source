@@ -770,6 +770,24 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.giExpertMercDeaths				= iniReader.ReadInteger("Recruitment Settings","MAX_MERC_DEATHS_EXPERT",3, 0, 10);
 	gGameExternalOptions.giInsaneMercDeaths				= iniReader.ReadInteger("Recruitment Settings","MAX_MERC_DEATHS_INSANE",4, 0, 10);
 
+	// VENGEANCE
+
+	// anv: it totally should be externalized
+	gGameExternalOptions.ubBaseChanceMercDiesOnAssignment = iniReader.ReadInteger("Recruitment Settings","BASE_CHANCE_MERC_DIES_ON_ASSIGNMENT",10, 0, 1000);
+
+	// anv: mercs can become MIA instead of outright dead
+	gGameExternalOptions.gfMercsGetMIAOnAssignment			= iniReader.ReadBoolean("Recruitment Settings","MERCS_CAN_GET_MIA_ON_ASSIGNMENT",TRUE);
+	gGameExternalOptions.ubBaseChanceMercGetsMIAOnAssignment	= iniReader.ReadInteger("Recruitment Settings","BASE_CHANCE_MERC_GETS_MIA_ON_ASSIGNMENT",10, 0, 1000);
+	gGameExternalOptions.ubChanceMIAIsAlive					= iniReader.ReadInteger("Recruitment Settings","CHANCE_MIA_IS_ALIVE",70, 0, 100); 
+	gGameExternalOptions.ubChanceAliveMIADiesPerDay			= iniReader.ReadInteger("Recruitment Settings","CHANCE_ALIVE_MIA_DIES_PER_DAY",10, 0, 100);
+	gGameExternalOptions.ubChanceAliveMIAIsFoundPerDay		= iniReader.ReadInteger("Recruitment Settings","CHANCE_ALIVE_MIA_IS_FOUND_PER_DAY",10, 0, 100);
+	gGameExternalOptions.ubChanceAliveMIAIsMIAForeverPerDay = iniReader.ReadInteger("Recruitment Settings","CHANCE_ALIVE_MIA_IS_MIA_FOREVER_PER_DAY",5, 0, 100);
+	gGameExternalOptions.ubChanceDeadMIAIsFoundPerDay		= iniReader.ReadInteger("Recruitment Settings","CHANCE_DEAD_MIA_IS_FOUND_PER_DAY",10, 0, 100);
+	gGameExternalOptions.ubChanceDeadMIAIsMIAForeverPerDay	= iniReader.ReadInteger("Recruitment Settings","CHANCE_DEAD_MIA_IS_MIA_FOREVER_PER_DAY",10, 0, 100);
+
+	gGameExternalOptions.fRandomizedDeathAndMIAEmails	= iniReader.ReadInteger("Recruitment Settings","RANDOMIZED_DEATH_AND_MIA_EMAILS", TRUE);
+	// /VENGEANCE
+
 	// CHRISL: New setting to allow Slay to remain as a hired PC
 	gGameExternalOptions.fEnableSlayForever					= iniReader.ReadBoolean("Recruitment Settings", "SLAY_STAYS_FOREVER", FALSE);
 
@@ -912,6 +930,13 @@ void LoadGameExternalOptions()
 
 	// Camo portraits by Jazz
 	gGameExternalOptions.fShowCamouflageFaces				= iniReader.ReadBoolean("Tactical Interface Settings","SHOW_CAMOUFLAGE_FACES", FALSE);
+
+	// VENGEANCE
+	// anv: black & white maps
+	gGameExternalOptions.fMonochromaticRadarMap				= iniReader.ReadBoolean("Tactical Interface Settings","MONOCHROMATIC_RADAR_MAP", TRUE);
+	gGameExternalOptions.fNoctovisionNightRadarMap				= iniReader.ReadBoolean("Tactical Interface Settings","NOCTOVISION_NIGHT_RADAR_MAP", TRUE);
+	gGameExternalOptions.fMonochromaticOverheadMap				= iniReader.ReadBoolean("Tactical Interface Settings","MONOCHROMATIC_OVERHEAD_MAP", TRUE);
+	// /VENGEANCE
 
 	//################# Tactical Difficulty Settings #################
 

@@ -71,6 +71,12 @@
 //When the merc was fired, they were a POW, make sure they dont show up in AIM, or MERC as available
 #define	MERC_FIRED_AS_A_POW										-8
 
+// VENGEANCE
+//Has a chance to turn out really dead or alive.
+#define	MERC_IS_MIA_AND_ALIVE										-9
+#define	MERC_IS_MIA_AND_DEAD										-10
+#define	MERC_IS_MIA_FOREVER											-11
+// /VENGEANCE
 
 // the values for categories of stats
 #define SUPER_STAT_VALUE 80

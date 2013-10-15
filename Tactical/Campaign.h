@@ -75,6 +75,10 @@ UINT32 RoundOffSalary(UINT32 uiSalary);
 UINT16 SubpointsPerPoint(UINT8 ubStat, INT8 bExpLevel);
 
 void HandleUnhiredMercImprovement( MERCPROFILESTRUCT *pProfile );
+// VENGEANCE
+void HandleMIAMercStatus( INT32 iProfileID );
+void HandleUnhiredMercMIA( INT32 iProfileID );
+// /VENGEANCE
 void HandleUnhiredMercDeaths( INT32 iProfileID );
 
 UINT8 CurrentPlayerProgressPercentage(void);

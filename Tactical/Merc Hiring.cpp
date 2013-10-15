@@ -456,6 +456,11 @@ BOOLEAN IsMercHireable( UINT8 ubMercID )
 			( gMercProfiles[ ubMercID ].bMercStatus > 0 ) ||
 			( gMercProfiles[ ubMercID ].bMercStatus == MERC_HIRED_BUT_NOT_ARRIVED_YET ) ||
 			( gMercProfiles[ ubMercID ].bMercStatus == MERC_IS_DEAD ) ||
+			// VENGEANCE
+			( gMercProfiles[ ubMercID ].bMercStatus == MERC_IS_MIA_FOREVER ) ||
+			( gMercProfiles[ ubMercID ].bMercStatus == MERC_IS_MIA_AND_ALIVE ) ||
+			( gMercProfiles[ ubMercID ].bMercStatus == MERC_IS_MIA_AND_DEAD ) ||
+			// /VENGEANCE
 			( gMercProfiles[ ubMercID ].uiDayBecomesAvailable > 0 ) ||
 			( gMercProfiles[ ubMercID ].bMercStatus == MERC_WORKING_ELSEWHERE ) ||
 			( gMercProfiles[ ubMercID ].bMercStatus == MERC_FIRED_AS_A_POW ) ||
@@ -472,6 +477,16 @@ BOOLEAN IsMercDead( UINT8 ubMercID )
 	else
 		return(FALSE);
 }
+
+// VENGEANCE
+BOOLEAN IsMercMIA( UINT8 ubMercID )
+{
+	if( gMercProfiles[ ubMercID ].bMercStatus == MERC_IS_MIA_FOREVER || gMercProfiles[ ubMercID ].bMercStatus == MERC_IS_MIA_AND_ALIVE || gMercProfiles[ ubMercID ].bMercStatus == MERC_IS_MIA_AND_DEAD )
+		return(TRUE);
+	else
+		return(FALSE);
+}
+// /VENGEANCE
 
 BOOLEAN IsTheSoldierAliveAndConcious( SOLDIERTYPE		*pSoldier )
 {

@@ -3999,6 +3999,9 @@ STR16			MercInfo[] =
 
 	L"Wygląda na to, że chcesz wynająć zbyt wielu najemników. Limit wynosi 18.",
 	L"Niedostępny",
+	// VENEGANCE
+	L"Zaginiony w akcji",
+	// /VENGEANCE
 };
 
 
@@ -4487,6 +4490,10 @@ STR16			AimPopUpText[] =
 
 	L"Nagrana wiadomoŚć",
 	L"WiadomoŚć zapisana",
+
+	// VENGEANCE
+	L"Zaginiony w akcji",
+	// /VENGEANCE
 };
 
 
@@ -4555,6 +4562,10 @@ STR16			AimFiText[] =
 	L"Wyjechał(a)",
 	L"Nie żyje",						//14
 	L"Wynajęto",
+
+	// VENGEANCE
+	L"Zaginiony",
+	// /VENGEANCE
 };
 
 

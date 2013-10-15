@@ -3991,6 +3991,9 @@ STR16			MercInfo[] =
 
 	L"Похоже, вы пытаетесь нанять более 18 наемников, а это недопустимо.",
 	L"Недоступно",
+	// VENEGANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4479,6 +4482,10 @@ STR16			AimPopUpText[] =
 
 	L"Автоответчик",
 	L"Сообщение оставлено на автоответчике",
+
+	// VENGEANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4547,6 +4554,10 @@ STR16			AimFiText[] =
 	L"Выбыл",
 	L"Скончался",
 	L"На задании",
+
+	// VENGEANCE
+	L"MIA",
+	// /VENGEANCE
 };
 
 

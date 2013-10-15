@@ -499,6 +499,22 @@ BOOLEAN RefreshNPCScriptRecord( UINT8 ubNPC, UINT8 ubRecord )
 	return( TRUE );
 }
 
+// VENGEANCE
+BOOLEAN RefreshAllNPCScripts()
+{
+	UINT8 ubLoop, ubRecord;
+	NPCQuoteInfo *		pNewArray;
+	for ( ubLoop = 0; ubLoop < NUM_PROFILES; ubLoop++ )	
+	{
+			for ( ubRecord = 0; ubRecord < 50; ubRecord++ )	
+			{
+				RefreshNPCScriptRecord( ubLoop, ubRecord );
+			}
+	}
+	return( TRUE );
+}
+// /VENGEANCE
+
 //
 // CIV QUOTE LOW LEVEL ROUTINES
 //

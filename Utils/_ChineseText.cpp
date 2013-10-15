@@ -3995,6 +3995,9 @@ STR16			MercInfo[] =
 
 	L"看起来你雇佣了太多的佣兵。最多只能雇18人。",	//"Looks like you're trying to hire too many mercs. Your limit is 18.",
 	L"不可雇佣",	//"Unavailable",
+	// VENEGANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4483,6 +4486,10 @@ STR16			AimPopUpText[] =
 
 	L"预录消息",	//"Pre-recorded message",
 	L"留言已记录",	//"Message recorded",
+
+	// VENGEANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4551,6 +4558,10 @@ STR16			AimFiText[] =
 	L"离开",	//"Away",
 	L"阵亡",	//"Deceased",						//14
 	L"任务中",	//"On Assign",
+
+	// VENGEANCE
+	L"MIA",
+	// /VENGEANCE
 };
 
 

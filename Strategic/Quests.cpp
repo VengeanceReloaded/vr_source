@@ -1371,6 +1371,7 @@ void InternalStartQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN 
 	if ( gubQuest[ubQuest ] == QUESTNOTSTARTED )
 	{
 		gubQuest[ubQuest] = QUESTINPROGRESS;
+		// VENGEANCE
 		// anv: for adding MIA files on quest start
 		switch (ubQuest)
 		{
@@ -1386,7 +1387,7 @@ void InternalStartQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN 
 			default :
 				break;
 		}
-
+		// /VENGEANCE
 	if ( fUpdateHistory )
 	{
 			if (!is_networked)
@@ -1458,6 +1459,13 @@ void InternalEndQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN fU
 				break;
 			case QUEST_KILL_DEIDRANNA :
 				GiveQuestRewardPoint( sSectorX, sSectorY, 25, NO_PROFILE );
+				break;
+			case QUEST_ESCORT_CONMAN :
+				GiveQuestRewardPoint( sSectorX, sSectorY, 5, NO_PROFILE );
+				break;
+			case QUEST_RETURN_BUYER_MONEY :
+			case QUEST_SELL_FAKE_SAMPLE :
+				GiveQuestRewardPoint( sSectorX, sSectorY, 5, NO_PROFILE );
 				break;
 			default :
 				GiveQuestRewardPoint( sSectorX, sSectorY, 4, NO_PROFILE );

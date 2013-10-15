@@ -1232,6 +1232,12 @@ BOOLEAN RenderAIMMembers()
 	{
 		DisableButton( giContactButton );
 	}
+	// VENGEANCE
+	if( IsMercMIA( gbCurrentSoldier ) )
+	{
+		DisableButton( giContactButton );
+	}
+	// /VENGEANCE
 	else
 	{
 		EnableButton( giContactButton );
@@ -1293,7 +1299,10 @@ void SelectFaceRegionCallBack(MOUSE_REGION * pRegion, INT32 iReason )
 	else if (iReason & MSYS_CALLBACK_REASON_LBUTTON_UP)
 	{
 		//if the merc is not dead, video conference with the merc
-		if( !IsMercDead( gbCurrentSoldier ) )
+		// VENGEANCE
+		if( !IsMercDead( gbCurrentSoldier ) && !IsMercMIA( gbCurrentSoldier ) )
+		// /VENGEANCE
+		//if( !IsMercDead( gbCurrentSoldier ) )
 		{
 			gubVideoConferencingMode = AIM_VIDEO_POPUP_MODE;
 			gfFirstTimeInContactScreen = TRUE;
@@ -2071,7 +2080,14 @@ BOOLEAN DisplayMercsFace()
 			//if the merc is dead, display it
 			DrawTextToScreen(AimPopUpText[AIM_MEMBER_DEAD], FACE_X_NSGI+1, FACE_Y_NSGI+107, FACE_WIDTH_NSGI, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
 		}
-
+		// VENGEANCE
+		// anv: if the merc is MIA
+		else if( IsMercMIA( gbCurrentSoldier ) )
+		{
+			ShadowVideoSurfaceRect( FRAME_BUFFER, FACE_X_NSGI, FACE_Y_NSGI, FACE_X_NSGI + FACE_WIDTH_NSGI, FACE_Y_NSGI + FACE_HEIGHT_NSGI);
+			DrawTextToScreen( AimPopUpText[ AIM_MEMBER_MIA ], FACE_X_NSGI+1, FACE_Y_NSGI+107, FACE_WIDTH_NSGI, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
+		}
+		// /VENGEANCE
 		//else if the merc is currently a POW or, the merc was fired as a pow
 		else if( gMercProfiles[ gbCurrentSoldier ].bMercStatus == MERC_FIRED_AS_A_POW || ( pSoldier &&	pSoldier->bAssignment == ASSIGNMENT_POW ) )
 		{
@@ -2118,7 +2134,13 @@ BOOLEAN DisplayMercsFace()
 			//if the merc is dead, display it
 			DrawTextToScreen(AimPopUpText[AIM_MEMBER_DEAD], FACE_X+1, FACE_Y+107, FACE_WIDTH, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
 		}
-
+		// VENGEANCE
+		else if( IsMercMIA( gbCurrentSoldier ) )
+		{
+			ShadowVideoSurfaceRect( FRAME_BUFFER, FACE_X, FACE_Y, FACE_X + FACE_WIDTH, FACE_Y + FACE_HEIGHT);
+			DrawTextToScreen( AimPopUpText[AIM_MEMBER_MIA], FACE_X+1, FACE_Y+107, FACE_WIDTH, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
+		}
+		// /VENGEANCE
 		//else if the merc is currently a POW or, the merc was fired as a pow
 		else if( gMercProfiles[ gbCurrentSoldier ].bMercStatus == MERC_FIRED_AS_A_POW || ( pSoldier &&	pSoldier->bAssignment == ASSIGNMENT_POW ) )
 		{
@@ -5058,7 +5080,10 @@ void HandleAimMemberKeyBoardInput()
 				break;
 				case ENTER:
 					// contact only if merc alive
-					if( !IsMercDead( gbCurrentSoldier ) )
+					// VENGEANCE
+					if( !IsMercDead( gbCurrentSoldier ) && !IsMercMIA( gbCurrentSoldier ) )
+					// /VENGEANCE
+					//if( !IsMercDead( gbCurrentSoldier ) )
 					{
 						if( !gubVideoConferencingMode)
 						{

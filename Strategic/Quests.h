@@ -67,7 +67,13 @@ enum Quests
 	QUEST_FREE_CHILDREN,	// 20
 	QUEST_LEATHER_SHOP_DREAM,
 
-	QUEST_KILL_DEIDRANNA = 25
+	QUEST_KILL_DEIDRANNA = 25,
+	// VENGEANCE
+	// anv: multistage quest
+	QUEST_ESCORT_CONMAN = 26,
+	QUEST_RETURN_BUYER_MONEY = 27,
+	QUEST_SELL_FAKE_SAMPLE = 28
+	// /VENGEANCE
 } ;
 /*
 // The first quest is mandatory. Player must find Miguel and deliver letter to him. The tough
@@ -477,12 +483,13 @@ enum Facts
 	FACT_OK_USE_ICECREAM,																	//	307
 	FACT_KINGPIN_DEAD,//																			308
 
-	//for Iggy/Ivan meeting?
+	// VENGEANCE - for Iggy/Ivan meeting?
 	FACT_IVAN_SPEAKING_OR_NEARBY =																			310,
 	FACT_BUDDY_SPEAKING =																			311,
 	FACT_BUDDY_SPEAKING_OR_NEARBY =																			312,
 	FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY =																			313,
 	FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY =																			314,
+	// /VENEGANCE
 
 	FACT_KIDS_ARE_FREE =																			318,
 	FACT_PLAYER_IN_SAME_ROOM,//																319
@@ -525,6 +532,24 @@ enum Facts
 	FACT_PLAYER_KILLED_BOXERS =																368,
 	// HEADROCK HAM 4: Seen Mobile Militia screen after having at least one mobile unit?
 	FACT_MOBILE_RESTRICTIONS_VIEWED =														369,
+
+	// VENGEANCE
+	FACT_PLAYER_SPOKE_TO_CONMAN =			370,
+	FACT_CONMAN_ESCORTED,//					371
+	FACT_CONMAN_ESCORTED_TO_BUYER,//		372
+	FACT_CONMAN_SAMPLE_SOLD_TO_BUYER,//		373
+	FACT_CONMAN_NOTICED,//					374
+	FACT_CONMAN_DEAD,//						375
+	FACT_BUYER_WANTS_MONEY_BACK,//			376
+	FACT_CONMAN_GAVE_MONEY_BACK,//			377
+	FACT_BUYER_GIVEN_MONEY_BACK,//			378
+	FACT_BUYER_GAVE_FAKE_SAMPLE,//			379
+	FACT_CIA_WANTS_FAKE_SAMPLE,//			380
+	FACT_TRACONA_WANTS_FAKE_SAMPLE,//		381
+	FACT_FAKE_SAMPLE_SOLD_TO_CIA,//			382
+	FACT_FAKE_SAMPLE_SOLD_TO_TRACONA,//		383
+	FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE,//	384
+	// /VENGEANCE
 } ;
 //**	END FACTS *************************
 

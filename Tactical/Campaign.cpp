@@ -1234,6 +1234,206 @@ void HandleUnhiredMercImprovement( MERCPROFILESTRUCT *pProfile )
 	ProfileUpdateStats( pProfile );
 }
 
+// VENGEANCE
+// handles possible death of saving of mercs MIA
+void HandleMIAMercStatus( INT32 iProfileID )
+{
+	INT16 roll = (INT16) PreRandom(100);
+	MERCPROFILESTRUCT *pProfile = &(gMercProfiles[ iProfileID ]);
+
+	INT16 sChanceAliveFound = gGameExternalOptions.ubChanceAliveMIAIsFoundPerDay;
+	INT16 sChanceAliveDies = gGameExternalOptions.ubChanceAliveMIADiesPerDay;
+	INT16 sChanceAliveLostForever = gGameExternalOptions.ubChanceAliveMIAIsMIAForeverPerDay;
+	INT16 sChanceDeadFound = gGameExternalOptions.ubChanceDeadMIAIsFoundPerDay;
+	INT16 sChanceDeadLostForever = gGameExternalOptions.ubChanceDeadMIAIsMIAForeverPerDay;
+
+	if ( gGameOptions.fNewTraitSystem )
+	{	
+		if ( ProfileHasSkillTrait( iProfileID, STEALTHY_NT ) > 0 )
+			sChanceAliveDies -= ProfileHasSkillTrait( iProfileID, STEALTHY_NT );
+		if ( ProfileHasSkillTrait( iProfileID, COVERT_NT ) > 0 )
+			sChanceAliveDies -= ProfileHasSkillTrait( iProfileID, COVERT_NT );
+		if ( ProfileHasSkillTrait( iProfileID, SCOUTING_NT ) > 0 )
+			sChanceAliveFound += ProfileHasSkillTrait( iProfileID, SCOUTING_NT );
+		if ( ProfileHasSkillTrait( iProfileID, RANGER_NT ) > 0 )
+			sChanceAliveFound += ProfileHasSkillTrait( iProfileID, RANGER_NT );
+	}
+	else
+	{		
+		if ( ProfileHasSkillTrait( iProfileID, STEALTHY_OT ) > 0 )
+			sChanceAliveDies -= ProfileHasSkillTrait( iProfileID, STEALTHY_OT );
+	}
+	switch (pProfile->bDisability)
+	{
+		case FORGETFUL:
+			sChanceAliveFound -= 1;
+			sChanceAliveLostForever += 1;
+			break;
+		case NERVOUS:
+			sChanceAliveDies += 1;
+			break;
+		case PSYCHO:
+			sChanceAliveLostForever += 1;
+			break;
+	}
+	if( pProfile->bMercStatus == MERC_IS_MIA_AND_ALIVE )
+	{
+		if ( roll < sChanceAliveFound )
+		{
+			// this merc was found and is moving home
+			pProfile->bMercStatus = MERC_RETURNING_HOME;
+			pProfile->uiDayBecomesAvailable = 1 + Random(2);
+
+			// it was previously increased when MIA was set, so now has to be decreased
+			gStrategicStatus.ubUnhiredMercDeaths--;
+
+			//send an email as long as the merc is from aim
+			if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID )
+			{
+				AddEmailWithSpecialData(MERC_MIA_FOUND_ALIVE, MERC_MIA_FOUND_ALIVE_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID );			
+			}
+		}
+		else if ( roll < sChanceAliveFound + sChanceAliveDies && gGameExternalOptions.gfMercsDieOnAssignment == TRUE )
+		{
+			// this merc dies
+			pProfile->bMercStatus = MERC_IS_MIA_AND_DEAD;
+		}
+		else if ( roll < sChanceAliveFound + sChanceAliveDies + sChanceAliveLostForever )
+		{
+			// this merc becomes MIA forever
+			pProfile->bMercStatus = MERC_IS_MIA_FOREVER;
+		}
+	}
+	else if( pProfile->bMercStatus == MERC_IS_MIA_AND_DEAD )
+	{
+		if ( roll < sChanceDeadFound)
+		{
+			// this merc was found dead
+			pProfile->bMercStatus = MERC_IS_DEAD;
+
+			//send an email as long as the merc is from aim
+			if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID )  //new profiles by Jazz
+			{
+				AddEmailWithSpecialData(MERC_MIA_FOUND_DEAD, MERC_MIA_FOUND_DEAD_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID );			
+			}
+		}
+		else if( roll < sChanceDeadFound + sChanceDeadLostForever )
+		{
+			// this merc becomes MIA forever
+			pProfile->bMercStatus = MERC_IS_MIA_FOREVER;
+		}
+	}
+}
+
+// handles possible MIA of mercs not currently working for the player
+void HandleUnhiredMercMIA( INT32 iProfileID )
+{
+	UINT8 ubMaxDeaths;
+	INT16 sChance, sChanceAlive;
+	MERCPROFILESTRUCT *pProfile = &(gMercProfiles[ iProfileID ]);
+
+	// if the player has never yet had the chance to hire this merc
+	if ( !( pProfile->ubMiscFlags3 & PROFILE_MISC_FLAG3_PLAYER_HAD_CHANCE_TO_HIRE) )
+	{
+		// then we're not allowed to kill him (to avoid really pissing off player by killing his very favorite merc)
+		return;
+	}
+	 
+	// how many in total can be killed like this depends on player's difficulty setting
+	// (we count MIA together with killed, we wouldn't want entire roster get MIA)
+	switch( gGameOptions.ubDifficultyLevel )
+	{
+		case DIF_LEVEL_EASY:  //Kaiden Externalized ubMaxDeaths Values
+			ubMaxDeaths = gGameExternalOptions.giEasyMercDeaths;
+			break;
+		case DIF_LEVEL_MEDIUM:
+			ubMaxDeaths = gGameExternalOptions.giExperiencedMercDeaths;
+			break;
+		case DIF_LEVEL_HARD:
+			ubMaxDeaths = gGameExternalOptions.giExpertMercDeaths;
+			break;
+		case DIF_LEVEL_INSANE:
+			ubMaxDeaths = gGameExternalOptions.giInsaneMercDeaths;
+			break;
+		default:
+			Assert(FALSE);
+			ubMaxDeaths = 0;
+			break;
+	}
+	// if we've already hit the limit in this game, skip these checks
+	if (gStrategicStatus.ubUnhiredMercDeaths >= ubMaxDeaths)
+	{
+		return;
+	}
+	// calculate this merc's (small) chance to get MIA today (out of 1000)
+	sChance = gGameExternalOptions.ubBaseChanceMercGetsMIAOnAssignment - pProfile->bExpLevel;
+	sChanceAlive =  gGameExternalOptions.ubChanceMIAIsAlive + pProfile->bExpLevel;
+	// SANDRO - certain traits makes us less likely to get killed
+	// anv: for MIA traits work a bit differently
+	if ( gGameOptions.fNewTraitSystem )
+	{	
+		// guys working out of front line are less likely to get MIA
+		if ( ProfileHasSkillTrait( iProfileID, TECHNICIAN_NT ) > 0 )
+			sChance -= ProfileHasSkillTrait( iProfileID, TECHNICIAN_NT );
+		if ( ProfileHasSkillTrait( iProfileID, DOCTOR_NT ) > 0 )
+			sChance -= ProfileHasSkillTrait( iProfileID, DOCTOR_NT );
+		// and so are leaders
+		if ( ProfileHasSkillTrait( iProfileID, SQUADLEADER_NT ) > 0 )
+			sChance -= 2*ProfileHasSkillTrait( iProfileID, SQUADLEADER_NT );
+		// stealthy guys and scouts are more likely to get MIA due to working independently of the rest of the squad
+		// but they're also more likely to survive
+		if ( ProfileHasSkillTrait( iProfileID, STEALTHY_NT ) > 0 )
+		{
+			sChance += ProfileHasSkillTrait( iProfileID, STEALTHY_NT );
+			sChanceAlive += ProfileHasSkillTrait( iProfileID, STEALTHY_NT );
+		}
+		if ( ProfileHasSkillTrait( iProfileID, SCOUTING_NT ) > 0 )
+		{
+			sChance += ProfileHasSkillTrait( iProfileID, SCOUTING_NT );
+			sChanceAlive += ProfileHasSkillTrait( iProfileID, SCOUTING_NT );
+		}
+	}
+	else
+	{		
+		if ( ProfileHasSkillTrait( iProfileID, STEALTHY_OT ) > 0 )
+			sChance += ProfileHasSkillTrait( iProfileID, STEALTHY_OT );
+	}
+	switch (pProfile->bDisability)
+	{
+		case FORGETFUL:
+			sChance += 4;
+			break;
+		case NERVOUS:
+			sChance += 2;
+			sChanceAlive -= 1;
+			break;
+		case PSYCHO:
+			sChanceAlive -= 1;
+			break;
+	}
+	if ( (INT16) PreRandom(1000) < sChance )
+	{
+		// this merc gets MIA!!!
+		if ( (INT16) PreRandom(100) < sChanceAlive || gGameExternalOptions.gfMercsDieOnAssignment == FALSE )
+			pProfile->bMercStatus = MERC_IS_MIA_AND_ALIVE;
+		else
+			pProfile->bMercStatus = MERC_IS_MIA_AND_DEAD;
+		pProfile->uiDayBecomesAvailable = 0;
+
+		// keep count of how many there have been (we count it together with killed, we wouldn't want entire roster get MIA)
+		gStrategicStatus.ubUnhiredMercDeaths++;
+
+		//send an email as long as the merc is from aim
+		if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID )  //new profiles by Jazz
+		{
+			UINT32 uiCauses = MERC_MIA_CAUSES;
+			UINT32 uiPlaces = MERC_DEATH_MIA_PLACES;
+			INT32 iCauseAndPlace = (INT32)PreRandom( uiCauses ) * 100 + (INT32)PreRandom( uiPlaces );
+			AddEmailWithSpecialData(MERC_MIA_ON_OTHER_ASSIGNMENT, MERC_MIA_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), iCauseAndPlace, iProfileID );
+		}
+	}
+}
+// /VENGEANCE
 
 // handles possible death of mercs not currently working for the player
 void HandleUnhiredMercDeaths( INT32 iProfileID )
@@ -1277,9 +1477,11 @@ void HandleUnhiredMercDeaths( INT32 iProfileID )
 		return;
 	}
 
-
 	// calculate this merc's (small) chance to get killed today (out of 1000)
-	sChance = 10 - pProfile->bExpLevel;
+	// VENGEANCE
+	sChance = gGameExternalOptions.ubBaseChanceMercDiesOnAssignment - pProfile->bExpLevel;
+	// /VENGEANCE
+	//sChance = 10 - pProfile->bExpLevel;
 
 	// SANDRO - certain traits makes us less likely to get killed
 	if ( gGameOptions.fNewTraitSystem )
@@ -1317,7 +1519,7 @@ void HandleUnhiredMercDeaths( INT32 iProfileID )
 			sChance -= ProfileHasSkillTrait( iProfileID, STEALTHY_OT );
 	}
 
-	if ((INT16) PreRandom(1000) < sChance)
+	if ((INT16) PreRandom(1000) < sChance )
 	{
 		// this merc gets Killed In Action!!!
 		pProfile->bMercStatus = MERC_IS_DEAD;
@@ -1331,7 +1533,14 @@ void HandleUnhiredMercDeaths( INT32 iProfileID )
 		if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID )  //new profiles by Jazz
 		{
 			//send an email to the player telling the player that a merc died
-			AddEmailWithSpecialData(MERC_DIED_ON_OTHER_ASSIGNMENT, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID );
+			// VENGEANCE
+			// anv: added generating random cause and place
+			UINT32 uiCauses = MERC_DEATH_CAUSES;
+			UINT32 uiPlaces = MERC_DEATH_MIA_PLACES;
+			INT32 iCauseAndPlace = (INT32)PreRandom( uiCauses ) * 100 + (INT32)PreRandom( uiPlaces );
+			AddEmailWithSpecialData(MERC_DIED_ON_OTHER_ASSIGNMENT, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), iCauseAndPlace, iProfileID );
+			// /VENEGANCE
+			//AddEmailWithSpecialData(MERC_DIED_ON_OTHER_ASSIGNMENT, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID );
 		}
 	}
 }

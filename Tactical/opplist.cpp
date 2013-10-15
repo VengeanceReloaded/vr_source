@@ -2343,6 +2343,21 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							}
 						}
 					}
+					// VENGEANCE - Tracona and CIA operatives go bonkers when they notice Conman
+					if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP || pSoldier->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
+					{
+						// if Conman is in the sector and escorted, set fact that the escape has
+						// been noticed
+						if ( gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS )
+						{
+							SOLDIERTYPE * pConman = FindSoldierByProfileID( CONMAN, FALSE );
+							if ( pConman && pConman->bActive && pConman->bInSector )
+							{
+								SetFactTrue( FACT_CONMAN_NOTICED );
+							}
+						}
+					}
+					// /VENGANCE
 					else if ( pSoldier->ubCivilianGroup == HICKS_CIV_GROUP && CheckFact( FACT_HICKS_MARRIED_PLAYER_MERC, 0 ) == FALSE )
 					{
 						UINT32	uiTime;
@@ -2363,6 +2378,20 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 								// begin quote
 								BeginCivQuote( pSoldier, CIV_QUOTE_HICKS_SEE_US_AT_NIGHT, 0, sX, sY );
 							}
+						}
+					}
+					// VENGEANCE - Tracona and CIA operatives go bonkers when they notice Conman
+					else if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP )
+					{
+						// check to see if we are looking at Conman
+						if (pOpponent->ubProfile == CONMAN)
+						{
+							MakeCivHostile( pSoldier, 2 );
+							if ( ! (gTacticalStatus.uiFlags & INCOMBAT) )
+							{
+								EnterCombatMode( pSoldier->bTeam );
+							}
+							SetFactTrue( FACT_CONMAN_NOTICED );
 						}
 					}
 				}

@@ -118,6 +118,11 @@
 
 #include	"Quest Debug System.h"
 #include "connect.h"
+
+// VENGEANCE
+#include "NPC.h"
+// /VENGEANCE
+
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
@@ -3533,6 +3538,12 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
+					// VENGEANCE - reload NPC scripts on ctrl+cheaten
+					if ( gubCheatLevel == 6 )
+					{
+						RefreshAllNPCScripts();
+					}
+					// /VENGEANCE
 #if 0
 					if ( INFORMATION_CHEAT_LEVEL( ) )
 					{

@@ -431,6 +431,14 @@ void MercDailyUpdate()
 				// check if any of his stats improve through working or training
 				HandleUnhiredMercImprovement(pProfile);
 
+				// VENGEANCE
+				// anv: handle merc already MIA. Do it before checking deaths, or else merc might get MIA and be found the same time
+				if ( IsMercMIA( cnt ) == TRUE )
+				{
+					HandleMIAMercStatus( cnt );
+				}
+				// /VENGEANCE
+
 				// if he's working on another job
 				if (pProfile->bMercStatus == MERC_WORKING_ELSEWHERE)
 				{
@@ -439,6 +447,11 @@ void MercDailyUpdate()
 					//Kaiden: Externalized if Mercs get killed
 					if (gGameExternalOptions.gfMercsDieOnAssignment)
 						HandleUnhiredMercDeaths( cnt );
+					// VENGEANCE
+					// check he wasn't killed in HandleUnhiredMercDeaths
+					if(pProfile->bMercStatus == MERC_WORKING_ELSEWHERE && gGameExternalOptions.gfMercsGetMIAOnAssignment)
+						HandleUnhiredMercMIA( cnt );
+					// /VENGANCE
 				}
 			}
 		}
@@ -503,7 +516,11 @@ void MercDailyUpdate()
 		else	// was already available today
 		{
 			// if it's an AIM or M.E.R.C. merc
-			if( IsProfileIdAnAimOrMERCMerc( (UINT8)cnt ) )
+			// VENGEANCE
+			// when merc is killed on assignement, his uiDayBecomesAvailable is set to 0, so he can be rehired just after dying!
+			if( IsProfileIdAnAimOrMERCMerc( (UINT8)cnt ) && !IsMercDead(cnt) && !IsMercMIA(cnt) )
+			// /VENGEANCE
+			//if( IsProfileIdAnAimOrMERCMerc( (UINT8)cnt ) )
 			{
 				// check to see if he goes on another assignment
 				//if (cnt < MAX_NUMBER_MERCS)

@@ -3999,7 +3999,10 @@ STR16			MercInfo[] =
 	L"Deceased",
 
 	L"Looks like you're trying to hire too many mercs. Your limit is 18.",
-	L"Unavailable",											
+	L"Unavailable",	
+	// VENEGANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4488,6 +4491,10 @@ STR16			AimPopUpText[] =
 
 	L"Pre-recorded message",
 	L"Message recorded",
+
+	// VENGEANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 
@@ -4556,6 +4563,9 @@ STR16			AimFiText[] =
 	L"Away",
 	L"Deceased",						//14
 	L"On Assign",
+	// VENGEANCE
+	L"MIA",
+	// /VENGEANCE
 };
 
 

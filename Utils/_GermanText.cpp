@@ -4360,6 +4360,10 @@ STR16 AimPopUpText[] =
 
 	L"Mailbox",
 	L"Nachricht aufgenommen",
+
+	// VENGEANCE
+	L"Missed In Action",
+	// /VENGEANCE
 };
 
 //AIM Link.c
