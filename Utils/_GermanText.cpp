@@ -5430,6 +5430,24 @@ STR16	gzCreditNameFunny[]=
 	L"(did items and loading screens too!)",	// Joey \"Joeker\" Whelan",
 };
 
+// VENGEANCE
+STR16	gzVengeanceCreditNames[]=
+{
+	L"",
+
+};
+
+STR16	gzVengeanceCreditNameTitle[]=
+{
+	L"",
+};
+
+STR16	gzVengeanceCreditNameFunny[]=
+{
+	L"",
+};
+// /VENGEANCE
+
 STR16 sRepairsDoneString[] =
 {
 	L"%s hat seine eigenen Gegenstände repariert",

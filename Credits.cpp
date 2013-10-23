@@ -382,8 +382,36 @@ void			InitCreditEyeBlinking();
 //	HVSURFACE hVSurface;
 
 
+// VENGEANCE
+UINT32		guiCreditBackGroundImageVR;
+UINT32		guiVengeanceCreditFaces;
 
+// credit modes
+enum
+{
+	CRDT_SIRTECH_MODE,
+	CRDT_SIRTECH_IN_MODE,
+	CRDT_VENGEANCE_MODE,
+	CRDT_VENGEANCE_OUT_MODE,
+	CRDT_TRANSITION_SPEED = 30,
+};
+UINT32		guiTransitionProgress = 0;
+UINT32		guiCreditMode;
+// for Vengeance specific photo, dimensions and placements
+CDRT_FACE		gVengeanceCreditFaces[] =
+{
+//	x		y			w	h	eyeX,eyeY	mouthX, mouthY,	blink,0, 0
+	298, 137,			37, 49, 310, 157,		304, 170,	2500, 0, 0,
+};
+// for people in mod photo
+enum
+{
+	NUM_PEOPLE_IN_VENGEANCE_CREDITS,
+};
 
+void InitVengeanceCreditEyeBlinking();
+void HandleVengeanceCreditEyeBlinking();
+// /VENGEANCE
 
 
 
@@ -413,6 +441,12 @@ UINT32	CreditScreenHandle( void )
 			gfCreditsScreenExit = FALSE;
 		}
 		gubCreditScreenRenderFlags = CRDT_RENDER_ALL;
+
+		// VENGEANCE
+		// set correct mode at start (Vengeance credits go first, so CRDT_VENGEANCE_MODE)
+		guiCreditMode = CRDT_VENGEANCE_MODE;
+		guiTransitionProgress = 0;
+		// /VENGEANCE
 	}
 
 	GetCreditScreenUserInput();
@@ -451,12 +485,53 @@ UINT32	CreditScreenShutdown( void )
 }
 
 
+// VENGEANCE
+BOOLEAN RemoveFaceVengeanceRegions()
+{
+	UINT32 uiCnt;
+	for( uiCnt=0; uiCnt < NUM_PEOPLE_IN_VENGEANCE_CREDITS; uiCnt++)
+	{		
+		MSYS_DeleteRegionFromList( &gCrdtMouseRegions[uiCnt] );
+	}
+	return TRUE;
+}
 
+BOOLEAN DefineFaceVengeanceRegions()
+{
+	UINT32 uiCnt;
+	for( uiCnt=0; uiCnt < NUM_PEOPLE_IN_VENGEANCE_CREDITS; uiCnt++)
+	{
+		// Make a mouse region
+		MSYS_DefineRegion( &gCrdtMouseRegions[uiCnt], gVengeanceCreditFaces[uiCnt].sX, gVengeanceCreditFaces[uiCnt].sY, 
+			(INT16)(gVengeanceCreditFaces[uiCnt].sX + gVengeanceCreditFaces[uiCnt].sWidth), 
+			(INT16)(gVengeanceCreditFaces[uiCnt].sY + gVengeanceCreditFaces[uiCnt].sHeight), MSYS_PRIORITY_NORMAL,
+							CURSOR_WWW, SelectCreditFaceMovementRegionCallBack, SelectCreditFaceRegionCallBack );
 
+		// Add region
+		MSYS_AddRegion( &gCrdtMouseRegions[uiCnt] );
 
+		MSYS_SetRegionUserData( &gCrdtMouseRegions[uiCnt], 0, uiCnt );
+	}
+	return TRUE;
+}
 
+BOOLEAN DefineFaceSirtechRegions()
+{
+	UINT32 uiCnt;
+	for( uiCnt=0; uiCnt < NUM_PEOPLE_IN_CREDITS; uiCnt++)
+	{
+		// Make a mouse region
+		MSYS_DefineRegion( &gCrdtMouseRegions[uiCnt], gCreditFaces[uiCnt].sX, gCreditFaces[uiCnt].sY, (INT16)(gCreditFaces[uiCnt].sX + gCreditFaces[uiCnt].sWidth), (INT16)(gCreditFaces[uiCnt].sY + gCreditFaces[uiCnt].sHeight), MSYS_PRIORITY_NORMAL,
+							CURSOR_WWW, SelectCreditFaceMovementRegionCallBack, SelectCreditFaceRegionCallBack );
 
+		// Add region
+		MSYS_AddRegion( &gCrdtMouseRegions[uiCnt] );
 
+		MSYS_SetRegionUserData( &gCrdtMouseRegions[uiCnt], 0, uiCnt );
+	}
+	return TRUE;
+}
+// /VENGEANCE
 
 
 //eee
@@ -502,7 +577,28 @@ BOOLEAN		EnterCreditsScreen()
 	FilenameForBPP("INTERFACE\\Credit Faces.sti", VObjectDesc.ImageFile);
 	CHECKF(AddVideoObject(&VObjectDesc, &guiCreditFaces ));
 
+	// VENGEANCE - secondary screen for VR specific credits
+	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
+	if (iResolution == 0)
+	{
+		FilenameForBPP("INTERFACE\\CreditsVengeance.sti", VObjectDesc.ImageFile);
+	}
+	else if (iResolution == 1)
+	{
+		FilenameForBPP("INTERFACE\\CreditsVengeance_800x600.sti", VObjectDesc.ImageFile);
+	}
+	else if (iResolution == 2)
+	{
+		FilenameForBPP("INTERFACE\\CreditsVengeance_1024x768.sti", VObjectDesc.ImageFile);
+	}
+	CHECKF(AddVideoObject(&VObjectDesc, &guiCreditBackGroundImageVR ));
 
+	// this will allow blinking eyes for modders' photo
+	// commented out until we get the .sti file
+	//VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
+	//FilenameForBPP("INTERFACE\\Vengeance Credit Faces.sti", VObjectDesc.ImageFile);
+	//CHECKF(AddVideoObject(&VObjectDesc, &guiVengeanceCreditFaces ));
+	// /VENGEANCE
 
 	//Initialize the root credit node
 	InitCreditNode( );
@@ -533,18 +629,24 @@ BOOLEAN		EnterCreditsScreen()
 	guiGapBetweenCreditNodes = CRDT_SPACE_BN_NODES;
 	guiGapTillReadNextCredit = CRDT_SPACE_BN_NODES;
 
+	// VENGEANCE
+	// moved defining regions to own function DefineFaceSirtechRegions()
+	//for( uiCnt=0; uiCnt < NUM_PEOPLE_IN_CREDITS; uiCnt++)
+	//{
+	//	// Make a mouse region
+	//	MSYS_DefineRegion( &gCrdtMouseRegions[uiCnt], gCreditFaces[uiCnt].sX, gCreditFaces[uiCnt].sY, (INT16)(gCreditFaces[uiCnt].sX + gCreditFaces[uiCnt].sWidth), (INT16)(gCreditFaces[uiCnt].sY + gCreditFaces[uiCnt].sHeight), MSYS_PRIORITY_NORMAL,
+	//						CURSOR_WWW, SelectCreditFaceMovementRegionCallBack, SelectCreditFaceRegionCallBack );
 
-	for( uiCnt=0; uiCnt < NUM_PEOPLE_IN_CREDITS; uiCnt++)
-	{
-		// Make a mouse region
-		MSYS_DefineRegion( &gCrdtMouseRegions[uiCnt], gCreditFaces[uiCnt].sX, gCreditFaces[uiCnt].sY, (INT16)(gCreditFaces[uiCnt].sX + gCreditFaces[uiCnt].sWidth), (INT16)(gCreditFaces[uiCnt].sY + gCreditFaces[uiCnt].sHeight), MSYS_PRIORITY_NORMAL,
-							CURSOR_WWW, SelectCreditFaceMovementRegionCallBack, SelectCreditFaceRegionCallBack );
+	//	// Add region
+	//	MSYS_AddRegion( &gCrdtMouseRegions[uiCnt] );
 
-		// Add region
-		MSYS_AddRegion( &gCrdtMouseRegions[uiCnt] );
+	//	MSYS_SetRegionUserData( &gCrdtMouseRegions[uiCnt], 0, uiCnt );
+	//}
+	// and instead added Vengeance photo regions
+	DefineFaceVengeanceRegions();
 
-		MSYS_SetRegionUserData( &gCrdtMouseRegions[uiCnt], 0, uiCnt );
-	}
+	InitVengeanceCreditEyeBlinking();
+	// /VENGEANCE
 
 /*
 	//open the credit text file
@@ -577,6 +679,10 @@ BOOLEAN		ExitCreditScreen()
 
 	DeleteVideoObjectFromIndex( guiCreditFaces );
 
+	// VENGEANCE
+	DeleteVideoObjectFromIndex( guiCreditBackGroundImageVR );
+	DeleteVideoObjectFromIndex( guiVengeanceCreditFaces );
+	// /VENGEANCE
 
 	//ShutDown Credit link list
 	ShutDownCreditList();
@@ -611,6 +717,12 @@ void			HandleCreditScreen()
 	//Handle the Credit linked list
 	HandleCreditNodes();
 
+	// VENGEANCE
+	// specific blinking eyes for specific mode
+	if( guiCreditMode == CRDT_VENGEANCE_MODE )
+		HandleVengeanceCreditEyeBlinking();
+	else if( guiCreditMode == CRDT_SIRTECH_MODE )
+	// /VENGEANCE
 	//Handle the blinkng eyes
 	HandleCreditEyeBlinking();
 
@@ -623,12 +735,62 @@ void			HandleCreditScreen()
 		{
 			SetCreditsExitScreen( MAINMENU_SCREEN );
 		}
+		// VENGEANCE
+		// change background after specified node
+		// gfModCredits are true while Vengeance's file is read, then there's 54 hardcoded lines for 1.13 team, then Sirtech
+		if( gfModCredits == FALSE && guiCurrentCreditRecord > 54 && guiCreditMode == CRDT_VENGEANCE_MODE )
+			//guiCurrentCreditRecord > 20 && guiCreditMode == CRDT_VENGEANCE_MODE  )
+		{
+			guiCreditMode = CRDT_VENGEANCE_OUT_MODE;
+			// define Sirtech regions now, instead of on entry
+			RemoveFaceVengeanceRegions();
+			DefineFaceSirtechRegions();
+			// make sure background will be saved again to buffer, else previous screen would be drawn under text
+			gfCrdtHaveRenderedFirstFrameToSaveBuffer = FALSE;
+			// enforce refresh
+			gubCreditScreenRenderFlags = CRDT_RENDER_ALL;
+		}
+		// /VENGEANCE
+
 	}
-
-
+	// VENGEANCE
+	// handle transitions
+	else if( guiCreditMode == CRDT_VENGEANCE_OUT_MODE )
+	{
+		guiTransitionProgress += CRDT_TRANSITION_SPEED;
+		gfCrdtHaveRenderedFirstFrameToSaveBuffer = FALSE;
+		gubCreditScreenRenderFlags = CRDT_RENDER_ALL;
+		if( guiTransitionProgress >= 255 - CRDT_TRANSITION_SPEED )
+		{
+			guiCreditMode = CRDT_SIRTECH_IN_MODE;
+			guiTransitionProgress = 255;
+		}
+	}
+	else if( guiCreditMode == CRDT_SIRTECH_IN_MODE )
+	{
+		guiTransitionProgress -= CRDT_TRANSITION_SPEED;
+		gfCrdtHaveRenderedFirstFrameToSaveBuffer = FALSE;
+		gubCreditScreenRenderFlags = CRDT_RENDER_ALL;
+		if( guiTransitionProgress <= CRDT_TRANSITION_SPEED )
+		{
+			guiCreditMode = CRDT_SIRTECH_MODE;
+			guiTransitionProgress = 0;
+		}
+	}
+	// /VENGEANCE
 
 	RestoreExternBackgroundRect( CRDT_NAME_LOC_X, CRDT_NAME_LOC_Y, CRDT_NAME_LOC_WIDTH, (INT16)CRDT_NAME_LOC_HEIGHT );
 
+	// VENGEANCE
+	// draw modders names and stuff
+	if( giCurrentlySelectedFace != -1 && guiCreditMode == CRDT_VENGEANCE_MODE)
+	{
+		DrawTextToScreen( gzVengeanceCreditNames[giCurrentlySelectedFace], CRDT_NAME_LOC_X, CRDT_NAME_LOC_Y, CRDT_NAME_LOC_WIDTH, CRDT_NAME_FONT, FONT_MCOLOR_WHITE, 0, FALSE, INVALIDATE_TEXT | CENTER_JUSTIFIED );
+		DrawTextToScreen( gzVengeanceCreditNameTitle[giCurrentlySelectedFace], CRDT_NAME_LOC_X, CRDT_NAME_TITLE_LOC_Y, CRDT_NAME_LOC_WIDTH, CRDT_NAME_FONT, FONT_MCOLOR_WHITE, 0, FALSE, INVALIDATE_TEXT | CENTER_JUSTIFIED );
+		DrawTextToScreen( gzVengeanceCreditNameFunny[giCurrentlySelectedFace], CRDT_NAME_LOC_X, CRDT_NAME_FUNNY_LOC_Y, CRDT_NAME_LOC_WIDTH, CRDT_NAME_FONT, FONT_MCOLOR_WHITE, 0, FALSE, INVALIDATE_TEXT | CENTER_JUSTIFIED );
+	}
+	else
+	// /VENGEANCE
 	if( giCurrentlySelectedFace != -1 )
 	{
 		DrawTextToScreen( gzCreditNames[giCurrentlySelectedFace], CRDT_NAME_LOC_X, CRDT_NAME_LOC_Y, CRDT_NAME_LOC_WIDTH, CRDT_NAME_FONT, FONT_MCOLOR_WHITE, 0, FALSE, INVALIDATE_TEXT | CENTER_JUSTIFIED );
@@ -644,7 +806,19 @@ BOOLEAN		RenderCreditScreen()
 
 	HVOBJECT hPixHandle;
 
-	GetVideoObject(&hPixHandle, guiCreditBackGroundImage );
+	// VENGEANCE - choose background image depending on current mode
+	if( guiCreditMode == CRDT_VENGEANCE_MODE || guiCreditMode == CRDT_VENGEANCE_OUT_MODE )
+	{
+		GetVideoObject(&hPixHandle, guiCreditBackGroundImageVR );
+		hPixHandle->pShadeCurrent = Create16BPPPaletteShaded( hPixHandle->pPaletteEntry, 255-guiTransitionProgress, 255-guiTransitionProgress, 255-guiTransitionProgress, FALSE );
+	}
+	else
+	{
+		GetVideoObject(&hPixHandle, guiCreditBackGroundImage );
+		hPixHandle->pShadeCurrent = Create16BPPPaletteShaded( hPixHandle->pPaletteEntry, 255-guiTransitionProgress, 255-guiTransitionProgress, 255-guiTransitionProgress, FALSE );
+	}
+	// /VENGEANCE
+	//GetVideoObject(&hPixHandle, guiCreditBackGroundImage );
 	BltVideoObject( FRAME_BUFFER, hPixHandle, 0, 0, 0, VO_BLT_SRCTRANSPARENCY, NULL);
 /*
 	HVSURFACE hVSurface;
@@ -1717,3 +1891,44 @@ void HandleCreditEyeBlinking()
 	}
 }
 
+// VENGEANCE
+// for Vengeance modders' faces - do almost the same as for Sirtech photo
+void InitVengeanceCreditEyeBlinking()
+{
+	UINT8 ubCnt;
+
+	for( ubCnt=0; ubCnt<NUM_PEOPLE_IN_VENGEANCE_CREDITS; ubCnt++ )
+	{
+		gVengeanceCreditFaces[ubCnt].uiLastBlinkTime = GetJA2Clock() + Random( gVengeanceCreditFaces[ubCnt].sBlinkFreq * 2 );
+	}
+}
+
+void HandleVengeanceCreditEyeBlinking()
+{
+	// commented out until we get the .sti file
+	//HVOBJECT hPixHandle;
+	//UINT8 ubCnt;
+
+	//GetVideoObject(&hPixHandle, guiVengeanceCreditFaces );
+
+	//for( ubCnt=0; ubCnt<NUM_PEOPLE_IN_VENGEANCE_CREDITS; ubCnt++ )
+	//{
+	//	if( ( GetJA2Clock() - gVengeanceCreditFaces[ubCnt].uiLastBlinkTime ) > (UINT32)gVengeanceCreditFaces[ubCnt].sBlinkFreq )
+	//	{
+	//		BltVideoObject( FRAME_BUFFER, hPixHandle, (UINT8)(ubCnt*3), gVengeanceCreditFaces[ubCnt].sEyeX, gVengeanceCreditFaces[ubCnt].sEyeY, VO_BLT_SRCTRANSPARENCY, NULL);
+
+	//		InvalidateRegion( gVengeanceCreditFaces[ubCnt].sEyeX, gVengeanceCreditFaces[ubCnt].sEyeY, gVengeanceCreditFaces[ubCnt].sEyeX + CRDT_EYE_WIDTH, gVengeanceCreditFaces[ubCnt].sEyeY + CRDT_EYE_HEIGHT );
+
+	//		gVengeanceCreditFaces[ubCnt].uiLastBlinkTime = GetJA2Clock();
+
+	//		gVengeanceCreditFaces[ubCnt].uiEyesClosedTime = GetJA2Clock() + CRDT_EYES_CLOSED_TIME + Random( CRDT_EYES_CLOSED_TIME );
+	//	}
+	//	else if( GetJA2Clock() > gVengeanceCreditFaces[ubCnt].uiEyesClosedTime )
+	//	{
+	//		gCreditFaces[ubCnt].uiEyesClosedTime = 0;
+
+	//		RestoreExternBackgroundRect( gVengeanceCreditFaces[ubCnt].sEyeX, gVengeanceCreditFaces[ubCnt].sEyeY, CRDT_EYE_WIDTH, CRDT_EYE_HEIGHT );
+	//	}
+	//}
+}
+// /VENGEANCE

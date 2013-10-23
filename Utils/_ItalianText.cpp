@@ -5590,6 +5590,24 @@ STR16	gzCreditNameFunny[]=
 	L"",	// Joey \"Joeker\" Whelan",
 };
 
+// VENGEANCE
+STR16	gzVengeanceCreditNames[]=
+{
+	L"",
+
+};
+
+STR16	gzVengeanceCreditNameTitle[]=
+{
+	L"",
+};
+
+STR16	gzVengeanceCreditNameFunny[]=
+{
+	L"",
+};
+// /VENGEANCE
+
 STR16 sRepairsDoneString[] =
 {
 	L"%s ha finito di riparare gli oggetti",

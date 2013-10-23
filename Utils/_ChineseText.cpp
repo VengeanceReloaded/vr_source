@@ -5596,6 +5596,24 @@ STR16	gzCreditNameFunny[]=
 	L"(did items and loading screens too!)",	// Joey \"Joeker\" Whelan",
 };
 
+// VENGEANCE
+STR16	gzVengeanceCreditNames[]=
+{
+	L"",
+
+};
+
+STR16	gzVengeanceCreditNameTitle[]=
+{
+	L"",
+};
+
+STR16	gzVengeanceCreditNameFunny[]=
+{
+	L"",
+};
+// /VENGEANCE
+
 // HEADROCK: Adjusted strings for better feedback, and added new string for LBE repair.
 STR16 sRepairsDoneString[] =
 {

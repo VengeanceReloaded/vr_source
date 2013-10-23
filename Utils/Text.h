@@ -1957,6 +1957,11 @@ STR16	gzCreditNames[];
 STR16	gzCreditNameTitle[];
 STR16	gzCreditNameFunny[];
 
+// VENGEANCE
+STR16	gzVengeanceCreditNames[];
+STR16	gzVengeanceCreditNameTitle[];
+STR16	gzVengeanceCreditNameFunny[];
+// / VENGEANCE
 
 extern STR16 GetWeightUnitString( void );
 FLOAT GetWeightBasedOnMetricOption( UINT32 uiObjectWeight );
