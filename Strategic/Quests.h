@@ -489,6 +489,7 @@ enum Facts
 	FACT_BUDDY_SPEAKING_OR_NEARBY =																			312,
 	FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY =																			313,
 	FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY =																			314,
+	FACT_IGGY_SPEAKING_OR_NEARBY =																			315,
 	// /VENEGANCE
 
 	FACT_KIDS_ARE_FREE =																			318,

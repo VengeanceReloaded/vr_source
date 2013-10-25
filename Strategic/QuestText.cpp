@@ -395,7 +395,7 @@ STR16		FactDescText[] =
 	L"NPC is talking with his buddy or buddy is within 10 tiles of speaker",
 	L"NPC is talking with his 1st buddy or 1st buddy is within 10 tiles of speaker",
 	L"NPC is talking with his 2nd buddy or 2nd buddy is within 10 tiles of speaker",
-	L"",
+	L"Iggy(140) is Speaker or within 10 tiles of speaker",
 	L"",
 	L"",
 	L"",

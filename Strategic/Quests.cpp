@@ -995,6 +995,9 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 		case FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY:			
 			gubFact[usFact] = (CheckTalkerIsABuddy() && SpecificBuddyPresent( ubProfileID, 1 ));			 
 			break;
+		case FACT_IGGY_SPEAKING_OR_NEARBY:
+			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == 140 || ( CheckNPCWithin( gpSrcSoldier->ubProfile, 140, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, 140 ) ) ) );
+			break;
 		case FACT_JOHN_EPC:
 			gubFact[usFact] = CheckNPCIsEPC( JOHN );
 			break;
