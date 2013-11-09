@@ -428,6 +428,8 @@ void InitDependingGameStyleOptions()
 
 	// HEADROCK HAM 4: CTH constants
 	LoadCTHConstants();
+	// Load externalised taunts settings
+	LoadTauntsSettings();
 
 	InitSightRange(); //lal
 

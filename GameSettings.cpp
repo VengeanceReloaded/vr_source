@@ -62,6 +62,9 @@
 // HEADROCK HAM 4: This file contains all the settings required to tweak the new Shooting Mechanism. There's lots of them.
 #define				CTH_COEFFICIENTS_FILE			"CTHConstants.ini"
 
+// anv: externalised  taunt settings
+#define				TAUNTS_SETTINGS_FILE			"Taunts_Settings.ini"
+
 #define				CD_ROOT_DIR						"DATA\\"
 
 GAME_SETTINGS		gGameSettings;
@@ -69,6 +72,7 @@ GAME_OPTIONS		gGameOptions;
 // Snap: Options read from an INI file in the default of custom Data directory
 GAME_EXTERNAL_OPTIONS gGameExternalOptions;
 SKILL_TRAIT_VALUES gSkillTraitValues;  // SANDRO - added this one
+TAUNTS_SETTINGS gTauntsSettings;
 EXTENDED_PANELS_SETTINGS gExtendedPanelsSettings; // anv - extended panels
 CTH_CONSTANTS gGameCTHConstants;	// HEADROCK HAM 4: CTH constants
 
@@ -2411,6 +2415,28 @@ void LoadCTHConstants()
 	gGameCTHConstants.MAX_EFFECTIVE_USE_GRADIENT						= iniReader.ReadBoolean("Shooting Mechanism","MAX_EFFECTIVE_USE_GRADIENT",  FALSE );
 }
 
+void LoadTauntsSettings()
+{
+	CIniReader iniReader(TAUNTS_SETTINGS_FILE);
+	gTauntsSettings.fTauntShowInLog				= iniReader.ReadBoolean("Taunts Settings","TAUNT_SHOW_IN_LOG", TRUE );
+	gTauntsSettings.sModDelay						= iniReader.ReadInteger("Taunts Settings","TAUNT_MIN_DELAY",100, -32767, 32767 );
+	gTauntsSettings.sMinDelay						= iniReader.ReadInteger("Taunts Settings","TAUNT_MIN_DELAY",500, 0, 65535 );
+	gTauntsSettings.sMaxDelay						= iniReader.ReadInteger("Taunts Settings","TAUNT_MAX_DELAY",5000, 0, 65535 );
+	gTauntsSettings.ubTauntFireGunChance			= iniReader.ReadInteger("Taunts Settings","TAUNT_FIRE_GUN_CHANCE",12, 0, 100);
+	gTauntsSettings.ubTauntFireLauncherChance		= iniReader.ReadInteger("Taunts Settings","TAUNT_FIRE_LAUNCHER_CHANCE",25, 0, 100);
+	gTauntsSettings.ubTauntThrowKnifeChance			= iniReader.ReadInteger("Taunts Settings","TAUNT_THROW_KNIFE_CHANCE",33, 0, 100);
+	gTauntsSettings.ubTauntThrowGrenadeChance		= iniReader.ReadInteger("Taunts Settings","TAUNT_THROW_GRENADE_CHANCE",33, 0, 100);
+	gTauntsSettings.ubTauntChargeKnifeChance		= iniReader.ReadInteger("Taunts Settings","TAUNT_CHARGE_KNIFE_CHANCE",25, 0, 100);
+	gTauntsSettings.ubTauntChargeFistsChance		= iniReader.ReadInteger("Taunts Settings","TAUNT_CHARGE_FISTS_CHANCE",25, 0, 100);
+	gTauntsSettings.ubTauntStealChance				= iniReader.ReadInteger("Taunts Settings","TAUNT_STEAL_CHANCE",25, 0, 100);
+	gTauntsSettings.ubTauntRunAwayChance			= iniReader.ReadInteger("Taunts Settings","TAUNT_RUN_AWAY_CHANCE",20, 0, 100);
+	gTauntsSettings.ubTauntSeekNoiseChance			= iniReader.ReadInteger("Taunts Settings","TAUNT_SEEK_NOISE_CHANCE",33, 0, 100);
+	gTauntsSettings.ubTauntAlertChance				= iniReader.ReadInteger("Taunts Settings","TAUNT_ALERT_CHANCE",33, 0, 100);
+	gTauntsSettings.ubTauntGotHitChance				= iniReader.ReadInteger("Taunts Settings","TAUNT_GOT_HIT_CHANCE",25, 0, 100);
+	gTauntsSettings.ubTauntGotMissedChance			= iniReader.ReadInteger("Taunts Settings","TAUNT_GOT_MISSED_CHANCE",12, 0, 100);
+	gTauntsSettings.ubTauntNoticedUnseenChance		= iniReader.ReadInteger("Taunts Settings","TAUNT_NOTICED_UNSEEN_MERC_CHANCE",10, 0, 100);
+
+}
 void FreeGameExternalOptions()
 {
 	if (gGameExternalOptions.iaIMPSlots != NULL) // OJW - 20081129 - Fix memory leak when calling LoadGameExternalOptions twice

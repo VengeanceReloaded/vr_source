@@ -92,6 +92,8 @@ ENEMY_NAMES_VALUES zEnemyName[500];
 ENEMY_RANK_VALUES zEnemyRank[500];
 CIV_NAMES_VALUES zCivGroupName[NUM_CIV_GROUPS];
 
+TAUNT_VALUES zTaunt[NUM_TAUNT];	// anv: externalised taunts
+
 BOOLEAN	gfInMovementMenu = FALSE;
 INT32		giMenuAnchorX, giMenuAnchorY;
 

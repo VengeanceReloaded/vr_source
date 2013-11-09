@@ -5845,6 +5845,9 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 		SoldierGotHitPunch( this, usWeaponIndex, sDamage, bDirection, sRange, ubAttackerID, ubSpecial, ubHitLocation );
 	}
 
+	if( ( this->bTeam == ENEMY_TEAM ) || ( this->bTeam == MILITIA_TEAM ) )
+		PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT, MercPtrs[ubAttackerID]);
+
 }
 
 UINT8 CalcScreamVolume( SOLDIERTYPE * pSoldier, UINT8 ubCombinedLoss )

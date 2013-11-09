@@ -129,6 +129,8 @@ BOOLEAN InitializeGame(void)
 
     // anv - extended panels
     LoadExtendedPanelsExternalSettings();
+	// Load externalised taunts settings
+	LoadTauntsSettings();
 
 	// HEADROCK HAM 4: Read CTH values
 	LoadCTHConstants();

@@ -281,8 +281,14 @@ BOOLEAN LoadExternalGameplayData(STR directoryName)
 	strcat(fileName, ITEMSFILENAME);
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("LoadExternalGameplayData, fileName = %s", fileName));
 	SGP_THROW_IFFALSE(ReadInItemStats(fileName,FALSE),ITEMSFILENAME);
+	
+	// Externalised taunts
+	strcpy(fileName, directoryName);
+	strcat(fileName, TAUNTSFILENAME);
+	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("LoadExternalGameplayData, fileName = %s", fileName));
+	SGP_THROW_IFFALSE(ReadInTaunts(fileName,FALSE), TAUNTSFILENAME);
 
-//Madd: Simple localization
+	//Madd: Simple localization
 // The idea here is that we can have a separate xml file that's named differently
 // but only contains the relevant tags that need to be localized
 // then when the file is read in using the same xml reader code, it will only overwrite

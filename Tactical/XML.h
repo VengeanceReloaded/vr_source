@@ -193,6 +193,8 @@ typedef PARSE_STAGE;
 
 #define FACEGEARFILENAME					"FaceGear.xml"
 
+#define TAUNTSFILENAME							"EnemyTaunts.xml"
+
 extern BOOLEAN ReadInItemStats(STR fileName, BOOLEAN localizedVersion);
 extern BOOLEAN WriteItemStats();
 
@@ -374,6 +376,10 @@ extern BOOLEAN ReadInEnemyRank(STR fileName, BOOLEAN localizedVersion);
 extern BOOLEAN WriteEnemyRank( STR fileName);
 extern BOOLEAN ReadInIMPPortraits(STR fileName, BOOLEAN localizedVersion);
 extern void LoadIMPPortraitsTEMP();
+
+// anv: externalised taunts
+extern BOOLEAN ReadInTaunts(STR fileName, BOOLEAN localizedVersion );
+extern BOOLEAN WriteTaunts( STR fileName );
 
 //Enabled\Disabled profile sound by Jazz
 extern BOOLEAN ReadInSoundProfile( STR fileName );

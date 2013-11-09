@@ -2222,17 +2222,16 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 	case AI_ACTION_LEAVE_WATER_GAS:       // seek nearest spot of ungassed land
 	case AI_ACTION_SEEK_NOISE:            // seek most important noise heard
 	case AI_ACTION_RUN_AWAY:              // run away from nearby opponent(s)
-		// SANDRO - ENEMY TAUNTS
-		if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && pSoldier->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( pSoldier->ubSoldierClass ) && pSoldier->bVisible != -1 )
-		{
-			if ( Random( 5 ) == 0 )
-			{
-				if (pSoldier->aiData.bAction == AI_ACTION_SEEK_NOISE )
-					StartEnemyTaunt( pSoldier, TAUNT_SEEK_NOISE );
-				else if (pSoldier->aiData.bAction == AI_ACTION_RUN_AWAY )
-					StartEnemyTaunt( pSoldier, TAUNT_RUN_AWAY );
-			}
-		}
+            // SANDRO - ENEMY TAUNTS
+            if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && 
+				( ( pSoldier->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( pSoldier->ubSoldierClass ) && pSoldier->bVisible != -1 ) ||
+				( pSoldier->bTeam == MILITIA_TEAM && SOLDIER_CLASS_MILITIA( pSoldier->ubSoldierClass ) && pSoldier->bVisible != -1 ) ) )
+            {
+                if (pSoldier->aiData.bAction == AI_ACTION_SEEK_NOISE )
+                    PossiblyStartEnemyTaunt( pSoldier, TAUNT_SEEK_NOISE );
+                else if (pSoldier->aiData.bAction == AI_ACTION_RUN_AWAY )
+                    PossiblyStartEnemyTaunt( pSoldier, TAUNT_RUN_AWAY );
+            }
 	case AI_ACTION_APPROACH_MERC:				 // walk up to someone to talk
 	case AI_ACTION_TRACK:								 // track by ground scent
 	case AI_ACTION_EAT:									 // monster approaching corpse
@@ -2430,46 +2429,60 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 		pSoldier->pathing.sBlackList = NOWHERE;
 		break;
 
-	case AI_ACTION_TOSS_PROJECTILE:       // throw grenade at/near opponent(s)
-		LoadWeaponIfNeeded(pSoldier);
-		// drop through here...
+        case AI_ACTION_TOSS_PROJECTILE:       // throw grenade at/near opponent(s)
+            LoadWeaponIfNeeded(pSoldier);
+            // drop through here...
+			// randomly decide whether to say civ quote
+            if ( pSoldier->bVisible != -1 )
+            {
+                // ATE: Make sure it's a person :)
+                if ( IS_MERC_BODY_TYPE( pSoldier ) && pSoldier->ubProfile == NO_PROFILE )
+                {
+                    // SANDRO - SOLDIER TAUNTS
+                    if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && 
+						( ( pSoldier->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( pSoldier->ubSoldierClass ) ) || 
+						( pSoldier->bTeam == MILITIA_TEAM && SOLDIER_CLASS_MILITIA( pSoldier->ubSoldierClass ) ) ) )
+                    {
+						PossiblyStartEnemyTaunt( pSoldier, TAUNT_THROW_GRENADE );
+                    }
+                }
+            }
 
-	case AI_ACTION_KNIFE_MOVE:            // preparing to stab opponent
-		if (pSoldier->aiData.bAction == AI_ACTION_KNIFE_MOVE) // if statement because toss falls through
+        case AI_ACTION_KNIFE_MOVE:            // preparing to stab opponent
+            if (pSoldier->aiData.bAction == AI_ACTION_KNIFE_MOVE) // if statement because toss falls through
 		{
 			pSoldier->usUIMovementMode = DetermineMovementMode( pSoldier, AI_ACTION_KNIFE_MOVE );
 		}
 
 		// fall through
-	case AI_ACTION_FIRE_GUN:              // shoot at nearby opponent
-	case AI_ACTION_THROW_KNIFE:						// throw knife at nearby opponent
-		// randomly decide whether to say civ quote
-		if ( pSoldier->bVisible != -1 && pSoldier->bTeam != MILITIA_TEAM )
-		{
-			// ATE: Make sure it's a person :)
-			if ( IS_MERC_BODY_TYPE( pSoldier ) && pSoldier->ubProfile == NO_PROFILE )
-			{
-				// SANDRO - SOLDIER TAUNTS
-				if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && pSoldier->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( pSoldier->ubSoldierClass ) )
-				{
-					if ( Random( 8 ) == 0 )
-					{
-						if (Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_GUN )
-							StartEnemyTaunt( pSoldier, TAUNT_FIRE_GUN );
-						else if (Item[pSoldier->inv[HANDPOS].usItem].grenadelauncher || Item[pSoldier->inv[HANDPOS].usItem].mortar || Item[pSoldier->inv[HANDPOS].usItem].rocketlauncher )
-							StartEnemyTaunt( pSoldier, TAUNT_FIRE_LAUNCHER );
-						else if (pSoldier->aiData.bAction == AI_ACTION_TOSS_PROJECTILE && Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_THROWN && !Item[pSoldier->inv[HANDPOS].usItem].flare )
-							StartEnemyTaunt( pSoldier, TAUNT_THROW );
-						else if (pSoldier->aiData.bAction == AI_ACTION_KNIFE_MOVE )
-						{
-							if (Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_BLADE )
-								StartEnemyTaunt( pSoldier, TAUNT_CHARGE_KNIFE );
-							//else if (Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_PUNCH )
-							//	StartEnemyTaunt( pSoldier, TAUNT_CHARGE_HTH );
-						}
-					}
-				}
-				// CC, ATE here - I put in some TEMP randomness...
+        case AI_ACTION_FIRE_GUN:              // shoot at nearby opponent
+        case AI_ACTION_THROW_KNIFE:						// throw knife at nearby opponent
+            // randomly decide whether to say civ quote
+            if ( pSoldier->bVisible != -1 )//&& pSoldier->bTeam != MILITIA_TEAM )
+            {
+                // ATE: Make sure it's a person :)
+                if ( IS_MERC_BODY_TYPE( pSoldier ) && pSoldier->ubProfile == NO_PROFILE )
+                {
+                    // SANDRO - SOLDIER TAUNTS
+                    if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && 
+						( ( pSoldier->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( pSoldier->ubSoldierClass ) ) ||
+						( pSoldier->bTeam == MILITIA_TEAM && SOLDIER_CLASS_MILITIA( pSoldier->ubSoldierClass ) ) ) )
+                    {
+                        if (Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_GUN )
+							PossiblyStartEnemyTaunt( pSoldier, TAUNT_FIRE_GUN, MercPtrs[pSoldier->ubOppNum] );
+                        else if (Item[pSoldier->inv[HANDPOS].usItem].grenadelauncher || Item[pSoldier->inv[HANDPOS].usItem].mortar || Item[pSoldier->inv[HANDPOS].usItem].rocketlauncher )
+                            PossiblyStartEnemyTaunt( pSoldier, TAUNT_FIRE_LAUNCHER, MercPtrs[pSoldier->ubOppNum] );
+                        else if (pSoldier->aiData.bAction == AI_ACTION_TOSS_PROJECTILE && Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_THROWN && !Item[pSoldier->inv[HANDPOS].usItem].flare )
+                            PossiblyStartEnemyTaunt( pSoldier, TAUNT_THROW, MercPtrs[pSoldier->ubOppNum] );
+                        else if (pSoldier->aiData.bAction == AI_ACTION_KNIFE_MOVE )
+                        {
+                            if (Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_BLADE )
+                                PossiblyStartEnemyTaunt( pSoldier, TAUNT_CHARGE_KNIFE );
+                            else if (Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_PUNCH )
+								StartEnemyTaunt( pSoldier, TAUNT_CHARGE_FISTS );
+                        }
+                    }
+                    // CC, ATE here - I put in some TEMP randomness...
 				else if ( Random( 50 ) == 0 )
 				{
 					StartCivQuote( pSoldier );
@@ -2559,16 +2572,13 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 			HandleInitialRedAlert(pSoldier->bTeam, TRUE);
 		}
 		
-		// SANDRO - ENEMY TAUNTS
-		if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && pSoldier->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( pSoldier->ubSoldierClass ) && pSoldier->bVisible != -1 )
-		{
-			if ( Random( 4 ) == 0 )
-			{
-				StartEnemyTaunt( pSoldier, TAUNT_ALERT );
-			}
-		}
-		//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Debug: AI radios your position!" );
-		// DROP THROUGH HERE!
+            // SANDRO - ENEMY TAUNTS
+            if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && pSoldier->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( pSoldier->ubSoldierClass ) && pSoldier->bVisible != -1 )
+            {
+                  PossiblyStartEnemyTaunt( pSoldier, TAUNT_ALERT );
+            }
+            //ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Debug: AI radios your position!" );
+            // DROP THROUGH HERE!
 	case AI_ACTION_YELLOW_ALERT:          // tell friends opponent(s) heard
 		//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Debug: AI radios about a noise!" );
 		/*
@@ -2762,13 +2772,16 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 	case AI_ACTION_STEAL_MOVE:            // preparing to steal opponents weapon
 		
 		pSoldier->aiData.ubPendingAction		= NO_PENDING_ACTION;
-		pSoldier->usUIMovementMode = DetermineMovementMode( pSoldier, AI_ACTION_KNIFE_MOVE );
-		usSoldierIndex = WhoIsThere2( pSoldier->aiData.usActionData, pSoldier->bTargetLevel);
-		if ( usSoldierIndex != NOBODY )
-			MercStealFromMerc( pSoldier, MercPtrs[usSoldierIndex] );
+            pSoldier->usUIMovementMode = DetermineMovementMode( pSoldier, AI_ACTION_KNIFE_MOVE );
+            usSoldierIndex = WhoIsThere2( pSoldier->aiData.usActionData, pSoldier->bTargetLevel);
+            if ( usSoldierIndex != NOBODY )
+			{
+                MercStealFromMerc( pSoldier, MercPtrs[usSoldierIndex] );
+				PossiblyStartEnemyTaunt( pSoldier, TAUNT_STEAL, MercPtrs[usSoldierIndex] );
+			}
 
-		break;
-	/////////////////////////////////////////////////////////////
+            break;
+        /////////////////////////////////////////////////////////////
 
 	default:
 #ifdef BETAVERSION
