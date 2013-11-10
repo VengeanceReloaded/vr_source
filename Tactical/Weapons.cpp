@@ -4299,7 +4299,7 @@ void StructureHit( INT32 iBullet, UINT16 usWeaponIndex, INT16 bWeaponStatus, UIN
 					}
 				}
 				// anv: make missed guy taunt his shooter
-				if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && 
+				if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && pAttacker != NULL &&
 						( ( MercPtrs[pAttacker->ubOppNum]->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( MercPtrs[pAttacker->ubOppNum]->ubSoldierClass ) ) ||
 						( MercPtrs[pAttacker->ubOppNum]->bTeam == MILITIA_TEAM && SOLDIER_CLASS_MILITIA( MercPtrs[pAttacker->ubOppNum]->ubSoldierClass ) ) )
 					&& MercPtrs[pAttacker->ubOppNum]->bVisible != -1 )
@@ -9195,7 +9195,7 @@ void ShotMiss( UINT8 ubAttackerID, INT32 iBullet )
 			}
 		}
 		//anv: make missed guy taunt his shooter
-		if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && 
+		if (gGameSettings.fOptions[TOPTION_ALLOW_TAUNTS] == TRUE && pAttacker != NULL &&
 				( ( MercPtrs[pAttacker->ubOppNum]->bTeam == ENEMY_TEAM && SOLDIER_CLASS_ENEMY( MercPtrs[pAttacker->ubOppNum]->ubSoldierClass ) ) ||
 				( MercPtrs[pAttacker->ubOppNum]->bTeam == MILITIA_TEAM && SOLDIER_CLASS_MILITIA( MercPtrs[pAttacker->ubOppNum]->ubSoldierClass ) ) )
 			&& MercPtrs[pAttacker->ubOppNum]->bVisible != -1 )
