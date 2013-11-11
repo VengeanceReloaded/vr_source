@@ -4326,11 +4326,11 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				break;
 			case NPC_ACTION_PLAY_QUOTE_47:
 				pSoldier = FindSoldierByProfileID( CONMAN, FALSE );
-				SayQuoteFromNearbyMercInSector( pSoldier->sGridNo, 10, QUOTE_PRE_NOT_SMART );
+				SayQuoteFromEverybodyNearbyMercInSector( pSoldier->sGridNo, 10, QUOTE_PRE_NOT_SMART );
 				break;
 			case NPC_ACTION_PLAY_QUOTE_48:
 				pSoldier = FindSoldierByProfileID( CONMAN, FALSE );
-				SayQuoteFromNearbyMercInSector( pSoldier->sGridNo, 10, QUOTE_POST_NOT_SMART );
+				SayQuoteFromEverybodyNearbyMercInSector( pSoldier->sGridNo, 10, QUOTE_POST_NOT_SMART );
 				break;
 			// /VENGEANCE
 			default:
@@ -4557,6 +4557,13 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 							break;
 						}
 					}
+					// VENGEANCE - conman quest
+					if ( ubProfile == CONMAN )
+					{
+						// conman informs about problems
+						TriggerNPCRecord( CONMAN, 6 );
+					}
+					// /VENGEANCE
 
 					RecruitEPC( ubProfile );
 

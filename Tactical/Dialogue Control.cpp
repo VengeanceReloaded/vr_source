@@ -2614,6 +2614,32 @@ void SayQuoteFromAnyBodyInThisSector( INT16 sSectorX, INT16 sSectorY, INT8 bSect
 		TacticalCharacterDialogue( MercPtrs[ ubMercsInSector[ ubChosenMerc ] ], usQuoteNum );
 	}
 }
+// VENEGANCE
+void SayQuoteFromEverybodyNearbyMercInSector( INT32 sGridNo, INT8 bDistance, UINT16 usQuoteNum )
+{
+// WDS - make number of mercenaries, etc. be configurable
+	std::vector<UINT8>	ubMercsInSector (CODE_MAXIMUM_NUMBER_OF_PLAYER_SLOTS, 0 );
+	UINT8	ubNumMercs = 0;
+	UINT8	ubChosenMerc;
+	SOLDIERTYPE *pTeamSoldier;
+	INT32 cnt;
+
+	// Loop through all our guys and say quote
+
+	// set up soldier ptr as first element in mercptrs list
+	cnt = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+
+	// run through list
+	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; cnt++,pTeamSoldier++ )
+	{
+		if ( OK_INSECTOR_MERC( pTeamSoldier ) && PythSpacesAway( sGridNo, pTeamSoldier->sGridNo ) < bDistance && !AM_AN_EPC( pTeamSoldier ) && !( pTeamSoldier->flags.uiStatusFlags & SOLDIER_GASSED ) && !(AM_A_ROBOT( pTeamSoldier )) && !pTeamSoldier->flags.fMercAsleep &&
+			SoldierTo3DLocationLineOfSightTest( pTeamSoldier, sGridNo, 0, 0, TRUE ) )
+		{
+			TacticalCharacterDialogue( pTeamSoldier, usQuoteNum );
+		}
+	}
+}
+// /VENGEANCE
 
 void SayQuoteFromNearbyMercInSector( INT32 sGridNo, INT8 bDistance, UINT16 usQuoteNum )
 {

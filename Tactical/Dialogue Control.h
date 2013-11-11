@@ -311,6 +311,9 @@ void ShutdownStaticExternalNPCFaces( void );
 void SayQuoteFromAnyBodyInSector( UINT16 usQuoteNum );
 void SayQuoteFromAnyBodyInThisSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT16 usQuoteNum );
 void SayQuoteFromNearbyMercInSector( INT32 sGridNo, INT8 bDistance, UINT16 usQuoteNum );
+// VENGEANCE
+void SayQuoteFromEverybodyNearbyMercInSector( INT32 sGridNo, INT8 bDistance, UINT16 usQuoteNum );
+// /VENGEANCE
 void SayQuote58FromNearbyMercInSector( INT32 sGridNo, INT8 bDistance, UINT16 usQuoteNum, INT8 bSex );
 
 

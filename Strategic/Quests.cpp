@@ -890,6 +890,9 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 		case FACT_MARIA_ESCORTED:
 			gubFact[usFact] = CheckNPCIsEPC( MARIA );
 			break;
+		case FACT_CONMAN_ESCORTED:
+			gubFact[usFact] = CheckNPCIsEPC( CONMAN );
+			break;
 		case FACT_JOEY_ESCORTED:
 			gubFact[usFact] = CheckNPCIsEPC( JOEY );
 			break;
