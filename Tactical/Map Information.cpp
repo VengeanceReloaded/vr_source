@@ -601,16 +601,18 @@ void UpdateOldVersionMap()
 		gMapInformation.ubMapVersion = 23;
 		if( giCurrentTilesetID == 1 ) //cave/mine tileset only
 		{ //convert all civilians to miners which use uniforms and more masculine body types.
-			curr = gSoldierInitHead;
-			while( curr )
-			{
-				if( curr->pBasicPlacement->bTeam == CIV_TEAM && !curr->pDetailedPlacement )
-				{
-					curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_MINER;
-					curr->pBasicPlacement->bBodyType = -1;
-				}
-				curr = curr->next;
-			}
+			// VENGEANCE - we don't want to convert, because of H&B "mine"
+			//curr = gSoldierInitHead;
+			//while( curr )
+			//{
+			//	if( curr->pBasicPlacement->bTeam == CIV_TEAM && !curr->pDetailedPlacement )
+			//	{
+			//		curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_MINER;
+			//		curr->pBasicPlacement->bBodyType = -1;
+			//	}
+			//	curr = curr->next;
+			//}
+			// /VENGEANCE
 		}
 	}
 	if( gMapInformation.ubMapVersion < 25 )
