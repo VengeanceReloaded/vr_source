@@ -7899,6 +7899,13 @@ BOOLEAN ProcessImplicationsOfPCAttack( SOLDIERTYPE * pSoldier, SOLDIERTYPE ** pp
 	{
 		TriggerNPCRecord( SLAY, 1 );
 	}
+	// VENGEANCE
+	// make Mendax behave simlar to Slay
+	else if ( pTarget->ubProfile == MENDAX && pTarget->stats.bLife >= OKLIFE && CheckFact( 385, 0 ) == FALSE )
+	{
+		TriggerNPCRecord( MENDAX, 1 );
+	}
+	// /VENGEANCE
 	else if ( (pTarget->bTeam == CIV_TEAM) && (pTarget->ubCivilianGroup == 0) && (pTarget->aiData.bNeutral) && !( pTarget->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
 	{
 		if ( pTarget->ubBodyType == COW && gWorldSectorX == 10 && gWorldSectorY == MAP_ROW_F )

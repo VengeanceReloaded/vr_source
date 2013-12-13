@@ -2264,6 +2264,18 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							}
 							break;
 							//case QUEEN:
+						// VENEGANCE
+						case ARULCAN_BUYER:
+							if ( pOpponent->ubProfile == CONMAN )
+							{
+								if ( CheckFact( FACT_CONMAN_ESCORTED_TO_BUYER, CONMAN ) == TRUE )
+								{
+									// she was rescued! yay!
+									TriggerNPCRecord( ARULCAN_BUYER, 12 );
+								}
+							}
+							break;
+						// VENGEANCE
 						case JOE:
 						case ELLIOT:
 							if ( ! ( gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags2 & PROFILE_MISC_FLAG2_SAID_FIRSTSEEN_QUOTE ) )
