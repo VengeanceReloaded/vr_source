@@ -3491,17 +3491,20 @@ void HandleNPCTeamMemberDeath( SOLDIERTYPE *pSoldierOld )
 		case TIFFANY:
 		case T_REX:
 			MakeRemainingTerroristsTougher();
-			if ( pSoldierOld->ubProfile == DRUGGIST )
-			{
-				pOther = FindSoldierByProfileID( MANNY, 0 );
-				if (pOther && pOther->bActive && pOther->bInSector && pOther->stats.bLife >= OKLIFE )
-				{
-					// try to make sure he isn't cowering etc
-					pOther->aiData.sNoiseGridno = NOWHERE;
-					pOther->aiData.bAlertStatus = STATUS_GREEN;
-					TriggerNPCRecord( MANNY, 10 );
-				}
-			}
+			// VENGEANCE
+			// anv: Manny is already a barman + Mendax isn't Charlie
+			//if ( pSoldierOld->ubProfile == DRUGGIST )
+			//{
+			//	pOther = FindSoldierByProfileID( MANNY, 0 );
+			//	if (pOther && pOther->bActive && pOther->bInSector && pOther->stats.bLife >= OKLIFE )
+			//	{
+			//		// try to make sure he isn't cowering etc
+			//		pOther->aiData.sNoiseGridno = NOWHERE;
+			//		pOther->aiData.bAlertStatus = STATUS_GREEN;
+			//		TriggerNPCRecord( MANNY, 10 );
+			//	}
+			//}
+			// VENGEANCE
 			break;
 		case JIM:
 		case JACK:

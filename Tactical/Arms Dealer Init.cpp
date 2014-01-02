@@ -1010,11 +1010,16 @@ BOOLEAN IsMercADealer( UINT8 ubMercID )
 {
 	UINT8	cnt;
 
+	// VENGEANCE
+	// anv: Manny is now bartender, Mendax (Charlie replacement) isn't. I think it's externalised in 1.13.
 	// Manny is not actually a valid dealer unless a particular event sets that fact
-	if( ( ubMercID == MANNY ) && !CheckFact( FACT_MANNY_IS_BARTENDER, 0 ) )
-	{
+	//if( ( ubMercID == MANNY ) && !CheckFact( FACT_MANNY_IS_BARTENDER, 0 ) )
+	//{
+	//	return( FALSE );
+	//}
+	if( ubMercID == MENDAX )
 		return( FALSE );
-	}
+	// VENGEANCE
 
 	//loop through the list of arms dealers
 	for( cnt=0; cnt<NUM_ARMS_DEALERS; cnt++ )

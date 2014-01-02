@@ -894,7 +894,8 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			gubFact[usFact] = CheckNPCIsEPC( CONMAN );
 			break;
 		case FACT_CONMAN_ESCORTED_TO_BUYER:
-			gubFact[usFact] = ( CheckNPCIsEPC( CONMAN ) && (NPCInRoom( CONMAN, 2 )) );
+			// G7, Barn -> room number = 1
+			gubFact[usFact] = ( CheckNPCIsEPC( CONMAN ) && (NPCInRoom( CONMAN, 1 )) && (NPCInRoom( ARULCAN_BUYER, 1 )) );
 			break;
 		case FACT_JOEY_ESCORTED:
 			gubFact[usFact] = CheckNPCIsEPC( JOEY );
