@@ -1232,7 +1232,7 @@ BOOLEAN PrepareCreaturesForBattle()
 	{
 		ubNumColors = LightGetColors( LColors );
 
-		if (! gbWorldSectorZ )
+		if ( gbWorldSectorZ > 0 )
 		{
 			UseCreatureMusic(LColors->peBlue);
 			return FALSE;	//Creatures don't attack overworld with this battle code.
