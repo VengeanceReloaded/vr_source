@@ -722,6 +722,13 @@ enum
 	TEXT_NUM_TACTICAL_STR
 };
 
+// VENGEANCE
+enum{
+	SPARE_MENDAX_PROMPT,
+	TEXT_NUM_SPARE_MENDAX
+};
+// /VENGEANCE
+
 enum{
 	EXIT_GUI_LOAD_ADJACENT_SECTOR_HELPTEXT,
 	EXIT_GUI_GOTO_MAPSCREEN_HELPTEXT,
@@ -742,6 +749,9 @@ enum{
 };
 extern STR16 pExitingSectorHelpText[];
 
+// VENGEANCE
+extern STR16 pSpareMendax[];
+// /VENGEANCE
 
 enum
 {

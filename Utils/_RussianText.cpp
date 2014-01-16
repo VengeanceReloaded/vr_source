@@ -2724,7 +2724,10 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"Навеска снята",
 	L"Вы не можете содержать еще одну машину, довольствуйтесь уже имеющимися двумя.",
 };
-
+STR16 pSpareMendax[] =
+{
+	L"Spare Mendax?",
+};
 //Varying helptext explains (for the "Go to Sector/Map" checkbox) what will happen given different circumstances in the "exiting sector" interface.
 STR16 pExitingSectorHelpText[] =
 {

@@ -2723,7 +2723,10 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"Attachment removed",
 	L"Kan niet een ander voertuig bereiken aangezien u reeds 2 hebt",
 };
-
+STR16 pSpareMendax[] =
+{
+	L"Spare Mendax?",
+};
 //Varying helptext explains (for the "Go to Sector/Map" checkbox) what will happen given different circumstances in the "exiting sector" interface.
 STR16 pExitingSectorHelpText[] =
 {

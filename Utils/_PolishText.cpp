@@ -2708,7 +2708,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Zgadzasz się zapłacić %s?",
 	L"Zgadzasz się na darmowe leczenie?",
-	L"Agree to assist Dick?", // TODO.Translate
+	L"Zgadzasz się pomóc Dickowi?", // TODO.Translate
 	L"Kółko na klucze",
 	L"Nie możesz tego zrobić z eskortowaną osobą.",
 	L"Oszczędzić Krotta?",
@@ -2726,7 +2726,10 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"Dodatek usunięty",
 	L"Nie możesz zdobyć kolejnego pojazdu, ponieważ posiadasz już 2",
 };
-
+STR16 pSpareMendax[] =
+{
+	L"Oszczędzić Mendaksa?",
+};
 //Varying helptext explains (for the "Go to Sector/Map" checkbox) what will happen given different circumstances in the "exiting sector" interface.
 STR16 pExitingSectorHelpText[] =
 {

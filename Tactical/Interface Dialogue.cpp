@@ -2347,6 +2347,9 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 			case NPC_ACTION_MEDICAL_REQUESTOR_2: // at hospital
 			case NPC_ACTION_BUY_VEHICLE_REQUESTOR: // from Dave
 			case NPC_ACTION_KROTT_REQUESTOR:
+			// VENGEANCE
+			case NPC_ACTION_MENDAX_REQUESTOR:
+			// /VENGEANCE
 				// Vince or Willis asks about payment? for medical attention
 				if (ubTargetNPC != gpDestSoldier->ubProfile)
 				{
@@ -4332,6 +4335,8 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				pSoldier = FindSoldierByProfileID( CONMAN, FALSE );
 				SayQuoteFromEverybodyNearbyMercInSector( pSoldier->sGridNo, 10, QUOTE_POST_NOT_SMART );
 				break;
+			case NPC_ACTION_MENDAX_LEAVES_FOR_GOOD:
+				gMercProfiles[ ubTargetNPC ].ubMiscFlags2 |= PROFILE_MISC_FLAG2_LEFT_COUNTRY;
 			// /VENGEANCE
 			default:
 				ScreenMsg( FONT_MCOLOR_RED, MSG_TESTVERSION, L"No code support for NPC action %d", usActionCode );
@@ -4519,6 +4524,12 @@ void StartDialogueMessageBox( UINT8 ubProfileID, UINT16 usMessageBoxType )
 			swprintf( zTemp, TacticalStr[ SPARE_KROTT_PROMPT ] );
 			DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, DialogueMessageBoxCallBack, NULL );
 			break;
+		// VENGEANCE
+		case NPC_ACTION_MENDAX_REQUESTOR:
+			swprintf( zTemp, pSpareMendax[ SPARE_MENDAX_PROMPT ] );
+			DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, DialogueMessageBoxCallBack, NULL );
+			break;
+		// /VENGEANCE
 		default:
 			break;
 	}
@@ -4798,6 +4809,18 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 				TriggerNPCRecord( DARYL, 12 );
 			}
 			break;
+		// VENGEANCE
+		case NPC_ACTION_MENDAX_REQUESTOR:
+			if ( ubExitValue == MSG_BOX_RETURN_YES )
+			{
+				TriggerNPCRecord( MENDAX, 8 );
+			}
+			else
+			{
+				TriggerNPCRecord( MENDAX, 9 );
+			}
+			break;
+		// /VENGEANCE
 		default:
 			break;
 	}

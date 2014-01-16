@@ -2727,7 +2727,10 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"Anbringung entfernt",
 	L"Sie können kein weiteres Fahrzeug mehr verwenden, da Sie bereits 2 haben",
 };
-
+STR16 pSpareMendax[] =
+{
+	L"Spare Mendax?",
+};
 //Varying helptext explains (for the "Go to Sector/Map" checkbox) what will happen given different circumstances in the "exiting sector" interface.
 STR16 pExitingSectorHelpText[] =
 {

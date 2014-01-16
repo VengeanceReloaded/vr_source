@@ -2725,7 +2725,10 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"附件被移除",
 	L"你已经有了两辆车，无法拥有更多的车辆。",
 };
-
+STR16 pSpareMendax[] =
+{
+	L"Spare Mendax?",
+};
 //Varying helptext explains (for the "Go to Sector/Map" checkbox) what will happen given different circumstances in the "exiting sector" interface.
 STR16 pExitingSectorHelpText[] =
 {
