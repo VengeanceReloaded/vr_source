@@ -4963,7 +4963,28 @@ void AddSoldierToUpdateBox( SOLDIERTYPE *pSoldier )
 		{
 			// add to box
 			pUpdateSoldierBox[ iCounter ] = pSoldier;
-
+			
+			
+			
+		if ( ( gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex < 100 ) && ( gProfilesIMP[ pSoldier->ubProfile ].ProfilId == pSoldier->ubProfile ) )
+		{
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex );
+		} 
+		else if ( ( gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex > 99 ) && ( gProfilesIMP[ pSoldier->ubProfile ].ProfilId == pSoldier->ubProfile ) )
+		{			
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%03d.sti", gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex );
+		}
+		else if( gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex < 100 )
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex );
+		}
+		else if( gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex > 99 )
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex );
+		}
+			
+			
+/*
 			if( gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex < 100 )
 			{
 				// grab filename of face
@@ -4974,7 +4995,7 @@ void AddSoldierToUpdateBox( SOLDIERTYPE *pSoldier )
 				// grab filename of face
 				sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ pSoldier->ubProfile ].ubFaceIndex );
 			}
-
+*/
 			// load the face
 			AddVideoObject( &VObjectDesc, (UINT32 *)&giUpdateSoldierFaces[ iCounter ] );
 

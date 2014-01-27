@@ -1122,16 +1122,17 @@ BOOLEAN LoadCharacterPortraitForMainPage( void )
 		
 		if( fCharacterIsMale )
 		{
-			if (  gIMPMaleValues[ iPortraitNumber ].Enabled == 1 )
 			{
-				sprintf( VObjectDesc.ImageFile, "Faces\\%02d.sti", gIMPMaleValues[ iPortraitNumber ].PortraitId );
+			//	sprintf( VObjectDesc.ImageFile, "Faces\\%02d.sti", gIMPMaleValues[ iPortraitNumber ].PortraitId );
+				sprintf( VObjectDesc.ImageFile, "IMPFaces\\%02d.sti", gIMPMaleValues[ iPortraitNumber ].PortraitId );
 			}
 		}
 		else
 		{
 			if (  gIMPFemaleValues[ iPortraitNumber ].Enabled == 1 )
 			{
-				sprintf( VObjectDesc.ImageFile, "Faces\\%02d.sti", gIMPFemaleValues[ iPortraitNumber ].PortraitId );
+				//sprintf( VObjectDesc.ImageFile, "Faces\\%02d.sti", gIMPFemaleValues[ iPortraitNumber ].PortraitId );
+				sprintf( VObjectDesc.ImageFile, "IMPFaces\\%02d.sti", gIMPFemaleValues[ iPortraitNumber ].PortraitId );
 			}
 		}
 		//FilenameForBPP( pPlayerSelectedFaceFileNames[ iPortraitNumber ] , VObjectDesc.ImageFile);

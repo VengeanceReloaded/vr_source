@@ -65,10 +65,10 @@ UINT32 giIMPConfirmButton[ 2 ];
 UINT32 giIMPConfirmButtonImage[ 2 ];
 BOOLEAN fNoAlreadySelected = FALSE;
 
-IMP_FACE_VALUES gIMPFaceValues[200];
+IMP_FACE_VALUES gIMPFaceValues[NUM_PROFILES];
 
-IMP_FEMALE_VALUES gIMPFemaleValues[200];
-IMP_MALE_VALUES gIMPMaleValues[200];
+IMP_FEMALE_VALUES gIMPFemaleValues[NUM_PROFILES];
+IMP_MALE_VALUES gIMPMaleValues[NUM_PROFILES];
 
 /*
 UINT16 uiEyeXPositions[ ]={
@@ -1575,10 +1575,12 @@ BOOLEAN LoadImpCharacter( STR nickName )
 void ResetIMPCharactersEyesAndMouthOffsets( UINT8 ubMercProfileID )
 {
 	// ATE: Check boundary conditions!
-	if( ( ( gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200 ) > MAX_NEW_IMP_PORTRAITS ) || ( ubMercProfileID >= PROF_HUMMER ) )  // 16
+/*	
+    if( ( ( gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200 ) > MAX_NEW_IMP_PORTRAITS ) || ( ubMercProfileID >= PROF_HUMMER ) )  // 16
 	{
 	return;
 	}
+*/
 	/*
 		gMercProfiles[ ubMercProfileID ].usEyesX = gIMPFaceValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200 ].uiEyeXPositions;
 		gMercProfiles[ ubMercProfileID ].usEyesY = gIMPFaceValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200	].uiEyeYPositions;
@@ -1587,7 +1589,7 @@ void ResetIMPCharactersEyesAndMouthOffsets( UINT8 ubMercProfileID )
 		gMercProfiles[ ubMercProfileID ].usMouthY = gIMPFaceValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200	].uiMouthYPositions;
 	*/
 
-	
+	/*
 	if( gMercProfiles[ ubMercProfileID ].bSex == 0 )
 	{
 		gMercProfiles[ ubMercProfileID ].usEyesX = gIMPMaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200 ].uiEyeXPositions;
@@ -1604,7 +1606,25 @@ void ResetIMPCharactersEyesAndMouthOffsets( UINT8 ubMercProfileID )
 		gMercProfiles[ ubMercProfileID ].usMouthX = gIMPFemaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200 ].uiMouthXPositions;
 		gMercProfiles[ ubMercProfileID ].usMouthY = gIMPFemaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex - 200 ].uiMouthYPositions;
 	}
+	*/
 	
+	if( gMercProfiles[ ubMercProfileID ].bSex == 0 )
+	{
+		gMercProfiles[ ubMercProfileID ].usEyesX = gIMPMaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiEyeXPositions;
+		gMercProfiles[ ubMercProfileID ].usEyesY = gIMPMaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiEyeYPositions;
+
+		gMercProfiles[ ubMercProfileID ].usMouthX = gIMPMaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiMouthXPositions;
+		gMercProfiles[ ubMercProfileID ].usMouthY = gIMPMaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiMouthYPositions;
+	}
+	else
+	{
+		gMercProfiles[ ubMercProfileID ].usEyesX = gIMPFemaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiEyeXPositions;
+		gMercProfiles[ ubMercProfileID ].usEyesY = gIMPFemaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiEyeYPositions;
+
+		gMercProfiles[ ubMercProfileID ].usMouthX = gIMPFemaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiMouthXPositions;
+		gMercProfiles[ ubMercProfileID ].usMouthY = gIMPFemaleValues[ gMercProfiles[ ubMercProfileID ].ubFaceIndex ].uiMouthYPositions;
+	}
+
 }
 
 

@@ -2282,7 +2282,38 @@ void CreateAutoResolveInterface()
 		VOBJECT_DESC VObjectDesc;
 		//Load the face
 		VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
+		
+		/*
 		sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ gpMercs[ i ].pSoldier->ubProfile ].ubFaceIndex );
+		*/
+		
+		if ( ( gpMercs[ i ].pSoldier->ubProfile >= 0 ) && ( gpMercs[ i ].pSoldier->ubProfile < 100 ) && ( gProfilesIMP[ gpMercs[ i ].pSoldier->ubProfile ].ProfilId == gpMercs[ i ].pSoldier->ubProfile ) )
+		{
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", gMercProfiles[ gpMercs[ i ].pSoldier->ubProfile ].ubFaceIndex );
+		} 
+		else if ( ( gpMercs[ i ].pSoldier->ubProfile > 99 ) && ( gProfilesIMP[ gpMercs[ i ].pSoldier->ubProfile ].ProfilId == gpMercs[ i ].pSoldier->ubProfile ) )
+		{			
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", gMercProfiles[ gpMercs[ i ].pSoldier->ubProfile ].ubFaceIndex );			
+		}
+		else if ( ( gpMercs[ i ].pSoldier->ubProfile >= 0 ) && ( gpMercs[ i ].pSoldier->ubProfile < 100 ) )
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ gpMercs[ i ].pSoldier->ubProfile ].ubFaceIndex );			
+		}
+		else 
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ gpMercs[ i ].pSoldier->ubProfile ].ubFaceIndex );		
+		}
+		
+		if( !AddVideoObject( &VObjectDesc, &gpMercs[ i ].uiVObjectID ) )
+		{
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\speck.sti" );
+			if( !AddVideoObject( &VObjectDesc, &gpMercs[ i ].uiVObjectID ) )
+			{
+				AssertMsg( 0, String("Failed to load %Faces\\65Face\\%02d.sti or it's placeholder, speck.sti", gMercProfiles[ gpMercs[ i ].pSoldier->ubProfile ].ubFaceIndex) );
+			}
+		}
+		
+		
 		if( !AddVideoObject( &VObjectDesc, &gpMercs[ i ].uiVObjectID ) )
 		{
 			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\speck.sti" );

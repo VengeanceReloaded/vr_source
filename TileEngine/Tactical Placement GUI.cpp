@@ -422,12 +422,36 @@ void InitTacticalPlacementGUI()
 
 		//Load the faces
 		{
+	
 			ubFaceIndex = gMercProfiles[ gMercPlacement[ i ].pSoldier->ubProfile ].ubFaceIndex;
+			
+			/*
 			if( ubFaceIndex < 100 )
 				sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", ubFaceIndex );
 			else
 				sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", ubFaceIndex );
+				
+			*/
+			
+		if ( ( ubFaceIndex < 100 ) && ( gProfilesIMP[ gMercPlacement[ i ].pSoldier->ubProfile ].ProfilId == gMercPlacement[ i ].pSoldier->ubProfile ) )
+		{
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", ubFaceIndex );
+		} 
+		else if ( ( ubFaceIndex > 99 ) && ( gProfilesIMP[ gMercPlacement[ i ].pSoldier->ubProfile ].ProfilId == gMercPlacement[ i ].pSoldier->ubProfile ) )
+		{
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%03d.sti", ubFaceIndex );
 		}
+		else if( ubFaceIndex < 100 )
+		{	
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", ubFaceIndex );
+		}
+		else if( ubFaceIndex > 99 )
+		{
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", ubFaceIndex );
+		}
+			
+		}
+
 
 		if( !AddVideoObject( &VObjectDesc, &gMercPlacement[ i ].uiVObjectID ) )
 		{
