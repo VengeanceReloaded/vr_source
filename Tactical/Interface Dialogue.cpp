@@ -4337,6 +4337,53 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				break;
 			case NPC_ACTION_MENDAX_LEAVES_FOR_GOOD:
 				gMercProfiles[ ubTargetNPC ].ubMiscFlags2 |= PROFILE_MISC_FLAG2_LEFT_COUNTRY;
+				break;
+			case NPC_ACTION_DWIGHT_GIVES_SAMPLE_TO_RAJIV:
+				// based on NPC_ACTION_FATIMA_GIVE_LETTER
+				// Delete menu, give item to megual
+				DeleteTalkingMenu( );
+				// Get pointer for Dwight
+				pSoldier = FindSoldierByProfileID( CONMAN, FALSE );
+				// Get pointer for Rajiv
+				pSoldier2 = FindSoldierByProfileID( ARULCAN_BUYER, FALSE );
+				// Give item!
+				if ( !pSoldier || !pSoldier2 )
+				{
+					return;
+				}
+				// Look for sample....
+				{
+					INT8 bInvPos;
+
+					// Look for item....
+					bInvPos = FindObj( pSoldier, 2424 );
+					AssertMsg( bInvPos != NO_SLOT, "Interface Dialogue.C:	Gift item does not exist in NPC." );
+					SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bInvPos ] ), bInvPos );
+				}
+				break;
+			case NPC_ACTION_RAJIV_GIVES_MONEY_TO_DWIGHT:
+				// based on NPC_ACTION_FATIMA_GIVE_LETTER
+				// Delete menu, give item to megual
+				DeleteTalkingMenu( );
+				// Get pointer for Rajiv
+				pSoldier = FindSoldierByProfileID( ARULCAN_BUYER, FALSE );
+				// Get pointer for Dwight
+				pSoldier2 = FindSoldierByProfileID( CONMAN, FALSE );
+				// Give item!
+				if ( !pSoldier || !pSoldier2 )
+				{
+					return;
+				}
+				// Look for money....
+				{
+					INT8 bInvPos;
+
+					// Look for item....
+					bInvPos = FindObj( pSoldier, 219 );
+					AssertMsg( bInvPos != NO_SLOT, "Interface Dialogue.C:	Gift item does not exist in NPC." );
+					SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bInvPos ] ), bInvPos );
+				}
+				break;
 			// /VENGEANCE
 			default:
 				ScreenMsg( FONT_MCOLOR_RED, MSG_TESTVERSION, L"No code support for NPC action %d", usActionCode );

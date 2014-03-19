@@ -627,7 +627,10 @@ BOOLEAN LoadMercProfiles(void)
 		prof.dat until we're sure we want to replace it with the xml file.
 			Because the new WF mercs don't have entries in the prof*.dat files, we need to always load their equipment from
 			MercStaringGear.xml, regardless of the inventory system we're going to use.*/
-		if(UsingNewInventorySystem() == true || uiLoop >= 170 )
+		// VENGEANCE
+		// anv: of course we want to replace it with the xml file, it's 2014 ffs
+		//if(UsingNewInventorySystem() == true || uiLoop >= 170 )
+		// /VENGEANCE
 		{
 			// Start by resetting all profile inventory values to 0
 			gMercProfiles[uiLoop].clearInventory();

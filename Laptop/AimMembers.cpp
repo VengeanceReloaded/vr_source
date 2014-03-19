@@ -5489,6 +5489,11 @@ void CreateWeaponBoxBackground()
 
 void RefreshWeaponKitSelectionButtons()
 {
+	// VENGEANCE
+	// anv: ok, it assures we won't get the cheapest kit from .xml under OIS
+	if(UsingNewInventorySystem() == FALSE)
+		WeaponKitSelectionUpdate(2);
+	// /VENGEANCE
 	//tais: shorthand function to refresh buttons
 	DisableWeaponKitSelectionButtons();
 	EnableWeaponKitSelectionButtons();
@@ -5540,7 +5545,8 @@ void WeaponKitSelectionUpdate(UINT8 selectedInventory = 0)
 {
 	UINT32 uiLoop;
 	INT16 usItem;
-	if(UsingNewInventorySystem() == true){
+	//if(UsingNewInventorySystem() == true)
+	{
 		// Start by resetting all profile inventory values to 0
 		gMercProfiles[gbCurrentSoldier].clearInventory();
 		gMercProfiles[gbCurrentSoldier].ubInvUndroppable = 0;
