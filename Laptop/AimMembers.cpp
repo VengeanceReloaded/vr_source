@@ -5491,8 +5491,8 @@ void RefreshWeaponKitSelectionButtons()
 {
 	// VENGEANCE
 	// anv: ok, it assures we won't get the cheapest kit from .xml under OIS
-	if(UsingNewInventorySystem() == FALSE)
-		WeaponKitSelectionUpdate(2);
+	//if(UsingNewInventorySystem() == FALSE)
+		//WeaponKitSelectionUpdate(2);
 	// /VENGEANCE
 	//tais: shorthand function to refresh buttons
 	DisableWeaponKitSelectionButtons();
@@ -5515,7 +5515,8 @@ void EnableWeaponKitSelectionButtons()
 	UINT8 buttonCount = 0;
 	BOOL buttonEnabled[5];
 	//tais: weaponbox gear selection buttons
-	if(UsingNewInventorySystem() == true) {
+	//if(UsingNewInventorySystem() == true) {
+	{
 		if(!(gMercProfiles[gbCurrentSoldier].ubMiscFlags & PROFILE_MISC_FLAG_ALREADY_USED_ITEMS)) {
 			for(i=0; i<NUM_MERCSTARTINGGEAR_KITS; i++)
 			{
