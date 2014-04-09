@@ -43,6 +43,7 @@
 	#include "meanwhile.h"
 	#include "Soldier macros.h"
 	#include "Morale.h"
+	#include "CampaignStats.h"		// added by Flugente
 #endif
 
 #ifdef JA2BETAVERSION
@@ -52,6 +53,17 @@
 #include "connect.h"
 #include "Reinforcement.h"
 #include "MilitiaSquads.h"
+
+#ifdef JA2UB
+#include "Explosion Control.h"
+#include "Ja25_Tactical.h"
+#include "Ja25 Strategic Ai.h"
+#include "MapScreen Quotes.h"
+#include "email.h"
+#include "interface Dialogue.h"
+#include "Arms Dealer Init.h"
+#endif
+
 #include <vector>
 
 //The sector information required for the strategic AI.  Contains the number of enemy troops,
@@ -62,6 +74,7 @@ std::vector<SECTORINFO> SectorInfo (256);
 UNDERGROUND_SECTORINFO *gpUndergroundSectorInfoHead = NULL;
 extern UNDERGROUND_SECTORINFO* gpUndergroundSectorInfoTail;
 BOOLEAN gfPendingEnemies = FALSE;
+UINT32 guiTurnCnt = 0, guiReinforceTurn = 0, guiArrived = 0;//dnl ch68 080913
 extern void BuildUndergroundSectorInfoList();
 
 extern void EndCreatureQuest();
@@ -73,8 +86,16 @@ extern INT32 giGarrisonArraySize;
 extern BOOLEAN gfOverrideSector;
 #endif
 
-INT32 gsInterrogationGridNo[3] = { 7756, 7757, 7758 };
+//Buggler: Externalized to gModSettings.iMeanwhileInterrogatePOWGridNo
+//INT32 gsInterrogationGridNo[3] = { 7756, 7757, 7758 };
 
+#ifdef JA2UB
+INT32		gsGridNoForMapEdgePointInfo=-1;
+#endif
+
+#ifdef JA2UB
+void HandleBloodCatDeaths( SECTORINFO *pSector );
+#endif
 
 extern void Ensure_RepairedGarrisonGroup( GARRISON_GROUP **ppGarrison, INT32 *pGarraySize );
 
@@ -82,7 +103,7 @@ extern void Ensure_RepairedGarrisonGroup( GARRISON_GROUP **ppGarrison, INT32 *pG
 void ValidateEnemiesHaveWeapons()
 {
 	#ifdef JA2BETAVERSION
-		SGPRect CenteringRect= {0, 0, 639, 479 };
+		SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, SCREEN_HEIGHT };
 		INT32 i, iErrorDialog;
 		SOLDIERTYPE *pSoldier;
 		INT32 iNumInvalid = 0;
@@ -94,6 +115,13 @@ void ValidateEnemiesHaveWeapons()
 			{
 				continue;
 			}
+
+#ifdef ENABLE_ZOMBIES
+			// Flugente: zombies are fine with having no weapons...
+			if ( pSoldier->IsZombie() )
+				continue;
+#endif
+
 			if( !pSoldier->inv[ HANDPOS ].usItem )
 			{
 				iNumInvalid++;
@@ -820,6 +848,21 @@ BOOLEAN PrepareEnemyForSectorBattle()
 							pSoldier->ubGroupID = pGroup->ubGroupID;
 						}
 						break;
+					// silversurfer: bugfix for Jaggzilla bug #623
+					// Mike or Iggy can be part of the enemy team and they are created from an Elite but they don't have SOLDIER_CLASS_ELITE.
+					// Therefore once this for loop was done ubNumElites was still 1 which caused an assertion error.
+					case SOLDIER_CLASS_NONE:
+						if( ubNumElites )
+						{
+							if ( pSoldier->ubProfile == MIKE || pSoldier->ubProfile == IGGY )
+							{
+								num--;
+								sNumSlots--;
+								ubNumElites--;
+								pSoldier->ubGroupID = pGroup->ubGroupID;
+							}
+						}
+						break;
 				}
 			}
 
@@ -883,6 +926,37 @@ void ProcessQueenCmdImplicationsOfDeath( SOLDIERTYPE *pSoldier )
 
 	switch( pSoldier->ubProfile )
 	{
+#ifdef JA2UB	
+		case 75://MORRIS:
+
+			if( !pSoldier->bSectorZ )
+			{
+				pSector = &SectorInfo[ SECTOR( pSoldier->sSectorX, pSoldier->sSectorY ) ];
+				if( pSector->ubNumElites )
+				{
+					pSector->ubNumElites--;
+				}
+				if( pSector->ubElitesInBattle )
+				{
+					pSector->ubElitesInBattle--;
+				}
+			}
+			 else
+			{
+				UNDERGROUND_SECTORINFO *pUnderground;
+				pUnderground = FindUnderGroundSector( (UINT8)pSoldier->sSectorX, (UINT8)pSoldier->sSectorY, (UINT8)pSoldier->bSectorZ );
+				Assert( pUnderground );
+				if( pUnderground->ubNumElites )
+				{
+					pUnderground->ubNumElites--;
+				}
+				if( pUnderground->ubElitesInBattle )
+				{
+					pUnderground->ubElitesInBattle--;
+				}
+			}
+			break;
+#endif			
 		case MIKE:
 		case IGGY:
 			if( pSoldier->ubProfile == IGGY && !gubFact[ FACT_IGGY_AVAILABLE_TO_ARMY ] )
@@ -1154,6 +1228,11 @@ void ProcessQueenCmdImplicationsOfDeath( SOLDIERTYPE *pSoldier )
 						{
 							pSector->bBloodCats--;
 						}
+#ifdef JA2UB						
+							//JA25 UB
+							//handle anything important when bloodcats die
+							HandleBloodCatDeaths( pSector );
+#endif
 					}
 
 					break;
@@ -1303,6 +1382,10 @@ void AddPossiblePendingEnemiesToBattle()
 	if(!(gWorldSectorX > 0 && gWorldSectorY > 0 && gbWorldSectorZ == 0))//dnl ch57 161009
 		return;
 
+#ifdef JA2UB
+	BOOLEAN fMagicallyAppeared=FALSE;
+#endif
+
 	UINT8 ubSlots, ubNumAvailable;
 	UINT8 ubNumElites, ubNumTroops, ubNumAdmins;
 	UINT8 ubNumGroupsInSector;
@@ -1325,6 +1408,40 @@ void AddPossiblePendingEnemiesToBattle()
 		|| !NumEnemiesInSector( gWorldSectorX, gWorldSectorY ) ) return;
 
 	ubSlots = NumFreeEnemySlots();
+	if(gGameExternalOptions.sMinDelayEnemyReinforcements)//dnl ch68 080913
+	{
+		if(gTacticalStatus.Team[ENEMY_TEAM].bAwareOfOpposition == TRUE)
+		{
+			if(guiReinforceTurn == 0)
+			{
+				guiReinforceTurn = guiTurnCnt + gGameExternalOptions.sMinDelayEnemyReinforcements + Random(gGameExternalOptions.sRndDelayEnemyReinforcements+1);// first possible reinforcement
+				ubSlots = 0;
+			}
+			else if(guiTurnCnt >= guiReinforceTurn)
+			{
+				guiReinforceTurn = guiTurnCnt + gGameExternalOptions.sMinDelayEnemyReinforcements/3 + Random(gGameExternalOptions.sRndDelayEnemyReinforcements+1);// any other reinforcement should appear more frequently
+				ubNumAvailable = gGameExternalOptions.sMinEnterEnemyReinforcements + Random(gGameExternalOptions.sRndEnterEnemyReinforcements+1);// total allowed units to enter per reinforce turn
+//SendFmtMsg("Enemy reinforcements: ubSlots=%d ubNumAvailable=%d", ubSlots, ubNumAvailable);
+				if(ubSlots > ubNumAvailable)
+					ubSlots = ubNumAvailable;
+				guiArrived += (ubNumAvailable - ubSlots);
+			}
+			else
+			{
+				if(guiArrived > 0)
+				{
+					if(ubSlots > guiArrived)
+						ubSlots = guiArrived;
+					guiArrived -= ubSlots;
+				}
+				else
+					ubSlots = 0;
+			}
+		}
+		else
+			guiReinforceTurn = guiArrived = 0;
+//SendFmtMsg("Enemy reinforcements: guiTurnCnt=%d guiReinforceTurn=%d guiArrived=%d", guiTurnCnt, guiReinforceTurn, guiArrived);
+	}
 	if( !ubSlots )
 	{ //no available slots to add enemies to.  Try again later...
 		return;
@@ -1410,6 +1527,14 @@ void AddPossiblePendingEnemiesToBattle()
 					ubStrategicInsertionCode = INSERTION_CODE_SOUTH;
 				else if( NumEnemiesInSector( gWorldSectorX, gWorldSectorY - 1 ) )
 					ubStrategicInsertionCode = INSERTION_CODE_NORTH;
+			#ifdef JA2UB
+				else if( gsGridNoForMapEdgePointInfo != -1 )
+					{
+						//Ja25: it doesnt matter the entry point at this point, it will become GRIDNO at a later point
+						ubStrategicInsertionCode = INSERTION_CODE_NORTH;
+						fMagicallyAppeared = FALSE;
+					}
+			#endif
 			}
 
 			if( ubStrategicInsertionCode == 255 )
@@ -1456,7 +1581,13 @@ void AddPossiblePendingEnemiesToBattle()
 		ubGroupIndex = Random( ubNumGroupsInSector);
 		pGroup = pGroupInSectorList[ ubGroupIndex];
 
-		ubNumAvailable = pGroup->ubGroupSize - pGroup->pEnemyGroup->ubElitesInBattle - pGroup->pEnemyGroup->ubTroopsInBattle - pGroup->pEnemyGroup->ubAdminsInBattle;
+		// Flugente fix: check for underflow...
+		UINT8 currentgroupsize = pGroup->pEnemyGroup->ubElitesInBattle + pGroup->pEnemyGroup->ubTroopsInBattle + pGroup->pEnemyGroup->ubAdminsInBattle;
+		if ( currentgroupsize > pGroup->ubGroupSize )
+			ubNumAvailable = 0;
+		else
+			ubNumAvailable = pGroup->ubGroupSize - currentgroupsize;
+
 		if (!ubNumAvailable)
 		{
 			// Looks like we picked an empty group.  Make a note of it
@@ -1609,6 +1740,11 @@ void AddEnemiesToBattle( GROUP *pGroup, UINT8 ubStrategicInsertionCode, UINT8 ub
 	UINT8 ubCurrSlot;
 	UINT8 ubTotalSoldiers;
 	UINT8 bDesiredDirection=0;
+
+#ifdef JA2UB
+	UINT8	ubCnt;
+#endif
+
 	switch( ubStrategicInsertionCode )
 	{
 		case INSERTION_CODE_NORTH:	bDesiredDirection = SOUTHEAST;										break;
@@ -1651,8 +1787,40 @@ void AddEnemiesToBattle( GROUP *pGroup, UINT8 ubStrategicInsertionCode, UINT8 ub
 	}
 
 	ubTotalSoldiers = ubNumAdmins + ubNumTroops + ubNumElites;
+	
+	#ifdef JA2UB
+	if( gsGridNoForMapEdgePointInfo != -1 )
+	{
+		ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+	}
+	#endif
+	
+	#ifdef JA2UB
+	if( ubStrategicInsertionCode == INSERTION_CODE_GRIDNO )
+	{
+		if( gsGridNoForMapEdgePointInfo == -1 )
+		{
+			Assert( 0 );
+			gsGridNoForMapEdgePointInfo=0;
+		}
 
-	ChooseMapEdgepoints( &MapEdgepointInfo, ubStrategicInsertionCode, (UINT8)(ubNumAdmins+ubNumElites+ubNumTroops) );
+		for( ubCnt=0; ubCnt<32;ubCnt++)
+		{
+			MapEdgepointInfo.sGridNo[ ubCnt ] = gsGridNoForMapEdgePointInfo;
+		}
+
+		MapEdgepointInfo.ubNumPoints = 32;
+		MapEdgepointInfo.ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+	}
+	else
+	{
+		ChooseMapEdgepoints( &MapEdgepointInfo, ubStrategicInsertionCode, (UINT8)(ubNumAdmins+ubNumElites+ubNumTroops) );
+	}
+	#else
+	    ChooseMapEdgepoints( &MapEdgepointInfo, ubStrategicInsertionCode, (UINT8)(ubNumAdmins+ubNumElites+ubNumTroops) );
+	#endif
+	
+	
 	ubCurrSlot = 0;
 	while( ubTotalSoldiers )
 	{
@@ -1727,10 +1895,23 @@ void AddEnemiesToBattle( GROUP *pGroup, UINT8 ubStrategicInsertionCode, UINT8 ub
 		}
 		// HEADROCK HAM 3.2: enemy reinforcements arrive with 0 APs.
 		if (gGameExternalOptions.ubReinforcementsFirstTurnFreeze == 1 || gGameExternalOptions.ubReinforcementsFirstTurnFreeze == 2)
-		{
+		{			
 			pSoldier->bActionPoints = 0;
+
+			// Flugente: due to a fix, also note here that the reinforcements get no APs.
+			pSoldier->bSoldierFlagMask |= SOLDIER_NO_AP;
+
+			// Flugente: campaign stats
+			if ( IsOurSoldier(pSoldier) )
+				gCurrentIncident.usIncidentFlags |= INCIDENT_REINFORCEMENTS_PLAYERSIDE;
+			else
+				gCurrentIncident.usIncidentFlags |= INCIDENT_REINFORCEMENTS_ENEMY;
 		}
 	}
+	
+	#ifdef JA2UB
+		gsGridNoForMapEdgePointInfo = -1;
+	#endif
 }
 
 
@@ -1875,7 +2056,10 @@ void BeginCaptureSquence( )
 
 void EndCaptureSequence( )
 {
-
+#ifdef JA2UB
+// no UB
+#else
+     
 	// Set flag...
 	if( !( gStrategicStatus.uiFlags & STRATEGIC_PLAYER_CAPTURED_FOR_RESCUE ) || !(gStrategicStatus.uiFlags & STRATEGIC_PLAYER_CAPTURED_FOR_ESCAPE) )
 	{
@@ -1897,17 +2081,7 @@ void EndCaptureSequence( )
 			gStrategicStatus.uiFlags |= STRATEGIC_PLAYER_CAPTURED_FOR_ESCAPE;
 
 			// OK! - Schedule Meanwhile now!
-			{
-				MEANWHILE_DEFINITION MeanwhileDef;
-
-				MeanwhileDef.sSectorX = 7;
-				MeanwhileDef.sSectorY = 14;
-				MeanwhileDef.ubNPCNumber = QUEEN;
-				MeanwhileDef.usTriggerEvent = 0;
-				MeanwhileDef.ubMeanwhileID = INTERROGATION;
-
-				ScheduleMeanwhileEvent( &MeanwhileDef, 10 );
-			}
+			HandleInterrogationMeanwhileScene();
 		}
 		// CJC Dec 1 2002: fixing multiple captures
 		else
@@ -1917,7 +2091,7 @@ void EndCaptureSequence( )
 			gStrategicStatus.uiFlags |= STRATEGIC_PLAYER_CAPTURED_FOR_ESCAPE;
 		}
 	}
-
+#endif
 }
 
 void EnemyCapturesPlayerSoldier( SOLDIERTYPE *pSoldier )
@@ -1926,11 +2100,11 @@ void EnemyCapturesPlayerSoldier( SOLDIERTYPE *pSoldier )
 	BOOLEAN       fMadeCorpse;
 	INT32         iNumEnemiesInSector;
 
-	// TODO.WANNE: Hardcoded grid number
-	static INT32 sAlmaCaptureGridNos[] = { 9208, 9688, 9215 }; //dnl!!!
-	static INT32 sAlmaCaptureItemsGridNo[] = { 12246, 12406, 13046 }; //dnl!!!
+	// Buggler: Externalized Hardcoded grid number
+	//static INT32 sAlmaCaptureGridNos[] = { 9208, 9688, 9215 }; //dnl!!!
+	//static INT32 sAlmaCaptureItemsGridNo[] = { 12246, 12406, 12086 }; //dnl!!!
 
-	static INT32 sInterrogationItemGridNo[] = { 12089, 12089, 12089 }; //dnl!!!
+	//static INT32 sInterrogationItemGridNo[] = { 12089, 12089, 12089 }; //dnl!!!
 
 	AssertNotNIL(pSoldier);
 
@@ -1966,8 +2140,8 @@ void EnemyCapturesPlayerSoldier( SOLDIERTYPE *pSoldier )
   TakeSoldierOutOfVehicle( pSoldier );
 
 
-  // Are there anemies in ALMA? ( I13 )
-  iNumEnemiesInSector = NumEnemiesInSector( 13, 9 );
+  // Are there enemies in ALMA? ( I13 )
+  iNumEnemiesInSector = NumEnemiesInSector( gModSettings.ubInitialPOWSectorX, gModSettings.ubInitialPOWSectorY ); //(13, 9)
 
   // IF there are no enemies, and we need to do alma, skip!
   if ( gubQuest[ QUEST_HELD_IN_ALMA ] == QUESTNOTSTARTED && iNumEnemiesInSector == 0 )
@@ -1995,75 +2169,81 @@ void EnemyCapturesPlayerSoldier( SOLDIERTYPE *pSoldier )
 	RemoveCharacterFromSquads( pSoldier );
 
 	WORLDITEM			WorldItem;
+	std::vector<WORLDITEM> pWorldItem(1);//dnl ch75 271013
 
 	// Is this the first one..?
 	if ( gubQuest[ QUEST_HELD_IN_ALMA ] == QUESTNOTSTARTED )
 	{
 		//-teleport him to NE Alma sector (not Tixa as originally planned)
-		pSoldier->sSectorX = 13;
-		pSoldier->sSectorY = 9;
+		pSoldier->sSectorX = gModSettings.ubInitialPOWSectorX; //13
+		pSoldier->sSectorY = gModSettings.ubInitialPOWSectorY; //9
 		pSoldier->bSectorZ = 0;
 
 		// put him on the floor!!
 		pSoldier->pathing.bLevel = 0;
 
 		// OK, drop all items!
-		for ( i = 0; i < pSoldier->inv.size(); i++ )
+		UINT32 invsize = pSoldier->inv.size();
+		for ( i = 0; i < invsize; ++i )
 		{
 			if( pSoldier->inv[ i ].exists() == true )
 			{
 				WorldItem.fExists = TRUE;
-				WorldItem.sGridNo = sAlmaCaptureItemsGridNo[ gStrategicStatus.ubNumCapturedForRescue ];
+				WorldItem.sGridNo = gModSettings.iInitialPOWItemGridNo[ gStrategicStatus.ubNumCapturedForRescue ];
 				WorldItem.ubLevel = 0;
 				WorldItem.usFlags = 0;
 				WorldItem.bVisible = FALSE;
 				WorldItem.bRenderZHeightAboveLevel = 0;
 				pSoldier->inv[ i ].MoveThisObjectTo(WorldItem.object);
-
-				AddWorldItemsToUnLoadedSector( 13, 9, 0, sAlmaCaptureItemsGridNo[ gStrategicStatus.ubNumCapturedForRescue ], 1, &WorldItem, FALSE );
+				//dnl ch75 271013
+				pWorldItem[0] = WorldItem;
+				AddWorldItemsToUnLoadedSector( gModSettings.ubInitialPOWSectorX, gModSettings.ubInitialPOWSectorY, 0, gModSettings.iInitialPOWItemGridNo[ gStrategicStatus.ubNumCapturedForRescue ], 1, pWorldItem, FALSE );
 			}
 		}
 
 		pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
-		pSoldier->usStrategicInsertionData = sAlmaCaptureGridNos[ gStrategicStatus.ubNumCapturedForRescue ];
+		pSoldier->usStrategicInsertionData = gModSettings.iInitialPOWGridNo[ gStrategicStatus.ubNumCapturedForRescue ];
 
 		gStrategicStatus.ubNumCapturedForRescue++;
 	}
 	else if ( gubQuest[ QUEST_HELD_IN_ALMA ] == QUESTDONE )
 	{
 		//-teleport him to N7
-		pSoldier->sSectorX = 7;
-		pSoldier->sSectorY = 14;
+		pSoldier->sSectorX = gModSettings.ubMeanwhileInterrogatePOWSectorX; //7
+		pSoldier->sSectorY = gModSettings.ubMeanwhileInterrogatePOWSectorY; //14
 		pSoldier->bSectorZ = 0;
 
 		// put him on the floor!!
 		pSoldier->pathing.bLevel = 0;
 
 		// OK, drop all items!
-		for ( i = 0; i < pSoldier->inv.size(); i++ )
+		UINT32 invsize = pSoldier->inv.size();
+		for ( i = 0; i < invsize; ++i )
 		{
 			if( pSoldier->inv[ i ].exists() == true )
 			{
 				WorldItem.fExists = TRUE;
-				WorldItem.sGridNo = sInterrogationItemGridNo[ gStrategicStatus.ubNumCapturedForRescue ];
+				WorldItem.sGridNo = gModSettings.iMeanwhileInterrogatePOWItemGridNo[ gStrategicStatus.ubNumCapturedForRescue ];
 				WorldItem.ubLevel = 0;
 				WorldItem.usFlags = 0;
 				WorldItem.bVisible = FALSE;
 				WorldItem.bRenderZHeightAboveLevel = 0;
 				pSoldier->inv[ i ].MoveThisObjectTo(WorldItem.object);
-
-				AddWorldItemsToUnLoadedSector( 7, 14, 0, sInterrogationItemGridNo[ gStrategicStatus.ubNumCapturedForRescue ], 1, &WorldItem, FALSE );
+				//dnl ch75 271013
+				pWorldItem[0] = WorldItem;
+				AddWorldItemsToUnLoadedSector( gModSettings.ubMeanwhileInterrogatePOWSectorX, gModSettings.ubMeanwhileInterrogatePOWSectorY, 0, gModSettings.iMeanwhileInterrogatePOWItemGridNo[ gStrategicStatus.ubNumCapturedForRescue ], 1, pWorldItem, FALSE );
 			}
 		}
 
 		pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
-		pSoldier->usStrategicInsertionData = gsInterrogationGridNo[ gStrategicStatus.ubNumCapturedForRescue ];
+		pSoldier->usStrategicInsertionData = gModSettings.iMeanwhileInterrogatePOWGridNo[ gStrategicStatus.ubNumCapturedForRescue ];
 
 		gStrategicStatus.ubNumCapturedForRescue++;
 	}
 
 	//Bandaging him would prevent him from dying (due to low HP)
 	pSoldier->bBleeding = 0;
+	pSoldier->bPoisonBleeding = 0;
 
 	// wake him up
 	if ( pSoldier->flags.fMercAsleep )
@@ -2073,6 +2253,7 @@ void EnemyCapturesPlayerSoldier( SOLDIERTYPE *pSoldier )
 	}
 
 	//Set his life to 50% + or - 10 HP.
+	INT8 oldlife = pSoldier->stats.bLife;
 	pSoldier->stats.bLife = pSoldier->stats.bLifeMax / 2;
 	if ( pSoldier->stats.bLife <= 35 )
 	{
@@ -2082,6 +2263,21 @@ void EnemyCapturesPlayerSoldier( SOLDIERTYPE *pSoldier )
 	{
 		pSoldier->stats.bLife += (INT8)(10 - Random( 21 ) );
 	}
+
+	// adjust poison points
+	INT8 lifechanged = pSoldier->stats.bLife - oldlife;
+	if ( lifechanged < 0 )
+	{
+		// add a bit of poisoning...
+		pSoldier->bPoisonSum = min(pSoldier->bPoisonSum + 10, pSoldier->stats.bLifeMax);
+
+		pSoldier->bPoisonLife = min(pSoldier->bPoisonSum, pSoldier->stats.bLife);
+	}
+	else if ( lifechanged > 0)
+	{
+		pSoldier->bPoisonLife = min(pSoldier->bPoisonSum, pSoldier->stats.bLife);
+	}
+
 	// SANDRO - make the lost life insta-healable
 	pSoldier->iHealableInjury = ((pSoldier->stats.bLifeMax - pSoldier->stats.bLife) * 100);
 
@@ -2272,3 +2468,41 @@ BOOLEAN CheckPendingEnemies()
 	return FALSE;
 }
 
+#ifdef JA2UB
+void HandleBloodCatDeaths( SECTORINFO *pSector )
+{
+	//if the current sector is the first part of the town
+	if( gWorldSectorX == 10 && gWorldSectorY == 9 && gbWorldSectorZ == 0 )
+	{
+		//if ALL the bloodcats are killed
+		if( pSector->bBloodCats == 0 )
+		{
+			UINT8 bId1=-1;
+			UINT8 bId2=-1;
+			UINT8 bNum=0;
+
+			SetFactTrue( FACT_PLAYER_KILLED_ALL_BETTYS_BLOODCATS );
+
+			//Instantly have betties missing items show up
+			//DailyCheckOnItemQuantities( TRUE );
+
+			// Now have a merc say the killed bloodcat quote
+			bNum = Get3RandomQualifiedMercs( &bId1, &bId2, NULL );
+
+			//if there are some qualified mercs
+			if( bNum != 0 )
+			{
+				//must make sure TEX doesnt say the quote
+				if( bId1 != NOBODY && Menptr[ bId1 ].ubProfile != TEX_UB )
+				{
+					TacticalCharacterDialogue( &Menptr[ bId1 ], QUOTE_RENEW_REFUSAL_DUE_TO_LACK_OF_FUNDS );
+				}
+				else if( bId2 != NOBODY && Menptr[ bId2 ].ubProfile != TEX_UB )
+				{
+					TacticalCharacterDialogue( &Menptr[ bId2 ], QUOTE_RENEW_REFUSAL_DUE_TO_LACK_OF_FUNDS );
+				}
+			}
+		}
+	}
+}
+#endif

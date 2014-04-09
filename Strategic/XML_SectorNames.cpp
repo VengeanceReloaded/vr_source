@@ -19,6 +19,9 @@
 // Four different sector names, used at different times.
 extern CHAR16 gzSectorNames[256][4][MAX_SECTOR_NAME_LENGTH];
 
+// Flugente: external sector data
+extern SECTOR_EXT_DATA	SectorExternalData[256][4];
+
 // moved to lua
 //extern CHAR16 gzSectorUndergroundNames1[256][4][MAX_SECTOR_NAME_LENGTH]; 
 //extern CHAR16 gzSectorUndergroundNames2[256][4][MAX_SECTOR_NAME_LENGTH]; 
@@ -42,6 +45,11 @@ typedef struct
 	CHAR16			szCurDetailedUnexploredName[MAX_SECTOR_NAME_LENGTH];
 	CHAR16			szCurExploredName[MAX_SECTOR_NAME_LENGTH];
 	CHAR16			szCurDetailedExploredName[MAX_SECTOR_NAME_LENGTH];
+	UINT8			sWaterType;			// Food System
+	UINT16			usNaturalDirt;		// Dirt System
+	UINT8			usCurfewValue;		// Covert Ops
+	INT8			sRadioScanModifier;	// Radio Operator
+	UINT16			usPrisonRoomNumber[MAX_PRISON_ROOMS];	// Prisoner System
 	UINT32			currentDepth;
 	UINT32			maxReadDepth;
 } SectorNameParseData;
@@ -66,7 +74,29 @@ SectorNameStartElementHandle(void *userData, const XML_Char *name, const char **
 			// Initiate Array by setting first character to 0.
 			for (UINT16 x = 0; x < 256; x++)
 			{
-			
+				SectorExternalData[x][0].usWaterType = 0;				
+				SectorExternalData[x][1].usWaterType = 0;
+				SectorExternalData[x][2].usWaterType = 0;
+				SectorExternalData[x][3].usWaterType = 0;
+
+				SectorExternalData[x][0].usNaturalDirt = 0;
+				SectorExternalData[x][1].usNaturalDirt = 0;
+				SectorExternalData[x][2].usNaturalDirt = 0;
+				SectorExternalData[x][3].usNaturalDirt = 0;
+
+				SectorExternalData[x][0].usCurfewValue = 0;
+				SectorExternalData[x][1].usCurfewValue = 0;
+				SectorExternalData[x][2].usCurfewValue = 0;
+				SectorExternalData[x][3].usCurfewValue = 0;
+
+				for(UINT8 i = 0; i <MAX_PRISON_ROOMS; ++i)
+				{
+					SectorExternalData[x][0].usPrisonRoomNumber[i] = 0;				
+					SectorExternalData[x][1].usPrisonRoomNumber[i] = 0;
+					SectorExternalData[x][2].usPrisonRoomNumber[i] = 0;
+					SectorExternalData[x][3].usPrisonRoomNumber[i] = 0;
+				}
+							
 				if (Sector_Level == 0 )
 				{
 					gzSectorNames[x][0][0]=0;
@@ -112,7 +142,27 @@ SectorNameStartElementHandle(void *userData, const XML_Char *name, const char **
 				strcmp(name, "szUnexploredName") == 0 ||
 				strcmp(name, "szDetailedUnexploredName") == 0 ||
 				strcmp(name, "szExploredName") == 0 ||
-				strcmp(name, "szDetailedExploredName") == 0 ))
+				strcmp(name, "szDetailedExploredName") == 0 ||
+				strcmp(name, "sWaterType") == 0 ||
+				strcmp(name, "usNaturalDirt") == 0 ||
+				strcmp(name, "usCurfewValue") == 0 ||
+				strcmp(name, "sRadioScanModifier") == 0 ||
+				strcmp(name, "usPrisonRoomNumber00") == 0 ||
+				strcmp(name, "usPrisonRoomNumber01") == 0 ||
+				strcmp(name, "usPrisonRoomNumber02") == 0 ||
+				strcmp(name, "usPrisonRoomNumber03") == 0 ||
+				strcmp(name, "usPrisonRoomNumber04") == 0 ||
+				strcmp(name, "usPrisonRoomNumber05") == 0 ||
+				strcmp(name, "usPrisonRoomNumber06") == 0 ||
+				strcmp(name, "usPrisonRoomNumber07") == 0 ||
+				strcmp(name, "usPrisonRoomNumber08") == 0 ||
+				strcmp(name, "usPrisonRoomNumber09") == 0 ||
+				strcmp(name, "usPrisonRoomNumber10") == 0 ||
+				strcmp(name, "usPrisonRoomNumber11") == 0 ||
+				strcmp(name, "usPrisonRoomNumber12") == 0 ||
+				strcmp(name, "usPrisonRoomNumber13") == 0 ||
+				strcmp(name, "usPrisonRoomNumber14") == 0 ||
+				strcmp(name, "usPrisonRoomNumber15") == 0 ))
 		{
 			pData->curElement = SECTORNAME_ELEMENT;
 
@@ -195,7 +245,7 @@ SectorNameEndElementHandle(void *userData, const XML_Char *name)
 						wcscpy(gzSectorNames[ubSectorId][0], pData->szCurUnexploredName);
 						wcscpy(gzSectorNames[ubSectorId][1], pData->szCurDetailedUnexploredName);
 						wcscpy(gzSectorNames[ubSectorId][2], pData->szCurExploredName);
-						wcscpy(gzSectorNames[ubSectorId][3], pData->szCurDetailedExploredName);
+						wcscpy(gzSectorNames[ubSectorId][3], pData->szCurDetailedExploredName);												
 					}
 					// moved to lua
 					//else if (Sector_Level == 1 )
@@ -220,6 +270,40 @@ SectorNameEndElementHandle(void *userData, const XML_Char *name)
 					//	wcscpy(gzSectorUndergroundNames3[ubSectorId][3], pData->szCurDetailedExploredName);
 					//}
 				}
+
+				SectorExternalData[ubSectorId][0].usWaterType = pData->sWaterType;
+				SectorExternalData[ubSectorId][1].usWaterType = pData->sWaterType;
+				SectorExternalData[ubSectorId][2].usWaterType = pData->sWaterType;
+				SectorExternalData[ubSectorId][3].usWaterType = pData->sWaterType;
+
+				SectorExternalData[ubSectorId][0].usNaturalDirt = pData->usNaturalDirt;
+				SectorExternalData[ubSectorId][1].usNaturalDirt = pData->usNaturalDirt;
+				SectorExternalData[ubSectorId][2].usNaturalDirt = pData->usNaturalDirt;
+				SectorExternalData[ubSectorId][3].usNaturalDirt = pData->usNaturalDirt;
+
+				SectorExternalData[ubSectorId][0].usCurfewValue = pData->usCurfewValue;
+				SectorExternalData[ubSectorId][1].usCurfewValue = pData->usCurfewValue;
+				SectorExternalData[ubSectorId][2].usCurfewValue = pData->usCurfewValue;
+				SectorExternalData[ubSectorId][3].usCurfewValue = pData->usCurfewValue;
+
+				INT8 radioscanmod = max(-3, pData->sRadioScanModifier);
+				radioscanmod = min(3, pData->sRadioScanModifier);
+				SectorExternalData[ubSectorId][0].sRadioScanModifier = pData->sRadioScanModifier;
+				SectorExternalData[ubSectorId][1].sRadioScanModifier = pData->sRadioScanModifier;
+				SectorExternalData[ubSectorId][2].sRadioScanModifier = pData->sRadioScanModifier;
+				SectorExternalData[ubSectorId][3].sRadioScanModifier = pData->sRadioScanModifier;
+
+				for(UINT8 i = 0; i <MAX_PRISON_ROOMS; ++i)
+				{
+					SectorExternalData[ubSectorId][0].usPrisonRoomNumber[i]  = pData->usPrisonRoomNumber[i];
+					pData->usPrisonRoomNumber[i] = 0;
+				}
+
+				// clean up values afterwards
+				pData->sWaterType = 0;
+				pData->usNaturalDirt = 100;
+				pData->usCurfewValue = 0;
+				pData->sRadioScanModifier = 0;
 			}	
 		}
 
@@ -266,6 +350,108 @@ SectorNameEndElementHandle(void *userData, const XML_Char *name)
 
 			MultiByteToWideChar( CP_UTF8, 0, pData->szCharData, -1, pData->szCurDetailedExploredName, sizeof(pData->szCurDetailedExploredName)/sizeof(pData->szCurDetailedExploredName[0]) );
 			pData->szCurDetailedExploredName[sizeof(pData->szCurDetailedExploredName)/sizeof(pData->szCurDetailedExploredName[0]) - 1] = '\0';
+		}
+
+		else if(strcmp(name, "sWaterType") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->sWaterType = (UINT8) atol(pData->szCharData);
+		}
+
+		else if(strcmp(name, "usNaturalDirt") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usNaturalDirt = (UINT16) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usCurfewValue") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usCurfewValue = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "sRadioScanModifier") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->sRadioScanModifier = (INT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber00") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[0] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber01") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[1] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber02") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[2] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber03") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[3] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber04") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[4] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber05") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[5] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber06") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[6] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber07") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[7] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber08") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[8] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber09") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[9] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber10") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[10] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber11") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[11] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber12") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[12] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber13") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[13] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber14") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[14] = (UINT8) atoi(pData->szCharData);
+		}
+		else if(strcmp(name, "usPrisonRoomNumber15") == 0)
+		{
+			pData->curElement = SECTORNAME_ELEMENT_SECTOR;
+			pData->usPrisonRoomNumber[15] = (UINT8) atoi(pData->szCharData);
 		}
 
 		pData->maxReadDepth--;

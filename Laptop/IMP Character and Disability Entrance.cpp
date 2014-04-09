@@ -4,13 +4,10 @@
 	#include "CharProfile.h"
 	#include "IMP Character and Disability Entrance.h"
 	#include "IMP MainPage.h"
-	#include "IMP HomePage.h"
 	#include "IMPVideoObjects.h"
 	#include "Utilities.h"
-	#include "WCheck.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
@@ -94,9 +91,9 @@ void CreateIMPCharacterAndDisabilityEntranceButtons( void )
 }
 
 void WriteIMPCharacterAndDisabilityEntranceText( void )
-{
+{	
 	//Display the title
-	DrawTextToScreen( pCharacterTraitBeginIMPStrings[ 0 ], LAPTOP_SCREEN_UL_X - 111, iScreenHeightOffset + 53, ( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X ), FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+	DrawTextToScreen( pCharacterTraitBeginIMPStrings[ 0 ], LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 
 	// The personality part
 	DisplayWrappedString( LAPTOP_SCREEN_UL_X + 106, LAPTOP_SCREEN_WEB_UL_Y + 63,  ( 400 - 100 ), 2, FONT12ARIAL, FONT_WHITE, pCharacterTraitBeginIMPStrings[ 1 ],FONT_BLACK,FALSE,CENTER_JUSTIFIED);

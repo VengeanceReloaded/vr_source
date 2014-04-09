@@ -663,7 +663,7 @@ void HandleInterfaceMessageForCostOfTrainingMilitia( SOLDIERTYPE *pSoldier )
 DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Militia2");
 
 	CHAR16 sString[ 128 ];
-	SGPRect pCenteringRect= {0, 0, 640, INV_INTERFACE_START_Y };
+	SGPRect pCenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, INV_INTERFACE_START_Y };
 	INT32 iNumberOfSectors = 0;
 
 	pMilitiaTrainerSoldier = pSoldier;
@@ -843,6 +843,16 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Militia3");
 	pMilitiaTrainerSoldier = pSoldier;
 
 	gfYesNoPromptIsForContinue = TRUE;
+
+	//Moa: prevent continue training when at/above maximum
+	if ( ubMilitiaType == MOBILE_MILITIA )
+	{
+		if ( 100 <= GetMobileMilitiaQuota( TRUE ) )
+		{
+			MilitiaTrainingRejected( MOBILE_MILITIA );
+			return;
+		}
+	}
 
 	// is there enough loyalty to continue training
 	if( DoesSectorMercIsInHaveSufficientLoyaltyToTrainMilitia( pSoldier ) == FALSE )
@@ -1519,7 +1529,11 @@ void HandleContinueOfTownTraining( void )
 		if( pSoldier->bActive )
 		{
 			fContinueEventPosted = TRUE;
+#ifdef JA2UB
+//no UB
+#else
 			SpecialCharacterDialogueEvent( DIALOGUE_SPECIAL_EVENT_CONTINUE_TRAINING_MILITIA, pSoldier->ubProfile, 0, 0, 0, 0 );
+#endif
 
 			// now set all of these peoples assignment done too
 			//HandleInterfaceMessageForContinuingTrainingMilitia( pSoldier );

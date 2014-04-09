@@ -5,18 +5,14 @@
 #else
 
 	#include "Overhead.h"
-	#include "Boxing.h"
 	#include "Render Fun.h"
 	#include "Random.h"
 	#include "Worldman.h"
 	#include "Soldier Profile.h"
 	#include "NPC.h"
-	#include "Opplist.h"
 	#include "ai.h"
 	#include "Dialogue Control.h"
 	#include "Handle UI.h"
-	#include "Points.h"
-	#include "interface.h"
 	#include "end game.h"
 	#include "Intro.h"
 	#include "Exit Grids.h"
@@ -44,10 +40,30 @@
 	#include "screenids.h"
 #endif
 
+#ifdef JA2UB
+#include "email.h"
+#include "Game Clock.h"
+#include "Ja25_Tactical.h"
+#include "Game Init.h"
+#include "interface Dialogue.h"
+#include "ub_config.h"
+
+void HandleAddingTheEndGameEmails();
+void EndFadeToCredits( void );
+void FadeToCredits( void );
+void InFinalSectorAfterFadeIn( void );
+void FadeOutToLaptopOnEndGame( void );
+
+BOOLEAN			gfPlayersLaptopWasntWorkingAtEndOfGame;
+#endif
+
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
 
+//victory ending scene sector
+#define VICTORY_X	gModSettings.ubEndGameVictorySectorX
+#define VICTORY_Y	gModSettings.ubEndGameVictorySectorY
 
 INT32 sStatueGridNos[] = { 13829, 13830, 13669, 13670 };
 
@@ -136,7 +152,9 @@ void ChangeO3SectorStatue( BOOLEAN fFromExplosion )
 	RecompileLocalMovementCostsFromRadius( 13830, 5 );
 
 }
-
+#ifdef JA2UB
+//Ja25 no queen
+#else
 void DeidrannaTimerCallback( void )
 {
 	HandleDeidrannaDeath( gpKillerSoldier, gsGridNo, gbLevel );
@@ -242,16 +260,16 @@ void DoneFadeOutKilledQueen( void )
 		if ( pSoldier->bActive && pSoldier->stats.bLife >= OKLIFE && pSoldier->bInSector && pSoldier->bAssignment == CurrentSquad( ) )
 		{
 			gfTacticalTraversal = TRUE;
-			SetGroupSectorValue( 3, MAP_ROW_P, 0, pSoldier->ubGroupID );
+			SetGroupSectorValue( VICTORY_X, VICTORY_Y, 0, pSoldier->ubGroupID );
 
 			// Set next sectore
-			pSoldier->sSectorX = 3;
-			pSoldier->sSectorY = MAP_ROW_P;
+			pSoldier->sSectorX = VICTORY_X;
+			pSoldier->sSectorY = VICTORY_Y;
 			pSoldier->bSectorZ = 0;
 
 			// Set gridno
 			pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
-			pSoldier->usStrategicInsertionData = 5687;//dnl!!!
+			pSoldier->usStrategicInsertionData = gModSettings.iEndGameVictoryGridNo; //5687 dnl!!!
 			// Set direction to face....
 			pSoldier->ubInsertionDirection		= 100 + NORTHWEST;
 		}
@@ -284,33 +302,35 @@ void DoneFadeOutKilledQueen( void )
 
 	SetMusicMode( MUSIC_TACTICAL_VICTORY );
 
-	HandleMoraleEvent( NULL, MORALE_QUEEN_BATTLE_WON, 3, MAP_ROW_P, 0 );
-	HandleGlobalLoyaltyEvent( GLOBAL_LOYALTY_QUEEN_BATTLE_WON, 3, MAP_ROW_P, 0 );
+	HandleMoraleEvent( NULL, MORALE_QUEEN_BATTLE_WON, VICTORY_X, VICTORY_Y, 0 );
+	HandleGlobalLoyaltyEvent( GLOBAL_LOYALTY_QUEEN_BATTLE_WON, VICTORY_X, VICTORY_Y, 0 );
 
 	SetMusicMode( MUSIC_TACTICAL_VICTORY );
 
 	SetThisSectorAsPlayerControlled( gWorldSectorX, gWorldSectorY, gbWorldSectorZ, TRUE );
 
-	// ATE: Force change of level set z to 1
+	// ATE: Force change of level set z to 1 to allow reloading of same sector
 	gbWorldSectorZ = 1;
 
 	// Clear out dudes.......
-	SectorInfo[ SEC_P3 ].ubNumAdmins = 0;
-	SectorInfo[ SEC_P3 ].ubNumTroops = 0;
-	SectorInfo[ SEC_P3 ].ubNumElites = 0;
-	SectorInfo[ SEC_P3 ].ubAdminsInBattle = 0;
-	SectorInfo[ SEC_P3 ].ubTroopsInBattle = 0;
-	SectorInfo[ SEC_P3 ].ubElitesInBattle = 0;
+	SectorInfo[ SECTOR( VICTORY_X, VICTORY_Y ) ].ubNumAdmins = 0;
+	SectorInfo[ SECTOR( VICTORY_X, VICTORY_Y ) ].ubNumTroops = 0;
+	SectorInfo[ SECTOR( VICTORY_X, VICTORY_Y ) ].ubNumElites = 0;
+	SectorInfo[ SECTOR( VICTORY_X, VICTORY_Y ) ].ubAdminsInBattle = 0;
+	SectorInfo[ SECTOR( VICTORY_X, VICTORY_Y ) ].ubTroopsInBattle = 0;
+	SectorInfo[ SECTOR( VICTORY_X, VICTORY_Y ) ].ubElitesInBattle = 0;
 
-	// ATE: GEt rid of elliot in P3...
-	gMercProfiles[ ELLIOT ].sSectorX = 1;
+	// ATE: banish elliot... dead or alive
+	gMercProfiles[ ELLIOT ].sSectorX = 0;
+	gMercProfiles[ ELLIOT ].sSectorY = 0;
+	gMercProfiles[ ELLIOT ].bSectorZ = 0;
 
-	ChangeNpcToDifferentSector( DEREK, 3, MAP_ROW_P, 0 );
-	ChangeNpcToDifferentSector( OLIVER, 3, MAP_ROW_P, 0 );
+	ChangeNpcToDifferentSector( DEREK, VICTORY_X, VICTORY_Y, 0 );
+	ChangeNpcToDifferentSector( OLIVER, VICTORY_X, VICTORY_Y, 0 );
 
 
 	// OK, insertion data found, enter sector!
-	SetCurrentWorldSector( 3, MAP_ROW_P, 0 );
+	SetCurrentWorldSector( VICTORY_X, VICTORY_Y, 0 );
 
 	// OK, once down here, adjust the above map with crate info....
 	gfTacticalTraversal = FALSE;
@@ -384,12 +404,15 @@ void DoneFadeOutEndCinematic( void )
 
 	SetIntroType( INTRO_ENDING );
 }
-
+#endif
 // OK, end death UI - fade to smaker....
 void HandleDoneLastEndGameQuote( )
 {
-	EndQueenDeathEndgame( );
-
+#ifdef JA2UB
+//Ja25 No queen	
+#else
+EndQueenDeathEndgame( );
+#endif
 	gFadeOutDoneCallback = DoneFadeOutEndCinematic;
 
 	FadeOutGameScreen( );
@@ -399,9 +422,216 @@ void HandleDoneLastEndGameQuote( )
 
 void QueenBitchTimerCallback( void )
 {
+#ifdef JA2UB
+//no Ub
+#else
 	HandleQueenBitchDeath( gpKillerSoldier, gsGridNo, gbLevel );
+#endif
 }
 
+#ifdef JA2UB
+void EndGameEveryoneSayTheirGoodByQuotes( void )
+{
+	INT32 cnt;
+	SOLDIERTYPE *pSoldier;
+
+	// Start end cimimatic....
+  gTacticalStatus.uiFlags |= IN_ENDGAME_SEQUENCE;
+
+	//lock the interface
+	guiPendingOverrideEvent = LU_BEGINUILOCK;
+	HandleTacticalUI( );
+
+	//
+	// first thing is to loop through team and look for QUALIFIED mercs on the team to say special end game quote
+	//
+	cnt = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; cnt++,pSoldier++)
+	{       
+		// Are we in this sector, On the current squad?
+		if( pSoldier->bActive && pSoldier->stats.bLife >= OKLIFE && !AM_AN_EPC( pSoldier ) && IsSoldierQualifiedMerc( pSoldier ) )
+		{
+			TacticalCharacterDialogue( pSoldier, QUOTE_RENEWING_CAUSE_BUDDY_2_ON_TEAM );	
+		}
+	}
+
+	//
+	// Next is to loop through ENTIRE team and say end quote...
+	//
+	cnt = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; cnt++,pSoldier++)
+	{       
+		// Are we in this sector, On the current squad?
+		if ( pSoldier->bActive && pSoldier->stats.bLife >= OKLIFE && !AM_AN_EPC( pSoldier ) )
+		{
+			TacticalCharacterDialogue( pSoldier, QUOTE_END_GAME_COMMENT );	
+		}
+	}
+
+	// Add queue event to proceed w/ smacker cimimatic
+	SpecialCharacterDialogueEvent( DIALOGUE_SPECIAL_EVENT_MULTIPURPOSE, MULTIPURPOSE_SPECIAL_EVENT_TEAM_MEMBERS_DONE_TALKING, 0,0,0,0 );
+}
+
+
+void HandleAddingTheEndGameEmails()
+{
+	BOOLEAN				fMiguelAlive=FALSE;
+	BOOLEAN				fManuelAlive=FALSE;
+	BOOLEAN				fManuelHired=FALSE;
+
+
+	//Miguel alive
+	if( gubFact[ FACT_PLAYER_IMPORTED_SAVE_MIGUEL_DEAD ] )
+		fMiguelAlive = FALSE;
+	else
+		fMiguelAlive = TRUE;
+
+	//manuel alive
+	if( gMercProfiles[ MANUEL_UB ].bMercStatus == MERC_IS_DEAD )
+		fManuelAlive = FALSE;
+	else
+		fManuelAlive = TRUE;
+
+	//manuel hired
+	if( gMercProfiles[ MANUEL_UB ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED )
+		fManuelHired = TRUE;
+	else
+		fManuelHired = FALSE;
+
+	//
+	// Determine the EMAIL to be sent out to the player
+	//
+
+	#ifdef JA113DEMO
+	//no demo
+	#else
+	// email # 12a - Miguel dead, Manuel never recruited
+	if( !fMiguelAlive && !fManuelHired )
+	{
+		AddEmail( EMAIL_CONGRATS, EMAIL_CONGRATS_LENGTH, MAIL_ENRICO,  GetWorldTotalMin(),-1 ,-1, TYPE_EMAIL_EMAIL_EDT);
+	}
+		
+	// email # 12b - Miguel alive, Manuel never recruited
+	else if( fMiguelAlive && !fManuelHired )
+	{
+		AddEmail( EMAIL_CONGRATSICK, EMAIL_CONGRATSICK_LENGTH, MAIL_ENRICO,  GetWorldTotalMin(),-1 ,-1, TYPE_EMAIL_EMAIL_EDT);
+	}
+
+	// email # 12c - Miguel alive, Manuel dead
+	else if( fMiguelAlive && !fManuelAlive )
+	{
+		AddEmail( EMAIL_CONGRATMIGMANUELDEAD, EMAIL_CONGRATMIGMANUELDEAD_LENGTH, MAIL_ENRICO,  GetWorldTotalMin() , -1, -1, TYPE_EMAIL_EMAIL_EDT);
+	}
+
+	// email # 12d - Miguel alive, Manuel recruited and alive
+	else if( fMiguelAlive && fManuelAlive && fManuelHired )
+	{
+		AddEmail( EMAIL_CONGRATMIGMANUELALIVE, EMAIL_CONGRATMIGMANUELALIVE_LENGTH, MAIL_ENRICO,  GetWorldTotalMin() , -1, -1, TYPE_EMAIL_EMAIL_EDT);
+	}
+
+	// email # 12e - Miguel dead, Manuel dead
+	else if( !fMiguelAlive && !fManuelAlive )
+	{
+		AddEmail( EMAIL_CONGRATMANUELDEAD, EMAIL_CONGRATMANUELDEAD_LENGTH, MAIL_ENRICO,  GetWorldTotalMin(), -1 , -1, TYPE_EMAIL_EMAIL_EDT);
+	}
+
+	// email # 12f -  Miguel dead, Manuel recruited and alive
+	else if( !fMiguelAlive && fManuelAlive && fManuelHired )
+	{
+		AddEmail( EMAIL_CONGRATMANUELALIVE, EMAIL_CONGRATMANUELALIVE_LENGTH, MAIL_ENRICO,  GetWorldTotalMin() , -1, -1, TYPE_EMAIL_EMAIL_EDT);
+	}
+
+	else
+	{
+		Assert( 0 );
+	}
+	#endif
+}
+
+
+void HandleEveryoneDoneTheirEndGameQuotes()
+{
+	// UnLock UI!
+	guiPendingOverrideEvent = LU_ENDUILOCK;
+	HandleTacticalUI( );
+
+	//if laptop is still BROKEN
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTINPROGRESS && gGameUBOptions.LaptopQuestEnabled == TRUE )
+	{
+		gfPlayersLaptopWasntWorkingAtEndOfGame = TRUE;
+
+		// otherwise, go to the credits screen
+		HandleJa25EndGameAndGoToCreditsScreen( TRUE );
+	}
+	else
+	{
+		gfPlayersLaptopWasntWorkingAtEndOfGame = FALSE;
+
+		gFadeOutDoneCallback = FadeOutToLaptopOnEndGame;
+
+		FadeOutGameScreen( );	
+	}
+}
+
+
+void HandleJa25EndGameAndGoToCreditsScreen( BOOLEAN fFromTactical )
+{
+	if( fFromTactical )
+	{
+		FadeToCredits( );
+	}
+	else
+	{
+		//Reset flag indicating we are in the end game sequence
+		gTacticalStatus.uiFlags &= ~IN_ENDGAME_SEQUENCE;
+
+		//We want to reinitialize the game
+		ReStartingGame();	
+	}
+}
+
+void EnterTacticalInFinalSector()
+{
+	gFadeInDoneCallback = InFinalSectorAfterFadeIn;
+
+	FadeInGameScreen( );
+}
+
+void InFinalSectorAfterFadeIn( void )
+{
+	//Have everyone start talking
+	DelayedMercQuote( NOBODY, DQ__START_EVERYONE_TALKING_AT_END_OF_GAME, GetWorldTotalSeconds() + 2 );
+}
+
+void FadeToCredits( void )
+{
+	gFadeOutDoneCallback = EndFadeToCredits;
+
+	FadeOutGameScreen( );	
+}
+
+void EndFadeToCredits( void )
+{
+	//then we can go strait to the laptop screen
+	InternalLeaveTacticalScreen( CREDIT_SCREEN );
+
+	//Reset flag indicating we are in the end game sequence
+	gTacticalStatus.uiFlags &= ~IN_ENDGAME_SEQUENCE;
+
+	//We want to reinitialize the game
+	ReStartingGame();	
+}
+
+void FadeOutToLaptopOnEndGame( void )
+{
+
+	//then we can go strait to the laptop screen
+	InternalLeaveTacticalScreen( LAPTOP_SCREEN );
+
+	//Add the end Game Emails
+	HandleAddingTheEndGameEmails();
+}
+#else  //Ja25 no queen
 
 void BeginHandleQueenBitchDeath( SOLDIERTYPE *pKillerSoldier, INT32 sGridNo, INT8 bLevel )
 {
@@ -500,5 +730,47 @@ void HandleQueenBitchDeath( SOLDIERTYPE *pKillerSoldier, INT32 sGridNo, INT8 bLe
 	giNPCReferenceCount = 0;
 	}
 }
+#endif
 
+#ifdef JA2UB
+//JA25UB
+void DoneFadeOutEndCinematic( void )
+{
+	INT32 cnt;
+	SOLDIERTYPE *pSoldier;
 
+	//Change the currently selecter sector in mapscreen
+	//ChangeSelectedMapSector( 16, 11, 0 );
+	  ChangeSelectedMapSector( gGameUBOptions.ubEndDefaultSectorX, gGameUBOptions.ubEndDefaultSectorY, gGameUBOptions.ubEndDefaultSectorZ );
+	//
+	// Loop through all the soldiers and move any of them that are in the complex to be in the safe sector near ther
+	//
+	cnt = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; cnt++,pSoldier++)
+	{       
+		// if the soldier was in the complex
+		if( pSoldier->bActive && 
+				pSoldier->sSectorX == 15 && ( pSoldier->sSectorY == 11 || pSoldier->sSectorY == 12 ) )
+		{
+			if ( GetGroup( pSoldier->ubGroupID ) )
+			{
+				//move them to the 'fake' sector
+				//PlaceGroupInSector( pSoldier->ubGroupID, 15, 11, 16, 11, 0, FALSE );
+				  PlaceGroupInSector( pSoldier->ubGroupID, 15, 11, gGameUBOptions.ubEndDefaultSectorX, gGameUBOptions.ubEndDefaultSectorY, gGameUBOptions.ubEndDefaultSectorZ, FALSE );
+			}
+			else
+			{
+				pSoldier->sSectorX = gGameUBOptions.ubEndDefaultSectorX; //16;
+				pSoldier->sSectorY = gGameUBOptions.ubEndDefaultSectorY; //11;
+				pSoldier->bSectorZ = gGameUBOptions.ubEndDefaultSectorZ; //0;
+			}
+		}
+	}
+
+	//
+	// Go watch the movies
+	//
+	InternalLeaveTacticalScreen( INTRO_SCREEN );
+	SetIntroType( INTRO_ENDING );
+}
+#endif

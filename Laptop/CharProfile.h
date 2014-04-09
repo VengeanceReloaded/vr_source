@@ -46,6 +46,21 @@ extern INT32 iPersonality;
 // attitude
 extern INT32 iAttitude;
 
+// Flugente: background
+extern UINT16 usBackground;
+
+// Flugente: sexism, racism etc.
+extern INT8	 bRace;
+extern INT8	 bNationality;
+extern INT8	 bAppearance;
+extern INT8	 bAppearanceCareLevel;
+extern INT8	 bRefinement;
+extern INT8	 bRefinementCareLevel;
+extern INT8	 bHatedNationality;
+extern INT8	 bHatedNationalityCareLevel;
+extern INT8	 bRacist;
+extern UINT8 bSexist;
+
 //addtivies
 extern INT32 iAddStrength;
 extern INT32 iAddDexterity;
@@ -85,6 +100,9 @@ enum{
 	IMP_DISABILITY_PAGE,
 	IMP_COLOR_CHOICE_PAGE,
 	IMP_MINOR_TRAITS_PAGE,
+	// added by Flugente
+	IMP_BACKGROUND,
+	IMP_PREJUDICE,
 
 	IMP_NUM_PAGES,
 };

@@ -29,7 +29,7 @@ extern UINT32	gDoCliffs;
 
 void EraseMapTile( INT32 iMapIndex );
 void QuickEraseMapTile( INT32 iMapIndex );
-void DeleteStuffFromMapTile( INT32 iMapIndex );
+void DeleteStuffFromMapTile(INT32 iMapIndex);//dnl ch86 140214
 
 void PasteDebris( INT32 iMapIndex );
 
@@ -47,7 +47,7 @@ void PasteSingleDecoration( INT32 iMapIndex );
 void PasteSingleDecal( INT32 iMapIndex );
 void PasteSingleFloor( INT32 iMapIndex );
 void PasteSingleToilet( INT32 iMapIndex );
-void PasteRoomNumber( INT32 iMapIndex, UINT8 ubRoomNumber );
+void PasteRoomNumber( INT32 iMapIndex, UINT16 usRoomNumber );
 
 void PasteSingleWallCommon( INT32 iMapIndex );
 

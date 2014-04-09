@@ -76,7 +76,7 @@ BOOLEAN MessageBoxHandled()
 {
 	InputAtom DummyEvent;
 
-	while( DequeueEvent( &DummyEvent ) )
+	while (DequeueSpecificEvent(&DummyEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 		if ( DummyEvent.usEvent == KEY_DOWN )
 		{
@@ -113,7 +113,7 @@ BOOLEAN MessageBoxHandled()
 
 void RemoveMessageBox( )
 {
-	FreeMouseCursor( );
+	FreeMouseCursor( FALSE );
 	RemoveButton( iMsgBoxCancel );
 	RemoveButton( iMsgBoxOk );
 	RemoveButton( iMsgBoxBgrnd );

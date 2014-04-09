@@ -14,6 +14,8 @@
 	#include "aimsort.h"
 	#include "Assignments.h"
 	#include "GameSettings.h"
+	#include "english.h"
+	#include "sysutil.h"
 #endif
 
 
@@ -78,6 +80,9 @@ void BtnNewProfilesButtonCallback(GUI_BUTTON *btn,INT32 reason);
 
 INT32 PAGE_BUTTON;
 
+//Hotkey Assignment
+void HandleAimFacialIndexKeyBoardInput();
+
 void GameInitAimFacialIndex()
 {
 
@@ -113,31 +118,51 @@ static STR16 GetPageButtonText()
 
 void BtnNewProfilesButtonCallback(GUI_BUTTON *btn,INT32 reason)
 {
-UINT32 i;
-
-	for(i=0; i<MAX_NUMBER_MERCS; i++)
+	if(reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
 	{
-		gAimProfiles[i] = TRUE;
+		btn->uiFlags |= BUTTON_CLICKED_ON;
+		InvalidateRegion(btn->Area.RegionTopLeftX, btn->Area.RegionTopLeftY, btn->Area.RegionBottomRightX, btn->Area.RegionBottomRightY);
 	}
+	if(reason & MSYS_CALLBACK_REASON_LBUTTON_UP )
+	{
+		if (btn->uiFlags & BUTTON_CLICKED_ON)
+		{
+			UINT32 i;
+			
+			btn->uiFlags &= (~BUTTON_CLICKED_ON );
 
-	if ( START_MERC == 0 )
-	{
-		START_MERC = 40;
-	}	
-	else if ( START_MERC == 40 )
-	{
-		if ( MAX_NUMBER_MERCS > 80 )
-			START_MERC = 80;
-		else
-			START_MERC = 0;
-	}
-	else
-	{
-		START_MERC = 0;
-	}
+			for(i=0; i<MAX_NUMBER_MERCS; i++)
+			{
+				gAimProfiles[i] = TRUE;
+			}
 
-	ExitAimFacialIndex();
-	EnterAimFacialIndex();
+			if ( START_MERC == 0 )
+			{
+				START_MERC = 40;
+			}	
+			else if ( START_MERC == 40 )
+			{
+				if ( MAX_NUMBER_MERCS > 80 )
+					START_MERC = 80;
+				else
+					START_MERC = 0;
+			}
+			else
+			{
+				START_MERC = 0;
+			}
+
+			ExitAimFacialIndex();
+			EnterAimFacialIndex();
+
+			InvalidateRegion(btn->Area.RegionTopLeftX, btn->Area.RegionTopLeftY, btn->Area.RegionBottomRightX, btn->Area.RegionBottomRightY);
+		}
+	}
+	if(reason & MSYS_CALLBACK_REASON_LOST_MOUSE)
+	{
+		btn->uiFlags &= (~BUTTON_CLICKED_ON );
+		InvalidateRegion(btn->Area.RegionTopLeftX, btn->Area.RegionTopLeftY, btn->Area.RegionBottomRightX, btn->Area.RegionBottomRightY);
+	}
 }
 
 BOOLEAN EnterAimFacialIndex()
@@ -259,6 +284,7 @@ void HandleAimFacialIndex()
 //	if( fShowBookmarkInfo )
 //		fPausedReDrawScreenFlag = TRUE;
 
+	HandleAimFacialIndexKeyBoardInput();
 }
 
 BOOLEAN RenderAimFacialIndex()
@@ -443,14 +469,12 @@ BOOLEAN DrawMercsFaceToScreen(UINT8 ubMercID, UINT16 usPosX, UINT16 usPosY, UINT
 
 		DrawTextToScreen(AimFiText[AIM_FI_DEAD], (UINT16)(usPosX+AIM_FI_AWAY_TEXT_OFFSET_X), (UINT16)(usPosY+AIM_FI_AWAY_TEXT_OFFSET_Y), AIM_FI_AWAY_TEXT_OFFSET_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
 	}
-		// VENGEANCE
-	// anv: if the merc is MIA
+	// anv: VR - if the merc is MIA
 	else if( IsMercMIA( gAimAvailability[AimMercArray[ubMercID + START_MERC]].ProfilId ) )
 	{
 		ShadowVideoSurfaceRect( FRAME_BUFFER, usPosX+AIM_FI_FACE_OFFSET, usPosY+AIM_FI_FACE_OFFSET, usPosX + 48+AIM_FI_FACE_OFFSET, usPosY + 43+AIM_FI_FACE_OFFSET);
 		DrawTextToScreen( AimFiText[AIM_FI_MIA], (UINT16)(usPosX+AIM_FI_AWAY_TEXT_OFFSET_X), (UINT16)(usPosY+AIM_FI_AWAY_TEXT_OFFSET_Y), AIM_FI_AWAY_TEXT_OFFSET_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
 	}
-	// /VENGEANCE
 	//else if the merc is currently a POW or, the merc was fired as a pow
 	//else if( gMercProfiles[ AimMercArray[ubMercID] ].bMercStatus == MERC_FIRED_AS_A_POW	|| ( pSoldier &&	pSoldier->bAssignment == ASSIGNMENT_POW ) )
 	else if( gMercProfiles[ gAimAvailability[AimMercArray[ubMercID + START_MERC]].ProfilId ].bMercStatus == MERC_FIRED_AS_A_POW	|| ( pSoldier &&	pSoldier->bAssignment == ASSIGNMENT_POW ) )
@@ -481,9 +505,92 @@ BOOLEAN DrawMercsFaceToScreen(UINT8 ubMercID, UINT16 usPosX, UINT16 usPosY, UINT
 
 
 
+void HandleAimFacialIndexKeyBoardInput()
+{
+	InputAtom					InputEvent;
+	UINT32	i;
 
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
+	{//!HandleTextInput( &InputEvent ) &&
+		if( InputEvent.usEvent == KEY_DOWN )
+		{
+			switch (InputEvent.usParam)
+			{
+				case BACKSPACE:
+				case 'q':
+					// back to AIM sorting screen
+					guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS_SORTED_FILES;
+					break;
+				case ENTER:
+				case 'e':
+					guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS;
+					break;
+				case LEFTARROW:
+				case 'a':
+					if ( MAX_NUMBER_MERCS > (AIM_FI_NUM_MUGSHOTS_X * AIM_FI_NUM_MUGSHOTS_Y) )
+					{
+						// previous page
+						for(i=0; i<MAX_NUMBER_MERCS; i++)
+						{
+							gAimProfiles[i] = TRUE;
+						}
 
+						if ( START_MERC == 40 )
+						{
+							START_MERC = 0;
+						}	
+						else if ( START_MERC == 0 )
+						{
+							if ( MAX_NUMBER_MERCS > 80 )
+								START_MERC = 80;
+							else
+								START_MERC = 40;
+						}
+						else
+						{
+							START_MERC = 40;
+						}
+					
+						ExitAimFacialIndex();
+						EnterAimFacialIndex();
+					}
+					break;
+				case RIGHTARROW:
+				case 'd':
+					if ( MAX_NUMBER_MERCS > (AIM_FI_NUM_MUGSHOTS_X * AIM_FI_NUM_MUGSHOTS_Y) )
+					{
+						// next page
+						for(i=0; i<MAX_NUMBER_MERCS; i++)
+						{
+							gAimProfiles[i] = TRUE;
+						}
 
-
+						if ( START_MERC == 0 )
+						{
+							START_MERC = 40;
+						}	
+						else if ( START_MERC == 40 )
+						{
+							if ( MAX_NUMBER_MERCS > 80 )
+								START_MERC = 80;
+							else
+								START_MERC = 0;
+						}
+						else
+						{
+							START_MERC = 0;
+						}
+					
+						ExitAimFacialIndex();
+						EnterAimFacialIndex();
+					}
+					break;
+				default:
+					HandleKeyBoardShortCutsForLapTop( InputEvent.usEvent, InputEvent.usParam, InputEvent.usKeyState );
+					break;
+			}
+		}
+	}
+}
 
 

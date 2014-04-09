@@ -14,13 +14,10 @@
 	#include "cursors.h"
 	#include "IMP MainPage.h"
 	#include "IMPVideoObjects.h"
-	#include "_Ja25EnglishText.h"
 	#include "wordwrap.h"
 	#include "CharProfile.h"
 	#include "soldier profile type.h"
-	#include "IMP Compile Character.h"
 	#include "IMP Portraits.h"
-	#include "IMP Begin Screen.h"
 	#include "WCheck.h"
 	#include "Animation Data.h"
 	#include "GameSettings.h"
@@ -386,7 +383,7 @@ void EnterIMPColorChoice( void )
 
 
 void RenderIMPColorChoice( void )
-{
+{	
 	//render the metal background graphic
 	RenderProfileBackGround();
 
@@ -400,14 +397,14 @@ void RenderIMPColorChoice( void )
 		DisplayWrappedString( LAPTOP_SCREEN_UL_X + 127, LAPTOP_SCREEN_WEB_UL_Y + 50,  ( 426 - 200 ), 2, FONT10ARIAL, 142, gzIMPColorChoosingText[2],FONT_BLACK,FALSE,CENTER_JUSTIFIED);
 
 		// title
-		DrawTextToScreen( gzIMPColorChoosingText[0], LAPTOP_SCREEN_UL_X - 111, iScreenHeightOffset + 53, ( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X ), FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+		DrawTextToScreen( gzIMPColorChoosingText[0], LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	}
 	else
 	{
 		DisplayWrappedString( LAPTOP_SCREEN_UL_X + 127, LAPTOP_SCREEN_WEB_UL_Y + 50,  ( 426 - 200 ), 2, FONT10ARIAL, 142, gzIMPColorChoosingText[3],FONT_BLACK,FALSE,CENTER_JUSTIFIED);
 
 		// title
-		DrawTextToScreen( gzIMPColorChoosingText[1], LAPTOP_SCREEN_UL_X - 111, iScreenHeightOffset + 53, ( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X ), FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+		DrawTextToScreen( gzIMPColorChoosingText[1], LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	}
 
 	// figure and frame

@@ -3,12 +3,19 @@
 
 #include "overhead types.h"
 #include "Soldier Control.h"
+#include "mapscreen.h"
 
 #define NUM_PROFILES		255 //170 new profiles by Jazz
 #define NUM_PROFILES_v111	170
 //tais: maximum amount of starting gear kits
 #define NUM_MERCSTARTINGGEAR_KITS	5
+
+#ifdef JA2UB
+#define FIRST_RPC 60	//JA25 was 59
+#else
 #define FIRST_RPC 57
+#endif
+
 #define FIRST_NPC 75
 
 #define NAME_LENGTH			30
@@ -32,6 +39,8 @@
 #define PROFILE_MISC_FLAG2_NEEDS_TO_SAY_HOSTILE_QUOTE	0x10
 #define PROFILE_MISC_FLAG2_MARRIED_TO_HICKS						0x20
 #define PROFILE_MISC_FLAG2_ASKED_BY_HICKS							0x40
+//JMich_MMG: Flag to see if gearkit cost is still unpaid for
+#define	PROFILE_MISC_FLAG2_MERC_GEARKIT_UNPAID			0x80
 
 #define	PROFILE_MISC_FLAG3_PLAYER_LEFT_MSG_FOR_MERC_AT_AIM			0x01		// In the aimscreen, the merc was away and the player left a message
 #define PROFILE_MISC_FLAG3_PERMANENT_INSERTION_CODE							0x02
@@ -71,12 +80,11 @@
 //When the merc was fired, they were a POW, make sure they dont show up in AIM, or MERC as available
 #define	MERC_FIRED_AS_A_POW										-8
 
-// VENGEANCE
+// anv: VR - MIA
 //Has a chance to turn out really dead or alive.
 #define	MERC_IS_MIA_AND_ALIVE										-9
 #define	MERC_IS_MIA_AND_DEAD										-10
 #define	MERC_IS_MIA_FOREVER											-11
-// /VENGEANCE
 
 // the values for categories of stats
 #define SUPER_STAT_VALUE 80
@@ -93,12 +101,13 @@
 // The bMercOpinion array in MERCPROFILESTRUCT below only contains 75 entries.  That
 // means profile ID#s of 75 and beyond are not valid to be used for checking morale.
 //
-namespace DontUseMeDirectly {
-	const static int MaxIDToCheckForMorale = 75;
-}
+// Flugente 16/04/2013: Done
+#define NUMBER_OF_OPINIONS_OLD	75		// for old structures, we need to keep this value. Do NOT change, or you'll be in a world of pain. I warned you.
+#define NUMBER_OF_OPINIONS		255	
+
 	
 inline bool OKToCheckOpinion(int profileNumber) {
-	return (profileNumber < DontUseMeDirectly::MaxIDToCheckForMorale);
+	return (profileNumber < NUMBER_OF_OPINIONS);
 }
 
 // SANDRO - replaced this list to represent the old traits only
@@ -158,24 +167,28 @@ typedef enum
 
 	// Flugente: new traits have to go here, even if they are major traits, as otherwise the existing traits in profiles get mixed up
 	COVERT_NT, // 20
-	DRIVER_NT, // 21
-	PILOT_NT, // 22
+	RADIO_OPERATOR_NT, //21		// a minor trait
+	SNITCH_NT, //22		// a minor trait 
 
-	// when you add new major trait here, remember to add condition to ProfileHasSkillTrait or you're fucked
-	// and TwoStagedTrait, seriously
+	// anv: VR traits
+	DRIVER_NT, // 23	// a minor trait 
+	PILOT_NT, // 24		// a majortrait 
 
 	NUM_SKILLTRAITS_NT
 } SkillTraitNew;
 
 #define NUM_MAJOR_TRAITS 11
-#define NUM_MINOR_TRAITS 11
+#define NUM_MINOR_TRAITS 13
 
 #define NUM_ORIGINAL_MAJOR_TRAITS 9
 
 // Flugente: I've had it with this hardcoding madness. Without this, adding or removing a new trait would crash anything related to a bubblehelp display of traits
 // always check every use of these enums and every use of the skill-strings if you add a new trait
-#define NEWTRAIT_MERCSKILL_EXPERTOFFSET	NUM_MAJOR_TRAITS + NUM_MINOR_TRAITS
-#define NEWTRAIT_MERCSKILL_OFFSET_ALL	NEWTRAIT_MERCSKILL_EXPERTOFFSET + NUM_MAJOR_TRAITS
+#define NEWTRAIT_MERCSKILL_EXPERTOFFSET	(NUM_MAJOR_TRAITS + NUM_MINOR_TRAITS)
+#define NEWTRAIT_MERCSKILL_OFFSET_ALL	(NEWTRAIT_MERCSKILL_EXPERTOFFSET + NUM_MAJOR_TRAITS)
+
+// Flugente: various skills that do not need a trait still need a number
+#define VARIOUSSKILLS	(2 * NEWTRAIT_MERCSKILL_EXPERTOFFSET + 2)
 
 // SANDRO - new set of character traits
 typedef enum
@@ -199,13 +212,110 @@ typedef enum
 // SANDRO - appearances
 typedef enum
 {
-	APPEARANCE_AVARAGE = 0,
+	APPEARANCE_AVERAGE = 0,
 	APPEARANCE_UGLY,
 	APPEARANCE_HOMELY,
 	APPEARANCE_ATTRACTIVE,
 	APPEARANCE_BABE,
 	NUM_APPEARANCES
 } Appearances;
+
+// Flugente - care levels
+typedef enum
+{
+	CARELEVEL_NONE = 0,
+	CARELEVEL_SOME = 1,
+	CARELEVEL_EXTREME = 2,
+
+	NUM_CARELEVELS
+} CareLevels;
+
+// Flugente - refinements
+typedef enum
+{
+	REFINEMENT_AVERAGE = 0,
+	REFINEMENT_SLOB = 1,
+	REFINEMENT_SNOB = 2,
+
+	NUM_REFINEMENT
+} Refinements;
+
+// Flugente - nationalities
+typedef enum
+{
+	// old Sirtech values
+	AMERICAN_NAT = 0,		// take that, Murica! Sirtech knew you have no value :-)
+	ARAB_NAT = 1,
+	AUSTRALIAN_NAT = 2,
+	BRITISH_NAT = 3,
+	CANADIAN_NAT = 4,
+	CUBAN_NAT = 5,
+	DANISH_NAT = 6,
+	FRENCH_NAT = 7,
+	RUSSIAN_NAT = 8,
+	NIGERIAN_NAT = 9,		// this was simply not defined in original data (I did not find any country), but we can't have any holes in here, so just invented soemthing
+	SWISS_NAT = 10,
+	JAMAICAN_NAT = 11,
+	POLISH_NAT = 12,
+	CHINESE_NAT = 13,
+	IRISH_NAT = 14,
+	SOUTH_AFRICAN_NAT = 15,
+	HUNGARIAN_NAT = 16,
+	SCOTTISH_NAT = 17,
+	ARULCAN_NAT = 18,
+	GERMAN_NAT = 19,
+	AFRICAN_NAT = 20,
+	ITALIAN_NAT = 21,
+	DUTCH_NAT = 22,
+	ROMANIAN_NAT = 23,
+	METAVIRAN_NAT = 24,
+
+	// new values, because why not
+	GREEK_NAT,		// 25
+	ESTONIAN_NAT,
+	VENEZUELAN_NAT ,
+	JAPANESE_NAT,
+	TURKISH_NAT,
+	INDIAN_NAT,		// 30
+	MEXICAN_NAT,
+	NORWEGIAN_NAT,
+	SPANISH_NAT,
+	BRASILIAN_NAT,
+	FINNISH_NAT,	// 35
+	IRANIAN_NAT,
+	ISRAELI_NAT,
+	BULGARIAN_NAT,
+	SWEDISH_NAT,
+	IRAQI_NAT,		// 40
+	SYRIAN_NAT,
+	BELGIAN_NAT,
+	PORTOGUESE_NAT,
+
+	NUM_NATIONALITIES
+} Nationalities;
+
+// Flugente - races
+typedef enum
+{
+	WHITE = 0,
+	BLACK = 1,
+	ASIAN = 2,
+	ESKIMO = 3,
+	HISPANIC = 4,
+
+	NUM_RACES
+} Races;
+
+// Flugente - racist levels
+typedef enum
+{
+	RACIST_NONE = 0,
+	RACIST_SOME = 1,
+	RACIST_VERY = 2,
+
+	NUM_RACIST
+} RacistLevels;
+
 //////////////////////////////////////////////////////////////////////
 
 typedef enum
@@ -218,6 +328,9 @@ typedef enum
 	FEAR_OF_INSECTS,
 	FORGETFUL,
 	PSYCHO,
+	// Flugente: more disabilities
+	DEAF,
+	SHORTSIGHTED,
 	NUM_DISABILITIES
 } PersonalityTrait;
 
@@ -249,20 +362,25 @@ typedef enum
 	NOT_SEXIST = 0,
 	SOMEWHAT_SEXIST,
 	VERY_SEXIST,
-	GENTLEMAN
+	GENTLEMAN,
+	NUM_SEXIST
 } SexistLevels;
 
 
 
 // training defines for evolution, no stat increase, stat decrease( de-evolve )
-typedef enum{
+typedef enum
+{
 	NORMAL_EVOLUTION =0,
 	NO_EVOLUTION,
 	DEVOLVE,
+	THREEQUARTER_EVOLUTION,
+	HALF_EVOLUTION,
+	ONEQUARTER_EVOLUTION,
 } CharacterEvolution;
 
-#define BUDDY_MERC( prof, bud ) ((prof)->bBuddy[0] == (bud) || (prof)->bBuddy[1] == (bud) || (prof)->bBuddy[2] == (bud) )
-#define HATED_MERC( prof, hat ) ((prof)->bHated[0] == (hat) || (prof)->bHated[1] == (hat) || (prof)->bHated[2] == (hat) )
+#define BUDDY_MERC( prof, bud ) ((prof)->bBuddy[0] == (bud) || (prof)->bBuddy[1] == (bud) || (prof)->bBuddy[2] == (bud) || (prof)->bBuddy[3] == (bud) || (prof)->bBuddy[4] == (bud) || ( (prof)->bLearnToLike == (bud) && (prof)->bLearnToLikeCount == 0 ) )
+#define HATED_MERC( prof, hat ) ((prof)->bHated[0] == (hat) || (prof)->bHated[1] == (hat) || (prof)->bHated[2] == (hat) || (prof)->bHated[3] == (hat) || (prof)->bHated[4] == (hat) || ( (prof)->bLearnToHate == (hat) && (prof)->bLearnToHateCount == 0 ) )
 
 #define BUDDY_OPINION +25
 #define HATED_OPINION -25
@@ -278,6 +396,7 @@ public:
 	UINT16	usKillsAdmins;
 	UINT16  usKillsHostiles;
 	UINT16	usKillsCreatures;
+	UINT16  usKillsZombies;
 	UINT16	usKillsTanks;
 	UINT16	usKillsOthers;
 
@@ -353,6 +472,7 @@ public:
 	UINT16		mIndex;
 	INT16		PriceModifier;
 	INT16		AbsolutePrice;
+	CHAR16		mGearKitName[80];
 	CHAR8		mName[80];
 	char		endOfPOD;	// marker for end of POD (plain old data)
 	std::vector<int>	inv;
@@ -529,8 +649,7 @@ public:
 	INT8 bTownAttachment;
 	UINT16 usOptionalGearCost;
 	
-	// See above note near the definition of MaxIDToCheckForMorale
-	INT8 bMercOpinion[DontUseMeDirectly::MaxIDToCheckForMorale];
+	INT8 bMercOpinion[NUMBER_OF_OPINIONS_OLD];	// Flugente: old value has to be kept for compatibility. Do not change, or you'll be in a world of pain
 
 	INT8 bApproached;
 	INT8 bMercStatus;								//The status of the merc.	If negative, see flags at the top of this file.	Positive:	The number of days the merc is away for.	0:	Not hired but ready to be.
@@ -738,7 +857,9 @@ public:
 	INT8		bMechanical;
 
 	UINT8	ubInvUndroppable;
-	UINT8	ubRoomRangeStart[2];
+	//DBrot: More Rooms
+	//UINT8	ubRoomRangeStart[2];
+	UINT16 usRoomRangeStart[2];
 	INT8 bMercTownReputation[ 20 ];
 
 	UINT16 usStatChangeChances[ 12 ];		// used strictly for balancing, never shown!
@@ -746,7 +867,8 @@ public:
 
 	UINT8	ubStrategicInsertionCode;
 
-	UINT8	ubRoomRangeEnd[2];
+	//UINT8	ubRoomRangeEnd[2];
+	UINT16 usRoomRangeEnd[2];
 
 	UINT8 ubLastQuoteSaid;
 	
@@ -773,7 +895,7 @@ public:
 	INT8 bTown;
 	INT8 bTownAttachment;
 	UINT16 usOptionalGearCost;
-	INT8 bMercOpinion[75];
+	INT8 bMercOpinion[NUMBER_OF_OPINIONS];
 	INT8 bApproached;
 	INT8 bMercStatus;								//The status of the merc.	If negative, see flags at the top of this file.	Positive:	The number of days the merc is away for.	0:	Not hired but ready to be.
 	INT8 bHatedTime[5];
@@ -829,6 +951,15 @@ public:
 
 	// SANDRO - merc records
 	STRUCT_Records		records;
+
+	// Flugente: background
+	UINT16 usBackground;
+
+	// anv: for snitches, remember if he was exposed and by how many people (could be used for covert purposes too)
+	//UINT8	ubExposedInSector[MAP_WORLD_X * MAP_WORLD_Y];
+
+	// anv: simplified ubExposedInSector, hours until snitch can go undercover after exposition
+	UINT8 ubSnitchExposedCooldown;
 
 }; // MERCPROFILESTRUCT;
 
@@ -987,8 +1118,7 @@ public:
 	INT8 bTownAttachment;
 	UINT16 usOptionalGearCost;
 	
-	// See above note near the definition of MaxIDToCheckForMorale
-	INT8 bMercOpinion[DontUseMeDirectly::MaxIDToCheckForMorale];
+	INT8 bMercOpinion[NUMBER_OF_OPINIONS_OLD];	// Flugente: old value has to be kept for compatibility. Do not change, or you'll be in a world of pain
 
 	INT8 bApproached;
 	INT8 bMercStatus;								//The status of the merc.	If negative, see flags at the top of this file.	Positive:	The number of days the merc is away for.	0:	Not hired but ready to be.
@@ -1047,5 +1177,212 @@ public:
 
 #define SUSPICIOUS_DEATH				1
 #define VERY_SUSPICIOUS_DEATH		2
+
+
+#ifdef WFconvertUB
+
+typedef struct
+{
+	UINT16	zName[ NAME_LENGTH ];
+	UINT16	zNickname[ NICKNAME_LENGTH ];
+	UINT32	uiAttnSound;
+	UINT32	uiCurseSound;
+	UINT32	uiDieSound;
+	UINT32	uiGoodSound;
+	UINT32	uiGruntSound;
+	UINT32	uiGrunt2Sound;
+	UINT32  uiOkSound;
+	UINT8		ubFaceIndex;
+	PaletteRepID		PANTS;
+	PaletteRepID		VEST;
+	PaletteRepID		SKIN;
+	PaletteRepID		HAIR;
+	INT8		bSex;
+	INT8		bArmourAttractiveness;
+	UINT8		ubMiscFlags2;
+	INT8		bEvolution;
+	UINT8		ubMiscFlags;
+	UINT8		bSexist;
+	INT8		bLearnToHate;
+
+	// skills
+	INT8		bStealRate;
+	INT8		bVocalVolume;
+	UINT8		ubQuoteRecord;
+	INT8		bDeathRate;
+	INT8		bScientific;
+
+	INT16		sExpLevelGain;
+	INT16		sLifeGain;
+	INT16		sAgilityGain;
+	INT16		sDexterityGain;
+	INT16		sWisdomGain;
+	INT16		sMarksmanshipGain;
+	INT16		sMedicalGain;
+	INT16		sMechanicGain;
+	INT16		sExplosivesGain;
+
+	UINT8		ubBodyType;
+	INT8		bMedical;
+
+	UINT16	usEyesX;
+	UINT16	usEyesY;
+	UINT16	usMouthX;
+	UINT16	usMouthY;
+	UINT32	uiEyeDelay;
+	UINT32	uiMouthDelay;
+	UINT32	uiBlinkFrequency;
+	UINT32	uiExpressionFrequency;
+	UINT16	sSectorX;
+	UINT16	sSectorY;
+
+	UINT32	uiDayBecomesAvailable;			//day the merc will be available.  used with the bMercStatus
+
+	INT8		bStrength;
+
+	INT8		bLifeMax;
+	INT8		bExpLevelDelta;
+	INT8		bLifeDelta;
+	INT8		bAgilityDelta;
+	INT8		bDexterityDelta;
+	INT8		bWisdomDelta;
+	INT8		bMarksmanshipDelta;
+	INT8		bMedicalDelta;
+	INT8		bMechanicDelta;
+	INT8		bExplosivesDelta;
+	INT8    bStrengthDelta;
+	INT8    bLeadershipDelta;
+	UINT16  usKills;
+	UINT16  usAssists;
+	UINT16  usShotsFired;
+	UINT16  usShotsHit;
+	UINT16  usBattlesFought;
+	UINT16  usTimesWounded;
+	UINT16  usTotalDaysServed;
+
+	INT16		sLeadershipGain;
+	INT16		sStrengthGain;
+
+
+
+	// BODY TYPE SUBSITUTIONS
+	UINT32	uiBodyTypeSubFlags;
+
+	INT16	sSalary;
+	INT8	bLife;
+	INT8		bDexterity;		// dexterity (hand coord) value
+	INT8	bPersonalityTrait;
+	INT8	bSkillTrait;
+
+	INT8	bReputationTolerance;
+	INT8	bExplosive;
+	INT8	bSkillTrait2;
+	INT8	bLeadership;
+
+	INT8	bBuddy[5];
+	INT8	bHated[5];
+	INT8	bExpLevel;		// general experience level
+
+	INT8	bMarksmanship;
+	UINT8	bMinService;
+	INT8	bWisdom;
+	UINT8	bResigned;
+	UINT8	bActive;
+
+	UINT8	bInvStatus[19];
+	UINT8 bInvNumber[19];
+	UINT16 usApproachFactor[4];
+
+	INT8	bMainGunAttractiveness;
+	INT8		bAgility;			// agility (speed) value
+
+	BOOLEAN	fUseProfileInsertionInfo;				// Set to various flags, ( contained in TacticalSave.h )
+	INT16		sGridNo;												// The Gridno the NPC was in before leaving the sector
+	UINT8		ubQuoteActionID;
+	INT8		bMechanical;
+
+	UINT8	ubInvUndroppable;
+	UINT8	ubRoomRangeStart[2];
+	UINT16 inv[19];
+	INT8 bMercTownReputation[ 20 ];
+
+	UINT16 usStatChangeChances[ 12 ];		// used strictly for balancing, never shown!
+	UINT16 usStatChangeSuccesses[ 12 ];	// used strictly for balancing, never shown!
+
+	UINT8	ubStrategicInsertionCode;
+
+	UINT8	ubRoomRangeEnd[2];
+
+	INT8 bPadding[ 4 ];
+
+	UINT8 ubLastQuoteSaid;
+
+	INT8 bRace;
+	INT8 bNationality;
+	INT8 bAppearance;
+	INT8 bAppearanceCareLevel;
+	INT8 bRefinement;
+	INT8 bRefinementCareLevel;
+	INT8 bHatedNationality;
+	INT8 bHatedNationalityCareLevel;
+	INT8 bRacist;
+	UINT32 uiWeeklySalary;
+	UINT32 uiBiWeeklySalary;
+	INT8 bMedicalDeposit;
+	INT8 bAttitude;
+	INT8 bBaseMorale;
+	UINT16 sMedicalDepositAmount;
+
+	INT8 bLearnToLike;
+	UINT8 ubApproachVal[4];
+	UINT8 ubApproachMod[3][4];
+	INT8 bTown;
+	INT8 bTownAttachment;
+	UINT16 usOptionalGearCost;
+	INT8 bMercOpinion[NUMBER_OF_OPINIONS];
+	INT8 bApproached;
+	INT8 bMercStatus;								//The status of the merc.  If negative, see flags at the top of this file.  Positive:  The number of days the merc is away for.  0:  Not hired but ready to be.
+	INT8 bHatedTime[5];
+	INT8 bLearnToLikeTime;
+	INT8 bLearnToHateTime;
+	INT8 bHatedCount[5];
+	INT8 bLearnToLikeCount;
+	INT8 bLearnToHateCount;
+	UINT8 ubLastDateSpokenTo;
+	UINT8 bLastQuoteSaidWasSpecial;
+	INT8	bSectorZ;
+	UINT16 usStrategicInsertionData;
+	INT8 bFriendlyOrDirectDefaultResponseUsedRecently;
+	INT8 bRecruitDefaultResponseUsedRecently;
+	INT8 bThreatenDefaultResponseUsedRecently;
+	INT8 bNPCData;			// NPC specific
+	INT32	iBalance;
+	INT16 sTrueSalary; // for use when the person is working for us for free but has a positive salary value
+	UINT8	ubCivilianGroup;
+	UINT8	ubNeedForSleep;
+	UINT32	uiMoney;
+	INT8	bNPCData2;		// NPC specific
+
+	UINT8	ubMiscFlags3;
+
+	UINT8 ubDaysOfMoraleHangover;		// used only when merc leaves team while having poor morale
+	UINT8	ubNumTimesDrugUseInLifetime;		// The # times a drug has been used in the player's lifetime...
+
+	// Flags used for the precedent to repeating oneself in Contract negotiations.  Used for quote 80 -  ~107.  Gets reset every day
+	UINT32	uiPrecedentQuoteSaid;
+	UINT32	uiProfileChecksum;
+	INT16		sPreCombatGridNo;
+	UINT8		ubTimeTillNextHatedComplaint;
+	UINT8		ubSuspiciousDeath;
+
+	INT32	iMercMercContractLength;		//Used for MERC mercs, specifies how many days the merc has gone since last page
+
+	UINT32	uiTotalCostToDate;			// The total amount of money that has been paid to the merc for their salary
+
+	UINT16	usTotalKills;						// total kills the player has had ( only used if the player imported the mercs from ja2 )
+	UINT16	usTotalAssists;					// total assists the player has had ( only used if the player imported the mercs from ja2 )
+} MERCPROFILESTRUCT_OLD_WF;
+
+#endif
 
 #endif

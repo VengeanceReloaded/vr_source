@@ -19,6 +19,14 @@ extern int MAP_ITEMDESC_START_X;
 // HEADROCK HAM B2.7: Moved here from Strategicmap.cpp to allow use by MilitiaSquads.cpp
 
 extern BOOLEAN	gfMilitiaAllowedInTown	[ MAX_TOWNS ];
+
+// Country name identifiers
+enum
+{
+	COUNTRY_NAME,
+	COUNTRY_NOUN,
+} ;
+
 // Sector name identifiers
 enum Towns
 {
@@ -84,6 +92,7 @@ void CancelPathsOfAllSelectedCharacters();
 INT32 GetPathTravelTimeDuringPlotting( PathStPtr pPath );
 
 void AbortMovementPlottingMode( void );
+void CancelChangeArrivalSectorMode( void );
 
 void ExplainWhySkyriderCantFly( void );
 

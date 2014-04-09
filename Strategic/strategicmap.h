@@ -4,6 +4,7 @@
 #include "types.h"
 #include "soldier control.h"
 #include "FileMan.h"
+
 #include "mapscreen.h"
 
 //The maximum size for any team strategically speaking.	For example, we can't have more than 20 enemies, militia, or creatures at a time.
@@ -43,13 +44,15 @@ extern UINT8	NUMBER_OF_SAMS;
 extern INT16 pSamList[ MAX_NUMBER_OF_SAMS ];
 extern INT32 pSamGridNoAList[ MAX_NUMBER_OF_SAMS ];
 extern INT32 pSamGridNoBList[ MAX_NUMBER_OF_SAMS ];
+extern INT16 gpSamSectorX[ MAX_NUMBER_OF_SAMS ];
+extern INT16 gpSamSectorY[ MAX_NUMBER_OF_SAMS ];
 
 extern BOOLEAN fFoundOrta;
 extern BOOLEAN fSamSiteFound[ MAX_NUMBER_OF_SAMS ];
 
 extern	BOOLEAN		gfUseAlternateMap;
 
-
+/* Buggler: used externalized gpSamSectorX[ MAX_NUMBER_OF_SAMS ] values instead of hardcoded ones
 // SAM sites
 #define SAM_1_X 2
 #define SAM_2_X 15
@@ -60,6 +63,7 @@ extern	BOOLEAN		gfUseAlternateMap;
 #define SAM_2_Y 4
 #define SAM_3_Y 9
 #define SAM_4_Y 14
+*/
 
 // min condition for sam site to be functional
 #define MIN_CONDITION_FOR_SAM_SITE_TO_WORK 80
@@ -150,9 +154,13 @@ UINT8 GetMilitiaCountAtLevelAnywhereInTown( UINT8 ubTownValue, UINT8 ubLevelValu
 
 void PrepareLoadedSector();
 
+
+#ifdef JA2UB
+// no JA2 UB
+#else
 // handle for slay...no better place to really put this stuff
 void HandleSlayDailyEvent( void );
-
+#endif
 
 void HandleQuestCodeOnSectorEntry( INT16 sNewSectorX, INT16 sNewSectorY, INT8 bNewSectorZ );
 
@@ -195,5 +203,14 @@ extern INT8 gbGreenToElitePromotions;
 extern INT8 gbGreenToRegPromotions;
 extern INT8 gbRegToElitePromotions;
 extern INT8 gbMilitiaPromotions;
+
+#ifdef JA2UB
+void 	BeginLoadScreen();
+
+//ja25 UB
+void HandleSectorSpecificModificatioToMap( INT16 sMapX, INT16 sMapY, INT8 bMapZ, BOOLEAN fLoadingSavedGame );
+
+void HandleEmailBeingSentWhenEnteringSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, BOOLEAN fLaptopJustGotFixed );
+#endif
 
 #endif

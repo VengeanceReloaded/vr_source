@@ -4,22 +4,18 @@
 	#include "sgp.h"
 	#include "Game Clock.h"
 	#include "Font Control.h"
-	#include "render dirty.h"
 	#include "Timer Control.h"
 	#include "overhead.h"
-	#include "environment.h"
 	#include "Game Clock.h"
 	#include "message.h"
 	#include "worlddef.h"
 	#include "rotting corpses.h"
 	#include "soldier create.h"
 	#include "soldier add.h"
-	#include "strategic turns.h"
 	#include "isometric utils.h"
 	#include "animation data.h"
 	#include "animation control.h"
 	#include "Tactical Turns.h"
-	#include "points.h"
 	#include "smell.h"
 	#include "opplist.h"
 	#include "Queen Command.h"
@@ -40,7 +36,10 @@ extern void DecayPublicOpplist( INT8 bTeam );
 //not in overhead.h!
 extern UINT8 NumEnemyInSector();
 
+#ifdef JA2UB
 
+//no uB
+#else
 
 void HandleRPCDescription(	)
 {
@@ -136,7 +135,7 @@ void HandleRPCDescription(	)
 		}
 	}
 }
-
+#endif
 
 void HandleTacticalEndTurn( )
 {
@@ -147,6 +146,9 @@ void HandleTacticalEndTurn( )
 
 	// OK, Do a number of things here....
 	// Every few turns......
+
+	SetFastForwardMode(FALSE); // Cancel FF at end of battle
+	SetClockSpeedPercent(gGameExternalOptions.fClockSpeedPercent);	// sevenfm: set default clock speed
 
 	// Get time elasped
 	uiTime = GetWorldTotalSeconds( );
@@ -174,11 +176,14 @@ void HandleTacticalEndTurn( )
 	// decay AI warning values from corpses
 	DecayRottingCorpseAIWarnings();
 
-	//Check for enemy pooling (add enemies if there happens to be more than the max in the
-	//current battle.	If one or more slots have freed up, we can add them now.
-	AddPossiblePendingEnemiesToBattle();
-
-	AddPossiblePendingMilitiaToBattle();
+	if(gGameExternalOptions.gfAllowReinforcements)//dnl ch68 100913
+	{
+		((gTacticalStatus.Team[ENEMY_TEAM].bTeamActive || gTacticalStatus.Team[MILITIA_TEAM].bTeamActive) ? (guiTurnCnt++) : (guiTurnCnt = 0));
+		//Check for enemy pooling (add enemies if there happens to be more than the max in the
+		//current battle.	If one or more slots have freed up, we can add them now.
+		AddPossiblePendingEnemiesToBattle();
+		AddPossiblePendingMilitiaToBattle();
+	}
 
 	// Loop through each active team and decay public opplist...
 	// May want this done every few times too
@@ -235,6 +240,9 @@ void HandleTacticalEndTurn( )
 				//{
 				////	UpdateStats( pSoldier );
 				//}
+								
+				// Flugente: update multi-turn actions
+				pSoldier->UpdateMultiTurnAction();
 			}
 		}
 
@@ -260,9 +268,22 @@ void HandleTacticalEndTurn( )
 			}
 		}
 	}
-
+#ifdef JA2UB
+//	HandleRPCDescription( );
+#else
 	HandleRPCDescription( );
+#endif
 
+	// Flugente: Cool down/decay all items not in a soldier's inventory
+	CoolDownWorldItems();
+
+#ifdef ENABLE_ZOMBIES
+	// Flugente: raise zombies if in gamescreen and option set
+	if ( guiCurrentScreen == GAME_SCREEN )
+	{
+		RaiseZombies();
+	}
+#endif
 }
 
 

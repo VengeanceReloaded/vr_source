@@ -19,19 +19,15 @@
 	#include "Strategic Town Loyalty.h"
 	#include "Soldier Init List.h"
 	#include "SaveLoadMap.h"
-	#include "Worldman.h"
 	#include "Soldier Create.h"
 	#include "Soldier Add.h"
-	#include "Opplist.h"
 	#include "Renderworld.h"
 	#include "Soldier Profile.h"
 	#include "email.h"
 	#include "strategic.h"
-	#include "structure wrap.h"
 	#include "GameSettings.h"
 	#include "history.h"
 #endif
-#include "BobbyRMailOrder.h"
 
 #include "Luaglobal.h"
 #include "connect.h"
@@ -419,13 +415,17 @@ void BobbyRayPurchaseEventCallback( UINT8 ubOrderID )
 
 void HandleDelayedItemsArrival( UINT32 uiReason )
 {
+
+//	LuaHandleDelayedItemsArrival( uiReason, 0);
+
 	// This function moves all the items that Pablos has stolen
 	// (or items that were delayed) to the arrival location for new shipments,
 	INT32			sStartGridNo;
 	UINT32		uiNumWorldItems, uiLoop;
 	BOOLEAN		fOk;
-	WORLDITEM * pTemp = 0;
+	std::vector<WORLDITEM> pTemp;//dnl ch75 271013
 	UINT8			ubLoop;
+
 	if (uiReason == NPC_SYSTEM_EVENT_ACTION_PARAM_BONUS + NPC_ACTION_RETURN_STOLEN_SHIPMENT_ITEMS )
 	{
 		if ( gMercProfiles[ PABLO ].bMercStatus == MERC_IS_DEAD )
@@ -501,11 +501,7 @@ void HandleDelayedItemsArrival( UINT32 uiReason )
 		{
 			return;
 		}
-		pTemp = new WORLDITEM[	uiNumWorldItems];
-		if (!pTemp)
-		{
-			return;
-		}
+		pTemp.resize(uiNumWorldItems);//dnl ch75 271013
 		fOk = LoadWorldItemsFromTempItemFile( BOBBYR_SHIPPING_DEST_SECTOR_X, BOBBYR_SHIPPING_DEST_SECTOR_Y, BOBBYR_SHIPPING_DEST_SECTOR_Z, pTemp );
 		if (fOk)
 		{
@@ -519,23 +515,24 @@ void HandleDelayedItemsArrival( UINT32 uiReason )
 			AddWorldItemsToUnLoadedSector( BOBBYR_SHIPPING_DEST_SECTOR_X, BOBBYR_SHIPPING_DEST_SECTOR_Y, BOBBYR_SHIPPING_DEST_SECTOR_Z, 0, uiNumWorldItems, pTemp, TRUE );
 		}
 	}
-
-	if (pTemp) {
-		delete [] pTemp;
-	}
-
 }
 
 void AddSecondAirportAttendant( void )
 {
+
+//LetLuaHandleEarlyMorningEvents(2);
+//#if 0
 	// add the second airport attendant to the Drassen airport...
 	gMercProfiles[99].sSectorX = BOBBYR_SHIPPING_DEST_SECTOR_X;
 	gMercProfiles[99].sSectorY = BOBBYR_SHIPPING_DEST_SECTOR_Y;
 	gMercProfiles[99].bSectorZ = BOBBYR_SHIPPING_DEST_SECTOR_Z;
+//#endif
 }
 
 void SetPabloToUnbribed( void )
 {
+//	LetLuaHandleEarlyMorningEvents(3);
+//#if 0
 	if (guiPabloExtraDaysBribed > 0)
 	{
 		// set new event for later on, because the player gave Pablo more money!
@@ -546,10 +543,13 @@ void SetPabloToUnbribed( void )
 	{
 		SetFactFalse( FACT_PABLOS_BRIBED );
 	}
+//#endif
 }
 
 void HandlePossiblyDamagedPackage( void )
 {
+//	LetLuaHandleEarlyMorningEvents(1);
+//#if 0
 	if (Random( 100 ) < 70)
 	{
 		SetFactTrue( FACT_PACKAGE_DAMAGED );
@@ -562,10 +562,14 @@ void HandlePossiblyDamagedPackage( void )
 	}
 	// whatever happened, the shipment is no longer delayed
 	SetFactFalse( FACT_SHIPMENT_DELAYED_24_HOURS );
+//#endif
 }
 
 void CheckForKingpinsMoneyMissing( BOOLEAN fFirstCheck )
 {
+
+//	LuaCheckForKingpinsMoneyMissing ( fFirstCheck , 0 );
+//#if 0
 	UINT32				uiLoop;
 	UINT32				uiTotalCash = 0;
 	BOOLEAN				fKingpinWillDiscover = FALSE, fKingpinDiscovers = FALSE;
@@ -644,11 +648,14 @@ void CheckForKingpinsMoneyMissing( BOOLEAN fFirstCheck )
 		// he sends email to the player
 		AddFutureDayStrategicEvent( EVENT_SET_BY_NPC_SYSTEM, Random( 120 ), FACT_KINGPIN_KNOWS_MONEY_GONE, 2 );
 	}
-
+//#endif
 }
 
 void HandleNPCSystemEvent( UINT32 uiEvent )
 {
+
+//   LetLuaHandleNPCSystemEvent( uiEvent, 0 );
+//#if 0
 	if (uiEvent < NPC_SYSTEM_EVENT_ACTION_PARAM_BONUS)
 	{
 		switch( uiEvent )
@@ -687,8 +694,13 @@ void HandleNPCSystemEvent( UINT32 uiEvent )
 					{
 						// KP knows money is gone, hasn't told player, if this event is called then the 2
 						// days are up... send email
-						AddEmail( KING_PIN_LETTER, KING_PIN_LETTER_LENGTH, KING_PIN, GetWorldTotalMin(), -1, -1 );
-						StartQuest( QUEST_KINGPIN_MONEY, 5, MAP_ROW_D );
+
+#ifdef JA2UB
+// no UB
+#else						
+						AddEmail( KING_PIN_LETTER, KING_PIN_LETTER_LENGTH, KING_PIN, GetWorldTotalMin(), -1, -1 , TYPE_EMAIL_EMAIL_EDT );
+#endif
+						StartQuest( QUEST_KINGPIN_MONEY, gMercProfiles[ KINGPIN ].sSectorX, gMercProfiles[ KINGPIN ].sSectorY );
 						// add event to send terrorists two days from now
 						AddFutureDayStrategicEvent( EVENT_SET_BY_NPC_SYSTEM, Random( 120 ), FACT_KINGPIN_KNOWS_MONEY_GONE, 2 );
 					}
@@ -697,8 +709,9 @@ void HandleNPCSystemEvent( UINT32 uiEvent )
 						// knows money gone, quest is still in progress
 						// event indicates Kingpin can start to send terrorists
 						SetFactTrue( FACT_KINGPIN_CAN_SEND_ASSASSINS );
-						gMercProfiles[ SPIKE ].sSectorX = 5;
-						gMercProfiles[ SPIKE ].sSectorY = MAP_ROW_C;
+						gMercProfiles[ SPIKE ].sSectorX = gModSettings.ubSpikeNewSectorX; //5
+						gMercProfiles[ SPIKE ].sSectorY = gModSettings.ubSpikeNewSectorY; //MAP_ROW_C
+						gMercProfiles[ SPIKE ].bSectorZ = gModSettings.ubSpikeNewSectorZ; //0
 						gTacticalStatus.fCivGroupHostile[ KINGPIN_CIV_GROUP ] = CIV_GROUP_WILL_BECOME_HOSTILE;
 					}
 				}
@@ -763,9 +776,9 @@ void HandleNPCSystemEvent( UINT32 uiEvent )
 			case NPC_ACTION_ADD_JOEY_TO_WORLD:
 				// If Joey is not dead, escorted, or already delivered
 				if ( gMercProfiles[ JOEY ].bMercStatus != MERC_IS_DEAD && !CheckFact( FACT_JOEY_ESCORTED, 0 ) &&
-					gMercProfiles[ JOEY ].sSectorX == 4 &&
-					gMercProfiles[ JOEY ].sSectorY == MAP_ROW_D &&
-					gMercProfiles[ JOEY ].bSectorZ == 1 )
+					gMercProfiles[ JOEY ].sSectorX == gModSettings.ubJoeyPrimarySectorX && //4
+					gMercProfiles[ JOEY ].sSectorY == gModSettings.ubJoeyPrimarySectorY && //MAP_ROW_D
+					gMercProfiles[ JOEY ].bSectorZ == gModSettings.ubJoeyPrimarySectorZ ) //1
 				{
 					SOLDIERTYPE * pJoey;
 
@@ -778,15 +791,19 @@ void HandleNPCSystemEvent( UINT32 uiEvent )
 					else
 					{
 						// move Joey from caves to San Mona
-						gMercProfiles[ JOEY ].sSectorX = 5;
-						gMercProfiles[ JOEY ].sSectorY = MAP_ROW_C;
-						gMercProfiles[ JOEY ].bSectorZ = 0;
+						gMercProfiles[ JOEY ].sSectorX = gModSettings.ubJoeyAlternateSectorX; //5
+						gMercProfiles[ JOEY ].sSectorY = gModSettings.ubJoeyAlternateSectorY; //MAP_ROW_C
+						gMercProfiles[ JOEY ].bSectorZ = gModSettings.ubJoeyAlternateSectorZ; //0
 					}
 				}
 				break;
 
 			case NPC_ACTION_SEND_ENRICO_MIGUEL_EMAIL:
-				AddEmail( ENRICO_MIGUEL, ENRICO_MIGUEL_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1 );
+#ifdef JA2UB
+// no UB
+#else
+				AddEmail( ENRICO_MIGUEL, ENRICO_MIGUEL_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1 , TYPE_EMAIL_EMAIL_EDT);
+#endif
 				break;
 
 			case NPC_ACTION_TIMER_FOR_VEHICLE:
@@ -801,6 +818,8 @@ void HandleNPCSystemEvent( UINT32 uiEvent )
 				break;
 		}
 	}
+	
+//#endif
 }
 
 void HandleEarlyMorningEvents( void )
@@ -955,6 +974,23 @@ void HandleEarlyMorningEvents( void )
 		gMercProfiles[ RAT ].bSectorZ = 0;
 	}
 
+	// Does John leave country after quest completion?
+	if ( gubQuest[ QUEST_ESCORT_TOURISTS ] == QUESTDONE && (gMercProfiles[ JOHN ].sSectorX == 13) &&
+		(gMercProfiles[ JOHN ].sSectorY == MAP_ROW_B) && (gMercProfiles[ JOHN ].bSectorZ == 0) )
+	{
+		gMercProfiles[ JOHN ].sSectorX = 0;
+		gMercProfiles[ JOHN ].sSectorY = 0;
+		gMercProfiles[ JOHN ].bSectorZ = 0;
+	}
+
+	// Does Mary leave country after quest completion?
+	if ( gubQuest[ QUEST_ESCORT_TOURISTS ] == QUESTDONE && (gMercProfiles[ MARY ].sSectorX == 13) &&
+		(gMercProfiles[ MARY ].sSectorY == MAP_ROW_B) && (gMercProfiles[ MARY ].bSectorZ == 0) )
+	{
+		gMercProfiles[ MARY ].sSectorX = 0;
+		gMercProfiles[ MARY ].sSectorY = 0;
+		gMercProfiles[ MARY ].bSectorZ = 0;
+	}
 
 	// Empty money from pockets of Vince 69, Willis 80, and Jenny 132
 	SetMoneyInSoldierProfile( VINCE, 0 );

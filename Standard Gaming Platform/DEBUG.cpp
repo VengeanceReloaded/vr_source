@@ -25,14 +25,10 @@
 
 	#include "types.h"
 	#include <windows.h>
-	#include <ddeml.h>
 	#include <stdio.h>
 	#include <string>
 	#include <sstream>
 	#include "debug.h"
-	#include "WCheck.h"
-	#include "TopicIDs.h"
-	#include "TopicOps.h"
 	#include "WizShare.h"
 
 	//Kris addition
@@ -423,7 +419,7 @@ void _FailMessage(const char* message, unsigned lineNum, const char * functionNa
 	basicInformation << " in file " << sourceFileName << "]";
 
 	std::stringstream outputString;
-	outputString << "{ " << GetTickCount() << " } " << basicInformation;
+	outputString << "{ " << GetTickCount() << " } " << basicInformation.str();
 
 	//Build the output strings
 	if( message )

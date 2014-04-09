@@ -20,13 +20,23 @@ typedef struct
 	INT32 IconY;
 }	ICON_FILE;
 
+typedef struct
+{
+	UINT32 uiIndex;
+	CHAR16 sType[50];
+	UINT16 Type;
+	CHAR16 sMinerals[50];
+	
+} MINERALS_VALUES;
+
+extern MINERALS_VALUES MineralsName[255];
+
 extern ICON_FILE gHiddenIcon[ 256 ];
 
 extern UINT32	guiIcon2[256];
 
 extern BOOLEAN LoadHiddenTownFromLoadGameFile( HWFILE hFile );
 extern BOOLEAN SaveHiddenTownToSaveGameFile( HWFILE hFile );
-
 
 void GetScreenXYFromMapXY( INT16 sMapX, INT16 sMapY, INT16 *psX, INT16 *psY );
 void GetScreenXYFromMapXYStationary( INT16 sMapX, INT16 sMapY, INT16 *psX, INT16 *psY );
@@ -99,6 +109,7 @@ void RestoreClipRegionToFullScreenForRectangle( UINT32 uiDestPitchBYTES );
 
 // show the icons for people in motion
 void ShowPeopleInMotion( INT16 sX, INT16 sY );
+void ShowEnemyGroupsInMotion( INT16 sX, INT16 sY);
 
 // last sector in helicopter's path
 INT16 GetLastSectorOfHelicoptersPath( void );
@@ -160,7 +171,9 @@ enum {
 enum {
 	KNOWS_NOTHING = 0,
 	KNOWS_THEYRE_THERE,
+	KNOWS_THEYRE_THERE_AND_WHERE_GOING,
 	KNOWS_HOW_MANY,
+	KNOWS_HOW_MANY_AND_WHERE_GOING,
 };
 
 
@@ -205,6 +218,7 @@ extern UINT16 MAP_HELICOPTER_ETA_POPUP_Y;
 extern UINT16 MAP_HELICOPTER_UPPER_ETA_POPUP_Y;
 extern UINT16 MAP_HELICOPTER_ETA_POPUP_WIDTH;
 extern UINT16 MAP_HELICOPTER_ETA_POPUP_HEIGHT;
+extern UINT16 MAP_HELICOPTER_ETA_POPUP_ALTERNATE_HEIGHT;
 
 // sublevel text string position
 extern UINT16 MAP_LEVEL_STRING_X;
@@ -229,8 +243,8 @@ extern UINT16 MAP_LEVEL_STRING_Y;
 #define ORTA_SECTOR_X 4
 #define ORTA_SECTOR_Y 11
 
-#define TIXA_SECTOR_X 9
-#define TIXA_SECTOR_Y 10
+#define TIXA_SECTOR_X		gModSettings.ubTixaPrisonSectorX //9
+#define TIXA_SECTOR_Y		gModSettings.ubTixaPrisonSectorY //10
 
 // what are we showing?..teams/vehicles
 // Show values
@@ -274,7 +288,8 @@ extern UINT32 guiBULLSEYE;
 
 // character between sector icons
 extern UINT32 guiCHARBETWEENSECTORICONS;
-extern UINT32 guiCHARBETWEENSECTORICONSCLOSE;
+// HEADROCK HAM 5: Enemies Between Sectors icons
+extern UINT32 guiENEMYBETWEENSECTORICONS;
 
 // the viewable map bound region
 extern SGPRect MapScreenRect;
@@ -297,6 +312,9 @@ extern INT8 bSelectedContractChar;
 // map arrows graphical index value
 extern UINT32 guiMAPCURSORS;
 
+// HEADROCK HAM 5: New pathing arrows may replace the above eventually, but for now a separate variable will do.
+extern UINT32 guiMapPathingArrows;
+
 // has temp path for character path or helicopter been already drawn
 extern BOOLEAN	fTempPathAlreadyDrawn;
 
@@ -308,6 +326,9 @@ extern UINT32 guiMapBorderEtaPopUp;
 
 // heli pop up 
 extern UINT32 guiMapBorderHeliSectors;
+
+// anv: alternate heli pop up for alternative fuel system
+extern UINT32 guiMapBorderHeliSectorsAlternate;
 
 // the currently selected town militia
 extern INT16 sSelectedMilitiaTown;
@@ -323,5 +344,9 @@ extern UINT32 guiSubLevel1, guiSubLevel2, guiSubLevel3;
 
 extern INT16 sBaseSectorList[ MAX_TOWNS - 1 ];
 extern POINT pTownPoints[ MAX_TOWNS ];
+
+#ifdef JA2UB
+extern void SetUpValidCampaignSectors( void );
+#endif
 
 #endif

@@ -21,8 +21,17 @@
 	#include "Render Fun.h"
 	#include "meanwhile.h"
 	#include "Exit Grids.h"
+	#include "Interface.h"			// added by Flugente for zBackground
+	#include "renderworld.h"		// added by Flugente
+	#include "Vehicles.h"			// added by Flugente
+	#include "CampaignStats.h"		// added by Flugente
 #endif
 
+#ifdef JA2UB
+#include "Ja25 Strategic Ai.h"
+#include "Ja25_Tactical.h"
+#include "ub_config.h"
+#endif
 
 #include "GameSettings.h"	// ary-05/05/2009 : add forced turn mode
 #include "text.h"			//	: add forced turn mode
@@ -943,7 +952,9 @@ INT32 FindRandomGridNoFromSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, 
 	INT32		sTop, sBottom;
 	INT32		sLeft, sRight;
 	INT32		cnt1, cnt2;
-	UINT8	ubRoomNum;
+	//DBrot: More Rooms
+	//UINT8	ubRoomNum;
+	UINT16 usRoomNum;
 
 	//Save AI pathing vars.	changing the distlimit restricts how
 	//far away the pathing will consider.
@@ -1001,7 +1012,7 @@ INT32 FindRandomGridNoFromSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, 
 				// If we are a crow, we need this additional check
 				if ( pSoldier->ubBodyType == CROW )
 				{
-					if ( !InARoom( sGridNo, &ubRoomNum ) )
+					if ( !InARoom( sGridNo, &usRoomNum ) )
 					{
 						fFound = TRUE;
 					}
@@ -1095,6 +1106,9 @@ BOOLEAN InternalAddSoldierToSector( UINT8 ubID, BOOLEAN fCalculateDirection, BOO
 
 	if ( pSoldier->bActive	)
 	{
+#ifdef JA2UB
+//Ja25 No meanwhiles in exp
+#else
 		// ATE: Make sure life of elliot is OK if from a meanwhile
 		if ( AreInMeanwhile() && pSoldier->ubProfile == ELLIOT )
 		{
@@ -1103,7 +1117,7 @@ BOOLEAN InternalAddSoldierToSector( UINT8 ubID, BOOLEAN fCalculateDirection, BOO
 				pSoldier->stats.bLife = 25;
 			}
 		}
-
+#endif
 		// ADD SOLDIER TO SLOT!
 		if (pSoldier->flags.uiStatusFlags & SOLDIER_OFF_MAP)
 		{
@@ -1184,6 +1198,44 @@ BOOLEAN InternalAddSoldierToSector( UINT8 ubID, BOOLEAN fCalculateDirection, BOO
 				}
 			}
 
+			// Flugente: campaign stats
+			if ( pSoldier->bSoldierFlagMask & SOLDIER_AIRDROP )
+				gCurrentIncident.usIncidentFlags |= INCIDENT_AIRDROP;
+
+			// problem: soldiers already present in a sector have ubStrategicInsertionCode = 0, which is INSERTION_CODE_NORTH - but they don't actually come from north, as they are already present
+			// we thus count them as coming from north if they have valid usStrategicInsertionData
+			if ( pSoldier->ubStrategicInsertionCode == INSERTION_CODE_NORTH && pSoldier->usStrategicInsertionData )//|| pSoldier->sGridNo != NOWHERE )
+			{
+				if ( pSoldier->bSide == gbPlayerNum )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_NORTH;
+				else if ( !pSoldier->aiData.bNeutral )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_NORTH_ENEMY;
+			}
+			else if ( pSoldier->ubStrategicInsertionCode == INSERTION_CODE_SOUTH )
+			{
+				if ( pSoldier->bSide == gbPlayerNum )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_SOUTH;
+				else if ( !pSoldier->aiData.bNeutral )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_SOUTH_ENEMY;
+			}
+			else if ( pSoldier->ubStrategicInsertionCode == INSERTION_CODE_EAST )
+			{
+				if ( pSoldier->bSide == gbPlayerNum )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_EAST;
+				else if ( !pSoldier->aiData.bNeutral )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_EAST_ENEMY;
+			}
+			else if ( pSoldier->ubStrategicInsertionCode == INSERTION_CODE_WEST )
+			{
+				if ( pSoldier->bSide == gbPlayerNum )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_WEST;
+				else if ( !pSoldier->aiData.bNeutral )
+					gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACKDIR_WEST_ENEMY;
+			}
+
+			// add this flag whenever we enter strategically enter a sector (= we attack a sector)
+			pSoldier->bSoldierFlagMask |= SOLDIER_ASSAULT_BONUS;
+			
 			// Override calculated direction if we were told to....
 			if ( pSoldier->ubInsertionDirection > 100 )
 			{
@@ -1477,6 +1529,26 @@ void AddSoldierToSectorGridNo( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDir
 		fUpdateFinalPosition = FALSE;
 	}
 
+	// Flugente: if we are airdropping, center screen on the action and remove soldier initially. He will be dropped into the sector by the helicopter
+	if ( pSoldier->bSoldierFlagMask & SOLDIER_AIRDROP )
+	{
+		pSoldier->bSoldierFlagMask &= ~SOLDIER_AIRDROP;
+
+		if ( gGameExternalOptions.ubSkyriderHotLZ == 3 )
+		{
+			gfIgnoreScrolling = FALSE;
+			INT16 sNewCenterWorldX, sNewCenterWorldY;
+			ConvertGridNoToCenterCellXY( sGridNo, &sNewCenterWorldX, &sNewCenterWorldY );
+		
+			SetRenderCenter( sNewCenterWorldX, sNewCenterWorldY );
+			gfIgnoreScrolling = TRUE;
+			
+			pSoldier->RemoveSoldierFromGridNo( );
+			pSoldier->bInSector = FALSE;
+
+			return;
+		}
+	}
 
 	// If this is a special insertion location, get path!
 	if ( ubInsertionCode == INSERTION_CODE_ARRIVING_GAME )
@@ -1571,6 +1643,28 @@ void AddSoldierToSectorGridNo( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDir
 				// default to standing on arrival
 				if ( pSoldier->usAnimState != HELIDROP )
 				{
+#ifdef JA2UB				
+					// DAVE!!!!
+					if ( gfFirstTimeInGameHeliCrash && gGameUBOptions.InGameHeli == FALSE )
+					{
+						//should we be on our back or tummy
+						if( Random( 100 ) < 50 )
+							pSoldier->EVENT_InitNewSoldierAnim( STAND_FALLFORWARD_STOP, 1, TRUE );
+						else
+							 pSoldier->EVENT_InitNewSoldierAnim( FALLBACKHIT_STOP, 1, TRUE );
+
+						pSoldier->bCollapsed = TRUE;
+
+					}					
+					else if ( fUseAnimation )
+					{
+						pSoldier->EVENT_InitNewSoldierAnim( usAnimState, usAnimCode, TRUE );
+					}
+					else if ( pSoldier->ubBodyType != CROW )
+					{
+						pSoldier->EVENT_InitNewSoldierAnim( STANDING, 1, TRUE );
+					}
+#else
 					if ( fUseAnimation )
 					{
 						pSoldier->EVENT_InitNewSoldierAnim( usAnimState, usAnimCode, TRUE );
@@ -1579,6 +1673,7 @@ void AddSoldierToSectorGridNo( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDir
 					{
 						pSoldier->EVENT_InitNewSoldierAnim( STANDING, 1, TRUE );
 					}
+#endif
 				}
 
 				// ATE: if we are below OK life, make them lie down!

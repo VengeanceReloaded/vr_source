@@ -34,12 +34,15 @@
 #endif
 
 #include "soldier profile type.h"
+#include "LuaInitNPCs.h"
 
 INT32 giBothCheckboxButton = -1;
 INT32 giRealisticCheckboxButton = -1;
 INT32 giSciFiCheckboxButton = -1;
 INT32 giAlarmTriggerButton = -1;
 INT32 giOwnershipGroupButton = -1;
+
+CHAR16 gszActionItemDesc[ NUM_ACTIONITEMS ][ 30 ];
 /*
 CHAR16 gszActionItemDesc[ NUM_ACTIONITEMS ][ 30 ] =
 {
@@ -77,14 +80,100 @@ CHAR16 gszActionItemDesc[ NUM_ACTIONITEMS ][ 30 ] =
 	L"Museum alarm",
 	L"Bloodcat alarm",
 	L"Big teargas",
+#ifdef JA2UB
+	L"BIGGENS BOMBS",
+	L"ABIGGENS WARNING",
+	L"SEE FORTIFIED DOOR",
+	L"OPEN FORTIFED DOOR",
+	L"SEE POWER GEN FAN",
+#endif
 };
 */
 const STR16 GetActionItemName( OBJECTTYPE *pItem )
 {
+	UINT32 i,o;
+	CHAR16	temp[30];
+
 	if( !pItem || pItem->usItem != ACTION_ITEM )
 		return NULL;
+
+		
 	if( (*pItem)[0]->data.misc.bActionValue != ACTION_ITEM_BLOW_UP )
 	{
+		for (i= ACTIONITEM_TRIP_KLAXON; i< NUM_ACTIONITEMS; /*=ACTIONITEM_NEW;*/ ++i )
+		{
+			if ( ActionItemsValues[ i ].BlowUp == 0 )
+			{
+				if ( (*pItem)[0]->data.misc.bActionValue == ActionItemsValues[ i ].ActionID )
+				{
+					wcscpy(temp, gszActionItemDesc[i]);
+					o = i;
+					break;
+				}
+			}
+		}
+
+		return ActionItemsValues[ o ].szName;
+	}
+	else
+	{
+		for (i= ACTIONITEM_TRIP_KLAXON; i< NUM_ACTIONITEMS; /*=ACTIONITEM_NEW;*/ ++i )
+		{
+			if ( ActionItemsValues[ i ].BlowUp == 1 )
+			{
+				if ( (*pItem)[0]->data.misc.bActionValue == ACTION_ITEM_BLOW_UP )
+				{
+					if ( (*pItem)[0]->data.misc.usBombItem == ActionItemsValues[ i ].BombItem )
+					{
+						wcscpy(temp, gszActionItemDesc[i]);
+						o = i;
+						break;
+					}
+				}
+			}
+		}
+
+		return ActionItemsValues[ o ].szName;
+	/*
+
+	
+		
+		if ( (*pItem)[0]->data.misc.usBombItem == STUN_GRENADE )
+				o = ACTIONITEM_STUN;
+		else if ( (*pItem)[0]->data.misc.usBombItem == SMOKE_GRENADE )
+				o = ACTIONITEM_SMOKE;
+		else if ( (*pItem)[0]->data.misc.usBombItem == TEARGAS_GRENADE )
+				o = ACTIONITEM_TEARGAS;
+		else if ( (*pItem)[0]->data.misc.usBombItem == MUSTARD_GRENADE )
+				o = ACTIONITEM_MUSTARD;
+		else if ( (*pItem)[0]->data.misc.usBombItem == HAND_GRENADE )
+				o = ACTIONITEM_SMALL;
+		else if ( (*pItem)[0]->data.misc.usBombItem == TNT )
+				o = ACTIONITEM_MEDIUM;
+		else if ( (*pItem)[0]->data.misc.usBombItem == C4 )
+				o = ACTIONITEM_LARGE;
+		else if ( (*pItem)[0]->data.misc.usBombItem == MINE )
+				o = ACTIONITEM_MINE;
+		else if ( (*pItem)[0]->data.misc.usBombItem == TRIP_FLARE )
+				o = ACTIONITEM_FLARE;
+		else if ( (*pItem)[0]->data.misc.usBombItem == TRIP_KLAXON )
+				o = ACTIONITEM_TRIP_KLAXON;
+		else if ( (*pItem)[0]->data.misc.usBombItem == BIG_TEAR_GAS )
+				o = ACTIONITEM_BIG_TEAR_GAS;
+
+		return ActionItemsValues[ o ].szName;
+		
+		*/
+	}
+	
+/*
+	if( !pItem || pItem->usItem != ACTION_ITEM )
+		return NULL;
+		
+	if( (*pItem)[0]->data.misc.bActionValue != ACTION_ITEM_BLOW_UP )
+	{
+	
+
 		switch( (*pItem)[0]->data.misc.bActionValue )
 		{
 			case ACTION_ITEM_OPEN_DOOR:								return gszActionItemDesc[ ACTIONITEM_OPEN ];
@@ -110,6 +199,13 @@ const STR16 GetActionItemName( OBJECTTYPE *pItem )
 			case ACTION_ITEM_TOGGLE_PRESSURE_ITEMS:		return gszActionItemDesc[ ACTIONITEM_TOGGLE_PRESSURE_ITEMS ];
 			case ACTION_ITEM_MUSEUM_ALARM:						return gszActionItemDesc[ ACTIONITEM_MUSEUM_ALARM ];
 			case ACTION_ITEM_BLOODCAT_ALARM:					return gszActionItemDesc[ ACTIONITEM_BLOODCAT_ALARM ];
+#ifdef JA2UB
+			case ACTION_ITEM_BIGGENS_BOMBS:						return gszActionItemDesc[ ACTIONITEM_BIGGENS_BOMBS ];
+			case ACTION_ITEM_BIGGENS_WARNING:					return gszActionItemDesc[ ACTIONITEM_BIGGENS_WARNING ];
+			case ACTION_ITEM_SEE_FORTIFIED_DOOR:			return gszActionItemDesc[ ACTIONITEM_SEE_FORTIFIED_DOOR ];
+			case ACTION_ITEM_OPEN_FORTIFED_DOOR:			return gszActionItemDesc[ ACTIONITEM_OPEN_FORTIFED_DOOR ];
+			case ACTION_ITEM_SEE_POWER_GEN_FAN:				return gszActionItemDesc[ ACTIONITEM_SEE_POWER_GEN_FAN ];
+#endif
 			default:																	return NULL;
 		}
 	}
@@ -128,6 +224,8 @@ const STR16 GetActionItemName( OBJECTTYPE *pItem )
 		case BIG_TEAR_GAS:			return gszActionItemDesc[ ACTIONITEM_BIG_TEAR_GAS ];
 		default:								return NULL;
 	}
+	
+*/
 }
 
 enum
@@ -154,7 +252,7 @@ void ToggleDetonator( GUI_BUTTON *btn, INT32 reason );
 
 UINT32 guiActionItemButton;
 void ActionItemCallback( GUI_BUTTON *btn, INT32 reason );
-INT8 gbActionItemIndex = ACTIONITEM_MEDIUM;
+/*INT8*/ INT16 gbActionItemIndex = ACTIONITEM_MEDIUM;
 INT8 gbDefaultBombTrapLevel = 9;
 
 void RemoveBombFromWorldByItemIndex( INT32 iItemIndex );
@@ -262,7 +360,7 @@ void DisableItemStatsPanel()
 
 }
 
-void ExecuteItemStatsCmd( UINT8 ubAction )
+void ExecuteItemStatsCmd( /*UINT8*/ UINT16  ubAction )
 {
 	switch( ubAction )
 	{
@@ -487,12 +585,22 @@ void UpdateItemStatsPanel()
 	SetFontForeground( FONT_GRAY2 );
 	SetFontShadow( FONT_NEARBLACK );
 	SetFontBackground( FONT_BLACK );
+	
 	if( gpItem && iCurrentTaskbar == TASK_ITEMS &&
 			gbEditingMode != EDITING_TRIGGERS && gbEditingMode != EDITING_ACTIONITEMS )
 	{
 		mprintf( iScreenWidthOffset + 500, 2 * iScreenHeightOffset + 366, pUpdateItemStatsPanelText[0] );
 	}
+	
 	SetFontForeground( FONT_YELLOW );
+
+	if( gpItem && iCurrentTaskbar == TASK_ITEMS )
+	{
+		mprintf( iScreenWidthOffset + 587, 2 * iScreenHeightOffset + 366, pUpdateItemStatsPanelText[25] );
+		mprintf( iScreenWidthOffset + 609, 2 * iScreenHeightOffset + 366, pUpdateItemStatsPanelText[26] );
+		mprintf( iScreenWidthOffset + 630, 2 * iScreenHeightOffset + 366, pUpdateItemStatsPanelText[27] );
+	}
+
 	switch( gbEditingMode )
 	{
 		case EDITING_NOTHING:
@@ -564,9 +672,6 @@ void UpdateItemStatsPanel()
 		else
 			SetFontForeground( FONT_RED );
 		mprintf( iScreenWidthOffset + 512, 2 * iScreenHeightOffset + 444, pUpdateItemStatsPanelText[24] );
-		mprintf( iScreenWidthOffset + 587, 2 * iScreenHeightOffset + 366, pUpdateItemStatsPanelText[25] );
-		mprintf( iScreenWidthOffset + 609, 2 * iScreenHeightOffset + 366, pUpdateItemStatsPanelText[26] );
-		mprintf( iScreenWidthOffset + 630, 2 * iScreenHeightOffset + 366, pUpdateItemStatsPanelText[27] );
 	}
 	InvalidateRegion( iScreenWidthOffset + 477, 2 * iScreenHeightOffset + 362, 161, 97 );
 }
@@ -1324,6 +1429,7 @@ void ToggleAttachment( GUI_BUTTON *btn, INT32 reason )
 	{
 		INT32 i;
 		UINT16 usAttachment = 0;
+		//ResizeWorldItems();//dnl ch75 021113 to prevent memory corruption during resize if somehow in created item we manage to put invalid attachment (DRAGUNOV with SNIPERCOPE problem in older mapeditors)
 		for( i = 0; i < NUM_ATTACHMENT_BUTTONS; i++ )
 		{	//Loop through and find the button that was just modified
 			switch( i )
@@ -1363,6 +1469,7 @@ void ToggleCeramicPlates( GUI_BUTTON *btn, INT32 reason )
 {
 	if( reason & MSYS_CALLBACK_REASON_LBUTTON_UP )
 	{
+		//ResizeWorldItems();//dnl ch75 021113 just precaution to prevent eventual memory corruption during resize if somehow AttachObject find invalid attachment
 		gfCeramicPlates ^= TRUE;
 		if( gfCeramicPlates )
 		{
@@ -1384,6 +1491,7 @@ void ToggleDetonator( GUI_BUTTON *btn, INT32 reason )
 {
 	if( reason & MSYS_CALLBACK_REASON_LBUTTON_UP )
 	{
+		//ResizeWorldItems();//dnl ch75 021113 just precaution to prevent eventual memory corruption during resize if somehow AttachObject find invalid attachment
 		if( !gfDetonator )
 		{
 			gfDetonator = TRUE;
@@ -1410,8 +1518,42 @@ void ActionItemCallback( GUI_BUTTON *btn, INT32 reason )
 	}
 }
 
-void ChangeActionItem( OBJECTTYPE *pItem, INT8 bActionItemIndex )
+void ChangeActionItem( OBJECTTYPE *pItem, /*INT8*/ INT16 bActionItemIndex )
 {
+	/*INT16 i; //UINT32 i;
+	//(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_BLOW_UP;
+
+	for (i= ACTIONITEM_TRIP_KLAXON; i< NUM_ACTIONITEMS; ++i) //=ACTIONITEM_NEW; i++ )
+	{
+		pItem->usItem = ACTION_ITEM;
+					
+		if ( bActionItemIndex == i && ActionItemsValues[ i ].BlowUp == 1 )
+		{
+			(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_BLOW_UP;
+			(*pItem)[0]->data.misc.usBombItem = ActionItemsValues[ i ].BombItem;
+			break;
+		}
+		else if ( bActionItemIndex == i && ActionItemsValues[ i ].BlowUp == 0 )
+		{
+			(*pItem)[0]->data.misc.usBombItem = NOTHING; //ActionItemsValues[ i ].BombItem;
+			(*pItem)[0]->data.misc.bActionValue = ActionItemsValues[ i ].ActionID;
+			break;
+		}
+	}*/
+
+	if ( ActionItemsValues[ bActionItemIndex ].BlowUp == 1 )
+	{
+		(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_BLOW_UP;
+		(*pItem)[0]->data.misc.usBombItem = ActionItemsValues[ bActionItemIndex ].BombItem;
+	}
+	else if ( ActionItemsValues[ bActionItemIndex ].BlowUp == 0 )
+	{
+		(*pItem)[0]->data.misc.usBombItem = NOTHING;
+		(*pItem)[0]->data.misc.bActionValue = ActionItemsValues[ bActionItemIndex ].ActionID;
+	}
+
+
+/*
 	pItem->usItem = ACTION_ITEM;
 	(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_BLOW_UP;
 	switch( bActionItemIndex )
@@ -1541,11 +1683,34 @@ void ChangeActionItem( OBJECTTYPE *pItem, INT8 bActionItemIndex )
 		case ACTIONITEM_BIG_TEAR_GAS:
 			(*pItem)[0]->data.misc.usBombItem = BIG_TEAR_GAS;
 			break;
-
+#ifdef JA2UB
+		case ACTIONITEM_BIGGENS_BOMBS:
+			(*pItem)[0]->data.misc.usBombItem = NOTHING;
+			(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_BIGGENS_BOMBS;
+			break;
+		case ACTIONITEM_BIGGENS_WARNING:
+			(*pItem)[0]->data.misc.usBombItem = NOTHING;
+			(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_BIGGENS_WARNING;
+			break;
+		case ACTIONITEM_SEE_FORTIFIED_DOOR:
+			(*pItem)[0]->data.misc.usBombItem = NOTHING;
+			(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_SEE_FORTIFIED_DOOR;
+			break;
+		case ACTIONITEM_OPEN_FORTIFED_DOOR:
+			(*pItem)[0]->data.misc.usBombItem = NOTHING;
+			(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_OPEN_FORTIFED_DOOR;
+			break;
+		case ACTIONITEM_SEE_POWER_GEN_FAN:
+			(*pItem)[0]->data.misc.usBombItem = NOTHING;
+			(*pItem)[0]->data.misc.bActionValue = ACTION_ITEM_SEE_POWER_GEN_FAN;
+			break;
+#endif
 	}
+	
+	*/
 }
 
-void UpdateActionItem( INT8 bActionItemIndex )
+void UpdateActionItem( /*INT8*/ INT16 bActionItemIndex )
 {
 	gbActionItemIndex = bActionItemIndex; //used for future new actionitems as the default.
 
@@ -1592,7 +1757,7 @@ void ReEvaluateAttachmentStatii()
 				case 5: usAttachment = UNDER_GLAUNCHER;	break;
 				default: Assert(0); continue;
 			}
-			if( ValidItemAttachment( gpItem, usAttachment, TRUE ) )
+			if( ValidItemAttachment( gpItem, usAttachment, TRUE, FALSE ) )//dnl ch74 211013
 				EnableButton( guiAttachmentButton[ i ] );
 			else
 				DisableButton( guiAttachmentButton[ i ] );

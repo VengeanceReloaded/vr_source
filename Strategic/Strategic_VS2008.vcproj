@@ -112,7 +112,6 @@
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -176,7 +175,7 @@
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="0"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -294,7 +293,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
+				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				StringPooling="true"
@@ -302,7 +301,7 @@
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -380,6 +379,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Ja25 Strategic Ai.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Luaglobal.h"
 				>
 			</File>
@@ -413,6 +416,10 @@
 			</File>
 			<File
 				RelativePath="Map Screen Interface.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MapScreen Quotes.h"
 				>
 			</File>
 			<File
@@ -576,6 +583,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Ja25 Strategic Ai.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Luaglobal.cpp"
 				>
 			</File>
@@ -609,6 +620,10 @@
 			</File>
 			<File
 				RelativePath="Map Screen Interface.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MapScreen Quotes.cpp"
 				>
 			</File>
 			<File
@@ -732,6 +747,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_CoolnessBySector.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_Creatures.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_DynamicRestrictions.cpp"
 				>
 			</File>
@@ -748,11 +771,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_Minerals.cpp"
+				>
+			</File>
+			<File
 				RelativePath="XML_Roaming.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\XML_SectorNames.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_SquadNames.cpp"
 				>
 			</File>
 			<File

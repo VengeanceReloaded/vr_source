@@ -5,12 +5,10 @@
 #else
 	#include "builddefines.h"
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include <time.h>
 	#include "sgp.h"
 	#include "gameloop.h"
 	#include "vobject.h"
-	#include "wcheck.h"
 	#include "worlddef.h"
 	#include "renderworld.h"
 	#include "font.h"
@@ -36,7 +34,6 @@
 	#include "renderworld.h"
 	#include "sys globals.h"
 	#include "environment.h"
-	#include "Music Control.h"
 	#include "bullets.h"
 	#include "Assignments.h"
 	#include "message.h"
@@ -86,9 +83,16 @@
 	#include "Random.h"
 	#include "editscreen.h"
 	#include "Scheduling.h"
+	#include "Animated ProgressBar.h"
 #endif
 
 #include "connect.h"
+
+#ifdef JA2UB
+#include "Ja25_Tactical.h"
+#include "Ja25 Strategic Ai.h"
+#include "ub_config.h"
+#endif
 
 #define		ARE_IN_FADE_IN( )		( gfFadeIn || gfFadeInitialized )
 
@@ -126,7 +130,10 @@ extern				BOOLEAN		gfFailedToSaveGameWhenInsideAMessageBox;
 extern				BOOLEAN		gfFirstHeliRun;
 extern				BOOLEAN		gfRenderFullThisFrame;
 
-
+#ifdef JA2UB
+extern				void HandleCannotAffordNpcMsgBox();
+extern				BOOLEAN	gfDisplayMsgBoxSayingCantAffordNPC;
+#endif
 
 // The InitializeGame function is responsible for setting up all data and Gaming Engine
 // tasks which will run the game
@@ -235,7 +242,7 @@ void FadeOutGameScreen( )
 }
 
 void EnterTacticalScreen( )
-{
+{	
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EnterTacticalScreen"));
 	guiTacticalLeaveScreen = FALSE;
 
@@ -307,6 +314,10 @@ void EnterTacticalScreen( )
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EnterTacticalScreen: settacticalinterfaceflags"));
 	SetTacticalInterfaceFlags( 0 );
 
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EnterTacticalScreen: fix oversized squads"));
+	//SQUAD10:  Check for squads that are oversized at current resolution and move them to another squad
+	FixOversizedSquadsInSector( );
+
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EnterTacticalScreen: set default squad on sector entry"));
 	// set default squad on sector entry
 	SetDefaultSquadOnSectorEntry( FALSE );
@@ -326,11 +337,16 @@ void EnterTacticalScreen( )
 	//gfGameScreenLocateToSoldier = TRUE;
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EnterTacticalScreen: check meanwhile"));
+
+#ifdef JA2UB
+/* Ja25 No meanwhiles */
+#else
 	// Locate if in meanwhile...
 	if ( AreInMeanwhile( ) )
 	{
 		LocateToMeanwhileCharacter( );
 	}
+#endif
 
 	if ( gTacticalStatus.uiFlags & IN_DEIDRANNA_ENDGAME )
 	{
@@ -344,8 +360,7 @@ void EnterTacticalScreen( )
 	// ATE: Enable messages again...
 	EnableScrollMessages( );
 
-	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EnterTacticalScreen: done"));
-
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EnterTacticalScreen: done"));	
 }
 
 void LeaveTacticalScreen( UINT32 uiNewScreen )
@@ -453,6 +468,12 @@ UINT32	MainGameScreenHandle(void)
 			return( GAME_SCREEN );
 		#endif
 	}
+
+#ifdef JA2UB
+	//jA25 UB
+	//Handle the strategic AI
+	JA25_HandleUpdateOfStrategicAi();
+#endif
 
 #if 0
 	{
@@ -596,13 +617,31 @@ UINT32	MainGameScreenHandle(void)
 	if ( gfTacticalDoHeliRun )
 	{
 		gfGameScreenLocateToSoldier = FALSE;
-		//InternalLocateGridNo( gMapInformation.sNorthGridNo, TRUE );
-		InternalLocateGridNo( gGameExternalOptions.iInitialMercArrivalLocation, TRUE );
+
+#ifdef JA2UB		
+		//if it is the first time in the game, and we are doing the heli crash code, locate to a different spot
+		if( gfFirstTimeInGameHeliCrash && gGameUBOptions.InGameHeli == FALSE )
+		{
+			InternalLocateGridNo( gGameUBOptions.LOCATEGRIDNO, TRUE ); // 15427
+        }
+        else
+        {
+            if ( gGameUBOptions.InGameHeliCrash == TRUE )
+				//InternalLocateGridNo( gMapInformation.sNorthGridNo, TRUE );
+				  InternalLocateGridNo( gGameUBOptions.LOCATEGRIDNO, TRUE );
+            else
+				InternalLocateGridNo( gGameUBOptions.LOCATEGRIDNO, TRUE );
+        }
+#else
+			InternalLocateGridNo( gGameExternalOptions.iInitialMercArrivalLocation, TRUE );
+#endif
+		// Flugente: we might have reloaded the game, so we are currently not dropping mercs out of a helicopter
+		gfIngagedInDrop = FALSE;
 
 		// Start heli Run...
-		//StartHelicopterRun( gMapInformation.sNorthGridNo );
-		StartHelicopterRun( gGameExternalOptions.iInitialMercArrivalLocation );
+		StartHelicopterRun();
 
+		
 		// Update clock by one so that our DidGameJustStatrt() returns now false for things like LAPTOP, etc...
 		SetGameTimeCompressionLevel( TIME_COMPRESS_X1 );
 		//UpdateClock( 1 );
@@ -617,12 +656,16 @@ UINT32	MainGameScreenHandle(void)
 		HandleOverheadMap( );
 		return( GAME_SCREEN );
 	}
-/*
+
+#ifdef JA2UB
 	if ( !ARE_IN_FADE_IN( ) )
 	{
-		HandleAirRaid( );
+	//	HandleAirRaid( );
+		
+		HandlePowerGenAlarm();
 	}
-*/
+#endif
+
 	if ( gfGameScreenLocateToSoldier )
 	{
 		DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("maingamescreenhandle: tacticalscreenlocatetosoldier"));
@@ -634,6 +677,7 @@ UINT32	MainGameScreenHandle(void)
 	{
 		DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("maingamescreenhandle: entertacticalscreen"));
 		EnterTacticalScreen( );
+		ShowLoadScreenHintInTacticalLog();
 
 		// Select a guy if he hasn;'
 		if( !gfTacticalPlacementGUIActive )
@@ -670,6 +714,13 @@ UINT32	MainGameScreenHandle(void)
 		}
 	}
 
+#ifdef JA2UB
+	//if we are to display a mesg box about cant afford biggens
+	if( gfDisplayMsgBoxSayingCantAffordNPC )
+	{
+		HandleCannotAffordNpcMsgBox();
+	}
+#endif
 
 	#ifdef JA2BETAVERSION
 		if( gfDoDialogOnceGameScreenFadesIn )
@@ -681,9 +732,13 @@ UINT32	MainGameScreenHandle(void)
 	HandleHeliDrop( );
 
 	if ( !ARE_IN_FADE_IN( ) )
-	{
+  	{
 	HandleAutoBandagePending( );
-	}
+     
+	  #ifdef JA2UB
+      HandleThePlayerBeNotifiedOfSomeoneElseInSector();
+	  #endif
+     }
 
 
 	// ATE: CHRIS_C LOOK HERE FOR GETTING AI CONSTANTLY GOING
@@ -891,8 +946,14 @@ UINT32	MainGameScreenHandle(void)
 
 	// Display Framerate
 	DisplayFrameRate( );
-
+	
+	
+//UB       
+#ifdef JA2UB
+ /* JA2UB */
+#else
 	CheckForMeanwhileOKStart( );
+#endif
 
 	ScrollString( );
 
@@ -1146,9 +1207,18 @@ void InitHelicopterEntranceByMercs( void )
 		// Madd - nevermind initial air strike.	It just seems silly, since Deidranna doesn't know the mercs are there.
 		//if ( gGameOptions.fAirStrikes )
 		//	ScheduleAirRaid( &AirRaidDef );
-
+#ifdef JA2UB		
+		if ( gGameUBOptions.InGameHeli == FALSE )
+			HandleInitialEventsInHeliCrash(); //JA25 UB
+#endif
 		gfTacticalDoHeliRun = TRUE;
 		gfFirstHeliRun			= TRUE;
+
+#ifdef JA2UB
+		SetHelicopterDroppoint( gGameUBOptions.LOCATEGRIDNO );
+#else
+		SetHelicopterDroppoint( gGameExternalOptions.iInitialMercArrivalLocation );
+#endif
 
 		gTacticalStatus.fDidGameJustStart = FALSE;
 	}

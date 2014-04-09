@@ -6,11 +6,9 @@
 	#include "IMP HomePage.h"
 	#include "IMPVideoObjects.h"
 	#include "Utilities.h"
-	#include "WCheck.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
 	#include "IMP Compile Character.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
@@ -28,6 +26,11 @@
 	#include "Game Clock.h"
 	// WDS - make number of mercenaries, etc. be configurable
 	#include "Squads.h"
+	#include "Overhead.h"		// added by Flugente for OUR_TEAM_SIZE_NO_VEHICLE
+#endif
+
+#ifdef JA2UB
+#include "ub_config.h"
 #endif
 
 void GetPlayerKeyBoardInputForIMPHomePage( void );
@@ -125,7 +128,6 @@ void RenderImpHomePage( void )
 
 	// render the	activation string
 	DisplayPlayerActivationString( );
-
 
 	return;
 }
@@ -262,26 +264,8 @@ void GetPlayerKeyBoardInputForIMPHomePage( void )
 	GetCursorPos(&MousePos);
 	ScreenToClient(ghWindow, &MousePos); // In window coords!
 
-	while (DequeueEvent(&InputEvent) == TRUE)
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
-		// HOOK INTO MOUSE HOOKS
-		/*
-		switch(InputEvent.usEvent)
-	{
-			case LEFT_BUTTON_DOWN:
-				MouseSystemHook(LEFT_BUTTON_DOWN, (INT16)MousePos.x, (INT16)MousePos.y,_LeftButtonDown, _RightButtonDown);
-				break;
-			case LEFT_BUTTON_UP:
-				MouseSystemHook(LEFT_BUTTON_UP, (INT16)MousePos.x, (INT16)MousePos.y ,_LeftButtonDown, _RightButtonDown);
-				break;
-			case RIGHT_BUTTON_DOWN:
-				MouseSystemHook(RIGHT_BUTTON_DOWN, (INT16)MousePos.x, (INT16)MousePos.y,_LeftButtonDown, _RightButtonDown);
-				break;
-			case RIGHT_BUTTON_UP:
-				MouseSystemHook(RIGHT_BUTTON_UP, (INT16)MousePos.x, (INT16)MousePos.y,_LeftButtonDown, _RightButtonDown);
-				break;
-	}
-*/
 		if(	!HandleTextInput( &InputEvent ) && (InputEvent.usEvent == KEY_DOWN || InputEvent.usEvent == KEY_REPEAT || InputEvent.usEvent == KEY_UP ) )
 		{
 		switch( InputEvent.usParam )
@@ -399,14 +383,16 @@ void ProcessPlayerInputActivationString( void )
 	BOOLEAN freeMercSlot = TRUE;
 
 	// WANNE: Check total number of hired mercs
-	if( NumberOfMercsOnPlayerTeam() >= gGameExternalOptions.ubGameMaximumNumberOfPlayerMercs )
+	if( NumberOfMercsOnPlayerTeam() >= OUR_TEAM_SIZE_NO_VEHICLE )
 	{
 		freeMercSlot = FALSE;
 	}
-
+#ifdef JA2UB
+	if( ( ( gGameUBOptions.LaptopIMPPassJA2 == TRUE && wcscmp(pPlayerActivationString, L"XEP624") == 0 ) || ( gGameUBOptions.LaptopIMPPassJA2 == TRUE && wcscmp(pPlayerActivationString, L"xep624") == 0 ) ) || ( ( gGameUBOptions.LaptopIMPPassUB == TRUE && wcscmp(pPlayerActivationString, L"GP97SL") == 0 ) || ( gGameUBOptions.LaptopIMPPassUB == TRUE && wcscmp(pPlayerActivationString, L"gp97sl") == 0 ) ) && ( LaptopSaveInfo.gfNewGameLaptop < 2 ) )
+#else
 	//Madd multiple imps if( ( ( wcscmp(pPlayerActivationString, L"XEP624") == 0 ) || ( wcscmp(pPlayerActivationString, L"xep624") == 0 ) )&&( LaptopSaveInfo.fIMPCompletedFlag == FALSE ) &&( LaptopSaveInfo.gfNewGameLaptop < 2 ) )
-	//if( ( ( wcscmp(pPlayerActivationString, L"XEP624") == 0 ) || ( wcscmp(pPlayerActivationString, L"xep624") == 0 ) ) &&( LaptopSaveInfo.gfNewGameLaptop < 2 ) )
-	if( ( ( wcscmp(pPlayerActivationString, L"No0815") == 0 ) || ( wcscmp(pPlayerActivationString, L"no0815") == 0 ) || ( wcscmp(pPlayerActivationString, L"NO0815") == 0 ) ) &&( LaptopSaveInfo.gfNewGameLaptop < 2 ) )
+	if( ( ( wcscmp(pPlayerActivationString, L"XEP624") == 0 ) || ( wcscmp(pPlayerActivationString, L"xep624") == 0 ) ) &&( LaptopSaveInfo.gfNewGameLaptop < 2 ) )
+#endif
 	{
 		// WANNE: Check total number of hired mercs
 		if( freeMercSlot == FALSE )
@@ -445,7 +431,7 @@ void ProcessPlayerInputActivationString( void )
 				ResetActivationStringTextBox();
 
 				//DoLapTopMessageBox( MSG_BOX_IMP_STYLE, pImpPopUpStrings[ 11 ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, NULL);
-				AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ), LaptopSaveInfo.iIMPIndex, -1 );
+				AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ), LaptopSaveInfo.iIMPIndex, -1 , TYPE_EMAIL_EMAIL_EDT);
 			}
 		}
 		else
@@ -471,7 +457,7 @@ void ProcessPlayerInputActivationString( void )
 				ResetActivationStringTextBox();
 
 				//DoLapTopMessageBox( MSG_BOX_IMP_STYLE, pImpPopUpStrings[ 11 ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, NULL);
-				AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ), LaptopSaveInfo.iIMPIndex, -1 );
+				AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ), LaptopSaveInfo.iIMPIndex, -1 , TYPE_EMAIL_EMAIL_EDT);
 			}
 		}
 		else
@@ -481,8 +467,11 @@ void ProcessPlayerInputActivationString( void )
 	}
 	else
 	{
-		//if( ( ( wcscmp(pPlayerActivationString, L"XEP624") != 0 ) && ( wcscmp(pPlayerActivationString, L"xep624") != 0 ) ) )
-		if( ( ( wcscmp(pPlayerActivationString, L"NO0815") != 0 ) && ( wcscmp(pPlayerActivationString, L"no0815") != 0 ) ) && ( wcscmp(pPlayerActivationString, L"No0815") != 0 ) )
+#ifdef JA2UB
+		if( ( ( gGameUBOptions.LaptopIMPPassJA2 == TRUE && wcscmp(pPlayerActivationString, L"XEP624") != 0 ) && ( gGameUBOptions.LaptopIMPPassJA2 == TRUE && wcscmp(pPlayerActivationString, L"xep624") != 0 ) ) || ( ( gGameUBOptions.LaptopIMPPassUB == TRUE && wcscmp(pPlayerActivationString, L"GP97SL") != 0 ) && ( gGameUBOptions.LaptopIMPPassUB == TRUE && wcscmp(pPlayerActivationString, L"gp97sl") != 0 ) ) )
+#else
+		if( ( ( wcscmp(pPlayerActivationString, L"XEP624") != 0 ) && ( wcscmp(pPlayerActivationString, L"xep624") != 0 ) ) )
+#endif
 		{
 			DoLapTopMessageBox( MSG_BOX_IMP_STYLE, pImpPopUpStrings[ 0 ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 		}

@@ -31,6 +31,7 @@
 	#include "PATHAI.H"
 	#include "SkillCheck.h" // added by SANDRO
 	#include "message.H" //ddd
+	#include "english.h"		// added by Flugente
 #endif
 
 //forward declarations of common classes to eliminate includes
@@ -53,13 +54,18 @@ UINT8 HandleRemoteCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fActivat
 UINT8 HandleBombCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fActivated, UINT32 uiCursorFlags );
 UINT8 HandleJarCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags );
 UINT8 HandleTinCanCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags );
+UINT8 HandleFortificationCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags );	//added by Flugente
+UINT8 HandleHandcuffCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags );		//added by Flugente
+UINT8 HandleApplyItemCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags );		//added by Flugente
 
 extern BOOLEAN	HandleCheckForBadChangeToGetThrough( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pTargetSoldier, INT32 sTargetGridNo , INT8 bLevel );
 
+UINT8 DefaultAutofireBulletsByGunClass( SOLDIERTYPE* pSoldier );	// added by Sevenfm
 
 BOOLEAN gfCannotGetThrough = FALSE;
 extern UINT32	guiUITargetSoldierId;
 BOOLEAN	gfDisplayFullCountRing = FALSE;
+BOOLEAN gfAutofireInitBulletNum = FALSE;
 
 UINT8	gubAimRingRanges[] = {30, 55, 75, 90}; // These are the cutoff ranges for the aiming rings
 extern	INT8 gbNumBurstLocations;	//number of burst points
@@ -159,7 +165,6 @@ UINT8	GetProperItemCursor( UINT8 ubSoldierID, UINT16 ubItemIndex, INT32 usMapPos
 	{
 		sTargetGridNo = usMapPos;
 	}
-
 
 	ubItemCursor	=	GetActionModeCursor( pSoldier );
 
@@ -298,6 +303,21 @@ UINT8	GetProperItemCursor( UINT8 ubSoldierID, UINT16 ubItemIndex, INT32 usMapPos
 			ubCursorID = HandleRefuelCursor( pSoldier, sTargetGridNo, uiCursorFlags );
 			break;
 
+		case FORTICURS:
+
+			ubCursorID = HandleFortificationCursor( pSoldier, sTargetGridNo, uiCursorFlags );
+			break;
+
+		case HANDCUFFCURS:
+
+			ubCursorID = HandleHandcuffCursor( pSoldier, sTargetGridNo, uiCursorFlags );
+			break;
+
+		case APPLYITEMCURS:
+
+			ubCursorID = HandleApplyItemCursor( pSoldier, sTargetGridNo, uiCursorFlags );
+			break;
+
 		case INVALIDCURS:
 
 			ubCursorID =	INVALID_ACTION_UICURSOR;
@@ -374,29 +394,51 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 		{
 			DetermineCursorBodyLocation( (UINT8)gusSelectedSoldier, TRUE, TRUE );
 		}
-
+		UINT8 ubMaxBullets = 1;
+		INT8 bMaxAim;
 		if ( gTacticalStatus.uiFlags & TURNBASED && ( gTacticalStatus.uiFlags & INCOMBAT ) )
 		{
 			if(pSoldier->bDoAutofire)
 			{
-				if(pSoldier->bDoAutofire == 1) //try to maximize the # of bullets because 1 may not be optimal
+				// sevenfm: change number of autofire bullets only once when switching cursor to action mode or changing firing mode
+				if( !gfAutofireInitBulletNum ) 
 				{
 					INT16 sCurAPCosts, sAPCosts;
+					UINT16 usShotsLeft = pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft;
+					if (pSoldier->IsValidSecondHandBurst()) 
+					{
+						usShotsLeft = min( (pSoldier->inv[ SECONDHANDPOS ][0]->data.gun.ubGunShotsLeft), usShotsLeft );
+					}
+					bMaxAim = pSoldier->aiData.bShownAimTime;
 
-					sCurAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+					// sevenfm: change default number of bullets in autofire according to ini settings
+					ubMaxBullets = DefaultAutofireBulletsByGunClass( pSoldier );
+					if( ubMaxBullets == 0 )
+					{
+						ubMaxBullets = usShotsLeft;
+						bMaxAim = maxAimLevels;
+					}
+
+					sCurAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, bMaxAim);
 
 					do
 					{
 						pSoldier->bDoAutofire++;
-						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-					}
-					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts == sCurAPCosts && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire);
+						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, bMaxAim);
+					} // sevenfm: removed (sAPCosts <= sCurAPCosts) because EnoughPoints() is enough
+					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && usShotsLeft >= pSoldier->bDoAutofire && pSoldier->bDoAutofire <= ubMaxBullets );
 					pSoldier->bDoAutofire--;
+
+					gfAutofireInitBulletNum = TRUE;
 				}
 
 				gfUIAutofireBulletCount = TRUE;
 				gsBulletCount = pSoldier->bDoAutofire;
 				gsTotalBulletCount = pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft;
+				if (pSoldier->IsValidSecondHandBurst()) 
+				{
+					gsTotalBulletCount = min( (pSoldier->inv[ SECONDHANDPOS ][0]->data.gun.ubGunShotsLeft), gsTotalBulletCount );
+				}
 
 				if(pSoldier->flags.autofireLastStep) //set the orange tint on the numbers if we at the last step
 					gTintBulletCounts = TRUE;
@@ -419,7 +461,7 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 			}
 
 			// If we don't have any points and we are at the first refine, do nothing but warn!
-			if ( !EnoughPoints( pSoldier, gsCurrentActionPoints, 0 , FALSE ) )
+			if ( !EnoughPoints( pSoldier, gsCurrentActionPoints, 0 , FALSE ) && (pSoldier->aiData.bShownAimTime == 0))
 			{
 				gfUIDisplayActionPointsInvalid = TRUE;
 
@@ -435,7 +477,8 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 					if (reverse == 0)
 					{
 						// WANNE: Current AP costs for targeting
-						sAPCosts = MinAPsToAttack( pSoldier, usMapPos, TRUE ) + ( bFutureAim	);
+						//sAPCosts = MinAPsToAttack( pSoldier, usMapPos, TRUE, bFutureAim ) + ( bFutureAim );
+						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, bFutureAim );
 
 						//gsCurrentActionPoints = sAPCosts;
 
@@ -447,11 +490,13 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 					}
 					else
 					{
-						sAPCosts = MinAPsToAttack( pSoldier, usMapPos, TRUE ) + maxAimLevels - (bFutureAim + 1);
+						//sAPCosts = MinAPsToAttack( pSoldier, usMapPos, TRUE, (maxAimLevels - (bFutureAim + 1)) ) + maxAimLevels - (bFutureAim + 1);
+						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, (maxAimLevels - (bFutureAim + 1)) );
 
 						gsCurrentActionPoints = sAPCosts;
 
-						sAPCostsMin = MinAPsToAttack( pSoldier, usMapPos, TRUE );
+						//sAPCostsMin = MinAPsToAttack( pSoldier, usMapPos, TRUE, 0 );
+						sAPCostsMin = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, 0 );
 						if (sAPCosts < sAPCostsMin)
 						{
 							fEnoughPoints = FALSE;
@@ -539,13 +584,18 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 			if(gbNumBurstLocations > pSoldier->bDoAutofire)
 			{
 				INT16	sAPCosts;
+				UINT16 usShotsLeft = pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft;
+				if (pSoldier->IsValidSecondHandBurst()) 
+				{
+					usShotsLeft = min( (pSoldier->inv[ SECONDHANDPOS ][0]->data.gun.ubGunShotsLeft), usShotsLeft );
+				}
 
 				do
 				{
 					pSoldier->bDoAutofire++;
 					sAPCosts = CalcTotalAPsToAttack( pSoldier, gsBurstLocations[0].sGridNo, TRUE, pSoldier->aiData.bShownAimTime);
 				}
-				while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire && gbNumBurstLocations >= pSoldier->bDoAutofire);
+				while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && usShotsLeft >= pSoldier->bDoAutofire && gbNumBurstLocations >= pSoldier->bDoAutofire);
 				pSoldier->bDoAutofire--;
 
 				gsCurrentActionPoints = CalcTotalAPsToAttack( pSoldier, gsBurstLocations[0].sGridNo, TRUE, pSoldier->aiData.bShownAimTime );
@@ -608,7 +658,7 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 						FLOAT dDeltaY = (FLOAT)(CenterY( pSoldier->sGridNo ) - CenterY( usMapPos ));
 						FLOAT d2DDistance = sqrt((dDeltaX*dDeltaX)+(dDeltaY*dDeltaY));
 
-						CalcMagFactorSimple( pSoldier, d2DDistance, pSoldier->aiData.bShownAimTime );
+						CalcMagFactorSimple( pSoldier, d2DDistance, pSoldier->aiData.bShownAimTime, usMapPos );
 						
 						pSoldier->bTargetLevel = bTempTargetLevel;
 					}
@@ -714,7 +764,7 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 						FLOAT dDeltaY = (FLOAT)(CenterY( pSoldier->sGridNo ) - CenterY( usMapPos ));
 						FLOAT d2DDistance = sqrt((dDeltaX*dDeltaX)+(dDeltaY*dDeltaY));
 
-						CalcMagFactorSimple( pSoldier, d2DDistance, pSoldier->aiData.bShownAimTime );
+						CalcMagFactorSimple( pSoldier, d2DDistance, pSoldier->aiData.bShownAimTime, usMapPos );
 
 						pSoldier->bTargetLevel = bTempTargetLevel;
 					}
@@ -816,7 +866,7 @@ UINT8 HandleActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos, BOOLEA
 					FLOAT dDeltaY = (FLOAT)(CenterY( pSoldier->sGridNo ) - CenterY( usMapPos ));
 					FLOAT d2DDistance = sqrt((dDeltaX*dDeltaX)+(dDeltaY*dDeltaY));
 
-					CalcMagFactorSimple( pSoldier, d2DDistance, pSoldier->aiData.bShownAimTime );
+					CalcMagFactorSimple( pSoldier, d2DDistance, pSoldier->aiData.bShownAimTime, usMapPos );
 				}
 
 				pSoldier->bTargetLevel = bTempTargetLevel;
@@ -1247,9 +1297,15 @@ UINT8 HandleNonActivatedTargetCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos , BO
 	if(gusUIFullTargetID == NOBODY && pSoldier->bDoAutofire && !pSoldier->flags.fDoSpread)	//reset autofire if we move the mouse off the target, however don't reset it if we are spread-bursting
 	{
 		if(gTacticalStatus.uiFlags & TURNBASED && (gTacticalStatus.uiFlags & INCOMBAT ))
+		{
 			pSoldier->bDoAutofire = 1;
+			// sevenfm: init autofire bullet num next time when the cursor will be on target
+			gfAutofireInitBulletNum = FALSE;
+		}
 		else
+		{
 			pSoldier->bDoAutofire = 6;
+		}
 
 		pSoldier->flags.autofireLastStep = FALSE;
 	}
@@ -1592,6 +1648,10 @@ UINT8 HandleKnifeCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fActivate
 
 	// DRAW PATH TO GUY
 	HandleUIMovementCursor( pSoldier, uiCursorFlags, sGridNo, MOVEUI_TARGET_MERCS );
+
+	// Flugente: if we are using a bayonet, adjust aimtime
+	if ( pSoldier->bWeaponMode == WM_ATTACHED_BAYONET && pSoldier->aiData.bShownAimTime != REFINE_KNIFE_1 )
+		pSoldier->aiData.bShownAimTime = REFINE_KNIFE_2;
 
 	if ( fActivated )
 	{
@@ -1966,6 +2026,8 @@ UINT8 HandleNonActivatedTossCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEA
 				OBJECTTYPE* pObject = &(pSoldier->inv[HANDPOS]);
 				// Do we have a launcable?
 				pObj = &(pSoldier->inv[HANDPOS]);
+				//sevenfm this should be checked only for guns because we can throw items with attached explosives
+				if(Item[pObj->usItem].usItemClass & IC_WEAPON )
 				for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
 					if ( Item[ iter->usItem ].usItemClass & IC_EXPLOSV && iter->exists())
 					{
@@ -2138,7 +2200,91 @@ UINT8 HandleBombCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fActivated
 	}
 }
 
+UINT8 HandleFortificationCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags )
+{
+	// DRAW PATH TO GUY
+	HandleUIMovementCursor( pSoldier, uiCursorFlags, sGridNo, MOVEUI_TARGET_FORTIFICATION );
 
+	if ( pSoldier->pathing.bLevel != 0 )
+		return( FORTIFICATION_RED_UICURSOR );
+
+	// if we have an empty sandbag in our hands, we also need to have a shovel in our second hand, otherwise we can't fill it
+	if ( HasItemFlag( (&(pSoldier->inv[HANDPOS]))->usItem, (EMPTY_SANDBAG)) )
+	{
+		// check if we have a shovel in our second hand
+		OBJECTTYPE* pShovelObj = &(pSoldier->inv[SECONDHANDPOS]);
+
+		if ( pShovelObj && (pShovelObj->exists()) && HasItemFlag(pSoldier->inv[ SECONDHANDPOS ].usItem, (SHOVEL)) )
+		{
+			INT8 bOverTerrainType = GetTerrainType( sGridNo );
+			if( bOverTerrainType == FLAT_GROUND || bOverTerrainType == DIRT_ROAD || bOverTerrainType == LOW_GRASS )
+			{
+				return( FORTIFICATION_GREY_UICURSOR );
+			}
+		}
+
+		return( FORTIFICATION_RED_UICURSOR );
+	}
+
+	if ( HasItemFlag( (&(pSoldier->inv[HANDPOS]))->usItem, (SHOVEL)) )
+	{
+		STRUCTURE* pStruct = FindStructure(sGridNo, STRUCTURE_GENERIC);
+
+		if ( pStruct )
+		{
+			return( FORTIFICATION_GREY_UICURSOR );
+		}
+		else
+			return( FORTIFICATION_RED_UICURSOR );
+	}
+
+	// can we build something here?
+	if ( IsFortificationPossibleAtGridNo( sGridNo ) )
+	{		
+		return( FORTIFICATION_GREY_UICURSOR );
+	}
+
+	return( FORTIFICATION_RED_UICURSOR );
+}
+
+UINT8 HandleHandcuffCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags )
+{
+	// DRAW PATH TO GUY
+	HandleUIMovementCursor( pSoldier, uiCursorFlags, sGridNo, MOVEUI_TARGET_HANDCUFF );
+	
+	// do we have handcuffs in our hand?
+	if ( HasItemFlag( (&(pSoldier->inv[HANDPOS]))->usItem, HANDCUFFS ) )
+	{
+		// is there a person here?
+		UINT8 usSoldierIndex = WhoIsThere2( sGridNo, pSoldier->pathing.bLevel );
+		if ( usSoldierIndex != NOBODY )
+		{
+			// no handcuffing if the guy is already caught...
+			if ( !(MercPtrs[usSoldierIndex]->bSoldierFlagMask & SOLDIER_POW) )
+				return( HANDCUFF_GREY_UICURSOR );
+		}
+	}
+
+	return( HANDCUFF_RED_UICURSOR );
+}
+
+UINT8 HandleApplyItemCursor( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiCursorFlags )
+{
+	// DRAW PATH TO GUY
+	HandleUIMovementCursor( pSoldier, uiCursorFlags, sGridNo, MOVEUI_TARGET_APPLYITEM );
+		
+	if ( ItemCanBeAppliedToOthers( (&(pSoldier->inv[HANDPOS]))->usItem ) )
+	{
+		// is there a person here?
+		UINT8 usSoldierIndex = WhoIsThere2( sGridNo, pSoldier->pathing.bLevel );
+		if ( usSoldierIndex != NOBODY )
+		{
+			return( APPLYITEM_GREY_UICURSOR );
+		}
+	}
+
+	return( APPLYITEM_RED_UICURSOR );
+}
 
 void HandleEndConfirmCursor( SOLDIERTYPE *pSoldier )
 {
@@ -2290,60 +2436,132 @@ void HandleRightClickAdjustCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos )
 		case TARGETCURS:
 
 			// CHECK IF GUY HAS IN HAND A WEAPON
-			if ( pSoldier->bDoBurst && !pSoldier->bDoAutofire)
+			if ( pSoldier->bDoBurst && !pSoldier->bDoAutofire && !gGameExternalOptions.bAimedBurstEnabled)
 			{
-				// Do nothing!
+				// Do nothing for aimed burst deactivated
 				// pSoldier->aiData.bShownAimTime = REFINE_AIM_BURST;
 			}
 			else if(pSoldier->bDoAutofire)
 			{
-				INT16	sCurAPCosts;
-
-				if(pSoldier->flags.autofireLastStep)
+				// aiming in auto mode using hotkey for mousewheel not working
+				if( gfKeyState[ COMMA ] && gGameExternalOptions.bAimedBurstEnabled )
 				{
-					pSoldier->bDoAutofire = 1;						//reset the bullet counter
-					pSoldier->flags.autofireLastStep = FALSE;
-					return;
-				}
+					sGridNo					= usMapPos;
+					bTargetLevel	= (INT8)gsInterfaceLevel;
 
-
-				if(pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft > pSoldier->bDoAutofire )
-				{
-					//Calculate how many bullets we need to fire to add at least one more AP
-					sAPCosts = sCurAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts <= sCurAPCosts && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft > pSoldier->bDoAutofire)	//Increment the bullet count until we run out of APs or we spend the whole AP
+					// Look for a target here...
+					if ( gfUIFullTargetFound )
 					{
-						pSoldier->bDoAutofire++;
-						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+						// Get target soldier, if one exists
+						pTSoldier = MercPtrs[ gusUIFullTargetID ];
+						sGridNo = pTSoldier->sGridNo;
+						bTargetLevel = pSoldier->pathing.bLevel;
+
+						if ( !HandleCheckForBadChangeToGetThrough( pSoldier, pTSoldier, sGridNo , bTargetLevel ) )
+						{
+							return;
+						}
 					}
 
-					//we've stepped over the border and used up one more ap, now let's make sure that it is spent to maximize the bullets
+					bFutureAim = (INT8)( pSoldier->aiData.bShownAimTime + 1 );
 
-					sCurAPCosts = sAPCosts;
-
-					do
+					if ( bFutureAim <= maxAimLevels )
 					{
-						pSoldier->bDoAutofire++;
-						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-					}
-					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts == sCurAPCosts && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire);
-					pSoldier->bDoAutofire--;
+						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, (INT8)(bFutureAim ) );
 
-					sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-
-					if(!EnoughPoints( pSoldier, sAPCosts, 0, FALSE ))		//We've not enough points to fire those bullets
-					{
-						pSoldier->flags.autofireLastStep = TRUE;
-						pSoldier->bDoAutofire--;
+						// Determine if we can afford!
+						if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+						{
+							pSoldier->aiData.bShownAimTime+= 1;
+							if ( pSoldier->aiData.bShownAimTime > maxAimLevels )
+							{
+								pSoldier->aiData.bShownAimTime = maxAimLevels;
+							}
+						}
+						// Else - goto first level!
+						else
+						{
+							if ( !gfDisplayFullCountRing )
+							{
+								gfDisplayFullCountRing = TRUE;
+							}
+							else
+							{
+								pSoldier->aiData.bShownAimTime = REFINE_AIM_1;
+								gfDisplayFullCountRing = FALSE;
+							}
+						}
 					}
 					else
-						pSoldier->flags.autofireLastStep = FALSE; //both last step conditions are false
+					{
+						if ( !gfDisplayFullCountRing )
+						{
+							gfDisplayFullCountRing = TRUE;
+						}
+						else
+						{
+							pSoldier->aiData.bShownAimTime = REFINE_AIM_1;
+							gfDisplayFullCountRing = FALSE;
+						}
+					}
 				}
+				// adjust number of bullets in auto mode
 				else
 				{
-					pSoldier->flags.autofireLastStep = TRUE;
+					INT16	sCurAPCosts;
+					UINT16 usShotsLeft = pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft;
+					if (pSoldier->IsValidSecondHandBurst()) 
+					{
+						usShotsLeft = min( (pSoldier->inv[ SECONDHANDPOS ][0]->data.gun.ubGunShotsLeft), usShotsLeft );
+					}
+
+					if(pSoldier->flags.autofireLastStep)
+					{
+						pSoldier->bDoAutofire = 1;						//reset the bullet counter
+						pSoldier->flags.autofireLastStep = FALSE;
+						return;
+					}
+
+
+					if(usShotsLeft > pSoldier->bDoAutofire )
+					{
+						//Calculate how many bullets we need to fire to add at least one more AP
+						sAPCosts = sCurAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+						while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts <= sCurAPCosts && usShotsLeft > pSoldier->bDoAutofire)	//Increment the bullet count until we run out of APs or we spend the whole AP
+						{
+							pSoldier->bDoAutofire++;
+							sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+						}
+
+						//we've stepped over the border and used up one more ap, now let's make sure that it is spent to maximize the bullets
+
+						sCurAPCosts = sAPCosts;
+
+						do
+						{
+							pSoldier->bDoAutofire++;
+							sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+						}
+						while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts == sCurAPCosts && usShotsLeft >= pSoldier->bDoAutofire);
+						pSoldier->bDoAutofire--;
+
+						sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+
+						if(!EnoughPoints( pSoldier, sAPCosts, 0, FALSE ))		//We've not enough points to fire those bullets
+						{
+							pSoldier->flags.autofireLastStep = TRUE;
+							pSoldier->bDoAutofire--;
+						}
+						else
+							pSoldier->flags.autofireLastStep = FALSE; //both last step conditions are false
+					}
+					else
+					{
+						pSoldier->flags.autofireLastStep = TRUE;
+					}
 				}
 			}
+			// single fire mode
 			else
 			{
 				sGridNo					= usMapPos;
@@ -2557,6 +2775,16 @@ UINT8 GetActionModeCursor( SOLDIERTYPE *pSoldier )
 
 	if ( pSoldier->bWeaponMode == WM_ATTACHED_GL )
 	{
+		// Flugente: if using a rifle grenade, only allow firing if there is a bullet in the gun's magazine (required for firing)
+		if ( HasAttachmentOfClass( &(pSoldier->inv[HANDPOS]), AC_RIFLEGRENADE) )
+		{
+			OBJECTTYPE* pObj = &(pSoldier->inv[HANDPOS]);
+			if ( (*pObj)[0]->data.gun.ubGunShotsLeft> 0 )
+				return( TRAJECTORYCURS );
+			else
+				return( INVALIDCURS );
+		}
+
 		return( TRAJECTORYCURS );
 	}
 	if ( pSoldier->bWeaponMode == WM_ATTACHED_GL_BURST || ( pSoldier->bWeaponMode == WM_BURST && Item[pSoldier->inv[HANDPOS].usItem].grenadelauncher ) )
@@ -2574,8 +2802,7 @@ UINT8 GetActionModeCursor( SOLDIERTYPE *pSoldier )
 			return ( TRAJECTORYCURS );
 	}
 
-	usInHand = pSoldier->inv[HANDPOS].usItem;
-
+	usInHand = pSoldier->GetUsedWeaponNumber( &pSoldier->inv[HANDPOS] );
 	// Start off with what is in our hand
 	ubCursor = Item[ usInHand ].ubCursor;
 
@@ -2583,16 +2810,46 @@ UINT8 GetActionModeCursor( SOLDIERTYPE *pSoldier )
 	// Detonators can only be on invalidcurs things...
 	if ( ubCursor == INVALIDCURS )
 	{
-		if ( IsDetonatorAttached( &(pSoldier->inv[HANDPOS]) ) )
+		if ( HasAttachmentOfClass( &(pSoldier->inv[HANDPOS]), AC_DETONATOR ) )
 		{
 			ubCursor = BOMBCURS;
 		}
-		else if ( IsRemoteDetonatorAttached( &(pSoldier->inv[HANDPOS]) ) )
+		else if ( HasAttachmentOfClass( &(pSoldier->inv[HANDPOS]), AC_REMOTEDET ) )
+		{
+			ubCursor = BOMBCURS;
+		}
+		else if ( HasAttachmentOfClass( &(pSoldier->inv[HANDPOS]), AC_DEFUSE) )
 		{
 			ubCursor = BOMBCURS;
 		}
 	}
 
+	// Flugente: cursor for building fortifications
+	if ( HasItemFlag(usInHand, (EMPTY_SANDBAG|FULL_SANDBAG|SHOVEL|CONCERTINA)) )
+		ubCursor = FORTICURS;
+
+	// Flugente: cursor for handcuffs
+	if ( gGameExternalOptions.fAllowPrisonerSystem && HasItemFlag(usInHand, HANDCUFFS) )
+		ubCursor = HANDCUFFCURS;
+
+	// Flugente: apply misc items to other soldiers
+	if ( ItemCanBeAppliedToOthers( usInHand ) )
+	{
+		// if item is a bomb, only allow apply if hovering over a soldier (otherwise we cannot mine anymore)
+		if ( Item[ usInHand ].usItemClass == IC_BOMB )
+		{
+			INT32 usMapPos = NOWHERE;
+			if ( GetMouseMapPos( &usMapPos ) )
+			{
+				// is there a person here?
+				 if ( WhoIsThere2( usMapPos, pSoldier->pathing.bLevel ) != NOBODY )
+					 ubCursor = APPLYITEMCURS;
+			}
+		}
+		else
+			ubCursor = APPLYITEMCURS;
+	}
+		
 	// Now check our terrain to see if we cannot do the action now...
 	if ( WaterTooDeepForAttacks( pSoldier->sGridNo) )
 	{
@@ -3151,6 +3408,11 @@ void HandleWheelAdjustCursor( SOLDIERTYPE *pSoldier, INT32 sMapPos, INT32 sDelta
 	INT32					sGridNo;
 	INT8					bTargetLevel;
 
+	UINT16 usShotsLeft = pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft;
+	if (pSoldier->IsValidSecondHandBurst()) 
+	{
+		usShotsLeft = min( (pSoldier->inv[ SECONDHANDPOS ][0]->data.gun.ubGunShotsLeft), usShotsLeft );
+	}
 
 	usInHand = pSoldier->inv[HANDPOS].usItem;
 
@@ -3171,192 +3433,198 @@ void HandleWheelAdjustCursor( SOLDIERTYPE *pSoldier, INT32 sMapPos, INT32 sDelta
 	switch( ubCursor )
 	{
 		case TARGETCURS:
-
-//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"cbef=%d",CalcChanceToHitGun( pSoldier, sMapPos, pSoldier->aiData.bShownAimTime, pSoldier->bAimShotLocation ) );
-		if(pSoldier->bDoAutofire && (gfKeyState[18] || brstmode) ) //накрутка кол-ва пулей в очереди
 			{
-				INT16	sCurAPCosts;
-
-				if(pSoldier->bDoAutofire==1 && sDelta<0) return;
-
-				if(pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft > pSoldier->bDoAutofire )
+				if(pSoldier->bDoAutofire && (gfKeyState[ ALT ] || brstmode) ) //накрутка кол-ва пулей в очереди	// Flugente: how the fuck is this comment useful?
 				{
-					//Calculate how many bullets we need to fire to add at least one more AP
-					sAPCosts = sCurAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts <= sCurAPCosts && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft > pSoldier->bDoAutofire)	//Increment the bullet count until we run out of APs or we spend the whole AP
+					INT16	sCurAPCosts;
+
+					if(pSoldier->bDoAutofire==1 && sDelta<0)
+						return;
+
+					if(usShotsLeft > pSoldier->bDoAutofire )
 					{
-						pSoldier->bDoAutofire++;
-						sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-					}
+						//Calculate how many bullets we need to fire to add at least one more AP
+						sAPCosts = sCurAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+						while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts <= sCurAPCosts && usShotsLeft > pSoldier->bDoAutofire)	//Increment the bullet count until we run out of APs or we spend the whole AP
+						{
+							pSoldier->bDoAutofire++;
+							sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+						}
 
-					//we've stepped over the border and used up one more ap, now let's make sure that it is spent to maximize the bullets
+						//we've stepped over the border and used up one more ap, now let's make sure that it is spent to maximize the bullets
 
-					sCurAPCosts = sAPCosts;
+						sCurAPCosts = sAPCosts;
 
-					do
-					{
-						pSoldier->bDoAutofire+=sDelta;
-						sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-					}
-					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts == sCurAPCosts && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire);
-					pSoldier->bDoAutofire--;
-
-					sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-
-					if(!EnoughPoints( pSoldier, sAPCosts, 0, FALSE ))		//We've not enough points to fire those bullets
-					{
-						pSoldier->flags.autofireLastStep = TRUE;
+						do
+						{
+							pSoldier->bDoAutofire+=sDelta;
+							sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+						}
+						while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts == sCurAPCosts && usShotsLeft >= pSoldier->bDoAutofire);
 						pSoldier->bDoAutofire--;
+
+						sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+
+						if(!EnoughPoints( pSoldier, sAPCosts, 0, FALSE ))		//We've not enough points to fire those bullets
+						{
+							pSoldier->flags.autofireLastStep = TRUE;
+							pSoldier->bDoAutofire--;
+						}
+						else
+							pSoldier->flags.autofireLastStep = FALSE; //both last step conditions are false
 					}
 					else
-						pSoldier->flags.autofireLastStep = FALSE; //both last step conditions are false
+					{
+						if(sDelta<0) 
+						{
+							pSoldier->flags.autofireLastStep = FALSE;
+						pSoldier->bDoAutofire--;
+						}
+						else
+						pSoldier->flags.autofireLastStep = TRUE;
+					}
+
+					return;
 				}
 				else
 				{
-					if(sDelta<0) 
+					sGridNo					= sMapPos;
+					bTargetLevel	= (INT8)gsInterfaceLevel;
+
+					// Look for a target here...
+					if ( gfUIFullTargetFound )
 					{
-						pSoldier->flags.autofireLastStep = FALSE;
-					pSoldier->bDoAutofire--;
+						// Get target soldier, if one exists
+						pTSoldier = MercPtrs[ gusUIFullTargetID ];
+						sGridNo = pTSoldier->sGridNo;
+						bTargetLevel = pSoldier->pathing.bLevel;
+
+						if ( !HandleCheckForBadChangeToGetThrough( pSoldier, pTSoldier, sGridNo , bTargetLevel ) )
+						{
+							return;
+						}
 					}
-					else
-					pSoldier->flags.autofireLastStep = TRUE;
-				}
-				return;
-			}
-///////////////////////////////
-				sGridNo					= sMapPos;
-				bTargetLevel	= (INT8)gsInterfaceLevel;
 
-				// Look for a target here...
-				if ( gfUIFullTargetFound )
-				{
-					// Get target soldier, if one exists
-					pTSoldier = MercPtrs[ gusUIFullTargetID ];
-					sGridNo = pTSoldier->sGridNo;
-					bTargetLevel = pSoldier->pathing.bLevel;
+					bFutureAim = maxAimLevels;
 
-					if ( !HandleCheckForBadChangeToGetThrough( pSoldier, pTSoldier, sGridNo , bTargetLevel ) )
+					//Find the actual maximum aim that can be done.				
+					while( bFutureAim > 0 )
 					{
-						return;
+						//Can afford this many?
+						sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, bFutureAim );
+						if( !maxAimCanAfford && EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+						{
+							maxAimCanAfford = bFutureAim;
+						}
+						//Find the least amount of aiming needed to get maximum CtH
+						//Give some slack, but don't let the slack accumulate.
+						//dd???{
+						//hitChance = CalcChanceToHitGun( pSoldier, sMapPos, bFutureAim, pSoldier->bAimShotLocation );
+						//if( hitChance >= maxCtH - 3){
+						//	minAimForCtH = bFutureAim;
+						//	if(hitChance >= maxCtH) maxCtH = hitChance;
+						//}
+						//ddd???}
+						//Loop to 0.
+						--bFutureAim;
 					}
-				}
 
-
-				bFutureAim = maxAimLevels;
-
-				//Find the actual maximum aim that can be done.				
-				while( bFutureAim > 0 ){
-					//Can afford this many?
-					sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, bFutureAim );
-					if( !maxAimCanAfford && EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) ){
-						maxAimCanAfford = bFutureAim;
-					}
-					//Find the least amount of aiming needed to get maximum CtH
-					//Give some slack, but don't let the slack accumulate.
-					//dd???{
-					//hitChance = CalcChanceToHitGun( pSoldier, sMapPos, bFutureAim, pSoldier->bAimShotLocation );
-					//if( hitChance >= maxCtH - 3){
-					//	minAimForCtH = bFutureAim;
-					//	if(hitChance >= maxCtH) maxCtH = hitChance;
-					//}
-					//ddd???}
-					//Loop to 0.
-					--bFutureAim;
-				}
-
-				bFutureAim = oldAim + sDelta;
-				if( bFutureAim < REFINE_AIM_1 ) return;
-
-
-				//Do it.
-				if( bFutureAim < REFINE_AIM_1 ){
-					//Went too low.  Set to max aim.
-					bFutureAim = maxAimCanAfford;
-					gfDisplayFullCountRing = TRUE;
-				}else if( bFutureAim <= maxAimCanAfford ){
-					//Aim level is doable.  No modification needed.
-					gfDisplayFullCountRing = FALSE;
-				}else{
-					//Aim too high.  Give indicator that is is maxed, then reset aim refinement.
-					if ( gfDisplayFullCountRing )
+					bFutureAim = oldAim + sDelta;
+					if( bFutureAim < REFINE_AIM_1 )
 						return;
-					else{
-						//Display ring to indicate maximum aim reached.
-						bFutureAim = oldAim;
+
+					//Do it.
+					if( bFutureAim < REFINE_AIM_1 )
+					{
+						//Went too low.  Set to max aim.
+						bFutureAim = maxAimCanAfford;
 						gfDisplayFullCountRing = TRUE;
 					}
+					else if( bFutureAim <= maxAimCanAfford )
+					{
+						//Aim level is doable.  No modification needed.
+						gfDisplayFullCountRing = FALSE;
+					}
+					else
+					{
+						//Aim too high.  Give indicator that is is maxed, then reset aim refinement.
+						if ( gfDisplayFullCountRing )
+							return;
+						else{
+							//Display ring to indicate maximum aim reached.
+							bFutureAim = oldAim;
+							gfDisplayFullCountRing = TRUE;
+						}
+					}
+					//Apply.
+					pSoldier->aiData.bShownAimTime = bFutureAim;
+
+					//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"caft=%d",CalcChanceToHitGun( pSoldier, sMapPos, pSoldier->aiData.bShownAimTime, pSoldier->bAimShotLocation ) );
 				}
-				//Apply.
-				pSoldier->aiData.bShownAimTime = bFutureAim;
-
-//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"caft=%d",CalcChanceToHitGun( pSoldier, sMapPos, pSoldier->aiData.bShownAimTime, pSoldier->bAimShotLocation ) );
+			}
 			break;
-
 
 		case PUNCHCURS:
-
-			bFutureAim = (INT8)( pSoldier->aiData.bShownAimTime + (sDelta*REFINE_PUNCH_2) );
-if(bFutureAim<0) return;
-			if ( bFutureAim <= REFINE_PUNCH_2 )
 			{
-				sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, (INT8)(bFutureAim / 2) );
+				bFutureAim = (INT8)( pSoldier->aiData.bShownAimTime + (sDelta*REFINE_PUNCH_2) );
+				if(bFutureAim < 0 )
+					return;
 
-				// Determine if we can afford!
-				if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+				if ( bFutureAim <= REFINE_PUNCH_2 )
 				{
-					pSoldier->aiData.bShownAimTime+= (sDelta*REFINE_PUNCH_2);
-					if ( pSoldier->aiData.bShownAimTime > REFINE_PUNCH_2 )
-						pSoldier->aiData.bShownAimTime = REFINE_PUNCH_2;
-					gfDisplayFullCountRing = FALSE;
+					sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, (INT8)(bFutureAim / 2) );
+
+					// Determine if we can afford!
+					if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+					{
+						pSoldier->aiData.bShownAimTime+= (sDelta*REFINE_PUNCH_2);
+						if ( pSoldier->aiData.bShownAimTime > REFINE_PUNCH_2 )
+							pSoldier->aiData.bShownAimTime = REFINE_PUNCH_2;
+						gfDisplayFullCountRing = FALSE;
+					}
+					else
+						gfDisplayFullCountRing = TRUE;
 				}
 				else
 					gfDisplayFullCountRing = TRUE;
 			}
-			else
-				gfDisplayFullCountRing = TRUE;
-			
 			break;
-							
-
 
 		case KNIFECURS:
-
-			bFutureAim = (INT8)( pSoldier->aiData.bShownAimTime + (sDelta*REFINE_KNIFE_2) );
-if(bFutureAim<0) return;
-			if ( bFutureAim <= REFINE_KNIFE_2 )
 			{
-				sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, (INT8)(bFutureAim / 2) );
+				bFutureAim = (INT8)( pSoldier->aiData.bShownAimTime + (sDelta*REFINE_KNIFE_2) );
+				if(bFutureAim<0)
+					return;
 
-				// Determine if we can afford!
-				if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+				if ( bFutureAim <= REFINE_KNIFE_2 )
 				{
-					pSoldier->aiData.bShownAimTime+= REFINE_KNIFE_2;
-					if ( pSoldier->aiData.bShownAimTime > REFINE_KNIFE_2 )
-						pSoldier->aiData.bShownAimTime = REFINE_KNIFE_2;
-					gfDisplayFullCountRing = FALSE;
+					sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, (INT8)(bFutureAim / 2) );
+
+					// Determine if we can afford!
+					if ( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+					{
+						pSoldier->aiData.bShownAimTime+= REFINE_KNIFE_2;
+						if ( pSoldier->aiData.bShownAimTime > REFINE_KNIFE_2 )
+							pSoldier->aiData.bShownAimTime = REFINE_KNIFE_2;
+						gfDisplayFullCountRing = FALSE;
+					}
+					else
+						gfDisplayFullCountRing = TRUE;
 				}
 				else
 					gfDisplayFullCountRing = TRUE;
 			}
-			else
-				gfDisplayFullCountRing = TRUE;
-
 			break;
 
 		case TOSSCURS:
-
 			//IncrementAimCubeUI( );
 			break;
 
 		default:
-
 			ErasePath( TRUE );
-
 	}
-
 }
 
-//обработка колеса без прицельной очереди if прицельная очередь отключена в .ини
 void HandleWheelAdjustCursorWOAB( SOLDIERTYPE *pSoldier, INT32 sMapPos, INT32 sDelta )
 {
 	UINT16					usInHand;
@@ -3367,6 +3635,11 @@ void HandleWheelAdjustCursorWOAB( SOLDIERTYPE *pSoldier, INT32 sMapPos, INT32 sD
 	INT32					sGridNo;
 	INT8					bTargetLevel;
 
+	UINT16 usShotsLeft = pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft;
+	if (pSoldier->IsValidSecondHandBurst()) 
+	{
+		usShotsLeft = min( (pSoldier->inv[ SECONDHANDPOS ][0]->data.gun.ubGunShotsLeft), usShotsLeft );
+	}
 
 	usInHand = pSoldier->inv[HANDPOS].usItem;
 
@@ -3397,11 +3670,11 @@ void HandleWheelAdjustCursorWOAB( SOLDIERTYPE *pSoldier, INT32 sMapPos, INT32 sD
 
 				if(pSoldier->bDoAutofire==1 && sDelta<0) return;
 
-				if(pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft > pSoldier->bDoAutofire )
+				if(usShotsLeft > pSoldier->bDoAutofire )
 				{
 					//Calculate how many bullets we need to fire to add at least one more AP
 					sAPCosts = sCurAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
-					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts <= sCurAPCosts && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft > pSoldier->bDoAutofire)	//Increment the bullet count until we run out of APs or we spend the whole AP
+					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts <= sCurAPCosts && usShotsLeft > pSoldier->bDoAutofire)	//Increment the bullet count until we run out of APs or we spend the whole AP
 					{
 						pSoldier->bDoAutofire++;
 						sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
@@ -3416,7 +3689,7 @@ void HandleWheelAdjustCursorWOAB( SOLDIERTYPE *pSoldier, INT32 sMapPos, INT32 sD
 						pSoldier->bDoAutofire+=sDelta;
 						sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
 					}
-					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts == sCurAPCosts && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire);
+					while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts == sCurAPCosts && usShotsLeft >= pSoldier->bDoAutofire);
 					pSoldier->bDoAutofire--;
 
 					sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, pSoldier->aiData.bShownAimTime);
@@ -3485,7 +3758,8 @@ void HandleWheelAdjustCursorWOAB( SOLDIERTYPE *pSoldier, INT32 sMapPos, INT32 sD
 		case PUNCHCURS:
 
 			bFutureAim = (INT8)( pSoldier->aiData.bShownAimTime + (sDelta*REFINE_PUNCH_2) );
-if(bFutureAim<0) return;
+			if(bFutureAim<0)
+				return;
 			if ( bFutureAim <= REFINE_PUNCH_2 )
 			{
 				sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, (INT8)(bFutureAim / 2) );
@@ -3511,7 +3785,8 @@ if(bFutureAim<0) return;
 		case KNIFECURS:
 
 			bFutureAim = (INT8)( pSoldier->aiData.bShownAimTime + (sDelta*REFINE_KNIFE_2) );
-if(bFutureAim<0) return;
+			if(bFutureAim<0)
+				return;
 			if ( bFutureAim <= REFINE_KNIFE_2 )
 			{
 				sAPCosts = CalcTotalAPsToAttack( pSoldier, sMapPos, TRUE, (INT8)(bFutureAim / 2) );
@@ -3542,4 +3817,42 @@ if(bFutureAim<0) return;
 			ErasePath( TRUE );
 
 	}
+}
+
+UINT8 DefaultAutofireBulletsByGunClass( SOLDIERTYPE* pSoldier )
+{
+	UINT32 usItemClass;
+	UINT16 usItem;
+	UINT8 ubBullets = 1;
+	
+	if( !pSoldier )
+		return 1;
+	if( !pSoldier->inv[ pSoldier->ubAttackingHand ].exists() )
+		return 1;
+
+	usItem = pSoldier->inv[ pSoldier->ubAttackingHand ].usItem;
+	usItemClass = Item[ usItem ].usItemClass;
+
+	if( usItemClass != IC_GUN )
+		return 1;
+
+	switch( Weapon[ Item[ usItem ].ubClassIndex ].ubWeaponType )
+	{
+	case GUN_M_PISTOL:
+	case GUN_PISTOL:
+	case GUN_SMG:
+		ubBullets = gGameExternalOptions.ubSetDefaultAutofireBulletsSMG;	
+		break;
+	case GUN_AS_RIFLE:
+	case GUN_RIFLE:
+	case GUN_SN_RIFLE :
+	case GUN_SHOTGUN:
+		ubBullets = gGameExternalOptions.ubSetDefaultAutofireBulletsAR;
+		break;
+	case GUN_LMG:
+		ubBullets = gGameExternalOptions.ubSetDefaultAutofireBulletsMG;
+		break;
+	}
+
+	return ubBullets;
 }

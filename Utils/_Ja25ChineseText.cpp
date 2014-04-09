@@ -19,33 +19,6 @@ void this_is_the_Ja25ChineseText_public_symbol(void){;}
 
 // VERY TRUNCATED FILE COPIED FROM JA2.5 FOR ITS FEATURES FOR JA2 GOLD
 
-STR16	zNewTacticalMessages[]=
-{
-	//L"目标的距离: %d格, 亮度: %d/%d",
-	L"将发报机装到笔记本电脑上。",
-	L"你无法支付雇佣%s的费用",
-	L"在限定时间内，以上的费用包括了整个行动和下列装备的花费。",
-	L"现在就雇请%s吧。您可以享受我们提供的空前的“一次付费，全部服务”的优惠价格。在这个难以置信的出价里，佣兵的随身装备是免费的哦。",	
-	L"费用",
-	L"在本分区发现有人……",
-	//L"枪的射程: %d格， 命中率: %d％",
-	L"显示覆盖物",
-	L"视距",
-	L"新雇请的佣兵无法到达那里。",
-	L"由于你的笔记本电脑没有发报机，你无法雇请新的队员。也许你得读取存档或者重新开始游戏！",
-	L"%s听到了Jerry的身体下面传来金属的破碎的声音。听起来令人不安，似乎你的笔记本电脑的天线被压断了。", 
-	L"看完副指挥官Morris留下的备忘录后，%s觉得有机会了。备忘录里有向Arulco各个城镇发射导弹的基地的坐标。它还给出了这个罪恶计划的发源地的坐标 —— 导弹工厂。",
-	L"看到了控制面板后， %s发现它正在倒计时，因此导弹会把这个工厂炸毁。%s得找出个脱逃的路线。使用电梯看起来是最快的办法...",
-	L"现在您在铁人模式进行游戏，周围有敌人的时候不能存档。",	
-	L"(不能在战斗时存盘)",	
-	L"当前的战役名称超过了30个字符。",						
-	L"无法找到当前的战役。",											// @@@ new text
-	L"战役: 默认 ( %S )",											// @@@ new text
-	L"战役: %S",												// @@@ new text
-	L"你选择了%S战役。 该战役是原版UB战役的玩家自定义游戏版本。你确认你要在 %S 战役下进行游戏吗?",			
-	L"如果你要使用编辑器的话，请选择一个战役，不要用默认战役。",			
-};
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SANDRO - New STOMP laptop strings
 //these strings match up with the defines in IMP Skill trait.cpp
@@ -61,7 +34,7 @@ STR16 gzIMPSkillTraitsText[]=
 	L"重武器",	//"Heavy Weapons",
 	L"自动武器",	//"Auto Weapons",
 	L"潜行",	//"Stealth",
-	L"双手武器",	//"Ambidextrous",
+	L"双持",	//"Ambidextrous",
 	L"刀技",	//"Knifing",
 	L"狙击",	//"Sniper",
 	L"伪装",	//"Camouflage",
@@ -82,9 +55,10 @@ STR16 gzIMPSkillTraitsTextNewMajor[]=
 	L"猎兵",// L"Hunter",
 	L"快枪手",// L"Gunslinger",
 	L"格斗家",// L"Hand to Hand",
-	L"小组长",// L"Deputy",
+	L"班副",// L"Deputy",
 	L"技师",// L"Technician",
 	L"救护员",// L"Paramedic",
+	L"特工",// L"Covert Ops",
 
 	L"无",// L"None",
 	L"I.M.P 主要特殊技能",// L"I.M.P. Major Traits",
@@ -93,17 +67,18 @@ STR16 gzIMPSkillTraitsTextNewMajor[]=
 	L"掷弹兵",// L"Bombardier",
 	L"狙击手",// L"Sniper",
 	L"游骑兵",// L"Ranger",
-	L"枪斗家",// L"Gunfighter",
+	L"枪斗术",// L"Gunfighter",
 	L"武术家",// L"Martial Arts",
 	L"班长",// L"Squadleader",
 	L"工兵",// L"Engineer",
 	L"军医",// L"Doctor",
+	L"间谍",// L"Spy",
 };
 
 //added another set of skill texts for new minor traits
 STR16 gzIMPSkillTraitsTextNewMinor[]=
 {
-	L"双手武器",// L"Ambidextrous",
+	L"双持",// L"Ambidextrous",
 	L"格斗",// L"Melee",
 	L"投掷",// L"Throwing",
 	L"夜战",// L"Night Ops",
@@ -113,6 +88,7 @@ STR16 gzIMPSkillTraitsTextNewMinor[]=
 	L"爆破",// L"Demolitions",
 	L"教学",// L"Teaching",
 	L"侦察",// L"Scouting",
+	L"无线电操作员", //L"Radio Operator",
 
 	L"无",// L"None",
 	L"I.M.P 副技能",// L"I.M.P. Minor Traits",
@@ -161,6 +137,8 @@ STR16 gzIMPMajorTraitsHelpTextsSniper[]=
 	L"栓动步枪拉栓所需行动点 -%d%s \n",// L"-%d%s APs needed to chamber a round with bolt-action rifles \n",
 	L"步枪精确瞄准次数增加 1次\n",// L"Adds one more aim click for rifle-type guns\n",
 	L"步枪精确瞄准次数增加 %d次\n",// L"Adds %d more aim clicks for rifle-type guns\n",
+	L"迅速瞄准：步枪精确瞄准次数加快（即减少）1次\n",//L"Makes aiming faster with rifle-type guns by one aim click\n",
+	L"迅速瞄准：步枪精确瞄准次数加快（即减少）%d次\n",//L"Makes aiming faster with rifle-type guns by %d aim clicks\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsRanger[]=
@@ -168,6 +146,9 @@ STR16 gzIMPMajorTraitsHelpTextsRanger[]=
 	L"步枪命中率 +%d%s\n",// L"+%d%s Chance to Hit with Rifles\n",
 	L"霰弹枪命中率 +%d%s\n",// L"+%d%s Chance to Hit with Shotguns\n",
 	L"泵动式霰弹上膛所需行动点 -%d%s \n",// L"-%d%s APs needed to pump Shotguns\n",
+	L"使用散弹枪时-%d%s APs\n",	//L"-%d%s APs to fire Shotguns\n",
+	L"使用散弹枪增加%d次瞄准次数\n",	//L"Adds %d more aim click for Shotguns\n",
+	L"使用散弹枪增加%d次瞄准次数\n",	//L"Adds %d more aim clicks for Shotguns\n",
 	L"队伍在区域间步行移动的速度 +%d%s\n",// L"+%d%s group travelling speed between sectors if traveling by foot\n",
 	L"队伍在区域间乘车移动的速度 +%d%s\n",// L"+%d%s group travelling speed between sectors if traveling in vehicle (except helicopter)\n",
 	L"区域间移动时体力消耗 -%d%s\n",// L"-%d%s less energy spent for travelling between sectors\n",
@@ -219,7 +200,7 @@ STR16 gzIMPMajorTraitsHelpTextsMartialArts[]=
 	L"上/下房顶所需行动点 -%d%s\n",// L"-%d%s APs needed to climb on/off roof and jump obstacles\n",
 	L"踢门成功率 +%d%s\n",// L"+%d%s chance to kick doors\n",
 	L"你的格斗攻击将有特殊的动画效果\n",// L"You gain special animations for hand to hand combat\n",
-	L"-%d%s chance to be interrupted when moving\n", // TODO.Translate
+	L"移动时被中断的几率降低 -%d%s\n", // L"-%d%s chance to be interrupted when moving\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsSquadleader[]=
@@ -235,7 +216,7 @@ STR16 gzIMPMajorTraitsHelpTextsSquadleader[]=
 	L"(叠加效果最多是 %d 次)\n",// L"(Max simultaneous bonuses for one soldier is %d)\n",
 	L"+%d%s %s的恐惧抵抗力 (程序参数问题只能用这个语序)\n",// L"+%d%s fear resistence of %s\n",
 	L"缺陷: 会给其他人造成 %d 倍的士气下降, 如果 %s 的阵亡的话 (程序参数问题只能用这个语序)\n",// L"Drawback: %dx morale loss for %s's death for all other mercs\n",
-	L"+%d%s chance to trigger collective interrupts\n", // TODO.Translate
+	L"触发小队集体中断的几率增加 +%d%s\n", // L"+%d%s chance to trigger collective interrupts\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsTechnician[]=
@@ -265,6 +246,38 @@ STR16 gzIMPMajorTraitsHelpTextsDoctor[]=
 	L"(这种效果最多叠加 %d 次)",// L" (max %d these bonuses per sector)",
 
 };
+STR16 gzIMPMajorTraitsHelpTextsCovertOps[]=
+{
+	L"可在敌后伪装成市民或敌军士兵\n",//L"Can disguise as a civilian or soldier to slip behind enemy lines.\n",
+	L"以下情况会暴露身份：可疑动作、可疑装备或者接近新鲜尸体\n",//L"Will be detected if performing suspicious actions, having\nsuspicious gear or being near fresh corpses.\n",
+	L"在靠近敌人 %d 格内伪装成士兵会被自动发现而暴露\n",//L"Will automatically be detected if disguised as a soldier and\ncloser than %d tiles to the enemy.\n",
+	L"在靠近尸体 %d 格内伪装成士兵会被自动发现而暴露\n",//L"Will automatically be detected if disguised as a soldier and\ncloser than %d tiles to a fresh corpse.\n",
+	L"伪装状态下使用近战武器攻击时，命中率增加 +%d%s\n",//L"+%d%s CTH with covert melee weapons\n",
+	L"伪装状态下使用近战武器攻击时，秒杀几率增加 +%d%s\n",//L"+%d%s chance of instakill with covert melee weapons\n",
+	L"伪装动作消耗的AP降低 %d%s\n",//L"Disguise AP cost lowered by %d%s.\n",
+};
+
+STR16 gzIMPMajorTraitsHelpTextsRadioOperator[]=
+{
+	L"可以使用通讯设备\n", //L"Can use communications equipment\n", 
+	L"可以呼叫临区盟友进行火炮攻击。\n", //L"Can call in artillery strikes from allies in neighbouring sectors.\n",
+	L"可以通过通讯频率扫描任务定位敌军巡逻队。\n", //L"Via Frequency Scan assignment, enemy patrols can be located.\n",
+	L"可以在分区范围内干扰通讯设备。\n", //L"Communications can be jammed sector-wide.\n",
+	L"如果通讯受到干扰，操作员可以扫描到那个干扰设备。\n", //L"If communications are jammed, a operator can scan for the jamming device.\n",
+	L"可以呼叫临区军队进行支援。\n", //L"Can call in militia reinforcements from neighbouring sectors.\n",
+};
+
+// anv: VR trait
+STR16 gzIMPMajorTraitsHelpTextsPilot[]=
+{
+	L"Can pilot aircraft\n",
+	L"Can pilot aircraft like a pro\n",
+	L"+%d%s chance to dodge incoming enemy AA missile\n",
+	L"+%d%s chance of accidently damaging piloted aircraft\n",
+	L"+%d%s chance to notice enemies while flying over the sector\n",
+	
+};
+
 STR16 gzIMPMajorTraitsHelpTextsNone[]=
 {
 	L"无奖励",// L"No bonuses",
@@ -324,7 +337,7 @@ STR16 gzIMPMinorTraitsHelpTextsStealthy[]=
 	L"潜行保持无声的几率 +%d%s\n",// L"+%d%s chance to move quietly\n",
 	L"隐蔽性 +%d%s (未发现时判定为“隐形”)\n",// L"+%d%s stealth (being 'invisible' if unnoticed)\n",
 	L"移动对隐蔽程度的惩罚 -%d%s\n",// L"Reduced cover penalty for movement by %d%s\n",
-	L"被敌人中断几率 -%d%s\n", // TODO.Translate
+	L"被敌人中断几率 -%d%s\n",
 
 };
 STR16 gzIMPMinorTraitsHelpTextsAthletics[]=
@@ -372,20 +385,25 @@ STR16 gzIMPMinorTraitsHelpTextsScouting[]=
 	L"防止血猫偷袭你的队伍\n",// L"Prevents the bloodcats to ambush your squad\n",
 
 };
+
+STR16 gzIMPMinorTraitsHelpTextsSnitch[]=
+{
+	L"偶尔会通知你在队伍中听到的意见。\n",
+	L"阻止队员的失常行为（服用药物、酗酒或偷东西）\n",
+	L"可以在城镇派发传单。\n",
+	L"可以在城镇搜集谣言。\n",
+	L"可以在监狱当卧底。\n",
+	L"如果士气好的话可以每天为你增加%d声誉。\n",
+	L"+%d有效听觉范围\n",
+};
+
+// anv: VR trait
 STR16 gzIMPMinorTraitsHelpTextsDriver[]=
 {
 	L"+%d%s group traveling speed between sectors if traveling in vehicle (except helicopter)\n",
 	L"-%d%s fuel consumption when traveling in vehicle (except helicopter)\n",
 };
-STR16 gzIMPMajorTraitsHelpTextsPilot[]=
-{
-	L"Can pilot aircraft\n",
-	L"Can pilot aircraft like a pro\n",
-	L"+%d%s chance to dodge incoming enemy AA missile\n",
-	L"+%d%s chance of accidently damaging piloted aircraft\n",
-	L"+%d%s chance to notice enemies while flying over the sector\n",
-	
-};
+
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"无奖励",// L"No bonuses",
@@ -459,14 +477,15 @@ STR16 gzIMPDisabilitiesHelpTexts[]=
 	L"可能会在看到大虫子后六神无主，也会在热带地区降低综合表现。",// L"A look at large insects can make a big problems\nand being in tropical sectors also reduce his performance a bit.",
 	L"可能会偶尔忘记手头的任务，也会在战斗中损失行动点。",// L"Sometimes forgets what orders he got and therefore loses some APs if in combat.",
 	L"可能会偶尔发疯并把手里武器设在自动后乱喷。\n如果武器不能自动射击将会打击自身士气。",// L"He can go psycho and shoot like mad once per a while\nand can lose morale if unable to do that with given weapon.",
-
+	L"大大减少听力范围",		// L"Drastically reduced hearing.",
+	L"减少视力范围",				// L"Reduced sight range.",
 };
 
 
 
 STR16 gzIMPProfileCostText[]=
 {
-	L"客户您消费 %d$. 确认并付款?",//L"The profile cost is %d$. Do you authorize the payment? ",
+	L"客户您消费 $%d. 确认并付款?",//L"The profile cost is $%d. Do you authorize the payment?",
 };
 
 STR16 zGioNewTraitsImpossibleText[]=

@@ -23,9 +23,12 @@
 extern HVSURFACE ghFrameBuffer;
 extern BOOLEAN gfSchedulesHosed;
 
-
+#ifdef JA2UB
+	#include "Ja25_Tactical.h"
+	#include "Ja25 Strategic Ai.h"
+#endif
 UINT8 gubLastLoadingScreenID = LOADINGSCREEN_NOTHING;
-BOOLEAN bShowSmallImage = FALSE;
+//BOOLEAN bShowSmallImage = FALSE;
 SECTOR_LOADSCREENS gSectorLoadscreens[MAX_SECTOR_LOADSCREENS];
 
 static INT16 requestedX, requestedY, requestedZ;
@@ -118,21 +121,16 @@ UINT8 GetLoadScreenID(INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ)
 	/* User made system - BEGIN */
 	if (gGameExternalOptions.gfUseExternalLoadscreens)
 	{
-		if (bSectorZ != 0)
-		{
-			szSector = szSectorMap [sSectorY][sSectorX]; // not really necessary, I guess
-			return UNDERGROUND;
-		}
+		szSector = szSectorMap [sSectorY][sSectorX];
+		if (DidGameJustStart())
+			return DidGameJustStart() ? HELI : (fNight ? NIGHT : DAY);
 
-		switch( ubSectorID )
-		{
-			case SEC_A9:
-				szSector = "A9";
-				return DidGameJustStart() ? HELI : (fNight ? NIGHT : DAY);
-			default:
-				szSector = szSectorMap [sSectorY][sSectorX];
-				return fNight ? NIGHT : DAY;
-		}
+		else if (bSectorZ != 0)
+			return UNDERGROUND;
+
+		else
+			return fNight ? NIGHT : DAY;
+		
 	} /* WANNE: User made System - END */
 
 	/* WANNE: Sir-Tech System - BEGIN */
@@ -222,7 +220,90 @@ UINT8 GetLoadScreenID(INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ)
 						Assert( 0 );
 						return fNight ? LOADINGSCREEN_NIGHTGENERIC : LOADINGSCREEN_DAYGENERIC;
 				}
+			/* WANNE: Sir-Tech System */
+		}
+#ifdef JA2UB
+
+		case 1:
+		{
+			switch( ubSectorID )
+			{
+				case SEC_I13:
+				case SEC_J13:
+					return fNight ? LOADINGSCREEN_MINE : LOADINGSCREEN_MINE;
+				//tunnels
+				case SEC_J14:
+				case SEC_K14:
+					return LOADINGSCREEN_TUNNELS;
+				case SEC_K15:
+				{
+					if( gJa25SaveStruct.ubLoadScreenStairTraversal == LS__GOING_UP_STAIRS )
+						return  LOADINGSCREEN_UP_STAIRS;
+					else if( gJa25SaveStruct.ubLoadScreenStairTraversal == LS__GOING_DOWN_STAIRS )
+						return LOADINGSCREEN_DOWN_STAIRS;
+					else
+						return LOADINGSCREEN_COMPLEX_BASEMENT_GENERIC;
+				}
+				default:
+					return LOADINGSCREEN_BASEMENT;
 			}
+		}
+		case 2:
+		{
+			switch( ubSectorID )
+			{
+				case SEC_K15:
+				{	
+					//if we are going up stairs, else traversing at same level
+					if( gJa25SaveStruct.ubLoadScreenStairTraversal == LS__GOING_UP_STAIRS )
+						return LOADINGSCREEN_UP_STAIRS;
+					else if( gJa25SaveStruct.ubLoadScreenStairTraversal == LS__GOING_DOWN_STAIRS )
+						return LOADINGSCREEN_DOWN_STAIRS;
+					else
+						return LOADINGSCREEN_COMPLEX_BASEMENT;
+				}
+				case SEC_L15:
+				{
+					//if we are going up stairs, else traversing at same level
+					if( gJa25SaveStruct.ubLoadScreenStairTraversal == LS__GOING_UP_STAIRS )
+						return LOADINGSCREEN_UP_STAIRS;
+					else
+						return LOADINGSCREEN_COMPLEX_BASEMENT;
+				}
+				default:
+					return LOADINGSCREEN_BASEMENT;
+			}
+		}
+		case 3:
+		{
+			switch( ubSectorID )
+			{
+				case SEC_L15:
+				{
+					//if we are going up stairs, else traversing at same level
+					if( gJa25SaveStruct.ubLoadScreenStairTraversal == LS__GOING_DOWN_STAIRS )
+						return LOADINGSCREEN_DOWN_STAIRS;
+					else
+						return LOADINGSCREEN_COMPLEX_BASEMENT_GENERIC;
+				}
+				default:
+					return LOADINGSCREEN_CAVE;
+			}
+		}
+		break;
+			return LOADINGSCREEN_CAVE;
+		default:
+
+    /*
+    case 1:
+    case 2:
+    case 3:
+         return LOADINGSCREEN_CAVE;
+    break;
+	return LOADINGSCREEN_CAVE;
+   default:
+   */
+#else
 			// Basement Level 1
 			case 1:
 				switch( ubSectorID )
@@ -243,6 +324,7 @@ UINT8 GetLoadScreenID(INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ)
 				//all level 2 and 3 maps are caves!
 				return LOADINGSCREEN_CAVE;
 			default:
+#endif
 				// shouldn't ever happen
 				Assert( FALSE );
 				return fNight ? LOADINGSCREEN_NIGHTGENERIC : LOADINGSCREEN_DAYGENERIC;
@@ -255,18 +337,6 @@ static void BuildLoadscreenFilename(std::string& dst, const char* path, int reso
 {
 	if (path)
 		dst.append(path);
-
-	switch (resolution)
-	{
-		case 1:
-			dst.append("_800x600");
-			break;
-		case 2:
-			dst.append("_1024x768");
-			break;
-		default:
-			break;
-	}
 
 	if (ext)
 	{
@@ -285,9 +355,6 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 	VSURFACE_DESC		vs_desc = {};
 	HVSURFACE			hVSurface;
 	UINT32				uiLoadScreen;
-	STRING512			smallImage = {0};
-
-	bShowSmallImage = FALSE;
 
 	vs_desc.fCreateFlags = VSURFACE_CREATE_FROMFILE | VSURFACE_SYSTEM_MEM_USAGE | VSURFACE_CREATE_FROMPNG_FALLBACK;
 
@@ -356,35 +423,35 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 			}
 		}
 
-		// Small image: 640x480
-		std::string strSmallImage;
-		BuildLoadscreenFilename(strSmallImage, imagePath.c_str(), 0, imageFormat.c_str());
-		strSmallImage.copy(smallImage, sizeof(smallImage)-1);
+		std::string strImage;
 
-		// Actual image, depending on the resolution
-		std::string strBigImage;
-		BuildLoadscreenFilename(strBigImage, imagePath.c_str(), iResolution, imageFormat.c_str());
-		strBigImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
+		BuildLoadscreenFilename(strImage, imagePath.c_str(), 0, imageFormat.c_str());
+		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
+		
+		
+		if ( !FileExists(vs_desc.ImageFile) )
+		{
+			std::string strImage("LOADSCREENS\\");
+			
+			BuildLoadscreenFilename(strImage, LoadScreenNames[1], 0, imageFormat.c_str());
+
+			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+		}
 	}
 	else
 	{
-		std::string strSmallImage("LOADSCREENS\\");
-		std::string strBigImage("LOADSCREENS\\");
+		std::string strImage("LOADSCREENS\\");
 
 		if (LOADINGSCREEN_NOTHING <= ubLoadScreenID && ubLoadScreenID <= LOADINGSCREEN_NIGHTBALIME)
 		{
-			BuildLoadscreenFilename(strSmallImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
-			BuildLoadscreenFilename(strBigImage, LoadScreenNames[ubLoadScreenID], iResolution, "sti");
+			BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
 		}
 		else
 		{
 			// for some reason the heli screen is the default
-			BuildLoadscreenFilename(strSmallImage, LoadScreenNames[0], 0, "sti");
-			BuildLoadscreenFilename(strBigImage, LoadScreenNames[0], iResolution, "sti");
+			BuildLoadscreenFilename(strImage, LoadScreenNames[0], 0, "sti");
 		}
-
-		strSmallImage.copy(smallImage, sizeof(smallImage)-1);
-		strBigImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
+		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
 	}
 
 
@@ -398,33 +465,27 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 	}
 	else
 	{
-		BOOLEAN fOk = FALSE;
-
-		if(FileExists(vs_desc.ImageFile) && AddVideoSurface(&vs_desc, &uiLoadScreen))
-			fOk = TRUE;
-		else
+		if (FileExists(vs_desc.ImageFile) && AddVideoSurface(&vs_desc, &uiLoadScreen))
 		{
-			// Sti loadscreen is not available
-			// we may have tried the big image, so let's check out the small one
-			bShowSmallImage = TRUE;
-			strncpy(vs_desc.ImageFile, smallImage, sizeof(vs_desc.ImageFile)-1);
-
-			if (FileExists(vs_desc.ImageFile) && AddVideoSurface(&vs_desc, &uiLoadScreen))
-				fOk = TRUE;
-		}
-
-		if (fOk)
-		{
+			SGPRect SrcRect, DstRect;
+									
 			//Blit the background image
 			GetVideoSurface(&hVSurface, uiLoadScreen);
-
-			// Special case->show the small image centered
-			if (iResolution > 0 && bShowSmallImage)
-				BltVideoSurfaceToVideoSurface( ghFrameBuffer, hVSurface, 0, iScreenWidthOffset, iScreenHeightOffset, 0, NULL );
-			else
-				BltVideoSurfaceToVideoSurface( ghFrameBuffer, hVSurface, 0, 0, 0, 0, NULL );
-
-			DeleteVideoSurfaceFromIndex( uiLoadScreen );
+			
+			// Stretch the background image
+			SrcRect.iLeft = 0;
+			SrcRect.iTop = 0;
+			SrcRect.iRight = hVSurface->usWidth;
+			SrcRect.iBottom = hVSurface->usHeight;
+			
+			DstRect.iLeft = 0;
+			DstRect.iTop = 0;
+			DstRect.iRight = SCREEN_WIDTH;
+			DstRect.iBottom = SCREEN_HEIGHT;
+			
+			BltStretchVideoSurface( FRAME_BUFFER, uiLoadScreen, 0, 0, 0, &SrcRect, &DstRect );
+						
+			DeleteVideoSurfaceFromIndex( uiLoadScreen );			
 		}
 		else
 		{

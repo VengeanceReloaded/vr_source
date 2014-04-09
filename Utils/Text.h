@@ -4,8 +4,69 @@
 #include "items.h"
 #include "types.h"
 #include "mapscreen.h"
+#include "XML_Language.h"
 
 #define STRING_LENGTH 255
+
+enum
+{
+	//TCTL_MSG__RANGE_TO_TARGET,
+	TCTL_MSG__ATTACH_TRANSMITTER_TO_LAPTOP,
+	TACT_MSG__CANNOT_AFFORD_MERC,
+	TACT_MSG__AIMMEMBER_FEE_TEXT,
+	TACT_MSG__AIMMEMBER_ONE_TIME_FEE,
+	TACT_MSG__FEE,
+	TACT_MSG__SOMEONE_ELSE_IN_SECTOR,
+	//TCTL_MSG__GUN_RANGE_AND_CTH,
+	TCTL_MSG__DISPLAY_COVER,
+	TCTL_MSG__LOS,
+	TCTL_MSG__INVALID_DROPOFF_SECTOR,
+	TCTL_MSG__PLAYER_LOST_SHOULD_RESTART,
+	TCTL_MSG__JERRY_BREAKIN_LAPTOP_ANTENA,
+	TCTL_MSG__END_GAME_POPUP_TXT_1,
+	TCTL_MSG__END_GAME_POPUP_TXT_2,
+	TCTL_MSG__IRON_MAN_CANT_SAVE_NOW,
+	TCTL_MSG__CANNOT_SAVE_DURING_COMBAT,
+	TCTL_MSG__CAMPAIGN_NAME_TOO_LARGE,
+	TCTL_MSG__CAMPAIGN_DOESN_T_EXIST,
+	TCTL_MSG__DEFAULT_CAMPAIGN_LABEL,
+	TCTL_MSG__CAMPAIGN_LABEL,
+	TCTL_MSG__NEW_CAMPAIGN_CONFIRM,
+	TCTL_MSG__CANT_EDIT_DEFAULT,
+
+};
+//Ja25 UB
+//enums used for zNewLaptopMessages
+enum
+{
+	LPTP_MSG__MERC_SPECIAL_OFFER,
+	LPTP_MSG__TEMP_UNAVAILABLE,
+	LPTP_MSG__PREVIEW_TEXT,
+};
+
+extern	CHAR16	XMLTacticalMessages[1000][MAX_MESSAGE_NAMES_CHARS];
+
+//Encyclopedia
+extern STR16 	pMenuStrings[];
+extern STR16	pLocationPageText[];
+extern STR16	pSectorPageText[];
+extern STR16	pEncyclopediaHelpText[];
+extern STR16	pEncyclopediaTypeText[];
+extern STR16	pEncyclopediaSkrotyText[];
+extern STR16	pEncyclopediaFilterLocationText[];
+extern STR16	pEncyclopediaSubFilterLocationText[];
+extern STR16	pEncyclopediaFilterCharText[];
+extern STR16	pEncyclopediaSubFilterCharText[];
+extern STR16	pEncyclopediaFilterItemText[];
+extern STR16	pEncyclopediaSubFilterItemText[];
+extern STR16	pEncyclopediaFilterQuestText[];
+extern STR16	pEncyclopediaSubFilterQuestText[];
+extern STR16	pEncyclopediaShortCharacterText[];
+extern STR16	pEncyclopediaHelpCharacterText[];
+extern STR16	pEncyclopediaShortInventoryText[];
+extern STR16	BoxFilter[];
+extern STR16	pOtherButtonsText[];
+extern STR16	pOtherButtonsHelpText[];
 
 //Editor
 //Editor Taskbar Creation.cpp
@@ -52,7 +113,7 @@ extern STR16 pWaitForHelpScreenResponseText[];
 extern STR16 pAutoLoadMapText[];
 extern STR16 pShowHighGroundText[];
 //Item Statistics.cpp
-extern CHAR16 gszActionItemDesc[ 34 ][ 30 ];	// NUM_ACTIONITEMS = 34
+//extern CHAR16 gszActionItemDesc[ 34 ][ 30 ];	// NUM_ACTIONITEMS = 34
 extern STR16 pUpdateItemStatsPanelText[];
 extern STR16 pSetupGameTypeFlagsText[];
 extern STR16 pSetupGunGUIText[];
@@ -72,10 +133,13 @@ extern STR16 pSummaryUpdateCallbackText[];
 extern STR16 pApologizeOverrideAndForceUpdateEverythingText[];
 //selectwin.cpp
 extern STR16 pDisplaySelectionWindowGraphicalInformationText[];
+extern STR16 pDisplaySelectionWindowButtonText[];
 //Cursor Modes.cpp
 extern STR16 wszSelType[6];
 //--
 
+extern	STR16	gzNewLaptopMessages[];
+extern	STR16	zNewTacticalMessages[];
 extern CHAR16  gszAimPages[ 6 ][ 20 ];
 extern CHAR16  zGrod[][500];
 extern STR16 pCreditsJA2113[];
@@ -88,7 +152,18 @@ extern CHAR16 WeaponType[MAXITEMS][30];
 extern CHAR16 Message[][STRING_LENGTH];
 extern CHAR16 TeamTurnString[][STRING_LENGTH];
 extern STR16 pMilitiaControlMenuStrings[]; //lal
+extern STR16 pTraitSkillsMenuStrings[];		//Flugente
+extern STR16 pTraitSkillsMenuDescStrings[]; //Flugente
+extern STR16 pTraitSkillsDenialStrings[]; //Flugente
 //extern STR16 pTalkToAllMenuStrings[];
+extern STR16 pSnitchMenuStrings[];
+extern STR16 pSnitchMenuDescStrings[];
+extern STR16 pSnitchToggleMenuStrings[];
+extern STR16 pSnitchToggleMenuDescStrings[];
+extern STR16 pSnitchSectorMenuStrings[];
+extern STR16 pSnitchSectorMenuDescStrings[];
+extern STR16 pSnitchPrisonExposedStrings[];
+extern STR16 pSnitchGatheringRumoursResultStrings[];
 extern STR16 pAssignMenuStrings[];
 extern STR16 pTrainingStrings[];
 extern STR16 pTrainingMenuStrings[];
@@ -99,6 +174,7 @@ extern STR16 pLongAttributeStrings[];
 extern STR16 pContractStrings[];
 extern STR16 pAssignmentStrings[];
 extern STR16 pConditionStrings[];
+extern CHAR16 pCountryNames[][MAX_TOWN_NAME_LENGHT];
 extern CHAR16 pTownNames[MAX_TOWNS][MAX_TOWN_NAME_LENGHT];	// Lesh: look mapscreen.h for definitions
 extern STR16 pPersonnelScreenStrings[];
 extern STR16 pPersonnelRecordsHelpTexts[]; // added by SANDRO
@@ -129,6 +205,7 @@ extern STR16 pRepairStrings[];
 extern STR16 sPreStatBuildString[];
 extern STR16 sStatGainStrings[];
 extern STR16 pHelicopterEtaStrings[];
+extern STR16 pHelicopterRepairRefuelStrings[];
 extern STR16 sMapLevelString[];
 extern STR16 gsLoyalString[];
 extern STR16 pMapHeliErrorString[];
@@ -232,6 +309,7 @@ extern STR16 gzMiscString[];
 
 extern STR16 wMapScreenSortButtonHelpText[];
 extern STR16 pNewNoiseStr[];
+extern STR16 pTauntUnknownVoice[]; // anv: for enemy taunts
 extern STR16 gzLateLocalizedString[];
 
 extern STR16 gzCWStrings[];
@@ -246,7 +324,9 @@ extern STR16 gzIMPCharacterTraitText[];
 extern STR16 gzIMPAttitudesText[];
 extern STR16 gzIMPColorChoosingText[];
 extern STR16 sColorChoiceExplanationTexts[];
-extern STR16 gzIMPDisabilityTraitText[];
+extern STR16 gzIMPDisabilityTraitText[];			// added by Flugente
+extern STR16 gzIMPDisabilityTraitEmailTextDeaf[];	// added by Flugente
+extern STR16 gzIMPDisabilityTraitEmailTextShortSighted[];
 extern STR16 sEnemyTauntsFireGun[];
 extern STR16 sEnemyTauntsFireLauncher[];
 extern STR16 sEnemyTauntsThrow[];
@@ -255,6 +335,8 @@ extern STR16 sEnemyTauntsRunAway[];
 extern STR16 sEnemyTauntsSeekNoise[];
 extern STR16 sEnemyTauntsAlert[];
 extern STR16 sEnemyTauntsGotHit[];
+extern STR16 sEnemyTauntsNoticedMerc[];
+extern STR16 sSpecialCharacters[];
 //****
 
 // HEADROCK HAM 3.6: New arrays for facility operation messages
@@ -264,6 +346,10 @@ extern STR16 gzFacilityRiskResultStrings[];
 
 // HEADROCK HAM 4: Text for the new CTH indicator.
 extern STR16 gzNCTHlabels[];
+
+// HEADROCK HAM 5: Messages for automatic sector inventory sorting.
+extern STR16 gzMapInventorySortingMessage[];
+extern STR16 gzMapInventoryFilterOptions[];
 
 enum
 {
@@ -338,8 +424,8 @@ enum
 	MSG_ENTERING_LEVEL,
 	MSG_LEAVING_BASEMENT,
 	MSG_DASH_S,				// the old 's
-	MSG_TACKING_MODE_OFF,
-	MSG_TACKING_MODE_ON,
+	MSG_TRACKING_MODE_OFF,
+	MSG_TRACKING_MODE_ON,
 	MSG_3DCURSOR_OFF,
 	MSG_3DCURSOR_ON,
 	MSG_SQUAD_ACTIVE,
@@ -361,12 +447,32 @@ enum
 	MSG_NORMAL_TURN_MODE,
 	MSG_FTM_EXIT_COMBAT,
 	MSG_FTM_ENTER_COMBAT,
-#ifdef JA2BETAVERSION
 	MSG_END_TURN_AUTO_SAVE,
-#endif
-	MSG_MPSAVEDIRECTORY,//84
+	MSG_MPSAVEDIRECTORY,//88
 	MSG_CLIENT,
-	MSG_NAS_AND_OIV_INCOMPATIBLE,
+	MSG_NAS_AND_OIV_INCOMPATIBLE,	// 90
+
+	MSG_SAVE_AUTOSAVE_TEXT,			// 91
+	MSG_SAVE_AUTOSAVE_TEXT_INFO,	// 92
+	MSG_SAVE_AUTOSAVE_EMPTY_TEXT,	// 93
+	MSG_SAVE_AUTOSAVE_FILENAME,		// 94
+	MSG_SAVE_END_TURN_SAVE_TEXT,	// 95
+	MSG_SAVE_AUTOSAVE_SAVING_TEXT,	// 96
+	MSG_SAVE_END_TURN_SAVE_SAVING_TEXT,	// 97
+	MSG_SAVE_AUTOSAVE_ENDTURN_EMPTY_TEXT,	//98
+	MSG_SAVE_AUTOSAVE_ENDTURN_TEXT_INFO,	//99
+	MSG_SAVE_QUICKSAVE_SLOT,				// 100
+	MSG_SAVE_AUTOSAVE_SLOT,					// 101
+	MSG_SAVE_AUTOSAVE_ENDTURN_SLOT,			// 102
+	MSG_SAVE_NORMAL_SLOT,					// 103
+	
+	MSG_WINDOWED_MODE_LOCK_MOUSE,			// 104
+	MSG_WINDOWED_MODE_RELEASE_MOUSE,		// 105
+	MSG_FORMATIONS_ON,						// 106
+	MSG_FORMATIONS_OFF,						// 107
+	MSG_MERC_CASTS_LIGHT_ON,
+	MSG_MERC_CASTS_LIGHT_OFF,
+
 	TEXT_NUM_MSG,
 };
 extern STR16 pMessageStrings[];
@@ -462,6 +568,11 @@ enum
 	STR_CANNOT_ATTACH_SLOT,
 	STR_CANNOT_ATTACH_ANY_SLOT,
 	
+	STR_NO_SPACE_FOR_POCKET,
+
+	STR_REPAIRED_PARTIAL,
+	STR_REPAIRED_PARTIAL_FOR_OWNER,
+
 	TEXT_NUM_STR_MESSAGE,
 };
 
@@ -476,6 +587,10 @@ enum
 	STR_TT_CAT_ATTITUDE,
 	STR_TT_CAT_CURRENT_APS,
 	STR_TT_CAT_CURRENT_HEALTH,
+	STR_TT_CAT_CURRENT_ENERGY,
+	STR_TT_CAT_CURRENT_MORALE,
+	STR_TT_CAT_SHOCK,		///< Moa: shows current shock value. Only for debug tooltip.
+	STR_TT_CAT_SUPPRESION,	///< Moa: shows current supression value. Only for debug tooltip.
 	STR_TT_CAT_HELMET,
 	STR_TT_CAT_VEST,
 	STR_TT_CAT_LEGGINGS,
@@ -509,8 +624,46 @@ enum
 	STR_TT_SKILL_TRAIT_1,
 	STR_TT_SKILL_TRAIT_2,
 	STR_TT_SKILL_TRAIT_3,
+        // Additional suppression effects info - sevenfm
+        STR_TT_SUPPRESSION_AP,
+        STR_TT_SUPPRESSION_TOLERANCE,
+        STR_TT_EFFECTIVE_SHOCK,
+        STR_TT_AI_MORALE,
 
 	TEXT_NUM_STR_TT
+};
+
+enum
+{
+	STR_HELI_ETA_TOTAL_DISTANCE,
+	STR_HELI_ETA_SAFE,
+	STR_HELI_ETA_UNSAFE,
+	STR_HELI_ETA_TOTAL_COST,
+	STR_HELI_ETA_ETA,
+
+	STR_HELI_ETA_LOW_ON_FUEL_HOSTILE_TERRITORY,
+	STR_HELI_ETA_PASSENGERS,
+	STR_HELI_ETA_SELECT_SKYRIDER_OR_ARRIVALS,
+	STR_HELI_ETA_SKYRIDER,
+	STR_HELI_ETA_ARRIVALS,
+
+	STR_HELI_ETA_HELI_DAMAGED_HOSTILE_TERRITORY,
+	STR_HELI_ETA_KICK_OUT_PASSENGERS_PROMPT,
+	STR_HELI_ETA_REMAINING_FUEL,
+	STR_HELI_ETA_DISTANCE_TO_REFUEL_SITE,
+
+	TEXT_NUM_STR_HELI_ETA,
+};
+
+// anv: helicopter repairs
+enum
+{
+	STR_HELI_RR_REPAIR_PROMPT,
+	STR_HELI_RR_REPAIR_IN_PROGRESS,
+	STR_HELI_RR_REPAIR_FINISHED,
+	STR_HELI_RR_REFUEL_FINISHED,
+
+	TEXT_NUM_STR_HELI_REPAIRS,
 };
 
 #define LARGE_STRING_LENGTH			200
@@ -535,37 +688,191 @@ extern STR16 gzItemDescGenIndexes[ 4 ];
 // HEADROCK HAM 4: Added list of condition strings
 extern STR16		gConditionDesc[ 9 ];
 
-extern CHAR16		gMoneyStatsDesc[][ 13 ];
-// HEADROCK: Altered value to 16 //WarmSteel - And I need 17.
-extern CHAR16		gWeaponStatsDesc[][ 17 ];
+// Flugente: Added list of temperature descriptions
+extern STR16		gTemperatureDesc[ 11 ];
+
+// Flugente: Added list of food condition descriptions
+extern STR16		gFoodDesc[ 8 ];
+
+extern CHAR16		gMoneyStatsDesc[][ 14 ];
+// HEADROCK: Altered value to 16 //WarmSteel - And I need 17.	// Flugente: 17->19
+extern CHAR16		gWeaponStatsDesc[][ 19 ];
 // HEADROCK: Added externs for Item Description Box icon and stat tooltips
 // Note that I've inflated some of these to 20 to avoid issues.
-extern STR16		gzWeaponStatsFasthelp[ 32 ];
-extern STR16		gzWeaponStatsFasthelpTactical[ 32 ];
+extern STR16		gzWeaponStatsFasthelpTactical[ 33 ];
 extern STR16		gzMiscItemStatsFasthelp[ 34 ];
 // HEADROCK HAM 4: New tooltip texts
 extern STR16		gzUDBButtonTooltipText[ 3 ];
 extern STR16		gzUDBHeaderTooltipText[ 4 ];
 extern STR16		gzUDBGenIndexTooltipText[ 4 ];
 extern STR16		gzUDBAdvIndexTooltipText[ 5 ];
-extern STR16		szUDBGenWeaponsStatsTooltipText[ 22 ];
-extern STR16		szUDBGenWeaponsStatsExplanationsTooltipText[ 22 ];
-extern STR16		szUDBGenArmorStatsTooltipText[ 3 ];
-extern STR16		szUDBGenArmorStatsExplanationsTooltipText[ 3 ];
-extern STR16		szUDBGenAmmoStatsTooltipText[ 3 ];
-extern STR16		szUDBGenAmmoStatsExplanationsTooltipText[ 3 ];
-extern STR16		szUDBGenExplosiveStatsTooltipText[ 18 ];
-extern STR16		szUDBGenExplosiveStatsExplanationsTooltipText[ 18 ];
-extern STR16		szUDBGenSecondaryStatsTooltipText[ 26 ];
-extern STR16		szUDBGenSecondaryStatsExplanationsTooltipText[ 26 ];
-extern STR16		szUDBAdvStatsTooltipText[ 48 ];
-extern STR16		szUDBAdvStatsExplanationsTooltipText[ 48 ];
-extern STR16		szUDBAdvStatsExplanationsTooltipTextForWeapons[ 48 ];
+extern STR16		szUDBGenWeaponsStatsTooltipText[ 23 ];
+extern STR16		szUDBGenWeaponsStatsExplanationsTooltipText[ 24 ];
+extern STR16		szUDBGenArmorStatsTooltipText[ 4 ];						// silversurfer Repair Ease: 3->5
+extern STR16		szUDBGenArmorStatsExplanationsTooltipText[ 5 ];			// silversurfer Repair Ease: 3->5
+extern STR16		szUDBGenAmmoStatsTooltipText[ 6 ];						// Flugente Overheating: 3->4	poison: 4->5	dirt: 5->6
+extern STR16		szUDBGenAmmoStatsExplanationsTooltipText[ 6 ];			// Flugente Overheating: 3->4	poison: 4->5	dirt: 5->6
+extern STR16		szUDBGenExplosiveStatsTooltipText[ 23 ];				// silversurfer Repair Ease: 22->23
+extern STR16		szUDBGenExplosiveStatsExplanationsTooltipText[ 23 ];	// silversurfer Repair Ease: 22->23
+extern STR16		szUDBGenCommonStatsTooltipText[ 1 ];					// silversurfer new for items that don't fit the other categories
+extern STR16		szUDBGenCommonStatsExplanationsTooltipText[ 1 ];		// silversurfer new for items that don't fit the other categories
+extern STR16		szUDBGenSecondaryStatsTooltipText[ 37 ];				// Flugente Food System: 26 -> 28 external feeding: 28->30 JMich_SkillsModifiers: 31 for Defusal kit - covert item: 31->32 silversurfer more tags: 32->37
+extern STR16		szUDBGenSecondaryStatsExplanationsTooltipText[ 37 ];	// Flugente Food System: 26 -> 28 external feeding: 28->30 JMich_SkillsModifiers: 31 for Defusal kit - covert item: 31->32 silversurfer more tags: 32->37
+extern STR16		szUDBAdvStatsTooltipText[ 66 ];							// Flugente Overheating Weapons: 48->56 poison: 56->57 dirt: 57->58 food:58->64 silversurfer Best Laser Range:64->65 silversurfer PercentRecoilModifier: 66
+extern STR16		szUDBAdvStatsExplanationsTooltipText[ 65 ];				// Flugente Overheating Weapons: 48->56 poison: 56->57 dirt: 57->58 food:58->64 silversurfer Best Laser Range:64->65 silversurfer PercentRecoilModifier: 65
+extern STR16		szUDBAdvStatsExplanationsTooltipTextForWeapons[ 53 ];	// Flugente Overheating Weapons: 48->52 silversurfer Best Laser Range:64->65 silversurfer PercentRecoilModifier: 53
 
 // Headrock: End Externs
 extern STR16		sKeyDescriptionStrings[2];
 extern CHAR16		zHealthStr[][13];
+extern STR16		gzHiddenHitCountStr[1];
 extern STR16		zVehicleName[ 6 ];
+
+// Flugente: externalised texts for some features
+enum
+{
+	STR_COVERT_CAMOFOUND,
+	STR_COVERT_BACKPACKFOUND,
+	STR_COVERT_CARRYCORPSEFOUND,
+	STR_COVERT_ITEM_SUSPICIOUS,
+	STR_COVERT_MILITARYGEARFOUND,
+	STR_COVERT_TOOMANYGUNS,
+	STR_COVERT_ITEMSTOOGOOD,
+	STR_COVERT_TOOMANYATTACHMENTS,
+	STR_COVERT_ACTIVITIES,
+	STR_COVERT_NO_CIV,
+	STR_COVERT_BLEEDING,
+	STR_COVERT_DRUNKEN_SOLDIER,
+	STR_COVERT_TOO_CLOSE,
+	STR_COVERT_CURFEW_BROKEN,
+	STR_COVERT_CURFEW_BROKEN_NIGHT,
+	STR_COVERT_NEAR_CORPSE,
+	STR_COVERT_SUSPICIOUS_EQUIPMENT,
+	STR_COVERT_TARGETTING_SOLDIER,
+	STR_COVERT_UNCOVERED,
+	STR_COVERT_NO_CLOTHES_ITEM,
+	STR_COVERT_ERROR_OLDTRAITS,
+	STR_COVERT_NOT_ENOUGH_APS,
+	STR_COVERT_BAD_PALETTE,
+	STR_COVERT_NO_SKILL,
+	STR_COVERT_NO_UNIFORM_FOUND,	
+	STR_COVERT_DISGUISED_AS_CIVILIAN,
+	STR_COVERT_DISGUISED_AS_SOLDIER,
+	STR_COVERT_UNIFORM_NOORDER,
+	STR_COVERT_SURRENDER_FAILED,
+	STR_COVERT_UNCOVER_SINGLE,
+	STR_COVERT_TEST_OK,
+	STR_COVERT_TEST_FAIL,
+	STR_COVERT_STEAL_FAIL,
+	STR_COVERT_APPLYITEM_STEAL_FAIL,
+	STR_COVERT_TOO_CLOSE_TO_ELITE,
+	TEXT_NUM_COVERT_STR
+};
+
+extern STR16		szCovertTextStr[];
+
+enum
+{
+	STR_POWERPACK_BEGIN,
+	STR_POWERPACK_FULL,
+	STR_POWERPACK_GOOD,
+	STR_POWERPACK_HALF,
+	STR_POWERPACK_LOW,
+	STR_POWERPACK_EMPTY,
+	STR_POWERPACK_END,
+
+	TEXT_POWERPACK_STR
+};
+
+extern STR16 gPowerPackDesc[];
+
+enum
+{
+	STR_CORPSE_NO_HEAD_ITEM,
+	STR_CORPSE_NO_DECAPITATION,
+	STR_CORPSE_NO_MEAT_ITEM,
+	STR_CORPSE_NO_GUTTING,
+	STR_CORPSE_NO_CLOTHESFOUND,
+	STR_CORPSE_NO_STRIPPING_POSSIBLE,
+	STR_CORPSE_NO_TAKING,
+	STR_CORPSE_NO_FREEHAND,
+	STR_CORPSE_NO_CORPSE_ITEM,
+	STR_CORPSE_INVALID_CORPSE_ID,
+
+	TEXT_NUM_CORPSE_STR
+};
+
+extern STR16		szCorpseTextStr[];
+
+enum
+{
+	STR_FOOD_DONOTWANT_EAT,
+	STR_FOOD_DONOTWANT_DRINK,
+	STR_FOOD_ATE,
+	STR_FOOD_DRANK,
+	STR_FOOD_STR_DAMAGE_FOOD_TOO_MUCH,
+	STR_FOOD_STR_DAMAGE_FOOD_TOO_LESS,
+	STR_FOOD_HEALTH_DAMAGE_FOOD_TOO_MUCH,
+	STR_FOOD_HEALTH_DAMAGE_FOOD_TOO_LESS,
+	STR_FOOD_STR_DAMAGE_DRINK_TOO_MUCH,
+	STR_FOOD_STR_DAMAGE_DRINK_TOO_LESS,
+	STR_FOOD_HEALTH_DAMAGE_DRINK_TOO_MUCH,
+	STR_FOOD_HEALTH_DAMAGE_DRINK_TOO_LESS,
+
+	STR_FOOD_ERROR_NO_FOOD_SYSTEM,
+
+	TEXT_NUM_FOOD_STR
+};
+
+extern STR16		szFoodTextStr[];
+
+enum
+{
+	STR_PRISONER_PROCESSED,
+	STR_PRISONER_RANSOM,
+	STR_PRISONER_DETECTION,
+	STR_PRISONER_TURN_MILITIA,
+	STR_PRISONER_RIOT,
+	STR_PRISONER_SENTTOSECTOR,
+	STR_PRISONER_RELEASED,
+	STR_PRISONER_ARMY_FREED_PRISON,
+	STR_PRISONER_REFUSE_SURRENDER,
+	STR_PRISONER_REFUSE_TAKE_PRISONERS,
+	SRT_PRISONER_INI_SETTING_OFF,
+	STR_PRISONER_X_FREES_Y,
+
+	TEXT_NUM_PRISONER_STR
+};
+
+extern STR16		szPrisonerTextStr[];
+
+enum
+{
+	STR_MTA_NONE,
+	STR_MTA_FORTIFY,
+	STR_MTA_REMOVE_FORTIFY,
+	STR_TA_FILL_SANDBAG,
+	STR_MTA_CANCEL,
+   STR_MTA_CANNOT_BUILD,
+
+	TEXT_NUM_MTA_STR
+};
+
+extern STR16		szMTATextStr[];
+
+enum
+{
+	STR_INV_ARM_BLOWUP_AP,
+	STR_INV_ARM_BLOWUP,
+	STR_INV_ARM_ARM_AP,
+	STR_INV_ARM_ARM,
+	STR_INV_ARM_DISARM_AP,
+	STR_INV_ARM_DISARM,
+
+	TEXT_NUM_INV_ARM_STR
+};
+
+extern STR16		szInventoryArmTextStr[];
 
 enum
 {
@@ -671,6 +978,8 @@ enum
 	CREATURE_TEAM_MERC_NAME,
 	MILITIA_TEAM_MERC_NAME,
 	CIV_TEAM_MERC_NAME,
+	ZOMBIE_TEAM_MERC_NAME,
+	POW_TEAM_MERC_NAME,
 	
 	//The text for the 'exiting sector' gui
 	EXIT_GUI_TITLE_STR,
@@ -681,6 +990,7 @@ enum
 	EXIT_GUI_GOTO_SECTOR_STR,
 	EXIT_GUI_GOTO_MAP_STR,
 	CANNOT_LEAVE_SECTOR_FROM_SIDE_STR,
+	CANNOT_LEAVE_IN_TURN_MODE_STR,
 	MERC_IS_TOO_FAR_AWAY_STR,
 	REMOVING_TREETOPS_STR,
 	SHOWING_TREETOPS_STR,
@@ -719,15 +1029,82 @@ enum
 	NO_LOS_TO_TALK_TARGET,
 	ATTACHMENT_REMOVED,
 	VEHICLE_CAN_NOT_BE_ADDED,
+
+	// added by Flugente for defusing/setting up trap networks
+	CHOOSE_BOMB_OR_DEFUSE_FREQUENCY_STR,
+	CHOOSE_REMOTE_DEFUSE_FREQUENCY_STR,
+	CHOOSE_REMOTE_DETONATE_AND_REMOTE_DEFUSE_FREQUENCY_STR,
+	CHOOSE_DETONATE_AND_REMOTE_DEFUSE_FREQUENCY_STR,
+	CHOOSE_TRIPWIRE_NETWORK,
+
+	MERC_VITAL_STATS_WITH_POISON_POPUPTEXT,
+	MERC_VITAL_STATS_WITH_FOOD_POPUPTEXT,
+	MERC_VITAL_STATS_WITH_POISON_AND_FOOD_POPUPTEXT,
+
+	FUNCTION_SELECTION_STR,
+	FILL_CANTEEN_STR,
+	CLEAN_ONE_GUN_STR,
+	CLEAN_ALL_GUNS_STR,
+	TAKE_OFF_CLOTHES_STR,
+	TAKE_OFF_DISGUISE_STR,
+	MILITIA_DROP_EQ_STR,
+	MILITIA_PICK_UP_EQ_STR,
+	SPY_SELFTEST_STR,
+	UNUSED_STR,
+
+	CORPSE_SELECTION_STR,
+	DECAPITATE_STR,
+	GUT_STR,
+	TAKE_CLOTHES_STR,
+	TAKE_BODY_STR,
+
+	WEAPON_CLEANING_STR,
+
+	PRISONER_NO_PRISONS_STR,
+	PRISONER_DECIDE_STR,
+	PRISONER_LETGO_STR,
+	PRISONER_OFFER_SURRENDER,
+	PRISONER_DEMAND_SURRENDER_STR,
+	PRISONER_OFFER_SURRENDER_STR,
+	PRISONER_TALK_STR,
+
+    // sevenfm: new disarm trap dialog, new messages for wrong mines when arming
+    DISARM_DIALOG_DISARM,
+    DISARM_DIALOG_INSPECT,
+    DISARM_DIALOG_REMOVE_BLUEFLAG,
+    DISARM_DIALOG_BLOWUP,
+    DISARM_DIALOG_ACTIVATE_TRIPWIRE,
+    DISARM_DIALOG_DEACTIVATE_TRIPWIRE,
+    DISARM_DIALOG_REVEAL_TRIPWIRE,
+    ARM_MESSAGE_NO_DETONATOR,
+    ARM_MESSAGE_ALREADY_ARMED,
+    INSPECT_RESULT_SAFE,
+    INSPECT_RESULT_MOSTLY_SAFE,
+    INSPECT_RESULT_RISKY,
+    INSPECT_RESULT_DANGEROUS,
+    INSPECT_RESULT_HIGH_DANGER,
+
+    GENERAL_INFO_MASK,
+    GENERAL_INFO_NVG,
+    GENERAL_INFO_ITEM,
+
+    QUICK_ITEMS_ONLY_NIV,
+    QUICK_ITEMS_NO_ITEM_IN_HAND,
+    QUICK_ITEMS_NOWHERE_TO_PLACE,
+    QUICK_ITEM_NO_DEFINED_ITEM,
+    QUICK_ITEM_NO_FREE_HAND,
+    QUICK_ITEM_NOT_FOUND,
+    QUICK_ITEM_CANNOT_TAKE,
+
 	TEXT_NUM_TACTICAL_STR
 };
 
-// VENGEANCE
+// anv: VR - spare Mendax?
 enum{
 	SPARE_MENDAX_PROMPT,
 	TEXT_NUM_SPARE_MENDAX
 };
-// /VENGEANCE
+
 
 enum{
 	EXIT_GUI_LOAD_ADJACENT_SECTOR_HELPTEXT,
@@ -827,14 +1204,17 @@ enum
 	MERC_FILES_ALREADY_HIRED,			//5
 	MERC_FILES_SALARY,
 	MERC_FILES_PER_DAY,
+	MERC_FILES_GEAR,
+	MERC_FILES_TOTAL,
 	MERC_FILES_MERC_IS_DEAD,
 
 	MERC_FILES_HIRE_TO_MANY_PEOPLE_WARNING,
-
+	MERC_FILES_BUY_GEAR,
 	MERC_FILES_MERC_UNAVAILABLE,
-	// VENGEANCE
-	MERC_FILES_MERC_IS_MIA,
-	// /VENGEANCE
+	MERC_FILES_MERC_OUTSTANDING,
+	MERC_FILES_BIO,	//JMich_MMG: Adding two new texts for the small button, assuming we manage to add a silhouette with the gear, add it after this.
+	MERC_FILES_INVENTORY,
+	MERC_FILES_MERC_IS_MIA, // anv: VR
 	TEXT_NUM_MERC_FILES,
 };
 extern		STR16			MercInfo[];
@@ -1036,6 +1416,12 @@ enum
 	BOBBYR_FILTER_MISC_KIT,
 	BOBBYR_FILTER_MISC_FACE,
 	BOBBYR_FILTER_MISC_LBEGEAR,
+	BOBBYR_FILTER_MISC_OPTICS_ATTACHMENTS, // Madd: New BR filter option
+	BOBBYR_FILTER_MISC_SIDE_AND_BOTTOM_ATTACHMENTS, // Madd: New BR filter option
+	BOBBYR_FILTER_MISC_MUZZLE_ATTACHMENTS, // Madd: New BR filter option
+	BOBBYR_FILTER_MISC_STOCK_ATTACHMENTS, // Madd: New BR filter option
+	BOBBYR_FILTER_MISC_INTERNAL_ATTACHMENTS, // Madd: New BR filter option
+	BOBBYR_FILTER_MISC_OTHER_ATTACHMENTS, // Madd: New BR filter option
 	BOBBYR_FILTER_MISC_MISC,
 	TEXT_NUM_BOBBYR_FILTER
 };
@@ -1063,16 +1449,21 @@ enum
 	BOBBYR_GUNS_MAGAZINE,
 	BOBBYR_GUNS_RANGE,
 	BOBBYR_GUNS_DAMAGE,
-	BOBBYR_GUNS_ROF,				//5
+	BOBBYR_GUNS_ROF,
+	BOBBYR_GUNS_AP,
+	BOBBYR_GUNS_STUN,
+	BOBBYR_GUNS_PROTECTION,
+	BOBBYR_GUNS_CAMO,
 	BOBBYR_GUNS_COST,
 	BOBBYR_GUNS_IN_STOCK,
 	BOBBYR_GUNS_QTY_ON_ORDER,
 	BOBBYR_GUNS_DAMAGED,
-	BOBBYR_GUNS_WEIGHT,				//10
+	BOBBYR_GUNS_WEIGHT,
 	BOBBYR_GUNS_SUB_TOTAL,
 	BOBBYR_GUNS_PERCENT_FUNCTIONAL,
 
-	BOBBYR_MORE_THEN_10_PURCHASES,
+	BOBBYR_MORE_THEN_10_PURCHASES_A,
+	BOBBYR_MORE_THEN_10_PURCHASES_B,
 	BOBBYR_MORE_NO_MORE_IN_STOCK,
 	BOBBYR_NO_MORE_STOCK,
 	TEXT_NUM_BOBBYR_GUNS,
@@ -1350,6 +1741,7 @@ extern	STR16		zMarksMapScreenText[];
 
 
 //Weapon Name and Description size
+#define		ITEMSTRINGFILENAME				"BINARYDATA\\ITEMDESC.EDT"
 #define	SIZE_ITEM_NAME						160
 #define	SIZE_SHORT_ITEM_NAME			160
 #define	SIZE_ITEM_INFO						480
@@ -1570,7 +1962,11 @@ enum
 	SLG_BR_AWESOME_TEXT,
 
 	SLG_INV_RES_ERROR,
-	SLG_INV_CUSTUM_ERROR,	
+	SLG_INV_CUSTUM_ERROR,
+
+	SLG_SQUAD_SIZE_RES_ERROR,
+
+	SLG_BR_QUANTITY_TEXT,
 
 	TEXT_NUM_SLG_TEXT,
 };
@@ -1696,6 +2092,23 @@ enum
 	GIO_INV_SETTING_OLD_TEXT,
 	GIO_INV_SETTING_NEW_TEXT,
 	GIO_INV_SETTING_NEW_NAS_TEXT,
+
+	// WANNE: Squad size
+	GIO_SQUAD_SIZE_TITLE_TEXT,
+	GIO_SQUAD_SIZE_6_TEXT,
+	GIO_SQUAD_SIZE_8_TEXT,
+	GIO_SQUAD_SIZE_10_TEXT,
+
+	//GIO_FAST_BR_TITLE_TEXT,
+
+	//Inventory AP Cost
+	GIO_INVENTORY_AP_TITLE_TEXT,
+	
+	GIO_NCTH_TITLE_TEXT,
+	GIO_IIS_TITLE_TEXT,
+	GIO_BACKGROUND_TITLE_TEXT,
+	GIO_FOODSYSTEM_TITLE_TEXT,
+	GIO_BR_QUANTITY_TEXT,
 
 	////////////////////////////////////
 	TEXT_NUM_GIO_TEXT
@@ -1967,11 +2380,6 @@ STR16	gzCreditNames[];
 STR16	gzCreditNameTitle[];
 STR16	gzCreditNameFunny[];
 
-// VENGEANCE
-STR16	gzVengeanceCreditNames[];
-STR16	gzVengeanceCreditNameTitle[];
-STR16	gzVengeanceCreditNameFunny[];
-// / VENGEANCE
 
 extern STR16 GetWeightUnitString( void );
 FLOAT GetWeightBasedOnMetricOption( UINT32 uiObjectWeight );
@@ -1999,6 +2407,10 @@ enum
 	MSG113_GL,
 	MSG113_GL_BRST,
 	MSG113_GL_AUTO,
+	MSG113_UB,
+	MSG113_UB_BRST,
+	MSG113_UB_AUTO,
+	MSG113_BAYONET,
 	MSG113_SNIPER,
 	MSG113_UNABLETOSPLITMONEY,
 	MSG113_ARRIVINGREROUTED,
@@ -2023,6 +2435,7 @@ enum
 	MSG113_SURGERY_FINISHED,
 	MSG113_LOSES_ONE_POINT_MAX_HEALTH,
 	MSG113_LOSES_X_POINTS_MAX_HEALTH,
+	MSG113_BLINDED_BY_BLAST,
 	MSG113_REGAINED_ONE_POINTS_OF_STAT,
 	MSG113_REGAINED_X_POINTS_OF_STATS,
 	MSG113_ENEMY_AMBUSH_PREVENTED,
@@ -2032,8 +2445,16 @@ enum
 	MSG113_ENEMY_FOUND_DEAD_BODY,
 	MSG113_AMMO_SPEC_STRING,
 
+	MSG113_INVENTORY_APS_INSUFFICIENT,
+
+	MSG113_HINT_TEXT,
+
+	MSG113_SURRENDER_VALUES,
+
 	TEXT_NUM_MSG113,
 };
+
+extern STR16 gzTransformationMessage[];
 
 //CHRISL: NewInv messages
 extern STR16 NewInvMessage[];
@@ -2050,6 +2471,11 @@ extern STR16 ChineseSpecString4;
 extern STR16 ChineseSpecString5;
 extern STR16 ChineseSpecString6;
 extern STR16 ChineseSpecString7;
+extern STR16 ChineseSpecString8;
+extern STR16 ChineseSpecString9;
+extern STR16 ChineseSpecString10;
+extern STR16 ChineseSpecString11;
+extern STR16 ChineseSpecString12;
 
 enum
 {
@@ -2073,6 +2499,238 @@ enum
 	ADDTEXT_16BPP_REQUIRED,
 };
 extern STR16 Additional113Text[];
+extern STR16 ranks[];
+//extern STR16 ranks[];
+
+enum
+{
+	POCKET_POPUP_GRENADE_LAUNCHERS,
+	POCKET_POPUP_ROCKET_LAUNCHERS,
+	POCKET_POPUP_MEELE_AND_THROWN,
+	POCKET_POPUP_NO_AMMO,
+	POCKET_POPUP_NO_GUNS,
+	POCKET_POPUP_MOAR
+};
+extern STR16	gszPocketPopupText[];
+
+// Flugente: backgrounds
+extern STR16		szBackgroundText_Flags[];
+extern STR16		szBackgroundText_Value[];
+extern STR16		szSoldierClassName[];
+
+// Flugente: personality
+enum
+{
+	PERSONALITYTEXT_YOULOOK,
+	PERSONALITYTEXT_ANDAPPEARANCEIS,
+	PERSONALITYTEXT_IMPORTANTTOYOU,
+	PERSONALITYTEXT_YOUHAVE,
+	PERSONALITYTEXT_ANDCARE,
+	PERSONALITYTEXT_ABOUTTHAT,
+	PERSONALITYTEXT_YOUARE,
+	PERSONALITYTEXT_ADHATEEVERYONE,
+	PERSONALITYTEXT_DOT,
+	PERSONALITYTEXT_RACISTAGAINSTNON,
+	PERSONALITYTEXT_PEOPLE,
+	PERSONALITYTEXT_MAX,
+};
+
+extern STR16		szBackgroundTitleText[];
+extern STR16 		szPersonalityTitleText[];
+extern STR16		szPersonalityDisplayText[];
+extern STR16		szPersonalityHelpText[];
+extern STR16		szRaceText[];
+extern STR16		szAppearanceText[];
+extern STR16		szRefinementText[];
+extern STR16		szNationalityText[];
+extern STR16		szNationalityText_Special[];
+extern STR16		szCareLevelText[];
+extern STR16		szRacistText[];
+extern STR16		szSexistText[];
+
+enum
+{
+	TEXT_SKILL_DENIAL_REQ,
+	TEXT_SKILL_DENIAL_X_AP,
+	TEXT_SKILL_DENIAL_X_TXT,
+	TEXT_SKILL_DENIAL_X_TXT_ORHIGHER,
+	TEXT_SKILL_DENIAL_X_TXT_ORHIGHER_OR,
+	TEXT_SKILL_DENIAL_X_MINUTES,
+	TEXT_SKILL_DENIAL_NOMORTAR,
+	TEXT_SKILL_DENIAL_ITSCOMPLICATED,
+	TEXT_SKILL_DENIAL_NODEMON,
+
+	TEXT_SKILL_DENIAL_MAX,
+};
+
+// Flugente: campaign history website
+enum
+{
+	TEXT_CAMPAIGNHISTORY_NAME_PRESSORGANISATION,
+	TEXT_CAMPAIGNHISTORY_NAME_MINISTRY,
+	TEXT_CAMPAIGNHISTORY_NAME_REBEL,
+	TEXT_CAMPAIGNHISTORY_NAME_NEUTRAL_1,
+	TEXT_CAMPAIGNHISTORY_NAME_NEUTRAL_2,
+	TEXT_CAMPAIGNHISTORY_NAME_RIS,
+
+	TEXT_CAMPAIGNHISTORY_NAME_PRESSORGANISATION_SUBTITLE,
+	TEXT_CAMPAIGNHISTORY_DESCRIPTION_1,
+	//TEXT_CAMPAIGNHISTORY_DESCRIPTION_2,
+	//TEXT_CAMPAIGNHISTORY_DESCRIPTION_3,
+
+	TEXT_CAMPAIGNHISTORY_LINK_CONFLICTSUMMARY,
+	TEXT_CAMPAIGNHISTORY_LINK_NEWS_MOSTIMPORTANT,
+	TEXT_CAMPAIGNHISTORY_LINK_NEWS_RECENT,
+	TEXT_CAMPAIGNHISTORY_LINK_HOME,
+
+	TEXT_CAMPAIGNHISTORY_MAX,
+};
+
+extern STR16		szCampaignHistoryWebSite[];
+
+enum
+{
+	TEXT_CAMPAIGNHISTORY_DETAIL_SETTING,
+	TEXT_CAMPAIGNHISTORY_DETAIL_REBELFORCES,
+	TEXT_CAMPAIGNHISTORY_DETAIL_ARMY,
+
+	TEXT_CAMPAIGNHISTORY_DETAIL_ATTACKED,
+	TEXT_CAMPAIGNHISTORY_DETAIL_AMBUSHED,
+	TEXT_CAMPAIGNHISTORY_DETAIL_AIRDROPPED,
+
+	TEXT_CAMPAIGNHISTORY_DETAIL_ATTACKERDIR,
+	TEXT_CAMPAIGNHISTORY_DETAIL_DEFENDERDIR,
+	TEXT_CAMPAIGNHISTORY_DETAIL_ATTACKERANDDEFENDERDIR,
+	TEXT_CAMPAIGNHISTORY_DETAIL_NORTH,
+	TEXT_CAMPAIGNHISTORY_DETAIL_EAST,
+	TEXT_CAMPAIGNHISTORY_DETAIL_SOUTH,
+	TEXT_CAMPAIGNHISTORY_DETAIL_WEST,
+	TEXT_CAMPAIGNHISTORY_DETAIL_AND,	// " and " text
+	TEXT_CAMPAIGNHISTORY_DETAIL_UNKNOWNLOCATION,
+
+	TEXT_CAMPAIGNHISTORY_DETAIL_BUILDINGDAMAGE,
+	TEXT_CAMPAIGNHISTORY_DETAIL_BUILDINGANDCIVDAMAGE,
+	TEXT_CAMPAIGNHISTORY_DETAIL_REINFORCE_BOTH,
+	TEXT_CAMPAIGNHISTORY_DETAIL_REINFORCE,
+	TEXT_CAMPAIGNHISTORY_DETAIL_CHEMICAL_BOTH,
+	TEXT_CAMPAIGNHISTORY_DETAIL_CHEMICAL,
+	TEXT_CAMPAIGNHISTORY_DETAIL_TANKS_BOTH,
+	TEXT_CAMPAIGNHISTORY_DETAIL_TANKS,
+	TEXT_CAMPAIGNHISTORY_DETAIL_SNIPERS_BOTH,
+	TEXT_CAMPAIGNHISTORY_DETAIL_SNIPERS,
+	TEXT_CAMPAIGNHISTORY_DETAIL_SAMSITESABOTAGED,
+	TEXT_CAMPAIGNHISTORY_DETAIL_SPY_ENEMY,
+	TEXT_CAMPAIGNHISTORY_DETAIL_SPY_PLAYER,
+
+	TEXT_CAMPAIGNHISTORY_DETAIL_MAX,
+};
+
+extern STR16		szCampaignHistoryDetail[];
+
+enum
+{
+	TEXT_CAMPAIGNHISTORY_TIME_DEEPNIGHT,
+	TEXT_CAMPAIGNHISTORY_TIME_DAWN,
+	TEXT_CAMPAIGNHISTORY_TIME_EARLYMORNING,
+	TEXT_CAMPAIGNHISTORY_TIME_MORNING,
+	TEXT_CAMPAIGNHISTORY_TIME_NOON,
+	TEXT_CAMPAIGNHISTORY_TIME_AFTERNOON,
+	TEXT_CAMPAIGNHISTORY_TIME_EVENING,
+	TEXT_CAMPAIGNHISTORY_TIME_NIGHT,
+};
+
+extern STR16		szCampaignHistoryTimeString[];
+
+extern STR16		szCampaignHistoryMoneyTypeString[];
+extern STR16		szCampaignHistoryConsumptionTypeString[];
+
+enum
+{
+	TEXT_CAMPAIGNHISTORY_RESULT_ONESIDED_REBEL,
+	TEXT_CAMPAIGNHISTORY_RESULT_EASY_REBEL,
+	TEXT_CAMPAIGNHISTORY_RESULT_EASY_REBEL_PRISONER,
+	TEXT_CAMPAIGNHISTORY_RESULT_MEDIUM_REBEL,
+	TEXT_CAMPAIGNHISTORY_RESULT_MEDIUM_REBEL_PRISONER,
+	TEXT_CAMPAIGNHISTORY_RESULT_HARD_REBEL,
+
+	TEXT_CAMPAIGNHISTORY_RESULT_ONESIDED_ARMY_NUMBERS,
+	TEXT_CAMPAIGNHISTORY_RESULT_ONESIDED_ARMY_TRAINING,
+	TEXT_CAMPAIGNHISTORY_RESULT_EASY_ARMY_NUMBERS,
+	TEXT_CAMPAIGNHISTORY_RESULT_EASY_ARMY_TRAINING,
+	TEXT_CAMPAIGNHISTORY_RESULT_MEDIUM_ARMY_NUMBERS,
+	TEXT_CAMPAIGNHISTORY_RESULT_MEDIUM_ARMY_TRAINING,
+	TEXT_CAMPAIGNHISTORY_RESULT_HARD_ARMY,
+};
+
+extern STR16		szCampaignHistoryResultString[];
+
+enum
+{
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_IRRELEVANT,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_INSIGNIFICANT,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_NOTABLE,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_NOTEWORTHY,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_SIGNIFICANT,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_INTERESTING,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_IMPORTANT,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_VERYIMPORTANT,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_GRAVE,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_MAJOR,
+	TEXT_CAMPAIGNHISTORY_IMPORTANCE_MOMENTOUS,
+};
+
+extern STR16		szCampaignHistoryImportanceString[];
+
+enum
+{
+	WEBPAGE_CAMPAIGNHISTORY_KILLED,
+	WEBPAGE_CAMPAIGNHISTORY_WOUNDED,
+	WEBPAGE_CAMPAIGNHISTORY_PRISONERS,
+	WEBPAGE_CAMPAIGNHISTORY_SHOTSFIRED,
+
+	WEBPAGE_CAMPAIGNHISTORY_MONEYEARNED,
+	WEBPAGE_CAMPAIGNHISTORY_CONSUMPTION,
+	WEBPAGE_CAMPAIGNHISTORY_LOSSES,
+	WEBPAGE_CAMPAIGNHISTORY_PARTICIPANTS,
+
+	WEBPAGE_CAMPAIGNHISTORY_PROMOTIONS,
+	WEBPAGE_CAMPAIGNHISTORY_SUMMARY,
+	WEBPAGE_CAMPAIGNHISTORY_DETAIL,
+	WEBPAGE_CAMPAIGNHISTORY_PREVIOUS,
+
+	WEBPAGE_CAMPAIGNHISTORY_NEXT,
+	WEBPAGE_CAMPAIGNHISTORY_INCIDENT,
+	WEBPAGE_CAMPAIGNHISTORY_DAY,
+};
+
+extern STR16		szCampaignHistoryWebpageString[];
+
+extern STR16   szTacticalInventoryDialogString[];
+extern STR16   szTacticalCoverDialogString[];
+extern STR16   szTacticalCoverDialogPrintString[];
+
+#define TACTICAL_INVENTORY_DIALOG_NUM    16
+#define TACTICAL_COVER_DIALOG_NUM        16
+
+// Enumeration support
+typedef struct Str8EnumLookupType {
+	int value;
+	const STR8 name;
+} Str8EnumLookupType;
+
+typedef struct Str16EnumLookupType {
+	int value;
+	const STR16 name;
+} Str16EnumLookupType;
+
+const STR8 EnumToString(int value, const Str8EnumLookupType *table);
+const STR16 EnumToString(int value, const Str16EnumLookupType *table);
+int StringToEnum(const STR8 value, const Str8EnumLookupType *table);
+int StringToEnum(const STR8 value, const Str16EnumLookupType *table);
+int StringToEnum(const STR16 value, const Str16EnumLookupType *table);
+
+void ParseCommandLine(const char *start,char **argv,char *args,int *numargs,int *numchars);
+void ParseCommandLine(const wchar_t *start,wchar_t **argv,wchar_t *args,int *numargs,int *numchars);
 
 #endif
 

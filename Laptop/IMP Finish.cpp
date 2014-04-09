@@ -4,7 +4,6 @@
 	#include "CharProfile.h"
 	#include "IMP Finish.h"
 	#include "IMP Portraits.h"
-	#include "IMP HomePage.h"
 	#include "IMP MainPage.h"
 	#include "IMP Voices.h"
 	#include "IMPVideoObjects.h"
@@ -13,14 +12,12 @@
 	#include "Timer Control.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
 	#include "IMP Attribute Selection.h"
 	#include "IMP Text System.h"
 	#include "soundman.h"
-	#include "IMP Compile Character.h"
 	#include "text.h"
 #endif
 
@@ -325,8 +322,8 @@ void BtnIMPFinishDoneCallback(GUI_BUTTON *btn,INT32 reason)
 	{
 		if (btn->uiFlags & BUTTON_CLICKED_ON)
 		{
-		btn->uiFlags&=~(BUTTON_CLICKED_ON);
-		iCurrentImpPage = IMP_CONFIRM;
+			btn->uiFlags&=~(BUTTON_CLICKED_ON);
+			iCurrentImpPage = IMP_CONFIRM;
 			//CreateACharacterFromPlayerEnteredStats( );
 			fButtonPendingFlag = TRUE;
 			iCurrentProfileMode = IMP__REGISTRY;
@@ -637,9 +634,8 @@ BOOLEAN RenderCharProfileFinishFace( void )
 */
 void RenderCharFullName( void )
 {
-
 	CHAR16 sString[ 64 ];
-	INT16 sX, sY;
+	//INT16 sX, sY;
 
 	// render the characters full name
 	SetFont( FONT14ARIAL );
@@ -648,9 +644,10 @@ void RenderCharFullName( void )
 
 	swprintf( sString, pIMPFinishStrings[ 0 ], pFullName );
 
+	DrawTextToScreen( sString, LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 
-	FindFontCenterCoordinates(LAPTOP_SCREEN_UL_X - 111, 0, LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X, 0 , sString , FONT14ARIAL, &sX, &sY);
-	mprintf( sX, iScreenHeightOffset + LAPTOP_SCREEN_WEB_DELTA_Y + 33, sString );
+	//FindFontCenterCoordinates(LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, 0 , sString , FONT14ARIAL, &sX, &sY);
+	//mprintf( sX, iScreenHeightOffset + LAPTOP_SCREEN_WEB_DELTA_Y + 33, sString );
 	return;
 }
 

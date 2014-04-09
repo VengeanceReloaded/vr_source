@@ -3,7 +3,6 @@
 #else
 	#include <stdio.h>
 	#include "debug.h"
-	#include "wcheck.h"
 	#include "worlddef.h"
 	#include "worldman.h"
 	#include "structure wrap.h"
@@ -21,7 +20,7 @@ extern BOOLEAN DoesSAMExistHere( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ,
 
 //----------------legion by Jazz
 
-BOOLEAN	IsJumpableWindowPresentAtGridNo( INT32 sGridNo, INT8 direction2 )
+BOOLEAN	IsJumpableWindowPresentAtGridNo( INT32 sGridNo, INT8 direction2, BOOLEAN fIntactWindowsAlso )
 {
 	STRUCTURE * pStructure;
 
@@ -29,16 +28,17 @@ BOOLEAN	IsJumpableWindowPresentAtGridNo( INT32 sGridNo, INT8 direction2 )
 
 	if ( pStructure )
 	{
-
-             if ( ( direction2 == SOUTH || direction2 == NORTH ) && (pStructure->ubWallOrientation == OUTSIDE_TOP_LEFT || pStructure->ubWallOrientation == INSIDE_TOP_LEFT ) && pStructure->fFlags & STRUCTURE_WALLNWINDOW && !(pStructure->fFlags & STRUCTURE_SPECIAL) && ( pStructure->fFlags & STRUCTURE_OPEN ) )
-	        {
-         	return( TRUE );
-	      	}
+		if ( ( direction2 == SOUTH || direction2 == NORTH ) && (pStructure->ubWallOrientation == OUTSIDE_TOP_LEFT || pStructure->ubWallOrientation == INSIDE_TOP_LEFT ) && pStructure->fFlags & STRUCTURE_WALLNWINDOW && !(pStructure->fFlags & STRUCTURE_SPECIAL) )
+	    {
+			if ( fIntactWindowsAlso || ( pStructure->fFlags & STRUCTURE_OPEN ) )
+         		return( TRUE );
+	    }
 	                            	
-            if ( ( direction2 == EAST || direction2 == WEST ) && ( pStructure->ubWallOrientation == OUTSIDE_TOP_RIGHT || pStructure->ubWallOrientation == INSIDE_TOP_RIGHT ) && pStructure->fFlags & STRUCTURE_WALLNWINDOW && !(pStructure->fFlags & STRUCTURE_SPECIAL) && ( pStructure->fFlags & STRUCTURE_OPEN ) )
-	      	{
-		return( TRUE );
-	      	}
+        if ( ( direction2 == EAST || direction2 == WEST ) && ( pStructure->ubWallOrientation == OUTSIDE_TOP_RIGHT || pStructure->ubWallOrientation == INSIDE_TOP_RIGHT ) && pStructure->fFlags & STRUCTURE_WALLNWINDOW && !(pStructure->fFlags & STRUCTURE_SPECIAL) )
+		{
+			if ( fIntactWindowsAlso || ( pStructure->fFlags & STRUCTURE_OPEN ) )
+				return( TRUE );
+	    }
 	}
 
 	return( FALSE );
@@ -563,6 +563,20 @@ BOOLEAN IsRefuelableStructAtGridNo( INT32 sGridNo, UINT8 *pubID )
 	return( FALSE );
 }
 
+
+// Flugente: determine wether a fortification can be built on this position
+BOOLEAN IsFortificationPossibleAtGridNo( INT32 sGridNo )
+{
+	INT8 bOverTerrainType = GetTerrainType( sGridNo );
+	if( bOverTerrainType == MED_WATER || bOverTerrainType == DEEP_WATER || bOverTerrainType == LOW_WATER )
+		return FALSE;
+
+	STRUCTURE * pStructure = NULL;
+
+	pStructure = FindStructure( sGridNo, (STRUCTURE_OBSTACLE|STRUCTURE_PERSON) );
+
+	return( pStructure == NULL );
+}
 
 
 BOOLEAN IsCutWireFenceAtGridNo( INT32 sGridNo )

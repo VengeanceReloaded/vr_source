@@ -28,7 +28,6 @@
 	#include "GameSettings.h"
 	#include "Text.h"
 	#include "MessageBoxScreen.h"
-	#include "Creature Spreading.h"
 	#include "Town Militia.h"
 	#include "history.h"
 	#include "meanwhile.h"
@@ -37,6 +36,7 @@
 	#include "MilitiaSquads.h"
 	// HEADROCK HAM 3.6: Include for Facility Debt
 	#include "Facilities.h"
+	#include "CampaignStats.h"		// added by Flugente
 #endif
 
 #include "Luaglobal.h"
@@ -214,6 +214,8 @@ void HandleTownTheft( void );
 
 extern void MapScreenDefaultOkBoxCallback( UINT8 bExitValue );
 
+extern void CheckConditionsForTriggeringCreatureQuest( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ );
+
 void InitTownLoyalty( void )
 {
 	UINT8 ubTown = 0;
@@ -339,6 +341,9 @@ void DecrementTownLoyalty( INT8 bTownId, UINT32 uiLoyaltyDecrease )
 	{
 		return;
 	}
+
+	// anv: snitches spreading propaganda affect decrease amount
+	uiLoyaltyDecrease = HandlePropagandaBlockingBadNewsInTown( bTownId, uiLoyaltyDecrease );
 
 	// modify loyalty change by town's individual attitude toward rebelling (20 is typical)
 	uiLoyaltyDecrease *= 100;
@@ -931,6 +936,22 @@ void HandleMurderOfCivilian( SOLDIERTYPE *pSoldier, BOOLEAN fIntentional )
 			}
 			break;
 
+	// Flugente: civilians might also kill somebody, no matter how unlikely that sounds
+	// punish the player - he didnt stop the bloodshed
+	case CIV_TEAM:
+		{
+			// on our side, penalty
+			iLoyaltyChange *= REDUCTION_FOR_MURDER_NOT_OUR_FAULT;
+			iLoyaltyChange /= 100;
+
+			// lose loyalty
+			fIncrement = FALSE;
+
+			// debug message
+			ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Town holds you responsible for not stopping the murder.");
+		}
+		break;
+
 		default:
 			Assert(FALSE);
 			return;
@@ -1047,6 +1068,10 @@ void HandleLoyaltyForDemolitionOfBuilding( SOLDIERTYPE *pSoldier, INT16 sPointsD
 	// get town id
 	bTownId = GetTownIdForSector( pSoldier->sSectorX, pSoldier->sSectorY );
 
+	// Flugente: for safety reasons, exit if not in a town
+	if( bTownId == BLANK_SECTOR )
+		return;
+
 	// penalize the side that did it
 	if( pSoldier->bTeam == OUR_TEAM )
 	{
@@ -1090,10 +1115,12 @@ void RemoveRandomItemsInSector( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ, 
 {
 	// remove random items in sector
 	UINT32 uiNumberOfItems = 0, iCounter = 0;
-	WORLDITEM *pItemList;
+	std::vector<WORLDITEM> pItemList;//dnl ch75 271013
 	UINT32 uiNewTotal = 0;
 	CHAR16 wSectorName[ 128 ];
 
+	if(gGameExternalOptions.fNoRemoveRandomSectorItems)//dnl ch68 090913
+		return;
 
 	// stealing should fail anyway 'cause there shouldn't be a temp file for unvisited sectors, but let's check anyway
 	Assert( GetSectorFlagStatus( sSectorX, sSectorY, ( UINT8 ) sSectorZ, SF_ALREADY_VISITED ) == TRUE );
@@ -1115,7 +1142,7 @@ void RemoveRandomItemsInSector( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ, 
 			return;
 		}
 
-		pItemList = new WORLDITEM[ uiNumberOfItems ];
+		pItemList.resize(uiNumberOfItems);//dnl ch75 271013
 
 		// now load items
 		LoadWorldItemsFromTempItemFile( sSectorX, sSectorY, ( UINT8 )sSectorZ, pItemList );
@@ -1144,9 +1171,6 @@ void RemoveRandomItemsInSector( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ, 
 		{
 			AddWorldItemsToUnLoadedSector( sSectorX, sSectorY, ( UINT8 )sSectorZ, 0, uiNumberOfItems, pItemList, TRUE );
 		}
-
-		// mem free
-		delete[]( pItemList );
 	}
 	else	// handle a loaded sector
 	{
@@ -1702,6 +1726,10 @@ void HandleGlobalLoyaltyEvent( UINT8 ubEventType, INT16 sSectorX, INT16 sSectorY
 		case GLOBAL_LOYALTY_LOSE_SAM:
 			iLoyaltyChange = -250;
 			break;
+		// Flugente: morale drop for torturing prisoners
+		case GLOBAL_LOYALTY_PRISONERS_TORTURED:
+			iLoyaltyChange = -25;
+			break;
 
 		default:
 			Assert(FALSE);
@@ -1840,7 +1868,14 @@ void CheckIfEntireTownHasBeenLiberated( INT8 bTownId, INT16 sSectorX, INT16 sSec
 			// set fact is has been lib'ed and set history event
 			AddHistoryToPlayersLog( HISTORY_LIBERATED_TOWN, bTownId, GetWorldTotalMin(), sSectorX, sSectorY );
 
+#ifdef JA2UB
+//Ja25: No meanhwiles
+#else
 			HandleMeanWhileEventPostingForTownLiberation( bTownId );
+#endif
+
+			// Flugente: campaign stats: if we captured an entire city for the first time, take note of that. We don't have to note the city here, as that is obvious from the sector anyway
+			gCurrentIncident.usOneTimeEventFlags |= INCIDENT_ONETIMEEVENT_CITY_LIBERATED;
 		}
 
 		// even taking over non-trainable "towns" like Orta/Tixa for the first time should count as "player activity"
@@ -1855,7 +1890,8 @@ void CheckIfEntireTownHasBeenLiberated( INT8 bTownId, INT16 sSectorX, INT16 sSec
 		// HEADROCK HAM B1: Run a function to redefine Roaming Militia Restrictions on city capture.
 		if (gGameExternalOptions.fDynamicRestrictRoaming)
 		{
-			AdjustRoamingRestrictions();
+			// HEADROCK HAM 5: New flag tells us to also recheck restriced sectors.
+			AdjustRoamingRestrictions( FALSE );
 		}
 
 		// set flag even for towns where you can't train militia, useful for knowing Orta/Tixa were previously controlled
@@ -1869,11 +1905,16 @@ void CheckIfEntireTownHasBeenLost( INT8 bTownId, INT16 sSectorX, INT16 sSectorY 
 	// reported here (and they're the only ones you can protect)
 	if ( MilitiaTrainingAllowedInSector( sSectorX, sSectorY, 0 ) && IsTownUnderCompleteControlByEnemy(bTownId) )
 	{
+
+#ifdef JA2UB
+//Ja25 No meanwhile
+#else
 		// the whole town is under enemy control, check if we libed this town before
 		if ( gTownLoyalty[ bTownId ].fLiberatedAlready )
 		{
 			HandleMeanWhileEventPostingForTownLoss( bTownId );
 		}
+#endif
 	}
 }
 
@@ -1919,12 +1960,14 @@ void HandleLoyaltyChangeForNPCAction( UINT8 ubNPCProfileId )
 			// NOTE: This affects Chitzena,too, a second time, so first value is discounted for it
 			IncrementTownLoyaltyEverywhere( LOYALTY_BONUS_YANNI_WHEN_CHALICE_RETURNED_GLOBAL );
 			break;
-
+#ifdef JA2UB
+// ja25 UB
+#else      
 		case AUNTIE:
 			// Bloodcats killed
 			IncrementTownLoyalty( ALMA, LOYALTY_BONUS_AUNTIE_WHEN_BLOODCATS_KILLED );
 			break;
-
+#endif
 		case MATT:
 			// Brother Dynamo freed
 			IncrementTownLoyalty( ALMA, LOYALTY_BONUS_MATT_WHEN_DYNAMO_FREED );

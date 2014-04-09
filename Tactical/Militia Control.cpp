@@ -109,20 +109,6 @@ extern SOLDIERTYPE *pTMilitiaSoldier;
 extern BOOLEAN SoldierCanAffordNewStance( SOLDIERTYPE *pSoldier, UINT8 ubDesiredStance );
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void ResetMilitia()
 {
 	UINT8 ubNumGreen = 0;
@@ -166,6 +152,9 @@ void ResetMilitia()
 		// tactical here, not autoresolve.  In my opinion the CreateSoldierXXX and TacticalRemoveSoldierXXX functions should take 
 		// a flag for autoresolve if different initialization or destruction is desired.
 		guiCurrentScreen = GAME_SCREEN;
+
+		// Flugente: cause all militia whose equipment is from this sector to drop it
+		TeamDropAll( MILITIA_TEAM );
 
 		RemoveMilitiaFromTactical();
 		ubNumGreen = MilitiaInSectorOfRank(gWorldSectorX, gWorldSectorY, GREEN_MILITIA);
@@ -1020,13 +1009,15 @@ void HandleShadingOfLinesForMilitiaControlMenu( void )
 	if ( GetSoldier( &pSoldier, gusSelectedSoldier )  )
 	{
 		// Check LOS!
-		if ( SoldierTo3DLocationLineOfSightTest( pSoldier, pTMilitiaSoldier->sGridNo,  pTMilitiaSoldier->pathing.bLevel, 3, TRUE, CALC_FROM_ALL_DIRS ) )
+		// Flugente: active radio sets allows us to give individual orders even without a line of sight
+		if ( pSoldier->CanUseRadio() || SoldierTo3DLocationLineOfSightTest( pSoldier, pTMilitiaSoldier->sGridNo,  pTMilitiaSoldier->pathing.bLevel, 3, TRUE, CALC_FROM_ALL_DIRS ) )
 		{
 			UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ATTACK );
 			UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_HOLD );
 			UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_RETREAT );
 			UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_COMETOME );
 			UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_GETDOWN );
+			UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_CROUCH );
 			UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_TAKE_COVER );		
 		}
 		else
@@ -1036,6 +1027,7 @@ void HandleShadingOfLinesForMilitiaControlMenu( void )
 			ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_RETREAT );
 			ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_COMETOME );
 			ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_GETDOWN );
+			ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_CROUCH );
 			ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_TAKE_COVER );
 		}
 	}
@@ -1048,6 +1040,7 @@ void HandleShadingOfLinesForMilitiaControlMenu( void )
 		UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_COMETOME );
 		UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_SPREAD );
 		UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_GETDOWN );
+		UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_CROUCH );
 		UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_TAKE_COVER );
 		//UnShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_TAKE_ITEMS );
 	}
@@ -1059,6 +1052,7 @@ void HandleShadingOfLinesForMilitiaControlMenu( void )
 		ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_COMETOME );
 		ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_SPREAD );
 		ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_GETDOWN );
+		ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_CROUCH );
 		ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_TAKE_COVER );
 		//ShadeStringInBox( ghMilitiaControlBox, MILCON_MENU_ALL_TAKE_ITEMS );
 	}
@@ -1076,9 +1070,13 @@ BOOLEAN CheckIfRadioIsEquipped( void )
 	//pSoldier = GetSelectedAssignSoldier( FALSE ); //do not use
 	
 	if ( GetSoldier( &pSoldier, gusSelectedSoldier )  )
-	{	
-		bSlot = FindObj( pSoldier, EXTENDEDEAR );
-		//bSlot = FindHearingAid(pSoldier);
+	{
+		// Flugente: active radio sets also count as radio
+		if ( pSoldier->CanUseRadio() )
+			return TRUE;
+
+		//bSlot = FindObj( pSoldier, EXTENDEDEAR );
+		bSlot = FindHearingAid(pSoldier);
 		//ScreenMsg( FONT_WHITE, MSG_INTERFACE, L"Position: %d", bSlot );
 	}
 
@@ -1086,10 +1084,8 @@ BOOLEAN CheckIfRadioIsEquipped( void )
 	{
 		return TRUE;
 	}
-	else
-	{
-		return FALSE;
-	}
+	
+	return FALSE;
 }
 
 
@@ -1451,8 +1447,29 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 					}
 					break;
 
+				case( MILCON_MENU_CROUCH ):
+					{
+						if ( (pTMilitiaSoldier->bActive) && (pTMilitiaSoldier->bInSector) && (pTMilitiaSoldier->stats.bLife >= OKLIFE) )
+							SendChangeSoldierStanceEvent( pTMilitiaSoldier, ANIM_CROUCH );
 
-					case( MILCON_MENU_TAKE_COVER ):
+						if ( GetSoldier( &pSoldier, gusSelectedSoldier )  )
+						{
+							DeductPoints( pSoldier, APBPConstants[AP_TALK], 0 );
+							StatChange( pSoldier, LDRAMT, 1, FALSE );
+						}
+
+						// stop showing menu
+						fShowMilitiaControlMenu = FALSE;
+						giAssignHighLine = -1;
+
+						// set dirty flag
+						fTeamPanelDirty = TRUE;
+						fMapScreenBottomDirty = TRUE;
+					}
+					break;
+
+
+				case( MILCON_MENU_TAKE_COVER ):
 					{	
 						if ( (pTMilitiaSoldier->bActive) && (pTMilitiaSoldier->bInSector) && (pTMilitiaSoldier->stats.bLife >= OKLIFE) )
 						{
@@ -1763,9 +1780,38 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 					}
 					break;
 
+				case( MILCON_MENU_ALL_CROUCH ):
+					{
+						UINT8 cnt;
+						SOLDIERTYPE *pTeamSoldier;
+						
+						cnt = gTacticalStatus.Team[ MILITIA_TEAM ].bFirstID;
 
+						for ( pTeamSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ MILITIA_TEAM ].bLastID; ++cnt, ++pTeamSoldier)
+						{
+							if ( (pTeamSoldier->bActive) && (pTeamSoldier->bInSector) && (pTeamSoldier->stats.bLife >= OKLIFE) )
+							{
+								SendChangeSoldierStanceEvent( pTeamSoldier, ANIM_CROUCH );
+							}
+						}
 
-					case( MILCON_MENU_ALL_TAKE_COVER ):
+						if ( GetSoldier( &pSoldier, gusSelectedSoldier )  )
+						{
+							DeductPoints( pSoldier, APBPConstants[AP_TALK], 0 );
+							StatChange( pSoldier, LDRAMT, 1, FALSE );
+						}
+
+						// stop showing menu
+						fShowMilitiaControlMenu = FALSE;
+						giAssignHighLine = -1;
+
+						// set dirty flag
+						fTeamPanelDirty = TRUE;
+						fMapScreenBottomDirty = TRUE;
+					}
+					break;
+
+				case( MILCON_MENU_ALL_TAKE_COVER ):
 					{
 						//UINT8 cnt;
 						//SOLDIERTYPE *pTeamSoldier;
@@ -2369,6 +2415,4 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 //
 //	return;
 //}
-
-
 

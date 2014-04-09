@@ -19,33 +19,6 @@ void this_is_the_Ja25RussianText_public_symbol(void){;}
 
 // VERY TRUNCATED FILE COPIED FROM JA2.5 FOR ITS FEATURES FOR JA2 GOLD
 
-STR16	zNewTacticalMessages[]=
-{
-	//L"Расстояние до цели: %d ед., Освещенность: %d/%d",
-	L"Передатчик подключен к вашему ноутбуку.",
-	L"Вы не можете нанять %s",
-	L"Предложение действует ограниченное время и покрывает стоимость найма на всю миссию, плюс вы так же получите оборудование, перечисленное ниже.",
-	L"Наемник %s - наше невероятное суперпредложение 'одна плата за все'. Вы также бесплатно получите его персональную экипировку.",
-	L"Гонорар",
-	L"В секторе кто-то есть...",
-	//L"Дальнобойность оружия: %d ед., Шанс попасть: %d%%",
-	L"Показать укрытия",
-	L"Линия прицела",
-	L"Новые наемники не могут высадиться здесь.",
-	L"Так как ваш ноутбук лишился антенны, то вы не сможете нанять новых наемников. Возможно, сейчас вам стоит загрузить одну из сохраненных игр, или начать игру заново!",
-	L"%s слышит металлический хруст под телом Джерри. Кажется, это чмо сломало антенну вашего ноутбука.",  //the %s is the name of a merc.
-	L"После прочтения записей, оставленных помощником командира Морриса, %s видит, что не все еще потеряно. В записке содержатся координаты городов Арулько для запуска по ним ракет. Кроме того, там также указаны координаты самой ракетной базы.",
-	L"Изучив панель управления, %s понимает, что координаты цели можно изменить, и тогда ракета уничтожит эту базу.  %s не собирается умирать, а значит нужно быстрее отсюда выбираться. Похоже, что самый быстрый способ это лифт...",
-	L"В начале игры вы выбрали сохранение лишь в \"мирное время\" и теперь не можете записываться во время боя.",
-	L"(Нельзя сохраняться во время боя)",
-	L"Текущая кампания длиннее 30 символов.",
-	L"Текущая кампания не найдена.",
-	L"Кампания: По умолчанию ( %S )",
-	L"Кампания: %S",
-	L"Вы выбрали кампанию %S. Эта кампания является модификацией оригинальной кампании Unfinished Business. Вы уверены, что хотите играть кампанию %S?",
-	L"Чтобы воспользоваться редактором, смените кампанию по умолчанию на другую.",
-};
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SANDRO - New STOMP laptop strings
 //these strings match up with the defines in IMP Skill trait.cpp
@@ -70,6 +43,7 @@ STR16 gzIMPSkillTraitsText[]=
 	L"Нет",
 	L"I.M.P.: Специализация",
 	L"(эксперт)",
+
 };
 
 //added another set of skill texts for new major traits
@@ -84,6 +58,7 @@ STR16 gzIMPSkillTraitsTextNewMajor[]=
 	L"Старшина",	//Deputy
 	L"Механик-электронщик",	//Technician
 	L"Санитар",	//Paramedic
+	L"Тайные операции",	//Covert Ops
 
 	L"Нет",
 	L"I.M.P.: Основные навыки",	//I.M.P. Major Traits
@@ -97,6 +72,7 @@ STR16 gzIMPSkillTraitsTextNewMajor[]=
 	L"Командир",	//Squadleader
 	L"Инженер",	//Engineer
 	L"Доктор",	//Doctor
+	L"Шпион",	//Spy
 };
 
 //added another set of skill texts for new minor traits
@@ -112,6 +88,7 @@ STR16 gzIMPSkillTraitsTextNewMinor[]=
 	L"Подрывник",	//Demolitions
 	L"Инструктор",	//Teaching
 	L"Разведчик",	//Scouting
+	L"Radio Operator",
 
 	L"Нет",
 	L"I.M.P.: Дополнительные навыки",	//I.M.P. Minor Traits
@@ -160,6 +137,8 @@ STR16 gzIMPMajorTraitsHelpTextsSniper[]=
 	L"-%d%s ОД на передёргивание затвора магазинных винтовок\n",
 	L"Плюс 1 клик-прицеливания к оружию типа винтовки\n",
 	L"Плюс %d клик-прицеливания к оружию типа винтовки\n",
+	L"Makes aiming faster with rifle-type guns by one aim click\n",	// TODO.Translate
+	L"Makes aiming faster with rifle-type guns by %d aim clicks\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsRanger[]=
@@ -167,6 +146,9 @@ STR16 gzIMPMajorTraitsHelpTextsRanger[]=
 	L"+%d%s к шансу поразить из винтовки\n",
 	L"+%d%s к шансу поразить из ружья\n",
 	L"-%d%s ОД на перезарядку ружья\n",
+	L"-%d%s APs to fire Shotguns\n",	// TODO.Translate
+	L"Adds %d more aim click for Shotguns\n",	// TODO.Translate
+	L"Adds %d more aim clicks for Shotguns\n",	// TODO.Translate
 	L"+%d%s к скорости передвижения группы между секторами, если идти пешком\n",
 	L"+%d%s к скорости передвижения группы между секторами, \nесли передвигаться на транспорте (в особенности на вертолёте)\n",
 	L"-%d%s к затрате энергии при переходе между секторами\n",	//меньше тратит сил
@@ -218,6 +200,7 @@ STR16 gzIMPMajorTraitsHelpTextsMartialArts[]=
 	L"нужно на %d%s ОД меньше чтобы слезть/залезть на крышу и перепрыгнуть препятствие\n",
 	L"+%d%s к шансу выбить дверь ногой\n",
 	L"Вы получаете специальные движения для атак в ближнем бою\n",
+	L"-%d%s к шансу перехвата хода во время движения\n", //chance to be interrupted when moving
 
 };
 STR16 gzIMPMajorTraitsHelpTextsSquadleader[]=
@@ -233,6 +216,7 @@ STR16 gzIMPMajorTraitsHelpTextsSquadleader[]=
 	L"(Максимальное количество одновременных бонусов для одного солдата %d)\n",
 	L"+%d%s сопротивление страху у %s\n",
 	L"Недостаток: %dx кратное ухудшение боевого духа у наёмников если погибает %s\n",
+	L"+%d%s к шансу получить перехват всем отрядом\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsTechnician[]=
@@ -260,8 +244,39 @@ STR16 gzIMPMajorTraitsHelpTextsDoctor[]=
 	L"+%d%s к скорости перевязки\n",
 	L"+%d%s к природной скорости регенерации для всех солдат в том же секторе",
 	L" (максимум %d бонуса на находящихся в секторе)",
-
 };
+STR16 gzIMPMajorTraitsHelpTextsCovertOps[]=
+{
+	L"Может переодеваться в гражданского или солдата, \nчтобы проникать в тыл врага.\n",
+	L"Будет раскрыт, если совершает подозрительные действия, \nимеет подозрительное снаряжение или застигнут над остывающим трупом.\n",
+	L"Будет моментально раскрыт если переодет в солдата \nи находится ближе %d клеток к врагу.\n",
+	L"Будет моментально раскрыт если переодет в солдата \nи находится ближе %d клеток к остывающему трупу.\n",
+	L"+%d%s к шансу попадания скрытным оружием ближнего боя.\n",
+	L"+%d%s к шансу на смертельный удар скрытным оружием ближнего боя.\n",
+	L"ОД на переодевание снижено на %d%s.\n",
+};
+
+STR16 gzIMPMajorTraitsHelpTextsRadioOperator[]=	// TODO.Translate
+{
+	L"Can use communications equipment\n", 
+	L"Can call in artillery strikes from allies in neighbouring sectors.\n",
+	L"Via Frequency Scan assignment, enemy patrols can be located.\n",
+	L"Communications can be jammed sector-wide.\n",
+	L"If communications are jammed, a operator can scan for the jamming device.\n",
+	L"Can call in militia reinforcements from neighbouring sectors.\n",
+};
+
+// anv: VR trait
+STR16 gzIMPMajorTraitsHelpTextsPilot[]=
+{
+	L"Can pilot aircraft\n",
+	L"Can pilot aircraft like a pro\n",
+	L"+%d%s chance to dodge incoming enemy AA missile\n",
+	L"+%d%s chance of accidently damaging piloted aircraft\n",
+	L"+%d%s chance to notice enemies while flying over the sector\n",
+	
+};
+
 STR16 gzIMPMajorTraitsHelpTextsNone[]=
 {
 	L"Нет преимуществ",
@@ -321,6 +336,7 @@ STR16 gzIMPMinorTraitsHelpTextsStealthy[]=
 	L"+%d%s двигаться тихо\n",
 	L"+%d%s к скрытности (быть 'невидимым' если вас не обнаружили)\n",
 	L"Уменьшение штрафа на видимость в укрытии на %d%s\n",
+	L"-%d%s к шансу быть перехваченным\n", //chance to be interrupted
 
 };
 STR16 gzIMPMinorTraitsHelpTextsAthletics[]=
@@ -366,22 +382,26 @@ STR16 gzIMPMinorTraitsHelpTextsScouting[]=
 	L"Если в секторе, в смежных секторах будет показано наличие врагов\n",
 	L"Предотвращает попадание отряда во вражеские засады\n",
 	L"Предотвращает попадание отряда в засады кошек-убийц\n",
-
 };
+STR16 gzIMPMinorTraitsHelpTextsSnitch[]=
+{
+	L"Will occasionally inform you about his teammates' opinions.\n",	// TODO.Translate
+	L"Prevents teammates' misbehaviour (drugs, alcohol, scrounging).\n",	// TODO.Translate
+	L"Can spread propaganda in towns.\n",	// TODO.Translate
+	L"Can gather rumours in towns.\n",	// TODO.Translate
+	L"Can be put undercover in prisons.\n",	// TODO.Translate
+	L"Increases your reputation by %d every day if in good morale.\n",	// TODO.Translate
+	L"+%d to effective hearing range\n",	// TODO.Translate
+	
+};
+
+// anv: VR trait
 STR16 gzIMPMinorTraitsHelpTextsDriver[]=
 {
 	L"+%d%s group traveling speed between sectors if traveling in vehicle (except helicopter)\n",
 	L"-%d%s fuel consumption when traveling in vehicle (except helicopter)\n",
 };
-STR16 gzIMPMajorTraitsHelpTextsPilot[]=
-{
-	L"Can pilot aircraft\n",
-	L"Can pilot aircraft like a pro\n",
-	L"+%d%s chance to dodge incoming enemy AA missile\n",
-	L"+%d%s chance of accidently damaging piloted aircraft\n",
-	L"+%d%s chance to notice enemies while flying over the sector\n",
-	
-};
+
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"Нет преимуществ",
@@ -455,18 +475,22 @@ STR16 gzIMPDisabilitiesHelpTexts[]=
 	L"При виде больших насекомых может впасть в крайности и наворотить дел... \nНахождение в тропических лесах так же понижает его работоспособность.",
 	L"Иногда забывает приказы, из-за чего теряет \nнекоторое количество Очков Действия во время боя.",
 	L"Иногда бывают приступы помутнения рассудка. \nВ такие моменты он расстреливает весь магазин до последней пули. \nПадает духом, если его оружие этого не позволяет.",
+	L"Drastically reduced hearing.",		// TODO.Translate
+	L"Reduced sight range.",				// TODO.Translate
 };
+
 
 
 STR16 gzIMPProfileCostText[]=
 {
-	L"Составление вашей харрактеристики стоит %d$. Подтвердить оплату? ",
+	L"Составление вашей харрактеристики стоит $%d. Подтвердить оплату?",
 };
 
 STR16 zGioNewTraitsImpossibleText[]=
 {
 	L"Нельзя выбрать новые умения IMP персонажа с отключенным PROFEX. Проверьте значение файла настроек JA2_Options.ini, ключ: READ_PROFILE_DATA_FROM_XML.",
 };
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //@@@:  New string as of March 3, 2000.
 STR16	gzIronManModeWarningText[]=
@@ -489,6 +513,5 @@ STR16 gzDisplayCoverText[]=
 	L"Лес и пустыня",
 	L"" // yes empty for now
 };
-
 
 #endif

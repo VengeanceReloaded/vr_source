@@ -56,20 +56,31 @@ extern BOOLEAN LetLuaInterfaceDialogue( UINT8 ubNPC, UINT8 InitFunction);
 extern BOOLEAN LuaHandlePlayerTeamMemberDeath(UINT8 ProfileId, UINT8 Init);
 extern BOOLEAN LuaHandleNPCTeamMemberDeath(UINT8 ProfileId, UINT8 Init);
 extern BOOLEAN LuaCheckForKingpinsMoneyMissing( BOOLEAN fFirstCheck, UINT8 Init);
-extern BOOLEAN LuaHandleQuestCodeOnSectorExit( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT8 Init);
-extern BOOLEAN LuaHandleQuestCodeOnSectorEntry( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT8 Init);
+extern BOOLEAN LuaHandleQuestCodeOnSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT8 Init);
+//extern BOOLEAN LuaHandleQuestCodeOnSectorEntry( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT8 Init);
 extern BOOLEAN LuaHandleDelayedItemsArrival( UINT32 uiReason, UINT8 Init);
 extern BOOLEAN LetLuaHandleNPCSystemEvent( UINT32 uiEvent, UINT8 Init);
 
 extern BOOLEAN LuaCheckFact ( UINT16 usFact, UINT8 ubProfileID , UINT32 Init);
 extern BOOLEAN LuaHandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum , UINT8 InitFunction);
 
+extern BOOLEAN LuaInternalQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN fUpdateHistory, UINT32 Init );
+extern BOOLEAN LuaExecuteStrategicEvent( UINT8 EventCallbackID, UINT32 uiTimeStamp, UINT32 uiTimeOffset, UINT8	ubEventType, UINT8 ubFlags, UINT32 EventParam, UINT32 Init);
+
 extern void IniLuaGlobal();
 
 extern BOOLEAN LoadLuaGlobalFromLoadGameFile( HWFILE hFile );
 extern BOOLEAN SaveLuaGlobalToSaveGameFile( HWFILE hFile );
 
+
+#ifdef JA2UB
+extern BOOLEAN LuaInitStrategicLayer(UINT8 Init);
+extern BOOLEAN LetLuaMakeBadSectorListFromMapsOnHardDrive(UINT8 Init);
+#endif
+
 //Intro
 extern BOOLEAN LuaIntro(UINT8 Init, UINT32 uiCurrentVideo, INT8 bIntroType, UINT32 iStringToUse);
+extern BOOLEAN LuaIDScripts(UINT8 Init, UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum);
 
+extern BOOLEAN LetLuaMusicControl(UINT8 Init);
 #endif

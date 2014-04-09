@@ -4,10 +4,7 @@
 	#include "ai.h"
 	#include "AIInternals.h"
 	#include "Isometric utils.h"
-	#include "Points.h"
 	#include "overhead.h"
-	#include "opplist.h"
-	#include "rotting corpses.h"
 	#include "soldier add.h"
 	#include "Soldier Profile Type.h"
 	#include "Items.h"
@@ -17,60 +14,13 @@
 	#include "NPC.h"
 	#include "Render Fun.h"
 	#include "Quests.h"
+	#include "GameSettings.h"
 #endif
+// needed to use the modularized tactical AI:
+#include "ModularizedTacticalAI/include/Plan.h"
+#include "ModularizedTacticalAI/include/PlanFactoryLibrary.h"
+#include "ModularizedTacticalAI/include/AbstractPlanFactory.h"
 
-INT8 RTPlayerDecideAction( SOLDIERTYPE * pSoldier )
-{
-	INT8 bAction=AI_ACTION_NONE;
-
-	if (gTacticalStatus.fAutoBandageMode)
-	{
-		bAction = DecideAutoBandage( pSoldier );
-	}
-	else
-	{
-		bAction = DecideAction( pSoldier );
-	}
-
-	#ifdef DEBUGDECISIONS
-		STR tempstr;
-		sprintf(tempstr,"DecideAction: selected action %d, actionData %d\n\n",bAction,pSoldier->aiData.usActionData);
-		DebugAI( tempstr );
-	#endif
-
-	return(bAction);
-}
-
-INT8 RTDecideAction(SOLDIERTYPE *pSoldier)
-{
-	if (CREATURE_OR_BLOODCAT( pSoldier ) )
-	{
-		return( CreatureDecideAction( pSoldier ) );
-	}
-	else if (pSoldier->ubBodyType == CROW)
-	{
-		return( CrowDecideAction( pSoldier ) );
-	}
-	else if (pSoldier->bTeam == gbPlayerNum)
-	{
-		return( RTPlayerDecideAction( pSoldier ) );
-	}
-	else
-	{
-		// handle traversal
-		if ( (pSoldier->ubProfile != NO_PROFILE) && (gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags3 & PROFILE_MISC_FLAG3_HANDLE_DONE_TRAVERSAL ) )
-		{
-			TriggerNPCWithGivenApproach( pSoldier->ubProfile, APPROACH_DONE_TRAVERSAL, FALSE );
-			gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags3 &= (~PROFILE_MISC_FLAG3_HANDLE_DONE_TRAVERSAL);
-			pSoldier->ubQuoteActionID = 0;
-			// wait a tiny bit
-			pSoldier->aiData.usActionData = 100;
-			return( AI_ACTION_WAIT );
-		}
-
-		return( DecideAction( pSoldier ) );
-	}
-}
 
 UINT16 RealtimeDelay( SOLDIERTYPE * pSoldier )
 {
@@ -87,9 +37,11 @@ UINT16 RealtimeDelay( SOLDIERTYPE * pSoldier )
 
 		if ( pSoldier->ubCivilianGroup == KINGPIN_CIV_GROUP )
 		{
-			UINT8		ubRoom;
+			//DBrot: More Rooms
+			//UINT8		ubRoom;
+			UINT16 usRoom;
 
-			if ( InARoom( pSoldier->sGridNo, &ubRoom ) && IN_BROTHEL( ubRoom ) )
+			if ( InARoom( pSoldier->sGridNo, &usRoom ) && IN_BROTHEL( usRoom ) )
 			{
 				return( (UINT16) (REALTIME_AI_DELAY / 3) );
 			}
@@ -117,8 +69,12 @@ void RTHandleAI( SOLDIERTYPE * pSoldier )
 			#endif
 			// let it continue
 			return;
+		}
 	}
-	}
+
+	// Flugente: prisoners of war don't do anything
+	if ( pSoldier->bSoldierFlagMask & SOLDIER_POW )
+		return;
 
 	// if man has nothing to do
 	if (pSoldier->aiData.bAction == AI_ACTION_NONE)
@@ -217,7 +173,16 @@ void RTHandleAI( SOLDIERTYPE * pSoldier )
 			{
 				if (!(gTacticalStatus.uiFlags & ENGAGED_IN_CONV))
 				{
-					pSoldier->aiData.bAction = RTDecideAction( pSoldier );
+                    if(!pSoldier->ai_masterplan_) // if the Soldier has no plan, create one
+                    {
+                        if(pSoldier->bAIIndex == 0) // not yet initialized, use bTeam+1 as default
+                            pSoldier->bAIIndex = pSoldier->bTeam + 1;
+                        AI::tactical::AIInputData ai_input;
+                        AI::tactical::PlanFactoryLibrary* plan_lib(AI::tactical::PlanFactoryLibrary::instance());
+                        pSoldier->ai_masterplan_ = plan_lib->create_plan(pSoldier->bAIIndex, pSoldier, ai_input);
+                    }
+                    AI::tactical::PlanInputData plan_input(false, gTacticalStatus);
+                    pSoldier->ai_masterplan_->execute(plan_input);
 				}
 			}
 		}
@@ -244,9 +209,11 @@ void RTHandleAI( SOLDIERTYPE * pSoldier )
 				pSoldier->aiData.usActionData = (UINT16) REALTIME_AI_DELAY;
 				if ( pSoldier->ubCivilianGroup == KINGPIN_CIV_GROUP )
 				{
-					UINT8		ubRoom;
+					//DBrot: More Rooms
+					//UINT8		ubRoom;
+					UINT16 usRoom;
 
-					if ( InARoom( pSoldier->sGridNo, &ubRoom ) && IN_BROTHEL( ubRoom ) )
+					if ( InARoom( pSoldier->sGridNo, &usRoom ) && IN_BROTHEL( usRoom ) )
 					{
 						pSoldier->aiData.usActionData /= 3;
 					}

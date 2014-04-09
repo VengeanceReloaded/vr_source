@@ -6,16 +6,13 @@
 	#include "CharProfile.h"
 	#include "IMP Attribute Selection.h"
 	#include "IMP MainPage.h"
-	#include "IMP HomePage.h"
 	#include "IMPVideoObjects.h"
 	#include "Utilities.h"
-	#include "WCheck.h"
 	#include "input.h"
 	#include "Isometric Utils.h"
 	#include "IMP Skill Trait.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
@@ -613,79 +610,79 @@ UINT8 IncrementStat( INT32 iStatToIncrement )
 	switch( iStatToIncrement )
 	{
 		case( STRENGTH_ATTRIBUTE ):
-			if( iCurrentStrength > iMaxAttribute -1 )
+		if( iCurrentStrength > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				iCurrentStrength++;
-				iCurrentBonusPoints--;
+			iCurrentBonusPoints--;
 			}
 		break;
-		case( DEXTERITY_ATTRIBUTE ):
-			if( iCurrentDexterity > iMaxAttribute -1 )
+	case( DEXTERITY_ATTRIBUTE ):
+		if( iCurrentDexterity > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				iCurrentDexterity++;
-				iCurrentBonusPoints--;
+			iCurrentBonusPoints--;
 			}
 		break;
 		case( AGILITY_ATTRIBUTE ):
-			if( iCurrentAgility > iMaxAttribute -1 )
+		if( iCurrentAgility > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				iCurrentAgility++;
-				iCurrentBonusPoints--;
+			iCurrentBonusPoints--;
 			}
 		break;
 		case( WISDOM_ATTRIBUTE ):
-			if( iCurrentWisdom > iMaxAttribute -1 )
+		if( iCurrentWisdom > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				iCurrentWisdom++;
-				iCurrentBonusPoints--;
+			iCurrentBonusPoints--;
 			}
 		break;
-			case( HEALTH_ATTRIBUTE ):
-			if( iCurrentHealth > iMaxAttribute -1 )
+		case( HEALTH_ATTRIBUTE ):
+		if( iCurrentHealth > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				iCurrentHealth++;
-				iCurrentBonusPoints--;
+			iCurrentBonusPoints--;
 			}
 		break;
 		case( LEADERSHIP_ATTRIBUTE ):
-			if( iCurrentLeaderShip > iMaxAttribute -1 )
+		if( iCurrentLeaderShip > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
 			}
-			else
+		else
 			{
 				if( iCurrentLeaderShip == 0)
 				{
 					if( DoWeHaveThisManyBonusPoints( iMaxZeroBonus ) == TRUE )
 					{
-						iCurrentLeaderShip+=iLeaderShipMinimum;
-						iCurrentBonusPoints-=iMaxZeroBonus;
+					iCurrentLeaderShip+=iLeaderShipMinimum;
+					iCurrentBonusPoints-=iMaxZeroBonus;
 						fSkillAtZeroWarning = FALSE;
 					}
 					else
@@ -695,25 +692,25 @@ UINT8 IncrementStat( INT32 iStatToIncrement )
 				}
 				else
 				{
-					iCurrentLeaderShip++;
-					iCurrentBonusPoints--;
+				iCurrentLeaderShip++;
+			 iCurrentBonusPoints--;
 				}
 			}
 		break;
 		case( MARKSMANSHIP_SKILL ):
-			if( iCurrentMarkmanship > iMaxAttribute -1 )
+		if( iCurrentMarkmanship > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				if( iCurrentMarkmanship == 0)
 				{
 					if( DoWeHaveThisManyBonusPoints( iMaxZeroBonus ) == TRUE )
 					{
-						iCurrentMarkmanship+=iMarkmanshipMinimum;
-						iCurrentBonusPoints-=iMaxZeroBonus;
+					iCurrentMarkmanship+=iMarkmanshipMinimum;
+					iCurrentBonusPoints-=iMaxZeroBonus;
 						fSkillAtZeroWarning = FALSE;
 					}
 					else
@@ -723,25 +720,25 @@ UINT8 IncrementStat( INT32 iStatToIncrement )
 				}
 				else
 				{
-					iCurrentMarkmanship++;
-					iCurrentBonusPoints--;
+				iCurrentMarkmanship++;
+			 iCurrentBonusPoints--;
 				}
 			}
 		break;
 		case( MECHANICAL_SKILL ):
-			if( iCurrentMechanical > iMaxAttribute -1 )
+		if( iCurrentMechanical > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				if( iCurrentMechanical == 0)
 				{
 					if( DoWeHaveThisManyBonusPoints( iMaxZeroBonus ) == TRUE )
 					{
-						iCurrentMechanical+=iMechanicalMinimum;
-						iCurrentBonusPoints-=iMaxZeroBonus;
+					iCurrentMechanical+=iMechanicalMinimum;
+					iCurrentBonusPoints-=iMaxZeroBonus;
 						fSkillAtZeroWarning = FALSE;
 					}
 					else
@@ -751,25 +748,25 @@ UINT8 IncrementStat( INT32 iStatToIncrement )
 				}
 				else
 				{
-					iCurrentMechanical++;
-					iCurrentBonusPoints--;
+				iCurrentMechanical++;
+			 iCurrentBonusPoints--;
 				}
 			}
 		break;
 		case( MEDICAL_SKILL ):
-			if( iCurrentMedical > iMaxAttribute -1 )
+		if( iCurrentMedical > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
-				if( iCurrentMedical == 0)
+			if( iCurrentMedical == 0)
 				{
 					if( DoWeHaveThisManyBonusPoints( iMaxZeroBonus ) == TRUE )
 					{
-						iCurrentMedical+=iMedicalMinimum;
-						iCurrentBonusPoints-=iMaxZeroBonus;
+					iCurrentMedical+=iMedicalMinimum;
+					iCurrentBonusPoints-=iMaxZeroBonus;
 						fSkillAtZeroWarning = FALSE;
 					}
 					else
@@ -779,25 +776,25 @@ UINT8 IncrementStat( INT32 iStatToIncrement )
 				}
 				else
 				{
-					iCurrentMedical++;
-					iCurrentBonusPoints--;
+				iCurrentMedical++;
+			 iCurrentBonusPoints--;
 				}
 			}
 		break;
 		case( EXPLOSIVE_SKILL ):
-			if( iCurrentExplosives > iMaxAttribute -1 )
+		if( iCurrentExplosives > iMaxAttribute -1 )
 			{
 				// too high, leave
 				return( SLIDER_OUT_OF_RANGE );
-			}
-			else
+		}
+		else
 			{
 				if( iCurrentExplosives == 0)
 				{
 					if( DoWeHaveThisManyBonusPoints( iMaxZeroBonus ) == TRUE )
 					{
-						iCurrentExplosives+=iExplosivesMinimum;
-						iCurrentBonusPoints-=iMaxZeroBonus;
+					iCurrentExplosives+=iExplosivesMinimum;
+					iCurrentBonusPoints-=iMaxZeroBonus;
 						fSkillAtZeroWarning = FALSE;
 					}
 					else
@@ -807,8 +804,8 @@ UINT8 IncrementStat( INT32 iStatToIncrement )
 				}
 				else
 				{
-					iCurrentExplosives++;
-					iCurrentBonusPoints--;
+				iCurrentExplosives++;
+			 iCurrentBonusPoints--;
 				}
 			}
 		break;
@@ -1235,7 +1232,7 @@ INT32 iBonusPointsNeededForLevelUp()
 
 INT32 iBonusPointsRecievedForLevelDown()
 {
-	INT32 iBonusPointsRecieved; 
+	INT32 iBonusPointsRecieved=0; 
 
 	if (iStartingLevel > 1 && iStartingLevel <= 10)
 	{
@@ -1916,7 +1913,7 @@ INT32 GetCurrentAttributeValue( INT32 iAttribute )
 void SetAttributes( void )
 {
 	INT32	iExtraPoints = 0;
-	
+
 	// added externilized multiplier for starting level - SADNRO
 	iLevelCostMultiplier = gGameExternalOptions.iIMPStartingLevelCostMultiplier;
 
@@ -2191,10 +2188,7 @@ INT32 DetermineNewValue( INT32 iNewX )
 	INT32 iNewValue=0;
 	INT32	iStartLoc = SKILL_SLIDE_START_X + LAPTOP_SCREEN_UL_X;
 	INT32 iPositionX = iNewX - iStartLoc;
-	FLOAT fPercentOfBar=0.0f;
-
-
-	fPercentOfBar = iPositionX / ( FLOAT)( BAR_WIDTH - SLIDER_BAR_WIDTH );
+	FLOAT fPercentOfBar = iPositionX / ( FLOAT)( BAR_WIDTH - SLIDER_BAR_WIDTH );
 
 	iNewValue = (INT32)( fPercentOfBar * ( iMaxAttribute - (FLOAT)iMinAttribute ) );
 

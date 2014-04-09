@@ -169,7 +169,7 @@ INT16 iTopWinCutOff,iBotWinCutOff;
 DisplayList Selection;
 
 UINT16 SelWinFillColor = 0x0000;					// Black
-UINT16 SelWinHilightFillColor = 0x000d;		// a kind of medium dark blue
+UINT16 SelWinHilightFillColor = 0x23BA;		//blue, formerly 0x000d a kind of medium dark blue (not contrasty)
 
 //----------------------------------------------------------------------------------------------
 //	CreateJA2SelectionWindow
@@ -194,33 +194,33 @@ void CreateJA2SelectionWindow( INT16 sWhat )
 	iSelectWin = CreateHotSpot(0, 0, 600, 360, MSYS_PRIORITY_HIGH,
 														DEFAULT_MOVE_CALLBACK, SelWinClkCallback);
 
-	iCancelWin = CreateIconButton((INT16)iButtonIcons[SEL_WIN_CANCEL_ICON], 0,
-														BUTTON_USE_DEFAULT, 600, 40,
-														40, 40, BUTTON_TOGGLE,
- 														MSYS_PRIORITY_HIGH,
-														DEFAULT_MOVE_CALLBACK, CnclClkCallback);
-	SetButtonFastHelpText(iCancelWin,L"Cancel selections");
-
 	iOkWin = CreateIconButton((INT16)iButtonIcons[SEL_WIN_OK_ICON], 0,
 														BUTTON_USE_DEFAULT, 600, 0,
 														40, 40, BUTTON_TOGGLE,
 														MSYS_PRIORITY_HIGH,
 														DEFAULT_MOVE_CALLBACK, OkClkCallback);
-	SetButtonFastHelpText(iOkWin,L"Accept selections");
+	SetButtonFastHelpText(iOkWin,pDisplaySelectionWindowButtonText[0]);
+
+	iCancelWin = CreateIconButton((INT16)iButtonIcons[SEL_WIN_CANCEL_ICON], 0,
+														BUTTON_USE_DEFAULT, 600, 40,
+														40, 40, BUTTON_TOGGLE,
+ 														MSYS_PRIORITY_HIGH,
+														DEFAULT_MOVE_CALLBACK, CnclClkCallback);
+	SetButtonFastHelpText(iCancelWin,pDisplaySelectionWindowButtonText[1]);
 
 	iScrollUp = CreateIconButton((INT16)iButtonIcons[SEL_WIN_UP_ICON], 0,
 														BUTTON_USE_DEFAULT, 600, 80,
 														40, 160, BUTTON_NO_TOGGLE,
 														MSYS_PRIORITY_HIGH,
 														DEFAULT_MOVE_CALLBACK, UpClkCallback);
-	SetButtonFastHelpText(iScrollUp,L"Scroll window up");
+	SetButtonFastHelpText(iScrollUp,pDisplaySelectionWindowButtonText[2]);
 
 	iScrollDown = CreateIconButton((INT16)iButtonIcons[SEL_WIN_DOWN_ICON], 0,
 														BUTTON_USE_DEFAULT, 600, 240,
 														40, 160, BUTTON_NO_TOGGLE,
 														MSYS_PRIORITY_HIGH,
 														DEFAULT_MOVE_CALLBACK, DwnClkCallback);
-	SetButtonFastHelpText(iScrollDown,L"Scroll window down");
+	SetButtonFastHelpText(iScrollDown,pDisplaySelectionWindowButtonText[3]);
 
 	fButtonsPresent = TRUE;
 
@@ -1071,16 +1071,18 @@ void DisplaySelectionWindowGraphicalInformation()
 			mprintf( 2, 2, pDisplaySelectionWindowGraphicalInformationText[0],
 				gTilesets[0].TileSurfaceFilenames[ pNode->uiObjIndx ],
 				pNode->uiIndex, gTilesets[0].zName,
+				gTileTypeStartIndex[pNode->uiObjIndx]+pNode->uiIndex,
 				gTileSurfaceName[ pNode->uiObjIndx ] );
 		}
 		else
 		{
 			mprintf( 2, 2, pDisplaySelectionWindowGraphicalInformationText[1],
 				gTilesets[ giCurrentTilesetID ].TileSurfaceFilenames[ pNode->uiObjIndx ],
-				pNode->uiIndex, gTileSurfaceName[ pNode->uiObjIndx ] );
+				pNode->uiIndex, gTileTypeStartIndex[pNode->uiObjIndx]+pNode->uiIndex,
+				gTileSurfaceName[ pNode->uiObjIndx ] );
 		}
 	}
-	mprintf( 350, 2, pDisplaySelectionWindowGraphicalInformationText[2],  gTilesets[ giCurrentTilesetID ].zName );
+	mprintf( 390, 2, pDisplaySelectionWindowGraphicalInformationText[2],  gTilesets[ giCurrentTilesetID ].zName );
 }
 
 //----------------------------------------------------------------------------------------------
@@ -1653,6 +1655,7 @@ BOOLEAN DisplayWindowFunc( DisplayList *pNode, INT16 iTopCutOff, INT16 iBottomCu
 
 		if ( sCount != 0)
 		{
+			SetFontShade(LARGEFONT1, FONT_SHADE_WHITE);
 			gprintf( pNode->iX, iCurrY, L"%d", sCount );
 		}
 

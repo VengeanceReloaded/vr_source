@@ -8,7 +8,6 @@
 	#include "WCheck.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "Soldier Profile.h"
@@ -67,6 +66,11 @@ extern UINT32 guiLONGLINE; // symbol already defined in finances.cpp (jonathanl)
 UINT32 guiSHADELINE;
 //UINT32 guiVERTLINE;
 //UINT32 guiBIGBOX;
+
+#ifdef JA2UB
+#define		QUEST_EDT_FILE_JA25			"BINARYDATA\\quests25.edt"
+#define		QUEST_EDT_FILE_JA2		"BINARYDATA\\quests.edt"
+#endif
 
 enum{
 	PREV_PAGE_BUTTON=0,
@@ -1174,9 +1178,11 @@ void ProcessHistoryTransactionString(STR16 pString, HistoryUnitPtr pHistory)
 		case HISTORY_SLAUGHTEREDBLOODCATS:
 		case HISTORY_GAVE_CARMEN_HEAD:
 		case HISTORY_SLAY_MYSTERIOUSLY_LEFT:
-			swprintf( pString, pHistoryStrings[ pHistory->ubCode ] );
+		case HISTORY_WALDO:
+		case HISTORY_HELICOPTER_REPAIR_STARTED:
+			swprintf( pString, pHistoryStrings[ pHistory->ubCode ], pHistory->ubSecondCode );
 			break;
-		// anv: VENGEANCE
+		// anv: VR - history logs
 		case HISTORY_ENRICO:
 			swprintf( pString, pHistoryStrings[ HISTORY_ENRICO ], pTownNames[ pHistory->ubSecondCode ] );
 			break;
@@ -1689,14 +1695,36 @@ UINT32 GetTimeQuestWasStarted( UINT8 ubCode )
 void GetQuestStartedString( UINT8 ubQuestValue, STR16 sQuestString )
 {
 	// open the file and copy the string
+#ifdef JA2UB
+	if (FileExists(QUEST_EDT_FILE_JA25))
+	{
+	LoadEncryptedDataFromFile( QUEST_EDT_FILE_JA25, sQuestString, 160 * ( ubQuestValue * 2	), 160 );
+	}
+	else
+	{
+	LoadEncryptedDataFromFile( QUEST_EDT_FILE_JA2, sQuestString, 160 * ( ubQuestValue * 2	), 160 );
+	}
+#else
 	LoadEncryptedDataFromFile( "BINARYDATA\\quests.edt", sQuestString, 160 * ( ubQuestValue * 2	), 160 );
+#endif
 }
 
 
 void GetQuestEndedString( UINT8 ubQuestValue, STR16 sQuestString )
 {
 	// open the file and copy the string
+#ifdef JA2UB
+	if (FileExists(QUEST_EDT_FILE_JA25))
+	{
+	LoadEncryptedDataFromFile( QUEST_EDT_FILE_JA25, sQuestString, 160 * ( ( ubQuestValue	* 2 ) + 1), 160 );
+	}
+	else
+	{
+	LoadEncryptedDataFromFile( QUEST_EDT_FILE_JA2, sQuestString, 160 * ( ubQuestValue * 2	), 160 );
+	}
+#else
 	LoadEncryptedDataFromFile( "BINARYDATA\\quests.edt", sQuestString, 160 * ( ( ubQuestValue	* 2 ) + 1), 160 );
+#endif
 }
 
 

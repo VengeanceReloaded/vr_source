@@ -3,7 +3,6 @@
 #else
 	#include <stdio.h>
 	#include "debug.h"
-	#include "wcheck.h"
 	#include "mousesystem.h"
 	#include "jascreens.h"
 	#include "worlddef.h"
@@ -17,6 +16,7 @@
 	#include "overhead.h"
 	#include "Random.h"
 	#include "Pathai.h"
+	#include "GameSettings.h"	// added by Flugente
 #endif
 
 
@@ -210,7 +210,7 @@ BOOLEAN FindWindowJumpDirection( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bSta
 	if (direction2 == NORTH || direction2 == WEST)
 	{
 		// IF there is a fence in this gridno, return false!
-		if ( IsJumpableWindowPresentAtGridNo( sGridNo, direction2 ) )
+		if ( IsJumpableWindowPresentAtGridNo( sGridNo, direction2, gGameExternalOptions.fCanJumpThroughClosedWindows ) )
 		{
 			return( FALSE );
 		}
@@ -241,7 +241,7 @@ BOOLEAN FindWindowJumpDirection( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bSta
 			// ATE: Check if there is somebody waiting here.....
 
 			// Check if we have a fence here
-			if ( IsJumpableWindowPresentAtGridNo( sNewGridNo , direction2) )
+			if ( IsJumpableWindowPresentAtGridNo( sNewGridNo , direction2, gGameExternalOptions.fCanJumpThroughClosedWindows) )
 			{
 				fFound = TRUE;
 
@@ -874,20 +874,6 @@ INT32 OutOfBounds(INT32 sGridNo, INT32 sProposedGridNo)
 		return(FALSE);
 }
 
-//Lalien: This function should be used to check if the tile is not inside map array,
-//        it will return FALSE if the tile index is NOWHERE (-1) too.
-//        If the tile index has some special meaning ("-1" = does not exist) the check for NOWHERE should be used
-BOOLEAN TileIsOutOfBounds(INT32 sGridNo)
-{
-	if( (sGridNo < 0) || (sGridNo >= MAX_MAP_POS) )
-	{
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-
 INT32 NewGridNo(INT32 sGridNo, INT16 sDirInc)
 {
  INT32 sProposedGridNo = sGridNo + sDirInc;
@@ -1356,23 +1342,16 @@ BOOLEAN GridNoOnEdgeOfMap( INT32 sGridNo, INT8 * pbDirection )
 	INT8		bDir;
 
 	// check NE, SE, SW, NW because of tilt of isometric display
+
 	for (bDir = NORTHEAST; bDir < NUM_WORLD_DIRECTIONS; bDir += 2 )
 	{
-		try
+		if (gubWorldMovementCosts[ (sGridNo + DirectionInc( bDir ) ) ][ bDir ][ 0 ] == TRAVELCOST_OFF_MAP)
+		//if ( !GridNoOnVisibleWorldTile( (INT16) (sGridNo + DirectionInc( bDir ) ) ) )
 		{
-			if (gubWorldMovementCosts[ (sGridNo + DirectionInc( bDir ) ) ][ bDir ][ 0 ] == TRAVELCOST_OFF_MAP)
-			//if ( !GridNoOnVisibleWorldTile( (INT16) (sGridNo + DirectionInc( bDir ) ) ) )
-			{
-				*pbDirection = bDir;
-				return( TRUE );
-			}
-		}
-		catch(...)
-		{
-			return( FALSE );
+			*pbDirection = bDir;
+			return( TRUE );
 		}
 	}
-
 	return( FALSE );
 }
 
@@ -1441,4 +1420,22 @@ INT32 RandomGridNo()
 		iMapIndex = iMapYPos * WORLD_COLS + iMapXPos;
 	}while( !GridNoOnVisibleWorldTile( iMapIndex ) );
 	return iMapIndex;
+}
+
+// Flugente: is this gridno near a player merc?
+BOOLEAN GridNoNearPlayerMercs( INT32 sGridNo, INT16 sRadius )
+{
+	SOLDIERTYPE* pTeamSoldier = NULL;
+	INT32 cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID;
+	INT32 lastid = gTacticalStatus.Team[ OUR_TEAM ].bLastID;
+	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+	{
+		if ( pTeamSoldier && pTeamSoldier->bActive && pTeamSoldier->bInSector )
+		{
+			if ( PythSpacesAway(sGridNo, pTeamSoldier->sGridNo) < sRadius )
+				return( TRUE );
+		}
+	}
+		
+	return( FALSE );
 }

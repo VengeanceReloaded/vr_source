@@ -8,7 +8,6 @@
 	#include "sgp.h"
 	#include "Gameloop.h"
 	#include "Screens.h"
-	#include "Wcheck.h"
 	#include "cursors.h"
 	#include "init.h"
 	#include "music control.h"
@@ -25,12 +24,12 @@
 	#include "GameSettings.h"
 	#include "mapscreen.h"
 	#include "Interface Control.h"
-	#include "fade screen.h"
 	#include "text.h"
 	#include "HelpScreen.h"
 	#include "PreBattle Interface.h"
 	#include "Tactical Placement GUI.h"//dnl ch45 071009
 	#include "Map Screen Interface Map Inventory.h"//dnl ch51 081009
+	#include "World Items.h"//dnl ch77 191113
 #endif
 
 #include "SaveLoadScreen.h"
@@ -41,6 +40,11 @@
 #pragma comment (lib, "gdi32.lib")
 #pragma comment (lib, "advapi32.lib")
 #pragma comment (lib, "shell32.lib")
+
+#ifdef JA2UB
+#include "ub_config.h"
+#endif
+
 // rain
 #include "Rain.h"
 // end rain
@@ -127,13 +131,29 @@ BOOLEAN InitializeGame(void)
 	// Load new ini - SANDRO
 	LoadSkillTraitsExternalSettings();
 
-    // anv - extended panels
-    LoadExtendedPanelsExternalSettings();
-	// Load externalised taunts settings
-	LoadTauntsSettings();
-
 	// HEADROCK HAM 4: Read CTH values
 	LoadCTHConstants();
+	//DBrot: load mod settings
+	LoadModSettings();
+	// silversurfer: load item settings modifiers
+	LoadItemSettings();
+	// Load externalised taunts settings
+	LoadTauntsSettings();
+	// Load helicopter repair settings
+	LoadHelicopterRepairRefuelSettings();
+	// Load externalised morale settings
+	LoadMoraleSettings();
+	// Load externalised reputation settings
+	LoadReputationSettings();
+	// Load creatures settings
+	LoadCreaturesSettings();
+
+	// anv: VR extended panels
+	LoadExtendedPanelsExternalSettings();
+
+#ifdef JA2UB
+	LoadGameUBOptions(); // JA25 UB
+#endif
 
 	InitSightRange(); //lal
 
@@ -141,6 +161,11 @@ BOOLEAN InitializeGame(void)
 	MSYS_Init( );
 	InitButtonSystem();
 	InitCursors( );
+
+	SetFastForwardPeriod(gGameExternalOptions.iFastForwardPeriod);
+	SetFastForwardKey(gGameExternalOptions.iFastForwardKey);
+	SetNotifyFrequencyKey(gGameExternalOptions.iNotifyFrequency);
+	SetClockSpeedPercent(gGameExternalOptions.fClockSpeedPercent);
 
 	// Init Fonts
 	if ( !InitializeFonts( ) )
@@ -220,6 +245,9 @@ void GameLoop(void)
 	POINT		MousePos;
 	UINT32		uiOldScreen=guiCurrentScreen;
 	clock_t		startTime = clock(); // decrease CPU load patch from defrog
+
+	if(_LeftButtonDown | _RightButtonDown)//dnl ch77 191113 to prevent memory corruption during resize
+		ResizeWorldItems();
 
 	//DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"GameLoop: get mouse position");
 	GetCursorPos(&MousePos);
@@ -506,7 +534,7 @@ void HandleShortCutExitState( void )
 	// look at the state of fGameIsRunning, if set false, then prompt user for confirmation
 
 	// use YES/NO Pop up box, settup for particular screen
-	SGPRect pCenteringRect= {0, 0, SCREEN_WIDTH, INV_INTERFACE_START_Y };
+	SGPRect pCenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, INV_INTERFACE_START_Y };
 
 	if( guiCurrentScreen == ERROR_SCREEN )
 	{ //an assert failure, don't bring up the box!
@@ -585,3 +613,21 @@ void NextLoopCheckForEnoughFreeHardDriveSpace()
 {
 	gubCheckForFreeSpaceOnHardDriveCount = 0;
 }
+
+// Called by any game loop after all known events were handled
+void HandleDefaultEvent(InputAtom *Event)
+{
+	const int MouseButtonEvents = LEFT_BUTTON_REPEAT|RIGHT_BUTTON_REPEAT|
+		LEFT_BUTTON_DOWN|LEFT_BUTTON_UP|MIDDLE_BUTTON_UP|X1_BUTTON_UP|X2_BUTTON_UP|
+		RIGHT_BUTTON_DOWN|RIGHT_BUTTON_UP|MIDDLE_BUTTON_DOWN|X1_BUTTON_DOWN|X2_BUTTON_DOWN|
+		MOUSE_WHEEL_UP|MOUSE_WHEEL_DOWN;
+
+	if (Event != NULL && Event->usEvent & MouseButtonEvents)
+	{
+		POINT		MousePos;
+		GetCursorPos(&MousePos);
+		ScreenToClient(ghWindow, &MousePos); // In window coords!
+		MouseSystemHook(Event->usEvent, (UINT16)MousePos.x ,(UINT16)MousePos.y ,_LeftButtonDown, _RightButtonDown);
+	}
+}
+

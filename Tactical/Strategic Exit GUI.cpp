@@ -11,7 +11,6 @@
 	#include "gamescreen.h"
 	#include "strategicmap.h"
 	#include "Game Clock.h"
-	#include "Music Control.h"
 	#include "sysutil.h"
 	#include "Font Control.h"
 	#include "text.h"
@@ -35,6 +34,12 @@
 	#include "MessageBoxScreen.h"
 	#include "Quests.h"
 	#include "Creature Spreading.h"
+#endif
+
+#ifdef JA2UB
+#include "Explosion Control.h"
+#include "Ja25 Strategic Ai.h"
+#include "Ja25_Tactical.h"
 #endif
 
 BOOLEAN		gfInSectorExitMenu = FALSE;
@@ -273,7 +278,7 @@ BOOLEAN InternalInitSectorExitMenu( UINT8 ubDirection, INT32 sAdditionalData )//
 			}
 		}
 
-		if( ubNumMercs == 1 && ubNumEPCs >= 1 )
+		if( ubNumMercs == 1 )
 		{
 			gExitDialog.fSingleMoveOn				= FALSE;
 			gExitDialog.fAllMoveOn					= TRUE;
@@ -614,7 +619,7 @@ void RenderSectorExitMenu( )
 	gsGlobalCursorYOffset = 0;
 	SetCurrentCursorFromDatabase( CURSOR_NORMAL );
 
-	while( DequeueEvent( &Event ) )
+	while (DequeueSpecificEvent(&Event, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 		if( Event.usEvent == KEY_DOWN )
 		{
@@ -760,6 +765,15 @@ void RemoveSectorExitMenu( BOOLEAN fOk )
 
 		if ( fOk )
 		{
+#ifdef JA2UB		
+			//ja25 ub
+			//If this is the sector with the power fan
+			if( gWorldSectorX == 13 && gWorldSectorY == 10 && gbWorldSectorZ == 0 )
+			{
+				//Remeber how the player got through
+				HandleHowPlayerGotThroughFan();
+			}
+#endif			
 			// Handle the effects here!
 			if ( gExitDialog.fAllMove && gExitDialog.fGotoSector && gExitDialog.fGotoSectorText )
 			{

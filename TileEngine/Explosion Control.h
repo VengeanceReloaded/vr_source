@@ -98,8 +98,8 @@ extern	EXPLOSIONTYPE								gExplosionData[ NUM_EXPLOSION_SLOTS ];
 extern UINT8 gubElementsOnExplosionQueue;
 extern BOOLEAN gfExplosionQueueActive;
 
-void IgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32 sGridNo, UINT16 usItem, INT8 bLevel );
-void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32 sGridNo, UINT16 usItem, BOOLEAN fLocate, INT8 bLevel );
+void IgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32 sGridNo, UINT16 usItem, INT8 bLevel, UINT8 ubDirection = DIRECTION_IRRELEVANT, OBJECTTYPE * pObj =NULL );
+void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32 sGridNo, UINT16 usItem, BOOLEAN fLocate, INT8 bLevel, UINT8 ubDirection = DIRECTION_IRRELEVANT, OBJECTTYPE * pObj =NULL );
 
 
 void GenerateExplosion( EXPLOSION_PARAMS *pExpParams );
@@ -133,12 +133,40 @@ BOOLEAN DishOutGasDamage( SOLDIERTYPE * pSoldier, EXPLOSIVETYPE * pExplosive, IN
 void SpreadEffect( INT32 sGridNo, UINT8 ubRadius, UINT16 usItem, UINT8 ubOwner, BOOLEAN fSubsequent, INT8 bLevel, INT32 iSmokeEffectNum , BOOL fFromRemoteClient = FALSE , BOOL fNewSmokeEffect = FALSE );
 void AddBombToQueue( UINT32 uiWorldBombIndex, UINT32 uiTimeStamp, BOOL fFromRemoteClient = FALSE );
 
+// Flugente: activate everything connected to a tripwire in the surrounding if sGridNo on level bLevel with regard to the tripwire netwrok and hierarchy determined by ubFlag
+BOOLEAN ActivateSurroundingTripwire( UINT8 ubID, INT32 sGridNo, INT8 bLevel, UINT32 ubFlag );
+
+// Flugente: A special function for tripwire gun traps. Search if pObj has a gun attached. If so, fire a shot from that gun in a specific direction. Afterwards place the gun on the ground
+void CheckAndFireTripwireGun( OBJECTTYPE* pObj, INT32 sGridNo, INT8 bLevel, UINT8 ubId, UINT8 ubDirection );
+
 extern void ToggleActionItemsByFrequency( INT8 bFrequency );
 extern void PerformItemAction( INT32 sGridNo, OBJECTTYPE * pObj );
 extern BOOLEAN		 gfExplosionQueueMayHaveChangedSight;
 extern void TogglePressureActionItemsInGridNo( INT32 sGridNo );
 
 extern BOOLEAN DoesSAMExistHere( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ, INT32 sGridNo );
+//DBrot: More Rooms
+//extern BOOLEAN HookerInRoom( UINT8 ubRoom );
+extern BOOLEAN HookerInRoom( UINT16 usRoom );
 
-extern BOOLEAN HookerInRoom( UINT8 ubRoom );
+#ifdef JA2UB
+extern void HavePersonAtGridnoStop( UINT32 sGridNo );
+extern BOOLEAN ShouldThePlayerStopWhenWalkingOnBiggensActionItem( UINT8 ubRecordNum );
+extern void HandleDestructionOfPowerGenFan();
+extern BOOLEAN IsFanGraphicInSectorAtThisGridNo( UINT32 sGridNo );
+extern void HandleExplosionsInTunnelSector( UINT32 sGridNo );
+extern void HandleSwitchToOpenFortifiedDoor( UINT32 sGridNo );
+extern void HandleSeeingPowerGenFan( UINT32 sGridNo );
+extern void HandleSeeingFortifiedDoor( UINT32 sGridNo );//Ja25 UB
+#endif
+
+// Flugente: handle secondary explosive effects
+void HandleBuddyExplosions(UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32 sGridNo, UINT16 usItem, BOOLEAN fLocate, INT8 bLevel, UINT8 ubDirection );
+
+// sevenfm: handle explosive items from attachments
+BOOLEAN HandleAttachedExplosions(UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32 sGridNo, UINT16 usItem, BOOLEAN fLocate, INT8 bLevel, UINT8 ubDirection, OBJECTTYPE * pObj );
+void CheckForBuriedBombsAndRemoveFlags( INT32 sGridNo, INT8 bLevel );
+UINT16 CalcTotalVolatility(OBJECTTYPE * pObj);
+BOOLEAN FindBinderAttachment (OBJECTTYPE * pObj);
+BOOLEAN CheckExplosiveTypeAsDetonator(UINT16 ubType);
 #endif

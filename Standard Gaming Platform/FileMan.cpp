@@ -380,7 +380,7 @@ BOOLEAN	FileDelete( STR strFilename )
 //	Oct 2005: Snap - modified to work with the custom Data directory
 //
 //**************************************************************************
-HWFILE FileOpen( STR strFilename, UINT32 uiOptions, BOOLEAN fDeleteOnClose )
+HWFILE FileOpen( STR strFilename, UINT32 uiOptions, BOOLEAN fDeleteOnClose, STR strProfilename )//dnl ch81 021213
 {
 #ifdef USE_VFS
 	vfs::Path path(strFilename);
@@ -400,9 +400,18 @@ HWFILE FileOpen( STR strFilename, UINT32 uiOptions, BOOLEAN fDeleteOnClose )
 		}
 		else if(uiOptions & FILE_ACCESS_READ)
 		{
-			vfs::COpenReadFile open_r(path, vfs::CVirtualFile::SF_TOP);
-			pFile = &open_r.file();
-			open_r.release();
+			if(strProfilename && strProfilename[0])
+			{
+				vfs::COpenReadFile open_r(vfs::tReadableFile::cast(getVFS()->getFile(path, strProfilename)));
+				pFile = &open_r.file();
+				open_r.release();
+			}
+			else
+			{
+				vfs::COpenReadFile open_r(path, vfs::CVirtualFile::SF_TOP);
+				pFile = &open_r.file();
+				open_r.release();
+			}
 			s_mapFiles[pFile].op = SOperation::READ;
 			return (HWFILE)pFile;
 		}
@@ -560,8 +569,6 @@ HWFILE FileOpen( STR strFilename, UINT32 uiOptions, BOOLEAN fDeleteOnClose )
 #endif
 }
 
-
-
 //**************************************************************************
 //
 // FileClose
@@ -579,7 +586,6 @@ HWFILE FileOpen( STR strFilename, UINT32 uiOptions, BOOLEAN fDeleteOnClose )
 //		9 Feb 98	DEF - modified to work with the library system
 //
 //**************************************************************************
-
 void FileClose( HWFILE hFile )
 {
 #ifdef USE_VFS
@@ -2301,6 +2307,7 @@ BOOLEAN	FileCheckEndOfFile( HWFILE hFile )
 
 BOOLEAN GetFileManFileTime( HWFILE hFile, SGP_FILETIME	*pCreationTime, SGP_FILETIME *pLastAccessedTime, SGP_FILETIME *pLastWriteTime )
 {
+#ifndef USE_VFS
 	HANDLE	hRealFile;
 	INT16 sLibraryID;
 	UINT32 uiFileNum;
@@ -2310,9 +2317,9 @@ BOOLEAN GetFileManFileTime( HWFILE hFile, SGP_FILETIME	*pCreationTime, SGP_FILET
 	FILETIME	sLastWriteUtcFileTime;
 
 	//Initialize the passed in variables
-	memset( pCreationTime, 0, sizeof( SGP_FILETIME ) );
-	memset( pLastAccessedTime, 0, sizeof( SGP_FILETIME ) );
-	memset( pLastWriteTime, 0, sizeof( SGP_FILETIME ) );
+	if (pCreationTime)     memset( pCreationTime, 0, sizeof( SGP_FILETIME ) );
+	if (pLastAccessedTime) memset( pLastAccessedTime, 0, sizeof( SGP_FILETIME ) );
+	if (pLastWriteTime)    memset( pLastWriteTime, 0, sizeof( SGP_FILETIME ) );
 
 
 	GetLibraryAndFileIDFromLibraryFileHandle( hFile, &sLibraryID, &uiFileNum );
@@ -2327,13 +2334,16 @@ BOOLEAN GetFileManFileTime( HWFILE hFile, SGP_FILETIME	*pCreationTime, SGP_FILET
 		GetFileTime( hRealFile, &sCreationUtcFileTime, &sLastAccessedUtcFileTime, &sLastWriteUtcFileTime );
 
 		//converts the creation UTC file time to the current time used for the file
-		FileTimeToLocalFileTime( &sCreationUtcFileTime, pCreationTime );
+		if(pCreationTime) 
+			FileTimeToLocalFileTime( &sCreationUtcFileTime, pCreationTime );
 		
 		//converts the accessed UTC file time to the current time used for the file
-		FileTimeToLocalFileTime( &sLastAccessedUtcFileTime, pLastAccessedTime );
+		if (pLastAccessedTime) 
+			FileTimeToLocalFileTime( &sLastAccessedUtcFileTime, pLastAccessedTime );
 
 		//converts the write UTC file time to the current time used for the file
-		FileTimeToLocalFileTime( &sLastWriteUtcFileTime, pLastWriteTime );
+		if (pLastWriteTime)
+			FileTimeToLocalFileTime( &sLastWriteUtcFileTime, pLastWriteTime );
 	}
 	else
 	{
@@ -2354,8 +2364,10 @@ BOOLEAN GetFileManFileTime( HWFILE hFile, SGP_FILETIME	*pCreationTime, SGP_FILET
 			}
 		}
 	}
-
 	return( TRUE );
+#else
+	return( FALSE );
+#endif	
 }
 
 
@@ -2391,6 +2403,7 @@ UINT32 uiSize;
 
 HANDLE	GetRealFileHandleFromFileManFileHandle( HWFILE hFile )
 {
+#ifndef USE_VFS
 	INT16 sLibraryID;
 	UINT32 uiFileNum;
 
@@ -2413,8 +2426,11 @@ HANDLE	GetRealFileHandleFromFileManFileHandle( HWFILE hFile )
 			return( gFileDataBase.pLibraries[ sLibraryID ].hLibraryHandle );
 		}
 	}
+#endif
 	return( 0 );
 }
+
+
 
 //**************************************************************************
 //

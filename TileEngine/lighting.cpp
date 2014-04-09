@@ -33,19 +33,12 @@
 	#include "vobject_blitters.h"
 	#include "debug.h"
 	#include "wcheck.h"
-	#include "worldman.h"
 	#include "jascreens.h"
-	#include "edit_sys.h"
 	#include "Isometric Utils.h"
 	#include "line.h"
 	#include "Animation Control.h"
 	#include "Animation Data.h"
-	#include "Timer Control.h"
-	#include "Radar Screen.h"
-	#include "Render Dirty.h"
-	#include "Font Control.h"
 	#include "Sys Globals.h"
-	#include "Render Dirty.h"
 	#include "tiledef.h"
 	#include "lighting.h"
 	#include "Structure Internals.h"
@@ -596,7 +589,7 @@ UINT8		ubTravelCost;
 	pStruct = gpWorldLevelData[ usTileNo ].pStructHead;
 	while ( pStruct != NULL )
 	{
-		if ( pStruct->usIndex < NUMBEROFTILES )
+		if ( pStruct->usIndex < giNumberOfTiles )
 		{
 			GetTileType( pStruct->usIndex, &uiType );
 
@@ -848,7 +841,7 @@ BOOLEAN	LightAddTile(UINT32 uiLightType, INT16 iSrcX, INT16 iSrcY, INT16 iX, INT
 {
 LEVELNODE *pLand, *pStruct, *pObject, *pMerc, *pRoof, *pOnRoof;
 UINT8 ubShadeAdd;
-UINT32 uiTile;
+INT32 uiTile;
 BOOLEAN fLitWall=FALSE;
 BOOLEAN fFake;
 
@@ -886,7 +879,7 @@ BOOLEAN fFake;
 		pStruct = gpWorldLevelData[uiTile].pStructHead;
 		while(pStruct!=NULL)
 		{
-			if ( pStruct->usIndex < NUMBEROFTILES )
+			if ( pStruct->usIndex < giNumberOfTiles )
 			{
 				if((gTileDatabase[ pStruct->usIndex ].fType != FIRSTCLIFFHANG) || (uiFlags&LIGHT_EVERYTHING))
 				{
@@ -938,7 +931,7 @@ BOOLEAN fFake;
 		pObject = gpWorldLevelData[uiTile].pObjectHead;
 		while(pObject!=NULL)
 		{
-			if ( pObject->usIndex < NUMBEROFTILES )
+			if ( pObject->usIndex < giNumberOfTiles )
 			{
 				LightAddTileNode(pObject, uiLightType, ubShadeAdd, FALSE);
 			}
@@ -962,7 +955,7 @@ BOOLEAN fFake;
 		pRoof = gpWorldLevelData[uiTile].pRoofHead;
 		while(pRoof!=NULL)
 		{
-			if ( pRoof->usIndex < NUMBEROFTILES )
+			if ( pRoof->usIndex < giNumberOfTiles )
 			{
 				LightAddTileNode(pRoof, uiLightType, ubShadeAdd, fFake);
 			}
@@ -990,7 +983,7 @@ BOOLEAN	LightSubtractTile(UINT32 uiLightType, INT16 iSrcX, INT16 iSrcY, INT16 iX
 {
 LEVELNODE *pLand, *pStruct, *pObject, *pMerc, *pRoof, *pOnRoof;
 UINT8 ubShadeSubtract;
-UINT32 uiTile;
+INT32 uiTile;
 BOOLEAN fLitWall=FALSE;
 BOOLEAN fFake; // only passed in to land and roof layers; others get fed FALSE
 
@@ -1029,7 +1022,7 @@ BOOLEAN fFake; // only passed in to land and roof layers; others get fed FALSE
 		pStruct = gpWorldLevelData[uiTile].pStructHead;
 		while(pStruct!=NULL)
 		{
-			if ( pStruct->usIndex < NUMBEROFTILES )
+			if ( pStruct->usIndex < giNumberOfTiles )
 			{
 				if((gTileDatabase[ pStruct->usIndex ].fType != FIRSTCLIFFHANG) || (uiFlags&LIGHT_EVERYTHING))
 				{
@@ -1081,7 +1074,7 @@ BOOLEAN fFake; // only passed in to land and roof layers; others get fed FALSE
 		pObject = gpWorldLevelData[uiTile].pObjectHead;
 		while(pObject!=NULL)
 		{
-			if ( pObject->usIndex < NUMBEROFTILES )
+			if ( pObject->usIndex < giNumberOfTiles )
 			{
 				LightSubtractTileNode(pObject, uiLightType, ubShadeSubtract, FALSE);
 			}
@@ -1105,7 +1098,7 @@ BOOLEAN fFake; // only passed in to land and roof layers; others get fed FALSE
 		pRoof = gpWorldLevelData[uiTile].pRoofHead;
 		while(pRoof!=NULL)
 		{
-			if ( pRoof->usIndex < NUMBEROFTILES )
+			if ( pRoof->usIndex < giNumberOfTiles )
 			{
 				LightSubtractTileNode(pRoof, uiLightType, ubShadeSubtract, fFake);
 			}
@@ -1115,7 +1108,7 @@ BOOLEAN fFake; // only passed in to land and roof layers; others get fed FALSE
 		pOnRoof = gpWorldLevelData[uiTile].pOnRoofHead;
 		while(pOnRoof!=NULL)
 		{
-			if ( pOnRoof->usIndex < NUMBEROFTILES )
+			if ( pOnRoof->usIndex < giNumberOfTiles )
 			{
 				LightSubtractTileNode(pOnRoof, uiLightType, ubShadeSubtract, FALSE);
 			}
@@ -2323,7 +2316,7 @@ BOOLEAN LightRevealWall(INT16 sX, INT16 sY, INT16 sSrcX, INT16 sSrcY)
 	pStruct=gpWorldLevelData[uiTile].pStructHead;
 
 	//while(pStruct!=NULL)
-	while(pStruct!=NULL && pStruct->usIndex<NUMBEROFTILES) //lal bugfix
+	while(pStruct!=NULL && pStruct->usIndex<giNumberOfTiles) //lal bugfix
 	{
 		TileElem = &(gTileDatabase[pStruct->usIndex]);
 		switch(TileElem->usWallOrientation)
@@ -2346,7 +2339,7 @@ BOOLEAN LightRevealWall(INT16 sX, INT16 sY, INT16 sSrcX, INT16 sSrcY)
 	pStruct=gpWorldLevelData[uiTile].pStructHead;
 
 	//while(pStruct!=NULL)
-	while(pStruct!=NULL && pStruct->usIndex<NUMBEROFTILES) //lal bugfix
+	while(pStruct!=NULL && pStruct->usIndex<giNumberOfTiles) //lal bugfix
 	{
 		TileElem = &(gTileDatabase[pStruct->usIndex]);
 		switch(TileElem->usWallOrientation)
@@ -2403,7 +2396,7 @@ TILE_ELEMENT *TileElem;
 	pStruct=gpWorldLevelData[uiTile].pStructHead;
 
 	//while(pStruct!=NULL)
-	while(pStruct!=NULL && pStruct->usIndex<NUMBEROFTILES) // lal bugfix
+	while(pStruct!=NULL && pStruct->usIndex<giNumberOfTiles) // lal bugfix
 	{
 		TileElem = &(gTileDatabase[pStruct->usIndex]);
 		switch(TileElem->usWallOrientation)
@@ -2426,7 +2419,7 @@ TILE_ELEMENT *TileElem;
 	pStruct=gpWorldLevelData[uiTile].pStructHead;
 
 	//while(pStruct!=NULL)
-	while(pStruct!=NULL && pStruct->usIndex<NUMBEROFTILES) //lal bugfix
+	while(pStruct!=NULL && pStruct->usIndex<giNumberOfTiles) //lal bugfix
 	{
 		TileElem = &(gTileDatabase[pStruct->usIndex]);
 		switch(TileElem->usWallOrientation)

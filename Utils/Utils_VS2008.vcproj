@@ -113,7 +113,6 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -178,7 +177,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				DebugInformationFormat="0"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -296,7 +295,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
+				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				StringPooling="true"
@@ -305,7 +304,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -431,6 +430,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\KeyMap.h"
+				>
+			</File>
+			<File
 				RelativePath=".\LocalizedStrings.h"
 				>
 			</File>
@@ -464,6 +467,10 @@
 			</File>
 			<File
 				RelativePath=".\popup_class.h"
+				>
+			</File>
+			<File
+				RelativePath=".\popup_definition.h"
 				>
 			</File>
 			<File
@@ -520,6 +527,10 @@
 			</File>
 			<File
 				RelativePath=".\XML_auto_parse.h"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_Language.h"
 				>
 			</File>
 			<File
@@ -663,6 +674,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\KeyMap.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\LocalizedStrings.cpp"
 				>
 			</File>
@@ -692,6 +707,10 @@
 			</File>
 			<File
 				RelativePath=".\popup_class.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\popup_definition.cpp"
 				>
 			</File>
 			<File
@@ -747,15 +766,11 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_Language.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_SenderNameList.cpp"
-				>
-			</File>
-			<File
-				RelativePath="XML_Strings.cpp"
-				>
-			</File>
-			<File
-				RelativePath="XML_Strings2.cpp"
 				>
 			</File>
 			<File

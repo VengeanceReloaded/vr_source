@@ -43,7 +43,13 @@
 	#include "strategic.h"
 	#include "qarray.h"
 	#include "Interface.h"
+	#include "Music Control.h"
+	#include "Campaign Types.h"	
+	#include "text.h"		// added by Flugente
+	#include "Vehicles.h"	// added by silversurfer
 #endif
+
+#include "Animation Control.h"
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -270,7 +276,7 @@ BOOLEAN	gbCorpseValidForDecapitation[ NUM_CORPSES ] =
 	1,
 	1,
 	1,
-	0,
+	1,			// Bloodcat - changed to 1 to allow skinning (works like decapitating)
 	0,
 	0,
 	0,
@@ -489,7 +495,7 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 
 	// Copy elements in
 	memcpy( pCorpse, pCorpseDef, sizeof( ROTTING_CORPSE_DEFINITION ) );
-
+	
 	uiDirectionUseFlag = ANITILE_USE_DIRECTION_FOR_START_FRAME;
 
 	// If we are a soecial type...
@@ -503,8 +509,17 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 		case FMERC_FALLF:
 
 			uiDirectionUseFlag = ANITILE_USE_4DIRECTION_FOR_START_FRAME;
+
+		// Flugente: remember if there was still a head attached to the guy
+		case SMERC_JFK:
+		case MMERC_JFK:
+		case FMERC_JFK:
+
+			 pCorpseDef->fHeadTaken = true;
 	}
 
+	if ( pCorpseDef->fHeadTaken )
+		pCorpse->def.usFlags |= ROTTING_CORPSE_HEAD_TAKEN;
 
 	if( !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME ) )
 	{
@@ -564,7 +579,7 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 	if ( pCorpse->pAniTile == NULL )
 	{
 		pCorpse->fActivated = FALSE;
-	return( -1 );
+		return( -1 );
 	}
 
 	// Set flag and index values
@@ -577,6 +592,12 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 
 	pCorpse->pAniTile->uiUserData								= iIndex;
 	pCorpse->iID																= iIndex;
+
+#ifdef ENABLE_ZOMBIES
+	// copy name of corpse definition...
+	memcpy( &(pCorpse->name), &(pCorpseDef->name), sizeof(CHAR16) * 10 );
+	pCorpse->name[9] = '\0';
+#endif
 
 	pCorpse->fActivated = TRUE;
 
@@ -638,9 +659,11 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 		for (ubLoop = 0; ubLoop < pDBStructureRef->pDBStructure->ubNumberOfTiles; ubLoop++)
 		{
 			ppTile = pDBStructureRef->ppTile;
-
+#if 0//dnl ch83 080114
 			sTileGridNo = pCorpseDef->sGridNo + ppTile[ ubLoop ]->sPosRelToBase;
-
+#else
+			sTileGridNo = AddPosRelToBase(pCorpseDef->sGridNo, ppTile[ubLoop]);
+#endif
 			//Remove blood
 			RemoveBlood( sTileGridNo, pCorpseDef->bLevel );
 		}
@@ -807,7 +830,7 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	// Setup some values!
 	memset( &Corpse, 0, sizeof( Corpse ) );
 	Corpse.ubBodyType							= pSoldier->ubBodyType;
-	Corpse.sGridNo								= pSoldier->sGridNo;
+	Corpse.sGridNo								= pSoldier->sGridNo;		
 	Corpse.dXPos									= pSoldier->dXPos;
 	Corpse.dYPos									= pSoldier->dYPos;
 	Corpse.bLevel									= pSoldier->pathing.bLevel;
@@ -851,6 +874,49 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 			Corpse.usFlags |= ROTTING_CORPSE_USE_SNOW_CAMO_PALETTE;
 	}
 
+#ifdef ENABLE_ZOMBIES
+	// Flugente Zombies: Determine if a zombie can rise from this corpse
+	switch ( gGameExternalOptions.sZombieRiseBehaviour )
+	{	
+		case 3:
+			// a zombie might rise again
+			if ( pSoldier->IsZombie() && Random( 2 ) > 0 )
+				Corpse.usFlags |= ROTTING_CORPSE_NEVER_RISE_AGAIN;
+			break;
+
+		case 2:	
+			// death tosses a coin...
+			if ( Random( 2 ) > 0 )
+				Corpse.usFlags |= ROTTING_CORPSE_NEVER_RISE_AGAIN;
+			break;
+			
+		case 1:
+			// no flag, the dead shall rise for eternity!
+			break;
+
+		case 0:
+		default:
+			// a killed zombie won't rise again
+			if ( pSoldier->IsZombie() )
+				Corpse.usFlags |= ROTTING_CORPSE_NEVER_RISE_AGAIN;
+			break;
+	}
+
+	// if zombie and headshots are required, forbid rising if killed by headshot
+	if ( pSoldier->IsZombie() && gGameExternalOptions.fZombieOnlyHeadShotsPermanentlyKill && (pSoldier->bSoldierFlagMask & SOLDIER_HEADSHOT) )
+		Corpse.usFlags |= ROTTING_CORPSE_NEVER_RISE_AGAIN;
+
+	// Flugente: copy name of soldier...
+	memcpy( &(Corpse.name), &(pSoldier->name), sizeof(CHAR16) * 10 );
+	Corpse.name[9] = '\0';
+#endif
+		
+	// if this soldier's uniform was damaged (gunfire, blade attacks, explosions) then don't allow to take the uniform. We can't stay hidden if we're covered in blood :-)
+	if ( pSoldier->bSoldierFlagMask & SOLDIER_DAMAGED_VEST )
+		Corpse.usFlags |= ROTTING_CORPSE_NO_VEST;
+
+	if ( pSoldier->bSoldierFlagMask & SOLDIER_DAMAGED_PANTS )
+		Corpse.usFlags |= ROTTING_CORPSE_NO_PANTS;
 
 	// Determine corpse type!
 	ubType = (UINT8)gubAnimSurfaceCorpseID[ pSoldier->ubBodyType][ pSoldier->usAnimState ];
@@ -862,19 +928,19 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	{
 		Corpse.usFlags |= ROTTING_CORPSE_VEHICLE;
 
-	if ( pSoldier->ubBodyType != ICECREAMTRUCK && pSoldier->ubBodyType != HUMVEE )
-	{
-		Corpse.ubDirection = 7;
-	}
-	else
-	{
-		Corpse.ubDirection = gb2DirectionsFrom8[ Corpse.ubDirection ];
-	}
+		if ( pSoldier->ubBodyType != ICECREAMTRUCK && pSoldier->ubBodyType != HUMVEE )
+		{
+			Corpse.ubDirection = 7;
+		}
+		else
+		{
+			Corpse.ubDirection = gb2DirectionsFrom8[ Corpse.ubDirection ];
+		}
 	}
 
 	if ( ubType == QUEEN_MONSTER_DEAD || ubType == BURNT_DEAD || ubType == EXPLODE_DEAD )
 	{
-	Corpse.ubDirection = 7;
+		Corpse.ubDirection = 7;
 	}
 
 
@@ -908,42 +974,45 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	}
 	else if ( ubType == QUEEN_MONSTER_DEAD )
 	{
-	gTacticalStatus.fLockItemLocators = FALSE;
+		gTacticalStatus.fLockItemLocators = FALSE;
 
-	ubNumGoo = 6 - ( gGameOptions.ubDifficultyLevel - DIF_LEVEL_EASY );
+		ubNumGoo = 6 - ( gGameOptions.ubDifficultyLevel - DIF_LEVEL_EASY );
 
-	sNewGridNo = pSoldier->sGridNo + ( WORLD_COLS * 2 );
+		sNewGridNo = pSoldier->sGridNo + ( WORLD_COLS * 2 );
 
-	for ( cnt = 0; cnt < ubNumGoo; cnt++ )
-	{
-			CreateItem( JAR_QUEEN_CREATURE_BLOOD, 100, &gTempObject );
+		for ( cnt = 0; cnt < ubNumGoo; cnt++ )
+		{
+				CreateItem( JAR_QUEEN_CREATURE_BLOOD, 100, &gTempObject );
 
-		AddItemToPool( sNewGridNo, &gTempObject, bVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
-	}
+			AddItemToPool( sNewGridNo, &gTempObject, bVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
+		}
 	}
 	else
 	{
-	// OK, Place what objects this guy was carrying on the ground!
-	for ( cnt = 0; cnt < pSoldier->inv.size(); cnt++ )
-	{
-		pObj = &( pSoldier->inv[ cnt ] );
-
-		if ( pObj->exists() == true )
+		// OK, Place what objects this guy was carrying on the ground!
+		UINT32 invsize = pSoldier->inv.size();
+		for ( cnt = 0; cnt < invsize; ++cnt )
 		{
-			// Check if it's supposed to be dropped
-			if ( !( (*pObj).fFlags & OBJECT_UNDROPPABLE ) || pSoldier->bTeam == gbPlayerNum )
+			pObj = &( pSoldier->inv[ cnt ] );
+
+			if ( pObj->exists() == true )
 			{
-				// and make sure that it really is a droppable item type
-//				if ( !(Item[ pObj->usItem ].fFlags & ITEM_DEFAULT_UNDROPPABLE) )
-				if ( !(Item[ pObj->usItem ].defaultundroppable ) )
+				// Check if it's supposed to be dropped
+			// silversurfer: new option to drop items from CIV_TEAM regardless of "OBJECT_UNDROPPABLE" flag
+			if ( !( (*pObj).fFlags & OBJECT_UNDROPPABLE ) || pSoldier->bTeam == gbPlayerNum 
+					|| ( gGameExternalOptions.fCiviliansDropAll && pSoldier->bTeam == CIV_TEAM && !IsVehicle(pSoldier) ))
 				{
-					ReduceAmmoDroppedByNonPlayerSoldiers( pSoldier, cnt );
-					//if this soldier was an enemy
-					// Kaiden: Added from UB's reveal all items after combat feature!
-					// HEADROCK HAM B2.8: Now also reveals equipment dropped by militia, if requirement is met.
-					if( pSoldier->bTeam == ENEMY_TEAM ||
-						( gGameExternalOptions.ubMilitiaDropEquipment == 2 && pSoldier->bTeam == MILITIA_TEAM ) ||
-						( gGameExternalOptions.ubMilitiaDropEquipment == 1 && pSoldier->bTeam == MILITIA_TEAM && Menptr[ pSoldier->ubAttackerID ].bTeam != OUR_TEAM ))
+					// and make sure that it really is a droppable item type
+					// if ( !(Item[ pObj->usItem ].fFlags & ITEM_DEFAULT_UNDROPPABLE) )
+					if ( !(Item[ pObj->usItem ].defaultundroppable ) )
+					{
+						ReduceAmmoDroppedByNonPlayerSoldiers( pSoldier, cnt );
+						//if this soldier was an enemy
+						// Kaiden: Added from UB's reveal all items after combat feature!
+						// HEADROCK HAM B2.8: Now also reveals equipment dropped by militia, if requirement is met.
+						if( pSoldier->bTeam == ENEMY_TEAM ||
+							( gGameExternalOptions.ubMilitiaDropEquipment == 2 && pSoldier->bTeam == MILITIA_TEAM ) ||
+							( gGameExternalOptions.ubMilitiaDropEquipment == 1 && pSoldier->bTeam == MILITIA_TEAM && Menptr[ pSoldier->ubAttackerID ].bTeam != OUR_TEAM ))
 						{
 							//add a flag to the item so when all enemies are killed, we can run through and reveal all the enemies items
 							usItemFlags |= WORLD_ITEM_DROPPED_FROM_ENEMY;
@@ -952,24 +1021,31 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 							{
 								(*pObj)[0]->data.objectStatus -= (gGameOptions.ubDifficultyLevel - 1) * Random(20);
 								(*pObj)[0]->data.objectStatus = min(max((*pObj)[0]->data.objectStatus,1),100); // never below 1% or above 100%
+
+								(*pObj)[0]->data.sRepairThreshold = max(1, min(100, ((*pObj)[0]->data.objectStatus + 200)/3 ));
 							}
 						}
 
-						if(UsingNewAttachmentSystem()==true){
+						if(UsingNewAttachmentSystem()==true)
+						{
 							ReduceAttachmentsOnGunForNonPlayerChars(pSoldier, pObj);
 						}
-					// HEADROCK HAM B2.8: Militia will drop items only if allowed.
-					if (!(gGameExternalOptions.ubMilitiaDropEquipment == 0 && pSoldier->bTeam == MILITIA_TEAM ) &&
-						!(gGameExternalOptions.ubMilitiaDropEquipment == 1 && pSoldier->bTeam == MILITIA_TEAM && Menptr[ pSoldier->ubAttackerID ].bTeam == OUR_TEAM ))
-					{
-						AddItemToPool( pSoldier->sGridNo, pObj, bVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
+
+						// HEADROCK HAM B2.8: Militia will drop items only if allowed.
+						if (!(gGameExternalOptions.ubMilitiaDropEquipment == 0 && pSoldier->bTeam == MILITIA_TEAM ) &&
+							!(gGameExternalOptions.ubMilitiaDropEquipment == 1 && pSoldier->bTeam == MILITIA_TEAM && Menptr[ pSoldier->ubAttackerID ].bTeam == OUR_TEAM ))
+						{
+							AddItemToPool( pSoldier->sGridNo, pObj, bVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
+						}
 					}
 				}
 			}
 		}
-	}
 
-	DropKeysInKeyRing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, bVisible, FALSE, 0, FALSE );
+		DropKeysInKeyRing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, bVisible, FALSE, 0, FALSE );
+
+		// Flugente: even if we forbid militia from dropping their equipment, they will still drop what they took via sector inventory (this functions only drops what they took)
+		pSoldier->DropSectorEquipment();
 	}
 
 	// Make team look for items
@@ -1079,10 +1155,11 @@ void AddCrowToCorpse( ROTTING_CORPSE *pCorpse )
 	INT32 sGridNo;
 	UINT8										ubDirection;
 	SOLDIERTYPE							*pSoldier;
-	UINT8										ubRoomNum;
-
+	//DBrot: More Rooms
+	//UINT8										ubRoomNum;
+	UINT16	usRoomNum;
 	// No crows inside :(
-	if ( InARoom( pCorpse->def.sGridNo, &ubRoomNum ) )
+	if ( InARoom( pCorpse->def.sGridNo, &usRoomNum ) )
 	{
 		return;
 	}
@@ -1332,7 +1409,7 @@ void MercLooksForCorpses( SOLDIERTYPE *pSoldier )
 	if ( Random( 400 ) <= 2 )
 	{
 		INT32					cnt;
-		INT16										sGridNo;
+		INT32										sGridNo;
 		ROTTING_CORPSE					*pCorpse;
 
 		// Loop through all corpses....
@@ -1717,9 +1794,9 @@ INT32 FindNearestAvailableGridNoForCorpse( ROTTING_CORPSE_DEFINITION *pDef, INT8
 
 BOOLEAN IsValidDecapitationCorpse( ROTTING_CORPSE *pCorpse )
 {
-	if ( pCorpse->def.fHeadTaken )
+	if ( (pCorpse->def.usFlags & ROTTING_CORPSE_HEAD_TAKEN) )
 	{
-	return( FALSE );
+		return( FALSE );
 	}
 
 	return( gbCorpseValidForDecapitation[ pCorpse->def.ubType ] );
@@ -1751,37 +1828,41 @@ ROTTING_CORPSE *GetCorpseAtGridNo( INT32 sGridNo, INT8 bLevel )
 }
 
 
-void DecapitateCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo,	INT8 bLevel )
+BOOLEAN DecapitateCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel )
 {
 	ROTTING_CORPSE *pCorpse;
 	ROTTING_CORPSE_DEFINITION CorpseDef;
 	UINT16 usHeadIndex = HEAD_1;
-
+	static UINT16 usBloodCatSkinIndex = 232;
 
 	pCorpse = GetCorpseAtGridNo( sGridNo, bLevel );
 
 	if ( pCorpse == NULL )
-	{
-		return;
-	}
-
+		return FALSE;
+		
 	if ( IsValidDecapitationCorpse( pCorpse ) )
 	{
 		// Decapitate.....
 		// Copy corpse definition...
 		memcpy( &CorpseDef, &(pCorpse->def), sizeof( ROTTING_CORPSE_DEFINITION ) );
-
+				
 		// Add new one...
 		CorpseDef.ubType = gDecapitatedCorpse[ CorpseDef.ubType ];
-
-	pCorpse->def.fHeadTaken = TRUE;
-
+				
+		pCorpse->def.usFlags |= ROTTING_CORPSE_HEAD_TAKEN;
+		CorpseDef.fHeadTaken = TRUE;
+		
 		if ( CorpseDef.ubType != 0 )
 		{
 			// Remove old one...
 			RemoveCorpse( pCorpse->iID );
 
-			AddRottingCorpse( &CorpseDef );
+			INT32 iCorpseID = AddRottingCorpse( &CorpseDef );
+
+			if ( iCorpseID != -1 )
+			{
+				gRottingCorpse[ iCorpseID ].def.usFlags |= ROTTING_CORPSE_HEAD_TAKEN;
+			}
 		}
 
 		// Add head item.....
@@ -1815,13 +1896,477 @@ void DecapitateCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo,	INT8 bLevel )
 
 		}
 
-		CreateItem( usHeadIndex, 100, &gTempObject );
-		AddItemToPool( sGridNo, &gTempObject, INVISIBLE, 0, 0, 0 );
+		if (  pCorpse->def.ubType == BLOODCAT_DEAD )
+		{
+			if ( HasItemFlag(usBloodCatSkinIndex, SKIN_BLOODCAT) || GetFirstItemWithFlag(&usBloodCatSkinIndex, SKIN_BLOODCAT) )
+				usHeadIndex = usBloodCatSkinIndex;
+		}
 
-		// All teams lok for this...
-		NotifySoldiersToLookforItems( );
+		if ( usHeadIndex > 0 )
+		{
+			CreateItem( usHeadIndex, 100, &gTempObject );
+			AddItemToPool( sGridNo, &gTempObject, INVISIBLE, 0, 0, 0 );
+
+			// All teams lok for this...
+			NotifySoldiersToLookforItems( );
+
+			return TRUE;
+		}
+		else
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_HEAD_ITEM] );
+	}
+	else
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_DECAPITATION] );
+
+	return FALSE;
+}
+
+// Flugente: can this corpse be gutted?
+BOOLEAN IsValidGutCorpse( ROTTING_CORPSE *pCorpse )
+{
+	if ( pCorpse->def.ubType == ROTTING_STAGE2 || (pCorpse->def.usFlags & ROTTING_CORPSE_GUTTED) )
+		return( FALSE );
+
+	return( pCorpse->def.ubType == BLOODCAT_DEAD || pCorpse->def.ubType == COW_DEAD );
+}
+
+// Flugente: gut a corpse
+BOOLEAN GutCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo,  INT8 bLevel )
+{
+	ROTTING_CORPSE *pCorpse = GetCorpseAtGridNo( sGridNo, bLevel );
+
+	if ( pCorpse == NULL )
+		return FALSE;
+		
+	// can this thing be gutted?
+	if ( IsValidGutCorpse( pCorpse ) )
+	{
+		// numbers for the meat acquired by gutting. These values respond to the standard GameDir values, if they have other values in the ini, no problem, we'll search for them
+		static UINT16 usBloodCatMeatIndex = 1566;
+		static UINT16 usCowMeatIndex = 1565;
+		UINT16 meatindex = 0;
+
+		pCorpse->def.usFlags |= ROTTING_CORPSE_GUTTED;
+
+		if ( pCorpse->def.ubType == BLOODCAT_DEAD )
+		{
+			if ( HasItemFlag(usBloodCatMeatIndex, MEAT_BLOODCAT) || GetFirstItemWithFlag(&usBloodCatMeatIndex, MEAT_BLOODCAT) )
+				meatindex = usBloodCatMeatIndex;
+		}
+		else
+		{
+			if ( HasItemFlag(usCowMeatIndex, COW_MEAT) || GetFirstItemWithFlag(&usCowMeatIndex, COW_MEAT) )
+				meatindex = usCowMeatIndex;
+		}
+
+		if ( meatindex > 0 )
+		{
+			CreateItem( meatindex, 100, &gTempObject );
+			AddItemToPool( sGridNo, &gTempObject, INVISIBLE, 0, 0, 0 );
+
+			// All teams lok for this...
+			NotifySoldiersToLookforItems( );
+
+			return TRUE;
+		}
+		else
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_MEAT_ITEM] );
+	}
+	else
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_GUTTING] );
+
+	return FALSE;
+}
+
+// Flugente: can clothes be taken off of this corpse?
+BOOLEAN IsValidStripCorpse( ROTTING_CORPSE *pCorpse )
+{
+	if ( pCorpse->def.ubType == ROTTING_STAGE2 || ((pCorpse->def.usFlags & ROTTING_CORPSE_NO_VEST) && (pCorpse->def.usFlags & ROTTING_CORPSE_NO_PANTS)) )
+		return( FALSE );
+
+	return( CorpseOkToDress(pCorpse) );
+}
+
+
+// Flugente: take the clothes off a corpse
+BOOLEAN StripCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo,  INT8 bLevel )
+{
+	ROTTING_CORPSE *pCorpse = GetCorpseAtGridNo( sGridNo, bLevel );
+
+	if ( pCorpse == NULL || !pSoldier )
+		return FALSE;
+
+	// can this thing be stripped?
+	if ( IsValidStripCorpse( pCorpse ) )
+	{
+		// determine which clothes to spawn
+		if ( !(pCorpse->def.usFlags & ROTTING_CORPSE_NO_VEST) )
+		{
+			UINT16 vestitem = 0;
+			if ( GetFirstClothesItemWithSpecificData(&vestitem, pCorpse->def.VestPal, "blank")  )
+			{
+				CreateItem( vestitem, 100, &gTempObject );
+				if ( !AutoPlaceObject( pSoldier, &gTempObject, FALSE ) )
+					AddItemToPool( pSoldier->sGridNo, &gTempObject, 1, 0, 0, -1 );
+			}
+			else
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CLOTHES_ITEM] );
+		}
+
+		if ( !(pCorpse->def.usFlags & ROTTING_CORPSE_NO_PANTS) )
+		{
+			UINT16 pantsitem = 0;
+			if ( GetFirstClothesItemWithSpecificData(&pantsitem, "blank", pCorpse->def.PantsPal)  )
+			{
+				CreateItem( pantsitem, 100, &gTempObject );
+				if ( !AutoPlaceObject( pSoldier, &gTempObject, FALSE ) )
+					AddItemToPool( pSoldier->sGridNo, &gTempObject, 1, 0, 0, -1 );
+			}
+			else
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CLOTHES_ITEM] );
+		}
+
+		// we took the clothes, mark this
+		pCorpse->def.usFlags |= (ROTTING_CORPSE_NO_VEST|ROTTING_CORPSE_NO_PANTS);
+
+		return TRUE;
+	}
+	else
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_CLOTHESFOUND] );
+
+	return FALSE;
+}
+
+// Flugente: can this corpse be carried?
+BOOLEAN IsValidTakeCorpse( ROTTING_CORPSE *pCorpse )
+{
+	if ( pCorpse->def.ubType >= BLOODCAT_DEAD || pCorpse->def.ubType == NO_CORPSE )
+		return( FALSE );
+
+	return( TRUE );
+}
+
+// Flugente: take a corpse into your hand, thereby removing it from the field
+BOOLEAN TakeCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel )
+{
+	ROTTING_CORPSE *pCorpse = GetCorpseAtGridNo( sGridNo, bLevel );
+
+	if ( pCorpse == NULL || !pSoldier )
+		return FALSE;
+	
+	// can this corpse be picked up?
+	if ( IsValidTakeCorpse( pCorpse ) )
+	{
+		// is there a 'corpse' item?
+		UINT16 corpseitem = 0;
+		if ( GetFirstItemWithFlag(&corpseitem, CORPSE)  )
+		{
+			// we have to make sure this can be placed in our hands, as corpses can only be carried in hands.
+			// At this point, we will have a knife in our first hand, so check if our second hand is free
+			if ( !(pSoldier->inv[SECONDHANDPOS].exists()) )
+			{
+				CreateItem( corpseitem, 100, &gTempObject );
+
+				if(CanItemFitInPosition(pSoldier, &gTempObject, SECONDHANDPOS, FALSE))
+				{
+					// determine Body type
+					if ( pCorpse->def.ubBodyType == BIGMALE || pCorpse->def.ubBodyType == STOCKYMALE || pCorpse->def.ubBodyType == FATCIV )
+						gTempObject[0]->data.sObjectFlag |= CORPSE_M_BIG;
+					else if ( pCorpse->def.ubBodyType == REGFEMALE || pCorpse->def.ubBodyType == MINICIV || pCorpse->def.ubBodyType == DRESSCIV )
+						gTempObject[0]->data.sObjectFlag |= CORPSE_F;
+
+					if ( pCorpse->def.usFlags & ROTTING_CORPSE_HEAD_TAKEN || pCorpse->def.fHeadTaken )
+						gTempObject[0]->data.sObjectFlag |= CORPSE_NO_HEAD;
+
+					if ( pCorpse->def.usFlags & ROTTING_CORPSE_NO_VEST )
+						gTempObject[0]->data.sObjectFlag |= CORPSE_NO_VEST;
+
+					if ( pCorpse->def.usFlags & ROTTING_CORPSE_NO_PANTS )
+						gTempObject[0]->data.sObjectFlag |= CORPSE_NO_PANTS;
+
+#ifdef ENABLE_ZOMBIES
+					if ( pCorpse->def.usFlags & ROTTING_CORPSE_NEVER_RISE_AGAIN )
+						gTempObject[0]->data.sObjectFlag |= CORPSE_NO_ZOMBIE_RISE;
+#endif
+				
+					// now we have to get the correct flags for the object from the corpse, so that upon recreating the corpse, it looks the same
+					UINT8 headpal = 0, skinpal = 0, vestpal = 0, pantspal = 0;
+					GetPaletteRepIndexFromID(pCorpse->def.HeadPal, &headpal);
+					GetPaletteRepIndexFromID(pCorpse->def.SkinPal, &skinpal);
+					GetPaletteRepIndexFromID(pCorpse->def.VestPal, &vestpal);
+					GetPaletteRepIndexFromID(pCorpse->def.PantsPal, &pantspal);
+
+					switch ( headpal )
+					{
+					case 0:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_HAIR_BLOND;
+						break;
+					case 1:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_HAIR_BROWN;
+						break;
+					case 2:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_HAIR_BLACK;
+						break;
+					case 3:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_HAIR_WHITE;
+						break;				
+					case 4:
+					default:
+						// the default value (which is also used for red hair) is nothing. Upon spawning a corpse from an item, we assume that it has red hair if none of the above flags is found
+						break;
+					}
+
+					switch ( skinpal )
+					{
+					case 13:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_SKIN_PINK;
+						break;
+					case 14:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_SKIN_TAN;
+						break;
+					case 15:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_SKIN_DARK;
+						break;
+					case 16:
+					default:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_SKIN_BLACK;
+						break;
+					}
+
+					switch ( vestpal )
+					{
+					case 17:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_BROWN;
+						break;
+					case 18:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_grey;
+						break;
+					case 19:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_GREEN;
+						break;
+					case 20:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_JEAN;
+						break;
+					case 21:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_RED;
+						break;
+					case 22:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_BLUE;
+						break;
+					case 23:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_YELLOW;
+						break;
+					case 24:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_WHITE;
+						break;
+					case 25:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_BLACK;
+						break;
+					case 26:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_GYELLOW;
+						break;
+					case 27:
+					default:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_VEST_PURPLE;
+						break;
+					}
+
+					switch ( pantspal )
+					{
+					case 7:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_PANTS_GREEN;
+						break;
+					case 8:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_PANTS_JEAN;
+						break;
+					case 9:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_PANTS_TAN;
+						break;
+					case 10:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_PANTS_BLACK;
+						break;
+					case 11:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_PANTS_BLUE;
+						break;
+					case 12:
+					default:
+						gTempObject[0]->data.sObjectFlag |= CORPSE_PANTS_BEIGE;
+						break;
+					}
+
+					gTempObject.MoveThisObjectTo(pSoldier->inv[SECONDHANDPOS], ALL_OBJECTS, pSoldier, SECONDHANDPOS);
+
+					if ( pCorpse->def.ubType != 0 )
+					{
+						// Remove corpse...
+						RemoveCorpse( pCorpse->iID );
+					}
+				}
+
+				return TRUE;
+			}
+			else
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_FREEHAND] );
+		}
+		else
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_CORPSE_ITEM] );
+	}
+	else
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_NO_TAKING] );
+
+	return FALSE;
+}
+
+// Flugente: create a corpse from an object and place it in the world
+BOOLEAN AddCorpseFromObject(OBJECTTYPE* pObj, INT32 sGridNo, INT8 bLevel )
+{
+	if ( !pObj || !HasItemFlag(pObj->usItem, CORPSE) )
+		return FALSE;
+
+	ROTTING_CORPSE_DEFINITION		Corpse;
+
+	if ( (*pObj)[0]->data.sObjectFlag & CORPSE_M_BIG )
+	{
+		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_HEAD )
+			Corpse.ubType = MMERC_JFK;
+		else
+			Corpse.ubType = MMERC_BCK;
+
+		Corpse.ubBodyType = BIGMALE;
+	}
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_F )
+	{
+		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_HEAD )
+			Corpse.ubType = FMERC_JFK;
+		else
+			Corpse.ubType = FMERC_BCK;
+
+		Corpse.ubBodyType = REGFEMALE;
+	}
+	else //if ( (*pObj)[0]->data.sObjectFlag & CORPSE_M_SMALL )
+	{
+		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_HEAD )
+			Corpse.ubType = SMERC_JFK;
+		else
+			Corpse.ubType = SMERC_BCK;
+
+		Corpse.ubBodyType = REGMALE;
 	}
 
+	Corpse.sGridNo = sGridNo;
+	
+	Corpse.dXPos = CenterX(Corpse.sGridNo);
+	Corpse.dYPos = CenterY(Corpse.sGridNo);
+
+	Corpse.sHeightAdjustment = 0;
+
+	// check the objects flagmask and set the corpse palette IDs accordingly
+
+	// Hair
+	if ( (*pObj)[0]->data.sObjectFlag & CORPSE_HAIR_BROWN )
+		SET_PALETTEREP_ID( Corpse.HeadPal,	"BROWNHEAD" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_HAIR_BLACK )
+		SET_PALETTEREP_ID( Corpse.HeadPal,	"BLACKHEAD" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_HAIR_WHITE )
+		SET_PALETTEREP_ID( Corpse.HeadPal,	"WHITEHEAD" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_HAIR_BLOND )
+		SET_PALETTEREP_ID( Corpse.HeadPal,	"BLONDHEAD" );
+	else
+		SET_PALETTEREP_ID( Corpse.HeadPal,	"REDHEAD" );
+
+	// Skin
+	if ( (*pObj)[0]->data.sObjectFlag & CORPSE_SKIN_PINK )
+		SET_PALETTEREP_ID( Corpse.SkinPal,	"PINKSKIN" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_SKIN_TAN )
+		SET_PALETTEREP_ID( Corpse.SkinPal,	"TANSKIN" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_SKIN_DARK )
+		SET_PALETTEREP_ID( Corpse.SkinPal,	"DARKSKIN" );
+	else
+		SET_PALETTEREP_ID( Corpse.SkinPal,	"BLACKSKIN" );
+
+	// Vest
+	if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_BROWN )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"BROWNVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_grey )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"greyVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_GREEN )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"GREENVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_JEAN )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"JEANVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_RED )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"REDVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_BLUE )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"BLUEVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_YELLOW )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"YELLOWVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_WHITE )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"WHITEVEST" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_BLACK )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"BLACKSHIRT" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_VEST_GYELLOW )
+		SET_PALETTEREP_ID( Corpse.VestPal,	"GYELLOWSHIRT" );
+	else
+		SET_PALETTEREP_ID( Corpse.VestPal,	"PURPLESHIRT" );
+
+	// Pants
+	if ( (*pObj)[0]->data.sObjectFlag & CORPSE_PANTS_GREEN )
+		SET_PALETTEREP_ID( Corpse.PantsPal,	"GREENPANTS" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_PANTS_JEAN )
+		SET_PALETTEREP_ID( Corpse.PantsPal,	"JEANPANTS" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_PANTS_TAN )
+		SET_PALETTEREP_ID( Corpse.PantsPal,	"TANPANTS" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_PANTS_BLACK )
+		SET_PALETTEREP_ID( Corpse.PantsPal,	"BLACKPANTS" );
+	else if ( (*pObj)[0]->data.sObjectFlag & CORPSE_PANTS_BLUE )
+		SET_PALETTEREP_ID( Corpse.PantsPal,	"BLUEPANTS" );
+	else
+		SET_PALETTEREP_ID( Corpse.PantsPal,	"BEIGEPANTS" );
+	
+	Corpse.ubDirection = NORTH;
+	Corpse.uiTimeOfDeath = GetWorldTotalMin();
+
+	Corpse.usFlags = 0;		// no flags here, at least not the new ones
+
+	Corpse.bLevel = bLevel;
+
+	Corpse.bVisible = 1;
+	Corpse.bNumServicingCrows = 0;
+	Corpse.ubProfile = NO_PROFILE;
+	Corpse.fHeadTaken = FALSE;
+	Corpse.ubAIWarningValue = 20;
+
+#ifdef ENABLE_ZOMBIES
+	// Flugente: use zombie name (it's the only way this will ever be relevant again anyway)
+	swprintf( Corpse.name, TacticalStr[ ZOMBIE_TEAM_MERC_NAME ] );
+	Corpse.name[9] = '\0';
+#endif
+	
+	INT32 iCorpseID = AddRottingCorpse( &Corpse );
+
+	if ( iCorpseID != -1 )
+	{		
+		AllMercsOnTeamLookForCorpse(&( gRottingCorpse[ iCorpseID ] ), OUR_TEAM);
+
+		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_HEAD )
+			gRottingCorpse[ iCorpseID ].def.usFlags |= ROTTING_CORPSE_HEAD_TAKEN;
+
+		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_VEST )
+			gRottingCorpse[ iCorpseID ].def.usFlags |= ROTTING_CORPSE_NO_VEST;
+
+		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_PANTS )
+			gRottingCorpse[ iCorpseID ].def.usFlags |= ROTTING_CORPSE_NO_PANTS;
+				
+#ifdef ENABLE_ZOMBIES
+		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_ZOMBIE_RISE )
+			gRottingCorpse[ iCorpseID ].def.usFlags |= ROTTING_CORPSE_NEVER_RISE_AGAIN;
+#endif
+
+		return TRUE;
+	}
+	else
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCorpseTextStr[STR_CORPSE_INVALID_CORPSE_ID] );
+
+	return FALSE;
 }
 
 
@@ -1870,7 +2415,6 @@ void ReduceAmmoDroppedByNonPlayerSoldiers( SOLDIERTYPE *pSoldier, INT32 iInvSlot
 	Assert( pSoldier );
 	Assert( ( iInvSlot >= 0 ) && ( iInvSlot < (INT32)pSoldier->inv.size() ) );
 
-
 	// if not a player soldier
 	if ( pSoldier->bTeam != gbPlayerNum )
 	{
@@ -1907,7 +2451,7 @@ void ReduceAttachmentsOnGunForNonPlayerChars(SOLDIERTYPE *pSoldier, OBJECTTYPE *
 			int i;
 			for(i = 0; i < MAX_DEFAULT_ATTACHMENTS && Item[pObj->usItem].defaultattachments[i] != iter->usItem; i++){}
 
-			if(Item[pObj->usItem].defaultattachments[i] != iter->usItem)
+			if(Item[pObj->usItem].defaultattachments[i] == iter->usItem)
 				continue;
 
 			//Erase this attachment or not?
@@ -2043,4 +2587,507 @@ UINT8 GetNearestRottingCorpseAIWarning( INT32 sGridNo )
 	}
 
 	return( ubHighestWarning );
+}
+
+#ifdef ENABLE_ZOMBIES
+	// Flugente Zombies: resurrect zombies
+	void RaiseZombies( void )
+	{
+		if ( gGameSettings.fOptions[TOPTION_ZOMBIES] )
+		{
+			// if gGameExternalOptions.fZombieSpawnWaves is true, zombies will spawn from all corpses (while there is still room for more), creating a wave of zombies. with lots of bodies	lying around, this can be a lot.
+			// if GameExternalOptions.fZombieSpawnWaves is false, each zombie can spawn randomly, you will get zombies on msot turns, but they won't spawn a whole horde at once
+			if ( !gGameExternalOptions.fZombieSpawnWaves || ( gGameExternalOptions.fZombieSpawnWaves && (INT8) ( Random( 100 ) ) > 100 - gGameExternalOptions.sZombieRiseWaveFrequency ) )
+			{
+				ROTTING_CORPSE *	pCorpse;
+				BOOLEAN				zombieshaverisen = FALSE;
+
+				SECTORINFO *pSector = &SectorInfo[ SECTOR( gWorldSectorX, gWorldSectorY ) ];
+
+				for ( INT32 cnt = giNumRottingCorpse - 1; cnt >= 0; --cnt )
+				{
+					if ( pSector->ubNumCreatures < gGameExternalOptions.ubGameMaximumNumberOfCreatures )					// ... if there is still room for more zombies (zombies count as creatures until a separate ZOMBIE_TEAM is implemented)...
+					{
+						pCorpse = &(gRottingCorpse[ cnt ] );
+
+						// if zombies should spawn individually, roll for every corpse individually
+						if ( gGameExternalOptions.fZombieSpawnWaves || ( !gGameExternalOptions.fZombieSpawnWaves && (INT8) ( Random( 100 ) ) > 100 - gGameExternalOptions.sZombieRiseWaveFrequency ) )
+						{
+							if ( pCorpse->fActivated && !(pCorpse->def.usFlags & (ROTTING_CORPSE_HEAD_TAKEN|ROTTING_CORPSE_NEVER_RISE_AGAIN) ) )	// ... if corpse is active, and still has a head and can rise again...
+							{
+								if ( !TileIsOutOfBounds(pCorpse->def.sGridNo)  )											// ... if corpse is on existing coordinates ...
+								{					
+									if ( WhoIsThere2( pCorpse->def.sGridNo, pCorpse->def.bLevel ) == NOBODY )				// ... if nobody else is on that position ...
+									{
+										UINT16 recanimstate = STANDING;
+
+										if ( CorpseOkToSpawnZombie( pCorpse, &recanimstate ) )								// ... a zombie can be created from this corpse, in the corresponding animstate ...
+										{								
+											zombieshaverisen = TRUE;
+											CreateZombiefromCorpse( pCorpse, recanimstate );
+
+											//++pSector->ubNumZombies;
+											//++pSector->ubZombiesInBattle;
+
+											RemoveCorpse( cnt );
+										}
+									}
+								}
+							}
+						}
+					}
+					else
+					{
+						// if there is no more room, we can skip this
+						break;
+					}
+				}
+
+				if ( zombieshaverisen )
+				{
+					SetRenderFlags( RENDER_FLAG_FULL );
+
+	#ifdef JA2TESTVERSION
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"A wave of zombies is created");
+	#endif
+					// Play sound
+					PlayJA2SampleFromFile( "Sounds\\zombie1.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
+
+					UseCreatureMusic(TRUE); // Madd: music when zombies rise
+					#ifdef NEWMUSIC
+					GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
+					if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] != -1 )
+						SetMusicModeID( MUSIC_TACTICAL_ENEMYPRESENT, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] );
+					else
+					#endif
+					SetMusicMode( MUSIC_TACTICAL_ENEMYPRESENT );
+					
+					
+				}
+			}
+		}
+	}
+
+	// Flugente Zombies 1.0: create a zombie from a corpse
+	void CreateZombiefromCorpse( ROTTING_CORPSE *	pCorpse, UINT16 usAnimState )
+	{
+		SOLDIERCREATE_STRUCT		MercCreateStruct;
+
+		MercCreateStruct.ubProfile			= NO_PROFILE;
+		MercCreateStruct.bTeam				= CREATURE_TEAM;	// should be ZOMBIE_TEAM, once that is properly implemented
+		MercCreateStruct.sInsertionGridNo	= pCorpse->def.sGridNo;
+		MercCreateStruct.sSectorX			= gWorldSectorX;
+		MercCreateStruct.sSectorY			= gWorldSectorY;
+		MercCreateStruct.bSectorZ			= gbWorldSectorZ;
+		MercCreateStruct.bBodyType			= pCorpse->def.ubBodyType;
+		MercCreateStruct.ubDirection		= pCorpse->def.ubDirection;
+		MercCreateStruct.fOnRoof			= pCorpse->def.bLevel > 0 ? TRUE : FALSE;
+			
+		// add important stats according to difficulty level
+		// bLife is actually lower than bLifeMax. Because zombies have poison absorption, they can and will heal themselves over time, thereby gaining more life if they are not put down fast
+		switch( gGameExternalOptions.sZombieDifficultyLevel )
+		{
+			case 4:
+				MercCreateStruct.bLifeMax		= (INT8)( 70 + Random( 30 ) );
+				MercCreateStruct.bLife			= MercCreateStruct.bLifeMax - (INT8)(10 + Random(15));
+				MercCreateStruct.bAgility		= (INT8)( 50 + Random( 10 ) );
+				MercCreateStruct.bDexterity		= (INT8)( 60 + Random( 15 ) );
+				MercCreateStruct.bStrength		= (INT8)( 80 + Random( 20 ) );
+				break;
+				
+			case 3:
+				MercCreateStruct.bLifeMax		= (INT8)( 60 + Random( 20 ) );
+				MercCreateStruct.bLife			= MercCreateStruct.bLifeMax - (INT8)(10 + Random(10));
+				MercCreateStruct.bAgility		= (INT8)( 40 + Random( 10 ) );
+				MercCreateStruct.bDexterity		= (INT8)( 45 + Random( 10 ) );
+				MercCreateStruct.bStrength		= (INT8)( 60 + Random( 20 ) );
+				break;
+
+			case 2:
+				MercCreateStruct.bLifeMax		= (INT8)( 45 + Random( 15 ) );
+				MercCreateStruct.bLife			= MercCreateStruct.bLifeMax - (INT8)(5 + Random(10));
+				MercCreateStruct.bAgility		= (INT8)( 30 + Random(  5 ) );
+				MercCreateStruct.bDexterity		= (INT8)( 30 + Random( 10 ) );
+				MercCreateStruct.bStrength		= (INT8)( 45 + Random( 20 ) );
+				break;
+
+			case 1:
+			default:
+				MercCreateStruct.bLifeMax		= (INT8)( 35 + Random( 10 ) );
+				MercCreateStruct.bLife			= MercCreateStruct.bLifeMax - (INT8)(5 + Random(5));
+				MercCreateStruct.bAgility		= (INT8)( 15 + Random(  5 ) );
+				MercCreateStruct.bDexterity		= (INT8)( 15 + Random(  5 ) );
+				MercCreateStruct.bStrength		= (INT8)( 30 + Random( 20 ) );
+				break;
+		}
+
+		// FIX: something's wrong with the FATCIV-bodytype when dying... this is to ensure they die absolutely fast
+		//if ( MercCreateStruct.bBodyType == FATCIV )
+			//MercCreateStruct.bLifeMax		= OKLIFE;
+			
+		MercCreateStruct.bExpLevel		= 1;
+		MercCreateStruct.bMarksmanship	= 1;
+		MercCreateStruct.bMedical		= 1;
+		MercCreateStruct.bMechanical	= 1;
+		MercCreateStruct.bExplosive		= 1;
+		MercCreateStruct.bLeadership	= 1;
+		MercCreateStruct.bWisdom		= 1;
+		MercCreateStruct.bMorale		= 90;
+		MercCreateStruct.bAIMorale		= MORALE_FEARLESS;
+			
+		SET_PALETTEREP_ID ( MercCreateStruct.HeadPal,		pCorpse->def.HeadPal );
+		SET_PALETTEREP_ID ( MercCreateStruct.PantsPal,		pCorpse->def.PantsPal );
+		SET_PALETTEREP_ID ( MercCreateStruct.VestPal,		pCorpse->def.VestPal );
+		SET_PALETTEREP_ID ( MercCreateStruct.SkinPal,		pCorpse->def.SkinPal );
+																								
+		MercCreateStruct.fVisible			= TRUE;
+
+		INT8							iNewIndex;
+		if ( TacticalCreateSoldier( &MercCreateStruct, (UINT8 *)&iNewIndex ) )
+		{
+			/*	certain values have to be set afterwards - the alternative would be to edit each and every function that gets called from TacticalCreateSoldier() subsequently and
+			*	make an exception for zombies every time...
+			*/
+			SOLDIERTYPE* pNewSoldier = MercPtrs[ (UINT8)iNewIndex ];
+			
+			pNewSoldier->bActionPoints			= 60;
+			pNewSoldier->bInitialActionPoints	= 60;
+			pNewSoldier->sBreathRed				= 0;
+
+			pNewSoldier->ubInsertionDirection	= pCorpse->def.ubDirection;
+
+			//pNewSoldier->sHeightAdjustment		= pCorpse->def.sHeightAdjustment;
+			pNewSoldier->sDesiredHeight			= 3;
+
+			pNewSoldier->ubDesiredHeight		= 3;		// this forces pNewSoldier to rise up to crouching position
+
+			pNewSoldier->ubSoldierClass			= SOLDIER_CLASS_ZOMBIE;
+			pNewSoldier->aiData.bOrders			= SEEKENEMY;
+			pNewSoldier->aiData.bAttitude		= AGGRESSIVE;
+
+			////////////// stuff for poisoning ///////////////////////////////////
+			// this is important - by declaring the gap between bLife and bLifeMax as bBleeding, the zombies will bleed (even more if they are damaged)
+			// all their lifepoints are also poisoned. Thereby all bleeding damage will be poisoned bleeding damage
+			// as they have bPoisonAbsorption of at least 200%, they will absorp this poison damage
+			// This leads to them GAINING life through bleeding
+			// They can thereby regain their health in battle (although not very fast)
+			pNewSoldier->bBleeding				= pNewSoldier->stats.bLifeMax - pNewSoldier->stats.bLife;
+
+			pNewSoldier->bPoisonSum				= pNewSoldier->stats.bLifeMax;
+			pNewSoldier->bPoisonLife			= pNewSoldier->stats.bLife;
+			pNewSoldier->bPoisonBleeding		= pNewSoldier->bPoisonSum - pNewSoldier->bPoisonLife;
+			// zombies get 200% poison absorption, but no resistance to it, as it would reduce their healing
+			pNewSoldier->bPoisonResistance		= 0;
+			pNewSoldier->bPoisonAbsorption		= 0;	// Flugente: Screw this, we use GetPoisonAbsorption() instead... I declare this variable dead until further notice
+			//////////////////////////////////////////////////////////////////////
+
+#ifdef ENABLE_ZOMBIES
+			if (   !memcmp( pCorpse->name, TacticalStr[ CIV_TEAM_MINER_NAME ], sizeof(pCorpse->name) ) 
+				|| !memcmp( pCorpse->name, TacticalStr[ MILITIA_TEAM_MERC_NAME ], sizeof(pCorpse->name) )
+				|| !memcmp( pCorpse->name, TacticalStr[ CREATURE_TEAM_MERC_NAME ], sizeof(pCorpse->name) ) 
+				|| !memcmp( pCorpse->name, TacticalStr[ CIV_TEAM_MERC_NAME ], sizeof(pCorpse->name) ) 
+				|| !memcmp( pCorpse->name, TacticalStr[ ZOMBIE_TEAM_MERC_NAME ], sizeof(pCorpse->name) ) 
+				|| !memcmp( pCorpse->name, TacticalStr[ ENEMY_TEAM_MERC_NAME ], sizeof(pCorpse->name) ) )
+			{
+				swprintf( pNewSoldier->name, TacticalStr[ ZOMBIE_TEAM_MERC_NAME ] );
+			}
+			else
+			{
+				memcpy( &(pNewSoldier->name), &(pCorpse->name), sizeof(CHAR16) * 10 );
+				pNewSoldier->name[9] = '\0';
+			}
+#else
+			memcpy( &(pNewSoldier->name), &(pCorpse->name), sizeof(CHAR16) * 10 );
+			pNewSoldier->name[9] = '\0';
+#endif
+			
+			// add skills according to difficulty level
+			switch( gGameExternalOptions.sZombieDifficultyLevel )
+			{
+				case 4:
+					if ( gGameOptions.fNewTraitSystem )
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = MARTIAL_ARTS_NT;
+					pNewSoldier->stats.ubSkillTraits[1] = MARTIAL_ARTS_NT;
+					pNewSoldier->stats.ubSkillTraits[2] = ATHLETICS_NT;
+					}
+					else
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = HANDTOHAND_OT;
+					pNewSoldier->stats.ubSkillTraits[1] = MARTIALARTS_OT;
+					}
+					break;
+				
+				case 3:
+					if ( gGameOptions.fNewTraitSystem )
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = MARTIAL_ARTS_NT;
+					pNewSoldier->stats.ubSkillTraits[1] = ATHLETICS_NT;
+					pNewSoldier->stats.ubSkillTraits[2] = NO_SKILLTRAIT_NT;
+					}
+					else
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = HANDTOHAND_OT;
+					pNewSoldier->stats.ubSkillTraits[1] = NO_SKILLTRAIT_OT;
+					}
+					break;
+
+				case 2:
+					if ( gGameOptions.fNewTraitSystem )
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = MARTIAL_ARTS_NT;
+					pNewSoldier->stats.ubSkillTraits[1] = NO_SKILLTRAIT_NT;
+					pNewSoldier->stats.ubSkillTraits[2] = NO_SKILLTRAIT_NT;
+					}
+					else
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = NO_SKILLTRAIT_OT;
+					pNewSoldier->stats.ubSkillTraits[1] = NO_SKILLTRAIT_OT;
+					}
+					break;
+
+				case 1:
+				default:
+					if ( gGameOptions.fNewTraitSystem )
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = NO_SKILLTRAIT_NT;
+					pNewSoldier->stats.ubSkillTraits[1] = NO_SKILLTRAIT_NT;
+					pNewSoldier->stats.ubSkillTraits[2] = NO_SKILLTRAIT_NT;
+					}
+					else
+					{
+					pNewSoldier->stats.ubSkillTraits[0] = NO_SKILLTRAIT_OT;
+					pNewSoldier->stats.ubSkillTraits[1] = NO_SKILLTRAIT_OT;
+					}
+					break;
+			}
+					
+			AddSoldierToSectorNoCalculateDirectionUseAnimation( iNewIndex, usAnimState, 0 );
+
+			// If this corpse has camo, use palette from hvobject
+			if ( pCorpse->def.ubType == ROTTING_STAGE2 )
+			{
+				memcpy( pNewSoldier->p8BPPPalette, gpTileCache[ pCorpse->iCachedTileID ].pImagery->vo->pPaletteEntry, sizeof( pCorpse->p8BPPPalette ) * 256 );
+			}
+			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_CAMO_PALETTE )
+			{
+				pNewSoldier->bCamo = gGameExternalOptions.bCamoKitArea;
+				pNewSoldier->wornCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+			}
+			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_URBAN_CAMO_PALETTE )
+			{
+				pNewSoldier->urbanCamo = gGameExternalOptions.bCamoKitArea;
+				pNewSoldier->wornUrbanCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+			}
+			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_DESERT_CAMO_PALETTE )
+			{
+				pNewSoldier->desertCamo = gGameExternalOptions.bCamoKitArea;
+				pNewSoldier->wornDesertCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+			}
+			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_SNOW_CAMO_PALETTE )
+			{
+				pNewSoldier->snowCamo = gGameExternalOptions.bCamoKitArea;
+				pNewSoldier->wornSnowCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+			}
+
+			// Reload palettes....
+			if ( pNewSoldier->bInSector )
+			{
+				pNewSoldier->CreateSoldierPalettes( );
+			}
+
+			// Set a pending animation to change stance first...
+			//SendChangeSoldierStanceEvent( pNewSoldier, ANIM_CROUCH );
+
+#ifdef ENABLE_ZOMBIES
+			// search for armour and equip if found
+			if ( gGameExternalOptions.fZombieRiseWithArmour )
+			{
+				BOOLEAN fHelmetFound = FALSE;
+				BOOLEAN fVestFound = FALSE;
+				BOOLEAN fPantsFound = FALSE;
+
+				ITEM_POOL * pItemPool, * pItemPoolNext;
+
+				GetItemPool( pCorpse->def.sGridNo, &pItemPool, pCorpse->def.bLevel );
+
+				while( pItemPool && ( !fHelmetFound || !fVestFound ||!fPantsFound ) )
+				{
+					pItemPoolNext = pItemPool->pNext;
+
+					OBJECTTYPE* pObj = &(gWorldItems[ pItemPool->iItemIndex ].object);
+
+					if ( Item[ pObj->usItem ].usItemClass  == IC_ARMOUR )
+					{
+							switch (Armour[Item[pObj->usItem].ubClassIndex].ubArmourClass)
+							{
+								case ARMOURCLASS_HELMET:
+									{
+										if( !fHelmetFound && AutoPlaceObject(pNewSoldier, pObj, FALSE))
+										{
+											// remove item from the ground
+											RemoveItemFromPool( pCorpse->def.sGridNo, pItemPool->iItemIndex, pCorpse->def.bLevel );
+											fHelmetFound = TRUE;
+										}
+										break;
+									}
+								case ARMOURCLASS_VEST:
+									{
+										if( !fVestFound && AutoPlaceObject(pNewSoldier, pObj, FALSE))
+										{
+											// remove item from the ground
+											RemoveItemFromPool( pCorpse->def.sGridNo, pItemPool->iItemIndex, pCorpse->def.bLevel );
+											fVestFound = TRUE;
+										}
+										break;
+									}
+								case ARMOURCLASS_LEGGINGS:
+									{
+										if( !fPantsFound && AutoPlaceObject(pNewSoldier, pObj, FALSE))
+										{
+											// remove item from the ground
+											RemoveItemFromPool( pCorpse->def.sGridNo, pItemPool->iItemIndex, pCorpse->def.bLevel );
+											fPantsFound = TRUE;
+										}
+										break;
+									}
+								default:
+									break;
+							}
+					}
+
+					pItemPool = pItemPoolNext;
+				}
+			}
+#endif
+
+			// Change to standing,unless we can getup with an animation
+			pNewSoldier->EVENT_InitNewSoldierAnim( STANDING, 0, TRUE );
+			pNewSoldier->BeginSoldierGetup( );
+			
+			// So we can see them!
+			AllTeamsLookForAll(ALLOW_INTERRUPTS);
+		}
+	}
+
+	// Flugente Zombies: returns true if a zombie can be raised from this corpse, and returns the correct pAnimState for the new zombie
+	BOOLEAN CorpseOkToSpawnZombie( ROTTING_CORPSE *	pCorpse, UINT16* pAnimState )
+	{
+		BOOLEAN canbezombie = FALSE;
+		*pAnimState = FALLBACKHIT_STOP;
+
+		switch ( pCorpse->def.ubType )
+		{
+			case SMERC_BCK:	
+			case SMERC_DHD:
+			case SMERC_FALL:
+			case MMERC_BCK:	
+			case MMERC_DHD:
+			case MMERC_FALL:
+			case FMERC_BCK:
+			case FMERC_DHD:
+			case FMERC_FALL:
+			case ROTTING_STAGE2:
+				canbezombie = TRUE;
+				*pAnimState = FALLBACKHIT_STOP;
+				break;
+
+			case SMERC_FWD:
+			case SMERC_PRN:
+			case SMERC_FALLF:
+			case MMERC_FWD:
+			case MMERC_PRN:
+			case MMERC_FALLF:
+			case FMERC_FWD:
+			case FMERC_PRN:
+			case FMERC_FALLF:
+				canbezombie = TRUE;
+				*pAnimState = FALLFORWARD_HITDEATH_STOP;
+				break;
+
+			case M_DEAD1:				
+				canbezombie = TRUE;
+				*pAnimState = GENERIC_HIT_DEATH;
+				break;
+
+			case M_DEAD2:		
+				canbezombie = TRUE;
+				*pAnimState = CIV_DIE2;
+
+			case H_DEAD1:
+			case K_DEAD1:
+			case FT_DEAD1:
+			case S_DEAD1:
+			case W_DEAD1:
+			case C_DEAD1:
+			case H_DEAD2:
+			case K_DEAD2:
+			case FT_DEAD2:
+			case S_DEAD2:
+			case W_DEAD2:
+			case C_DEAD2:
+				canbezombie = TRUE;
+				*pAnimState = STANDING;
+
+			default:
+				;
+		}
+
+		return( canbezombie );
+	}
+#endif
+
+// Flugente: can we take the clothes of this corpse?
+// calling this with NULL for soldier will give a general answer for any bodytype
+BOOLEAN CorpseOkToDress( ROTTING_CORPSE* pCorpse )
+{
+	if ( !pCorpse )
+		return FALSE;
+
+	switch ( pCorpse->def.ubType )
+	{
+		case SMERC_JFK:
+		case SMERC_BCK:
+		case SMERC_FWD:
+		case SMERC_DHD:
+		case SMERC_PRN:
+		case SMERC_WTR:
+		case SMERC_FALL:
+		case SMERC_FALLF:
+		case M_DEAD1:
+		case M_DEAD2:
+		case H_DEAD1:
+		case H_DEAD2:
+		case S_DEAD1:
+		case S_DEAD2:
+		case C_DEAD1:
+		case C_DEAD2:
+		case MMERC_JFK:
+		case MMERC_BCK:
+		case MMERC_FWD:
+		case MMERC_DHD:
+		case MMERC_PRN:
+		case MMERC_WTR:
+		case MMERC_FALL:
+		case MMERC_FALLF:
+		case FT_DEAD1:
+		case FT_DEAD2:			
+		case FMERC_JFK:
+		case FMERC_BCK:
+		case FMERC_FWD:
+		case FMERC_DHD:
+		case FMERC_PRN:
+		case FMERC_WTR:
+		case FMERC_FALL:
+		case FMERC_FALLF:
+		case W_DEAD1:
+		case W_DEAD2:
+			return TRUE;
+			break;
+
+		default:
+			break;
+	}
+
+	return FALSE;
 }

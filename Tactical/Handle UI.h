@@ -29,6 +29,9 @@
 #define	MOVEUI_TARGET_JAR			10
 #define	MOVEUI_TARGET_CAN			11
 #define MOVEUI_TARGET_REFUEL		12
+#define MOVEUI_TARGET_FORTIFICATION	13
+#define MOVEUI_TARGET_HANDCUFF		14
+#define MOVEUI_TARGET_APPLYITEM		15
 
 #define	MOVEUI_RETURN_ON_TARGET_MERC	1
 
@@ -226,6 +229,7 @@ typedef struct
 	UINT8 MuzzleSwayPercentage;
 	FLOAT ScopeMagFactor;
 	FLOAT ProjectionFactor;
+	INT16 iBestLaserRange;
 	FLOAT FinalMagFactor;
 	INT32 iShooterGridNo;
 	INT32 iTargetGridNo;

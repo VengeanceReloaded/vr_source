@@ -3,12 +3,10 @@
 #else
 	#include <stdio.h>
 	#include <string.h>
-	#include "wcheck.h"
 	#include "stdlib.h"
 	#include "debug.h"
 	#include "math.h"
 	#include "worlddef.h"
-	#include "worldman.h"
 	#include "renderworld.h"
 
 
@@ -16,14 +14,10 @@
 	#include "Animation Data.h"
 	#include "Isometric Utils.h"
 	#include "Event Pump.h"
-	#include "Timer Control.h"
 	#include "Render Fun.h"
-	#include "Render Dirty.h"
-	#include "mousesystem.h"
 	#include "interface.h"
 	#include "sysutil.h"
 	#include "FileMan.h"
-	#include "points.h"
 	#include "Random.h"
 	#include "ai.h"
 	#include "Interactive Tiles.h"
@@ -55,11 +49,27 @@
 	#include "Player Command.h"
 	#include "strategic.h"
 	#include "strategicmap.h" // added by SANDRO
+	#include "drugs and alcohol.h" // added by Flugente
+	#include "Campaign.h"
 #endif
 
 #include "aim.h"
 #include "AimFacialIndex.h"
 #include "mercs.h"
+
+#ifdef JA2UB
+#include "Ja25_Tactical.h"
+#endif
+
+#include "ub_config.h"
+#include "XML.h"
+
+#ifdef JA2UB
+#else
+	// anv: for playable Speck
+	#include "Speck Quotes.h"
+	#include "LaptopSave.h"
+#endif
 
 #include "connect.h"
 #ifdef JA2EDITOR
@@ -94,7 +104,16 @@ extern UINT8 gubItemDroppableFlag[NUM_INV_SLOTS];
 
 //Random Stats 
 RANDOM_STATS_VALUES gRandomStatsValue[NUM_PROFILES];
-void RandomStats ();
+void RandomStats();
+void RandomStartSalary();
+
+//Jenilee
+extern void RandomizeMerc(UINT8 profile_id, MERCPROFILESTRUCT* merc, BOOL random_gear_kits);
+extern void InitRandomMercs();
+extern void ExitRandomMercs();
+
+INT32 RandomAbsoluteRange( INT32 iValue, INT32 iMin, INT32 iMax, INT32 iRange, BOOLEAN fBellCurve );
+INT8 RandomPercentRange( UINT8 iPRange, BOOLEAN fBellCurve );
 
 INT8 gbSkillTraitBonus[NUM_SKILLTRAITS_OT] =
 {
@@ -439,73 +458,248 @@ BOOLEAN LoadNewSystemMercsToSaveGameFile( HWFILE hFile )
 }
 
 //Random stats
-void RandomStats ()
+void RandomStats()
 {
-UINT32 cnt;
-INT8 bBaseAttribute = 0;
-MERCPROFILESTRUCT * pProfile;
+	UINT32 cnt;
+	INT8 bBaseAttribute = 0;
+	MERCPROFILESTRUCT * pProfile;
+	UINT8 Exp = gGameExternalOptions.ubMercRandomExpRange;
+	UINT8 Stats = gGameExternalOptions.ubMercRandomStatsRange;
+	BOOLEAN Type = gGameExternalOptions.fMercRandomBellDistribution;
 
-	for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
-	{
-		if ( gRandomStatsValue[cnt].Enabled == TRUE )
-			{
-						bBaseAttribute = gRandomStatsValue[cnt].BaseAttribute + ( 4 * gRandomStatsValue[cnt].ExpLevel );
-						pProfile = &(gMercProfiles[cnt]);
-					
-						pProfile->bExpLevel = gRandomStatsValue[cnt].ExpLevel;
+	// not randomizing
+	if ( gGameExternalOptions.ubMercRandomStats == 0 )
+		return;
 
-						if ( gRandomStatsValue[cnt].RandomLife == TRUE )
-							{
-								pProfile->bLifeMax = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-								pProfile->bLife = pProfile->bLifeMax;
-							}	
-							
-						if ( gRandomStatsValue[cnt].RandomAgility == TRUE )
-							{
-								pProfile->bAgility = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}							
-							
-						if ( gRandomStatsValue[cnt].RandomLeadership == TRUE )
-							{
-								pProfile->bLeadership = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}							
-														
-						if ( gRandomStatsValue[cnt].RandomDexterity == TRUE )
-							{
-								pProfile->bDexterity = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}	
-							
-						if ( gRandomStatsValue[cnt].RandomWisdom == TRUE )
-							{
-								pProfile->bWisdom = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}	
-							
-						if ( gRandomStatsValue[cnt].RandomMarksmanship == TRUE )
-							{
-								pProfile->bMarksmanship = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}	
-							
-						if ( gRandomStatsValue[cnt].RandomMedical == TRUE )
-							{
-								pProfile->bMedical = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}
-							
-						if ( gRandomStatsValue[cnt].RandomMechanical == TRUE )
-							{
-								pProfile->bMechanical = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}	
-
-						if ( gRandomStatsValue[cnt].RandomExplosive == TRUE )
-							{
-								pProfile->bExplosive = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}	
-
-						if ( gRandomStatsValue[cnt].RandomStrength == TRUE )
-							{
-								pProfile->bStrength = (bBaseAttribute + Random( 9 ) + Random( 8 ));
-							}								
-			}
+	// full stats random for all soldierIDs
+	else if ( gGameExternalOptions.ubMercRandomStats == 1 )
+	{	
+		for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
+		{
+			pProfile = &(gMercProfiles[cnt]);
+			// Buggler: +/- random range will be limited due to min/max allowed value
+			pProfile->bExpLevel		= RandomAbsoluteRange( pProfile->bExpLevel, 1, 9, Exp, Type );
+			pProfile->bLifeMax		= RandomAbsoluteRange( pProfile->bLifeMax, 1, 100, Stats, Type );
+			pProfile->bLife			= pProfile->bLifeMax;
+			pProfile->bAgility		= RandomAbsoluteRange( pProfile->bAgility, 1, 100, Stats, Type );
+			pProfile->bDexterity	= RandomAbsoluteRange( pProfile->bDexterity, 1, 100, Stats, Type );
+			pProfile->bStrength		= RandomAbsoluteRange( pProfile->bStrength, 1, 100, Stats, Type );
+			pProfile->bLeadership	= RandomAbsoluteRange( pProfile->bLeadership, 1, 100, Stats, Type );
+			pProfile->bWisdom		= RandomAbsoluteRange( pProfile->bWisdom, 1, 100, Stats, Type );
+			pProfile->bMarksmanship	= RandomAbsoluteRange( pProfile->bMarksmanship, 1, 100, Stats, Type );
+			pProfile->bMechanical	= RandomAbsoluteRange( pProfile->bMechanical, 1, 100, Stats, Type );
+			pProfile->bExplosive	= RandomAbsoluteRange( pProfile->bExplosive, 1, 100, Stats, Type );
+			pProfile->bMedical		= RandomAbsoluteRange( pProfile->bMedical, 1, 100, Stats, Type );
+		}
 	}
+
+	// partial stats random based on XML stat tag
+	else if ( gGameExternalOptions.ubMercRandomStats == 2 )
+	{
+		for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
+		{
+			if ( gRandomStatsValue[cnt].Enabled )
+			{
+				pProfile = &(gMercProfiles[cnt]);
+				
+				if ( gRandomStatsValue[cnt].RandomExpLevel == TRUE )
+					pProfile->bExpLevel		= RandomAbsoluteRange( pProfile->bExpLevel, 1, 9, Exp, Type );
+
+				if ( gRandomStatsValue[cnt].RandomLife == TRUE )
+					pProfile->bLifeMax		= RandomAbsoluteRange( pProfile->bLifeMax, 1, 100, Stats, Type );
+					pProfile->bLife			= pProfile->bLifeMax;
+
+				if ( gRandomStatsValue[cnt].RandomAgility == TRUE )
+					pProfile->bAgility		= RandomAbsoluteRange( pProfile->bAgility, 1, 100, Stats, Type );
+				
+				if ( gRandomStatsValue[cnt].RandomDexterity == TRUE )
+					pProfile->bDexterity	= RandomAbsoluteRange( pProfile->bDexterity, 1, 100, Stats, Type );
+					
+				if ( gRandomStatsValue[cnt].RandomStrength == TRUE )
+					pProfile->bStrength		= RandomAbsoluteRange( pProfile->bStrength, 1, 100, Stats, Type );
+					
+				if ( gRandomStatsValue[cnt].RandomLeadership == TRUE )
+					pProfile->bLeadership	= RandomAbsoluteRange( pProfile->bLeadership, 1, 100, Stats, Type );
+					
+				if ( gRandomStatsValue[cnt].RandomWisdom == TRUE )
+					pProfile->bWisdom		= RandomAbsoluteRange( pProfile->bWisdom, 1, 100, Stats, Type );
+					
+				if ( gRandomStatsValue[cnt].RandomMarksmanship == TRUE )
+					pProfile->bMarksmanship	= RandomAbsoluteRange( pProfile->bMarksmanship, 1, 100, Stats, Type );
+					
+				if ( gRandomStatsValue[cnt].RandomMechanical == TRUE )
+					pProfile->bMechanical	= RandomAbsoluteRange( pProfile->bMechanical, 1, 100, Stats, Type );
+					
+				if ( gRandomStatsValue[cnt].RandomExplosive == TRUE )	
+					pProfile->bExplosive	= RandomAbsoluteRange( pProfile->bExplosive, 1, 100, Stats, Type );
+					
+				if ( gRandomStatsValue[cnt].RandomMedical == TRUE )
+					pProfile->bMedical		= RandomAbsoluteRange( pProfile->bMedical, 1, 100, Stats, Type );
+			}
+		}
+	}
+
+	// Buggler: tweaked Jazz's random code
+	else if ( gGameExternalOptions.ubMercRandomStats == 3 )
+	{
+		for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
+		{
+			if ( gRandomStatsValue[cnt].Enabled )
+			{
+				pProfile = &(gMercProfiles[cnt]);
+
+				if ( gRandomStatsValue[cnt].RandomExpLevel == TRUE )
+					pProfile->bExpLevel		= RandomAbsoluteRange( pProfile->bExpLevel, 1, 9, Exp, Type );
+
+				bBaseAttribute = gRandomStatsValue[cnt].BaseAttribute + ( 4 * pProfile->bExpLevel );
+
+				if ( gRandomStatsValue[cnt].RandomLife == TRUE )
+				{
+					pProfile->bLifeMax = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+					pProfile->bLife = pProfile->bLifeMax;
+				}
+
+				if ( gRandomStatsValue[cnt].RandomAgility == TRUE )
+				{
+					pProfile->bAgility = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomDexterity == TRUE )
+				{
+					pProfile->bDexterity = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomStrength == TRUE )
+				{
+					pProfile->bStrength = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomLeadership == TRUE )
+				{
+					pProfile->bLeadership = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomWisdom == TRUE )
+				{
+					pProfile->bWisdom = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomMarksmanship == TRUE )
+				{
+					pProfile->bMarksmanship = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomMechanical == TRUE )
+				{
+					pProfile->bMechanical = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomExplosive == TRUE )
+				{
+					pProfile->bExplosive = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+
+				if ( gRandomStatsValue[cnt].RandomMedical == TRUE )
+				{
+					pProfile->bMedical = (bBaseAttribute + Random( 9 ) + Random( 8 ));
+				}
+			}
+		}
+	}
+	// Jenilee: 4th method (see also RandomMerc.cpp)
+	else if (gGameExternalOptions.ubMercRandomStats == 4)
+	{
+		InitRandomMercs();
+
+		for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
+		{
+			if (IsProfileIdAnAimOrMERCMerc(cnt)) //affect only AIM and MERC mercs
+			{
+				pProfile = &(gMercProfiles[cnt]);
+				RandomizeMerc(cnt, pProfile, gGameExternalOptions.fMercRandomGearKits);
+			}
+		}
+
+		ExitRandomMercs();	}
+}
+
+void RandomStartSalary()
+{
+	UINT32 cnt;
+	MERCPROFILESTRUCT * pProfile;
+
+	// Buggler: random starting salary
+	if ( gGameExternalOptions.fMercRandomStartSalary == TRUE )
+	{
+		UINT8 SalaryPercentMod = gGameExternalOptions.ubMercRandomStartSalaryPercentMod;
+		BOOLEAN Type = gGameExternalOptions.fMercRandomBellDistribution;
+		FLOAT SalaryMod;
+
+		for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
+		{
+			pProfile = &(gMercProfiles[cnt]);
+			SalaryMod =  1 + (FLOAT) RandomPercentRange( SalaryPercentMod, Type ) / 100;
+			// random non-zero salary 
+			if ( pProfile->sSalary |= 0 )
+				pProfile->sSalary = RoundOffSalary( (UINT32)( pProfile->sSalary * SalaryMod ) );
+			if ( pProfile->uiWeeklySalary |= 0 )
+				pProfile->uiWeeklySalary = RoundOffSalary( (UINT32)( pProfile->uiWeeklySalary * SalaryMod ) );
+			if ( pProfile->uiBiWeeklySalary |= 0 )
+				pProfile->uiBiWeeklySalary = RoundOffSalary( (UINT32)( pProfile->uiBiWeeklySalary * SalaryMod ) );
+			if ( pProfile->sTrueSalary |= 0 )
+				pProfile->sTrueSalary = RoundOffSalary( (UINT32)( pProfile->sTrueSalary * SalaryMod ) );
+		}
+	}
+}
+
+INT32 RandomAbsoluteRange( INT32 iValue, INT32 iMin, INT32 iMax, INT32 iRange, BOOLEAN fBellCurve )
+{
+	INT32 iRValue;
+	
+	if (iMin > iMax)
+		Assert(0);
+	
+	//no random if value at or out of random limits
+	if ( iValue <= iMin || iValue >= iMax )
+		return( iValue );
+
+	//reduce random range due to the min limits
+	if ( iRange > iValue - iMin )
+		iRange = iValue - iMin;
+	
+	//reduce random range due to the max limits
+	if ( iRange > iMax - iValue )
+		iRange = iMax - iValue;
+
+	//bell curve random distribution
+	if ( fBellCurve )
+		iRValue = iValue - iRange + Random( iRange + 1 ) + Random( iRange + 1 );
+	
+	//uniform random distribution
+	else
+		iRValue = iValue - iRange + Random( 2 * iRange + 1 );
+
+	//calculated random value
+	return( iRValue );
+}
+
+INT8 RandomPercentRange( UINT8 iPRange, BOOLEAN fBellCurve )
+{
+	INT8 bRPValue;
+
+	if (iPRange < 0 || iPRange > 100 )
+		Assert(0);
+
+	//bell curve random distribution
+	if ( fBellCurve )
+		bRPValue = Random ( iPRange + 1 ) + Random ( iPRange + 1 ) - iPRange;
+	
+	//uniform random distribution
+	else
+		bRPValue = Random ( 2 * iPRange + 1 ) - iPRange;
+		
+	//percent range -100 to 100
+	return( bRPValue );
 }
 
 // WANNE - BMP: DONE!
@@ -515,7 +709,9 @@ BOOLEAN LoadMercProfiles(void)
 //	FILE *fptr;
 	HWFILE fptr;
 	STR8 pFileName = "BINARYDATA\\Prof.dat";
-
+#ifdef JA2UB
+	STR8 pFileName_UB = "BINARYDATA\\JA25PROF.DAT";
+#endif
 	STR8 pFileName1_Normal = "BINARYDATA\\Prof_Novice_NormalGuns.dat";
 	STR8 pFileName2_Normal = "BINARYDATA\\Prof_Experienced_NormalGuns.dat";
 	STR8 pFileName3_Normal = "BINARYDATA\\Prof_Expert_NormalGuns.dat";
@@ -532,6 +728,7 @@ BOOLEAN LoadMercProfiles(void)
 	// ----- WANNE.PROFILE: New Profile Loading - BEGIN
 	//InitNewProfiles();
 	// ----- WANNE.PROFILE: New Profile Loading - END
+
 
 	if (gGameExternalOptions.fUseDifficultyBasedProfDat == TRUE)
 	{
@@ -568,7 +765,17 @@ BOOLEAN LoadMercProfiles(void)
 	}
 	else
 	{
+
+#ifdef JA2UB
+		fptr = FileOpen(pFileName_UB, FILE_ACCESS_READ, FALSE );   //ub
+		if( !fptr )
+		{
+			fptr = FileOpen(pFileName, FILE_ACCESS_READ, FALSE );   //ja
+		}
+#else
 		fptr = FileOpen(pFileName, FILE_ACCESS_READ, FALSE );
+#endif
+
 	}
 
 
@@ -615,6 +822,7 @@ BOOLEAN LoadMercProfiles(void)
 			gMercProfiles[uiLoop].ubMiscFlags3 = 0;
 
 			gMercProfiles[uiLoop].uiTotalCostToDate = 0;
+			gMercProfiles[uiLoop].iMercMercContractLength = 0;
 		}
 
 		// WANNE - BMP: DONE!
@@ -627,10 +835,8 @@ BOOLEAN LoadMercProfiles(void)
 		prof.dat until we're sure we want to replace it with the xml file.
 			Because the new WF mercs don't have entries in the prof*.dat files, we need to always load their equipment from
 			MercStaringGear.xml, regardless of the inventory system we're going to use.*/
-		// VENGEANCE
-		// anv: of course we want to replace it with the xml file, it's 2014 ffs
+		// anv: VR - of course we want to replace it with the xml file, it's 2014 ffs
 		//if(UsingNewInventorySystem() == true || uiLoop >= 170 )
-		// /VENGEANCE
 		{
 			// Start by resetting all profile inventory values to 0
 			gMercProfiles[uiLoop].clearInventory();
@@ -693,7 +899,8 @@ BOOLEAN LoadMercProfiles(void)
 		gMercProfiles[uiLoop].bMainGunAttractiveness		= -1;
 		gMercProfiles[uiLoop].bArmourAttractiveness			= -1;
 
-		for ( uiLoop2 = 0; uiLoop2 < gMercProfiles[uiLoop].inv.size(); uiLoop2++ )
+		UINT32 invsize = gMercProfiles[ uiLoop ].inv.size();
+		for ( uiLoop2 = 0; uiLoop2 < invsize; ++uiLoop2 )
 		{
 			usItem = gMercProfiles[uiLoop].inv[ uiLoop2 ];
 
@@ -720,6 +927,9 @@ BOOLEAN LoadMercProfiles(void)
 		// ARM: this is also being done inside the profile editor, but put it here too, so this project's code makes sense
 		gMercProfiles[ uiLoop ].bHatedCount[0]	= gMercProfiles[ uiLoop ].bHatedTime[0];
 		gMercProfiles[ uiLoop ].bHatedCount[1]	= gMercProfiles[ uiLoop ].bHatedTime[1];
+		gMercProfiles[ uiLoop ].bHatedCount[2]	= gMercProfiles[ uiLoop ].bHatedTime[2];
+		gMercProfiles[ uiLoop ].bHatedCount[3]	= gMercProfiles[ uiLoop ].bHatedTime[3];
+		gMercProfiles[ uiLoop ].bHatedCount[4]	= gMercProfiles[ uiLoop ].bHatedTime[4];
 		gMercProfiles[ uiLoop ].bLearnToHateCount = gMercProfiles[ uiLoop ].bLearnToHateTime;
 		gMercProfiles[ uiLoop ].bLearnToLikeCount = gMercProfiles[ uiLoop ].bLearnToLikeTime;
 
@@ -741,7 +951,7 @@ BOOLEAN LoadMercProfiles(void)
 			//with old binary file optional gear prices which got ported into MercProfiles.xml
 			gMercProfiles[ uiLoop ].usOptionalGearCost = 0;
 			UINT16 tempGearCost = 0;
-			for ( uiLoop2 = 0; uiLoop2< gMercProfiles[ uiLoop ].inv.size(); uiLoop2++ )
+			for ( uiLoop2 = 0; uiLoop2< invsize; ++uiLoop2 )
 			{
 				if ( gMercProfiles[ uiLoop ].inv[ uiLoop2 ] != NOTHING )
 				{
@@ -886,6 +1096,27 @@ BOOLEAN LoadMercProfiles(void)
 	}
 
 	FileClose( fptr );
+	//WriteMercStartingGearStats();
+	
+//--------------
+/*
+CHAR8						fileName[255];
+
+	//JA25 UB
+for( int i = 0; i < NUM_PROFILES; i++ )
+	{
+	strcpy(fileName, "TABLEDATA\\Profile\\prof03.xml");
+	
+	//sprintf( fileName, "TABLEDATA\\Profile\\prof%03d.xml", i );
+	
+	if ( FileExists(fileName) )
+	{
+		ReadInMercProfiles(fileName,FALSE,i,TRUE);
+	}
+
+	}
+*/
+//--------------
 
 	// ---------------
 
@@ -914,6 +1145,9 @@ BOOLEAN LoadMercProfiles(void)
 	// ---------------
 		
 	RandomStats (); //random stats by Jazz
+	
+	// Buggler: random starting salary
+	RandomStartSalary ();
 
 	// decide which terrorists are active
 	DecideActiveTerrorists();
@@ -974,12 +1208,6 @@ void DecideActiveTerrorists( void )
 			break;
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// this makes no sense now, we just set the exact number of them below
-	//if ( gGameExternalOptions.fEnableAllTerrorists )
-	//	uiChance = 100;
-	//////////////////////////////////////////////////////////////////////////
-
 	// add at least 2 more
 	ubNumAdditionalTerrorists = 2;
 	for (ubLoop = 0; ubLoop < (MAX_ADDITIONAL_TERRORISTS - 3); ubLoop++) // -3 instead of -2  because we increased MAX_ADDITIONAL_TERRORISTS above by 1
@@ -991,8 +1219,8 @@ void DecideActiveTerrorists( void )
 	}
 
 	/////////////////////////////////////////////////////
-	// Added so with ENABLE_ALL_TERRORISTS you really get all of them  (5 + Charlie)
-	if ( gGameOptions.fEnableAllTerrorists )
+	// Added, so with ENABLE_ALL_TERRORISTS you really get all of them  (5 + Charlie)
+	if ( gGameExternalOptions.fEnableAllTerrorists )
 		ubNumAdditionalTerrorists = 5;
 	/////////////////////////////////////////////////////
 
@@ -1014,47 +1242,57 @@ void DecideActiveTerrorists( void )
 
 			ubTerrorist = gubTerrorists[ ubLoop ];
 
-			// random 40% chance of adding this terrorist if not yet placed
-			if ( ( gMercProfiles[ ubTerrorist ].sSectorX == 0 ) && (( Random( 100 ) < 40 ) || gGameOptions.fEnableAllTerrorists ) ) // also added the check because it makes no sense to choose randomly which terrorist will be in game, all of them should
+			// place randomly if not yet placed
+			if ( gMercProfiles[ ubTerrorist ].sSectorX == 0 )
 			{
-				//fFoundSpot = FALSE;
-				// Since there are 5 spots per terrorist and a maximum of 5 terrorists, we
-				// are guaranteed to be able to find a spot for each terrorist since there
-				// aren't enough other terrorists to use up all the spots for any one
-				// terrorist
-				do
+				// random 40% chance of adding this terrorist if not yet placed or place all
+				if ( ( Random( 100 ) < 40 ) || gGameExternalOptions.fEnableAllTerrorists )
 				{
-					fFoundSpot = TRUE;
-
-					// pick a random spot, see if it's already been used by another terrorist
-					uiLocationChoice = Random( NUM_TERRORIST_POSSIBLE_LOCATIONS );
-					for (ubLoop2 = 0; ubLoop2 < ubNumTerroristsAdded; ubLoop2++)
+					//fFoundSpot = FALSE;
+					// Since there are 5 spots per terrorist and a maximum of 5 terrorists, we
+					// are guaranteed to be able to find a spot for each terrorist since there
+					// aren't enough other terrorists to use up all the spots for any one
+					// terrorist
+					do
 					{
-						if (sTerroristPlacement[ubLoop2][0] == gsTerroristSector[ubLoop][uiLocationChoice][0] )
+						fFoundSpot = TRUE;
+
+						// pick a random spot, see if it's already been used by another terrorist
+						uiLocationChoice = Random( NUM_TERRORIST_POSSIBLE_LOCATIONS );
+						for (ubLoop2 = 0; ubLoop2 < ubNumTerroristsAdded; ubLoop2++)
 						{
-							if (sTerroristPlacement[ubLoop2][1] == gsTerroristSector[ubLoop][uiLocationChoice][1] )
+							if (sTerroristPlacement[ubLoop2][0] == gsTerroristSector[ubLoop][uiLocationChoice][0] )
 							{
-								// WANNE: Fix a vanilla bug: Due to a logic bug multiple terrorists could end up in the same sector.
-								// Fixed by Tron (Straciatella): Revision: 6932
-								fFoundSpot = FALSE;
-								break;
-								//continue;
+								if (sTerroristPlacement[ubLoop2][1] == gsTerroristSector[ubLoop][uiLocationChoice][1] )
+								{
+									// WANNE: Fix a vanilla bug: Due to a logic bug multiple terrorists could end up in the same sector.
+									// Fixed by Tron (Straciatella): Revision: 6932
+									fFoundSpot = FALSE;
+									break;
+									//continue;
+								}
 							}
 						}
-					}
-					//fFoundSpot = TRUE;
-				} while( !fFoundSpot );
+						//fFoundSpot = TRUE;
+					} while( !fFoundSpot );
 
-				// place terrorist!
-				gMercProfiles[ ubTerrorist ].sSectorX = gsTerroristSector[ ubLoop ][ uiLocationChoice ][ 0 ];
-				gMercProfiles[ ubTerrorist ].sSectorY = gsTerroristSector[ ubLoop ][ uiLocationChoice ][ 1 ];
-				gMercProfiles[ ubTerrorist ].bSectorZ = 0;
+					// place terrorist!
+					gMercProfiles[ ubTerrorist ].sSectorX = gsTerroristSector[ ubLoop ][ uiLocationChoice ][ 0 ];
+					gMercProfiles[ ubTerrorist ].sSectorY = gsTerroristSector[ ubLoop ][ uiLocationChoice ][ 1 ];
+					gMercProfiles[ ubTerrorist ].bSectorZ = 0;
+					sTerroristPlacement[ ubNumTerroristsAdded ][ 0 ] = gMercProfiles[ ubTerrorist ].sSectorX;
+					sTerroristPlacement[ ubNumTerroristsAdded ][ 1 ] = gMercProfiles[ ubTerrorist ].sSectorY;
+					ubNumTerroristsAdded++;
+				}
+			}
+			else
+			{
+				// this terrorist has a fixed location in MercProfiles.xml
 				sTerroristPlacement[ ubNumTerroristsAdded ][ 0 ] = gMercProfiles[ ubTerrorist ].sSectorX;
 				sTerroristPlacement[ ubNumTerroristsAdded ][ 1 ] = gMercProfiles[ ubTerrorist ].sSectorY;
 				ubNumTerroristsAdded++;
 			}
 			ubLoop++;
-
 		}
 
 		// start over if necessary
@@ -1063,8 +1301,7 @@ void DecideActiveTerrorists( void )
 	// set total terrorists outstanding in Carmen's info byte
 	gMercProfiles[ 78 ].bNPCData = 1 + ubNumTerroristsAdded;  //ubNumAdditionalTerrorists; 
 	// silversurfer: only use the number of terrorist assigned through this function
-	// ubNumTerroristsAdded and ubNumAdditionalTerrorists will be the same if all terrorist were randomly placed but if
-	// someone places terrorists with ProEdit we don't know if those are valid placements
+	// If someone manually placed a terrorist in an invalid sector it is his problem that he will not be able to solve the quest.
 
 	// store total terrorists
 	gubNumTerrorists = 1 + ubNumTerroristsAdded;  //ubNumAdditionalTerrorists;
@@ -1080,6 +1317,9 @@ void MakeRemainingTerroristsTougher( void )
 	{
 		if ( gMercProfiles[ gubTerrorists[ ubLoop ] ].bMercStatus != MERC_IS_DEAD && gMercProfiles[ gubTerrorists[ ubLoop ] ].sSectorX != 0 && gMercProfiles[ gubTerrorists[ ubLoop ] ].sSectorY != 0 )
 		{
+#ifdef JA2UB
+//no Ub
+#else
 			if ( gubTerrorists[ ubLoop ] == SLAY )
 			{
 				if ( FindSoldierByProfileID( SLAY, TRUE ) != NULL )
@@ -1088,6 +1328,7 @@ void MakeRemainingTerroristsTougher( void )
 					continue;
 				}
 			}
+#endif
 			ubRemainingTerrorists++;
 		}
 	}
@@ -1151,6 +1392,10 @@ void MakeRemainingTerroristsTougher( void )
 	{
 		if ( gMercProfiles[ gubTerrorists[ ubLoop ] ].bMercStatus != MERC_IS_DEAD && gMercProfiles[ gubTerrorists[ ubLoop ] ].sSectorX != 0 && gMercProfiles[ gubTerrorists[ ubLoop ] ].sSectorY != 0 )
 		{
+		
+#ifdef JA2UB
+// no UB
+#else
 			if ( gubTerrorists[ ubLoop ] == SLAY )
 			{
 				if ( FindSoldierByProfileID( SLAY, TRUE ) != NULL )
@@ -1159,7 +1404,7 @@ void MakeRemainingTerroristsTougher( void )
 					continue;
 				}
 			}
-
+#endif
 			if ( usOldItem != NOTHING )
 			{
 				RemoveObjectFromSoldierProfile( gubTerrorists[ ubLoop ], usOldItem );
@@ -1308,9 +1553,29 @@ void StartSomeMercsOnAssignment(void)
 		}
 
 		pProfile = &(gMercProfiles[ uiCnt ]);
+#ifdef JA2UB		
+		//Make sure stigie and Gaston are available at the start of the game
+/*		if( uiCnt == 59 || uiCnt == 58 )
+		{
+			pProfile->bMercStatus = MERC_OK;
+			pProfile->uiDayBecomesAvailable = 0;
+			pProfile->uiPrecedentQuoteSaid = 0;
+			pProfile->ubDaysOfMoraleHangover = 0;
+
+			continue;
+		}
+*/
+		//if the merc is dead, dont modify anything
+		if( pProfile->bMercStatus == MERC_IS_DEAD )
+		{
+			continue;
+		}
 
 		// calc chance to start on assignment
+		uiChance = 3 * pProfile->bExpLevel; //5 Ja25 UB
+#else
 		uiChance = 5 * pProfile->bExpLevel;
+#endif
 
 		// tais: disable mercs being on assignment (this check is just for at the start of the campaign)
 		if (Random(100) < uiChance && gGameExternalOptions.fMercsOnAssignment < 1)
@@ -1524,15 +1789,17 @@ SOLDIERTYPE *ChangeSoldierTeam( SOLDIERTYPE *pSoldier, UINT8 ubTeam )
 		//if(UsingNewInventorySystem() == true)
 		{
 			// Start by direct copy of all BODYPOS items (armor, hands, head and LBE)
-			for(cnt = 0; cnt < (UINT32)BODYPOSFINAL; cnt++)
+			for(cnt = 0; cnt < (UINT32)BODYPOSFINAL; ++cnt)
 			{
 				pNewSoldier->inv[cnt] = pSoldier->inv[cnt];
 			}
+
 			// Next, direct copy of the gunsling and knife pockets
 			pNewSoldier->inv[GUNSLINGPOCKPOS] = pSoldier->inv[GUNSLINGPOCKPOS];
 			pNewSoldier->inv[KNIFEPOCKPOS] = pSoldier->inv[KNIFEPOCKPOS];
 			// Then, try to autoplace everything else
-			for(cnt = BIGPOCKSTART; cnt < pNewSoldier->inv.size(); cnt++ )
+			UINT32 invsize = pNewSoldier->inv.size();
+			for(cnt = BIGPOCKSTART; cnt < invsize; ++cnt )
 			{
 				if(pSoldier->inv[cnt].exists() == true)
 				{
@@ -1656,6 +1923,16 @@ BOOLEAN RecruitRPC( UINT8 ubCharNum )
 		GiveQuestRewardPoint( pSoldier->sSectorX, pSoldier->sSectorY, 6, MIGUEL );
 	}
 
+	// Flugente: people recruited in Arulco are known to the enemy as civilians or even soldiers. So they will be covert when recruited. Of course, this is not for the rebels...
+	if ( ubCharNum == DEVIN || ubCharNum == HAMOUS || ubCharNum == SLAY || ubCharNum == VINCE || ubCharNum == MADDOG || ubCharNum == MICKY )
+	{
+		pNewSoldier->bSoldierFlagMask |= (SOLDIER_COVERT_CIV|SOLDIER_COVERT_NPC_SPECIAL);
+	}
+	else if ( ubCharNum == IGGY || ubCharNum == CONRAD )
+	{
+		pNewSoldier->bSoldierFlagMask |= (SOLDIER_COVERT_SOLDIER|SOLDIER_COVERT_NPC_SPECIAL);
+	}
+
 	// handle town loyalty adjustment
 	HandleTownLoyaltyForNPCRecruitment( pNewSoldier );
 
@@ -1690,13 +1967,15 @@ BOOLEAN RecruitRPC( UINT8 ubCharNum )
 			SwapObjs( pNewSoldier, bSlot, HANDPOS, TRUE );
 		}
 	}
-
+#ifdef JA2UB
+// no Ja25 UB
+#else
 	if ( ubCharNum == IRA )
 	{
 		// trigger 0th PCscript line
 		TriggerNPCRecord( IRA, 0 );
 	}
-
+#endif
 	// Set whatkind of merc am i
 	pNewSoldier->ubWhatKindOfMercAmI = MERC_TYPE__NPC;
 
@@ -1714,7 +1993,10 @@ BOOLEAN RecruitRPC( UINT8 ubCharNum )
 
 	//remove the merc from the Personnel screens departed list ( if they have never been hired before, its ok to call it )
 	RemoveNewlyHiredMercFromPersonnelDepartedList( pSoldier->ubProfile );
-
+#ifdef JA2UB	
+	//If this is a special NPC, play a quote from the team mates
+	HandlePlayingQuoteWhenHiringNpc( pNewSoldier->ubProfile );
+#endif
 	return( TRUE );
 }
 
@@ -1762,6 +2044,9 @@ BOOLEAN RecruitEPC( UINT8 ubCharNum )
 	// Set whatkind of merc am i
 	pNewSoldier->ubWhatKindOfMercAmI = MERC_TYPE__EPC;
 
+	// Flugente: people recruited in Arulco are known to the enemy as civilians or even soldiers. So they will be covert when recruited. Of course, this is not for the rebels...
+	pNewSoldier->bSoldierFlagMask |= (SOLDIER_COVERT_CIV|SOLDIER_COVERT_NPC_SPECIAL);
+
 	UpdateTeamPanelAssignments( );
 
 	return( TRUE );
@@ -1804,8 +2089,10 @@ BOOLEAN UnRecruitEPC( UINT8 ubCharNum )
 
 	// update sector values to current
 
+	//Buggler: code only works on map reload so consolidate to HandleEarlyMorningEvents
 	// check to see if this person should disappear from the map after this
-	if ( (ubCharNum == JOHN || ubCharNum == MARY) && pSoldier->sSectorX == 13 && pSoldier->sSectorY == MAP_ROW_B && pSoldier->bSectorZ == 0 )
+	/*if ( (ubCharNum == JOHN || ubCharNum == MARY) && pSoldier->sSectorX == 13 && 
+		pSoldier->sSectorY == MAP_ROW_B && pSoldier->bSectorZ == 0 )
 	{
 		gMercProfiles[ ubCharNum ].sSectorX = 0;
 		gMercProfiles[ ubCharNum ].sSectorY = 0;
@@ -1816,7 +2103,11 @@ BOOLEAN UnRecruitEPC( UINT8 ubCharNum )
 		gMercProfiles[ ubCharNum ].sSectorX = pSoldier->sSectorX;
 		gMercProfiles[ ubCharNum ].sSectorY = pSoldier->sSectorY;
 		gMercProfiles[ ubCharNum ].bSectorZ = pSoldier->bSectorZ;
-	}
+	}*/
+
+	gMercProfiles[ ubCharNum ].sSectorX = pSoldier->sSectorX;
+	gMercProfiles[ ubCharNum ].sSectorY = pSoldier->sSectorY;
+	gMercProfiles[ ubCharNum ].bSectorZ = pSoldier->bSectorZ;
 
 	// how do we decide whether or not to set this?
 	gMercProfiles[ ubCharNum ].ubMiscFlags3 |= PROFILE_MISC_FLAG3_PERMANENT_INSERTION_CODE;
@@ -1841,12 +2132,16 @@ INT8 WhichBuddy( UINT8 ubCharNum, UINT8 ubBuddy )
 
 	pProfile = &( gMercProfiles[ ubCharNum ] );
 
-	for (bLoop = 0; bLoop < 3; bLoop++)
+	for (bLoop = 0; bLoop < 5; bLoop++)
 	{
 		if ( pProfile->bBuddy[bLoop] == ubBuddy )
 		{
 			return( bLoop );
 		}
+	}
+	if( pProfile->bLearnToLike == ubBuddy && pProfile->bLearnToLikeCount == 0 )
+	{
+		return( 5 );
 	}
 	return( -1 );
 }
@@ -1858,12 +2153,16 @@ INT8 WhichHated( UINT8 ubCharNum, UINT8 ubHated )
 
 	pProfile = &( gMercProfiles[ ubCharNum ] );
 
-	for (bLoop = 0; bLoop < 3; bLoop++)
+	for (bLoop = 0; bLoop < 5; bLoop++)
 	{
 		if ( pProfile->bHated[bLoop] == ubHated )
 		{
 			return( bLoop );
 		}
+	}
+	if( pProfile->bLearnToHate == ubHated && pProfile->bLearnToHateCount == 0 )
+	{
+		return( 5 );
 	}
 	return( -1 );
 }
@@ -1968,10 +2267,20 @@ BOOLEAN DoesMercHaveABuddyOnTheTeam( UINT8 ubMercID )
 	UINT8	bBuddyID;
 
 	// loop through the list of people the merc is buddies with
-	for(ubCnt=0; ubCnt< 3; ubCnt++)
+	for(ubCnt=0; ubCnt< 6; ubCnt++)
 	{
 		//see if the merc has a buddy on the team
-		bBuddyID = gMercProfiles[ ubMercID ].bBuddy[ubCnt];
+		if( ubCnt<5 )
+		{
+			bBuddyID = gMercProfiles[ ubMercID ].bBuddy[ubCnt];
+		}
+		else
+		{
+			bBuddyID = gMercProfiles[ ubMercID ].bLearnToLike;
+			// ignore learn to like, if he's not a buddy yet
+			if( gMercProfiles[ ubMercID ].bLearnToLikeCount > 0 )
+				continue;
+		}
 
 		//If its not a valid 'buddy'
 		if( bBuddyID < 0 )
@@ -1992,7 +2301,8 @@ BOOLEAN DoesMercHaveABuddyOnTheTeam( UINT8 ubMercID )
 BOOLEAN MercIsHot( SOLDIERTYPE * pSoldier )
 {
 	// SANDRO - added argument
-	if ( pSoldier->ubProfile != NO_PROFILE && gMercProfiles[ pSoldier->ubProfile ].bDisability == HEAT_INTOLERANT && !pSoldier->MercInWater())
+	// Flugente: drugs can temporarily cause a merc to be heat intolerant
+	if ( pSoldier->ubProfile != NO_PROFILE && (gMercProfiles[ pSoldier->ubProfile ].bDisability == HEAT_INTOLERANT || MercUnderTheInfluence(pSoldier, DRUG_TYPE_HEATINTOLERANT) ) && !pSoldier->MercInWater())
 	{
 		if ((pSoldier->bSectorZ > 0) || (guiEnvWeather & ( WEATHER_FORECAST_SHOWERS | WEATHER_FORECAST_THUNDERSHOWERS )))
 		{
@@ -2055,6 +2365,7 @@ SOLDIERTYPE * SwapLarrysProfiles( SOLDIERTYPE * pSoldier )
 	pNewProfile->records.usKillsRegulars = gMercProfiles[ ubSrcProfile ].records.usKillsRegulars;
 	pNewProfile->records.usKillsAdmins = gMercProfiles[ ubSrcProfile ].records.usKillsAdmins;
 	pNewProfile->records.usKillsCreatures = gMercProfiles[ ubSrcProfile ].records.usKillsCreatures;
+	pNewProfile->records.usKillsZombies = gMercProfiles[ ubSrcProfile ].records.usKillsZombies;
 	pNewProfile->records.usKillsTanks = gMercProfiles[ ubSrcProfile ].records.usKillsTanks;
 	pNewProfile->records.usKillsOthers = gMercProfiles[ ubSrcProfile ].records.usKillsOthers;
 	pNewProfile->records.usAssistsMercs = gMercProfiles[ ubSrcProfile ].records.usAssistsMercs;
@@ -2165,10 +2476,21 @@ SOLDIERTYPE * SwapLarrysProfiles( SOLDIERTYPE * pSoldier )
 	pSoldier->stats.bMechanical =		pNewProfile->bMechanical + pNewProfile->bMechanicDelta;
 	pSoldier->stats.bMedical =			pNewProfile->bMedical + pNewProfile->bMedicalDelta;
 	pSoldier->stats.bExplosive =		pNewProfile->bExplosive + pNewProfile->bExplosivesDelta;
-
+	
 	if ( pSoldier->ubProfile == LARRY_DRUNK )
 	{
 		SetFactTrue( FACT_LARRY_CHANGED );
+
+#ifdef JA2UB
+#else
+		// anv: make speck whine about it immediately if on team
+		if( !IsSpeckComAvailable() )
+		{
+			TacticalCharacterDialogue( FindSoldierByProfileID( SPECK_PLAYABLE , TRUE ), SPECK_PLAYABLE_QUOTE_LARRY_RELAPSED );
+			// don't bring this up again
+			LaptopSaveInfo.uiSpeckQuoteFlags |= SPECK_QUOTE__ALREADY_TOLD_PLAYER_THAT_LARRY_RELAPSED;
+		}
+#endif
 	}
 	else
 	{
@@ -2183,12 +2505,14 @@ SOLDIERTYPE * SwapLarrysProfiles( SOLDIERTYPE * pSoldier )
 
 BOOLEAN DoesNPCOwnBuilding( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 {
-	UINT8 ubRoomInfo;
+	//DBrot: More Rooms
+	//UINT8 ubRoomInfo;
+	UINT16 usRoomInfo;
 
 	// Get room info
-	ubRoomInfo = gubWorldRoomInfo[ sGridNo ];
+	usRoomInfo = gusWorldRoomInfo[ sGridNo ];
 
-	if ( ubRoomInfo == NO_ROOM )
+	if ( usRoomInfo == NO_ROOM )
 	{
 	return( FALSE );
 	}
@@ -2200,14 +2524,14 @@ BOOLEAN DoesNPCOwnBuilding( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 	}
 
 	// OK, check both ranges
-	if ( ubRoomInfo >= gMercProfiles[ pSoldier->ubProfile ].ubRoomRangeStart[ 0 ] &&
-		ubRoomInfo <= gMercProfiles[ pSoldier->ubProfile ].ubRoomRangeEnd[ 0 ] )
+	if ( usRoomInfo >= gMercProfiles[ pSoldier->ubProfile ].usRoomRangeStart[ 0 ] &&
+		usRoomInfo <= gMercProfiles[ pSoldier->ubProfile ].usRoomRangeEnd[ 0 ] )
 	{
 	 return( TRUE );
 	}
 
-	if ( ubRoomInfo >= gMercProfiles[ pSoldier->ubProfile ].ubRoomRangeStart[ 1 ] &&
-		ubRoomInfo <= gMercProfiles[ pSoldier->ubProfile ].ubRoomRangeEnd[ 1 ] )
+	if ( usRoomInfo >= gMercProfiles[ pSoldier->ubProfile ].usRoomRangeStart[ 1 ] &&
+		usRoomInfo <= gMercProfiles[ pSoldier->ubProfile ].usRoomRangeEnd[ 1 ] )
 	{
 	 return( TRUE );
 	}
@@ -2379,6 +2703,17 @@ void OverwriteMercProfileWithXMLData( UINT32 uiLoop )
 		gMercProfiles[ uiLoop ].bLearnToHate = tempProfiles[ uiLoop ].bLearnToHate ;
 		gMercProfiles[ uiLoop ].bLearnToHateTime = tempProfiles[ uiLoop ].bLearnToHateTime ;
 
+		gMercProfiles[ uiLoop ].bRace						= tempProfiles[ uiLoop ].bRace;
+		gMercProfiles[ uiLoop ].bNationality				= tempProfiles[ uiLoop ].bNationality;
+		gMercProfiles[ uiLoop ].bAppearance					= tempProfiles[ uiLoop ].bAppearance;
+		gMercProfiles[ uiLoop ].bAppearanceCareLevel		= tempProfiles[ uiLoop ].bAppearanceCareLevel;
+		gMercProfiles[ uiLoop ].bRefinement					= tempProfiles[ uiLoop ].bRefinement;
+		gMercProfiles[ uiLoop ].bRefinementCareLevel		= tempProfiles[ uiLoop ].bRefinementCareLevel;
+		gMercProfiles[ uiLoop ].bHatedNationality			= tempProfiles[ uiLoop ].bHatedNationality;
+		gMercProfiles[ uiLoop ].bHatedNationalityCareLevel	= tempProfiles[ uiLoop ].bHatedNationalityCareLevel;
+		gMercProfiles[ uiLoop ].bRacist						= tempProfiles[ uiLoop ].bRacist;
+		gMercProfiles[ uiLoop ].bSexist						= tempProfiles[ uiLoop ].bSexist;
+		
 		gMercProfiles[ uiLoop ].sSalary = tempProfiles[ uiLoop ].sSalary ;
 		gMercProfiles[ uiLoop ].uiWeeklySalary = tempProfiles[ uiLoop ].uiWeeklySalary ;
 		gMercProfiles[ uiLoop ].uiBiWeeklySalary = tempProfiles[ uiLoop ].uiBiWeeklySalary ;
@@ -2401,6 +2736,7 @@ void OverwriteMercProfileWithXMLData( UINT32 uiLoop )
 		gMercProfiles[ uiLoop ].ubCivilianGroup = tempProfiles[uiLoop].ubCivilianGroup;
 		gMercProfiles[ uiLoop ].bTown = tempProfiles[uiLoop].bTown;
 		gMercProfiles[ uiLoop ].bTownAttachment = tempProfiles[uiLoop].bTownAttachment;
+		gMercProfiles[ uiLoop ].usBackground = tempProfiles[uiLoop].usBackground;
 		
 					//None
 					if ( tempProfiles[uiLoop].Type == 0 )
@@ -2476,7 +2812,7 @@ void OverwriteMercOpinionsWithXMLData( UINT32 uiLoop )
 {
 	UINT8 cnt;
 
-	for (cnt=0; cnt<75; cnt++ )
+	for (cnt=0; cnt< NUMBER_OF_OPINIONS; ++cnt )
 	{
 		gMercProfiles[ uiLoop ].bMercOpinion[cnt] = tempProfiles[ uiLoop ].bMercOpinion[cnt] ;
 	}
@@ -2590,25 +2926,34 @@ INT8 ProfileHasSkillTrait( INT32 ubProfileID, INT8 bSkillTrait )
 {
 	INT8 bNumTraits = 0;
 	INT8 bNumMajorTraitsCounted = 0;
+	INT8 bMaxTraits = gSkillTraitValues.ubMaxNumberOfTraits;
+	INT8 bMaxMajorTraits = gSkillTraitValues.ubNumberOfMajorTraitsAllowed;
 
 	// check old/new traits
 	if (gGameOptions.fNewTraitSystem)
 	{
-		for ( INT8 bCnt = 0; bCnt < gSkillTraitValues.ubMaxNumberOfTraits; bCnt++ )
+		// exception for special merc
+		//if ( gSkillTraitValues.fAllowSpecialMercTraitsException && ubProfileID == gSkillTraitValues.ubSpecialMercID)
+		//{
+		//	bMaxTraits++;
+		//	bMaxMajorTraits++;
+		//}
+		
+		for ( INT8 bCnt = 0; bCnt < bMaxTraits; bCnt++ )
 		{
-			if ( bSkillTrait > 0 && bSkillTrait <= NUM_MAJOR_TRAITS )
+			if ( TwoStagedTrait(bSkillTrait) )
 			{
 				if ( gMercProfiles[ubProfileID].bSkillTraits[ bCnt ] == bSkillTrait )
 				{
 					bNumTraits++;
 					bNumMajorTraitsCounted++;
 				}
-				else if ( gMercProfiles[ubProfileID].bSkillTraits[ bCnt ] > 0 && gMercProfiles[ubProfileID].bSkillTraits[ bCnt ] <= NUM_MAJOR_TRAITS )
+				else if ( TwoStagedTrait(gMercProfiles[ubProfileID].bSkillTraits[ bCnt ]) )
 				{
 					bNumMajorTraitsCounted++;
 				}
 				// if we exceeded the allowed number of major traits, ignore the rest of them
-				if ( bNumMajorTraitsCounted >= gSkillTraitValues.ubNumberOfMajorTraitsAllowed )
+				if ( bNumMajorTraitsCounted >= bMaxMajorTraits )
 				{
 					break;
 				}
@@ -2622,6 +2967,7 @@ INT8 ProfileHasSkillTrait( INT32 ubProfileID, INT8 bSkillTrait )
 			}
 		}
 		// cannot have more than 1 rade of minor traits or 2 grades of a major traits
+		//if( bSkillTrait > DOCTOR_NT && bSkillTrait != COVERT_NT )
 		if( bSkillTrait > DOCTOR_NT && bSkillTrait != COVERT_NT && bSkillTrait != PILOT_NT )
 			return ( min(1, bNumTraits) );
 		else

@@ -91,6 +91,14 @@ enum //strategic values for each sector
 #define SF_SKYRIDER_NOTICED_ENEMIES_HERE			0x00000400
 #define SF_HAVE_USED_GUIDE_QUOTE					0x00000800
 
+#ifdef JA2UB
+#define	SF_HAVE_SAID_PLAYER_QUOTE_NEW_SECTOR		0x00001000
+#endif
+
+#define SF_ASSIGN_NOTICED_ENEMIES_HERE				0x00002000		// Flugente: info from assigment: enemies were found
+#define SF_ASSIGN_NOTICED_ENEMIES_KNOW_NUMBER		0x00004000		// Flugente: info from assigment: enemies were found, and we know their number
+#define SF_ASSIGN_NOTICED_ENEMIES_KNOW_DIRECTION	0x00008000		// Flugente: info from assigment: enemies were found, and we know the direction they are moving in
+
 #define SF_SMOKE_EFFECTS_TEMP_FILE_EXISTS			0x00100000		//Temp File starts with sm_
 #define SF_LIGHTING_EFFECTS_TEMP_FILE_EXISTS		0x00200000		//Temp File starts with l_
 #define SF_REVEALED_STATUS_TEMP_FILE_EXISTS			0x01000000		//Temp File starts with v_
@@ -144,6 +152,7 @@ enum
 	// Enumerate the different assignments that a facility can emulate.
 	FAC_AMBIENT = 0,
 	FAC_STAFF,
+	FAC_FOOD,
 	FAC_REST,
 	FAC_REPAIR_ITEMS,
 	FAC_REPAIR_VEHICLE,
@@ -176,7 +185,12 @@ enum
 	FAC_TRAINER_MEDICAL,
 	FAC_TRAINER_MECHANICAL,
 	FAC_TRAINER_LEADERSHIP,
-	FAC_TRAINER_EXPLOSIVES,
+	FAC_TRAINER_EXPLOSIVES,	
+	FAC_INTERROGATE_PRISONERS,
+	FAC_PRISON_SNITCH,
+	FAC_SPREAD_PROPAGANDA,
+	FAC_SPREAD_PROPAGANDA_GLOBAL,
+	FAC_GATHER_RUMOURS,
 	NUM_FACILITY_ASSIGNMENTS,
 };
 
@@ -243,6 +257,8 @@ typedef struct FACILITYASSIGNMENTTYPE
 	INT16 sSkyriderCostModifier;	// Flat modifier for Skyrider's Cost Per Tile
 	UINT16 usMineIncomeModifier;	// Percentage income adjustment
 	BOOLEAN fOnlyLocalMineAffected;		// Determines whether income modifier applies to local mine only, or all mines.
+	INT16 sCantinaFoodModifier;		// how many food points do we get when spending time in a cantina?
+	UINT16 usPrisonBaseLimit;		// for how many prisoners was this prison built?
 	
 	UINT8 ubMinimumStrength;		// Minimum STR Requirement to begin this assignment
 	UINT8 ubMinimumHealth;			// Minimum HLT Requirement to begin this assignment
@@ -368,6 +384,7 @@ enum
 	DRASSEN_AIRPORT_SITE,
 	MEDUNA_AIRPORT_SITE,
 	SAM_SITE,
+	REFUEL_SITE,
 
 	REBEL_HIDEOUT,
 	TIXA_DUNGEON,
@@ -376,6 +393,16 @@ enum
 	TUNNEL,
 	SHELTER,
 	ABANDONED_MINE,
+
+#ifdef JA2UB	
+//Ja25: New
+	FINAL_COMPLEX,
+	GUARD_POST_TYPE,
+	CRASH_SITE_TYPE,
+	POWER_PLANT_TYPE,
+	MOUNTAINS_TYPE,
+	UNKNOWN_TYPE,
+#endif
 
 	NUM_TRAVTERRAIN_TYPES
 };
@@ -389,6 +416,16 @@ extern UINT8 gszTerrain[NUM_TRAVTERRAIN_TYPES][15];
 
 //Used by ubGarrisonID when a sector doesn't point to a garrison.	Used by strategic AI only.
 #define NO_GARRISON					255
+
+// Flugente: types of prisoners
+typedef enum
+{
+	PRISONER_ADMIN = 0,
+	PRISONER_REGULAR,
+	PRISONER_ELITE,
+	PRISONER_SPECIAL,
+	PRISONER_MAX,
+} PrisonerType;
 
 typedef struct SECTORINFO
 {
@@ -438,7 +475,7 @@ typedef struct SECTORINFO
 	// Replacing these variables with the ones above. They really are unused.
 	//UINT16	usUNUSEDMilitiaLevels;					// unused (ARM)
 	//UINT8	ubUNUSEDNumberOfJoeBlowCivilians;		// unused (ARM)
-	UINT32	uiTimeCurrentSectorWasLastLoaded;		//Specifies the last time the player was in the sector
+	UINT32	uiTimeCurrentSectorWasLastLoaded;		//in game minutes, Specifies the last time the player was in the sector.
 	UINT8	ubUNUSEDNumberOfEnemiesThoughtToBeHere;	// using bLastKnownEnemies instead
 	UINT32	uiTimeLastPlayerLiberated;				//in game seconds (used to prevent the queen from attacking for awhile)
 
@@ -451,8 +488,18 @@ typedef struct SECTORINFO
 	UINT8	bFiller3;
 
 	UINT32	uiNumberOfWorldItemsInTempFileThatCanBeSeenByPlayer;
+#ifdef JA2UB
+	BOOLEAN	fValidSector; //ja25 UB
+	BOOLEAN	fCustomSector;
+	BOOLEAN	fCampaignSector;
+#endif
+	
+	UINT8	uiNumberOfPrisonersOfWar[PRISONER_MAX];
+	UINT8	uiInterrogationHundredsLeft;
 
-	INT8	bPadding[ 41 ];
+	UINT32	uiTimeAIArtillerywasOrdered;			// Flugente: updated every time an artillery strike is ordered from the militia
+	
+	INT8	bPadding[ 29 ];
 
 }SECTORINFO;
 
@@ -484,7 +531,14 @@ typedef struct UNDERGROUND_SECTORINFO
 	UINT8	ubMusicMode, ubUnsed;
 
 	UINT32	uiNumberOfWorldItemsInTempFileThatCanBeSeenByPlayer;
-	INT8	bPadding[36];
+#ifdef JA2UB	
+	BOOLEAN	fCustomSector;
+	BOOLEAN	fCampaignSector;
+#endif
+	
+	UINT8	uiNumberOfPrisonersOfWar[PRISONER_MAX];
+
+	INT8	bPadding[32];
 	//no padding left!
 }UNDERGROUND_SECTORINFO;
 

@@ -6,10 +6,8 @@
 	#include "IMP HomePage.h"
 	#include "IMPVideoObjects.h"
 	#include "Utilities.h"
-	#include "WCheck.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
@@ -22,7 +20,6 @@
 	#include "Soldier Profile Type.h"
 	#include "Soldier Control.h"
 	#include "IMP Portraits.h"
-	#include "IMP Voices.h"
 	#include "Overhead.h"
 	#include "finances.h"
 	#include "history.h"
@@ -34,23 +31,28 @@
 	#include "weapons.h"
 	#include "Random.h"
 	#include "GameVersion.h"
-	#include "faces.h"
 	#include "GameSettings.h"
 #endif
 
 #include <vfs/Core/vfs.h>
 #include <vfs/Aspects/vfs_settings.h>
 
+#include "Soldier Profile.h"
+
+#include "SaveLoadGame.h"
+
 // Changed by ADB (rev 1513) to resolve IMPs created prior to structural changes
 //#define IMP_FILENAME_SUFFIX ".dat"
 #define OLD_IMP_FILENAME_SUFFIX ".dat"
 #define NEW_IMP_FILENAME_SUFFIX ".dat2"
 
+
+
 //CHRISL: structure needed to store temporary inventory information during IMP creation
 typedef struct
 {
 	UINT16		inv;
-	UINT8		iSize;
+	UINT16		iSize;
 	UINT32		iClass;
 	UINT8		iStatus;
 	UINT8		iNumber;
@@ -338,7 +340,11 @@ void	BtnIMPConfirmYes(GUI_BUTTON *btn,INT32 reason)
 */
 			// SANDRO - changed to find the actual profile cost
 			//if( LaptopSaveInfo.iCurrentBalance < COST_OF_PROFILE )
-			if( LaptopSaveInfo.iCurrentBalance < iGetProfileCost() ) 
+
+			// silversurfer: We need to store the profile cost here because right now our new IMP doesn't occupy a slot yet.
+			// However function iGetProfileCost() will already calculate price including that slot. We would charge too much money after the IMP is created below.
+			INT32 iIMPCost = iGetProfileCost();
+			if( LaptopSaveInfo.iCurrentBalance < iIMPCost ) 
 			{
 				// not enough
 				 return;
@@ -352,7 +358,7 @@ void	BtnIMPConfirmYes(GUI_BUTTON *btn,INT32 reason)
 			// charge the player
 			// SANDRO - changed to find the actual profile cost
 			//AddTransactionToPlayersBook(IMP_PROFILE, (UINT8)(LaptopSaveInfo.iIMPIndex), GetWorldTotalMin( ), - ( COST_OF_PROFILE ) );
-			AddTransactionToPlayersBook(IMP_PROFILE, (UINT8)(LaptopSaveInfo.iIMPIndex), GetWorldTotalMin( ), - ( iGetProfileCost() ) );
+			AddTransactionToPlayersBook(IMP_PROFILE, (UINT8)(LaptopSaveInfo.iIMPIndex), GetWorldTotalMin( ), - ( iIMPCost ) );
 
 			AddHistoryToPlayersLog( HISTORY_CHARACTER_GENERATED, 0,GetWorldTotalMin( ), -1, -1 );
 			AddCharacterToPlayersTeam( );
@@ -366,13 +372,13 @@ void	BtnIMPConfirmYes(GUI_BUTTON *btn,INT32 reason)
 			//Kaiden: Below is the Imp personality E-mail as it was.
 /*
 			// send email notice
-			//AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ) );
+			//AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ),TYPE_EMAIL_NONE );
 			AddFutureDayStrategicEvent( EVENT_DAY2_ADD_EMAIL_FROM_IMP, 60 * 7, 0, 2 );
 */
 
 			//Kaiden: And here is my Answer to the IMP E-mails only
 			// profiling the last IMP made. You get the results immediately
-			AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ), LaptopSaveInfo.iIMPIndex, -1 );
+			AddEmail(IMP_EMAIL_PROFILE_RESULTS, IMP_EMAIL_PROFILE_RESULTS_LENGTH, IMP_PROFILE_RESULTS, GetWorldTotalMin( ), LaptopSaveInfo.iIMPIndex, -1, TYPE_EMAIL_EMAIL_EDT);
 
 			//RenderCharProfile( );
 
@@ -481,7 +487,7 @@ void DistributeInitialGear(MERCPROFILESTRUCT *pProfile)
 		{
 			if((UsingNewInventorySystem() == true))
 			{
-				if(Item[pProfile->inv[i]].ItemSize != 99)
+				if(Item[pProfile->inv[i]].ItemSize != gGameExternalOptions.guiOIVSizeNumber) //JMich
 				{
 					tInv[count].inv = pProfile->inv[i];
 					tInv[count].iSize = Item[pProfile->inv[i]].ItemSize;
@@ -513,7 +519,7 @@ void DistributeInitialGear(MERCPROFILESTRUCT *pProfile)
 	length = count;
 	count = 0;
 	// Next sort list by size
-	for(j=34; j>=0; j--)
+	for(j=gGameExternalOptions.guiMaxItemSize; j>=0; j--) //JMich
 	{
 		for(i=0; i<length; i++)
 		{
@@ -727,6 +733,17 @@ void GiveItemsToPC( UINT8 ubProfileId )
 				GiveIMPRandomItems(pProfile, IMP_DOCTOR);
 			}
 		}
+		if (PROFILE_HAS_SKILL_TRAIT(ubProfileId, COVERT_NT))
+		{
+			if( gGameExternalOptions.fExpertsGetDifferentChoices && PROFILE_HAS_EXPERT_TRAIT(ubProfileId, COVERT_NT))
+			{
+ 				GiveIMPRandomItems(pProfile,IMP_COVERT_EXP);
+			}
+			else
+			{
+				GiveIMPRandomItems(pProfile, IMP_COVERT);
+			}
+		}
 		// MINOR TRAITS
 		if (PROFILE_HAS_SKILL_TRAIT(ubProfileId, AMBIDEXTROUS_NT))
 		{
@@ -768,7 +785,10 @@ void GiveItemsToPC( UINT8 ubProfileId )
 		{
 			GiveIMPRandomItems(pProfile,IMP_SCOUTING);
 		}
-		
+		if (PROFILE_HAS_SKILL_TRAIT(ubProfileId, RADIO_OPERATOR_NT))
+		{
+			GiveIMPRandomItems(pProfile,IMP_RADIO_OPERATOR);
+		}
 	}
 	else
 	{
@@ -963,8 +983,8 @@ void MakeProfileInvItemAnySlot(MERCPROFILESTRUCT *pProfile, UINT16 usItem, UINT8
 // CHRISL: New function to move initial gear into LBE pockets when LBE items are given during creation
 void RedistributeStartingItems(MERCPROFILESTRUCT *pProfile, UINT16 usItem, UINT8 sPocket)
 {
-	UINT16	lbeIndex;
-	UINT8	lbeClass, iSize;
+	UINT16	lbeIndex, iSize;
+	UINT8	lbeClass;
 	UINT16	inv[NUM_INV_SLOTS], istatus[NUM_INV_SLOTS], inumber[NUM_INV_SLOTS];
 
 	lbeIndex = Item[usItem].ubClassIndex;
@@ -1505,22 +1525,32 @@ BOOLEAN LoadImpCharacter( STR nickName )
 	{
 		LaptopSaveInfo.iIMPIndex = iProfileId;
 
+		// silversurfer: Store current IMP cost. Function iGetProfileCost() already takes the new slot into account.
+		// If we create the IMP first we would charge too much.
+		INT32 iIMPCost = iGetProfileCost();
+
 		// read in the profile
 		//if ( !gMercProfiles[ iProfileId ].Load(hFile, false) )
+
+		// anv: before loading profile we need to set guiCurrentSaveGameVersion to profile's version
+		// and set it back to SAVE_GAME_VERSION right after or else new saves will be broken!
+		guiCurrentSaveGameVersion = version;
+
 		if ( !gMercProfiles[ iProfileId ].Load(hFile, isOldVersion, false, false) )
 		{
+			guiCurrentSaveGameVersion = SAVE_GAME_VERSION;
 			DoLapTopMessageBox( MSG_BOX_IMP_STYLE, pImpPopUpStrings[ 7 ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 			return FALSE;
 		}
+		guiCurrentSaveGameVersion = SAVE_GAME_VERSION;
 
 		// close file
 		FileClose(hFile);
-
 		//CHRISL: At this point, we need to resort profile inventory so that NewInv items don't accidentally appear in OldInv
 		DistributeInitialGear(&gMercProfiles[iProfileId]);
 
 		// Changed to find actual IMP cost - SANDRO
-		if( LaptopSaveInfo.iCurrentBalance < iGetProfileCost() )
+		if( LaptopSaveInfo.iCurrentBalance < iIMPCost )
 		{
 			DoLapTopMessageBox( MSG_BOX_IMP_STYLE, pImpPopUpStrings[ 3 ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, NULL);
 
@@ -1544,7 +1574,7 @@ BOOLEAN LoadImpCharacter( STR nickName )
 		fCharacterIsMale = ( gMercProfiles[ iProfileId ].bSex == MALE );
 		fLoadingCharacterForPreviousImpProfile = TRUE;
 		// Changed to find actual IMP cost - SANDRO
-		AddTransactionToPlayersBook(IMP_PROFILE,0, GetWorldTotalMin( ), - ( iGetProfileCost() ) );
+		AddTransactionToPlayersBook(IMP_PROFILE,0, GetWorldTotalMin( ), - ( iIMPCost ) );
 		AddHistoryToPlayersLog( HISTORY_CHARACTER_GENERATED, 0,GetWorldTotalMin( ), -1, -1 );
 		LaptopSaveInfo.iIMPIndex = iProfileId;
 		AddCharacterToPlayersTeam( );
@@ -1681,6 +1711,7 @@ void GiveIMPRandomItems( MERCPROFILESTRUCT *pProfile, UINT8 typeIndex )
 			MakeProfileInvItemAnySlot(pProfile,usItem,100,1);
 
 		// give ammo for guns
+        Assert(usItem<MAXITEMS);
 		if ( Item[usItem].usItemClass == IC_GUN && !Item[usItem].rocketlauncher )
 		{
 			usItem = DefaultMagazine(usItem);
@@ -1758,7 +1789,8 @@ INT32 iGetProfileCost()
 	{
 		INT32 iIMPProfileCost;
 
-		iIMPProfileCost = gGameExternalOptions.iIMPProfileCost * CountFilledIMPSlots(-1);
+		// silversurfer: When we create an IMP he doesn't occupy a slot yet so we need to add 1 to get the correct price in advance.
+		iIMPProfileCost = gGameExternalOptions.iIMPProfileCost * ( CountFilledIMPSlots(-1) + 1 );
 
 		if (iIMPProfileCost >= gGameExternalOptions.iIMPProfileCost)
 			return(iIMPProfileCost);

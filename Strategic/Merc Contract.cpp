@@ -21,10 +21,8 @@
 	#include "strategicmap.h"
 	#include "Quests.h"
 	#include "worlddef.h"
-	#include "rotting corpses.h"
 	#include "Animation Control.h"
 	#include "Tactical Save.h"
-	#include "Strategic Merc Handler.h"
 	#include "Interface Control.h"
 	#include "gamescreen.h"
 	#include "jascreens.h"
@@ -39,10 +37,15 @@
 	#include "insurance contract.h"
 	#include "Vehicles.h"
 	#include "email.h"
+	#include "Map Screen Helicopter.h"
 #endif
 
 #include "GameSettings.h"
 #include "connect.h"
+
+#ifdef JA2UB
+#include "ub_config.h"
+#endif
 
 void CalculateMedicalDepositRefund( SOLDIERTYPE *pSoldier );
 void NotifyPlayerOfMercDepartureAndPromptEquipmentPlacement( SOLDIERTYPE *pSoldier, BOOLEAN fAddRehireButton );
@@ -50,6 +53,7 @@ void MercDepartEquipmentBoxCallBack( UINT8 bExitValue );
 BOOLEAN HandleFiredDeadMerc( SOLDIERTYPE *pSoldier );
 void HandleExtendMercsContract( SOLDIERTYPE *pSoldier );
 void HandleSoldierLeavingWithLowMorale( SOLDIERTYPE *pSoldier );
+void HandleBuddiesReactionToFiringMerc(SOLDIERTYPE *pFiredSoldier, INT8 bMoraleEvent );
 void HandleSoldierLeavingForAnotherContract( SOLDIERTYPE *pSoldier );
 //BOOLEAN SoldierWantsToDelayRenewalOfContract( SOLDIERTYPE *pSoldier );
 void HandleNotifyPlayerCantAffordInsurance( void );
@@ -87,11 +91,6 @@ UINT8											ubCurrentContractRenewal = 0;
 UINT8											ubCurrentContractRenewalInProgress = FALSE;
 BOOLEAN										gfContractRenewalSquenceOn = FALSE;
 BOOLEAN										gfInContractMenuFromRenewSequence = FALSE;
-
-
-// the airport sector
-#define AIRPORT_X 13
-#define AIRPORT_Y 2
 
 
 BOOLEAN SaveContractRenewalDataToSaveGameFile( HWFILE hFile )
@@ -492,6 +491,10 @@ BOOLEAN WillMercRenew( SOLDIERTYPE	*pSoldier, BOOLEAN fSayQuote )
 	if( pSoldier->ubWhatKindOfMercAmI != MERC_TYPE__AIM_MERC )
 		return( FALSE );
 
+	// Flugente: an unconscious merc can't say 'yes' to a contract renewal
+	if ( pSoldier->stats.bLife < CONSCIOUSNESS )
+		return( FALSE );
+
 	// does the merc have another contract already lined up?
 	if( pSoldier->flags.fSignedAnotherContract )
 	{
@@ -508,9 +511,19 @@ BOOLEAN WillMercRenew( SOLDIERTYPE	*pSoldier, BOOLEAN fSayQuote )
 
 	// find out if the merc has a buddy working for the player
 	// loop through the list of people the merc considers buddies
-	for(i=0; i<5; i++)
+	for(i=0; i<6; i++)
 	{
-		bMercID = gMercProfiles[ pSoldier->ubProfile ].bBuddy[i];
+		if( i<5 )
+		{
+			bMercID = gMercProfiles[ pSoldier->ubProfile ].bBuddy[i];
+		}
+		else
+		{
+			bMercID = gMercProfiles[ pSoldier->ubProfile ].bLearnToLike;
+			// ignore learn to like, if he's not a buddy yet
+			if( gMercProfiles[ pSoldier->ubProfile ].bLearnToLikeCount > 0 )
+				continue;
+		}
 
 		if( bMercID < 0 )
 			continue;
@@ -524,6 +537,12 @@ BOOLEAN WillMercRenew( SOLDIERTYPE	*pSoldier, BOOLEAN fSayQuote )
 				usBuddyQuote = QUOTE_RENEWING_CAUSE_BUDDY_1_ON_TEAM;
 			else if( i == 1 )
 				usBuddyQuote = QUOTE_RENEWING_CAUSE_BUDDY_2_ON_TEAM;
+			else if( i == 2 )
+				usBuddyQuote = QUOTE_RENEWING_CAUSE_BUDDY_3_ON_TEAM;
+			else if( i == 3 )
+				usBuddyQuote = QUOTE_RENEWING_CAUSE_BUDDY_4_ON_TEAM;
+			else if( i == 4 )
+				usBuddyQuote = QUOTE_RENEWING_CAUSE_BUDDY_5_ON_TEAM;
 			else
 				usBuddyQuote = QUOTE_RENEWING_CAUSE_LEARNED_TO_LIKE_BUDDY_ON_TEAM;
 
@@ -539,7 +558,7 @@ BOOLEAN WillMercRenew( SOLDIERTYPE	*pSoldier, BOOLEAN fSayQuote )
 
 	// see if someone the merc hates is on the team
 	// loop through the list of people the merc hates
-	for(i=0; i<2; i++)
+	for(i=0; i<5; i++)
 	{
 		bMercID = gMercProfiles[ pSoldier->ubProfile ].bHated[ i ];
 
@@ -568,9 +587,14 @@ BOOLEAN WillMercRenew( SOLDIERTYPE	*pSoldier, BOOLEAN fSayQuote )
 			{
 				if( i == 0 )
 					usReasonQuote = QUOTE_HATE_MERC_1_ON_TEAM_WONT_RENEW;
-				else
+				else if( i == 1 )
 					usReasonQuote = QUOTE_HATE_MERC_2_ON_TEAM_WONT_RENEW;
-
+				else if( i == 2 )
+					usReasonQuote = QUOTE_HATE_MERC_3_ON_TEAM_WONT_RENEW;
+				else if( i == 3 )
+					usReasonQuote = QUOTE_HATE_MERC_4_ON_TEAM_WONT_RENEW;
+				else if( i == 4 )
+					usReasonQuote = QUOTE_HATE_MERC_5_ON_TEAM_WONT_RENEW;
 				// use first hated in case there are multiple
 				break;
 			}
@@ -720,6 +744,29 @@ BOOLEAN WillMercRenew( SOLDIERTYPE	*pSoldier, BOOLEAN fSayQuote )
 	}
 }
 
+void HandleBuddiesReactionToFiringMerc(SOLDIERTYPE *pFiredSoldier, INT8 bMoraleEvent )
+{
+	INT8									bMercID;
+	INT8									bLastTeamID;
+	SOLDIERTYPE *					pSoldier;
+
+
+	bMercID = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+	bLastTeamID = gTacticalStatus.Team[ gbPlayerNum ].bLastID;
+	// loop through all mercs to find buddies
+	for ( pSoldier = MercPtrs[ bMercID ]; bMercID <= bLastTeamID; bMercID++,pSoldier++)
+	{
+		//if the merc is active, in Arulco, not POW and is a buddy
+		if ( WhichBuddy(pSoldier->ubProfile,pFiredSoldier->ubProfile) != (-1) &&
+			pSoldier->bActive && pSoldier->ubProfile != NO_PROFILE &&
+			!(pSoldier->bAssignment == IN_TRANSIT ||
+			pSoldier->bAssignment == ASSIGNMENT_DEAD ||
+			pSoldier->bAssignment == ASSIGNMENT_POW) )
+		{
+			HandleMoraleEvent(pSoldier, bMoraleEvent, pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ);
+		}
+	}
+}
 
 void HandleSoldierLeavingWithLowMorale( SOLDIERTYPE *pSoldier )
 {
@@ -728,6 +775,9 @@ void HandleSoldierLeavingWithLowMorale( SOLDIERTYPE *pSoldier )
 		// this will cause him give us lame excuses for a while until he gets over it
 		// 3-6 days (but the first 1-2 days of that are spent "returning" home)
 		gMercProfiles[ pSoldier->ubProfile ].ubDaysOfMoraleHangover = (UINT8) (3 + Random(4));
+
+		// piss off his buddies too
+		HandleBuddiesReactionToFiringMerc(pSoldier, MORALE_BUDDY_FIRED_ON_BAD_TERMS);
 	}
 }
 
@@ -889,6 +939,9 @@ BOOLEAN StrategicRemoveMerc( SOLDIERTYPE *pSoldier )
 		EndCurrentContractRenewal( );
 	}
 
+	// anv: let buddies react
+	HandleBuddiesReactionToFiringMerc(pSoldier, MORALE_BUDDY_FIRED);
+
 	// ATE: Determine which HISTORY ENTRY to use...
 	if ( pSoldier->ubLeaveHistoryCode == 0 )
 	{
@@ -922,6 +975,11 @@ BOOLEAN StrategicRemoveMerc( SOLDIERTYPE *pSoldier )
 		SetupProfileInsertionDataForSoldier( pSoldier );
 	}
 
+	if (IsVehicle(pSoldier))
+	{
+		// for some reason, vehicles have their own idea of handling group ids
+		RemovePlayerFromGroup(pVehicleList[ pSoldier->bVehicleID ].ubMovementGroup, pSoldier);
+	}
 	//remove him from the soldier structure
 	if( pSoldier->bAssignment >= ON_DUTY )
 	{
@@ -1036,7 +1094,16 @@ void CalculateMedicalDepositRefund( SOLDIERTYPE *pSoldier )
 		AddTransactionToPlayersBook(FULL_MEDICAL_REFUND, pSoldier->ubProfile, GetWorldTotalMin(), pSoldier->usMedicalDeposit );
 
 		//add an email
-		AddEmailWithSpecialData( AIM_MEDICAL_DEPOSIT_REFUND, AIM_MEDICAL_DEPOSIT_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), pSoldier->usMedicalDeposit, pSoldier->ubProfile );
+#ifdef JA2UB
+//no UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.fDeadMerc == TRUE )
+			AddEmailWithSpecialData( 27, AIM_MEDICAL_DEPOSIT_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), pSoldier->usMedicalDeposit, pSoldier->ubProfile, TYPE_EMAIL_DEAD_MERC_AIM_SITE_EMAIL_JA2_EDT, TYPE_E_AIM_L2 );
+	}
+#else
+		AddEmailWithSpecialData( AIM_MEDICAL_DEPOSIT_REFUND, AIM_MEDICAL_DEPOSIT_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), pSoldier->usMedicalDeposit, pSoldier->ubProfile, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 	}
 	//else if the merc is a dead, refund NOTHING!!
 	else if( pSoldier->stats.bLife <= 0 )
@@ -1045,8 +1112,16 @@ void CalculateMedicalDepositRefund( SOLDIERTYPE *pSoldier )
 		//AddTransactionToPlayersBook( NO_MEDICAL_REFUND, pSoldier->ubProfile, GetWorldTotalMin(), 0 );
 
 		//add an email
-		AddEmailWithSpecialData( AIM_MEDICAL_DEPOSIT_NO_REFUND, AIM_MEDICAL_DEPOSIT_NO_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), pSoldier->usMedicalDeposit, pSoldier->ubProfile );
-
+#ifdef JA2UB
+//no UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.fDeadMerc == TRUE )
+			AddEmailWithSpecialData( 217, AIM_MEDICAL_DEPOSIT_NO_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), pSoldier->usMedicalDeposit, pSoldier->ubProfile, TYPE_EMAIL_DEAD_MERC_AIM_SITE_EMAIL_JA2_EDT, TYPE_E_AIM_L3 );
+	}
+#else
+		AddEmailWithSpecialData( AIM_MEDICAL_DEPOSIT_NO_REFUND, AIM_MEDICAL_DEPOSIT_NO_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), pSoldier->usMedicalDeposit, pSoldier->ubProfile, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 	}
 	//else the player is injured, refund a partial amount
 	else
@@ -1058,7 +1133,16 @@ void CalculateMedicalDepositRefund( SOLDIERTYPE *pSoldier )
 		AddTransactionToPlayersBook( PARTIAL_MEDICAL_REFUND, pSoldier->ubProfile, GetWorldTotalMin(), iRefundAmount );
 
 		//add an email
-		AddEmailWithSpecialData( AIM_MEDICAL_DEPOSIT_PARTIAL_REFUND, AIM_MEDICAL_DEPOSIT_PARTIAL_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), iRefundAmount, pSoldier->ubProfile );
+#ifdef JA2UB
+// no UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.fDeadMerc == TRUE )
+			AddEmailWithSpecialData( 214, AIM_MEDICAL_DEPOSIT_PARTIAL_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), iRefundAmount, pSoldier->ubProfile, TYPE_EMAIL_DEAD_MERC_AIM_SITE_EMAIL_JA2_EDT, TYPE_E_AIM_L4 );
+	}
+#else
+		AddEmailWithSpecialData( AIM_MEDICAL_DEPOSIT_PARTIAL_REFUND, AIM_MEDICAL_DEPOSIT_PARTIAL_REFUND_LENGTH, AIM_SITE, GetWorldTotalMin(), iRefundAmount, pSoldier->ubProfile, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 	}
 }
 
@@ -1070,10 +1154,10 @@ void NotifyPlayerOfMercDepartureAndPromptEquipmentPlacement( SOLDIERTYPE *pSoldi
 	CHAR16 sString[ 1024 ];
 	BOOLEAN fInSector = FALSE;
 //	INT16					zTownIDString[50];
-	CHAR16				zShortTownIDString[ 50 ];
+	CHAR16				zShortTownIDString[ 50 ], zShortDropOffString[ 50 ], zDropOffString[ 50 ];
 
 	// use YES/NO Pop up box, settup for particular screen
-	SGPRect pCenteringRect= {0, 0, 640, 480};
+	SGPRect pCenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, SCREEN_HEIGHT};
 
 	//GetSectorIDString( pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ, zTownIDString, TRUE );
 
@@ -1107,11 +1191,11 @@ void NotifyPlayerOfMercDepartureAndPromptEquipmentPlacement( SOLDIERTYPE *pSoldi
 	{
 		if( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
 		{
-			swprintf( sString, pMercHeLeaveString[ 4 ], pSoldier->name, zShortTownIDString );
+			swprintf( sString, pMercHeLeaveString[ 1 ], pSoldier->GetName(), zShortTownIDString );
 		}
 		else
 		{
-			swprintf( sString, pMercSheLeaveString[ 4 ], pSoldier->name, zShortTownIDString );
+			swprintf( sString, pMercSheLeaveString[ 1 ], pSoldier->GetName(), zShortTownIDString );
 		}
 		fInSector = TRUE;
 	}
@@ -1119,61 +1203,66 @@ void NotifyPlayerOfMercDepartureAndPromptEquipmentPlacement( SOLDIERTYPE *pSoldi
 	// check if drassen controlled
 	else if( StrategicMap[	( AIRPORT_X + ( MAP_WORLD_X * AIRPORT_Y ) ) ].fEnemyControlled == FALSE )
 	{
+		GetSectorIDString( AIRPORT_X, AIRPORT_Y, 0, zDropOffString, FALSE );
 
 		if( ( pSoldier->sSectorX == AIRPORT_X ) && ( pSoldier->sSectorY == AIRPORT_Y ) && ( pSoldier->bSectorZ == 0 ) )
 		{
 			if( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
 			{
-				swprintf( sString, L"%s %s", pSoldier->name, pMercHeLeaveString[ 3 ] );
+				swprintf( sString, pMercHeLeaveString[ 1 ], pSoldier->GetName(), zDropOffString );
 			}
 			else
 			{
-				swprintf( sString, L"%s %s", pSoldier->name, pMercSheLeaveString[ 3 ] );
+				swprintf( sString, pMercSheLeaveString[ 1 ], pSoldier->GetName(), zDropOffString );
 			}
 			fInSector = TRUE;
 		}
 		else
 		{
 			// Set string for generic button
-			swprintf( gzUserDefinedButton2, L"B13" );
+			GetShortSectorString( AIRPORT_X, AIRPORT_Y, zShortDropOffString );
+			swprintf( gzUserDefinedButton2, L"%s", zShortDropOffString ); //B13
 
 			if( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
 			{
-				swprintf( sString, pMercHeLeaveString[ 0 ], pSoldier->name, zShortTownIDString );
+				swprintf( sString, pMercHeLeaveString[ 0 ], pSoldier->GetName(), zShortTownIDString, zDropOffString );
 			}
 			else
 			{
-				swprintf( sString, pMercSheLeaveString[ 0 ], pSoldier->name, zShortTownIDString );
+				swprintf( sString, pMercSheLeaveString[ 0 ], pSoldier->GetName(), zShortTownIDString, zDropOffString );
 			}
 
 		}
 	}
 	else
 	{
+		GetSectorIDString( OMERTA_LEAVE_EQUIP_SECTOR_X, OMERTA_LEAVE_EQUIP_SECTOR_Y, 0, zDropOffString, FALSE );
+
 		if( ( pSoldier->sSectorX == OMERTA_LEAVE_EQUIP_SECTOR_X ) && ( pSoldier->sSectorY == OMERTA_LEAVE_EQUIP_SECTOR_Y ) && ( pSoldier->bSectorZ == 0 ) )
 		{
 			if( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
 			{
-				swprintf( sString, L"%s %s", pSoldier->name, pMercHeLeaveString[ 2 ] );
+				swprintf( sString, pMercHeLeaveString[ 1 ], pSoldier->GetName(), zDropOffString );
 			}
 			else
 			{
-				swprintf( sString, L"%s %s", pSoldier->name, pMercSheLeaveString[ 2 ] );
+				swprintf( sString, pMercSheLeaveString[ 1 ], pSoldier->GetName() , zDropOffString );
 			}
 			fInSector = TRUE;
 		}
 		else
 		{
 			// Set string for generic button
-			swprintf( gzUserDefinedButton2, L"A9" );
+			GetShortSectorString( OMERTA_LEAVE_EQUIP_SECTOR_X, OMERTA_LEAVE_EQUIP_SECTOR_Y, zShortDropOffString );
+			swprintf( gzUserDefinedButton2, L"%s", zShortDropOffString ); //A9
 
 			if( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
 			{
-				swprintf( sString, pMercHeLeaveString[ 1 ], pSoldier->name, zShortTownIDString );
+				swprintf( sString, pMercHeLeaveString[ 0 ], pSoldier->GetName(), zShortTownIDString, zDropOffString );
 			}
 			else
 			{
-				swprintf( sString, pMercSheLeaveString[ 1 ], pSoldier->name, zShortTownIDString );
+				swprintf( sString, pMercSheLeaveString[ 0 ], pSoldier->GetName(), zShortTownIDString, zDropOffString );
 			}
 		}
 	}
@@ -1184,7 +1273,7 @@ void NotifyPlayerOfMercDepartureAndPromptEquipmentPlacement( SOLDIERTYPE *pSoldi
 		if( fInSector == FALSE )
 		{
 			// set up for mapscreen
-			DoMapMessageBox( MSG_BOX_BASIC_STYLE, sString, MAP_SCREEN, ( UINT16 )( ( fAddRehireButton ? MSG_BOX_FLAG_GENERICCONTRACT : MSG_BOX_FLAG_GENERIC ) ), MercDepartEquipmentBoxCallBack );
+			DoMapMessageBox( MSG_BOX_BASIC_STYLE, sString, MAP_SCREEN, ( UINT16 )( ( fAddRehireButton ? MSG_BOX_FLAG_GENERICCONTRACT : MSG_BOX_FLAG_GENERIC_TWO_BUTTONS ) ), MercDepartEquipmentBoxCallBack );
 		}
 		else
 		{
@@ -1197,7 +1286,7 @@ void NotifyPlayerOfMercDepartureAndPromptEquipmentPlacement( SOLDIERTYPE *pSoldi
 		if( fInSector == FALSE )
 		{
 			// set up for all otherscreens
-			DoMessageBox(	MSG_BOX_BASIC_STYLE, sString,	guiCurrentScreen, ( UINT16 ) ( MSG_BOX_FLAG_USE_CENTERING_RECT | ( fAddRehireButton ? MSG_BOX_FLAG_GENERICCONTRACT : MSG_BOX_FLAG_GENERIC ) ),	MercDepartEquipmentBoxCallBack,	&pCenteringRect );
+			DoMessageBox(	MSG_BOX_BASIC_STYLE, sString,	guiCurrentScreen, ( UINT16 ) ( MSG_BOX_FLAG_USE_CENTERING_RECT | ( fAddRehireButton ? MSG_BOX_FLAG_GENERICCONTRACT : MSG_BOX_FLAG_GENERIC_TWO_BUTTONS ) ),	MercDepartEquipmentBoxCallBack,	&pCenteringRect );
 		}
 		else
 		{
@@ -1252,7 +1341,7 @@ void MercDepartEquipmentBoxCallBack( UINT8 bExitValue )
 	else
 	{
 		// no
-		if( StrategicMap[ BOBBYR_SHIPPING_DEST_SECTOR_X + ( BOBBYR_SHIPPING_DEST_SECTOR_Y * MAP_WORLD_X ) ].fEnemyControlled == FALSE )
+		if( StrategicMap[ AIRPORT_X + ( AIRPORT_Y * MAP_WORLD_X ) ].fEnemyControlled == FALSE )
 		{
 			HandleMercLeavingEquipmentInDrassen( pLeaveSoldier->ubID );
 		}
@@ -1469,7 +1558,7 @@ void HandleNotifyPlayerCanAffordInsurance( SOLDIERTYPE *pSoldier, UINT8 ubLength
 	InsertCommasForDollarFigure( sStringA );
 	InsertDollarSignInToString( sStringA );
 
-	swprintf( sString, zMarksMapScreenText[ 10 ], pSoldier->name, sStringA, ubLength );
+	swprintf( sString, zMarksMapScreenText[ 10 ], pSoldier->GetName(), sStringA, ubLength );
 
 	//Set the length to the global variable ( so we know how long the contract is in the callback )
 	gubContractLength = ubLength;

@@ -19,6 +19,7 @@
 #include <vfs/Core/vfs_file_raii.h>
 #include "XML_TileSet.hpp"
 #include "XMLWriter.h"
+#include "GameSettings.h"
 
 void ExportTilesets(vfs::Path const& filename);
 
@@ -34,10 +35,10 @@ UINT8 gubNumSets = MAX_TILESETS;
 
 TILESET	gTilesets[ MAX_TILESETS ];
 
-extern bool g_bUseXML_Tilesets;
+//extern bool g_bUseXML_Tilesets;
 void InitEngineTilesets( )
 {
-	if(g_bUseXML_Tilesets)
+	if(gGameExternalOptions.fUseXmlTileSets)
 	{
 		const vfs::Path tileset_filename(L"Ja2Set.dat.xml");
 		if(!getVFS()->fileExists(tileset_filename))
@@ -84,7 +85,7 @@ void InitEngineTilesets( )
 		FileRead( hfile, &uiNumFiles, sizeof( uiNumFiles ), &uiNumBytesRead );
 
 		// COMPARE
-		if ( uiNumFiles != NUMBEROFTILETYPES )
+		if ( uiNumFiles != giNumberOfTileTypes )
 		{
 			// Report error
 			SET_ERROR( "Number of tilesets slots in code does not match data file" );
@@ -117,6 +118,20 @@ void InitEngineTilesets( )
 		FileClose( hfile );
 	}
 
+	#ifdef JA2UBMAPS
+	gTilesets[ TLS_CAVES_1 ].MovementCostFnc			= (TILESET_CALLBACK)SetTilesetTwoTerrainValues;
+	gTilesets[ TLS_AIRSTRIP ].MovementCostFnc			= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TLS_DEAD_AIRSTRIP ].MovementCostFnc		= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TEMP_14 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TEMP_18 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TEMP_19 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TEMP_26 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TEMP_27 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TEMP_28 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TEMP_29 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
+	gTilesets[ TLS_TROPICAL_1 ].MovementCostFnc			= (TILESET_CALLBACK)SetTilesetFourTerrainValues;
+	gTilesets[ TEMP_20 ].MovementCostFnc				= (TILESET_CALLBACK)SetTilesetFourTerrainValues;
+	#else
 	// SET CALLBACK FUNTIONS!!!!!!!!!!!!!
 	gTilesets[ TLS_CAVES_1 ].MovementCostFnc			= (TILESET_CALLBACK)SetTilesetTwoTerrainValues;
 	gTilesets[ TLS_AIRSTRIP ].MovementCostFnc			= (TILESET_CALLBACK)SetTilesetThreeTerrainValues;
@@ -131,6 +146,7 @@ void InitEngineTilesets( )
 
 	gTilesets[ TLS_TROPICAL_1 ].MovementCostFnc			= (TILESET_CALLBACK)SetTilesetFourTerrainValues;
 	gTilesets[ TLS_DESERT_SAM ].MovementCostFnc			= (TILESET_CALLBACK)SetTilesetFourTerrainValues;
+	#endif
 }
 
 #ifdef USE_VFS
@@ -159,7 +175,7 @@ void ExportTilesets(vfs::Path const& filename)
 	FileRead( hfile, &numFiles, sizeof( numFiles ), &uiNumBytesRead );
 
 	// COMPARE
-	SGP_THROW_IFFALSE( numFiles == NUMBEROFTILETYPES,
+	SGP_THROW_IFFALSE( numFiles == giNumberOfTileTypes,
 		L"Number of tilesets slots in code does not match data file" );
 
 	xmlw.addAttributeToNextValue("numFiles",(int)numFiles);

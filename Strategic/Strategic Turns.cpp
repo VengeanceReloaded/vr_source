@@ -4,14 +4,11 @@
 	#include "sgp.h"
 	#include "Game Clock.h"
 	#include "Font Control.h"
-	#include "render dirty.h"
 	#include "Timer Control.h"
 	#include "overhead.h"
-	#include "environment.h"
 	#include "Game Clock.h"
 	#include "message.h"
 	#include "worlddef.h"
-	#include "rotting corpses.h"
 	#include "soldier create.h"
 	#include "soldier add.h"
 	#include "strategic turns.h"
@@ -24,7 +21,7 @@
 	#include "assignments.h"
 #endif
 
-#define	NUM_SEC_PER_STRATEGIC_TURN					( NUM_SEC_IN_MIN * 15 )	// Every fifteen minutes
+
 
 
 UINT32		guiLastStrategicTime = 0;

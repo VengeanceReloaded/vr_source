@@ -62,7 +62,8 @@ class SOLDIERTYPE;
 
 #define	GET_OBJECT_LEVEL( z )						( (INT8)( ( z + 10 ) / HEIGHT_UNITS ) )
 //#define	OBJECT_DETONATE_ON_IMPACT( object )	( ( object->Obj.usItem == MORTAR_SHELL ) ) // && ( object->ubActionCode == THROW_ARM_ITEM || pObject->fTestObject ) )
-#define	OBJECT_DETONATE_ON_IMPACT( object )	( ( Item[object->Obj.usItem].usItemClass == IC_BOMB ) ) // && ( object->ubActionCode == THROW_ARM_ITEM || pObject->fTestObject ) )
+// HEADROCK HAM 5: Enabled "Explode on Impact" flag for explosive items
+#define	OBJECT_DETONATE_ON_IMPACT( object )	( ( Item[object->Obj.usItem].usItemClass == IC_BOMB ) || ( Explosive[Item[object->Obj.usItem].ubClassIndex ].fExplodeOnImpact ) ) // && ( object->ubActionCode == THROW_ARM_ITEM || pObject->fTestObject ) )
 
 
 #define	MAX_INTEGRATIONS				8
@@ -107,10 +108,14 @@ BOOLEAN					PhysicsCheckForCollisions( REAL_OBJECT *pObject, INT32 *piCollisionI
 void						PhysicsResolveCollision( REAL_OBJECT *pObject, vector_3 *pVelocity, vector_3 *pNormal, real CoefficientOfRestitution );
 void						PhysicsDeleteObject( REAL_OBJECT *pObject );
 BOOLEAN					PhysicsHandleCollisions( REAL_OBJECT *pObject, INT32 *piCollisionID, real DeltaTime );
-FLOAT						CalculateForceFromRange( INT16 sRange, FLOAT dDegrees );
+FLOAT						CalculateForceFromRange( UINT16 usItem, INT16 sRange, FLOAT dDegrees );
 
 INT32          RandomGridFromRadius( INT32 sSweetGridNo, INT8 ubMinRadius, INT8 ubMaxRadius );
 
+// Parameters for item throwing
+#define MAX_MISS_BY			30
+#define MIN_MISS_BY			1
+#define MAX_MISS_RADIUS		5
 // Lesh: needed to fix item throwing through window
 extern INT16 DirIncrementer[8];
 
@@ -1902,7 +1907,25 @@ void CalculateLaunchItemBasicParams( SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, I
 
 	// Are we armed, and are we throwing a LAUNCHABLE?
 
-	usLauncher = GetLauncherFromLaunchable( pItem->usItem );
+	//MM: Again, this only works if the launchers are all the same
+	//usLauncher = GetLauncherFromLaunchable( pItem->usItem );
+	//MM: Replacement:
+	OBJECTTYPE *pObj = NULL;
+	usLauncher = 0;
+	pObj = pSoldier->GetUsedWeapon( &pSoldier->inv[pSoldier->ubAttackingHand] );
+	if ( pObj != NULL )
+	{
+		if (Item[pObj->usItem].usItemClass == IC_LAUNCHER)
+			usLauncher = pObj->usItem;
+		else if (Item[pObj->usItem].usItemClass == IC_GUN)
+		{
+			usLauncher = GetAttachedGrenadeLauncher(pObj);
+		}
+	}
+	if ( usLauncher == 0) // fail back to the original
+		usLauncher = GetLauncherFromLaunchable( pItem->usItem );
+
+
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("physics.cpp line 1741"));
 	if ( fArmed && ( Item[usLauncher].mortar || Item[pItem->usItem].mortar ) )
 	{
@@ -2011,7 +2034,7 @@ void CalculateLaunchItemBasicParams( SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, I
 		if ( fMortar || fGLauncher )
 		{
 			// find min force
-			dMinForce = CalculateForceFromRange( (INT16)( sMinRange / 10 ), (FLOAT)( PI / 4 ) );
+			dMinForce = CalculateForceFromRange( pItem->usItem, (INT16)( sMinRange / 10 ), (FLOAT)( PI / 4 ) );
 
 			if ( dMagForce < dMinForce )
 			{
@@ -2128,7 +2151,7 @@ BOOLEAN CalculateLaunchItemChanceToGetThrough( SOLDIERTYPE *pSoldier, OBJECTTYPE
 
 
 
-FLOAT CalculateForceFromRange( INT16 sRange, FLOAT dDegrees )
+FLOAT CalculateForceFromRange(UINT16 usItem, INT16 sRange, FLOAT dDegrees )
 {
 	FLOAT				dMagForce;
 	INT32 sSrcGridNo, sDestGridNo;
@@ -2144,8 +2167,14 @@ FLOAT CalculateForceFromRange( INT16 sRange, FLOAT dDegrees )
 //	sSrcGridNo	= 4408;
 //	sDestGridNo = 4408 + ( sRange * WORLD_COLS );
 
-	// Use a grenade objecttype
-	CreateItem( HAND_GRENADE, 100, &gTempObject );
+	// Buggler: impact explosives requiring larger force to reach desired range due to no bounce
+	// Please change the if conditions too when definition of OBJECT_DETONATE_ON_IMPACT( object ) changes
+	if ( ( Item[ usItem ].usItemClass == IC_BOMB ) || ( Explosive[ Item[ usItem ].ubClassIndex ].fExplodeOnImpact ) ) // && ( object->ubActionCode == THROW_ARM_ITEM || pObject->fTestObject ) )
+		// Use a mortar shell objecttype to simulate impact explosives
+		CreateItem( MORTAR_SHELL, 100, &gTempObject );
+	else
+		// Use a grenade objecttype to simulate bouncy explosives
+		CreateItem( HAND_GRENADE, 100, &gTempObject );
 
 	FindBestForceForTrajectory( sSrcGridNo, sDestGridNo, GET_SOLDIER_THROW_HEIGHT( 0 ), 0, dDegrees, &gTempObject, &sFinalGridNo, &dMagForce );
 
@@ -2165,18 +2194,14 @@ FLOAT CalculateSoldierMaxForce( SOLDIERTYPE *pSoldier, FLOAT dDegrees , OBJECTTY
 
 	dDegrees = (FLOAT)( PI/4 );
 
-	uiMaxRange = CalcMaxTossRange( pSoldier, pItem->usItem, fArmed );
+	uiMaxRange = CalcMaxTossRange( pSoldier, pItem->usItem, fArmed, pItem );
 
-	dMagForce = CalculateForceFromRange( (INT16) uiMaxRange, dDegrees );
+	dMagForce = CalculateForceFromRange( pItem->usItem, (INT16) uiMaxRange, dDegrees );
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"CalculateSoldierMaxForce: done");
 	return( dMagForce );
 }
 
-
-#define MAX_MISS_BY		 30
-#define MIN_MISS_BY		 1
-#define MAX_MISS_RADIUS	5
 
 void CalculateLaunchItemParamsForThrow( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubLevel, INT16 sEndZ, OBJECTTYPE *pItem, INT8 bMissBy, UINT8 ubActionCode, UINT32 uiActionData )
 {
@@ -2303,7 +2328,26 @@ void CalculateLaunchItemParamsForThrow( SOLDIERTYPE *pSoldier, INT32 sGridNo, UI
 
 
 	sStartZ = GET_SOLDIER_THROW_HEIGHT( pSoldier->pathing.bLevel );
-	usLauncher = GetLauncherFromLaunchable( pItem->usItem );
+
+	//MM: Again, this only works if the launchers are all the same
+	//usLauncher = GetLauncherFromLaunchable( pItem->usItem );
+	//MM: Replacement:
+	OBJECTTYPE *pObj = NULL;
+	usLauncher = 0;
+	pObj = pSoldier->GetUsedWeapon( &pSoldier->inv[pSoldier->ubAttackingHand] );
+	if ( pObj != NULL )
+	{
+		if (Item[pObj->usItem].usItemClass == IC_LAUNCHER)
+			usLauncher = pObj->usItem;
+		else if (Item[pObj->usItem].usItemClass == IC_GUN)
+		{
+			usLauncher = GetAttachedGrenadeLauncher(pObj);
+		}
+	}
+	if ( usLauncher == 0) // fail back to the original
+		usLauncher = GetLauncherFromLaunchable( pItem->usItem );
+
+
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("physics.cpp line 2103"));
 
 	if ( fArmed && Item[usLauncher].mortar )
@@ -2366,9 +2410,17 @@ void CheckForObjectHittingMerc( REAL_OBJECT *pObject, UINT16 usStructureID )
 		{
 			if ( pObject->ubLastTargetTakenDamage != (UINT8)usStructureID )
 			{
+				// Flugente: if this fails, something is very wrong indeed
+				Assert(usStructureID<TOTAL_SOLDIERS);
+
 				pSoldier = MercPtrs[ usStructureID ];
 
-				sDamage = 1;
+				// silversurfer: Don't hurt civilians. Throwing objects at civilians to kill them is a lame exploit.
+				if ( pSoldier->aiData.bNeutral )
+					sDamage = 0;
+				else
+					sDamage = 1;
+
 				sBreath = 0;
 
 				pSoldier->EVENT_SoldierGotHit( NOTHING, sDamage, sBreath, pSoldier->ubDirection, 0, pObject->ubOwner, FIRE_WEAPON_TOSSED_OBJECT_SPECIAL, 0, 0, NOWHERE );
@@ -2442,7 +2494,7 @@ BOOLEAN AttemptToCatchObject( REAL_OBJECT *pObject )
 
 	// OK, get chance to catch
 	// base it on...? CC? Dexterity?
-	ubChanceToCatch = 50 + EffectiveDexterity( pSoldier ) / 2;
+	ubChanceToCatch = 50 + EffectiveDexterity( pSoldier, FALSE ) / 2;
 
 #ifdef JA2TESTVERSION
 	ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Chance To Catch: %d", ubChanceToCatch );
@@ -2506,7 +2558,7 @@ BOOLEAN DoCatchObject( REAL_OBJECT *pObject )
 	{
 		pObject->fDropItem = FALSE;
 
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_MERC_CAUGHT_ITEM ], pSoldier->name, ShortItemNames[ usItem ] );
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_MERC_CAUGHT_ITEM ], pSoldier->GetName(), ShortItemNames[ usItem ] );
 	}
 
 	return( TRUE );
@@ -2661,7 +2713,7 @@ void HandleArmedObjectImpact( REAL_OBJECT *pObject )
 			}
 			*/
 
-			IgniteExplosion( pObject->ubOwner, (INT16)pObject->Position.x, (INT16)pObject->Position.y, sZ, pObject->sGridNo, pObject->Obj.usItem, GET_OBJECT_LEVEL( pObject->Position.z - CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[ pObject->sGridNo ].sHeight ) ) );
+			IgniteExplosion( pObject->ubOwner, (INT16)pObject->Position.x, (INT16)pObject->Position.y, sZ, pObject->sGridNo, pObject->Obj.usItem, GET_OBJECT_LEVEL( pObject->Position.z - CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[ pObject->sGridNo ].sHeight ) ), DIRECTION_IRRELEVANT, &pObject->Obj );
 		}
 		else if ( Item[ pObject->Obj.usItem ].usItemClass == IC_BOMB	) //if ( pObject->Obj.usItem == MORTAR_SHELL )
 		{
@@ -2819,4 +2871,39 @@ INT32 RandomGridFromRadius( INT32 sSweetGridNo, INT8 ubMinRadius, INT8 ubMaxRadi
 	} while( !fFound );
 
 	return( sGridNo );
+}
+
+UINT32 GetArtilleryTargetGridNo( UINT32 sTargetGridNo, INT8 bRadius )
+{
+	return RandomGridFromRadius( sTargetGridNo, 1, bRadius );
+}
+
+BOOLEAN GetArtilleryLaunchParams( UINT32 sStartingGridNo, UINT32 sTargetGridNo, INT16 sStartZ, INT16 sEndZ, UINT16 usLauncher, OBJECTTYPE* pObj, FLOAT* pdForce, FLOAT* pdDegrees)
+{
+	FLOAT		dMagForce, dMaxForce, dMinForce;
+	FLOAT		dDegrees		= OUTDOORS_START_ANGLE;
+	INT16		sMinRange		= MIN_MORTAR_RANGE;
+
+	sStartZ			= 256;
+
+	// Find force for basic
+	INT32 sFinalGridNo = 0;
+	FindBestForceForTrajectory( sStartingGridNo, sTargetGridNo, sStartZ, sEndZ, dDegrees, pObj, &sFinalGridNo, &dMagForce );
+
+	INT32 uiMaxRange = GetModifiedGunRange(usLauncher) / CELL_X_SIZE;
+
+	dMaxForce = CalculateForceFromRange( NULL, (INT16) uiMaxRange, (FLOAT)( PI/4 ) );
+			
+	if ( dMagForce > dMaxForce )
+		dMagForce = dMaxForce;
+
+	dMinForce = CalculateForceFromRange( NULL, (INT16)( sMinRange / 10 ), (FLOAT)( PI / 4 ) );
+
+	if ( dMagForce < dMinForce )
+		dMagForce = dMinForce;
+		
+	(*pdForce)		= dMagForce;
+	(*pdDegrees) 	= dDegrees;
+
+	return TRUE;
 }

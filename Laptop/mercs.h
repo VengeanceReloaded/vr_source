@@ -109,7 +109,7 @@ enum
 };
 
 
-
+BOOLEAN CanMercBeAvailableDuringInit( UINT8 ubMercToCheck );// anv: for all mercs available
 void GameInitMercs();
 BOOLEAN EnterMercs();
 void ExitMercs();
@@ -123,15 +123,20 @@ BOOLEAN RemoveMercBackGround();
 void DailyUpdateOfMercSite( UINT16 usDate);
 UINT8 GetMercIDFromMERCArray(UINT8 ubMercID);
 
+UINT8 GetAvailableMercIndex(UINT8 gubCurMercIndex);
+UINT8 GetAvailableMercIDFromMERCArray(UINT8 ubMercID);
+
 void DisplayTextForSpeckVideoPopUp(STR16 pString);
 
 BOOLEAN IsMercMercAvailable( UINT8 ubMercID );
 
 void HandlePlayerHiringMerc( UINT8 ubHiredMercID );
 void EnterInitMercSite();
-
+#ifdef JA2UB
+//void GetMercSiteBackOnline();
+#else
 void GetMercSiteBackOnline();
-
+#endif
 void DisableMercSiteButton();
 
 extern	UINT16			gusMercVideoSpeckSpeech;
@@ -147,11 +152,29 @@ extern	UINT8			gubCurMercIndex;
 
 extern	BOOLEAN		gfJustHiredAMercMerc;
 
+// anv: moved declaration for use with playable Speck in other classes (Flo marrying Hicks)
+void MakeBiffAwayForCoupleOfDays();
+
+// anv: for playable Speck
+#ifdef JA2UB
+#else
+	BOOLEAN IsSpeckComAvailable();
+	void HandleSpeckWitnessingEmployeeDeath( SOLDIERTYPE* pSoldier );
+#endif
+
+// anv: for Kulba hireable after escort quest
+void AddJohnAsMerc( );
+
 void InitializeNumDaysMercArrive();
 
 void NewMercsAvailableAtMercSiteCallBack( );
 
 void CalcAproximateAmountPaidToSpeck();
+#ifdef JA2UB
+extern void			MarkSpeckImportantQuoteUsed( UINT32 uiQuoteNum );
+extern BOOLEAN		HasImportantSpeckQuoteBeingSaid( UINT32 uiQuoteNum );
+extern INT8			IsSpeckQuoteImportantQuote( UINT32 uiQuoteNum );
+#endif
 
 #endif
 

@@ -16,7 +16,6 @@
 	#include "renderworld.h"
 	#include "strategic turns.h"
 	#include "Event Pump.h"
-	#include "music control.h"
 	#include "dialogue control.h"
 	#include "ai.h"
 	#include "interface control.h"
@@ -30,6 +29,7 @@
 	#include "English.h"
 #endif
 
+#include "Music Control.h"
 
 // max number of merc faces per row in autobandage box
 #define NUMBER_MERC_FACES_AUTOBANDAGE_BOX 4
@@ -155,6 +155,14 @@ void BeginAutoBandage( )
 			DoMessageBox( MSG_BOX_BASIC_STYLE, TacticalStr[ BEGIN_AUTOBANDAGE_PROMPT_STR ], GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, BeginAutoBandageCallBack, NULL );
 		}
 	}
+	
+#ifdef NEWMUSIC
+	GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ];
+	if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] != -1 )
+		SetMusicModeID( MUSIC_TACTICAL_NOTHING, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] );
+	else
+		SetMusicMode( MUSIC_TACTICAL_NOTHING );
+#endif
 }
 
 
@@ -279,7 +287,7 @@ BOOLEAN HandleAutoBandage( )
 		// Deque all game events
 		DequeAllGameEvents( TRUE );
 
-		while (DequeueEvent(&InputEvent) == TRUE)
+		while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 		{
 			if ( InputEvent.usEvent == KEY_UP )
 			{
@@ -489,7 +497,7 @@ void AutoBandage( BOOLEAN fStart )
 			ActionDone( MercPtrs[ ubLoop ] );
 
 			// If anyone is still doing aid animation, stop!
-			if ( MercPtrs[ ubLoop ]->usAnimState == GIVING_AID )
+			if ( MercPtrs[ ubLoop ]->usAnimState == GIVING_AID || MercPtrs[ ubLoop ]->usAnimState == GIVING_AID_PRN )
 			{
 				MercPtrs[ ubLoop ]->SoldierGotoStationaryStance(	);
 			}
@@ -1078,6 +1086,45 @@ BOOLEAN AddFacesToAutoBandageBox( void )
 		// find a free slot
 		if( iDoctorList[ iCounter ] != -1 )
 		{
+		
+			
+			if( gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 )
+			{
+				// grab filename of face
+				if ((iDoctorList[ iCounter ] != -1) && ( gProfilesIMP[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ))
+					sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+				else
+					sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+			}
+			else
+			{
+				// grab filename of face
+				if ((iDoctorList[ iCounter ] != -1) && ( gProfilesIMP[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ))
+					sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+				else
+					sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+			}
+			
+		
+		/*
+		if ( ( gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 ) && ( gProfilesIMP[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ) )
+		{
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );	
+		} 
+		else if ( ( gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex > 99 ) && ( gProfilesIMP[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ) )
+		{			
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );		
+		}
+		else if(( gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 ) && ( gProfilesIMP[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ProfilId == -1 ))
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );	
+		}
+		else if(( gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex > 99 ) && ( gProfilesIMP[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ProfilId == -1 ))
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+		}
+		
+			
 			if( gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 )
 			{
 				// grab filename of face
@@ -1088,9 +1135,18 @@ BOOLEAN AddFacesToAutoBandageBox( void )
 				// grab filename of face
 				sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iDoctorList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
 			}
+			*/		
 
 			// load the face
-			AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter ] );
+		//	AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter ] );
+			
+			if( !AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter ] ) )
+			{
+				sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\speck.sti" );
+				AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter ] );
+
+			}
+			
 			iNumberOfDoctors++;
 
 		}
@@ -1101,6 +1157,43 @@ BOOLEAN AddFacesToAutoBandageBox( void )
 		// find a free slot
 		if( iPatientList[ iCounter ] != -1 )
 		{
+		
+			if( gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 )
+			{
+				// grab filename of face
+				if ((iPatientList[ iCounter ] != -1) && ( gProfilesIMP[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ))
+					sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+				else
+					sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+			}
+			else
+			{
+				// grab filename of face
+				if ((iPatientList[ iCounter ] != -1) && ( gProfilesIMP[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ))
+					sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+				else
+					sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+			}
+		
+	/*	
+		if ( ( gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 ) && ( gProfilesIMP[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ) )
+		{
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );	
+		} 
+		else if ( ( gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex > 99 ) && ( gProfilesIMP[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ProfilId == ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ) )
+		{			
+			sprintf( VObjectDesc.ImageFile, "IMPFaces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );		
+		}
+		else if(( gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 ) && ( gProfilesIMP[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ProfilId == -1 ))
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%02d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );	
+		}
+		else if(( gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex > 99 ) && ( gProfilesIMP[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ProfilId == -1 ))
+		{			
+			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
+		}
+			
+		
 			if( gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex < 100 )
 			{
 				// grab filename of face
@@ -1111,10 +1204,17 @@ BOOLEAN AddFacesToAutoBandageBox( void )
 				// grab filename of face
 				sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\%03d.sti", gMercProfiles[ ( Menptr[ iPatientList[ iCounter ] ] ).ubProfile ].ubFaceIndex );
 			}
-
+			*/
 			// load the face
-			AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter + iNumberOfDoctors ] );
+		//	AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter + iNumberOfDoctors ] );
+		
+			if( !AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter + iNumberOfDoctors ] ) )
+			{
+				sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\speck.sti" );
+				AddVideoObject( &VObjectDesc, (UINT32 *)&giAutoBandagesSoldierFaces[ iCounter + iNumberOfDoctors ] );
 
+			}
+		
 		}
 	}
 
@@ -1213,15 +1313,41 @@ BOOLEAN RenderSoldierSmallFaceForAutoBandagePanel( INT32 iIndex, INT16 sCurrentX
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+36, iStartY, sCurrentXPosition+37, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 107, 107, 57 ) ) );
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+37, iStartY, sCurrentXPosition+38, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 222, 181, 115 ) ) );
 
+	// poisoned bleeding in purple
+	if ( pSoldier->bPoisonBleeding )
+	{
+		iStartY = sCurrentYPosition + 29 - 27*(pSoldier->stats.bLifeMax - pSoldier->bBleeding + pSoldier->bPoisonBleeding)/100;
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+36, iStartY, sCurrentXPosition+37, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 107, 57, 107 ) ) );
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+37, iStartY, sCurrentXPosition+38, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 222, 115, 181 ) ) );
+	}
+
 	//pink one for bandaged.
-	iStartY += 27*pSoldier->bBleeding/100;
+	iStartY = sCurrentYPosition + 29 - 27*(pSoldier->stats.bLifeMax - pSoldier->bBleeding)/100;
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+36, iStartY, sCurrentXPosition+37, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 156, 57, 57 ) ) );
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+37, iStartY, sCurrentXPosition+38, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 222, 132, 132 ) ) );
+
+	// get amount of poisoned bandage
+	INT8 bPoisonBandage = pSoldier->bPoisonSum - pSoldier->bPoisonBleeding - pSoldier->bPoisonLife;
+	if ( bPoisonBandage )
+	{
+		// poisoned bandage in bright green
+		iStartY = sCurrentYPosition + 29 - 27*(pSoldier->stats.bLife +  bPoisonBandage)/100;
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+36, iStartY, sCurrentXPosition+37, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 57, 156, 57 ) ) );
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+37, iStartY, sCurrentXPosition+38, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 132, 222, 132 ) ) );
+	}
 
 	//red one for actual health
 	iStartY = sCurrentYPosition + 29 - 27*pSoldier->stats.bLife/100;
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+36, iStartY, sCurrentXPosition+37, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 107, 8, 8 ) ) );
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+37, iStartY, sCurrentXPosition+38, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 206, 0, 0 ) ) );
+
+	// poisoned life
+	if ( pSoldier->bPoisonLife )
+	{
+		iStartY = sCurrentYPosition + 29 - 27*pSoldier->bPoisonLife/100;
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+36, iStartY, sCurrentXPosition+37, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 8, 107, 8 ) ) );
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, sCurrentXPosition+37, iStartY, sCurrentXPosition+38, sCurrentYPosition+29, Get16BPPColor( FROMRGB( 0, 206, 0 ) ) );
+	}
 
 	//BREATH BAR
 	iStartY = sCurrentYPosition + 29 - 27*pSoldier->bBreathMax/100;

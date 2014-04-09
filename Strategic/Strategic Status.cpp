@@ -1,7 +1,6 @@
 #ifdef PRECOMPILEDHEADERS
 	#include "Strategic All.h"
 #else
-	#include <memory.h>
 	#include "Strategic Status.h"
 	#include "Inventory Choosing.h"
 	#include "FileMan.h"
@@ -10,8 +9,6 @@
 	#include "Strategic Mines.h"
 	#include "email.h"
 	#include "Game Clock.h"
-	#include "TopicIDs.h"
-	#include "TopicOps.h"
 	#include "Debug.h"
 	#include "GameSettings.h"
 	#include "history.h"
@@ -82,9 +79,9 @@ UINT8 CalcDeathRate(void)
 void ModifyPlayerReputation(INT8 bRepChange)
 {
 	INT32 iNewBadRep;
-
+	INT8 bRepChangeValue = gReputationSettings.bValues[bRepChange];
 	// subtract, so that a negative reputation change results in an increase in bad reputation
-	iNewBadRep = (INT32) gStrategicStatus.ubBadReputation - bRepChange;
+	iNewBadRep = (INT32) gStrategicStatus.ubBadReputation - bRepChangeValue;
 
 	// keep within a 0-100 range (0 = Saint, 100 = Satan)
 	iNewBadRep = __max(	0, iNewBadRep );
@@ -178,6 +175,43 @@ BOOLEAN MercThinksHisMoraleIsTooLow( SOLDIERTYPE *pSoldier )
 	}
 }
 
+BOOLEAN MercIsOwedTooMuchMoney( UINT8 ubProfileID )
+{
+	// merc complains if he he actually receives pay and did not get paid long enough
+	if( gMercProfiles[ ubProfileID ].sSalary > 0 && gMercProfiles[ ubProfileID ].iBalance >= gMercProfiles[ ubProfileID ].sSalary * gMoraleSettings.bValues[MORALE_OWED_MONEY_DAYS])
+	{
+		return(TRUE);
+	}
+	
+	return(FALSE);
+}
+
+BOOLEAN MercThinksPlayerIsInactiveTooLong( UINT8 ubProfileID )
+{
+	UINT8 ubTolerance;
+	ubTolerance = gMoraleSettings.bValues[MORALE_PLAYER_INACTIVE_DAYS];
+	if( gMercProfiles[ubProfileID].bCharacterTrait == CHAR_TRAIT_PACIFIST )
+	{
+		ubTolerance = max(0, ubTolerance + gMoraleSettings.bValues[MORALE_PLAYER_INACTIVE_DAYS_PACIFIST_BONUS]);
+	}
+	else if( gMercProfiles[ubProfileID].bCharacterTrait == CHAR_TRAIT_AGGRESSIVE )
+	{
+		ubTolerance = max(0, ubTolerance + gMoraleSettings.bValues[MORALE_PLAYER_INACTIVE_DAYS_AGGRESSIVE_BONUS]);
+	}
+	if( ubTolerance == 0)
+	{
+		return(FALSE);	
+	}
+	if( gStrategicStatus.ubNumberOfDaysOfInactivity >= ubTolerance )
+	{
+		return(TRUE);
+	}
+	else
+	{
+		return(FALSE);
+	}
+}
+
 void UpdateLastDayOfPlayerActivity( UINT16 usDay )
 {
 	if ( usDay > gStrategicStatus.usLastDayOfPlayerActivity )
@@ -208,10 +242,13 @@ void HandleEnricoEmail(void)
 	UINT8 ubCurrentProgress = CurrentPlayerProgressPercentage();
 	UINT8 ubHighestProgress = HighestPlayerProgressPercentage();
 
+#ifdef JA2UB
+//JA25 UB	
+#else
 	// if creatures have attacked a mine (doesn't care if they're still there or not at the moment)
 	if (HasAnyMineBeenAttackedByMonsters() && !(gStrategicStatus.usEnricoEmailFlags & ENRICO_EMAIL_SENT_CREATURES))
 	{
-		AddEmail(ENRICO_CREATURES, ENRICO_CREATURES_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+		AddEmail(ENRICO_CREATURES, ENRICO_CREATURES_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 		gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_CREATURES;
 		return;	// avoid any other E-mail at the same time
 	}
@@ -219,21 +256,21 @@ void HandleEnricoEmail(void)
 
 	if ((ubCurrentProgress >= SOME_PROGRESS_THRESHOLD) && !(gStrategicStatus.usEnricoEmailFlags & ENRICO_EMAIL_SENT_SOME_PROGRESS))
 	{
-		AddEmail(ENRICO_PROG_20, ENRICO_PROG_20_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+		AddEmail(ENRICO_PROG_20, ENRICO_PROG_20_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 		gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_SOME_PROGRESS;
 		return;	// avoid any setback E-mail at the same time
 	}
 
 	if ((ubCurrentProgress >= ABOUT_HALFWAY_THRESHOLD) && !(gStrategicStatus.usEnricoEmailFlags & ENRICO_EMAIL_SENT_ABOUT_HALFWAY))
 	{
-		AddEmail(ENRICO_PROG_55, ENRICO_PROG_55_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+		AddEmail(ENRICO_PROG_55, ENRICO_PROG_55_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 		gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_ABOUT_HALFWAY;
 		return;	// avoid any setback E-mail at the same time
 	}
 
 	if ((ubCurrentProgress >= NEARLY_DONE_THRESHOLD) && !(gStrategicStatus.usEnricoEmailFlags & ENRICO_EMAIL_SENT_NEARLY_DONE))
 	{
-		AddEmail(ENRICO_PROG_80, ENRICO_PROG_80_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+		AddEmail(ENRICO_PROG_80, ENRICO_PROG_80_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 		gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_NEARLY_DONE;
 		return;	// avoid any setback E-mail at the same time
 	}
@@ -243,7 +280,7 @@ void HandleEnricoEmail(void)
 	 (((ubHighestProgress - ubCurrentProgress) >= MINOR_SETBACK_THRESHOLD) && (gStrategicStatus.usEnricoEmailFlags & ENRICO_EMAIL_FLAG_SETBACK_OVER))) &&
 			!(gStrategicStatus.usEnricoEmailFlags & ENRICO_EMAIL_SENT_MAJOR_SETBACK))
 	{
-		AddEmail(ENRICO_SETBACK, ENRICO_SETBACK_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+		AddEmail(ENRICO_SETBACK, ENRICO_SETBACK_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 		gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_MAJOR_SETBACK;
 	}
 	else
@@ -251,7 +288,7 @@ void HandleEnricoEmail(void)
 	if (((ubHighestProgress - ubCurrentProgress) >= MINOR_SETBACK_THRESHOLD) &&
 		!(gStrategicStatus.usEnricoEmailFlags & (ENRICO_EMAIL_SENT_MINOR_SETBACK | ENRICO_EMAIL_SENT_MAJOR_SETBACK)))
 	{
-		AddEmail(ENRICO_SETBACK_2, ENRICO_SETBACK_2_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+		AddEmail(ENRICO_SETBACK_2, ENRICO_SETBACK_2_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 		gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_MINOR_SETBACK;
 	}
 	else
@@ -314,15 +351,15 @@ void HandleEnricoEmail(void)
 				switch( bComplaint )
 				{
 					case 3:
-						AddEmail(LACK_PLAYER_PROGRESS_3, LACK_PLAYER_PROGRESS_3_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+						AddEmail(LACK_PLAYER_PROGRESS_3, LACK_PLAYER_PROGRESS_3_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 						gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_LACK_PROGRESS3;
 						break;
 					case 2:
-						AddEmail(LACK_PLAYER_PROGRESS_2, LACK_PLAYER_PROGRESS_2_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+						AddEmail(LACK_PLAYER_PROGRESS_2, LACK_PLAYER_PROGRESS_2_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 						gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_LACK_PROGRESS2;
 						break;
 					default:
-						AddEmail(LACK_PLAYER_PROGRESS_1, LACK_PLAYER_PROGRESS_1_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
+						AddEmail(LACK_PLAYER_PROGRESS_1, LACK_PLAYER_PROGRESS_1_LENGTH, MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
 						gStrategicStatus.usEnricoEmailFlags |= ENRICO_EMAIL_SENT_LACK_PROGRESS1;
 						break;
 
@@ -343,7 +380,7 @@ void HandleEnricoEmail(void)
 			}
 		}
 	}
-
+#endif
 	// reset # of new sectors visited 'today'
 	// grant some leeway for the next day, could have started moving
 	// at night...

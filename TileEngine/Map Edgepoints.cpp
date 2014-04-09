@@ -1,7 +1,7 @@
+	#include <cmath>		// added by Flugente
 #ifdef PRECOMPILEDHEADERS
 	#include "TileEngine All.h"
 #else
-	#include <memory.h>
 	#include "Map Edgepoints.h"
 
 	#include "pathai.h"
@@ -75,49 +75,109 @@ BOOLEAN EdgepointsClose( SOLDIERTYPE *pSoldier, INT32 sEdgepoint1, INT32 sEdgepo
 
 extern UINT8 gubTacticalDirection;
 
+
+BOOLEAN GridNoValidForCenterEntryPoint(INT32 sGridNo)
+{
+	if ( GridNoOnVisibleWorldTile( sGridNo ) && gpWorldLevelData[gMapInformation.sCenterGridNo].sHeight == gpWorldLevelData[sGridNo].sHeight && !FindStructure( sGridNo, (STRUCTURE_SLANTED_ROOF|STRUCTURE_TALL_ROOF) ) )
+		return TRUE;
+	
+	return FALSE;
+}
+
+#define	CENTER_ENTRY_POINTS_ROW		100
+#define NUM_CENTER_ENTRY_POINTS		(CENTER_ENTRY_POINTS_ROW * CENTER_ENTRY_POINTS_ROW)
+
+static INT32* statCentGrid = NULL;
+static INT32 numcentergridnos = 0;
+void FillCentreGridnos(BOOLEAN fCenterOnly)
+{
+	static INT16 sectorX = -1;
+	static INT16 sectorY = -1;
+
+	// generate points only if current points are for a different map
+	if ( gWorldSectorX == sectorX && gWorldSectorY == sectorY )
+		return;
+
+	sectorX = gWorldSectorX;
+	sectorY = gWorldSectorY;
+		
+	statCentGrid = (INT32*)MemAlloc( NUM_CENTER_ENTRY_POINTS * sizeof( INT32 ) );
+
+	FLOAT lenx = 0.0f;
+	if ( fCenterOnly )
+		lenx = std::sqrt((float)(CENTERENTRYPTS_TOP_Y*CENTERENTRYPTS_TOP_Y + CENTERENTRYPTS_LEFT_X*CENTERENTRYPTS_LEFT_X));
+
+	FLOAT lent = std::sqrt((float)((320-3)*(320-3) + 634*634));
+	FLOAT xratio = lenx/lent;
+
+	// top row of gridnos isn't accessible, we thus have to shorten the accessible lenghts
+	INT32 world_cols_adjusted = WORLD_COLS - 3;
+	INT32 world_rows_adjusted = WORLD_ROWS - 3;
+
+	INT32 x_base	= world_cols_adjusted * xratio;
+	INT32 y_base	= world_rows_adjusted/2;
+
+	INT32 totallen  = std::sqrt((float)(world_rows_adjusted * world_rows_adjusted + world_cols_adjusted * world_cols_adjusted));
+	INT32 droplen   = (FLOAT)(totallen * (1.0f - 2 * xratio));
+	FLOAT steplen   = (FLOAT)(droplen) / (FLOAT)(CENTER_ENTRY_POINTS_ROW);
+
+	UINT16 cnt = 0;
+	for(UINT16 i = 0; i < CENTER_ENTRY_POINTS_ROW; ++i)
+	{
+		INT32 x_start = x_base + i * steplen;
+		INT32 y_start = y_base + i * steplen;
+
+		for(UINT16 j = 0; j < CENTER_ENTRY_POINTS_ROW; ++j)
+		{
+			INT32 x = x_start + j * steplen;
+			INT32 y = y_start - j * steplen;
+
+			INT32 gridno = y * WORLD_COLS + x;
+
+			// use gridno only if valid and if it does not have an inaccessible roof
+			if ( GridNoValidForCenterEntryPoint( gridno ) )
+			{
+				statCentGrid[ cnt ] = gridno;
+				++cnt;
+			}
+			else
+			{
+				// test wether neighbour gridnos are ok
+				for(UINT8 dir = NORTH; dir < NUM_WORLD_DIRECTIONS; ++dir)
+				{
+					INT32 newgridno = NewGridNo(gridno, dir);
+					if ( GridNoValidForCenterEntryPoint( newgridno ) )
+					{
+						statCentGrid[ cnt ] = newgridno;
+						++cnt;
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	numcentergridnos = cnt;
+}
+
 // WANNE - MP: Center
-void InitCenterEdgepoint()
+void InitCenterEdgepoint(BOOLEAN fCenterOnly)
 {
 	if (gps1stCenterEdgepointArray )
 		MemFree( gps1stCenterEdgepointArray );
 
 	gps1stCenterEdgepointArray = NULL;
 
+	FillCentreGridnos(fCenterOnly);
+
 	// Set some center points
-	gus1stCenterEdgepointArraySize = 30;
+	gus1stCenterEdgepointArraySize = numcentergridnos;
 
 	gps1stCenterEdgepointArray = (INT32*)MemAlloc( gus1stCenterEdgepointArraySize * sizeof( INT32 ) );
 
-	gps1stCenterEdgepointArray[ 0 ] = 13024;
-	gps1stCenterEdgepointArray[ 1 ] = 13507;
-	gps1stCenterEdgepointArray[ 2 ] = 13990;
-	gps1stCenterEdgepointArray[ 3 ] = 14473;
-	gps1stCenterEdgepointArray[ 4 ] = 15117;
-	gps1stCenterEdgepointArray[ 5 ] = 12547;
-	gps1stCenterEdgepointArray[ 6 ] = 13030;
-	gps1stCenterEdgepointArray[ 7 ] = 13513;
-	gps1stCenterEdgepointArray[ 8 ] = 13996;
-	gps1stCenterEdgepointArray[ 9 ] = 14479;
-	gps1stCenterEdgepointArray[ 10 ] = 12070;
-	gps1stCenterEdgepointArray[ 11 ] = 12553;
-	gps1stCenterEdgepointArray[ 12 ] = 13036;
-	gps1stCenterEdgepointArray[ 13 ] = 13519;
-	gps1stCenterEdgepointArray[ 14 ] = 14002;
-	gps1stCenterEdgepointArray[ 15 ] = 11593;
-	gps1stCenterEdgepointArray[ 16 ] = 12076;
-	gps1stCenterEdgepointArray[ 17 ] = 12559;
-	gps1stCenterEdgepointArray[ 18 ] = 13042;
-	gps1stCenterEdgepointArray[ 19 ] = 13525;
-	gps1stCenterEdgepointArray[ 20 ] = 11117;
-	gps1stCenterEdgepointArray[ 21 ] = 11600;
-	gps1stCenterEdgepointArray[ 22 ] = 12083;
-	gps1stCenterEdgepointArray[ 23 ] = 12566;
-	gps1stCenterEdgepointArray[ 24 ] = 13049;
-	gps1stCenterEdgepointArray[ 25 ] = 10640;
-	gps1stCenterEdgepointArray[ 26 ] = 11123;
-	gps1stCenterEdgepointArray[ 27 ] = 11606;
-	gps1stCenterEdgepointArray[ 28 ] = 12089;
-	gps1stCenterEdgepointArray[ 29 ] = 12572;
+	for(UINT16 i = 0; i < numcentergridnos; ++i)
+		gps1stCenterEdgepointArray[i] = statCentGrid[i];
 }
 
 void TrashMapEdgepoints()
@@ -150,8 +210,7 @@ void TrashMapEdgepoints()
 	gus1stEastEdgepointMiddleIndex		= 0;
 	gus1stSouthEdgepointMiddleIndex		= 0;
 	gus1stWestEdgepointMiddleIndex		= 0;
-
-	
+		
 	//Secondary edgepoints
 	if( gps2ndNorthEdgepointArray )
 		MemFree( gps2ndNorthEdgepointArray );
@@ -384,6 +443,13 @@ void InternallyClassifyEdgepoints( SOLDIERTYPE *pSoldier, INT32 sGridNo,
 	{
 		*psArray2 = (INT32*)MemAlloc( sizeof( INT32 ) * 400 );
 	}
+	// silversurfer: hackfix for crash on maps with isolated entry points
+	// we can't just keep adding data to psArray2 because it has only a fixed amount of memory available
+	// if we keep adding beyond that we overwrite foreign data!
+	// memory allocation for the real gps2nd<insert compass point here>EdgepointArray is done in function void GenerateMapEdgepoints(BOOLEAN fValidate)
+	// let's blow this up to some bigger amount, sizeof( INT32 ) * 400 will do for now
+	(*psArray2) = (INT32*)MemRealloc( (*psArray2), sizeof( INT32 ) * 400 );
+
 	for( i = 0; i < *pusArraySize1; i++ )
 	{
 		if( sGridNo == (*psArray1)[ i ] )
@@ -486,6 +552,7 @@ void InternallyClassifyEdgepoints( SOLDIERTYPE *pSoldier, INT32 sGridNo,
 	}
 	//Now compact the primary array, because some edgepoints have been removed.
 	CompactEdgepointArray( psArray1, pusMiddleIndex1, pusArraySize1 );
+	// silversurfer: this is the point where the editor will crash with a HeapValidate() error because we have been adding data beyond reserved memory
 	(*psArray2) = (INT32*)MemRealloc( (*psArray2), *pusArraySize2 * sizeof( INT32 ) );
 }
 
@@ -583,10 +650,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 			for(x, y; x<WORLD_COLS/2+i; x++, y--)
 			{
 				sGridNo = x + y * WORLD_COLS;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stNorthEdgepointArraySize++] = sGridNo;
 				++sGridNo;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stNorthEdgepointArraySize++] = sGridNo;
 			}
 		}
@@ -607,10 +674,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 			for(x, y; x<WORLD_COLS-i; x++, y++)
 			{
 				sGridNo = x + y * WORLD_COLS;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stEastEdgepointArraySize++] = sGridNo;
 				sGridNo += WORLD_COLS;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stEastEdgepointArraySize++] = sGridNo;
 			}
 		}
@@ -631,10 +698,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 			for(x, y; x>=WORLD_COLS/2-i; x--, y++)
 			{
 				sGridNo = x + y * WORLD_COLS;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stSouthEdgepointArraySize++] = sGridNo;
 				--sGridNo;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stSouthEdgepointArraySize++] = sGridNo;
 			}
 		}
@@ -655,10 +722,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 			for(x, y; x>=0+i; x--, y--)
 			{
 				sGridNo = x + y * WORLD_COLS;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stWestEdgepointArraySize++] = sGridNo;
 				sGridNo -= WORLD_COLS;
-				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+				if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 					sVGridNo[gus1stWestEdgepointArraySize++] = sGridNo;
 			}
 		}
@@ -684,10 +751,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 				for(x, y; x<WORLD_COLS/2+i; x++, y--)
 				{
 					sGridNo = x + y * WORLD_COLS;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndNorthEdgepointArraySize++] = sGridNo;
 					++sGridNo;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndNorthEdgepointArraySize++] = sGridNo;
 				}
 			}
@@ -708,10 +775,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 				for(x, y; x<WORLD_COLS-i; x++, y++)
 				{
 					sGridNo = x + y * WORLD_COLS;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndEastEdgepointArraySize++] = sGridNo;
 					sGridNo += WORLD_COLS;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndEastEdgepointArraySize++] = sGridNo;
 				}
 			}
@@ -732,10 +799,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 				for(x, y; x>=WORLD_COLS/2-i; x--, y++)
 				{
 					sGridNo = x + y * WORLD_COLS;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndSouthEdgepointArraySize++] = sGridNo;
 					--sGridNo;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndSouthEdgepointArraySize++] = sGridNo;
 				}
 			}
@@ -756,10 +823,10 @@ void GenerateMapEdgepoints(BOOLEAN fValidate)
 				for(x, y; x>=0+i; x--, y--)
 				{
 					sGridNo = x + y * WORLD_COLS;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndWestEdgepointArraySize++] = sGridNo;
 					sGridNo -= WORLD_COLS;
-					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gubWorldRoomInfo[sGridNo] || gfBasement))
+					if(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE && (!gusWorldRoomInfo[sGridNo] || gfBasement))
 						sVGridNo[gus2ndWestEdgepointArraySize++] = sGridNo;
 				}
 			}
@@ -1045,9 +1112,9 @@ INT32 ChooseMapEdgepoint( UINT8 *ubStrategicInsertionCode, UINT8 lastValidICode 
 	if( *ubStrategicInsertionCode == INSERTION_CODE_GRIDNO)
 		*ubStrategicInsertionCode = lastValidICode;
 
-	if (is_networked && *ubStrategicInsertionCode == INSERTION_CODE_CENTER)
+	if ( (is_networked && *ubStrategicInsertionCode == INSERTION_CODE_CENTER) || *ubStrategicInsertionCode == INSERTION_CODE_CHOPPER )
 	{
-		InitCenterEdgepoint();
+		InitCenterEdgepoint( *ubStrategicInsertionCode == INSERTION_CODE_CENTER );
 
 		psArray = gps1stCenterEdgepointArray;
 		usArraySize = gus1stCenterEdgepointArraySize;
@@ -1332,9 +1399,9 @@ INT32 SearchForClosestPrimaryMapEdgepoint(INT32 sGridNo, UINT8 ubInsertionCode, 
 		break;
 	}
 	// WANNE - MP: Center
-	if(is_networked && ubInsertionCode == INSERTION_CODE_CENTER)
+	if( (is_networked && ubInsertionCode == INSERTION_CODE_CENTER) || ubInsertionCode == INSERTION_CODE_CHOPPER )
 	{
-		InitCenterEdgepoint();
+		InitCenterEdgepoint( ubInsertionCode == INSERTION_CODE_CENTER );
 		psArray = gps1stCenterEdgepointArray;
 		usArraySize = gus1stCenterEdgepointArraySize;
 	}

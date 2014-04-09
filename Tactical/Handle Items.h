@@ -133,6 +133,11 @@ BOOLEAN DoesItemPoolContainAllHiddenItems( ITEM_POOL *pItemPool );
 void HandleSoldierDropBomb( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 void HandleSoldierUseRemote( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 
+void HandleTacticalFunctionSelection( SOLDIERTYPE *pSoldier, INT32 sGridNo );	// Flugente: in tactical, open a selection box for different actions
+
+void HandleSoldierUseCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel );	// Flugente: handle corpses
+void HandleSoldierDefuseTripwire( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT32 sItem );	// Flugente: defuse tripwire
+
 BOOLEAN ItemPoolOKForDisplay( ITEM_POOL *pItemPool, INT8 bZLevel );
 INT16 GetNumOkForDisplayItemsInPool( ITEM_POOL *pItemPool, INT8 bZLevel );
 
@@ -174,6 +179,9 @@ void SoldierStealItemFromSoldier( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent,
 UINT8 StealItems(SOLDIERTYPE* pSoldier,SOLDIERTYPE* pOpponent, UINT8* ubIndexRet);
 
 BOOLEAN MarblesExistAtLocation( INT32 sGridNo, UINT8 ubLevel, INT32 * piItemIndex );
+
+BOOLEAN BuildFortification( INT32 sGridNo , UINT32 flag = FULL_SANDBAG );	// Flugente: build a structure, return true if sucessful
+BOOLEAN RemoveFortification( INT32 sGridNo );
 
 extern ITEM_POOL *gpItemPool;//dnl ch26 210909
 

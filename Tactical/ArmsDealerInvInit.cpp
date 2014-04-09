@@ -267,7 +267,12 @@ DEALER_POSSIBLE_INV gTonyInventory[MAXITEMS+1];// =
 //
 // Devin		( Explosives )
 //
+//Betty UB
+#ifdef JA2UB
+DEALER_POSSIBLE_INV gBettyInventory[MAXITEMS+1];// =
+#else
 DEALER_POSSIBLE_INV gDevinInventory[MAXITEMS+1];// =
+#endif
 //{
 //	{	STUN_GRENADE,							3 },
 //	{	TEARGAS_GRENADE,					3 },
@@ -665,7 +670,11 @@ DEALER_POSSIBLE_INV gArnieInventory[MAXITEMS+1];// =
 //
 // Perko			( REPAIR)
 //
+#ifdef JA2UB
+DEALER_POSSIBLE_INV gRaulInventory[MAXITEMS+1];
+#else
 DEALER_POSSIBLE_INV gPerkoInventory[MAXITEMS+1];// =
+#endif
 //{
 //	// NO INVENTORY
 //
@@ -682,7 +691,9 @@ DEALER_POSSIBLE_INV gFredoInventory[MAXITEMS+1];// =
 //	{ LAST_DEALER_ITEM,	NO_DEALER_ITEM },		//Last One
 //};
 
+DEALER_POSSIBLE_INV gTinaInventory[MAXITEMS+1];
 
+DEALER_POSSIBLE_INV gArmsDealerAdditional[ADDITIONAL_ARMS_DEALERS][MAXITEMS+1];
 
 // prototypes
 
@@ -694,6 +705,13 @@ INT8 GetDealersMaxItemAmount( UINT8 ubDealerID, UINT16 usItemIndex )
 {
 	switch( ubDealerID )
 	{
+	
+#ifdef JA2UB
+		case ARMS_DEALER_BETTY:
+			return( GetMaxItemAmount( gBettyInventory, usItemIndex ) );
+			break;
+#endif			
+  // Ja25: Not in exp.
 		case ARMS_DEALER_TONY:
 			return( GetMaxItemAmount( gTonyInventory, usItemIndex ) );
 			break;
@@ -709,11 +727,15 @@ INT8 GetDealersMaxItemAmount( UINT8 ubDealerID, UINT16 usItemIndex )
 		case ARMS_DEALER_ARNIE:
 			return( GetMaxItemAmount( gArnieInventory, usItemIndex ) );
 			break;
-
+#ifdef JA2UB
+		case ARMS_DEALER_RAUL:
+			return( GetMaxItemAmount( gRaulInventory, usItemIndex ) ); //
+			break;
+#else			
 		case ARMS_DEALER_PERKO:
 			return( GetMaxItemAmount( gPerkoInventory, usItemIndex ) );
 			break;
-
+#endif
 		case ARMS_DEALER_KEITH:
 			return( GetMaxItemAmount( gKeithInventory, usItemIndex ) );
 			break;
@@ -757,11 +779,13 @@ INT8 GetDealersMaxItemAmount( UINT8 ubDealerID, UINT16 usItemIndex )
 		case ARMS_DEALER_GABBY:
 			return( GetMaxItemAmount( gGabbyInventory, usItemIndex ) );
 			break;
-
+#ifdef JA2UB
+			//no ub
+#else
 		case ARMS_DEALER_DEVIN:
 			return( GetMaxItemAmount( gDevinInventory, usItemIndex ) );
 			break;
-
+#endif
 		case ARMS_DEALER_ELGIN:
 			return( GetMaxItemAmount( gElginInventory, usItemIndex ) );
 			break;
@@ -770,7 +794,18 @@ INT8 GetDealersMaxItemAmount( UINT8 ubDealerID, UINT16 usItemIndex )
 			return( GetMaxItemAmount( gMannyInventory, usItemIndex ) );
 			break;
 
+		case ARMS_DEALER_TINA:
+			return( GetMaxItemAmount( gTinaInventory, usItemIndex ) );
+			break;
+
 		default:
+			{
+				if ( ubDealerID < NUM_ARMS_DEALERS )
+				{
+					UINT8 additionaldealernumber = ubDealerID - ARMS_DEALER_ADDITIONAL_1;
+					return( GetMaxItemAmount( gArmsDealerAdditional[additionaldealernumber], usItemIndex ) );
+				}
+			}
 			Assert( FALSE );
 			return( 0 );
 			break;
@@ -801,6 +836,11 @@ DEALER_POSSIBLE_INV *GetPointerToDealersPossibleInventory( UINT8 ubArmsDealerID 
 {
 	switch( ubArmsDealerID )
 	{
+	#ifdef JA2UB
+		case ARMS_DEALER_BETTY:
+			return( gBettyInventory );
+			break;
+	#endif
 		case ARMS_DEALER_TONY:
 			return( gTonyInventory );
 			break;
@@ -817,10 +857,15 @@ DEALER_POSSIBLE_INV *GetPointerToDealersPossibleInventory( UINT8 ubArmsDealerID 
 			return( gArnieInventory );
 			break;
 
+#ifdef JA2UB
+		case ARMS_DEALER_RAUL:
+			return( gRaulInventory );
+			break;
+#else
 		case ARMS_DEALER_PERKO:
 			return( gPerkoInventory );
 			break;
-
+#endif
 		case ARMS_DEALER_KEITH:
 			return( gKeithInventory );
 			break;
@@ -864,11 +909,13 @@ DEALER_POSSIBLE_INV *GetPointerToDealersPossibleInventory( UINT8 ubArmsDealerID 
 		case ARMS_DEALER_GABBY:
 			return( gGabbyInventory );
 			break;
-
+#ifdef JA2UB
+			//no UB
+#else
 		case ARMS_DEALER_DEVIN:
 			return( gDevinInventory );
 			break;
-
+#endif			
 		case ARMS_DEALER_ELGIN:
 			return( gElginInventory );
 			break;
@@ -877,7 +924,18 @@ DEALER_POSSIBLE_INV *GetPointerToDealersPossibleInventory( UINT8 ubArmsDealerID 
 			return( gMannyInventory );
 			break;
 
+		case ARMS_DEALER_TINA:
+			return( gTinaInventory );
+			break;
+
 		default:
+			{
+				if ( ubArmsDealerID < NUM_ARMS_DEALERS )
+				{
+					UINT8 additionaldealernumber = ubArmsDealerID - ARMS_DEALER_ADDITIONAL_1;
+					return( gArmsDealerAdditional[additionaldealernumber] );
+				}
+			}
 			return( NULL );
 	}
 }
@@ -955,9 +1013,9 @@ UINT8 GetCurrentSuitabilityForItem( INT8 bArmsDealer, UINT16 usItemIndex, BOOLEA
 	}
 
 	//Madd:  Bobby Ray's will sell higher coolness stuff if it's used, and may also have a better selection at the start of the game, depending on selection
-	if ( (bArmsDealer == bobbyRaysID || armsDealerInfo[bArmsDealer].useBRSetting) && gGameOptions.ubBobbyRay > BR_GOOD )
+	if ( (bArmsDealer == bobbyRaysID || armsDealerInfo[bArmsDealer].useBRSetting) && gGameOptions.ubBobbyRayQuality > BR_GOOD )
 	{
-		ubMaxCoolness += gGameOptions.ubBobbyRay - 1;
+		ubMaxCoolness += gGameOptions.ubBobbyRayQuality - 1;
 		if (fUsed )
 		{
 			ubMaxCoolness += 1;
@@ -970,7 +1028,9 @@ UINT8 GetCurrentSuitabilityForItem( INT8 bArmsDealer, UINT16 usItemIndex, BOOLEA
 		ubMinCoolness += armsDealerInfo[bArmsDealer].addToCoolness;
 		ubMaxCoolness += armsDealerInfo[bArmsDealer].addToCoolness;
 		ubMinCoolness = max( armsDealerInfo[bArmsDealer].minCoolness, min( 9, ubMinCoolness ) );
-		ubMaxCoolness = max( 2, min( armsDealerInfo[bArmsDealer].maxCoolness, ubMaxCoolness ) );
+		// silversurfer: max coolness should never be lower than min coolness!
+		//ubMaxCoolness = max( 2, min( armsDealerInfo[bArmsDealer].maxCoolness, ubMaxCoolness ) );
+		ubMaxCoolness = max( (ubMinCoolness + 1), min( armsDealerInfo[bArmsDealer].maxCoolness, ubMaxCoolness ) );
 	}
 	/*
 	if (bArmsDealer == ARMS_DEALER_TONY)
@@ -979,8 +1039,8 @@ UINT8 GetCurrentSuitabilityForItem( INT8 bArmsDealer, UINT16 usItemIndex, BOOLEA
 		ubMaxCoolness += 1;
 
 		if (gGameExternalOptions.tonyUsesBRSetting) {
-			ubMinCoolness += gGameOptions.ubBobbyRay / 3;
-			ubMaxCoolness += gGameOptions.ubBobbyRay;
+			ubMinCoolness += gGameOptions.ubBobbyRayQuality / 3;
+			ubMaxCoolness += gGameOptions.ubBobbyRayQuality;
 		}
 	}
 	else if (bArmsDealer == ARMS_DEALER_DEVIN)
@@ -993,8 +1053,8 @@ UINT8 GetCurrentSuitabilityForItem( INT8 bArmsDealer, UINT16 usItemIndex, BOOLEA
 		}
 
 		if (gGameExternalOptions.devinUsesBRSetting) {
-			ubMinCoolness += gGameOptions.ubBobbyRay / 3;
-			ubMaxCoolness += gGameOptions.ubBobbyRay;
+			ubMinCoolness += gGameOptions.ubBobbyRayQuality / 3;
+			ubMaxCoolness += gGameOptions.ubBobbyRayQuality;
 		}
 	}
     */
@@ -1102,7 +1162,7 @@ UINT8 ChanceOfItemTransaction( INT8 bArmsDealer, UINT16 usItemIndex, BOOLEAN fDe
 
 	// Madd
 	if ( !fDealerIsSelling && fBobbyRay )
-	    ubChance = min(100,gGameOptions.ubBobbyRay * ubChance);
+	    ubChance = min(100,gGameOptions.ubBobbyRayQuality * ubChance);
 
 	// if there's any uncertainty
 	if ((ubChance > 0) && (ubChance < 100))
@@ -1116,7 +1176,7 @@ UINT8 ChanceOfItemTransaction( INT8 bArmsDealer, UINT16 usItemIndex, BOOLEAN fDe
 			ubChance /= 2;
 
 			if ( fBobbyRay )
-			    ubChance /= gGameOptions.ubBobbyRay;
+			    ubChance /= gGameOptions.ubBobbyRayQuality;
 		}
 
 		// used items are traded more rarely

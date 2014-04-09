@@ -97,39 +97,33 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>bin\VS2010\$(Configuration)\</OutDir>
-    <IntDir>build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <TargetName>JA2_EN_Debug.exe</TargetName>
-    <TargetExt />
+    <OutDir>$(SolutionDir)\bin\VS2010\</OutDir>
+    <TargetName>$(JA2Config)_$(JA2LangPrefix)_$(Configuration)</TargetName>
+    <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>bin\VS2010\$(Configuration)\</OutDir>
-    <IntDir>build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <TargetExt>
-    </TargetExt>
-    <TargetName>MapEditor_EN_Debug.exe</TargetName>
+    <OutDir>$(SolutionDir)\bin\VS2010\</OutDir>
+    <TargetExt>.exe</TargetExt>
+    <TargetName>MapEditor_$(JA2LangPrefix)_Debug</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>bin\VS2010\$(Configuration)\</OutDir>
-    <IntDir>build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <TargetName>JA2_PO_Release.exe</TargetName>
-    <TargetExt />
+    <OutDir>$(SolutionDir)\bin\VS2010\</OutDir>
+    <TargetName>$(JA2Config)_$(JA2LangPrefix)_$(Configuration)</TargetName>
+    <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditor|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>bin\VS2010\$(Configuration)\</OutDir>
-    <IntDir>build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <TargetName>MapEditor_EN_Release.exe</TargetName>
-    <TargetExt />
+    <OutDir>$(SolutionDir)\bin\VS2010\</OutDir>
+    <TargetName>MapEditor_$(JA2LangPrefix)_Release</TargetName>
+    <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Relese_WithDebugInfo|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>bin\VS2010\$(Configuration)\</OutDir>
-    <IntDir>build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <TargetName>JA2_EN_ReleaseDebugInfo.exe</TargetName>
-    <TargetExt />
+    <OutDir>$(SolutionDir)\bin\VS2010\</OutDir>
+    <TargetName>$(JA2Config)_$(JA2LangPrefix)_$(Configuration)</TargetName>
+    <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -139,13 +133,14 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>..\.;.\.;.\ext\VFS\include;..\ext\VFS\include;..\Utils;.\Utils;..\TileEngine;.\TileEngine;..\TacticalAI;.\TacticalAI;..\Tactical;.\Tactical;..\Strategic;.\Strategic;..\Standard Gaming Platform;.\Standard Gaming Platform;..\Res;.\Res;..\lua;.\lua;..\Laptop;.\Laptop;..\Multiplayer;.\Multiplayer;..\Multiplayer\raknet;.\Multiplayer\raknet;..\Editor;.\Editor;..\ModularizedTacticalAI;.\ModularizedTacticalAI;..\Console;.\Console;.\ext\libpng;..\ext\libpng;.\ext\zlib;..\ext\zlib;;$(NOINHERIT)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>Multiplayer\raknet;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Winmm.lib;RakNetLibStatic.lib;ws2_32.lib;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)\JA2_EN_Debug.exe</OutputFile>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'">
@@ -163,6 +158,7 @@
       <AdditionalLibraryDirectories>Multiplayer\raknet;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Winmm.lib;RakNetLibStatic.lib;ws2_32.lib;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)\MapEditor_EN_Debug.exe</OutputFile>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -178,12 +174,11 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>Multiplayer\raknet;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Winmm.lib;RakNetLibStatic.lib;ws2_32.lib;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)\JA2_PO_Release.exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
@@ -206,6 +201,7 @@
       <AdditionalLibraryDirectories>Multiplayer\raknet;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Winmm.lib;RakNetLibStatic.lib;ws2_32.lib;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)\MapEditor_EN_Release.exe</OutputFile>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Relese_WithDebugInfo|Win32'">
@@ -227,7 +223,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>Multiplayer\raknet;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Winmm.lib;RakNetLibStatic.lib;ws2_32.lib;DbgHelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)\JA2_EN_ReleaseDebugInfo.exe</OutputFile>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -243,6 +239,7 @@
     <ClCompile Include="Init.cpp" />
     <ClCompile Include="Intro.cpp" />
     <ClCompile Include="JA2 Splash.cpp" />
+    <ClCompile Include="Ja25Update.cpp" />
     <ClCompile Include="jascreens.cpp" />
     <ClCompile Include="Language Defines.cpp" />
     <ClCompile Include="Loading Screen.cpp" />
@@ -263,6 +260,9 @@
     <ClCompile Include="SaveLoadScreen.cpp" />
     <ClCompile Include="SCREENS.cpp" />
     <ClCompile Include="Sys Globals.cpp" />
+    <ClCompile Include="ub_config.cpp" />
+    <ClCompile Include="XML_IntroFiles.cpp" />
+    <ClCompile Include="XML_Layout_MainMenu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="builddefines.h" />
@@ -282,6 +282,7 @@
     <ClInclude Include="JA2 Demo Ads.h" />
     <ClInclude Include="JA2 Splash.h" />
     <ClInclude Include="ja2.h" />
+    <ClInclude Include="Ja25Update.h" />
     <ClInclude Include="JA2Prototypes.h" />
     <ClInclude Include="jascreens.h" />
     <ClInclude Include="Language Defines.h" />
@@ -307,6 +308,7 @@
     <ClInclude Include="screenids.h" />
     <ClInclude Include="SCREENS.H" />
     <ClInclude Include="Sys Globals.h" />
+    <ClInclude Include="ub_config.h" />
     <ClInclude Include="VtuneApi.h" />
   </ItemGroup>
   <ItemGroup>
@@ -315,6 +317,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Res\jagged3.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="ModularizedTacticalAI\ModularizedTacticalAI_VS2010.vcxproj">
+      <Project>{ff0a809e-a370-4640-a301-17b76d7a5b4e}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

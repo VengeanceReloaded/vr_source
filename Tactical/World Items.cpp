@@ -5,15 +5,12 @@
 	#include "handle Items.h"
 	#include "overhead.h"
 	#include "weapons.h"
-	#include "points.h"
 	#include "tiledef.h"
 	#include "worlddef.h"
-	#include "worldman.h"
 	#include "interface.h"
 	#include "renderworld.h"
 	#include "Animation Control.h"
 	#include "font control.h"
-	#include "render dirty.h"
 	#include "World items.h"
 	#include "debug.h"
 	#include "Isometric utils.h"
@@ -28,11 +25,15 @@
 	#include "Quests.h"
 	#include "Soldier Profile.h"
 	#include "message.h"
+	#include "map screen interface map inventory.h"	// added by Flugente
 #include "connect.h"
+#endif
+#ifdef JA2EDITOR//dnl ch84 290114
+#include "Item Statistics.h"
 #endif
 
 //Global dynamic array of all of the items in a loaded map.
-WORLDITEM *		gWorldItems = NULL;
+std::vector<WORLDITEM> gWorldItems;//dnl ch75 261013
 UINT32				guiNumWorldItems = 0;
 
 WORLDBOMB *		gWorldBombs = NULL;
@@ -286,6 +287,57 @@ INT32 FindWorldItemForBombInGridNo( INT32 sGridNo, INT8 bLevel )
 	return( -1 );
 }
 
+INT32 FindWorldItemForBuriedBombInGridNo( INT32 sGridNo, INT8 bLevel )
+{
+        UINT32                                  uiBombIndex;
+        OBJECTTYPE* pObj = NULL;
+
+        for (uiBombIndex = 0; uiBombIndex < guiNumWorldBombs; uiBombIndex++)
+        {
+                if (gWorldBombs[ uiBombIndex ].fExists &&
+                        gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].sGridNo == sGridNo &&
+                        gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].ubLevel == bLevel )
+                {
+                        pObj=&gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].object;
+                        if( pObj && pObj->exists() )
+								//if ( ( (*pObj)[0]->data.misc.bDetonatorType != BOMB_TIMED ) && ( (*pObj)[0]->data.misc.bDetonatorType != BOMB_REMOTE ) ) 
+                                if( !HasAttachmentOfClass( pObj, AC_REMOTEDET | AC_DETONATOR ) )								
+                                        return( gWorldBombs[ uiBombIndex ].iItemIndex );
+                }
+        }
+        return( -1 );		
+}
+
+// Flugente: is there a planted tripwire at this gridno? fKnown = TRUE: only return true if we know of that one already
+INT32 FindWorldItemForTripwireInGridNo( INT32 sGridNo, INT8 bLevel, BOOLEAN fKnown )
+{
+	UINT32			uiBombIndex;
+	OBJECTTYPE*		pObj = NULL;
+
+	for (uiBombIndex = 0; uiBombIndex < guiNumWorldBombs; uiBombIndex++)
+	{
+		if (gWorldBombs[ uiBombIndex ].fExists && gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].sGridNo == sGridNo && gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].ubLevel == bLevel )
+		{
+			pObj = &( gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].object );
+
+			if ( pObj && Item[pObj->usItem].tripwire )
+			{
+				if ( !fKnown )
+					return( gWorldBombs[ uiBombIndex ].iItemIndex );
+
+				// owned by the player team - we know of this thing
+				if ( (*pObj)[0]->data.ubWireNetworkFlag & TRIPWIRE_NETWORK_OWNER_PLAYER )					
+					return( gWorldBombs[ uiBombIndex ].iItemIndex );
+
+				// something is here, as a blue flag is planted
+				if ( gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_PLAYER_MINE_PRESENT )
+					return( gWorldBombs[ uiBombIndex ].iItemIndex );
+			}
+		}
+	}
+	return( -1 );
+}
+
 
 void FindPanicBombsAndTriggers( void )
 {
@@ -365,42 +417,15 @@ void FindPanicBombsAndTriggers( void )
 	}
 }
 
-INT32 GetFreeWorldItemIndex( void )
+UINT32 GetFreeWorldItemIndex(void)//dnl ch75 271013
 {
 	UINT32 uiCount;
-	WORLDITEM *newWorldItems;
-	UINT32	uiOldNumWorldItems;
-
-	for(uiCount=0; uiCount < guiNumWorldItems; uiCount++)
-	{
-		if ( gWorldItems[ uiCount ].fExists == FALSE )
-			return( (INT32)uiCount );
-	}
-
-	uiOldNumWorldItems = guiNumWorldItems;
-	// grow by 3/2 as a better strategy, minimum 10
-	guiNumWorldItems = max(10, guiNumWorldItems * 3 / 2);
-	//Allocate new table with max+10 items.
-	newWorldItems = new WORLDITEM [ guiNumWorldItems ];
-	if (newWorldItems == NULL)
-	{
-		return( -1 );
-	}
-
-	if (gWorldItems)
-	{
-		for (unsigned int x = 0; x < uiOldNumWorldItems; ++x)
-		{
-			newWorldItems[x] = gWorldItems[x];
-		}
-		delete[] gWorldItems;
-	}
-	gWorldItems = newWorldItems;
-
-	// Return uiCount.....
-	return( uiCount );
+	for(uiCount=0; uiCount<gWorldItems.size(); uiCount++)
+		if(gWorldItems[uiCount].fExists == FALSE)
+			return(uiCount);
+	ResizeWorldItems();
+	return(uiCount);
 }
-
 
 UINT32 GetNumUsedWorldItems( void )
 {
@@ -418,7 +443,35 @@ UINT32 GetNumUsedWorldItems( void )
 	return( uiNumItems );
 }
 
-
+void ResizeWorldItems(void)//dnl ch75 271013
+{
+#ifdef INVFIX_Moa
+	// grow by 3/2 as a better strategy, minimum 10
+	guiNumWorldItems = max(10, guiNumWorldItems * 3 / 2);
+	//Allocate new table with max+10 items.
+	gWorldItems.resize(guiNumWorldItems);
+#else
+	guiNumWorldItems = gWorldItems.size();
+	if(guiNumWorldItems - GetNumUsedWorldItems() < 50)
+	{
+#ifdef JA2EDITOR//dnl ch84 290114
+		WORLDITEM *pwi, *pwinew;
+		if(!gWorldItems.empty())
+			pwi = &gWorldItems.front();
+#endif
+		gWorldItems.resize(guiNumWorldItems + 100);
+		guiNumWorldItems = gWorldItems.size();
+#ifdef JA2EDITOR//dnl ch84 290114
+		if(gpItem)
+		{
+			pwinew = &gWorldItems.front();
+			if(pwi != pwinew)
+				gpItem = (OBJECTTYPE *)((PSTR)pwinew + ((PSTR)gpItem - (PSTR)pwi));
+		}
+#endif
+	}
+#endif
+}
 
 INT32 AddItemToWorld( INT32 sGridNo, OBJECTTYPE *pObject, UINT8 ubLevel, UINT16 usFlags, INT8 bRenderZHeightAboveLevel, INT8 bVisible, INT8 soldierID )
 {
@@ -449,8 +502,13 @@ INT32 AddItemToWorld( INT32 sGridNo, OBJECTTYPE *pObject, UINT8 ubLevel, UINT16 
 	gWorldItems[ iItemIndex ].object = *pObject;
 
 	// Add a bomb reference if needed
-	if (usFlags & WORLD_ITEM_ARMED_BOMB)
+	// Flugente: we can arm bombs in our inventory and then throw them out, which will cause them to be added to the world. Only way to identify those items is via a check for their bDetonatorType
+	if (usFlags & WORLD_ITEM_ARMED_BOMB || ( (Item[pObject->usItem].usItemClass & (IC_BOMB)) && ( ( (*pObject)[0]->data.misc.bDetonatorType == BOMB_TIMED ) || ( (*pObject)[0]->data.misc.bDetonatorType == BOMB_REMOTE ) ) ) )
 	{
+		// sevenfm: added flag WORLD_ITEM_ARMED_BOMB
+		// this fixes bug with remote explosives not being removed after activation, if they were armed in inventory and thrown afterwards
+		gWorldItems[ iItemIndex ].usFlags |= WORLD_ITEM_ARMED_BOMB;
+	
 		iReturn = AddBombToWorld( iItemIndex );
 		if (iReturn == -1)
 		{
@@ -471,7 +529,7 @@ INT32 AddItemToWorld( INT32 sGridNo, OBJECTTYPE *pObject, UINT8 ubLevel, UINT16 
 						pSoldier = MercPtrs[ soldierID ];
 					}
 				}
-
+				
 				if (pSoldier != NULL)
 				{
 					// if soldier is on our team, or is AI and we are the server
@@ -509,7 +567,7 @@ void RemoveItemFromWorld( INT32 iItemIndex )
 void TrashWorldItems()
 {
 	UINT32 i;
-	if( gWorldItems )
+	if( !gWorldItems.empty() )//dnl ch75 271013
 	{
 		for( i = 0; i < guiNumWorldItems; i++ )
 		{
@@ -518,9 +576,9 @@ void TrashWorldItems()
 				RemoveItemFromPool( gWorldItems[ i ].sGridNo, i, gWorldItems[ i ].ubLevel );
 			}
 		}
-		delete[] gWorldItems;
-		gWorldItems = NULL;
-		guiNumWorldItems = 0;
+#ifdef INVFIX_Moa//dnl ch75 311013
+		gWorldItems.clear();
+#endif
 	}
 	if ( gWorldBombs )
 	{
@@ -530,13 +588,21 @@ void TrashWorldItems()
 	}
 }
 
-//dnl ch33 150909
+//dnl ch33 150909 //dnl ch74 191013
 void SaveWorldItemsToMap(HWFILE fp, float dMajorMapVersion, UINT8 ubMinorMapVersion)
 {
-	UINT32 i, uiBytesWritten, uiActualNumWorldItems;
+	UINT32 i, uiBytesWritten, uiActualNumWorldItems=0;
 	OLD_WORLDITEM_101 oldWorldItem;
 
-	uiActualNumWorldItems = GetNumUsedWorldItems();
+	for(i=0; i<guiNumWorldItems; i++)
+	{
+		if(gWorldItems[i].fExists)
+		{
+			if(dMajorMapVersion == VANILLA_MAJOR_MAP_VERSION && ubMinorMapVersion == VANILLA_MINOR_MAP_VERSION && gWorldItems[i].object.usItem >= OLD_MAXITEMS)
+				continue;
+			uiActualNumWorldItems++;
+		}
+	}
 	FileWrite(fp, &uiActualNumWorldItems, sizeof(UINT32), &uiBytesWritten);
 	for(i=0; i<guiNumWorldItems; i++)
 	{
@@ -544,6 +610,8 @@ void SaveWorldItemsToMap(HWFILE fp, float dMajorMapVersion, UINT8 ubMinorMapVers
 		{
 			if(dMajorMapVersion == VANILLA_MAJOR_MAP_VERSION && ubMinorMapVersion == VANILLA_MINOR_MAP_VERSION)
 			{
+				if(gWorldItems[i].object.usItem >= OLD_MAXITEMS)
+					continue;
 				oldWorldItem = gWorldItems[i];
 				FileWrite(fp, &oldWorldItem, sizeof(OLD_WORLDITEM_101), &uiBytesWritten);
 			}
@@ -594,7 +662,8 @@ void LoadWorldItemsFromMap( INT8 **hBuffer, float dMajorMapVersion, int ubMinorM
 		{
 			dummyItem.ubNonExistChance = 0;
 		}
-		if( gfEditMode || dummyItem.ubNonExistChance <= PreRandom( 100 ) )
+		if( gfEditMode || dummyItem.ubNonExistChance <= PreRandom( 100 ) || 
+			(gGameExternalOptions.ubMapItemChanceOverride > 0 && (gGameExternalOptions.ubMapItemChanceOverride >= PreRandom(100)) ) ) //Madd: map item chance override, note this calc is done in reverse
 		{
 			if( !gfEditMode )
 			{
@@ -674,6 +743,19 @@ void LoadWorldItemsFromMap( INT8 **hBuffer, float dMajorMapVersion, int ubMinorM
 			{ //all armed bombs are buried
 				dummyItem.bVisible = BURIED;
 			}
+#if 0//dnl ch74 201013 this is already done in OBJECTTYPE::Load()
+			//Madd: ok, so this drives me nuts -- why bother with default attachments if the map isn't going to load them for you?  
+			//this should fix that...
+			for(UINT8 cnt = 0; cnt < MAX_DEFAULT_ATTACHMENTS; cnt++)
+			{
+				if(Item [ dummyItem.object.usItem ].defaultattachments[cnt] == 0)
+					break;
+
+				OBJECTTYPE defaultAttachment;
+				CreateItem(Item [ dummyItem.object.usItem ].defaultattachments[cnt],100,&defaultAttachment);
+				dummyItem.object.AttachObject(NULL,&defaultAttachment, FALSE);
+			}
+#endif
 			AddItemToPoolAndGetIndex( dummyItem.sGridNo, &dummyItem.object, dummyItem.bVisible, dummyItem.ubLevel, dummyItem.usFlags, dummyItem.bRenderZHeightAboveLevel, dummyItem.soldierID, &iItemIndex );
 			gWorldItems[ iItemIndex ].ubNonExistChance = dummyItem.ubNonExistChance;
 		}
@@ -794,7 +876,7 @@ void DeleteWorldItemsBelongingToQueenIfThere( void )
 
 
 // Refresh item pools
-void RefreshWorldItemsIntoItemPools( WORLDITEM * pItemList, INT32 iNumberOfItems )
+void RefreshWorldItemsIntoItemPools( std::vector<WORLDITEM>& pItemList, INT32 iNumberOfItems )//dnl ch75 271013
 {
 	INT32			i;
 
@@ -808,4 +890,11 @@ void RefreshWorldItemsIntoItemPools( WORLDITEM * pItemList, INT32 iNumberOfItems
 		}
 	}
 
+}
+
+
+// Flugente: Cool/decay down all items in this sector
+void CoolDownWorldItems()
+{
+	HandleSectorCooldownFunctions( gWorldSectorX, gWorldSectorY, gbWorldSectorZ, gWorldItems, guiNumWorldItems, FALSE );
 }

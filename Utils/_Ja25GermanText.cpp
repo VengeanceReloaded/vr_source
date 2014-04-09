@@ -19,35 +19,6 @@ void this_is_the_Ja25GermanText_public_symbol(void){;}
 
 // VERY TRUNCATED FILE COPIED FROM JA2.5 FOR ITS FEATURES FOR JA2 GOLD
 
-STR16	zNewTacticalMessages[]=
-{
-	//L"Entfernung zum Ziel: %d Felder, Helligkeit: %d/%d",
-	L"Verbinden Sie den Transmitter mit Ihrem Laptop-Computer.",
-	L"Sie haben nicht genug Geld, um %s anzuheuern",
-	L"Das obenstehende Honorar deckt für einen begrenzten Zeitraum die Kosten der Gesamtmission, und schließt untenstehendes Equipment mit ein.",
-	L"Engagieren Sie %s jetzt und nutzen Sie den Vorteil unseres beispiellosen 'Ein Betrag für alles'-Honorars. Das persönliche Equipment des Söldners ist gratis in diesem Preis mit inbegriffen.",
-	L"Honorar",
-	L"Da ist noch jemand im Sektor...",
-	//L"Waffen-Rchwt.: %d Felder, Trefferwahrsch.: %d Prozent",
-	L"Deckung anzeigen",
-	L"Sichtfeld",
-	L"Neue Rekruten können dort nicht hinkommen.",
-	L"Da Ihr Laptop keinen Transmitter besitzt, können Sie keine neuen Teammitglieder anheuern. Vielleicht ist dies eine guter Zeitpunkt, ein gespeichertes  Spiel zu laden oder ein neues zu starten!",
-	L"%s hört das Geräusch knirschenden Metalls unter Jerry hervordringen. Es klingt grässlich - die Antenne ihres Laptop-Computers ist  zerstört.",  //the %s is the name of a merc.  @@@  Modified
-	L"Nach Ansehen des Hinweises, den Commander Morris hinterließ, erkennt %s eine einmalige Gelegenheit. Der Hinweis enthält Koordinaten für den Start von Raketen gegen verschiedene Städte in Arulco. Aber er enthält auch die Koordinaten des Startpunktes - der Raketenanlage.",
-	L"Das Kontroll-Board studierend, entdeckt %s, dass die Zahlen umgedreht werden könnten, so dass die Raketen diese Anlage selbst zerstören. %s muss nun einen Fluchtweg finden. Der Aufzug scheint die schnellstmögliche Route zu bieten...",         //!!! The original reads:	L"Noticing the control panel %s, figures the numbers can be reversed..." That sounds odd for me, but I think the comma is placed one word too late... (correct?)
-	L"Dies ist ein IRON MAN-Spiel, und es kann nicht gespeichert werden, wenn sich Gegner in der Nähe befinden.",		
-	L"(Kann während Kampf nicht speichern)", 
-	L"Der Name der aktuellen Kampagne enthält mehr als 30 Buchstaben.",						
-	L"Die aktuelle Kampagne kann nicht gefunden werden.",																	
-	L"Kampagne: Standard ( %S )",																							
-	L"Kampagne: %S",																													
-	L"Sie haben die Kampagne %S gewählt. Diese ist eine vom Spieler modifizierte Version der Originalkampagne von JA2UB. Möchten Sie die Kampagne %S spielen?",			
-	L"Um den Editor zu benutzen, müssen Sie eine andere als die Standardkampgane auswählen.",		
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SANDRO - New STOMP laptop strings
 //these strings match up with the defines in IMP Skill trait.cpp
 STR16 gzIMPSkillTraitsText[]=
 {
@@ -83,6 +54,7 @@ STR16 gzIMPSkillTraitsTextNewMajor[]=
 	L"Gruppenführer",		//GrpFhr und ZgFhr sind scheiße, aber mir fällt ohne Dienstgrade nüscht ein
 	L"Mechaniker",			//Option: Techniker
 	L"Sanitäter",			//Option: Rettungsassistent
+	L"Verdeckter Ermittler",
 
 	L"Nichts",
 	L"B.S.E. Hauptfertigkeiten",
@@ -97,6 +69,7 @@ STR16 gzIMPSkillTraitsTextNewMajor[]=
 	L"Zugführer",
 	L"Ingenieur",
 	L"Arzt",
+	L"Spion",
 };
 
 //added another set of skill texts for new minor traits
@@ -112,6 +85,7 @@ STR16 gzIMPSkillTraitsTextNewMinor[]=
 	L"Sprengmeister",		// alt. "Kampfmittel"
 	L"Ausbilder",			// alt. "Lehren"
 	L"Aufklärer",			// alt. "Spähen"
+	L"Radio Operator",
 
 	L"Keine",
 	L"B.S.E. Nebenfertigkeiten",
@@ -161,13 +135,18 @@ STR16 gzIMPMajorTraitsHelpTextsSniper[]=
 	L"-%d%s APs benötigt um ein Repetiergewehr erneut fertigzuladen.\n",
 	L"Gibt einen weiteren Ziel-Klick für gewehrartige Waffen\n",
 	L"Gibt weitere %d Ziel-Klicks für gewehrartige Waffen\n",
+	L"Schnelleres Zielen mit Gewehren bei genau einem Zielgenauigkeit-Klick\n",
+	L"Schnelleres Zielen mit Gewehren bei %d Zielgenauigkeit-Klicks\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsRanger[]=
 {
 	L"+%d%s Trefferchance mit Gewehren\n",
 	L"+%d%s Trefferchance mit Schrotflinten\n",
-	L"-%d%s APs gebraucht um Schrotflinten zu repetieren\n",
+	L"-%d%s APs benötigt um Schrotflinten zu repetieren\n",
+	L"-%d%s APs benötigt um Schrotflinten abzufeuern\n",
+	L"Gibt Schrotflinten einen weiteren Zielklick\n",
+	L"%d weitere Zielklicks für Schrotflinten\n",
 	L"+%d%s Marschgeschwindigkeit der Gruppe zwischen Sektoren zu Fuß\n",
 	L"+%d%s Marschgeschwindigkeit der Gruppe zwischen Sektoren bei Benutzung von Fahrzeugen (außer dem Helikopter)\n",
 	L"-%d%s weniger Energieverlust beim Reisen zwischen Sektoren\n",
@@ -219,6 +198,7 @@ STR16 gzIMPMajorTraitsHelpTextsMartialArts[]=
 	L"-%d%s APs benötigt um auf oder von Dächern zu klettern und Hindernisse zu überspringen\n",
 	L"+%d%s Chance eine Tür erfolgreich einzutreten\n",
 	L"Sie erhalten besondere Kung-Fu-Animationen für den Nahkampf\n",
+	L"-%d%s Wahrscheinlichkeit um unterbrochen zu werden wenn man sich bewegt\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsSquadleader[]=
@@ -234,6 +214,7 @@ STR16 gzIMPMajorTraitsHelpTextsSquadleader[]=
 	L"(Maximal auf einen Söldner wirkende Boni: %d )\n",
 	L"+%d%s Resistenz gegen Angst für %s\n",
 	L"Nachteil: %dx Moralverlust bei Tod des %ss für alle anderen Söldner\n",
+	L"+%d%s Wahrscheinlichkeit für kollektive Unterbrechungen\n",
 
 };
 STR16 gzIMPMajorTraitsHelpTextsTechnician[]=
@@ -263,6 +244,38 @@ STR16 gzIMPMajorTraitsHelpTextsDoctor[]=
 	L" (maximal %d Instanzen dieses Bonus pro Sektor)",
 
 };
+STR16 gzIMPMajorTraitsHelpTextsCovertOps[]=
+{
+	L"Kann sich als Zivilist oder Soldat ausgeben, um hinter den feindlichen Linien zu agieren.\n",
+	L"Kann erkannt werden bei verdächtigen Aktionen,\nunpassender Ausrüstung, oder in der Nähe von frischen Leichen.\n",
+	L"Wird automatisch erkannt, wenn als Soldat getarnt und\n der Feind näher als %d Felder entfernt ist.\n",
+	L"Wird automatisch erkannt, wenn als Soldat getarnt und\n und eine frische Leiche näher als %d Felder entfernt ist.\n",
+	L"+%d%s Trefferwahrscheinlichkeit mit Covert-Ops Nahkampfwaffen\n",
+	L"+%d%s Trefferwahrscheinlichkeit für sofortigen Totschlag mit Covert-Ops Nahkampfwaffen\n",
+	L"Verringerte AP Kosten für verdeckte Operationen durch %d%s.\n",
+};
+
+STR16 gzIMPMajorTraitsHelpTextsRadioOperator[]=	// TODO.Translate
+{
+	L"Can use communications equipment\n", 
+	L"Can call in artillery strikes from allies in neighbouring sectors.\n",
+	L"Via Frequency Scan assignment, enemy patrols can be located.\n",
+	L"Communications can be jammed sector-wide.\n",
+	L"If communications are jammed, a operator can scan for the jamming device.\n",
+	L"Can call in militia reinforcements from neighbouring sectors.\n",
+};
+
+// anv: VR trait
+STR16 gzIMPMajorTraitsHelpTextsPilot[]=
+{
+	L"Can pilot aircraft\n",
+	L"Can pilot aircraft like a pro\n",
+	L"+%d%s chance to dodge incoming enemy AA missile\n",
+	L"+%d%s chance of accidently damaging piloted aircraft\n",
+	L"+%d%s chance to notice enemies while flying over the sector\n",
+	
+};
+
 STR16 gzIMPMajorTraitsHelpTextsNone[]=
 {
 	L"Keine Boni",
@@ -322,6 +335,7 @@ STR16 gzIMPMinorTraitsHelpTextsStealthy[]=
 	L"+%d%s Chance beim Schleichen kein Geräusch zu erzeugen zu sein\n",
 	L"+%d%s Chance, 'unsichtbar' zu sein wenn man sich nicht verrät (schleichen)\n",
 	L"Der Abzug der berechneten Sichtdeckung beim Bewegen ist %d%s geringer\n",
+	L"-%d%s Wahrscheinlichkeit um unterbrochen zu werden\n",
 
 };
 STR16 gzIMPMinorTraitsHelpTextsAthletics[]=
@@ -367,22 +381,25 @@ STR16 gzIMPMinorTraitsHelpTextsScouting[]=
 	L"Auf der Weltkarte wird in angrenzenden Sektoren die Präsenz von vorhandenem Feind enthüllt\n",
 	L"Verhindert, dass der Feind die Gruppe in den Hinterhalt lockt\n",
 	L"Verhindert, das Umzingeln der Gruppe durch Bloodcats\n",
-
 };
+STR16 gzIMPMinorTraitsHelpTextsSnitch[]=
+{
+	L"Will occasionally inform you about his teammates' opinions.\n",	// TODO.Translate
+	L"Prevents teammates' misbehaviour (drugs, alcohol, scrounging).\n",	// TODO.Translate
+	L"Can spread propaganda in towns.\n",	// TODO.Translate
+	L"Can gather rumours in towns.\n",	// TODO.Translate
+	L"Can be put undercover in prisons.\n",	// TODO.Translate
+	L"Increases your reputation by %d every day if in good morale.\n",	// TODO.Translate
+	L"+%d to effective hearing range\n",	// TODO.Translate
+};
+
+// anv: VR trait
 STR16 gzIMPMinorTraitsHelpTextsDriver[]=
 {
 	L"+%d%s group traveling speed between sectors if traveling in vehicle (except helicopter)\n",
 	L"-%d%s fuel consumption when traveling in vehicle (except helicopter)\n",
 };
-STR16 gzIMPMajorTraitsHelpTextsPilot[]=
-{
-	L"Can pilot aircraft\n",
-	L"Can pilot aircraft like a pro\n",
-	L"+%d%s chance to dodge incoming enemy AA missile\n",
-	L"+%d%s chance of accidently damaging piloted aircraft\n",
-	L"+%d%s chance to notice enemies while flying over the sector\n",
-	
-};
+
 STR16 gzIMPMinorTraitsHelpTextsNone[]=
 {
 	L"Keine Boni",
@@ -456,13 +473,15 @@ STR16 gzIMPDisabilitiesHelpTexts[]=
 	L"Erträgt den Anblick großer Insekten nicht und\nzeigt verringerte Leistung in tropischen Sektoren.",
 	L"Vergisst manchmal seine Befehle und verliert dadurch im Kampf einen Teil seiner APs.",
 	L"Dreht im Umgang mit Waffen manchmal durch und gibt Dauerfeuer.\nIst ihm das mit seiner Waffe nicht möglich, kann das zu Moralabzügen führen.",
+	L"Reduziert die Geräuschlautstärke enorm.",
+	L"Reduziert die Sichtweite.",
 };
 
 
 
 STR16 gzIMPProfileCostText[]=
 {
-	L"Ein Profil kostet %d$. Genehmigen Sie die Zahlung? ",
+	L"Ein Profil kostet $%d. Genehmigen Sie die Zahlung?",
 };
 
 STR16 zGioNewTraitsImpossibleText[]=

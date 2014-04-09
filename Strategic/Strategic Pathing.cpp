@@ -2,7 +2,6 @@
 	#include "Strategic All.h"
 #else
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include <time.h>
 	#include "types.h"
 	#include "worlddef.h"
@@ -10,8 +9,6 @@
 	#include "strategic.h"
 	#include "mapscreen.h"
 	#include "overhead.h"
-	#include "interface panels.h"
-	#include "worldman.h"
 	#include "strategicmap.h"
 	#include "Strategic Pathing.h"
 	#include "Map Screen Interface Border.h"
@@ -1291,7 +1288,7 @@ INT32 GetStrategicMvtSpeed( SOLDIERTYPE *pCharacter )
 
 	// avg of strength and agility * percentage health..very simple..replace later
 
-	iSpeed = ( INT32 )( ( pCharacter->stats.bAgility + pCharacter->stats.bStrength ) / 2 );
+	iSpeed = ( INT32 )( ( pCharacter->stats.bAgility + pCharacter->stats.bStrength + pCharacter->bExtraStrength ) / 2 );
 	iSpeed *= ( INT32 )(( pCharacter->stats.bLife ) );
 	iSpeed /= ( INT32 )pCharacter->stats.bLifeMax;
 

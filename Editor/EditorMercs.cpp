@@ -63,6 +63,7 @@
 	#include "Timer Control.h"
 	#include "message.h"
 	#include "InterfaceItemImages.h"
+	#include "english.h"
 #endif
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -297,19 +298,38 @@ STR16 EditMercAttitudes[6] = { L"Defensive",L"Brave Loner",L"Brave Buddy",
 	#undef RANDOM
 #endif
 #define RANDOM	-1
+#ifdef JA113DEMO
+#define MAX_ENEMYTYPES				5
+#define MAX_CREATURETYPES			1
+#define MAX_REBELTYPES				6
+#define MAX_CIVTYPES				6
+#else
 #define MAX_ENEMYTYPES				7
 //#define MAX_ENEMYRANDOMTYPES	5
 #define MAX_CREATURETYPES			8
 #define MAX_REBELTYPES				7
-#define MAX_CIVTYPES					18
+#define MAX_CIVTYPES				18
 //#define MAX_CIVRANDOMTYPES		11
+#endif
+
+#ifdef JA113DEMO
+INT8 bEnemyArray[MAX_ENEMYTYPES]={ RANDOM, REGMALE, BIGMALE, STOCKYMALE, REGFEMALE };
+INT8 bCreatureArray[MAX_CREATURETYPES]={ ADULTFEMALEMONSTER };
+INT8 bRebelArray[MAX_REBELTYPES]={ RANDOM, MANCIV, REGMALE, BIGMALE, STOCKYMALE, REGFEMALE };
+INT8 bCivArray[MAX_CIVTYPES]={ RANDOM, MANCIV, REGMALE, BIGMALE, STOCKYMALE, REGFEMALE };														
+#else													
 INT8 bEnemyArray[MAX_ENEMYTYPES]={ RANDOM, REGMALE, BIGMALE, STOCKYMALE, REGFEMALE, TANK_NW, TANK_NE };
 INT8 bCreatureArray[MAX_CREATURETYPES]={ BLOODCAT, LARVAE_MONSTER, INFANT_MONSTER, YAF_MONSTER, YAM_MONSTER, ADULTFEMALEMONSTER, AM_MONSTER, QUEENMONSTER };
 INT8 bRebelArray[MAX_REBELTYPES]={ RANDOM, FATCIV, MANCIV, REGMALE, BIGMALE, STOCKYMALE, REGFEMALE };
 INT8 bCivArray[MAX_CIVTYPES]={ RANDOM, FATCIV, MANCIV, MINICIV, DRESSCIV, HATKIDCIV, KIDCIV, REGMALE, BIGMALE, STOCKYMALE, REGFEMALE,
-															HUMVEE, ELDORADO, ICECREAMTRUCK, JEEP, CRIPPLECIV, ROBOTNOWEAPON, COW };
+														HUMVEE, ELDORADO, ICECREAMTRUCK, JEEP, CRIPPLECIV, ROBOTNOWEAPON, COW };													
+#endif															
+															
+#ifdef JA113DEMO
+INT8 gbCurrCreature = ADULTFEMALEMONSTER;
+#else															
 INT8 gbCurrCreature = BLOODCAT;
-
+#endif
 
 
 BOOLEAN gfSaveBuffer = FALSE;
@@ -680,10 +700,10 @@ void ResetAllMercPositions()
 		//}
 		curr = curr->next;
 	}
-	AddSoldierInitListTeamToWorld( ENEMY_TEAM,		255 );
-	AddSoldierInitListTeamToWorld( CREATURE_TEAM, 255 );
-	AddSoldierInitListTeamToWorld( MILITIA_TEAM,		255 );
-	AddSoldierInitListTeamToWorld( CIV_TEAM,			255 );
+	AddSoldierInitListTeamToWorld( ENEMY_TEAM,		TOTAL_SOLDIERS + 1 );
+	AddSoldierInitListTeamToWorld( CREATURE_TEAM,   TOTAL_SOLDIERS + 1 );
+	AddSoldierInitListTeamToWorld( MILITIA_TEAM,	TOTAL_SOLDIERS + 1 );
+	AddSoldierInitListTeamToWorld( CIV_TEAM,		TOTAL_SOLDIERS + 1 );
 	gpSelected = NULL;
 	gsSelectedMercID = -1;
 }
@@ -772,6 +792,10 @@ void ChangeBaseSoldierStats( SOLDIERTYPE *pSoldier )
 
 	pSoldier->bBleeding	= 0;
 	pSoldier->bBreath	= 100;
+
+	pSoldier->bPoisonSum		= 0;
+	pSoldier->bPoisonLife		= 0;
+	pSoldier->bPoisonBleeding	= 0;
 
 	pSoldier->stats.bMarksmanship	= (UINT8)(sBaseStat[sCurBaseDiff] + (UINT16)(Random(BASE_STAT_DEVIATION * 2)-BASE_STAT_DEVIATION));
 	pSoldier->stats.bMedical = (UINT8)(sBaseStat[sCurBaseDiff] + (UINT16)(Random(BASE_STAT_DEVIATION * 2)-BASE_STAT_DEVIATION));
@@ -1517,6 +1541,7 @@ void IndicateSelectedMerc( INT16 sID )
 {
 	SOLDIERINITNODE *prev;
 	INT8 bTeam;
+	BOOLEAN fSelectPrevious;
 
 	//If we are trying to select a merc that is already selected, ignore.
 	if( sID >= 0 && sID == gsSelectedMercGridNo )
@@ -1534,6 +1559,9 @@ void IndicateSelectedMerc( INT16 sID )
 
 	bTeam = -1;
 
+	// hotkey to select previous instead of next merc
+	fSelectPrevious = gfKeyState[ SHIFT ];
+
 	//determine selection method
 	switch( sID )
 	{
@@ -1545,13 +1573,27 @@ void IndicateSelectedMerc( INT16 sID )
 			}
 			else
 			{ //validate this merc in the list.
-				if( gpSelected->next )
-				{ //select the next merc in the list
-					gpSelected = gpSelected->next;
+				if( fSelectPrevious )
+				{
+					if( gpSelected->prev )
+					{ //select the prev merc in the list
+						gpSelected = gpSelected->prev;
+					}
+					else
+					{ //we are at the beginning of the list, so select the last merc in the list.
+						gpSelected = gSoldierInitTail;
+					}
 				}
 				else
-				{ //we are at the end of the list, so select the first merc in the list.
-					gpSelected = gSoldierInitHead;
+				{
+					if( gpSelected->next )
+					{ //select the next merc in the list
+						gpSelected = gpSelected->next;
+					}
+					else
+					{ //we are at the end of the list, so select the first merc in the list.
+						gpSelected = gSoldierInitHead;
+					}
 				}
 			}
 			if( !gpSelected ) //list is empty
@@ -1564,14 +1606,20 @@ void IndicateSelectedMerc( INT16 sID )
 			{
 				if( !gpSelected )
 				{
-					gpSelected = gSoldierInitHead;
+					if( fSelectPrevious )
+						gpSelected = gSoldierInitTail;
+					else
+						gpSelected = gSoldierInitHead;
 					continue;
 				}
 				if( gpSelected->pSoldier && gpSelected->pSoldier->bVisible == 1 )
 				{ //we have found a visible soldier, so select him.
 					break;
 				}
-				gpSelected = gpSelected->next;
+				if( fSelectPrevious )
+					gpSelected = gpSelected->prev;
+				else
+					gpSelected = gpSelected->next;
 			}
 			//we have a valid merc now.
 			break;
@@ -1616,13 +1664,27 @@ void IndicateSelectedMerc( INT16 sID )
 		}
 		else
 		{ //validate this merc in the list.
-			if( gpSelected->next )
-			{ //select the next merc in the list
-				gpSelected = gpSelected->next;
+			if( fSelectPrevious )
+			{
+				if( gpSelected->prev )
+				{ //select the prev merc in the list
+					gpSelected = gpSelected->prev;
+				}
+				else
+				{ //we are at the beginning of the list, so select the last merc in the list.
+					gpSelected = gSoldierInitTail;
+				}
 			}
 			else
-			{ //we are at the end of the list, so select the first merc in the list.
-				gpSelected = gSoldierInitHead;
+			{
+				if( gpSelected->next )
+				{ //select the next merc in the list
+					gpSelected = gpSelected->next;
+				}
+				else
+				{ //we are at the end of the list, so select the first merc in the list.
+					gpSelected = gSoldierInitHead;
+				}
 			}
 		}
 		if( !gpSelected ) //list is empty
@@ -1635,14 +1697,20 @@ void IndicateSelectedMerc( INT16 sID )
 		{
 			if( !gpSelected )
 			{
-				gpSelected = gSoldierInitHead;
+				if( fSelectPrevious )
+					gpSelected = gSoldierInitTail;
+				else
+					gpSelected = gSoldierInitHead;
 				continue;
 			}
 			if( gpSelected->pSoldier && gpSelected->pSoldier->bVisible == 1 && gpSelected->pSoldier->bTeam == bTeam )
 			{ //we have found a visible soldier on the desired team, so select him.
 				break;
 			}
-			gpSelected = gpSelected->next;
+			if( fSelectPrevious )
+				gpSelected = gpSelected->prev;
+			else
+				gpSelected = gpSelected->next;
 		}
 		if( !gpSelected )
 			return;
@@ -1657,7 +1725,7 @@ void IndicateSelectedMerc( INT16 sID )
 		}
 	}
 	//if we made it this far, then we have a new merc cursor indicator to draw.
-	if( gpSelected == NULL || gpSelected->pSoldier )
+	if( gpSelected && gpSelected->pSoldier )//dnl ch75 261013
 		gsSelectedMercGridNo = gpSelected->pSoldier->sGridNo;
 	else
 	{
@@ -1750,7 +1818,7 @@ void SetupTextInputForMercProfile()
 	INT16 sNum;
 
 	InitTextInputModeWithScheme( DEFAULT_SCHEME );
-
+	AddUserInputField(NULL);//dnl ch78 271113 to avoid automatic textbox selection and enable shortcut keys while not typing
 	sNum = gpSelected->pDetailedPlacement->ubProfile;
 	if( sNum == NO_PROFILE )
 		str[0] = '\0';
@@ -1864,7 +1932,7 @@ void ExtractAndUpdateMercProfile()
 
 	//if the string is blank, returning -1, then set the value to NO_PROFILE
 	//because ubProfile is unsigned.
-	sNum = (INT16)min( GetNumericStrictValueFromField( 0 ), NUM_PROFILES-1 );//dnl ch54 101009
+	sNum = (INT16)min(GetNumericStrictValueFromField(1), NUM_PROFILES-1);//dnl ch54 101009 //dnl ch78 271113
 	if( sNum == -1 )
 	{
 		gpSelected->pDetailedPlacement->ubProfile = NO_PROFILE;
@@ -2790,7 +2858,10 @@ void AddNewItemToSelectedMercsInventory( BOOLEAN fCreate )
 
 		//randomize the status on non-ammo items.
 		if( !(Item[ gpSelected->pDetailedPlacement->Inv[ gbMercSlotTypes[ gbCurrSelect ] ].usItem ].usItemClass & IC_AMMO) )
+		{
 			gpSelected->pDetailedPlacement->Inv[ gbMercSlotTypes[ gbCurrSelect ] ][0]->data.objectStatus = (INT8)(80 + Random( 21 ));
+			gpSelected->pDetailedPlacement->Inv[ gbMercSlotTypes[ gbCurrSelect ] ][0]->data.sRepairThreshold = max(1, min(100, (100 + gpSelected->pDetailedPlacement->Inv[ gbMercSlotTypes[ gbCurrSelect ] ][0]->data.objectStatus)/2 ));
+		}
 
 		if( gusMercsNewItemIndex )
 		{
@@ -2975,7 +3046,10 @@ void HandleMercInventoryPanel( INT16 sX, INT16 sY, INT8 bEvent )
 							SpecifyItemToEdit( gpMercSlotItem[ x ], -1 );
 					}
 					if( bEvent == GUI_RCLICK_EVENT ) //user r-clicked, so enable item choosing
+					{
+						gfRenderMercInfo = TRUE;//dnl ch79 271113
 						gfMercGetItem = TRUE;
+					}
 					gbCurrSelect = x;
 					return;
 				}
@@ -3743,7 +3817,7 @@ void PasteMercPlacement( INT32 iMapIndex )
 
 		if( gTempBasicPlacement.fDetailedPlacement )
 		{
-			CreateDetailedPlacementGivenStaticDetailedPlacementAndBasicPlacementInfo( &tempDetailedPlacement, &gTempDetailedPlacement, &gTempBasicPlacement );
+			CreateDetailedPlacementGivenStaticDetailedPlacementAndBasicPlacementInfo( &tempDetailedPlacement, &gTempDetailedPlacement, &gTempBasicPlacement, sSectorX, sSectorY );
 		}
 		else
 		{

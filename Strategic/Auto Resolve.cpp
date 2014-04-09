@@ -68,6 +68,8 @@
 //	#include "Strategic AI.h"
 	#include "interface Dialogue.h"
 	#include "AIInternals.h" // added by SANDRO
+	#include "Bullets.h" // HEADROCK HAM 5, for use with Bullet Impact.
+	#include "CampaignStats.h"				// added by Flugente
 #endif
 
 #include "Reinforcement.h"
@@ -529,13 +531,13 @@ void DoTransitionFromPreBattleInterfaceToAutoResolve()
 	iPercentage = 0;
 	uiStartTime = GetJA2Clock();
 
-	sStartLeft = 59;
+	sStartLeft = 59 + xResOffset;
 	sStartTop = 69;
 	sEndLeft = SrcRect.iLeft + gpAR->sWidth / 2;
 	sEndTop = SrcRect.iTop + gpAR->sHeight / 2;
 
 	//save the prebattle/mapscreen interface background
-	BlitBufferToBuffer( FRAME_BUFFER, guiEXTRABUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
+	BlitBufferToBuffer( FRAME_BUFFER, guiEXTRABUFFER, 0 + xResOffset, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
 
 	//render the autoresolve panel
 	RenderAutoResolve();
@@ -670,7 +672,7 @@ UINT32 AutoResolveScreenHandle()
 		SGPRect ClipRect;
 		gpAR->fEnteringAutoResolve = FALSE;
 		//Take the framebuffer, shade it, and save it to the SAVEBUFFER.
-		ClipRect.iLeft = 0;
+		ClipRect.iLeft = 0 + xResOffset;
 		ClipRect.iTop = 0;
 		/*ClipRect.iRight = 640;
 		ClipRect.iBottom = 480;*/
@@ -681,7 +683,7 @@ UINT32 AutoResolveScreenHandle()
 		Blt16BPPBufferShadowRect( (UINT16*)pDestBuf, uiDestPitchBYTES, &ClipRect );
 		UnLockVideoSurface( FRAME_BUFFER );
 		//BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, 0, 0, 640, 480 );
-		BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
+		BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, 0 + xResOffset, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
 		KillPreBattleInterface();
 		CalculateAutoResolveInfo();
 		CalculateSoldierCells( FALSE );
@@ -728,6 +730,9 @@ void RefreshMerc( SOLDIERTYPE *pSoldier )
 {
 	pSoldier->stats.bLife = pSoldier->stats.bLifeMax;
 	pSoldier->bBleeding = 0;
+	pSoldier->bPoisonSum = 0;
+	pSoldier->bPoisonLife = 0;
+	pSoldier->bPoisonBleeding = 0;
 	pSoldier->iHealableInjury = 0; // added by SANDRO
 	pSoldier->bBreath = pSoldier->bBreathMax = 100;
 	pSoldier->sBreathRed = 0;
@@ -1188,14 +1193,43 @@ void RenderSoldierCellBars( SOLDIERCELL *pCell )
 	iStartY = pCell->yp + 29 - 25*pCell->pSoldier->stats.bLifeMax/100;
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+37, iStartY, pCell->xp+38, pCell->yp+29, Get16BPPColor( FROMRGB( 107, 107, 57 ) ) );
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+38, iStartY, pCell->xp+39, pCell->yp+29, Get16BPPColor( FROMRGB( 222, 181, 115 ) ) );
+
+	// poisoned bleeding in purple
+	if ( pCell->pSoldier->bPoisonBleeding )
+	{
+		iStartY = pCell->yp + 29 - 25*(pCell->pSoldier->stats.bLifeMax - pCell->pSoldier->bBleeding + pCell->pSoldier->bPoisonBleeding)/100;
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+37, iStartY, pCell->xp+38, pCell->yp+29, Get16BPPColor( FROMRGB( 107, 57, 107 ) ) );
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+38, iStartY, pCell->xp+39, pCell->yp+29, Get16BPPColor( FROMRGB( 222, 115, 181 ) ) );
+	}
+
 	//pink one for bandaged.
-	iStartY += 25*pCell->pSoldier->bBleeding/100;
+	iStartY = pCell->yp + 29 - 25*(pCell->pSoldier->stats.bLifeMax - pCell->pSoldier->bBleeding)/100;
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+37, iStartY, pCell->xp+38, pCell->yp+29, Get16BPPColor( FROMRGB( 156, 57, 57 ) ) );
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+38, iStartY, pCell->xp+39, pCell->yp+29, Get16BPPColor( FROMRGB( 222, 132, 132 ) ) );
+
+	// get amount of poisoned bandage
+	INT8 bPoisonBandage = pCell->pSoldier->bPoisonSum - pCell->pSoldier->bPoisonBleeding - pCell->pSoldier->bPoisonLife;
+	if ( bPoisonBandage )
+	{
+		// poisoned bandage in bright green
+		iStartY = pCell->yp + 29 - 25*(pCell->pSoldier->stats.bLife +  bPoisonBandage)/100;
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+37, iStartY, pCell->xp+38, pCell->yp+29, Get16BPPColor( FROMRGB( 57, 156, 57 ) ) );
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+38, iStartY, pCell->xp+39, pCell->yp+29, Get16BPPColor( FROMRGB( 132, 222, 132 ) ) );
+	}
+
 	//red one for actual health
 	iStartY = pCell->yp + 29 - 25*pCell->pSoldier->stats.bLife/100;
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+37, iStartY, pCell->xp+38, pCell->yp+29, Get16BPPColor( FROMRGB( 107, 8, 8 ) ) );
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+38, iStartY, pCell->xp+39, pCell->yp+29, Get16BPPColor( FROMRGB( 206, 0, 0 ) ) );
+
+	// poisoned life
+	if ( pCell->pSoldier->bPoisonLife )
+	{
+		iStartY = pCell->yp + 29 - 25*pCell->pSoldier->bPoisonLife/100;
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+37, iStartY, pCell->xp+38, pCell->yp+29, Get16BPPColor( FROMRGB( 8, 107, 8 ) ) );
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+38, iStartY, pCell->xp+39, pCell->yp+29, Get16BPPColor( FROMRGB( 0, 206, 0 ) ) );
+	}
+
 	//BREATH BAR
 	iStartY = pCell->yp + 29 - 25*pCell->pSoldier->bBreathMax/100;
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, pCell->xp+41, iStartY, pCell->xp+42, pCell->yp+29, Get16BPPColor( FROMRGB( 8, 8, 132 ) ) );
@@ -1369,7 +1403,7 @@ void ExpandWindow()
 
 	//The new rect now determines the state of the current rectangle.
 	pDestBuf = LockVideoSurface( FRAME_BUFFER, &uiDestPitchBYTES );
-	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
+	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0 + xResOffset, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
 	RectangleDraw( TRUE, gpAR->ExRect.iLeft, gpAR->ExRect.iTop, gpAR->ExRect.iRight, gpAR->ExRect.iBottom, Get16BPPColor( FROMRGB( 200, 200, 100 ) ), pDestBuf );
 	UnLockVideoSurface( FRAME_BUFFER );
 	//left
@@ -1409,14 +1443,14 @@ UINT32 VirtualSoldierDressWound( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pVictim, OB
 		uiDressSkill = ( ( 7 * EffectiveMedical( pSoldier ) ) +					// medical knowledge
 			( sStatus) + 																// state of medical kit
 			(10 * EffectiveExpLevel( pSoldier ) ) +					// battle injury experience
-			EffectiveDexterity( pSoldier ) )	/ 10;		// general "handiness"
+			EffectiveDexterity( pSoldier, FALSE ) )	/ 10;		// general "handiness"
 	}
 	else
 	{
 		uiDressSkill = ( ( 3 * EffectiveMedical( pSoldier ) ) +					// medical knowledge
 			( 2 * sStatus) + 																// state of medical kit
 			(10 * EffectiveExpLevel( pSoldier ) ) +					// battle injury experience
-			EffectiveDexterity( pSoldier ) )	/ 7;		// general "handiness"
+			EffectiveDexterity( pSoldier, FALSE ) )	/ 7;		// general "handiness"
 	}
 
 	// try to use every AP that the merc has left
@@ -1442,7 +1476,7 @@ UINT32 VirtualSoldierDressWound( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pVictim, OB
 	if (!(fOnSurgery) && gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, DOCTOR_NT ))
 	{
 		uiPossible = uiPossible * (100 - gSkillTraitValues.bSpeedModifierBandaging) / 100;
-		uiPossible += ( uiPossible * gSkillTraitValues.ubDOBandagingSpeedPercent * NUM_SKILL_TRAITS( pSoldier, DOCTOR_NT ) / 100);
+		uiPossible += ( uiPossible * gSkillTraitValues.ubDOBandagingSpeedPercent * NUM_SKILL_TRAITS( pSoldier, DOCTOR_NT ) + pSoldier->GetBackgroundValue(BG_PERC_BANDAGING) ) / 100;
 	}
 
 	uiActual = uiPossible;		// start by assuming maximum possible
@@ -1518,6 +1552,11 @@ UINT32 VirtualSoldierDressWound( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pVictim, OB
 			pVictim->stats.bLife = OKLIFE;
 			// reduce bleeding by the same number of life points healed up
 			pVictim->bBleeding -= bBelowOKlife;
+
+			// Flugente: increase bPoisonLife, decrease bPoisonBleeding
+			pVictim->bPoisonLife		= min(pVictim->bPoisonSum, pVictim->bPoisonLife + bBelowOKlife);
+			pVictim->bPoisonBleeding	= max(0, pVictim->bPoisonBleeding - bBelowOKlife);
+
 			// use up appropriate # of actual healing points
 			bPtsLeft -= (2 * bBelowOKlife);
 		}
@@ -1532,12 +1571,20 @@ UINT32 VirtualSoldierDressWound( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pVictim, OB
 			}
 			pVictim->stats.bLife += ( bPtsLeft / 2);
 			pVictim->bBleeding -= ( bPtsLeft / 2);
+
+			// Flugente: increase bPoisonLife, decrease bPoisonBleeding
+			pVictim->bPoisonLife		= min(pVictim->bPoisonSum, pVictim->bPoisonLife	+ ( bPtsLeft / 2));
+			pVictim->bPoisonBleeding	= max(0, pVictim->bPoisonBleeding - ( bPtsLeft / 2));
+
 			bPtsLeft = bPtsLeft % 2;	// if ptsLeft was odd, ptsLeft = 1
 		}
 
 		// this should never happen any more, but make sure bleeding not negative
 		if (pVictim->bBleeding < 0)
+		{
 			pVictim->bBleeding = 0;
+			pVictim->bPoisonBleeding = 0;
+		}
 
 		// if this healing brought the patient out of the worst of it, cancel dying
 		if (pVictim->stats.bLife >= OKLIFE )
@@ -1611,22 +1658,27 @@ UINT32 VirtualSoldierDressWound( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pVictim, OB
 		if ((pVictim->stats.bLife + (iLifeReturned / 100)) <= pVictim->stats.bLifeMax)
 		{
 			pVictim->stats.bLife += (iLifeReturned/100);
+			pVictim->bPoisonLife = min(pVictim->bPoisonSum, pVictim->bPoisonLife + (iLifeReturned/100));
 			if (pVictim->bBleeding >= (iLifeReturned/100))
 			{
 				pVictim->bBleeding -= (iLifeReturned/100);
+				pVictim->bPoisonBleeding	= max(0, pVictim->bPoisonBleeding - (iLifeReturned/100));
 				uiMedcost += (iLifeReturned / 200); // add medkit points cost for unbandaged part
 			}
 			else
 			{
 				pVictim->bBleeding = 0;
+				pVictim->bPoisonBleeding = 0;
 				uiMedcost += max( 0, (((iLifeReturned/100) - pVictim->bBleeding) / 2)); // add medkit points cost for unbandaged part
 			}
 		}
 		else // this shouldn't even happen, but we still want to have it here for sure
 		{
 			pVictim->stats.bLife = pVictim->stats.bLifeMax;
+			pVictim->bPoisonLife = pVictim->bPoisonSum;
 			pVictim->iHealableInjury = 0;
 			pVictim->bBleeding = 0;
+			pVictim->bPoisonBleeding = 0;
 		}
 		// Reduce max breath based on life returned
 		if ( (pVictim->bBreathMax - (((iLifeReturned/100) * gSkillTraitValues.usDOSurgeryMaxBreathLoss )/ 100)) <= BREATHMAX_ABSOLUTE_MINIMUM )
@@ -1642,6 +1694,9 @@ UINT32 VirtualSoldierDressWound( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pVictim, OB
 			pVictim->iHealableInjury = ((pVictim->stats.bLifeMax - pVictim->stats.bLife)*100);
 		else if (pVictim->iHealableInjury < 0)
 			pVictim->iHealableInjury = 0;
+
+		// Flugente: campaign stats
+		gCurrentIncident.usIncidentFlags |= INCIDENT_SURGERY;
 	}
 
 	// if any healing points remain, apply that to any remaining bleeding (1/1)
@@ -1653,15 +1708,19 @@ UINT32 VirtualSoldierDressWound( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pVictim, OB
 		{
 			bPtsLeft -= pVictim->bBleeding;
 			pVictim->bBleeding = 0;
+			pVictim->bPoisonBleeding = 0;
 		}
 		else		// bandage what we can
 		{
 			pVictim->bBleeding -= bPtsLeft;
+			pVictim->bPoisonBleeding = max(0, pVictim->bPoisonBleeding - bPtsLeft);
 			bPtsLeft = 0;
 		}
 	}
+
+	//CHRISL: If by some chance ubPtsLeft ends up being higher then uiActual, we'll end up with a huge value since uiActual is an unsigned variable.
 	// if there are any ptsLeft now, then we didn't actually get to use them
-	uiActual = max(0, (uiActual - bPtsLeft));
+	uiActual = max(0, (INT32)(uiActual - bPtsLeft));
 
 	// usedAPs equals (actionPts) * (%of possible points actually used)
 	uiUsedAPs = ( uiActual * uiAvailAPs ) / uiPossible;
@@ -1990,7 +2049,11 @@ void RenderAutoResolve()
 					SetFactTrue( FACT_FIRST_BATTLE_WON );
 				}
 				SetTheFirstBattleSector( ( INT16 ) (gpAR->ubSectorX + gpAR->ubSectorY * MAP_WORLD_X ) );
+#ifdef JA2UB
+//Ja25:	no loyalty
+#else
 				HandleFirstBattleEndingWhileInTown( gpAR->ubSectorX, gpAR->ubSectorY, 0, TRUE );
+#endif
 			}
 
 			switch( gpAR->ubBattleStatus )
@@ -2001,8 +2064,14 @@ void RenderAutoResolve()
 
 					SectorInfo[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].bLastKnownEnemies = 0;
 					SetThisSectorAsPlayerControlled( gpAR->ubSectorX, gpAR->ubSectorY, 0, TRUE );
-
+					#ifdef NEWMUSIC
+					GlobalSoundID  = MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalVictory[0];
+					if ( MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalVictory[0] != -1 )
+						SetMusicModeID( MUSIC_TACTICAL_VICTORY, MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalVictory[0] );
+					else
+					#endif
 					SetMusicMode( MUSIC_TACTICAL_VICTORY );
+					
 					LogBattleResults( LOG_VICTORY );
 					break;
 
@@ -2021,8 +2090,14 @@ void RenderAutoResolve()
 					}
 					HandleMoraleEvent( NULL, MORALE_HEARD_BATTLE_LOST, gpAR->ubSectorX, gpAR->ubSectorY, 0 );
 					if( ProcessLoyalty() )HandleGlobalLoyaltyEvent( GLOBAL_LOYALTY_BATTLE_LOST, gpAR->ubSectorX, gpAR->ubSectorY, 0 );
-
+					#ifdef NEWMUSIC
+					GlobalSoundID  = MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalDeath[0];
+					if ( MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalDeath[0] != -1 )
+						SetMusicModeID( MUSIC_TACTICAL_DEATH, MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalDeath[0] );
+					else
+					#endif
 					SetMusicMode( MUSIC_TACTICAL_DEATH );
+
 					gsEnemyGainedControlOfSectorID = (INT16)SECTOR( gpAR->ubSectorX, gpAR->ubSectorY );
 					break;
 				case BATTLE_DEFEAT:
@@ -2037,7 +2112,14 @@ void RenderAutoResolve()
 						gsEnemyGainedControlOfSectorID = (INT16)SECTOR( gpAR->ubSectorX, gpAR->ubSectorY );
 						gsCiviliansEatenByMonsters = gpAR->ubAliveEnemies;
 					}
+					#ifdef NEWMUSIC
+					GlobalSoundID  = MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalDeath[0];
+					if ( MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalDeath[0] != -1 )
+						SetMusicModeID( MUSIC_TACTICAL_DEATH, MusicSoundValues[ SECTOR( gpAR->ubSectorX, gpAR->ubSectorY ) ].SoundTacticalDeath[0] );
+					else
+					#endif
 					SetMusicMode( MUSIC_TACTICAL_DEATH );
+						
 					LogBattleResults( LOG_DEFEAT );
 					break;
 
@@ -2127,7 +2209,7 @@ static void ARCreateMilitia( UINT8 mclass, INT32 i, INT16 sX, INT16 sY)
 
 	if( mclass == SOLDIER_CLASS_ELITE_MILITIA )
 	{
-		gpCivs[i].pSoldier = TacticalCreateMilitia( SOLDIER_CLASS_ELITE_MILITIA );
+		gpCivs[i].pSoldier = TacticalCreateMilitia( SOLDIER_CLASS_ELITE_MILITIA, sX, sY );
 		if( gpCivs[i].pSoldier->ubBodyType == REGFEMALE )
 		{
 			gpCivs[i].usIndex = MILITIA3F_FACE;
@@ -2139,7 +2221,7 @@ static void ARCreateMilitia( UINT8 mclass, INT32 i, INT16 sX, INT16 sY)
 	}
 	else if( mclass == SOLDIER_CLASS_REG_MILITIA )
 	{
-		gpCivs[i].pSoldier = TacticalCreateMilitia( SOLDIER_CLASS_REG_MILITIA );
+		gpCivs[i].pSoldier = TacticalCreateMilitia( SOLDIER_CLASS_REG_MILITIA, sX, sY );
 		if( gpCivs[i].pSoldier->ubBodyType == REGFEMALE )
 		{
 			gpCivs[i].usIndex = MILITIA2F_FACE;
@@ -2151,7 +2233,7 @@ static void ARCreateMilitia( UINT8 mclass, INT32 i, INT16 sX, INT16 sY)
 	}
 	else if( mclass == SOLDIER_CLASS_GREEN_MILITIA )
 	{
-		gpCivs[i].pSoldier = TacticalCreateMilitia( SOLDIER_CLASS_GREEN_MILITIA );
+		gpCivs[i].pSoldier = TacticalCreateMilitia( SOLDIER_CLASS_GREEN_MILITIA, sX, sY );
 		if( gpCivs[i].pSoldier->ubBodyType == REGFEMALE )
 		{
 			gpCivs[i].usIndex = MILITIA1F_FACE;
@@ -2210,7 +2292,7 @@ void CreateAutoResolveInterface()
 	UINT8 cnt;
 
 	//Setup new autoresolve blanket interface.
-	MSYS_DefineRegion( &gpAR->AutoResolveRegion, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH-1, 0,
+	MSYS_DefineRegion( &gpAR->AutoResolveRegion, 0 + xResOffset, 0, SCREEN_WIDTH, SCREEN_HEIGHT, MSYS_PRIORITY_HIGH-1, 0,
 		MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );
 	gpAR->fRenderAutoResolve = TRUE;
 	gpAR->fExitAutoResolve = FALSE;
@@ -2314,14 +2396,6 @@ void CreateAutoResolveInterface()
 		}
 		
 		
-		if( !AddVideoObject( &VObjectDesc, &gpMercs[ i ].uiVObjectID ) )
-		{
-			sprintf( VObjectDesc.ImageFile, "Faces\\65Face\\speck.sti" );
-			if( !AddVideoObject( &VObjectDesc, &gpMercs[ i ].uiVObjectID ) )
-			{
-				AssertMsg( 0, String("Failed to load %Faces\\65Face\\%02d.sti or it's placeholder, speck.sti", gMercProfiles[ gpMercs[ i ].pSoldier->ubProfile ].ubFaceIndex) );
-			}
-		}
 		if( GetVideoObject( &hVObject, gpMercs[ i ].uiVObjectID ) )
 		{
 			hVObject->pShades[ 0 ] = Create16BPPPaletteShaded( hVObject->pPaletteEntry, 255, 255, 255, FALSE );
@@ -2460,7 +2534,7 @@ void CreateAutoResolveInterface()
 	//Build the interface buffer, and blit the "shaded" background.	This info won't
 	//change from now on, but will be used to restore text.
 	BuildInterfaceBuffer();
-	BlitBufferToBuffer( guiSAVEBUFFER, FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
+	BlitBufferToBuffer( guiSAVEBUFFER, FRAME_BUFFER, 0 + xResOffset, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
 
 	//If we are bumping up the interface, then also use that piece of info to
 	//move the buttons up by the same amount.
@@ -2662,7 +2736,7 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Autoresolve2");
 	{
 		if( gpCivs[ i ].pSoldier )
 		{
-			ubCurrentRank = 255;
+			ubCurrentRank = MAX_AR_TEAM_SIZE;
 			switch( gpCivs[ i ].pSoldier->ubSoldierClass )
 			{
 				case SOLDIER_CLASS_GREEN_MILITIA:		ubCurrentRank = GREEN_MILITIA;		break;
@@ -2674,6 +2748,10 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Autoresolve2");
 					#endif
 					break;
 			}
+
+			// Flugente: drop sector equipment
+			gpCivs[ i ].pSoldier->DropSectorEquipment();
+
 			if( fDeleteForGood && gpCivs[ i ].pSoldier->stats.bLife < OKLIFE/2 )
 			{
 				AddDeadSoldierToUnLoadedSector( gpAR->ubSectorX, gpAR->ubSectorY, 0, gpCivs[ i ].pSoldier, RandomGridNo(), ADD_DEAD_SOLDIER_TO_SWEETSPOT );
@@ -3006,6 +3084,7 @@ void MercCellMouseClickCallback( MOUSE_REGION *reg, INT32 reason )
 			}
 		}
 
+        Assert(pCell);
 		if( pCell->uiFlags & ( CELL_RETREATING | CELL_RETREATED ) )
 		{ //already retreated/retreating.
 			return;
@@ -3361,7 +3440,8 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Autoresolve3");
 
 	InputAtom InputEvent;
 	BOOLEAN fResetAutoResolve = FALSE;
-	while( DequeueEvent( &InputEvent ) )
+
+	while( DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT) )
 	{
 		if( InputEvent.usEvent == KEY_DOWN || InputEvent.usEvent == KEY_REPEAT )
 		{
@@ -3596,7 +3676,7 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Autoresolve3");
 				case '?':
 					if( CHEATER_CHEAT_LEVEL() )
 					{
-						gpAR->ubMercs = gGameExternalOptions.ubGameMaximumNumberOfPlayerMercs;
+						gpAR->ubMercs = OUR_TEAM_SIZE_NO_VEHICLE;
 						gpAR->ubCivs = MAX_AR_TEAM_SIZE;
 						gpAR->ubEnemies = gGameExternalOptions.ubGameMaximumNumberOfEnemies;
 						fResetAutoResolve = TRUE;
@@ -4176,7 +4256,9 @@ BOOLEAN FireAShot( SOLDIERCELL *pAttacker )
 		pAttacker->bWeaponSlot = SECONDHANDPOS;
 		return TRUE;
 	}
-	for( UINT32 i = 0; i < pSoldier->inv.size(); i++ )
+
+	UINT8 invsize = pSoldier->inv.size();
+	for( UINT8 i = 0; i < invsize; ++i )
 	{
 		pItem = &pSoldier->inv[ i ];
 
@@ -4217,7 +4299,8 @@ BOOLEAN FireAShot( SOLDIERCELL *pAttacker )
 
 BOOLEAN AttackerHasKnife( SOLDIERCELL *pAttacker )
 {
-	for( UINT32 i = 0; i < pAttacker->pSoldier->inv.size(); i++ )
+	UINT8 invsize = pAttacker->pSoldier->inv.size();
+	for( UINT8 i = 0; i < invsize; ++i )
 	{
 		if( Item[ pAttacker->pSoldier->inv[ i ].usItem ].usItemClass == IC_BLADE )
 		{
@@ -4232,7 +4315,8 @@ BOOLEAN AttackerHasKnife( SOLDIERCELL *pAttacker )
 BOOLEAN TargetHasLoadedGun( SOLDIERTYPE *pSoldier )
 {
 	OBJECTTYPE *pItem;
-	for( UINT32 i = 0; i < pSoldier->inv.size(); i++ )
+	UINT8 invsize = pSoldier->inv.size();
+	for( UINT8 i = 0; i < invsize; ++i )
 	{
 		pItem = &pSoldier->inv[ i ];
 		if( Item[ pItem->usItem ].usItemClass == IC_GUN )
@@ -4408,8 +4492,9 @@ void AttackTarget( SOLDIERCELL *pAttacker, SOLDIERCELL *pTarget )
 	//Attacker hits
 	if( !fMelee )
 	{
-		//ubImpact = (UINT8) GetDamage(&pAttacker->pSoldier->inv[ pAttacker->bWeaponSlot ]);
-		ubImpact = Weapon[ pAttacker->pSoldier->inv[ pAttacker->bWeaponSlot ].usItem ].ubImpact;
+		// silversurfer: We want to use the function instead of the raw value because it applies the modifiers that we configured in the ini.
+		ubImpact = (UINT8) GetDamage(&pAttacker->pSoldier->inv[ pAttacker->bWeaponSlot ]);
+		//ubImpact = Weapon[ pAttacker->pSoldier->inv[ pAttacker->bWeaponSlot ].usItem ].ubImpact;
 		iRandom = PreRandom( 100 );
 		if( iRandom < 15 )
 			ubLocation = AIM_SHOT_HEAD;
@@ -4418,7 +4503,8 @@ void AttackTarget( SOLDIERCELL *pAttacker, SOLDIERCELL *pTarget )
 		else
 			ubLocation = AIM_SHOT_TORSO;
 		ubAccuracy = (UINT8)((usAttack - usDefence + PreRandom( usDefence - pTarget->usDefence ) )/10);
-		iImpact = BulletImpact( pAttacker->pSoldier, pTarget->pSoldier, ubLocation, ubImpact, ubAccuracy, NULL );
+		// HEADROCK HAM 5: Added argument
+		iImpact = BulletImpact( pAttacker->pSoldier, NULL, pTarget->pSoldier, ubLocation, ubImpact, ubAccuracy, NULL );
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - increased mercs' offense/deffense rating
 		if (pAttacker->uiFlags & CELL_MERC && gGameExternalOptions.sMercsAutoresolveOffenseBonus != 0)
@@ -4525,6 +4611,10 @@ void AttackTarget( SOLDIERCELL *pAttacker, SOLDIERCELL *pTarget )
 		}
 		if( iNewLife <= 0 )
 		{ //soldier has been killed
+
+			// Flugente: campaign stats
+			gCurrentIncident.AddStat( pTarget->pSoldier, CAMPAIGNHISTORY_TYPE_KILL );
+
 			if( pAttacker->uiFlags & CELL_MERC )
 			{ //Player killed the enemy soldier -- update his stats as well as any assisters.
 				/////////////////////////////////////////////////////////////////////////////////////
@@ -4543,13 +4633,18 @@ void AttackTarget( SOLDIERCELL *pAttacker, SOLDIERCELL *pTarget )
 					case SOLDIER_CLASS_CREATURE :
 						gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsCreatures++;
 						break;
+#ifdef ENABLE_ZOMBIES
+					case SOLDIER_CLASS_ZOMBIE :
+						gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsZombies++;
+						break;
+#endif
 					default :
 						if ( CREATURE_OR_BLOODCAT( pTarget->pSoldier ) )
 							gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsCreatures++;
-							else if ( TANK( pTarget->pSoldier ) ) // we hardly can kill a tank in autoresolve, but well.. who knows..
-								gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsTanks++;
-							else if ( pTarget->pSoldier->bTeam == CIV_TEAM && !pTarget->pSoldier->aiData.bNeutral && pTarget->pSoldier->bSide != gbPlayerNum )
-								gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsHostiles++;
+						else if ( TANK( pTarget->pSoldier ) ) // we hardly can kill a tank in autoresolve, but well.. who knows..
+							gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsTanks++;
+						else if ( pTarget->pSoldier->bTeam == CIV_TEAM && !pTarget->pSoldier->aiData.bNeutral && pTarget->pSoldier->bSide != gbPlayerNum )
+							gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsHostiles++;
 						else
 							gMercProfiles[ pAttacker->pSoldier->ubProfile ].records.usKillsOthers++;
 						break;
@@ -4715,6 +4810,9 @@ void TargetHitCallback( SOLDIERCELL *pTarget, INT32 index )
 			{
 				if( pKiller->uiFlags & CELL_MERC )
 				{
+					// Flugente: campaign stats
+					gCurrentIncident.AddStat( pTarget->pSoldier, CAMPAIGNHISTORY_TYPE_KILL );
+
 					/////////////////////////////////////////////////////////////////////////////////////
 					// SANDRO - new mercs' records
 					switch(pTarget->pSoldier->ubSoldierClass)
@@ -4731,6 +4829,11 @@ void TargetHitCallback( SOLDIERCELL *pTarget, INT32 index )
 						case SOLDIER_CLASS_CREATURE :
 							gMercProfiles[ pKiller->pSoldier->ubProfile ].records.usKillsCreatures++;
 							break;
+#ifdef ENABLE_ZOMBIES
+						case SOLDIER_CLASS_ZOMBIE :
+							gMercProfiles[ pKiller->pSoldier->ubProfile ].records.usKillsZombies++;
+							break;
+#endif
 						default :
 							if ( CREATURE_OR_BLOODCAT( pTarget->pSoldier ) )
 								gMercProfiles[ pKiller->pSoldier->ubProfile ].records.usKillsCreatures++;

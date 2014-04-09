@@ -3,7 +3,6 @@
 #else
 	#include "WordWrap.h"
 	#include "sgp.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "IMP Text System.h"
 	#include "CharProfile.h"
@@ -17,6 +16,31 @@
 	#include "GameSettings.h"
 	#include "Text.h"
 	#include "_Ja25Englishtext.h"
+#ifdef JA2UB
+	#include "laptop.h"
+	#include "email.h"
+	#include "Utilities.h"
+	#include "WCheck.h"
+	#include "Debug.h"
+	#include "WordWrap.h"
+	#include "Encrypted File.h"
+	#include "cursors.h"
+	#include "soldier profile.h"
+	#include "IMP Compile Character.h"
+	#include "IMP Voices.h"
+	#include "IMP Portraits.h"
+	#include "Game Clock.h"
+	#include "environment.h"
+	#include "AimMembers.h"
+	#include "Random.h"
+	#include "Text.h"
+	#include "LaptopSave.h"
+	#include "finances.h"
+	#include "PostalService.h"
+	#include "faces.h"
+	#include "GameSettings.h"
+#endif
+
 #endif
 
 #define IMP_SEEK_AMOUNT 5 * 80 * 2
@@ -46,8 +70,10 @@ void OffSetQuestionForFemaleSpecificQuestions( INT32 *iCurrentOffset );
 #define QTN_FIRST_COLUMN_X					iScreenWidthOffset + 80
 #define QTN_SECOND_COLUMN_X					iScreenWidthOffset + 320
 
-
-
+#ifdef JA2UB
+#define		IMPTEXT_EDT_FILE_JA25			"BINARYDATA\\IMPText25.edt"
+#define		IMPTEXT_EDT_FILE_JA2		"BINARYDATA\\IMPText.edt"
+#endif
 
 void LoadAndDisplayIMPText( INT16 sStartX, INT16 sStartY, INT16 sLineLength, INT16 sIMPTextRecordNumber, UINT32 uiFont, UINT8 ubColor, BOOLEAN fShadow, UINT32 uiFlags)
 {
@@ -62,7 +88,18 @@ void LoadAndDisplayIMPText( INT16 sStartX, INT16 sStartY, INT16 sLineLength, INT
 	}
 
 	// load the string
+#ifdef JA2UB
+	if (FileExists(IMPTEXT_EDT_FILE_JA25))
+	{
+	LoadEncryptedDataFromFile(IMPTEXT_EDT_FILE_JA25, sString, ( UINT32 ) ( ( sIMPTextRecordNumber ) * IMP_SEEK_AMOUNT ), IMP_SEEK_AMOUNT);
+	}
+	else
+	{
+	LoadEncryptedDataFromFile(IMPTEXT_EDT_FILE_JA2, sString, ( UINT32 ) ( ( sIMPTextRecordNumber ) * IMP_SEEK_AMOUNT ), IMP_SEEK_AMOUNT);	
+	}
+#else
 	LoadEncryptedDataFromFile("BINARYDATA\\IMPText.EDT", sString, ( UINT32 ) ( ( sIMPTextRecordNumber ) * IMP_SEEK_AMOUNT ), IMP_SEEK_AMOUNT);
+#endif
 
 	// null put last char
 	sString[ wcslen( sString) ] = 0;
@@ -96,7 +133,7 @@ void InitializeImpRecordLengthList( void )
 
 void PrintImpText( void )
 {
-	INT16 sWidth = LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X + 1;
+	INT16 sWidth = LAPTOP_TEXT_WIDTH;
 
 	// looks at current page and prints text needed
 	switch( iCurrentImpPage )
@@ -130,7 +167,8 @@ void PrintImpText( void )
 		break;
 		case ( IMP_MAIN_PAGE ):
 		// title
-			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 19, sWidth, IMP_MAIN_1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+			
+			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_MAIN_1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 
 			// set up for IMP text for title box area
 			switch( iCurrentProfileMode )
@@ -157,7 +195,7 @@ void PrintImpText( void )
 		case ( IMP_BEGIN ):
 
 			// title
-			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_BEGIN_1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED );
+			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_BEGIN_1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED );
 		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 105, LAPTOP_SCREEN_WEB_UL_Y + 67, ( 390 - 105	), IMP_BEGIN_2, FONT10ARIAL, 142, TRUE, CENTER_JUSTIFIED);
 
 			// fullname
@@ -191,15 +229,18 @@ void PrintImpText( void )
 		//LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 130, LAPTOP_SCREEN_WEB_UL_Y + 130, ( 456 - 200	), IMP_PERS_2, FONT12ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 			if ( gGameOptions.fNewTraitSystem )
 			{
-				DisplayWrappedString( LAPTOP_SCREEN_UL_X + 130, LAPTOP_SCREEN_WEB_UL_Y + 57,  ( 456 - 200 ), 2, FONT12ARIAL, FONT_WHITE, pSkillTraitBeginIMPStrings[ 2 ],FONT_BLACK,FALSE,CENTER_JUSTIFIED);
-				DisplayWrappedString( LAPTOP_SCREEN_UL_X + 130, LAPTOP_SCREEN_WEB_UL_Y + 155,  ( 456 - 200 ), 2, FONT12ARIAL, FONT_WHITE, pSkillTraitBeginIMPStrings[ 3 ],FONT_BLACK,FALSE,CENTER_JUSTIFIED);
+				CHAR16 sString[400];
+				swprintf( sString, pSkillTraitBeginIMPStrings[ 2 ], gSkillTraitValues.ubNumberOfMajorTraitsAllowedForIMP );
+				DisplayWrappedString( LAPTOP_SCREEN_UL_X + 130, LAPTOP_SCREEN_WEB_UL_Y + 57,  ( 456 - 200 ), 2, FONT12ARIAL, FONT_WHITE, sString,FONT_BLACK,FALSE,CENTER_JUSTIFIED);
+				swprintf( sString, pSkillTraitBeginIMPStrings[ 3 ], gSkillTraitValues.ubMaxNumberOfTraitsForIMP, gSkillTraitValues.ubMaxNumberOfTraitsForIMP, gSkillTraitValues.ubMaxNumberOfTraitsForIMP -2 );
+				DisplayWrappedString( LAPTOP_SCREEN_UL_X + 130, LAPTOP_SCREEN_WEB_UL_Y + 155,  ( 456 - 200 ), 2, FONT12ARIAL, FONT_WHITE, sString,FONT_BLACK,FALSE,CENTER_JUSTIFIED);
 			}
 			else
 			{
 				DisplayWrappedString( LAPTOP_SCREEN_UL_X + 130, LAPTOP_SCREEN_WEB_UL_Y + 57,  ( 456 - 200 ), 2, FONT12ARIAL, FONT_WHITE, pSkillTraitBeginIMPStrings[ 0 ],FONT_BLACK,FALSE,CENTER_JUSTIFIED);
 				DisplayWrappedString( LAPTOP_SCREEN_UL_X + 130, LAPTOP_SCREEN_WEB_UL_Y + 140,  ( 456 - 200 ), 2, FONT12ARIAL, FONT_WHITE, pSkillTraitBeginIMPStrings[ 1 ],FONT_BLACK,FALSE,CENTER_JUSTIFIED);
 			}
-		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_PERS_6, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED );
+		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_PERS_6, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED );
 
 
 		break;
@@ -213,7 +254,7 @@ void PrintImpText( void )
 
 		break;
 		case ( IMP_PERSONALITY_FINISH ):
-		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_PERS_6, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X, LAPTOP_TITLE_Y, sWidth, IMP_PERS_6, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 			switch( bPersonalityEndState )
 			{
 			case( 0 ):
@@ -238,14 +279,14 @@ void PrintImpText( void )
 			}
 			else
 			{
-				LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_ATTRIB_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+				LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_ATTRIB_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 				LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 110, LAPTOP_SCREEN_WEB_UL_Y + 50, ( 300 ), IMP_ATTRIB_5, FONT12ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 				LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 110, LAPTOP_SCREEN_WEB_UL_Y + 130, ( 300 ), IMP_ATTRIB_6, FONT12ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 				LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 110, LAPTOP_SCREEN_WEB_UL_Y + 200, ( 300 ), IMP_ATTRIB_7, FONT12ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 			}
 		break;
 	case( IMP_ATTRIBUTE_PAGE ):
-		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_ATTRIB_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_ATTRIB_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 
 			// Moved this to "IMP Attribute Selection.cpp" - SANDRO
 			// don't blit bonus if reviewing
@@ -286,26 +327,26 @@ void PrintImpText( void )
 
 		break;
 	case( IMP_ATTRIBUTE_FINISH ):
-			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_ATTRIB_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_ATTRIB_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 
 			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 125, LAPTOP_SCREEN_WEB_UL_Y + 100, ( 356 - 100 ), IMP_AF_2 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 
 		break;
 		case ( IMP_PORTRAIT ):
-		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_POR_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_POR_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 135, LAPTOP_SCREEN_WEB_UL_Y + 68, ( 240	), IMP_POR_2 - 1, FONT10ARIAL, 142, TRUE, 0);
 
 		break;
 		case ( IMP_VOICE ):
-		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_VOC_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+		LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_VOC_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 135, LAPTOP_SCREEN_WEB_UL_Y + 70, ( 240	), IMP_VOC_2 - 1, FONT10ARIAL, 142, TRUE, 0);
 		break;
 		case ( IMP_FINISH ):
-		//LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 160, LAPTOP_SCREEN_WEB_UL_Y + 7, ( 640	), IMP_FIN_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, 0);
+		//LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 160, LAPTOP_TITLE_Y, ( 640	), IMP_FIN_1 - 1, FONT14ARIAL, FONT_WHITE, TRUE, 0);
 			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 150, LAPTOP_SCREEN_WEB_UL_Y + 55, ( 200	), IMP_FIN_2 - 1, FONT12ARIAL, FONT_WHITE, TRUE, 0);
 		break;
 		case( IMP_CONFIRM ):
-			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_SCREEN_WEB_UL_Y + 7, sWidth, IMP_CON_1 , FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
+			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, sWidth, IMP_CON_1 , FONT14ARIAL, FONT_WHITE, TRUE, CENTER_JUSTIFIED);
 			LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 160, LAPTOP_SCREEN_WEB_UL_Y + 60, ( 200	), IMP_CON_2 , FONT12ARIAL, FONT_WHITE, TRUE, 0);
 			//LoadAndDisplayIMPText( LAPTOP_SCREEN_UL_X + 160, LAPTOP_SCREEN_WEB_UL_Y + 145, ( 200	), IMP_CON_3 , FONT12ARIAL, FONT_WHITE, TRUE, 0);
 			// SANDRO - changed to show exact cost of profile

@@ -43,6 +43,7 @@
     <ClInclude Include="Enemy Soldier Save.h" />
     <ClInclude Include="EnemyItemDrops.h" />
     <ClInclude Include="faces.h" />
+    <ClInclude Include="Food.h" />
     <ClInclude Include="fov.h" />
     <ClInclude Include="GAP.H" />
     <ClInclude Include="Handle Doors.h" />
@@ -61,6 +62,7 @@
     <ClInclude Include="Inventory Choosing.h" />
     <ClInclude Include="Item Types.h" />
     <ClInclude Include="Items.h" />
+    <ClInclude Include="Ja25_Tactical.h" />
     <ClInclude Include="Keys.h" />
     <ClInclude Include="LOS.h" />
     <ClInclude Include="Map Information.h" />
@@ -81,6 +83,7 @@
     <ClInclude Include="ShopKeeper Interface.h" />
     <ClInclude Include="ShopKeeper Quotes.h" />
     <ClInclude Include="SkillCheck.h" />
+    <ClInclude Include="SkillMenu.h" />
     <ClInclude Include="Soldier Add.h" />
     <ClInclude Include="Soldier Ani.h" />
     <ClInclude Include="Soldier Control.h" />
@@ -126,6 +129,7 @@
     <ClCompile Include="Enemy Soldier Save.cpp" />
     <ClCompile Include="EnemyItemDrops.cpp" />
     <ClCompile Include="Faces.cpp" />
+    <ClCompile Include="Food.cpp" />
     <ClCompile Include="fov.cpp" />
     <ClCompile Include="GAP.cpp" />
     <ClCompile Include="Handle Doors.cpp" />
@@ -144,6 +148,7 @@
     <ClCompile Include="Inventory Choosing.cpp" />
     <ClCompile Include="Item Types.cpp" />
     <ClCompile Include="Items.cpp" />
+    <ClCompile Include="Ja25_Tactical.cpp" />
     <ClCompile Include="Keys.cpp" />
     <ClCompile Include="LOS.cpp" />
     <ClCompile Include="Map Information.cpp" />
@@ -157,10 +162,12 @@
     <ClCompile Include="Points.cpp" />
     <ClCompile Include="QARRAY.cpp" />
     <ClCompile Include="Rain.cpp" />
+    <ClCompile Include="RandomMerc.cpp" />
     <ClCompile Include="Real Time Input.cpp" />
     <ClCompile Include="Rotting Corpses.cpp" />
     <ClCompile Include="ShopKeeper Interface.cpp" />
     <ClCompile Include="SkillCheck.cpp" />
+    <ClCompile Include="SkillMenu.cpp" />
     <ClCompile Include="Soldier Add.cpp" />
     <ClCompile Include="Soldier Ani.cpp" />
     <ClCompile Include="Soldier Control.cpp" />
@@ -188,10 +195,13 @@
     <ClCompile Include="XML_AttachmentInfo.cpp" />
     <ClCompile Include="XML_Attachments.cpp" />
     <ClCompile Include="XML_AttachmentSlots.cpp" />
+    <ClCompile Include="XML_Background.cpp" />
     <ClCompile Include="XML_BurstSounds.cpp" />
     <ClCompile Include="XML_CivGroupNames.cpp" />
+    <ClCompile Include="XML_Clothes.cpp" />
     <ClCompile Include="XML_ComboMergeInfo.cpp" />
     <ClCompile Include="XML_CompatibleFaceItems.cpp" />
+    <ClCompile Include="XML_Drugs.cpp" />
     <ClCompile Include="XML_EnemyAmmoDrops.cpp" />
     <ClCompile Include="XML_EnemyArmourDrops.cpp" />
     <ClCompile Include="XML_EnemyExplosiveDrops.cpp" />
@@ -202,27 +212,35 @@
     <ClCompile Include="XML_EnemyWeaponChoice.cpp" />
     <ClCompile Include="XML_EnemyWeaponDrops.cpp" />
     <ClCompile Include="XML_Explosive.cpp" />
+    <ClCompile Include="XML_Food.cpp" />
     <ClCompile Include="XML_HiddenNames.cpp" />
     <ClCompile Include="XML_IMPItemChoices.cpp" />
     <ClCompile Include="XML_IncompatibleAttachments.cpp" />
+    <ClCompile Include="XML_ItemAdjustments.cpp" />
     <ClCompile Include="XML_Launchable.cpp" />
     <ClCompile Include="XML_LBEPocket.cpp" />
+    <ClCompile Include="XML_LBEPocketPopup.cpp" />
     <ClCompile Include="XML_LoadBearingEquipment.cpp" />
+    <ClCompile Include="XML_LoadScreenHints.cpp" />
     <ClCompile Include="XML_Magazine.cpp" />
+    <ClCompile Include="XML_Merchants.cpp" />
     <ClCompile Include="XML_MercStartingGear.cpp" />
     <ClCompile Include="XML_Merge.cpp" />
     <ClCompile Include="XML_NewFaceGear.cpp" />
     <ClCompile Include="XML_Opinions.cpp" />
     <ClCompile Include="XML_Profiles.cpp" />
     <ClCompile Include="XML_Qarray.cpp" />
+    <ClCompile Include="XML_RandomItem.cpp" />
     <ClCompile Include="XML_RandomStats.cpp" />
     <ClCompile Include="XML_RPCFacesSmall.cpp" />
     <ClCompile Include="XML_SectorLoadscreens.cpp" />
+    <ClCompile Include="XML_SoldierProfiles.cpp" />
     <ClCompile Include="XML_SoundProfile.cpp" />
     <ClCompile Include="XML_Sounds.cpp" />
     <ClCompile Include="XML_SpreadPatterns.cpp" />
     <ClCompile Include="XML_Taunts.cpp" />
     <ClCompile Include="XML_TonyInventory.cpp" />
+    <ClCompile Include="XML_Vehicles.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{433FBCC4-F612-489C-AA28-CCD6CF27D80C}</ProjectGuid>
@@ -287,26 +305,11 @@
     <Import Project="..\ja2.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'">
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditor|Win32'">
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Relese_WithDebugInfo|Win32'">
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditor|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Relese_WithDebugInfo|Win32'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>

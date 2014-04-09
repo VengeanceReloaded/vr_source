@@ -10,19 +10,18 @@ typedef struct
 	UINT16 uiIndex;
 	BOOLEAN Enabled;
 	INT8 BaseAttribute;
-	INT8 ExpLevel;
+	BOOLEAN RandomExpLevel;
 	BOOLEAN RandomLife;
 	BOOLEAN RandomAgility;
-	BOOLEAN RandomLeadership;
 	BOOLEAN RandomDexterity;
+	BOOLEAN RandomStrength;
+	BOOLEAN RandomLeadership;
 	BOOLEAN RandomWisdom;
 	BOOLEAN RandomMarksmanship;
-	BOOLEAN RandomMedical;
 	BOOLEAN RandomMechanical;
 	BOOLEAN RandomExplosive;
+	BOOLEAN RandomMedical;
 	BOOLEAN RandomScientific;
-	BOOLEAN RandomStrength;
-
 } RANDOM_STATS_VALUES;
 
 extern RANDOM_STATS_VALUES gRandomStatsValue[NUM_PROFILES];
@@ -38,6 +37,7 @@ extern INT16 gsTerroristSector[][5][2];
 extern BOOLEAN	gfPotentialTeamChangeDuringDeath;
 
 extern MERCPROFILESTRUCT gMercProfiles[ NUM_PROFILES ];
+
 extern MERCPROFILEGEAR gMercProfileGear[ NUM_PROFILES ][ NUM_MERCSTARTINGGEAR_KITS ];
 
 
@@ -91,7 +91,8 @@ extern BOOLEAN LoadNewSystemMercsToSaveGameFile( HWFILE hFile );
 
 enum NPCIDs
 {
-	IVAN = 7,
+	VICKI = 4,// anv: check when hiring Speck
+	IVAN = 7,// anv: for VR NPC trigger
 	BIFF = 40,
 	HAYWIRE,
 	GASKET,
@@ -103,8 +104,11 @@ enum NPCIDs
 	COUGAR,
 	NUMB,
 	BUBBA,
-
+#ifdef JA2UB
+	MIGUEL = 58,  	//Ja25:		Was 57
+#else
 	MIGUEL = 57,
+#endif
 	CARLOS,
 	IRA,
 	DIMITRI,
@@ -113,7 +117,11 @@ enum NPCIDs
 	ROBOT,
 	HAMOUS,
 	SLAY,
+#ifdef JA2UB
+//	RPC65,
+#else
 	RPC65,
+#endif
 	DYNAMO,
 	SHANK,
 	IGGY,
@@ -224,19 +232,35 @@ enum NPCIDs
 	PROF_ICECREAM,
 	PROF_HELICOPTER,
 	NPC164,
+#ifdef JA2UB
+	NPC165,
+	NPC166,
+	NPC167,
+	NPC168,
+	NPC169,
+#else
 	GASTON,
 	STOGIE,
 	TEX,
 	BIGGENS,
 	NPC169,
+#endif	
 	NPC170 = NPC169 + 84,
-	// VENGANCE
+	SPECK_PLAYABLE = 191,// anv
+	
+	// Those 4 only available in JA2 113 and not in JA2 UB!
+	JOHN_MERC = 195,
+	ELIO = 196,
+	JUAN = 197,
+	WAHAN = 198,
+
+	// anv: VR characters
+	MENDAX = 112,
 	CONMAN = 202,
 	ARULCAN_BUYER = 203,
 	CIA_BUYER = 204,
 	TRACONIAN_BUYER = 205,
-	MENDAX = 112,
-	// /VENGANCE
+
 } ;
 
 BOOLEAN LoadMercProfiles(void);
@@ -368,6 +392,17 @@ typedef struct
 	UINT8		bLearnToHate;
 	INT8		bLearnToHateTime;
 
+	INT8		bRace;
+	INT8		bNationality;
+	INT8		bAppearance;
+	INT8		bAppearanceCareLevel;
+	INT8		bRefinement;
+	INT8		bRefinementCareLevel;
+	INT8		bHatedNationality;
+	INT8		bHatedNationalityCareLevel;
+	INT8		bRacist;
+	UINT8		bSexist;
+
 	INT16		sSalary;
 	UINT32		uiWeeklySalary;
 	UINT32		uiBiWeeklySalary;
@@ -384,7 +419,7 @@ typedef struct
 
 	UINT16		usApproachFactor[4];
 
-	INT8 bMercOpinion[75];
+	INT8 bMercOpinion[NUMBER_OF_OPINIONS];
 	
 	UINT32 Type;
 	
@@ -394,6 +429,9 @@ typedef struct
 	UINT8 ubCivilianGroup;
 	INT8 bTown;
 	INT8 bTownAttachment;
+
+	// Flugente: backgrounds
+	UINT16 usBackground;
 
 } TEMPPROFILETYPE;
 

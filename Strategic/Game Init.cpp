@@ -10,8 +10,6 @@
 	#include "worlddef.h"
 	#include "Soldier Control.h"
 	#include "overhead.h"
-	#include "fade screen.h"
-	#include "gamescreen.h"
 	#include "email.h"
 	#include "Game Clock.h"
 	#include "soldier profile.h"
@@ -21,7 +19,6 @@
 	#include "finances.h"
 	#include "soldier create.h"
 	#include "Soldier Init List.h"
-	#include "music control.h"
 	#include "strategic.h"
 	#include "history.h"
 	#include "merc entering.h"
@@ -40,21 +37,17 @@
 	#include "Creature Spreading.h"
 	#include "Quests.h"
 	#include "Strategic AI.h"
-	#include "sound control.h"
 	#include "Laptopsave.h"
 	#include "AimMembers.h"
 	#include "dialogue control.h"
 	#include "npc.h"
-	#include "Init.h"
 	#include "GameSettings.h"
-	#include "opplist.h"
 	#include "interface dialogue.h"
 	#include "Map Screen Interface Border.h"
 	#include "Map Screen Helicopter.h"
 	#include "Vehicles.h"
 	#include "Map Screen Interface Map.h"
 	#include "PreBattle Interface.h"
-	#include "Arms Dealer Init.h"
 	#include "bobbyr.h"
 	#include "helpscreen.h"
 	#include "Air Raid.h"
@@ -66,6 +59,7 @@
 	// HEADROCK HAM 4: Include for initializing Manual Restrictions
 	#include "MilitiaSquads.h"
 	#include "Map Screen Interface Map Inventory.h"//dnl ch51 081009
+	#include "CampaignStats.h"						// added by Flugente
 #endif
 
 #include "Vehicles.h"
@@ -74,9 +68,21 @@
 #include "XML.h"
 #include "mercs.h"
 #include "aim.h"
+#include "Map Screen Interface.h"
+#ifdef JA2UB
+#include "Ja25 Strategic Ai.h"
+#include "Ja25_Tactical.h"
+#endif
 
 #include "LuaInitNPCs.h"
 #include "Luaglobal.h"
+#include "SaveLoadScreen.h"
+
+#ifdef JA113DEMO
+#include "Merc Contract.h"
+#include "Soldier Add.h"
+#include "Map Screen Interface Bottom.h"
+#endif
 
 #include "PostalService.h"
 extern CPostalService gPostalService;
@@ -95,6 +101,14 @@ extern UNDERGROUND_SECTORINFO* FindUnderGroundSector( INT16 sMapX, INT16 sMapY, 
 
 
 UINT8			gubScreenCount=0;
+
+#ifdef JA2UB
+void InitCustomStrategicLayer ( void )
+{
+	LetLuaGameInit(2); //load custom InitStrategicLayer
+}
+
+#endif
 
 void InitNPCs( void )
 {		
@@ -425,8 +439,30 @@ void InitStrategicLayer( void )
 	InitSquads();
 	// Init vehicles
 	InitAllVehicles( );
-	// init town loyalty
-	InitTownLoyalty();
+	
+	#ifdef JA2UB
+	InitCustomStrategicLayer ( );
+	#endif
+
+#ifdef JA2UB	
+	//Ja25 UB
+	InitJerryQuotes();	
+	if ( gGameUBOptions.JerryQuotes == TRUE )
+	{
+		HandleJerryMiloQuotes( TRUE ); //AA
+	}
+	
+	InitJa25StrategicAi( );
+#endif
+
+	
+#ifdef JA2UB
+	////if ( gGameUBOptions.InitTownLoyalty_UB == TRUE )
+		InitTownLoyalty(); //Ja25 no loyalty
+#else
+		// init town loyalty
+		InitTownLoyalty(); //Ja25 no loyalty
+#endif
 	// init the mine management system
 	InitializeMines();
 	// initialize map screen flags
@@ -456,6 +492,9 @@ void InitStrategicLayer( void )
 	// re-set up leave list arrays for dismissed mercs
 	InitLeaveList( );
 
+	#ifdef JA2UB
+	LuaInitStrategicLayer(0); //JA25 UB InitStrategicLayer.lua 
+	#endif
 	// reset time compression mode to X0 (this will also pause it)
 	SetGameTimeCompressionLevel( TIME_COMPRESS_X0 );
 
@@ -475,6 +514,16 @@ void ShutdownStrategicLayer()
 	DeleteAllStrategicEvents();
 	RemoveAllGroups();
 	TrashUndergroundSectorInfo();
+
+#ifdef JA2UB
+//Ja25 No creatures
+//Ja25 No strategic ai
+#else
+	DeleteCreatureDirectives(); 
+
+	KillStrategicAI();
+	
+#endif
 	DeleteCreatureDirectives();
 	KillStrategicAI();
 	ClearTacticalMessageQueue();
@@ -489,14 +538,31 @@ BOOLEAN InitNewGame( BOOLEAN fReset )
 		gubScreenCount = 0;
 		return( TRUE );
 	}
-
+	
 	if( gubScreenCount == 0 )
 	{	
 		IniLuaGlobal();//Lua
 	}
 	
+	//reset autosave
+	AutoSaveToSlot[0] = FALSE;
+	AutoSaveToSlot[1] = FALSE;
+	AutoSaveToSlot[2] = FALSE;
+	AutoSaveToSlot[3] = FALSE;
+	AutoSaveToSlot[4] = FALSE;
+	
+
+#ifdef JA2UB
+//Ja25 no meanwhiles
+#else
 	// reset meanwhile flags
 	uiMeanWhileFlags = 0;
+#endif
+
+#ifdef JA2UB
+fFirstTimeInMapScreen = TRUE;
+#endif
+
 
 	// Reset the selected soldier
 	gusSelectedSoldier = NOBODY;
@@ -536,7 +602,12 @@ BOOLEAN InitNewGame( BOOLEAN fReset )
 	{
 		//Init all the arms dealers inventory
 		InitAllArmsDealers();
-		InitBobbyRayInventory();
+#ifdef JA2UB		
+		if ( gGameUBOptions.fBobbyRSite == TRUE )
+		InitBobbyRayInventory();  //Ja25 UB
+#else
+		InitBobbyRayInventory();  
+#endif
 	}
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"InitNewGame: clearing messages");
@@ -567,7 +638,7 @@ BOOLEAN InitNewGame( BOOLEAN fReset )
 	// ------------------------
 	if (gGameExternalOptions.fShowCamouflageFaces == TRUE )
 	{		
-		for (int i=0;i<255;i++)
+		for (int i=0;i<NUM_PROFILES;++i)
 		{
 			gCamoFace[i].gCamoface = FALSE;
 			gCamoFace[i].gUrbanCamoface = FALSE;
@@ -614,12 +685,19 @@ BOOLEAN InitNewGame( BOOLEAN fReset )
 		gAimAvailability[i].AimBio = gAimAvailabilityTemp[i].AimBio;
 	}
 	
+#ifdef ENABLE_BRIEFINGROOM
+	BackupBRandEncyclopedia ( gBriefingRoomDataBackup, gBriefingRoomData, 0);
+#endif //ENABLE_BRIEFINGROOM
+
 	// IF our first time, go into laptop!
 	if ( gubScreenCount == 0 )
 	{
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"InitNewGame: first time: init laptop");
 		//Init the laptop here
 		InitLaptopAndLaptopScreens();
+
+		// Flugente campaign stats
+		gCampaignStats.clear();
 
 		InitStrategicLayer();
 
@@ -630,8 +708,16 @@ BOOLEAN InitNewGame( BOOLEAN fReset )
 		ResetHeliSeats( );
 
 #ifdef LUA_GAME_INIT_NEW_GAME
-			LetLuaGameInit(0);
+		
+		LetLuaGameInit(0);
+
+		#ifdef JA2UB
+		InitCustomStrategicLayer ( );
+		#endif
 #else
+		#ifdef JA2UB
+
+		#else
 		INT32		iStartingCash;
 
 		// Setup two new messages!
@@ -680,7 +766,7 @@ BOOLEAN InitNewGame( BOOLEAN fReset )
 
 		// Setup initial money
  		AddTransactionToPlayersBook( ANONYMOUS_DEPOSIT, 0, GetWorldTotalMin(), iStartingCash );
-
+		#endif
 #endif
 	
 		UINT32	uiDaysTimeMercSiteAvailable = Random( 2 ) + 1;
@@ -699,14 +785,56 @@ BOOLEAN InitNewGame( BOOLEAN fReset )
 		}
 		else
 		{
+			#ifdef JA113DEMO
+			
+			//QuickSetupOfMercProfileItems( 0,4 ); //Vicki
+			//QuickGameMemberHireMerc( 4 );
+			
+			//QuickSetupOfMercProfileItems( 0,7 ); // Ivan
+			//QuickGameMemberHireMerc( 7 );
+			
+			//QuickSetupOfMercProfileItems( 0,10 ); // Shadow
+			//QuickGameMemberHireMerc( 10 );
+			
+			//QuickSetupOfMercProfileItems( 0,33 ); // 
+			//QuickGameMemberHireMerc( 33 );
+			
+			//QuickSetupOfMercProfileItems( 0,42 ); // 
+			//QuickGameMemberHireMerc( 42 );
+			
+			SetLaptopExitScreen( MAP_SCREEN );
+			SetPendingNewScreen( MAP_SCREEN );
+			
+			#else
 			SetLaptopExitScreen( INIT_SCREEN );
 			SetPendingNewScreen(LAPTOP_SCREEN);
+			#endif
 		}
 		
 		gubScreenCount = 1;
 
+#ifdef JA2UB		
+		//ja25 ub
+		//Init the initial hweli crash sequence variable
+		if ( gGameUBOptions.InGameHeli == FALSE )
+		InitializeHeliGridnoAndTime( FALSE );
+	
+		//If tex is in the game ( John is NOT in the game )
+		//if( gJa25SaveStruct.fJohnKulbaIsInGame == FALSE )
+		//{
+			//make sure Betty offers his videos for sale
+			//AddTexsVideosToBettysInventory();
+		//}
+
+		InitJerryMiloInfo(); //JA25 UB
+#endif
+
 		//Set the fact the game is in progress
 		gTacticalStatus.fHasAGameBeenStarted = TRUE;
+			
+	#ifdef JA113DEMO
+	RequestTriggerExitFromMapscreen( MAP_EXIT_TO_TACTICAL );
+	#endif	
 
 		return( TRUE );
 	}
@@ -834,7 +962,7 @@ void QuickSetupOfMercProfileItems( UINT32 uiCount, UINT8 ubProfileIndex )
 		// TEMP!
 		// make carman's opinion of us high!
 		if (OKToCheckOpinion(ubProfileIndex))
-			gMercProfiles[ 78 ].bMercOpinion[ ubProfileIndex ] = 25;
+			gMercProfiles[ CARMEN ].bMercOpinion[ ubProfileIndex ] = 25;
 
 	}
 	else if ( uiCount == 1 )
@@ -916,6 +1044,10 @@ void QuickSetupOfMercProfileItems( UINT32 uiCount, UINT8 ubProfileIndex )
 BOOLEAN QuickGameMemberHireMerc( UINT8 ubCurrentSoldier )
 {
 	MERC_HIRE_STRUCT HireMercStruct;
+	
+	#ifdef JA113DEMO
+	INT16		sSoldierID=0;
+	#endif
 
 	memset(&HireMercStruct, 0, sizeof(MERC_HIRE_STRUCT));
 
@@ -928,7 +1060,11 @@ BOOLEAN QuickGameMemberHireMerc( UINT8 ubCurrentSoldier )
 	HireMercStruct.fCopyProfileItemsOver =	TRUE;
 	HireMercStruct.ubInsertionCode				= INSERTION_CODE_CHOPPER;
 
+	#ifdef JA113DEMO
+	HireMercStruct.iTotalContractLength = 61;
+	#else
 	HireMercStruct.iTotalContractLength = 7;
+	#endif
 
 	//specify when the merc should arrive
 	HireMercStruct.uiTimeTillMercArrives = 0;
@@ -938,6 +1074,14 @@ BOOLEAN QuickGameMemberHireMerc( UINT8 ubCurrentSoldier )
 	{
 		return(FALSE);
 	}
+	
+	#ifdef JA113DEMO
+	sSoldierID = GetSoldierIDFromMercID( ubCurrentSoldier );
+	if( sSoldierID == -1 )
+		return( FALSE );
+	Menptr[ sSoldierID ].bTypeOfLastContract = CONTRACT_EXTEND_1_WEEK;
+	#endif
+	
 
 	//add an entry in the finacial page for the hiring of the merc
 	AddTransactionToPlayersBook(HIRED_MERC, ubCurrentSoldier, GetWorldTotalMin(), -(INT32) gMercProfiles[ubCurrentSoldier].uiWeeklySalary );
@@ -973,7 +1117,7 @@ void ReStartingGame()
 	if (gGameExternalOptions.fShowCamouflageFaces == TRUE )
 	{
 		//Camo Face
-		for (int i=0;i<255;i++)
+		for (int i=0;i<NUM_PROFILES;++i)
 		{
 			gCamoFace[i].gCamoface = FALSE;
 			gCamoFace[i].gUrbanCamoface = FALSE;
@@ -1101,5 +1245,6 @@ void ReStartingGame()
 	if (!is_networked)
 		gubCheatLevel = STARTING_CHEAT_LEVEL;
 	else
-		gubCheatLevel = 0;			
+		gubCheatLevel = 0;
+
 }

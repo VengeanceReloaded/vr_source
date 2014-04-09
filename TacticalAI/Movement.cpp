@@ -451,7 +451,9 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 	UINT16 usMaxDist;
 	UINT8 ubDirection,ubDirsLeft,ubDirChecked[8],fFound = FALSE;
 	INT8 bAPsLeft, fPathFlags;
-	UINT8 ubRoomRequired = 0, ubTempRoom;
+	//DBrot: More Rooms
+	//UINT8 ubRoomRequired = 0, ubTempRoom;
+	UINT16 usRoomRequired = 0, usTempRoom;
 	BOOLEAN fAllowDest = FALSE;
 
 	// 0verhaul:	Make sure to clear the stored path since this always calculates a new one.
@@ -478,12 +480,12 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 
 	if ( pSoldier->aiData.bOrders <= CLOSEPATROL && (pSoldier->bTeam == CIV_TEAM || pSoldier->ubProfile != NO_PROFILE ) )
 	{
-		if ( InARoom( pSoldier->aiData.sPatrolGrid[0], &ubRoomRequired ) )
+		if ( InARoom( pSoldier->aiData.sPatrolGrid[0], &usRoomRequired ) )
 		{
 			// make sure this doesn't interfere with pathing for scripts			
 			if (!TileIsOutOfBounds(pSoldier->sAbsoluteFinalDestination))
 			{
-				ubRoomRequired = 0;
+				usRoomRequired = 0;
 			}
 		}
 	}
@@ -662,9 +664,9 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 	 break;			// quit here, sGoToGrid is where we are going
 
 
-	if ( ubRoomRequired )
+	if ( usRoomRequired )
 	{
-		if ( !( InARoom( sTempDest, &ubTempRoom ) && ubTempRoom == ubRoomRequired ) )
+		if ( !( InARoom( sTempDest, &usTempRoom ) && usTempRoom == usRoomRequired ) )
 		{
 		// quit here, limited by room!
 		break;
@@ -815,6 +817,19 @@ void SoldierTriesToContinueAlongPath(SOLDIERTYPE *pSoldier)
 		CancelAIAction(pSoldier,DONTFORCE);
 		return;
 	}
+
+	// WANNE: Disabled the following lines to fix the bug, that Fatima will not leave the sector!
+	// When Fatima wants to leave the sectur, the condition is met, the method returns and Fatima would stay in the sector!
+	/*
+	// SANDRO - hack! interrupt issue - we don't want to recalculate our path if no new situation and we are already on move
+	// i.e. in case we interrupted a soldier who has no idea about us seeing him, he should move along as if nothing is happening
+	if ( pSoldier->aiData.bNewSituation == NOT_NEW_SITUATION && pSoldier->aiData.bActionInProgress && !TileIsOutOfBounds(pSoldier->pathing.sFinalDestination ))
+	{
+		// just set our path to previously decided final destination
+		NewDest(pSoldier,pSoldier->pathing.sFinalDestination);
+		return;	
+	}
+	*/
 
 	if (IsActionAffordable(pSoldier))
 	{

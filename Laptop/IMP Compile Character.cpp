@@ -6,29 +6,17 @@
 	#include "laptop.h"
 	#include "CharProfile.h"
 	#include "Utilities.h"
-	#include "WCheck.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
-	#include "cursors.h"
 	#include "GameSettings.h"
-	#include "IMP HomePage.h"
 	#include "IMPVideoObjects.h"
-	#include "IMP AboutUs.h"
 	#include "IMP MainPage.h"
-	#include "IMP Begin Screen.h"
 	#include "IMP Personality Entrance.h"
-	#include "IMP Personality Quiz.h"
-	#include "IMP Personality Finish.h"
 	#include "IMP Skill Trait.h"
-	#include "IMP Attribute Entrance.h"
 	#include "IMP Attribute Selection.h"
-	#include "IMP Attribute Finish.h"
 	#include "IMP Portraits.h"
 	#include "IMP Compile Character.h"
-	#include "IMP Voices.h"
-	#include "IMP Finish.h"
 	#include "Soldier Profile Type.h"
 	#include "Soldier Profile.h"
 	#include "Animation Data.h"
@@ -185,6 +173,21 @@ void CreateACharacterFromPlayerEnteredStats( void )
 	else
 		gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bAttitude = ( INT8 )iAttitude;
 
+	// Flugente: background
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].usBackground = usBackground;
+
+	// Flugente: sexism, racsim etc.
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bRace							= ( INT8 )bRace;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bNationality					= ( INT8 )bNationality;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bAppearance					= ( INT8 )bAppearance;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bAppearanceCareLevel			= ( INT8 )bAppearanceCareLevel;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bRefinement					= ( INT8 )bRefinement;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bRefinementCareLevel			= ( INT8 )bRefinementCareLevel;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bHatedNationality				= ( INT8 )bHatedNationality;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bHatedNationalityCareLevel	= ( INT8 )bHatedNationalityCareLevel;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bRacist						= ( INT8 )bRacist;
+	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bSexist						= ( UINT8 )bSexist;
+		
 	// WDS: Advanced start 
 	//gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bExpLevel = gGameExternalOptions.ubIMPStartingLevel;
 	gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bExpLevel = StartingLevelChosen(); // We now choose the starting level on IMP creation - SANDRO
@@ -751,7 +754,7 @@ void HandleMercStatsForChangesInFace( )
 
 	if (gGameOptions.fNewTraitSystem)
 	{
-		for ( UINT8 ubCnt = 0; ubCnt < gSkillTraitValues.ubMaxNumberOfTraits; ubCnt++ )
+		for ( UINT8 ubCnt = 0; ubCnt < gSkillTraitValues.ubMaxNumberOfTraitsForIMP; ubCnt++ )
 		{
 			gMercProfiles[ LaptopSaveInfo.iIMPIndex ].bSkillTraits[ ubCnt ] = ( INT8 )SkillsList[ ubCnt ];
 		}

@@ -20,11 +20,35 @@ extern	CHAR16		zTrackingNumber[16];
 //
 //		Keeps track of the saved game version.	Increment the saved game version whenever 
 //	you will invalidate the saved game file
-#define			SAVE_GAME_VERSION								128	//123		//114	//113	//112	//111	//110	//109	//108	//107	//106	//105	//104	//103	//102	//101	//100 // 99
 
-#define			CURRENT_SAVEGAME_DATATYPE_VERSION				128
-
+#define			SNITCH_TRAIT_EXTENDED							151 // anv: more soldier flags, remembering exposition of snitch
+#define			CAMPAIGNSTATS									150	// Flugente: store campaign statistics
+#define			WALDO_CAN_REPAIR_HELICOPTER						149 // anv: have to refresh Waldo records
+#define			ENCYCLOPEDIA_ITEM_VISIBILITY					148 // Moa: Items discovered during compain have to be saved.
+#define			TRAIT_RADIO_OPERATOR							147 // Flugente: new trait radio operator
+#define			BACKGROUNDS_FIX_UINT8							146 // Flugente: had to change usBackground-vars from UINT8 to UINT16
+#define			BACKGROUNDS										145 // Flugente: background feature
+#define			NO_VEHICLE_SAVE									144 // Flugente: vehicle data isn't saved anymore, as it has long been externalised
+#define			SOLDIER_PROFILES								143	// Flugente: profiles for enemy and militia (possibly any non-NPC/RPC character)
+#define			DYNAMIC_FLASHLIGHTS								142	// Flugente: had to add variables to LIGHTEFFECT-struct
+#define			ENLARGED_OPINIONS								141	// Flugente: increased number of merc opinions to 255, thus need to change savegame reading
+#define			MODULARIZED_AI									140	// Flugente: new savegame version due to modularized AI
+#define			MILITIA_EQUIPMENT								139	// Flugente: militia can equip from sector inventory
+#define			MULTITURN_ACTIONS								138	// Flugente: multiturn actions
+#define			EXTERNALISED_MERCHANTS							137	// Flugente: increased the number of merchants and externalised their data
+#define			PRISON_SYSTEM									136	// Flugente: added var to the sector structure. Shouldn't break compatibility, but let's be safe
+#define			DUAL_BURST_ADDED								135
+#define			MORE_ROOMS										134 // changed room numbers from 8 to 16 bit by DBrot
+#define			FOOD_CHANGES									133	// changes for food system
+#define			ZOMBIE_CHANGES									132	// Included some changes for Zombies
+#define			JA25_UB_INTEGRATION								131	// Before this, the JA25 Unfinished Business code was not integrated (see "Builddefines.h" JA2UB)
+#define			IMPROVED_INTERRUPT_SYSTEM						130	
+#define			ENCYCLOPEDIA_SAVEGAME_CHANGE					129	// Added encyclopedia
 #define			HIDDENTOWN_DATATYPE_CHANGE						128
+#define			NEW_EMAIL_SAVE_GAME								127
+#define			NEW_SAVE_GAME_GENERAL_SAVE_INFO_DATA			126
+#define			QUESTS_DATATYPE_CHANGE							125	// Before this, we had a maximum number of 30 quests (JA2 default) (by Jazz)
+#define			VEHICLES_DATATYPE_CHANGE						124	// Before this, vehicles were not externalized (by Jazz)
 #define			FIXED_MERC_NOT_AVAILABLE_ON_MERC_WEBSITE		123	// Before this, only Bubba was available on MERC website
 #define			FIXED_CREPITUS_IN_REALISTIC_GAME_MODE			122	// Before this, there was an initializing problem in GameInit.lua on startup, in which we could meet crepitus in Tixa underground map
 #define			FIXED_NPC_QUOTE_BUG								121	// Before this, we need to reload all npc quote information because it was not being saved and loaded correctly.
@@ -46,6 +70,7 @@ extern	CHAR16		zTrackingNumber[16];
 #define			AP100_SAVEGAME_DATATYPE_CHANGE					105	// Before this, we didn't have the 100AP structure changes
 #define			NIV_SAVEGAME_DATATYPE_CHANGE					102	// Before this, we used the old structure system
 
+#define			SAVE_GAME_VERSION								SNITCH_TRAIT_EXTENDED
 
 //#define RUSSIANGOLD
 #ifdef __cplusplus

@@ -32,12 +32,16 @@ BOOLEAN			gfApplyChangesToTempFile = FALSE;
 //	3200 bytes * 8 bits = 25600 map elements
 UINT8				*gpRevealedMap;
 
-
-
+#ifdef JA2UB
+//Ja25
+void AddRemoveExitGridToUnloadedMapTempFile( UINT32 usGridNo, INT16 sSectorX, INT16 sSectorY, UINT8 ubSectorZ );
+#endif
 
 void RemoveSavedStructFromMap( INT32 uiMapIndex, UINT16 usIndex );
 void AddObjectFromMapTempFileToMap( INT32 uiMapIndex, UINT16 usIndex );
 void AddBloodOrSmellFromMapTempFileToMap( MODIFY_MAP *pMap );
+// sevenfm
+void AddMineFlagFromMapTempFileToMap( MODIFY_MAP *pMap );
 void SetSectorsRevealedBit( UINT32	usMapIndex );
 void SetMapRevealedStatus();
 void DamageStructsFromMapTempFile( MODIFY_MAP * pMap );
@@ -448,7 +452,10 @@ BOOLEAN LoadAllMapChangesFromMapTempFileAndApplyThem( )
 			case SLM_BLOOD_SMELL:
 				AddBloodOrSmellFromMapTempFileToMap( pMap );
 				break;
-
+// sevenfm
+			case SLM_MINE_PRESENT:
+				AddMineFlagFromMapTempFileToMap( pMap );
+				break;
 			case SLM_DAMAGED_STRUCT:
 				DamageStructsFromMapTempFile( pMap );
 				break;
@@ -457,7 +464,7 @@ BOOLEAN LoadAllMapChangesFromMapTempFileAndApplyThem( )
 				{
 					EXITGRID ExitGrid;
 					gfLoadingExitGrids = TRUE;
-					ExitGrid.usGridNo = pMap->usSubImageIndex;
+					ExitGrid.usGridNo = (UINT32)pMap->usHiExitGridNo << 16 | pMap->usSubImageIndex;//dnl ch86 260214 was ExitGrid.usGridNo = pMap->usSubImageIndex;
 					ExitGrid.ubGotoSectorX = (UINT8) pMap->usImageType;
 					ExitGrid.ubGotoSectorY = (UINT8) ( pMap->usImageType >> 8 ) ;
 					ExitGrid.ubGotoSectorZ = pMap->ubExtra;
@@ -487,7 +494,15 @@ BOOLEAN LoadAllMapChangesFromMapTempFileAndApplyThem( )
 					uiNumberOfElementsSavedBackToFile++;
 				}
 				break;
+#ifdef JA2UB				
+			case SLM_REMOVE_EXIT_GRID:
+				//Remove the exit grid
+				RemoveExitGridFromWorld( pMap->usGridNo );
 
+				// Save this struct back to the temp file
+				SaveModifiedMapStructToMapTempFile( pMap, gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
+				break;
+#endif
 			default:
 				AssertMsg( 0, "ERROR!	Map Type not in switch when loading map changes from temp file");
 				break;
@@ -655,8 +670,23 @@ void RemoveSavedStructFromMap( INT32 uiMapIndex, UINT16 usIndex )
 }
 
 
+// sevenfm
+void SaveMineFlagFromMapToTempFile()
+{
+	MODIFY_MAP Map;
+	INT32	cnt;	
 
-
+	for ( cnt = 0; cnt < WORLD_MAX; cnt++ )
+	{
+		if( gpWorldLevelData[cnt].uiFlags & MAPELEMENT_PLAYER_MINE_PRESENT )
+		{	
+			memset( &Map, 0, sizeof( MODIFY_MAP ) );
+			Map.usGridNo	= cnt;
+			Map.ubType			= SLM_MINE_PRESENT;
+			SaveModifiedMapStructToMapTempFile( &Map, gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
+		}
+	}
+}
 void SaveBloodSmellAndRevealedStatesFromMapToTempFile()
 {
 	MODIFY_MAP Map;
@@ -776,6 +806,11 @@ void AddBloodOrSmellFromMapTempFileToMap( MODIFY_MAP *pMap )
 	gpWorldLevelData[ pMap->usGridNo ].ubSmellInfo = (UINT8)pMap->usSubImageIndex;
 }
 
+//sevenfm
+void AddMineFlagFromMapTempFileToMap( MODIFY_MAP *pMap )
+{
+	gpWorldLevelData[ pMap->usGridNo ].uiFlags |= MAPELEMENT_PLAYER_MINE_PRESENT;
+}
 
 
 BOOLEAN SaveRevealedStatusArrayToRevealedTempFile( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ )
@@ -1095,6 +1130,7 @@ void AddExitGridToMapTempFile( INT32 usGridNo, EXITGRID *pExitGrid, INT16 sSecto
 
 	Map.usImageType = pExitGrid->ubGotoSectorX | ( pExitGrid->ubGotoSectorY << 8 );
 	Map.usSubImageIndex = pExitGrid->usGridNo;
+	Map.usHiExitGridNo = pExitGrid->usGridNo >> 16;//dnl ch86 260214
 
 	Map.ubExtra		= pExitGrid->ubGotoSectorZ;
 	Map.ubType		= SLM_EXIT_GRIDS;
@@ -1406,4 +1442,27 @@ BOOLEAN ChangeStatusOfOpenableStructInUnloadedSector( UINT16 usSectorX, UINT16 u
 	return( TRUE );
 }
 
+#ifdef JA2UB
+//JA25
+void AddRemoveExitGridToUnloadedMapTempFile( UINT32 usGridNo, INT16 sSectorX, INT16 sSectorY, UINT8 ubSectorZ )
+{
+	MODIFY_MAP Map;
 
+	if( !gfApplyChangesToTempFile )
+	{
+		ScreenMsg( FONT_MCOLOR_WHITE, MSG_BETAVERSION, L"Called AddRemoveExitGridToUnloadedMapTempFile() without calling ApplyMapChangesToMapTempFile()" );
+		return;
+	}
+
+	if( gTacticalStatus.uiFlags & LOADING_SAVED_GAME )
+		return;
+
+	memset( &Map, 0, sizeof( MODIFY_MAP ) );
+
+	Map.usGridNo = usGridNo;
+
+	Map.ubType		= SLM_REMOVE_EXIT_GRID;
+
+	SaveModifiedMapStructToMapTempFile( &Map, sSectorX, sSectorY, ubSectorZ );
+}
+#endif

@@ -9,7 +9,6 @@
 	#include "worlddef.h"
 	#include "renderworld.h"
 	#include "vsurface.h"
-	#include "Render Dirty.h"
 	#include "sysutil.h"
 	#include "container.h"
 	#include "wcheck.h"
@@ -18,7 +17,6 @@
 	#include "faces.h"
 	#include "utilities.h"
 	#include "overhead.h"
-	#include "gap.h"
 	#include "Soldier Profile.h"
 	#include "Bullets.h"
 	#include "los.h"
@@ -31,7 +29,8 @@
 #endif
 
 // Defines
-#define		NUM_BULLET_SLOTS					50
+// HEADROCK HAM 5: Increasing... with the hope of making spectacular fragmenting explosives.
+#define		NUM_BULLET_SLOTS					1000		// Flugente: 200 -> 100
 
 
 // GLOBAL FOR FACES LISTING
@@ -105,7 +104,11 @@ INT32	CreateBullet( UINT8 ubFirerID, BOOLEAN fFake, UINT16 usFlags,UINT16 fromIt
 	{
 		pBullet->fReal = TRUE;
 //		gBullets[ iBullet ].pFirer->bBulletsLeft++;
-		gTacticalStatus.ubAttackBusyCount++;
+		// HEADROCK HAM 5: Do not create for explosives.
+		if (!(Item[fromItem].usItemClass & IC_EXPLOSV))
+		{
+			gTacticalStatus.ubAttackBusyCount++;
+		}
 		DebugAttackBusy( String( "Creating a new bullet for %d.	ABC now %d\n", ubFirerID, gTacticalStatus.ubAttackBusyCount) );
 	}
 
@@ -149,7 +152,11 @@ void HandleBulletSpecialFlags( INT32 iBulletIndex )
 			else if ( pBullet->usFlags & ( BULLET_FLAG_KNIFE ) )
 			{
 				strcpy( AniParams.zCachedFile, "TILECACHE\\KNIFING.STI" );
-				pBullet->ubItemStatus = pBullet->pFirer->inv[ HANDPOS ][0]->data.objectStatus;
+
+				if ( pBullet->ubFirerID != NOBODY )
+					pBullet->ubItemStatus = pBullet->pFirer->inv[ HANDPOS ][0]->data.objectStatus;
+				else
+					pBullet->ubItemStatus = 100;
 			}
 
 			// Get direction to use for this guy....
@@ -201,7 +208,11 @@ void RemoveBullet( INT32 iBullet )
 //		DebugAttackBusy( String( "Deleting a bullet for %d.	Total count now %d\n", gBullets[ iBullet].ubFirerID, gBullets[ iBullet ].pFirer->bBulletsLeft) );
 		// Nah, just decrement the attack busy count and be done with it
 		DebugAttackBusy( String( "Deleting a bullet for %d.\n", gBullets[ iBullet].ubFirerID ) );
-		ReduceAttackBusyCount( );
+		// HEADROCK HAM 5: Fragments do not need reducing.
+		if (gBullets[iBullet].fFragment == false)
+		{
+			ReduceAttackBusyCount( );
+		}
 
 		// if ( gBullets[ iBullet ].usFlags & ( BULLET_FLAG_KNIFE ) )
 		// {
@@ -233,7 +244,8 @@ void RemoveBullet( INT32 iBullet )
 
 void LocateBullet( INT32 iBulletIndex )
 {
-	if ( gGameSettings.fOptions[ TOPTION_SHOW_MISSES ] )
+	// HEADROCK HAM 5: Do not track fragments. There are too many of them.
+	if ( gGameSettings.fOptions[ TOPTION_SHOW_MISSES ] && gBullets[ iBulletIndex ].fFragment == false)
 	{
 	// Check if a bad guy fired!
 	if ( gBullets[ iBulletIndex ].ubFirerID != NOBODY )
@@ -353,6 +365,7 @@ void UpdateBullets( )
 						ManLooksForOtherTeams(gBullets[ uiCount ].pFirer);
 					}
 					*/
+					
 					else
 					{
 						pNode = AddStructToTail( gBullets[ uiCount ].sGridNo, BULLETTILE1 );
@@ -364,7 +377,8 @@ void UpdateBullets( )
 						pNode->sRelativeZ = (INT16) CONVERT_HEIGHTUNITS_TO_PIXELS( FIXEDPT_TO_INT32( gBullets[ uiCount ].qCurrZ ) );
 
 						//afp-start - add new tail /tracer
-						if (gGameSettings.fOptions[TOPTION_ALTERNATE_BULLET_GRAPHICS])	
+						// HEADROCK HAM 5: No tail for fragments.				
+						if (gGameSettings.fOptions[TOPTION_ALTERNATE_BULLET_GRAPHICS] && gBullets[ uiCount ].fFragment == false)	
 						{
   							if ((lastX != 0)  || (lastY != 0))
 							{

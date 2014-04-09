@@ -3,14 +3,12 @@
 #else
 	#include "builddefines.h"
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include "sgp.h"
 	#include "himage.h"
 	#include "vobject.h"
 	#include "interface utils.h"
 	#include "render dirty.h"
 	#include "interface.h"
-	#include "interface control.h"
 	#include "sysutil.h"
 	#include "faces.h"
 	#include "render dirty.h"
@@ -20,25 +18,34 @@
 	#include "line.h"
 	#include "WCheck.h"
 	#include "Vehicles.h"
+	#include "GameSettings.h"
 #endif
 
 #define			LIFE_BAR_SHADOW							FROMRGB( 108, 12, 12 )
-#define			LIFE_BAR										FROMRGB( 200, 0, 0 )
+#define			LIFE_BAR							FROMRGB( 200, 0, 0 )
 #define			BANDAGE_BAR_SHADOW					FROMRGB( 156, 60, 60 )
-#define			BANDAGE_BAR									FROMRGB( 222, 132, 132 )
+#define			BANDAGE_BAR							FROMRGB( 222, 132, 132 )
 #define			BLEEDING_BAR_SHADOW					FROMRGB( 128, 128, 60 )
-#define			BLEEDING_BAR								FROMRGB( 240,	240, 20 )
-#define			CURR_BREATH_BAR_SHADOW			FROMRGB( 8,		12, 118 ) // the MAX max breatth, always at 100%
-#define			CURR_BREATH_BAR							FROMRGB( 8,		12, 160 )
-#define	 CURR_MAX_BREATH							FROMRGB( 0,		0,	0		) // the current max breath, black
-#define	 CURR_MAX_BREATH_SHADOW			FROMRGB( 0,		0,	0		)
-#define			MORALE_BAR_SHADOW						FROMRGB( 8,		112, 12 )
-#define			MORALE_BAR									FROMRGB( 8,		180, 12 )
-#define			BREATH_BAR_SHADOW						FROMRGB( 60,	108, 108 ) // the lt blue current breath
-#define			BREATH_BAR									FROMRGB( 113,	178, 218 )
+#define			BLEEDING_BAR						FROMRGB( 240, 240, 20 )
+
+#define			POISON_LIFE_BAR_SHADOW				FROMRGB( 12,  108, 12 )
+#define			POISON_LIFE_BAR						FROMRGB( 0,   200, 0 )
+#define			POISON_BANDAGE_BAR_SHADOW			FROMRGB( 80,  186, 80 )
+#define			POISON_BANDAGE_BAR					FROMRGB( 152, 252, 152 )
+#define			POISON_BLEEDING_BAR_SHADOW			FROMRGB( 128, 60, 128 )
+#define			POISON_BLEEDING_BAR					FROMRGB( 240, 20, 240 )
+
+#define			CURR_BREATH_BAR_SHADOW				FROMRGB( 17,	24, 170 ) // the lt blue current breath
+#define			CURR_BREATH_BAR						FROMRGB( 46,	51, 243 )
+#define			CURR_MAX_BREATH						FROMRGB( 0,		0,	0	) // the current max breath, black
+#define			CURR_MAX_BREATH_SHADOW				FROMRGB( 0,		0,	0	)
+#define			MORALE_BAR_SHADOW					FROMRGB( 8,		112, 12 )
+#define			MORALE_BAR							FROMRGB( 8,		180, 12 )
+#define			BREATH_BAR_SHADOW					FROMRGB( 60,	108, 108 ) // the MAX max breath, always at 100%
+#define			BREATH_BAR							FROMRGB( 113,	178, 218 )
 #define			BREATH_BAR_SHAD_BACK				FROMRGB( 1,1,1 )
-#define			FACE_WIDTH									48
-#define			FACE_HEIGHT									43
+#define			FACE_WIDTH							48
+#define			FACE_HEIGHT							43
 
 
 // backgrounds for breath max background
@@ -58,7 +65,9 @@ enum{
 };
 
 // the ids for the car portraits
-INT32 giCarPortraits[ 4 ] = { -1, -1, -1, -1 };
+//INT32 giCarPortraits[ 4 ] = { -1, -1, -1, -1 };
+
+INT32 giCarPortraits[ NUM_PROFILES ];
 
 // the car portrait file names
 STR pbCarPortraitFileNames[ ]={
@@ -74,17 +83,33 @@ BOOLEAN LoadCarPortraitValues( void )
 {
 	INT32 iCounter = 0;
 	VOBJECT_DESC	 VObjectDesc;
-
+	
+	/*
 	if( giCarPortraits[ 0 ] != -1 )
 	{
 		return FALSE;
 	}
+	*/
+	
+	for( iCounter = 0; iCounter < NUM_PROFILES; iCounter++ )
+	{
+		// silversurfer: fixed to make sure that we only create objects for vehicles that have a face defined
+		// otherwise CHECKF will fail and return FALSE breaking the for loop and ignoring any further vehicles
+		if ( gProfilesVehicle[ iCounter ].ProfilId == iCounter && gNewVehicle[ iCounter ].szIconFace[0] != 0 )
+		{
+		VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
+		strcpy( VObjectDesc.ImageFile, gNewVehicle[ iCounter ].szIconFace );
+		CHECKF( AddVideoObject( &VObjectDesc, (UINT32 *)&giCarPortraits[ iCounter ] ) );
+		}
+	}
+	
+	/*
 	for( iCounter = 0; iCounter < NUMBER_CAR_PORTRAITS; iCounter++ )
 	{
 		VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 		sprintf( VObjectDesc.ImageFile, pbCarPortraitFileNames[ iCounter ] );
 		CHECKF( AddVideoObject( &VObjectDesc, (UINT32 *)&giCarPortraits[ iCounter ] ) );
-	}
+	}*/
 	return( TRUE );
 }
 
@@ -94,15 +119,27 @@ void UnLoadCarPortraits( void )
 	INT32 iCounter = 0;
 
 	// car protraits loaded?
+	/*
 	if( giCarPortraits[ 0 ] == -1 )
 	{
 		return;
 	}
+	
 	for( iCounter = 0; iCounter < NUMBER_CAR_PORTRAITS; iCounter++ )
 	{
 		DeleteVideoObjectFromIndex( giCarPortraits[ iCounter ] );
 		giCarPortraits[ iCounter ] = -1;
 	}
+	*/
+	
+	for( iCounter = 0; iCounter < NUM_PROFILES; iCounter++ )
+	{
+		if ( gProfilesVehicle[ iCounter ].ProfilId == iCounter )
+		{
+			DeleteVideoObjectFromIndex( giCarPortraits[ iCounter ] );
+		}
+	}
+	
 	return;
 }
 
@@ -133,12 +170,15 @@ void DrawLifeUIBarEx( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos, INT16 sWi
 	pDestBuf = LockVideoSurface( uiBuffer, &uiDestPitchBYTES );
 	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
 
-
+	dStart			= sYPos;
+	dEnd			= 0;
+	
 	// FIRST DO MAX LIFE
 	dPercentage = (FLOAT)pSoldier->stats.bLife / (FLOAT)100;
+	FLOAT	dstart1		= dStart - dEnd;
+	dStart				= (FLOAT)( dStart - dEnd );
 	dEnd				=	dPercentage * sHeight;
-	dStart			= sYPos;
-
+	
 	usLineColor = Get16BPPColor( LIFE_BAR_SHADOW );
 	RectangleDraw( TRUE, sXPos, (INT32)dStart, sXPos, (INT32)( dStart - dEnd ) , usLineColor, pDestBuf );
 
@@ -148,15 +188,33 @@ void DrawLifeUIBarEx( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos, INT16 sWi
 	usLineColor = Get16BPPColor( LIFE_BAR_SHADOW );
 	RectangleDraw( TRUE, sXPos+ 2, (INT32)dStart, sXPos + 2, (INT32)( dStart - dEnd ), usLineColor, pDestBuf );
 
-	// NOW DO BANDAGE
+	// poisoned life first
+	if ( pSoldier->bPoisonLife )
+	{
+		dPercentage = (FLOAT)pSoldier->bPoisonLife / (FLOAT)100;
+		FLOAT dpoisonStart				= (FLOAT)( dstart1  );
+		FLOAT dpoisonEnd				=	dPercentage * sHeight;
+		
+		usLineColor = Get16BPPColor( POISON_LIFE_BAR_SHADOW );
+		RectangleDraw( TRUE, sXPos, (INT32)dpoisonStart, sXPos, (INT32)( dpoisonStart - dpoisonEnd ) , usLineColor, pDestBuf );
 
+		usLineColor = Get16BPPColor( POISON_LIFE_BAR );
+		RectangleDraw( TRUE, sXPos+ 1, (INT32)dpoisonStart, sXPos + 1, (INT32)( dpoisonStart - dpoisonEnd ), usLineColor, pDestBuf );
+
+		usLineColor = Get16BPPColor( POISON_LIFE_BAR_SHADOW );
+		RectangleDraw( TRUE, sXPos+ 2, (INT32)dpoisonStart, sXPos + 2, (INT32)( dpoisonStart - dpoisonEnd ), usLineColor, pDestBuf );
+	}
+
+	// NOW DO BANDAGE
+		
 	// Calculate bandage
+	FLOAT	dstart2		= dStart - dEnd;
 	bBandage = pSoldier->stats.bLifeMax - pSoldier->stats.bLife - pSoldier->bBleeding;
 
 	if ( bBandage )
 	{
 		dPercentage = (FLOAT)bBandage / (FLOAT)100;
-		dStart			= (FLOAT)( sYPos - dEnd );
+		dStart			= (FLOAT)( dStart - dEnd );
 		dEnd				=	( dPercentage * sHeight );
 
 		usLineColor = Get16BPPColor( BANDAGE_BAR_SHADOW );
@@ -169,7 +227,26 @@ void DrawLifeUIBarEx( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos, INT16 sWi
 		RectangleDraw( TRUE, sXPos+ 2, (INT32)dStart, sXPos + 2, (INT32)( dStart - dEnd ), usLineColor, pDestBuf );
 	}
 
+	// get amount of poisoned bandage
+	INT8 bPoisonBandage = pSoldier->bPoisonSum - pSoldier->bPoisonBleeding - pSoldier->bPoisonLife;
+	if ( bPoisonBandage )
+	{
+		dPercentage = (FLOAT)bPoisonBandage / (FLOAT)100;
+		FLOAT dpoisonStart				= (FLOAT)( dstart2 );
+		FLOAT dpoisonEnd				=	dPercentage * sHeight;
+		
+		usLineColor = Get16BPPColor( POISON_BANDAGE_BAR_SHADOW );
+		RectangleDraw( TRUE, sXPos, (INT32)dpoisonStart, sXPos, (INT32)( dpoisonStart - dpoisonEnd ) , usLineColor, pDestBuf );
+
+		usLineColor = Get16BPPColor( POISON_BANDAGE_BAR );
+		RectangleDraw( TRUE, sXPos+ 1, (INT32)dpoisonStart, sXPos + 1, (INT32)( dpoisonStart - dpoisonEnd ), usLineColor, pDestBuf );
+
+		usLineColor = Get16BPPColor( POISON_BANDAGE_BAR_SHADOW );
+		RectangleDraw( TRUE, sXPos+ 2, (INT32)dpoisonStart, sXPos + 2, (INT32)( dpoisonStart - dpoisonEnd ), usLineColor, pDestBuf );
+	}
+
 	// NOW DO BLEEDING
+	FLOAT	dstart3		= dStart - dEnd;
 	if ( pSoldier->bBleeding )
 	{
 		dPercentage = (FLOAT)pSoldier->bBleeding / (FLOAT)100;
@@ -184,6 +261,23 @@ void DrawLifeUIBarEx( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos, INT16 sWi
 
 		usLineColor = Get16BPPColor( BLEEDING_BAR_SHADOW );
 		RectangleDraw( TRUE, sXPos+ 2, (INT32)dStart, sXPos + 2, (INT32)( dStart - dEnd ), usLineColor, pDestBuf );
+	}
+
+	// poisoned bleeding
+	if ( pSoldier->bPoisonBleeding )
+	{
+		dPercentage = (FLOAT)pSoldier->bPoisonBleeding / (FLOAT)100;
+		FLOAT dpoisonStart				= (FLOAT)( dstart3 );
+		FLOAT dpoisonEnd				=	dPercentage * sHeight;
+
+		usLineColor = Get16BPPColor( POISON_BLEEDING_BAR_SHADOW );
+		RectangleDraw( TRUE, sXPos, (INT32)dpoisonStart, sXPos, (INT32)( dpoisonStart - dpoisonEnd ) , usLineColor, pDestBuf );
+
+		usLineColor = Get16BPPColor( POISON_BLEEDING_BAR );
+		RectangleDraw( TRUE, sXPos+ 1, (INT32)dpoisonStart, sXPos + 1, (INT32)( dpoisonStart - dpoisonEnd ), usLineColor, pDestBuf );
+
+		usLineColor = Get16BPPColor( POISON_BLEEDING_BAR_SHADOW );
+		RectangleDraw( TRUE, sXPos+ 2, (INT32)dpoisonStart, sXPos + 2, (INT32)( dpoisonStart - dpoisonEnd ), usLineColor, pDestBuf );
 	}
 
 	UnLockVideoSurface( uiBuffer );
@@ -360,10 +454,17 @@ void DrawItemUIBarEx( OBJECTTYPE *pObject, UINT8 ubStatus, INT16 sXPos, INT16 sY
 
 	if ( ubStatus >= DRAW_ITEM_STATUS_ATTACHMENT1 )
 	{
-		sValue = 0;
+		sValue = 0;	
 		OBJECTTYPE* pAttachment = (*pObject)[iter]->GetAttachmentAtIndex( ubStatus - DRAW_ITEM_STATUS_ATTACHMENT1 );
-		if (pAttachment->exists()) {
+		if (pAttachment->exists())
+		{
 			sValue = (*pAttachment)[iter]->data.objectStatus;
+
+			if( Item[ pAttachment->usItem ].usItemClass & IC_AMMO )
+			{
+				sValue = sValue * 100 / Magazine[ Item[ pObject->usItem ].ubClassIndex ].ubMagSize;
+				sValue = max(0, min(100, sValue));
+			}
 		}
 	}
 	else
@@ -399,10 +500,38 @@ void DrawItemUIBarEx( OBJECTTYPE *pObject, UINT8 ubStatus, INT16 sXPos, INT16 sY
 		sValue =100;
 	}
 
+	// Flugente
+	if ( ubStatus == DRAW_ITEM_TEMPERATURE )
+	{
+		// the food item bar always has full size
+		if ( gGameOptions.fFoodSystem == TRUE && Item[pObject->usItem].foodtype > 0 )
+		{
+			sValue = 100;
+		}
+		else if ( HasItemFlag(pObject->usItem, POWER_PACK) )
+		{
+			if ( OVERHEATING_MAX_TEMPERATURE > 0 )
+			{
+				sValue = (INT16) ( 100 *  (*pObject)[0]->data.bTemperature / (FLOAT)OVERHEATING_MAX_TEMPERATURE );
+			}
+		}
+		else
+		{
+			sValue = (INT16) (100 * GetGunOverheatJamPercentage( pObject) );
+
+			// if temperature is 0 or below, do not display anything
+			if ( sValue < 1)
+				return;
+
+			// cut off temperature at 100%, otherwise the bar will be out of its box
+			sValue = min(sValue, 100);
+		}
+	}
+
 	// ATE: Subtract 1 to exagerate bad status
 	if ( sValue < 100 && sValue > 1 )
 	{
-	sValue--;
+		sValue--;
 	}
 
 	// Erase what was there
@@ -413,12 +542,23 @@ void DrawItemUIBarEx( OBJECTTYPE *pObject, UINT8 ubStatus, INT16 sXPos, INT16 sY
 
 	pDestBuf = LockVideoSurface( uiBuffer, &uiDestPitchBYTES );
 	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
-
-
+		
 	// FIRST DO BREATH
 	dPercentage = (FLOAT)sValue / (FLOAT)100;
 	dEnd				=	dPercentage * sHeight;
 	dStart			= sYPos;
+
+	// Flugente: draw sRepairThreshold in the background
+	if ( gGameExternalOptions.fAdvRepairSystem && ubStatus != DRAW_ITEM_TEMPERATURE && Item[pObject->usItem].usItemClass & (IC_WEAPON|IC_ARMOUR) )
+	{
+		FLOAT repairthresholdend = sHeight * (FLOAT)(*pObject)[0]->data.sRepairThreshold / (FLOAT)100;
+		
+		usLineColor =  Get16BPPColor( FROMRGB( 57, 56, 41 ) );
+		RectangleDraw( TRUE, sXPos, (INT32)(dStart - repairthresholdend), sXPos, (INT32)( dStart - sHeight ) , usLineColor, pDestBuf );
+
+		usLineColor = Get16BPPColor( FROMRGB( 57, 56, 41 ) );
+		RectangleDraw( TRUE, sXPos + 1, (INT32)(dStart - repairthresholdend), sXPos + 1, (INT32)( dStart - sHeight ) , usLineColor, pDestBuf );
+	}
 
 	//usLineColor = Get16BPPColor( STATUS_BAR );
 	usLineColor = sColor1;
@@ -444,7 +584,7 @@ void DrawItemUIBarEx( OBJECTTYPE *pObject, UINT8 ubStatus, INT16 sXPos, INT16 sY
 void RenderSoldierFace( SOLDIERTYPE *pSoldier, INT16 sFaceX, INT16 sFaceY, BOOLEAN fAutoFace )
 {
 	BOOLEAN fDoFace = FALSE;
-	UINT8 ubVehicleType = 0;
+//	UINT8 ubVehicleType = 0;
 
 
 	if ( pSoldier->bActive )
@@ -453,10 +593,11 @@ void RenderSoldierFace( SOLDIERTYPE *pSoldier, INT16 sFaceX, INT16 sFaceY, BOOLE
 		if( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE )
 		{
 			// get the type of vehicle
-			ubVehicleType = pVehicleList[ pSoldier->bVehicleID ].ubVehicleType;
+//			ubVehicleType = pVehicleList[ pSoldier->bVehicleID ].ubVehicleType;
 
 			// just draw the vehicle
-			BltVideoObjectFromIndex( guiSAVEBUFFER, giCarPortraits[ ubVehicleType ], 0, sFaceX, sFaceY, VO_BLT_SRCTRANSPARENCY, NULL );
+//			BltVideoObjectFromIndex( guiSAVEBUFFER, giCarPortraits[ ubVehicleType ], 0, sFaceX, sFaceY, VO_BLT_SRCTRANSPARENCY, NULL );
+			BltVideoObjectFromIndex( guiSAVEBUFFER, giCarPortraits[ pSoldier->ubProfile ], 0, sFaceX, sFaceY, VO_BLT_SRCTRANSPARENCY, NULL );
 			RestoreExternBackgroundRect( sFaceX, sFaceY, FACE_WIDTH, FACE_HEIGHT );
 
 			return;
@@ -503,4 +644,16 @@ void RenderSoldierFace( SOLDIERTYPE *pSoldier, INT16 sFaceX, INT16 sFaceY, BOOLE
 
 }
 
+// HEADROCK HAM 5: This function draws a rectangle around the item image in the zoomed inventory
+void DrawItemOutlineZoomedInventory( INT16 sX, INT16 sY, INT16 sWidth, INT16 sHeight, INT16 sColor, UINT32 uiBuffer )
+{
+	UINT32 uiDestPitchBYTES;
+	UINT8 *pDestBuf;
 
+	pDestBuf = LockVideoSurface( uiBuffer, &uiDestPitchBYTES );
+	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
+
+	RectangleDraw( TRUE, sX, sY, sWidth, sHeight, sColor, pDestBuf );
+
+	UnLockVideoSurface( uiBuffer );
+}

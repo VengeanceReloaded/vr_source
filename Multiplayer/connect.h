@@ -5,6 +5,7 @@
 #include "Merc Hiring.h"
 #include "event pump.h"
 #include "Bullets.h"
+#include "builddefines.h"
 
 extern bool isOwnTeamWipedOut;
 
@@ -122,7 +123,7 @@ void send_disarm_explosive(UINT32 sGridNo, UINT32 uiWorldIndex, UINT8 ubID);
 
 void OpenChatMsgBox(void);
 
-INT8 FireBullet( SOLDIERTYPE * pFirer, BULLET * pBullet, BOOLEAN fFake );
+INT8 FireBullet( UINT8 ubFirer, BULLET * pBullet, BOOLEAN fFake );
 
 void reapplySETTINGS();
 
@@ -146,7 +147,15 @@ extern char	cServerName[30];
 
 //OJW - 20081224
 #define MAX_CONNECT_RETRIES	5
-#define ENABLE_COLLISION (is_server && pBullet->pFirer->ubID<120) || (!is_server && is_client && pBullet->pFirer->ubID<20) || (!is_server && !is_client) 
+
+// WANNE: After some MP-Tests: It seems there are still problems with enemy interupt and if this define is enabled the ALT + E (give turn to client) does not work either. So I disabled this define for now ...
+// WANNE: If this define is enabled, it hopefully fixes the "enemy AI got stuck on pure client interrupt". (this "fix" was added in revision 5623)
+//#define INTERRUPT_MP_DEADLOCK_FIX
+
+// WANNE: This features seems to work without any errors, so it is enabled :)
+#define ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+
+#define ENABLE_COLLISION (is_server && pBullet->ubFirerID<120) || (!is_server && is_client && pBullet->ubFirerID<20) || (!is_server && !is_client) 
 extern bool auto_retry;
 extern int giNumTries;
 
@@ -188,7 +197,11 @@ extern BOOLEAN		fClientReceivedAllFiles;
 // OJW - 20090507
 // Add basic version checking, will only work from now on
 // note: this cannot be longer than char[30]
+#ifdef JA2UB
+#define MPVERSION	"MP v2.0(UB)"
+#else
 #define MPVERSION	"MP v2.0"
+#endif
 
 // OJW - 2009128 - inline funcs for working with soldiers and teams
 // sick of confusing myself :)

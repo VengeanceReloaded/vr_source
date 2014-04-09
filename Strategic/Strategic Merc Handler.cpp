@@ -48,6 +48,9 @@
 	#include "Town Militia.h"
 #endif
 
+#ifdef JA2UB
+#include "ub_config.h"
+#endif
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -353,6 +356,10 @@ void MercDailyUpdate()
 				}
 			}
 
+			if( !MercThinksHisMoraleIsTooLow( pSoldier ) && ProfileHasSkillTrait( pSoldier->ubProfile, SNITCH_NT ) )
+			{
+				ModifyPlayerReputation( gSkillTraitValues.ubSNTPassiveReputationGain );
+			}
 
 			DailyMoraleUpdate( pSoldier );
 
@@ -431,13 +438,11 @@ void MercDailyUpdate()
 				// check if any of his stats improve through working or training
 				HandleUnhiredMercImprovement(pProfile);
 
-				// VENGEANCE
-				// anv: handle merc already MIA. Do it before checking deaths, or else merc might get MIA and be found the same time
+				// anv: VR - handle merc already MIA. Do it before checking deaths, or else merc might get MIA and be found the same time
 				if ( IsMercMIA( cnt ) == TRUE )
 				{
 					HandleMIAMercStatus( cnt );
 				}
-				// /VENGEANCE
 
 				// if he's working on another job
 				if (pProfile->bMercStatus == MERC_WORKING_ELSEWHERE)
@@ -447,11 +452,10 @@ void MercDailyUpdate()
 					//Kaiden: Externalized if Mercs get killed
 					if (gGameExternalOptions.gfMercsDieOnAssignment)
 						HandleUnhiredMercDeaths( cnt );
-					// VENGEANCE
-					// check he wasn't killed in HandleUnhiredMercDeaths
+
+					// anv: VR - check he wasn't killed in HandleUnhiredMercDeaths
 					if(pProfile->bMercStatus == MERC_WORKING_ELSEWHERE && gGameExternalOptions.gfMercsGetMIAOnAssignment)
 						HandleUnhiredMercMIA( cnt );
-					// /VENGANCE
 				}
 			}
 		}
@@ -477,12 +481,36 @@ void MercDailyUpdate()
 
 						//remove the Flag, so if the merc goes on another assignment, the player can leave an email.
 						pProfile->ubMiscFlags3 &= ~PROFILE_MISC_FLAG3_PLAYER_LEFT_MSG_FOR_MERC_AT_AIM;
+#ifdef JA2UB
 
-						// Read from Email.edt
+						//if the Laptop is NOT broken
+						if( gubQuest[ QUEST_FIX_LAPTOP ] != QUESTINPROGRESS && gGameUBOptions.LaptopQuestEnabled == TRUE )
+						{
+#endif
+						// Read from EmailMercAvailable.xml
+						UINT8 pMerc = 0;
+						UINT8 iMerc = 0;
+						UINT8 oMerc = 0;
+						
+					if ( ReadXMLEmail == TRUE )
+					{
+						oMerc = cnt;
+						iMerc = oMerc * 1;
+						
+						if ( oMerc != 0 )
+							pMerc = oMerc + 1;
+						else
+							pMerc = 0;
+						if ( gProfilesAIM[cnt].ProfilId == cnt )
+							AddEmailTypeXML( pMerc, iMerc, iMerc, GetWorldTotalMin(), -1 , TYPE_EMAIL_AIM_AVAILABLE);
+					}	
+					else	 
+					{	
+						// Read from Email.edt and sender (nickname) from MercProfiles.xml
 						if (cnt < 170)
 						{
 							// TO DO: send E-mail to player telling him the merc has returned from an assignment
-							AddEmail( ( UINT8 )( iOffset + ( cnt * AIM_REPLY_LENGTH_BARRY ) ), AIM_REPLY_LENGTH_BARRY, ( UINT8 )( 6 + cnt ), GetWorldTotalMin(), -1, -1 );
+							AddEmail( ( UINT8 )( iOffset + ( cnt * AIM_REPLY_LENGTH_BARRY ) ), AIM_REPLY_LENGTH_BARRY, (UINT8) cnt, GetWorldTotalMin(), -1, -1 , TYPE_EMAIL_EMAIL_EDT_NAME_MERC);
 						}
 						else
 						{
@@ -490,25 +518,27 @@ void MercDailyUpdate()
 							if (cnt < 178)
 							{
 								UINT16 iMsgLength = cnt;
-								UINT8 sender = cnt - 119;	// SenderNameList.xml
 
 								// Fake Barry Unger mail, but with the msgLength of the WF merc ID -> Correct in PreProcessEmail()
-								AddEmailWFMercAvailable( ( UINT8 )( iOffset + 0 * AIM_REPLY_LENGTH_BARRY ), iMsgLength, sender, GetWorldTotalMin(), -1 );							
+								AddEmailWFMercAvailable( ( UINT8 )( iOffset + 0 * AIM_REPLY_LENGTH_BARRY ), iMsgLength, cnt, GetWorldTotalMin(), -1 , TYPE_EMAIL_EMAIL_EDT_NAME_MERC);							
 							}
 							// Generic mail
 							else
 							{
 								// TODO.RW: Send generic mail
 								UINT16 iMsgLength = cnt;
-								UINT8 sender = cnt - 119;	// SenderNameList.xml
 
 								// Fake Barry Unger mail, but with the msgLength of the WF merc ID -> Correct in PreProcessEmail()
-								AddEmailWFMercAvailable( ( UINT8 )( iOffset + 0 * AIM_REPLY_LENGTH_BARRY ), iMsgLength, sender, GetWorldTotalMin(), -1 );							
+								AddEmailWFMercAvailable( ( UINT8 )( iOffset + 0 * AIM_REPLY_LENGTH_BARRY ), iMsgLength, cnt, GetWorldTotalMin(), -1 , TYPE_EMAIL_EMAIL_EDT_NAME_MERC);							
 							}
 						}
-
+					
+					}
 						// WANNE: Should we stop time compression. I don't know.
 						//StopTimeCompression();
+#ifdef JA2UB
+		}
+#endif
 					}
 				}
 			}
@@ -516,10 +546,8 @@ void MercDailyUpdate()
 		else	// was already available today
 		{
 			// if it's an AIM or M.E.R.C. merc
-			// VENGEANCE
-			// when merc is killed on assignement, his uiDayBecomesAvailable is set to 0, so he can be rehired just after dying!
+			// anv: VR - when merc is killed on assignement, his uiDayBecomesAvailable is set to 0, so he can be rehired just after dying!
 			if( IsProfileIdAnAimOrMERCMerc( (UINT8)cnt ) && !IsMercDead(cnt) && !IsMercMIA(cnt) )
-			// /VENGEANCE
 			//if( IsProfileIdAnAimOrMERCMerc( (UINT8)cnt ) )
 			{
 				// check to see if he goes on another assignment
@@ -563,14 +591,18 @@ void MercDailyUpdate()
 
 	// build quit list
 	//BuildMercQuitList( pQuitList );
+#ifdef JA2UB
+//no UB
+#else
 	HandleSlayDailyEvent( );
-
+#endif
 	// rebuild list for mapscreen
 	ReBuildCharactersList( );
 	// HEADROCK HAM B1: Run a function to redefine Roaming Militia Restrictions.
 	if (gGameExternalOptions.fDynamicRestrictRoaming)
 	{
-		AdjustRoamingRestrictions();
+		// HEADROCK HAM 5: New flag tells us to also recheck restriced sectors.
+		AdjustRoamingRestrictions( FALSE );
 	}
 
 	// HEADROCK HAM 3.6: Pay debt for operating Facilities today. If can't be paid, apply loyalty hit.
@@ -581,6 +613,9 @@ void MercDailyUpdate()
 
 	// HEADROCK HAM 3.6: Pay for militia upkeep
 	HandleMilitiaUpkeepPayment();
+
+	// anv: time for snitches to report
+	HandleSnitchCheck();
 }
 
 /*
@@ -778,8 +813,8 @@ BOOLEAN SoldierHasWorseEquipmentThanUsedTo( SOLDIERTYPE *pSoldier )
 	INT32		bBestGun = -1;
 	INT32		bBestGunIndex = -1;
 
-
-	for ( UINT32 cnt = 0; cnt < pSoldier->inv.size(); cnt++ )
+	UINT32 invsize = pSoldier->inv.size();
+	for ( UINT32 cnt = 0; cnt < invsize; ++cnt )
 	{
 		// Look for best gun/armour
 		if ( pSoldier->inv[cnt].exists() == true )
@@ -861,6 +896,9 @@ void MercComplainAboutEquipment( UINT8 ubProfile )
 			{
 				// Say quote!
 				TacticalCharacterDialogue( pSoldier, QUOTE_WHINE_EQUIPMENT );
+				// anv: morale hit
+				HandleMoraleEvent( pSoldier, MORALE_BAD_EQUIPMENT, pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ );
+				ModifyPlayerReputation(REPUTATION_TOWN_LOST);
 			}
 		}
 	}
@@ -938,12 +976,15 @@ void UpdateBuddyAndHatedCounters( void )
 
 					ubOtherProfileID = pOtherSoldier->ubProfile;
 
-					for ( iLoop = 0; iLoop < 4; iLoop++ )
+					for ( iLoop = 0; iLoop < 7; iLoop++ )
 					{
 						switch( iLoop )
 						{
 							case 0:
 							case 1:
+							case 2:
+							case 3:
+							case 4:
 								if (pProfile->bHated[iLoop] == ubOtherProfileID)
 								{
 									// arrgs, we're on assignment with the person we loathe!
@@ -962,9 +1003,30 @@ void UpdateBuddyAndHatedCounters( void )
 											{
 												TacticalCharacterDialogue( pSoldier, QUOTE_HATED_MERC_ONE );
 											}
-											else
+											else if (iLoop == 1)
 											{
 												TacticalCharacterDialogue( pSoldier, QUOTE_HATED_MERC_TWO );
+											}
+											else if (iLoop == 2)
+											{
+												if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+													TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_THREE );
+												else
+													TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_THREE );
+											}
+											else if (iLoop == 3)
+											{
+												if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+													TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_FOUR );
+												else
+													TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_FOUR );
+											}
+											else if (iLoop == 4)
+											{
+												if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+													TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_FIVE );
+												else
+													TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_FIVE );
 											}
 											StopTimeCompression();
 										}
@@ -978,9 +1040,21 @@ void UpdateBuddyAndHatedCounters( void )
 												{
 													TacticalCharacterDialogue( pSoldier, QUOTE_MERC_QUIT_HATED1 );
 												}
-												else
+												else if (iLoop == 1)
 												{
 													TacticalCharacterDialogue( pSoldier, QUOTE_MERC_QUIT_HATED2 );
+												}
+												else if (iLoop == 2)
+												{
+													TacticalCharacterDialogue( pSoldier, QUOTE_MERC_QUIT_HATED3 );
+												}
+												else if (iLoop == 3)
+												{
+													TacticalCharacterDialogue( pSoldier, QUOTE_MERC_QUIT_HATED4 );
+												}
+												else if (iLoop == 4)
+												{
+													TacticalCharacterDialogue( pSoldier, QUOTE_MERC_QUIT_HATED5 );
 												}
 
 												// Leave now! ( handle equipment too )....
@@ -995,9 +1069,30 @@ void UpdateBuddyAndHatedCounters( void )
 												{
 													TacticalCharacterDialogue( pSoldier, QUOTE_HATED_MERC_ONE );
 												}
-												else
+												else if (iLoop == 1) 
 												{
 													TacticalCharacterDialogue( pSoldier, QUOTE_HATED_MERC_TWO );
+												}
+												else if (iLoop == 2) 
+												{
+													if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+														TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_THREE );
+													else
+														TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_THREE );
+												}
+												else if (iLoop == 3) 
+												{
+													if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+														TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_FOUR );
+													else
+														TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_FOUR );
+												}
+												else if (iLoop == 4) 
+												{
+													if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+														TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_FIVE );
+													else
+														TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_FIVE );
 												}
 												pProfile->ubTimeTillNextHatedComplaint = TIME_BETWEEN_HATED_COMPLAINTS - 1;
 											}
@@ -1027,15 +1122,36 @@ void UpdateBuddyAndHatedCounters( void )
 											{
 												TacticalCharacterDialogue( pSoldier, QUOTE_HATED_MERC_ONE );
 											}
-											else
+											else if (iLoop == 1) 
 											{
 												TacticalCharacterDialogue( pSoldier, QUOTE_HATED_MERC_TWO );
+											}
+											else if (iLoop == 2) 
+											{
+												if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+													TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_THREE );
+												else
+													TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_THREE );
+											}
+											else if (iLoop == 3) 
+											{
+												if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+													TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_FOUR );
+												else
+													TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_FOUR );
+											}
+											else if (iLoop == 4) 
+											{
+												if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+													TacticalCharacterDialogue( pSoldier, QUOTE_AIM_HATED_MERC_FIVE );
+												else
+													TacticalCharacterDialogue( pSoldier, QUOTE_NON_AIM_HATED_MERC_FIVE );
 											}
 										}
 									}
 								}
 								break;
-							case 2:
+							case 5:
 								if (pProfile->bLearnToHate == ubOtherProfileID)
 								{
 									if ( pProfile->bLearnToHateCount > 0 )
@@ -1055,12 +1171,16 @@ void UpdateBuddyAndHatedCounters( void )
 										else if (pProfile->bLearnToHateCount == 0)
 										{
 											// set as bHated[2];
+											// anv: nope, we don't want to overwrite possible standard foe, instead added extra check to WhichHated(), CanMercBeHired()
 											if (OKToCheckOpinion(ubOtherProfileID)) {
-											pProfile->bHated[2] = pProfile->bLearnToHate;
+											//pProfile->bHated[2] = pProfile->bLearnToHate;
 											pProfile->bMercOpinion[ubOtherProfileID] = HATED_OPINION;
 											}
-
+#ifdef JA2UB
+											if (pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC || (pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__NPC &&  ( /* pSoldier->ubProfile == DEVIN || */ pSoldier->ubProfile == SLAY || pSoldier->ubProfile == IGGY || pSoldier->ubProfile == CONRAD ) ) )
+#else
 											if (pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC || (pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__NPC && (pSoldier->ubProfile == DEVIN || pSoldier->ubProfile == SLAY || pSoldier->ubProfile == IGGY || pSoldier->ubProfile == CONRAD ) ) )
+#endif
 											{
 												// Leave now! ( handle equipment too )....
 												TacticalCharacterDialogue( pSoldier, QUOTE_MERC_QUIT_LEARN_TO_HATE );
@@ -1106,15 +1226,16 @@ void UpdateBuddyAndHatedCounters( void )
 									}
 								}
 								break;
-							case 3:
+							case 6:
 								if (pProfile->bLearnToLikeCount > 0	&& pProfile->bLearnToLike == ubOtherProfileID)
 								{
 									pProfile->bLearnToLikeCount--;
 									if (pProfile->bLearnToLikeCount == 0)
 									{
 										// add to liked!
+										// anv: nope, we don't want to overwrite possible standard buddy, instead added extra check to WhichBuddy(), DoesMercHaveABuddyOnTheTeam(), CanMercBeHired()
 										if (OKToCheckOpinion(ubOtherProfileID)) {
-										pProfile->bBuddy[2] = pProfile->bLearnToLike;
+										//pProfile->bBuddy[2] = pProfile->bLearnToLike;
 										pProfile->bMercOpinion[ubOtherProfileID] = BUDDY_OPINION;
 										}
 									}
@@ -1155,13 +1276,16 @@ void HourlyCamouflageUpdate( void )
 			{
 				if( pSoldier->bCamo > 0 )
 				{
+					// first limit camo to valid values
+					pSoldier->bCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->bCamo );
+
 					if (HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
 					{
 						pSoldier->bCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
-						pSoldier->bCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
+						// pSoldier->bCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
 					}
 					else
-						pSoldier->bCamo -= 2;
+						pSoldier->bCamo -= 1;	// 2
 
 					if (pSoldier->bCamo <= 0)
 					{
@@ -1179,13 +1303,16 @@ void HourlyCamouflageUpdate( void )
 				}
 				if( pSoldier->urbanCamo > 0 )
 				{
+					// first limit camo to valid values
+					pSoldier->urbanCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->urbanCamo );
+
 					if (HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
 					{
 						pSoldier->urbanCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
-						pSoldier->urbanCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
+						// pSoldier->urbanCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
 					}
 					else
-						pSoldier->urbanCamo -= 2;
+						pSoldier->urbanCamo -= 1;	// 2
 
 					if (pSoldier->urbanCamo <= 0)
 					{
@@ -1203,13 +1330,16 @@ void HourlyCamouflageUpdate( void )
 				}
 				if( pSoldier->desertCamo > 0 )
 				{
+					// first limit camo to valid values
+					pSoldier->desertCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->desertCamo );
+
 					if (HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
 					{
 						pSoldier->desertCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
-						pSoldier->desertCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
+						// pSoldier->desertCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
 					}
 					else
-						pSoldier->desertCamo -= 2;
+						pSoldier->desertCamo -= 1;	// 2
 
 					if (pSoldier->desertCamo <= 0)
 					{
@@ -1227,13 +1357,16 @@ void HourlyCamouflageUpdate( void )
 				}
 				if( pSoldier->snowCamo > 0 )
 				{
+					// first limit camo to valid values
+					pSoldier->snowCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->snowCamo );
+
 					if (HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
 					{
 						pSoldier->snowCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
-						pSoldier->snowCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
+						// pSoldier->snowCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
 					}
 					else
-						pSoldier->snowCamo -= 2;
+						pSoldier->snowCamo -= 1;	// 2
 
 					if (pSoldier->snowCamo <= 0)
 					{
@@ -1256,7 +1389,7 @@ void HourlyCamouflageUpdate( void )
 				// SANDRO - different types of Camouflaged trait have been merged together
 				if( ( pSoldier->bCamo > 0) && ( !( HAS_SKILL_TRAIT( pSoldier, CAMOUFLAGED_OT) ) ) )
 				{
-					pSoldier->bCamo -= 2;
+					pSoldier->bCamo -= 1;	// 2
 					if (pSoldier->bCamo <= 0)
 					{
 						pSoldier->bCamo = 0;
@@ -1273,7 +1406,7 @@ void HourlyCamouflageUpdate( void )
 				}
 				if( ( pSoldier->urbanCamo > 0) && ( !( HAS_SKILL_TRAIT( pSoldier, CAMOUFLAGED_OT) ) ) )
 				{
-					pSoldier->urbanCamo -= 2;
+					pSoldier->urbanCamo -= 1;	// 2
 					if (pSoldier->urbanCamo <= 0)
 					{
 						pSoldier->urbanCamo = 0;
@@ -1290,7 +1423,7 @@ void HourlyCamouflageUpdate( void )
 				}
 				if( ( pSoldier->desertCamo > 0) && ( !( HAS_SKILL_TRAIT( pSoldier, CAMOUFLAGED_OT) ) ) )
 				{
-					pSoldier->desertCamo -= 2;
+					pSoldier->desertCamo -= 1;	// 2
 					if (pSoldier->desertCamo <= 0)
 					{
 						pSoldier->desertCamo = 0;
@@ -1307,7 +1440,7 @@ void HourlyCamouflageUpdate( void )
 				}
 				if( ( pSoldier->snowCamo > 0) && ( !( HAS_SKILL_TRAIT( pSoldier, CAMOUFLAGED_OT) ) ) )
 				{
-					pSoldier->snowCamo -= 2;
+					pSoldier->snowCamo -= 1;	// 2
 					if (pSoldier->snowCamo <= 0)
 					{
 						pSoldier->snowCamo = 0;
@@ -1391,3 +1524,56 @@ void HourlyCamouflageUpdate( void )
 		}
 	}
 }
+#ifdef JA2UB
+void HandleAddingAnyAimAwayEmailsWhenLaptopGoesOnline()
+{
+	UINT32 cnt;
+	INT32	iOffset;
+	MERCPROFILESTRUCT *pProfile;
+
+
+	//Loop through all the profiles
+	for( cnt = 0; cnt < NUM_PROFILES; cnt++)
+	{
+		pProfile = &(gMercProfiles[ cnt ]);
+
+		if (pProfile->uiDayBecomesAvailable == 0)
+		{
+			//if the merc CAN become ready
+			if( pProfile->bMercStatus != MERC_FIRED_AS_A_POW )
+			{
+				// if the player has left a message for this merc
+				if ( pProfile->ubMiscFlags3 & PROFILE_MISC_FLAG3_PLAYER_LEFT_MSG_FOR_MERC_AT_AIM )
+				{
+					iOffset = AIM_REPLY_BARRY;
+
+					//remove the Flag, so if the merc goes on another assignment, the player can leave an email.
+					pProfile->ubMiscFlags3 &= ~PROFILE_MISC_FLAG3_PLAYER_LEFT_MSG_FOR_MERC_AT_AIM;
+					
+						UINT8 pMerc = 0;
+						UINT8 iMerc = 0;
+						UINT8 oMerc = 0;
+						
+					if ( ReadXMLEmail == TRUE )
+					{
+						oMerc = cnt;
+						iMerc = oMerc * 1;
+						
+						if ( oMerc != 0 )
+							pMerc = oMerc + 1;
+						else
+							pMerc = 0;
+						if ( gProfilesAIM[cnt].ProfilId == cnt )
+							AddEmailTypeXML( pMerc, iMerc, iMerc, GetWorldTotalMin(), -1 , TYPE_EMAIL_AIM_AVAILABLE);
+					}
+					else
+					{
+					// TO DO: send E-mail to player telling him the merc has returned from an assignment
+					AddEmail( ( UINT8 )( iOffset + ( cnt * AIM_REPLY_LENGTH_BARRY ) ), AIM_REPLY_LENGTH_BARRY, ( UINT8 )( 6 + cnt ), GetWorldTotalMin(),-1 ,-1, TYPE_EMAIL_EMAIL_EDT_NAME_MERC);
+					}
+				}
+			}
+		}
+	}
+}
+#endif

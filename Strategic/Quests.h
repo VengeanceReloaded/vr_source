@@ -9,9 +9,10 @@
 #define	QUESTINPROGRESS					1
 #define QUESTDONE								2
 
-#define MAX_QUESTS							30
+#define MAX_QUESTS								255
+#define MAX_OLD_QUESTS							30
 #define MAX_FACTS								65536
-#define	NUM_FACTS								500			//If you increase this number, add entries to the fact text list in QuestText.c
+#define	NUM_FACTS								600			//If you increase this number, add entries to the fact text list in QuestText.c
 
 
 #define MAP_ROW_A		1
@@ -66,14 +67,24 @@ enum Quests
 
 	QUEST_FREE_CHILDREN,	// 20
 	QUEST_LEATHER_SHOP_DREAM,
+	QUEST_ESCORT_SHANK = 22,
 
+#ifdef JA2UB
+	QUEST_DESTROY_MISSLES = 23,
+	QUEST_FIX_LAPTOP,
+	QUEST_GET_RID_BLOODCATS_AT_BETTYS,
+	QUEST_FIND_ANTIQUE_MUSKET_FOR_RAUL,
+#else
+	QUEST_23 = 23,
+	QUEST_24 = 24,
 	QUEST_KILL_DEIDRANNA = 25,
-	// VENGEANCE
-	// anv: multistage quest
-	QUEST_ESCORT_CONMAN = 26,
-	QUEST_RETURN_BUYER_MONEY = 27,
-	QUEST_SELL_FAKE_SAMPLE = 28
-	// /VENGEANCE
+
+	// anv: VR quests
+	QUEST_ESCORT_CONMAN = 30,
+	QUEST_RETURN_BUYER_MONEY = 31,
+	QUEST_SELL_FAKE_SAMPLE = 32,
+
+#endif
 } ;
 /*
 // The first quest is mandatory. Player must find Miguel and deliver letter to him. The tough
@@ -240,6 +251,7 @@ enum Facts
 	FACT_PABLO_PUNISHED_BY_PLAYER,//													37
 
 	FACT_PABLO_RETURNED_GOODS =																39,
+	FACT_MIGUEL_AND_ALL_REBELS_CAN_BE_RECRUITED,// 40
 
 	FACT_PABLOS_BRIBED =																			41,
 	FACT_ESCORTING_SKYRIDER,//																42
@@ -326,8 +338,14 @@ enum Facts
 	FACT_PABLO_WONT_STEAL = 																	124,
 	FACT_AGENTS_PREVENTED_SHIPMENT,//													125
 
+	// anv: it was 126 in Waldo script
+	FACT_HELICOPTER_IN_PERFECT_CONDITION =																	126,
+
 	FACT_LARGE_AMOUNT_OF_MONEY =															127,
 	FACT_SMALL_AMOUNT_OF_MONEY,//															128
+
+	// anv: it was 130 in Waldo script
+	FACT_HELICOPTER_LOST =																	130, 
 
 	FACT_LOYALTY_OKAY =																				135,
 	FACT_LOYALTY_LOW,//																				136
@@ -426,6 +444,8 @@ enum Facts
 	FACT_PLAYER_OWNS_3_TOWNS_INCLUDING_OMERTA,//							243
 	FACT_PLAYER_OWNS_4_TOWNS_INCLUDING_OMERTA,//							244
 
+	FACT_DIMITRI_CAN_BE_RECRUITED,//			245
+
 	FACT_MALE_SPEAKING_FEMALE_PRESENT =												248,
 	FACT_HICKS_MARRIED_PLAYER_MERC,//													249
 	FACT_MUSEUM_OPEN,//																				250
@@ -484,15 +504,6 @@ enum Facts
 	FACT_OK_USE_ICECREAM,																	//	307
 	FACT_KINGPIN_DEAD,//																			308
 
-	// VENGEANCE - for Iggy/Ivan meeting?
-	FACT_IVAN_SPEAKING_OR_NEARBY =																			310,
-	FACT_BUDDY_SPEAKING =																			311,
-	FACT_BUDDY_SPEAKING_OR_NEARBY =																			312,
-	FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY =																			313,
-	FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY =																			314,
-	FACT_IGGY_SPEAKING_OR_NEARBY =																			315,
-	// /VENEGANCE
-
 	FACT_KIDS_ARE_FREE =																			318,
 	FACT_PLAYER_IN_SAME_ROOM,//																319
 
@@ -535,47 +546,93 @@ enum Facts
 	// HEADROCK HAM 4: Seen Mobile Militia screen after having at least one mobile unit?
 	FACT_MOBILE_RESTRICTIONS_VIEWED =														369,
 
-	// VENGEANCE
-	FACT_PLAYER_SPOKE_TO_CONMAN =			370,
-	FACT_CONMAN_ESCORTED,//					371
-	FACT_CONMAN_ESCORTED_TO_BUYER,//		372
-	FACT_CONMAN_SAMPLE_SOLD_TO_BUYER,//		373
-	FACT_CONMAN_NOTICED,//					374
-	FACT_CONMAN_DEAD,//						375
-	FACT_BUYER_WANTS_MONEY_BACK,//			376
-	FACT_CONMAN_GAVE_MONEY_BACK,//			377
-	FACT_BUYER_GIVEN_MONEY_BACK,//			378
-	FACT_BUYER_GAVE_FAKE_SAMPLE,//			379
-	FACT_CIA_WANTS_FAKE_SAMPLE,//			380
-	FACT_TRACONA_WANTS_FAKE_SAMPLE,//		381
-	FACT_FAKE_SAMPLE_SOLD_TO_CIA,//			382
-	FACT_FAKE_SAMPLE_SOLD_TO_TRACONA,//		383
-	FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE,//	384
+	// anv: Waldo The Mechanic, facts for his dialogue
+	FACT_HELI_DAMAGED_CAN_START_REPAIR,
+	FACT_HELI_SERIOUSLY_DAMAGED_CAN_START_REPAIR,
 
-	FACT_MENDAX_OFFERED_DEAL,//				385
-	FACT_MENDAX_DEAL_IS_ON,//				386
-	// /VENGEANCE
+	FACT_GIVEN_ENOUGH_TO_REPAIR_HELI,
+	FACT_GIVEN_ENOUGH_TO_SERIOUSLY_REPAIR_HELI,
+
+	FACT_HELI_GIVEN_MONEY_CAN_START_REPAIR,
+	FACT_HELI_CANT_START_REPAIR,
+
+	FACT_WALDO_MET,
+
+
+#ifdef JA2UB	
+	//Ja25 UB
+	FACT_IMPORTED_SAVE_AND_MARY_WAS_DEAD	=										400,
+	FACT_JOHN_KULBA_OFFERED_TO_BE_RECRUITED,//								401,
+	FACT_TEX_IS_IN_GAME_AND_ALIVE_IN_STORE,//									402,
+	FACT_PLAYER_PAID_BETTY_MORE_THEN_X_FOR_ITEM =							403,
+	FACT_PLAYER_BOUGHT_A_TEX_VIDEO_FROM_BETTY,//							404,
+	FACT_RAULS_INVENTORY_CHANGED_SINCE_LAST_VISIT,//					405
+	FACT_PLAYER_THREATENED_RAUL_COUPLE_TIMES,//								406
+	FACT_PLAYER_BOUGHT_SOMETHING_FROM_RAUL,//									407
+//	FACT_SKYRIDER_IN_C16,//																	408
+//	FACT_SKYRIDER_IN_C16,//																	409
+//	FACT_SKYRIDER_IN_C16,//																	410
+//	FACT_SKYRIDER_IN_C16,//																	411
+	FACT_PLAYER_BOUGHT_BARRET_FROM_RAUL =											412,
+	FACT_MERC_SAY_QUOTE_WHEN_TALK_MENU_CLOSES,//							413
+	FACT_PLAYER_IMPORTED_SAVE_MIGUEL_DEAD,//									414
+	FACT_PLAYER_IMPORTED_SAVE_FATIMA_OR_PACOS_DEAD,//					415
+	FACT_PLAYER_IMPORTED_SAVE_CARLOS_DEAD,//									416
+	FACT_PLAYER_IMPORTED_SAVE_IRA_DEAD,//											417
+	FACT_PLAYER_IMPORTED_SAVE_DIMITRI_DEAD,//									418
+	FACT_PLAYER_IMPORTED_SAVE,//															419
+	FACT_PLAYER_KILLED_ALL_BETTYS_BLOODCATS,//								420
+	FACT_BIGGENS_IS_ON_TEAM,//																421
+	FACT_FAN_STOPPPED,//																			422
+	FACT_BIGGENS_ON_TEAM_AND_FAN_STOPPED,//										423
+	FACT_PLAYER_KNOWS_ABOUT_FAN_STOPPING,//										424
+#endif
+
+	// anv: VR - facts
+	FACT_IVAN_SPEAKING_OR_NEARBY =				510,
+	FACT_BUDDY_SPEAKING =						511,
+	FACT_BUDDY_SPEAKING_OR_NEARBY =				512,
+	FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY =		513,
+	FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY =		514,
+	FACT_IGGY_SPEAKING_OR_NEARBY =				515,
+	FACT_ENRICO_TELLS_PLAYER_TO_KILL_DOUBLE =	541,
+	FACT_PLAYER_SPOKE_TO_CONMAN =				570,
+	FACT_CONMAN_ESCORTED,//						571
+	FACT_CONMAN_ESCORTED_TO_BUYER,//			572
+	FACT_CONMAN_SAMPLE_SOLD_TO_BUYER,//			573
+	FACT_CONMAN_NOTICED,//						574
+	FACT_CONMAN_DEAD,//							575
+	FACT_BUYER_WANTS_MONEY_BACK,//				576
+	FACT_CONMAN_GAVE_MONEY_BACK,//				577
+	FACT_BUYER_GIVEN_MONEY_BACK,//				578
+	FACT_BUYER_GAVE_FAKE_SAMPLE,//				579
+	FACT_CIA_WANTS_FAKE_SAMPLE,//				580
+	FACT_TRACONA_WANTS_FAKE_SAMPLE,//			581
+	FACT_FAKE_SAMPLE_SOLD_TO_CIA,//				582
+	FACT_FAKE_SAMPLE_SOLD_TO_TRACONA,//			583
+	FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE,//		584
+
 } ;
 //**	END FACTS *************************
 
-#define		BOBBYR_SHIPPING_DEST_SECTOR_X				13
-#define		BOBBYR_SHIPPING_DEST_SECTOR_Y				2
-#define		BOBBYR_SHIPPING_DEST_SECTOR_Z				0
-#define		BOBBYR_SHIPPING_DEST_GRIDNO					10112
-#define		PABLOS_STOLEN_DEST_GRIDNO						1
-#define		LOST_SHIPMENT_GRIDNO								2
+#define		BOBBYR_SHIPPING_DEST_SECTOR_X		gModSettings.ubBobbyRShipDestSectorX	//13
+#define		BOBBYR_SHIPPING_DEST_SECTOR_Y		gModSettings.ubBobbyRShipDestSectorY	//2
+#define		BOBBYR_SHIPPING_DEST_SECTOR_Z		gModSettings.ubBobbyRShipDestSectorZ	//0
+#define		BOBBYR_SHIPPING_DEST_GRIDNO			gModSettings.iBobbyRShipDestGridNo	//10112
+#define		PABLOS_STOLEN_DEST_GRIDNO			gModSettings.iPablosStolenDestGridNo	//1
+#define		LOST_SHIPMENT_GRIDNO				gModSettings.iLostShipmentGridNo	//2
 
 // omerta positions
-#define OMERTA_LEAVE_EQUIP_SECTOR_X		9
-#define OMERTA_LEAVE_EQUIP_SECTOR_Y		1
-#define OMERTA_LEAVE_EQUIP_SECTOR_Z		0
-#define OMERTA_LEAVE_EQUIP_GRIDNO			4868
+#define OMERTA_LEAVE_EQUIP_SECTOR_X		gModSettings.ubOmertaDropOffX	//9
+#define OMERTA_LEAVE_EQUIP_SECTOR_Y		gModSettings.ubOmertaDropOffY	//1
+#define OMERTA_LEAVE_EQUIP_SECTOR_Z		gModSettings.ubOmertaDropOffZ	//0
+#define OMERTA_LEAVE_EQUIP_GRIDNO		gModSettings.iOmertaDropOff	//4868
 
 // NB brothel rooms 88-90 removed because they are the antechamber
-#define IN_BROTHEL( room ) (gWorldSectorX == 5 && gWorldSectorY == MAP_ROW_C && (room) >= 91 && (room) <= 119)
-#define IN_BROTHEL_GUARD_ROOM( room ) ( room == 110 )
+#define IN_BROTHEL( room ) (gWorldSectorX == gModSettings.ubBrothelSectorX && gWorldSectorY == gModSettings.ubBrothelSectorY && (room) >= gModSettings.usBrothelRoomRangeStart && (room) <= gModSettings.usBrothelRoomRangeEnd) //5, 3, 91,119
+#define IN_BROTHEL_GUARD_ROOM( room ) ( room == gModSettings.usBrothelGuardRoom ) //110
 
-#define IN_KINGPIN_HOUSE( room ) ( gWorldSectorX == 5 && gWorldSectorY == MAP_ROW_D && (room) >= 30 && (room) <= 39 )
+#define IN_KINGPIN_HOUSE( room ) ( gWorldSectorX == gModSettings.ubKingpinHouseSectorX && gWorldSectorY == gModSettings.ubKingpinHouseSectorY && gbWorldSectorZ == gModSettings.ubKingpinHouseSectorZ && (room) >= gModSettings.usKingpinRoomRangeStart && (room) <= gModSettings.usKingpinRoomRangeEnd ) //5, 4, 0, 30, 39
 
 #define LOYALTY_LOW_THRESHOLD		30
 #define LOYALTY_OK_THRESHOLD		50
@@ -599,7 +656,7 @@ extern void CheckForQuests( UINT32 uiDay );
 
 void InitQuestEngine();
 
-BOOLEAN LoadQuestInfoFromSavedGameFile( HWFILE hFile );
+BOOLEAN LoadQuestInfoFromSavedGameFile( HWFILE hFile, UINT8 MaxQuest );
 BOOLEAN SaveQuestInfoToSavedGameFile( HWFILE hFile );
 
 // added by SANDRO
@@ -616,8 +673,11 @@ extern BOOLEAN CheckIfMercIsNearNPC( SOLDIERTYPE *pMerc, UINT8 ubProfileId );
 extern INT8 NumWoundedMercsNearby( UINT8 ubProfileID );
 extern INT8 NumMercsNear( UINT8 ubProfileID, UINT8 ubMaxDist );
 extern BOOLEAN CheckNPCIsEPC( UINT8 ubProfileID );
-extern BOOLEAN NPCInRoom( UINT8 ubProfileID, UINT8 ubRoomID );
-extern BOOLEAN NPCInRoomRange( UINT8 ubProfileID, UINT8 ubRoomID1, UINT8 ubRoomID2 );
+//DBrot: More Rooms
+//extern BOOLEAN NPCInRoom( UINT8 ubProfileID, UINT8 ubRoomID );
+//extern BOOLEAN NPCInRoomRange( UINT8 ubProfileID, UINT8 ubRoomID1, UINT8 ubRoomID2 );
+extern BOOLEAN NPCInRoom( UINT8 ubProfileID, UINT16 usRoomID );
+extern BOOLEAN NPCInRoomRange( UINT8 ubProfileID, UINT16 usRoomID1, UINT16 usRoomID2 );
 extern BOOLEAN PCInSameRoom( UINT8 ubProfileID );
 extern INT8 NumMalesPresent( UINT8 ubProfileID );
 extern BOOLEAN FemalePresent( UINT8 ubProfileID );

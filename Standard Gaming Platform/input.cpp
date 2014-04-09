@@ -14,7 +14,6 @@
 //**
 	#include "types.h"
 	#include <windows.h>
-	#include <winuser.h>//dnl
 	#include <stdio.h>
 	#include <memory.h>
 	#include "debug.h"
@@ -29,7 +28,6 @@
 	#include "local.h"
 #endif
 
-#include "zmouse.h"
 
 // Make sure to refer to the translation table which is within one of the following files (depending
 // on the language used). ENGLISH.C, JAPANESE.C, FRENCH.C, GERMAN.C, SPANISH.C, etc...
@@ -51,7 +49,8 @@ extern BOOLEAN gfApplicationActive;
 BOOLEAN	gfKeyState[256];			// TRUE = Pressed, FALSE = Not Pressed
 BOOLEAN	fCursorWasClipped = FALSE;
 RECT		gCursorClipRect;
-
+extern BOOLEAN gfMouseLockedOnBorder;
+extern int iWindowedMode;
 
 
 // The gsKeyTranslationTables basically translates scan codes to our own key value table. Please note that the table is 2 bytes
@@ -80,8 +79,8 @@ UINT32		guiX2ButtonRepeatTimer;
 BOOLEAN	gfTrackMousePos;			// TRUE = queue mouse movement events, FALSE = don't
 BOOLEAN	gfLeftButtonState;		// TRUE = Pressed, FALSE = Not Pressed
 BOOLEAN	gfRightButtonState;		// TRUE = Pressed, FALSE = Not Pressed
-BOOLEAN gfMiddleButtonState;//dnl TRUE = Pressed, FALSE = Not Pressed
-//INT16 gsMouseWheelDeltaValue;//dnl positive value indicates that the wheel was rotated forward, negative value indicates that the wheel was rotated backward, and user handler procedure for mouse wheel should restore after usege this value to zero!
+BOOLEAN gfMiddleButtonState;//dnl ch4 210909 TRUE = Pressed, FALSE = Not Pressed
+INT16 gsMouseWheelDeltaValue;//dnl ch4 210909 positive value indicates that the wheel was rotated forward, negative value indicates that the wheel was rotated backward, and user handler procedure for mouse wheel should restore after usege this value to zero!
 BOOLEAN gfX1ButtonState;
 BOOLEAN gfX2ButtonState;
 
@@ -109,6 +108,10 @@ HHOOK ghMouseHook;
 
 BOOLEAN		gfCurrentStringInputState;
 StringInput *gpCurrentStringDescriptor;
+
+// Thread
+static CRITICAL_SECTION gcsInputQueueLock;
+
 
 // Local function headers
 
@@ -184,7 +187,8 @@ LRESULT CALLBACK MouseHandler(int Code, WPARAM wParam, LPARAM lParam)
 			QueueEvent(X2_BUTTON_UP, 0, uiParam);
 		}
 		break;
-	case WM_MOUSEWHEEL:	 
+	case WM_MOUSEWHEEL:
+		gsMouseWheelDeltaValue = GetMouseWheelDeltaValue(((MOUSEHOOKSTRUCTEX *)lParam)->mouseData);//dnl ch4 210909
 		if(p_mhs->mouseData==(WHEEL_DELTA<<16))  //up	MessageBeep(-1);
 			QueueEvent(MOUSE_WHEEL_UP, 0, uiParam);
 		if(p_mhs->mouseData==(-WHEEL_DELTA<<16)) //dn  MessageBeep(0x00000040L);
@@ -277,6 +281,8 @@ BOOLEAN InitializeInputManager(void)
 //	ghKeyboardHook = SetWindowsHookEx(WH_KEYBOARD, (HOOKPROC) KeyboardHandler, (HINSTANCE) 0, GetCurrentThreadId());
 //	DbgMessage(TOPIC_INPUT, DBG_LEVEL_2, String("Set keyboard hook returned %d", ghKeyboardHook));
 
+	InitializeCriticalSection(&gcsInputQueueLock);
+
 	ghMouseHook = SetWindowsHookEx(WH_MOUSE, (HOOKPROC) MouseHandler, (HINSTANCE) 0, GetCurrentThreadId());
 	DbgMessage(TOPIC_INPUT, DBG_LEVEL_2, String("Set mouse hook returned %d", ghMouseHook));
 	return TRUE;
@@ -289,6 +295,8 @@ void ShutdownInputManager(void)
 	UnRegisterDebugTopic(TOPIC_INPUT, "Input Manager");
 //	UnhookWindowsHookEx(ghKeyboardHook);
 	UnhookWindowsHookEx(ghMouseHook);
+	
+	DeleteCriticalSection(&gcsInputQueueLock);
 }
 
 void QueuePureEvent(UINT16 ubInputEvent, UINT32 usParam, UINT32 uiParam)
@@ -329,7 +337,7 @@ void QueuePureEvent(UINT16 ubInputEvent, UINT32 usParam, UINT32 uiParam)
 	}
 }
 
-void QueueEvent(UINT16 ubInputEvent, UINT32 usParam, UINT32 uiParam)
+void InternalQueueEvent(UINT16 ubInputEvent, UINT32 usParam, UINT32 uiParam)
 {
 	UINT32 uiTimer;
 	UINT16 usKeyState;
@@ -452,24 +460,46 @@ void QueueEvent(UINT16 ubInputEvent, UINT32 usParam, UINT32 uiParam)
 	}
 }
 
-BOOLEAN DequeueSpecificEvent(InputAtom *Event, UINT32 uiMaskFlags )
+
+void QueueEvent(UINT16 ubInputEvent, UINT32 usParam, UINT32 uiParam)
 {
-	// Is there an event to dequeue
-	if (gusQueueCount > 0)
-	{
-		memcpy( Event, &( gEventQueue[gusHeadIndex] ), sizeof( InputAtom ) );
-
-		// Check if it has the masks!
-		if ( ( Event->usEvent & uiMaskFlags ) )
-		{
-			return( DequeueEvent( Event) );
-		}
+	EnterCriticalSection(&gcsInputQueueLock);
+	__try {
+		InternalQueueEvent(ubInputEvent, usParam, uiParam);
+	}__finally {
+		LeaveCriticalSection(&gcsInputQueueLock);
 	}
-
-	return( FALSE );
 }
 
-BOOLEAN DequeueEvent(InputAtom *Event)
+BOOLEAN DequeueSpecificEvent(InputAtom *Event, UINT32 uiMaskFlags )
+{
+	EnterCriticalSection(&gcsInputQueueLock);
+
+    BOOLEAN result = FALSE;
+
+	__try
+	{
+		// Is there an event to dequeue
+		if (gusQueueCount > 0)
+		{
+			memcpy( Event, &( gEventQueue[gusHeadIndex] ), sizeof( InputAtom ) );
+
+			// Check if it has the masks!
+			if ( ( Event->usEvent & uiMaskFlags ) )
+			{
+				result = DequeueEvent( Event);
+			}
+		}
+	}
+	__finally
+	{
+		LeaveCriticalSection(&gcsInputQueueLock);
+	}
+
+    return result;
+}
+
+BOOLEAN InternalDequeueEvent(InputAtom *Event)
 {
 	HandleSingleClicksAndButtonRepeats( );
 
@@ -500,6 +530,23 @@ BOOLEAN DequeueEvent(InputAtom *Event)
 		return FALSE;
 	}
 }
+
+BOOLEAN DequeueEvent(InputAtom *Event)
+{
+    BOOLEAN result = FALSE;
+	__try
+	{
+		EnterCriticalSection(&gcsInputQueueLock);
+        result = InternalDequeueEvent(Event);
+	}
+	__finally
+	{
+		LeaveCriticalSection(&gcsInputQueueLock);
+	}
+
+	return result;
+}
+
 
 void KeyChange(UINT32 usParam, UINT32 uiParam, UINT8 ufKeyState)
 {
@@ -1544,10 +1591,23 @@ void RestrictMouseCursor(SGPRect *pRectangle)
 	fCursorWasClipped = TRUE;
 }
 
-void FreeMouseCursor(void)
+void FreeMouseCursor( BOOLEAN fLockForTacticalWindowedMode )
 {
 	ClipCursor(NULL);
 	fCursorWasClipped = FALSE;
+
+	// Buggler: Need to relock for fullscreen mode as ClipCursor release mouse boundary to full desktop resolution on multi-monitor setup &&
+	// for windowed mode, lockscreen only when player activates feature in tactical screen due to mouse restriction applies to desktop too!
+	if ( !iWindowedMode || ( iWindowedMode && gfMouseLockedOnBorder && fLockForTacticalWindowedMode ) )
+	{
+		SGPRect			LJDRect;
+
+		LJDRect.iLeft 	= 0;
+		LJDRect.iTop 	= 0;
+		LJDRect.iRight 	= SCREEN_WIDTH;
+		LJDRect.iBottom = SCREEN_HEIGHT;
+		RestrictMouseCursor( &LJDRect );
+	}
 }
 
 void RestoreCursorClipRect( void )
@@ -1694,3 +1754,12 @@ INT16 GetMouseWheelDeltaValue( UINT32 wParam )
 	return( sDelta / WHEEL_DELTA );
 }
 
+BOOLEAN PeekSpecificEvent(UINT32 uiMaskFlags)//dnl ch74 221013
+{
+	BOOLEAN result = FALSE;
+	EnterCriticalSection(&gcsInputQueueLock);
+	if(gusQueueCount > 0 && (gEventQueue[gusHeadIndex].usEvent & uiMaskFlags))
+		result = TRUE;
+	LeaveCriticalSection(&gcsInputQueueLock);
+	return(result);
+}

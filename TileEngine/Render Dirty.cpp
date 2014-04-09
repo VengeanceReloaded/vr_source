@@ -15,10 +15,8 @@
 	#include "Render Dirty.h"
 	#include "sysutil.h"
 	#include "container.h"
-	#include "wcheck.h"
 	#include "video.h"
 	#include "vobject_blitters.h"
-	#include "WinFont.h"
 	#include "Font Control.h"
 #endif
 
@@ -45,14 +43,19 @@ void SaveVideoOverlayArea( UINT32 uiSrcBuffer, UINT32 uiCount );
 //UINT32 guiNumTopmostSaves=0;
 
 // do zmiany
-SGPRect		gDirtyClipRect = { 0, 0, 1024, 768 };
-
+//SGPRect		gDirtyClipRect = { 0, 0, 2560, 1600 };
+SGPRect		gDirtyClipRect = { 0, 0, 0, 0 }; 
 
 BOOLEAN		gfViewportDirty=FALSE;
 
 
 BOOLEAN InitializeBaseDirtyRectQueue( )
 {
+	gDirtyClipRect.iLeft = 0;
+	gDirtyClipRect.iTop = 0;
+	gDirtyClipRect.iRight = SCREEN_WIDTH;
+	gDirtyClipRect.iBottom = SCREEN_HEIGHT;
+
 	return( TRUE );
 }
 
@@ -495,8 +498,10 @@ BOOLEAN FreeBackgroundRect(INT32 iIndex)
 
 BOOLEAN FreeBackgroundRectPending(INT32 iIndex)
 {
-	gBackSaves[iIndex].fPendingDelete = TRUE;
-
+	if (iIndex != -1)
+	{
+		gBackSaves[iIndex].fPendingDelete = TRUE;
+	}
 	return(TRUE);
 }
 

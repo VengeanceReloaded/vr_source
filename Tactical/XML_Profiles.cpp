@@ -158,6 +158,16 @@ profileStartElementHandle(void *userData, const XML_Char *name, const XML_Char *
 				strcmp(name, "bHatedTime5") == 0 ||
 				strcmp(name, "bLearnToHate") == 0 ||
 				strcmp(name, "bLearnToHateTime") == 0 ||
+				strcmp(name, "bRace") == 0 ||
+				strcmp(name, "bNationality") == 0 ||
+				strcmp(name, "bAppearance") == 0 ||
+				strcmp(name, "bAppearanceCareLevel") == 0 ||
+				strcmp(name, "bRefinement") == 0 ||
+				strcmp(name, "bRefinementCareLevel") == 0 ||
+				strcmp(name, "bHatedNationality") == 0 ||
+				strcmp(name, "bHatedNationalityCareLevel") == 0 ||
+				strcmp(name, "bRacist") == 0 ||
+				strcmp(name, "bSexist") == 0 ||
 				strcmp(name, "sSalary") == 0 ||
 				strcmp(name, "uiWeeklySalary") == 0 ||
 				strcmp(name, "uiBiWeeklySalary") == 0 ||
@@ -179,8 +189,9 @@ profileStartElementHandle(void *userData, const XML_Char *name, const XML_Char *
 				strcmp(name, "sSectorZ")  == 0 ||
 				strcmp(name, "ubCivilianGroup")  == 0 ||
 				strcmp(name, "bTown")  == 0 ||
-				strcmp(name, "bTownAttachment")  == 0
-				
+				strcmp(name, "bTownAttachment")  == 0 ||
+				strcmp(name, "usBackground")  == 0
+												
 				))
 		{
 			pData->curElement = ELEMENT_PROPERTY;
@@ -317,6 +328,17 @@ profileEndElementHandle(void *userData, const XML_Char *name)
 					tempProfiles[pData->curIndex].bLearnToHate = pData->curProfile.bLearnToHate;
 					tempProfiles[pData->curIndex].bLearnToHateTime = pData->curProfile.bLearnToHateTime;
 
+					tempProfiles[pData->curIndex].bRace = pData->curProfile.bRace;
+					tempProfiles[pData->curIndex].bNationality = pData->curProfile.bNationality;
+					tempProfiles[pData->curIndex].bAppearance = pData->curProfile.bAppearance;
+					tempProfiles[pData->curIndex].bAppearanceCareLevel = pData->curProfile.bAppearanceCareLevel;
+					tempProfiles[pData->curIndex].bRefinement = pData->curProfile.bRefinement;
+					tempProfiles[pData->curIndex].bRefinementCareLevel = pData->curProfile.bRefinementCareLevel;
+					tempProfiles[pData->curIndex].bHatedNationality = pData->curProfile.bHatedNationality;
+					tempProfiles[pData->curIndex].bHatedNationalityCareLevel = pData->curProfile.bHatedNationalityCareLevel;
+					tempProfiles[pData->curIndex].bRacist = pData->curProfile.bRacist;
+					tempProfiles[pData->curIndex].bSexist = pData->curProfile.bSexist;
+
 					tempProfiles[pData->curIndex].sSalary = pData->curProfile.sSalary;
 					tempProfiles[pData->curIndex].uiWeeklySalary = pData->curProfile.uiWeeklySalary;
 					tempProfiles[pData->curIndex].uiBiWeeklySalary = pData->curProfile.uiBiWeeklySalary;
@@ -335,6 +357,7 @@ profileEndElementHandle(void *userData, const XML_Char *name)
 					tempProfiles[pData->curIndex].ubCivilianGroup = pData->curProfile.ubCivilianGroup;
 					tempProfiles[pData->curIndex].bTown = pData->curProfile.bTown;
 					tempProfiles[pData->curIndex].bTownAttachment = pData->curProfile.bTownAttachment;
+					tempProfiles[pData->curIndex].usBackground = pData->curProfile.usBackground;
 
 					tempProfiles[pData->curIndex].fGoodGuy = pData->curProfile.fGoodGuy;
 					memcpy( &(tempProfiles[pData->curIndex].usApproachFactor), &(pData->curProfile.usApproachFactor), 4 * sizeof (UINT16));
@@ -367,55 +390,55 @@ profileEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "ubFaceIndex") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.ubFaceIndex = (UINT32) atol(pData->szCharData);
+			pData->curProfile.ubFaceIndex = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usEyesX") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usEyesX = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usEyesX = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usEyesY") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usEyesY = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usEyesY = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usMouthX") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usMouthX = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usMouthX = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usMouthY") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usMouthY = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usMouthY = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "uiEyeDelay") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.uiEyeDelay = (UINT32) atol(pData->szCharData);
+			pData->curProfile.uiEyeDelay = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "uiMouthDelay") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.uiMouthDelay = (UINT32) atol(pData->szCharData);
+			pData->curProfile.uiMouthDelay = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "uiBlinkFrequency") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.uiBlinkFrequency = (UINT32) atol(pData->szCharData);
+			pData->curProfile.uiBlinkFrequency = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "uiExpressionFrequency") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.uiExpressionFrequency = (UINT32) atol(pData->szCharData);
+			pData->curProfile.uiExpressionFrequency = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "PANTS") == 0)
@@ -445,490 +468,571 @@ profileEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "bSex") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bSex = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bSex = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "ubBodyType") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.ubBodyType = (UINT32) atol(pData->szCharData);
+			pData->curProfile.ubBodyType = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "uiBodyTypeSubFlags") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.uiBodyTypeSubFlags = (UINT32) atol(pData->szCharData);
+			pData->curProfile.uiBodyTypeSubFlags = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bAttitude") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bAttitude = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bAttitude = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		// SANDRO - added Character Trait
 		else if(strcmp(name, "bCharacterTrait") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bCharacterTrait = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bCharacterTrait = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bDisability") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bDisability = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bDisability = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "ubNeedForSleep") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.ubNeedForSleep = (UINT32) atol(pData->szCharData);
+			pData->curProfile.ubNeedForSleep = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bReputationTolerance") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bReputationTolerance = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bReputationTolerance = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bDeathRate") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bDeathRate = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bDeathRate = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bLifeMax") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bLifeMax = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bLifeMax = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bLife") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bLife = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bLife = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bStrength") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bStrength = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bStrength = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bAgility") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bAgility = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bAgility = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bDexterity") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bDexterity = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bDexterity = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bWisdom") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bWisdom = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bWisdom = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bMarksmanship") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bMarksmanship = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bMarksmanship = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bExplosive") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bExplosive = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bExplosive = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bLeadership") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bLeadership = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bLeadership = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bMedical") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bMedical = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bMedical = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bMechanical") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bMechanical = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bMechanical = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bExpLevel") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bExpLevel = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bExpLevel = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bEvolution") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bEvolution = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bEvolution = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		////////////////////////////////////////////////////////////////////////////
 		// SANDRO was here - messed this a bit
 		else if(strcmp(name, "bOldSkillTrait") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bOldSkillTrait = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bOldSkillTrait = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bOldSkillTrait2") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bOldSkillTrait2 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bOldSkillTrait2 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bNewSkillTrait1") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait1 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait1 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}		
 		else if(strcmp(name, "bNewSkillTrait2") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait2 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait2 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}		
 		else if(strcmp(name, "bNewSkillTrait3") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait3 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait3 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait4") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait4 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait4 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait5") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait5 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait5 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait6") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait6 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait6 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait7") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait7 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait7 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait8") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait8 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait8 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait9") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait9 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait9 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait10") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait10 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait10 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait11") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait11 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait11 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait12") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait12 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait12 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait13") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait13 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait13 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait14") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait14 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait14 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait15") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait15 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait15 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait16") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait16 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait16 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait17") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait17 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait17 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait18") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait18 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait18 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait19") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait19 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait19 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait20") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait20 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait20 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait21") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait21 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait21 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait22") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait22 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait22 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait23") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait23 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait23 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait24") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait24 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait24 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait25") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait25 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait25 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait26") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait26 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait26 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait27") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait27 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait27 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait28") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait28 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait28 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}									 
 		else if(strcmp(name, "bNewSkillTrait29") == 0)
 		{									 
 			pData->curElement = ELEMENT;	 
-			pData->curProfile.bNewSkillTrait29 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait29 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "bNewSkillTrait30") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bNewSkillTrait30 = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bNewSkillTrait30 = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		////////////////////////////////////////////////////////////////////////////
 
 		else if(strcmp(name, "bBuddy1") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bBuddy[0] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bBuddy[0] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bBuddy2") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bBuddy[1] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bBuddy[1] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bBuddy3") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bBuddy[2] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bBuddy[2] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bBuddy4") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bBuddy[3] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bBuddy[3] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bBuddy5") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bBuddy[4] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bBuddy[4] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bLearnToLike") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bLearnToLike = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bLearnToLike = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bLearnToLikeTime") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bLearnToLikeTime = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bLearnToLikeTime = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bHated1") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHated[0] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHated[0] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bHatedTime1") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHatedTime[0] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHatedTime[0] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bHated2") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHated[1] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHated[1] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bHatedTime2") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHatedTime[1] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHatedTime[1] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bHated3") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHated[2] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHated[2] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bHatedTime3") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHatedTime[2] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHatedTime[2] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bHated4") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHated[3] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHated[3] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bHatedTime4") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHatedTime[3] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHatedTime[3] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "bHated5") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHated[4] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHated[4] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bHatedTime5") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bHatedTime[4] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bHatedTime[4] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bLearnToHate") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bLearnToHate = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bLearnToHate = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bLearnToHateTime") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bLearnToHateTime = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bLearnToHateTime = (UINT32) strtoul(pData->szCharData, NULL, 0);
+		}
+				
+		else if(strcmp(name, "bRace") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bRace = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bRace = max(0, min(NUM_RACES-1, pData->curProfile.bRace));
+		}
+		else if(strcmp(name, "bNationality") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bNationality = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bNationality = max(0, min(NUM_NATIONALITIES-1, pData->curProfile.bNationality));
+		}
+		else if(strcmp(name, "bAppearance") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bAppearance = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bAppearance = max(0, min(NUM_APPEARANCES-1, pData->curProfile.bAppearance));
+		}
+		else if(strcmp(name, "bAppearanceCareLevel") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bAppearanceCareLevel = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bAppearanceCareLevel = max(0, min(NUM_CARELEVELS-1, pData->curProfile.bAppearanceCareLevel));
+		}
+		else if(strcmp(name, "bRefinement") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bRefinement = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bRefinement = max(0, min(NUM_REFINEMENT-1, pData->curProfile.bRefinement));
+		}
+		else if(strcmp(name, "bRefinementCareLevel") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bRefinementCareLevel = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bRefinementCareLevel = max(0, min(NUM_CARELEVELS-1, pData->curProfile.bRefinementCareLevel));
+		}
+		else if(strcmp(name, "bHatedNationality") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bHatedNationality = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bHatedNationality = max(-1, min(NUM_NATIONALITIES-1, pData->curProfile.bHatedNationality));
+		}
+		else if(strcmp(name, "bHatedNationalityCareLevel") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bHatedNationalityCareLevel = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bHatedNationalityCareLevel = max(0, min(NUM_CARELEVELS-1, pData->curProfile.bHatedNationalityCareLevel));
+		}
+		else if(strcmp(name, "bRacist") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bRacist = (INT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bRacist = max(0, min(NUM_RACIST-1, pData->curProfile.bRacist));
+		}
+		else if(strcmp(name, "bSexist") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.bSexist = (UINT8) strtoul(pData->szCharData, NULL, 0);
+
+			// no nonsense values
+			pData->curProfile.bSexist = max(0, min(NUM_SEXIST-1, pData->curProfile.bSexist));
 		}
 
 		else if(strcmp(name, "sSalary") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.sSalary = (UINT32) atol(pData->szCharData);
+			pData->curProfile.sSalary = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "uiWeeklySalary") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.uiWeeklySalary = (UINT32) atol(pData->szCharData);
+			pData->curProfile.uiWeeklySalary = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "uiBiWeeklySalary") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.uiBiWeeklySalary = (UINT32) atol(pData->szCharData);
+			pData->curProfile.uiBiWeeklySalary = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bMedicalDeposit") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bMedicalDeposit = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bMedicalDeposit = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "sMedicalDepositAmount") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.sMedicalDepositAmount = (UINT32) atol(pData->szCharData);
+			pData->curProfile.sMedicalDepositAmount = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usOptionalGearCost") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usOptionalGearCost = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usOptionalGearCost = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bArmourAttractiveness") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bArmourAttractiveness = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bArmourAttractiveness = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "bMainGunAttractiveness") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.bMainGunAttractiveness = (UINT32) atol(pData->szCharData);
+			pData->curProfile.bMainGunAttractiveness = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "fGoodGuy") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.fGoodGuy = (UINT32) atol(pData->szCharData);
+			pData->curProfile.fGoodGuy = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usApproachFactorFriendly") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usApproachFactor[0] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usApproachFactor[0] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usApproachFactorDirect") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usApproachFactor[1] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usApproachFactor[1] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usApproachFactorThreaten") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usApproachFactor[2] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usApproachFactor[2] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		else if(strcmp(name, "usApproachFactorRecruit") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.usApproachFactor[3] = (UINT32) atol(pData->szCharData);
+			pData->curProfile.usApproachFactor[3] = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "uiIndex") == 0)
@@ -937,13 +1041,13 @@ profileEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = ELEMENT;
 
 			// Sets new index for writing.
-			pData->curIndex = (UINT32) atol(pData->szCharData);
+			pData->curIndex = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "Type") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curProfile.Type = (UINT32) atol(pData->szCharData);
+			pData->curProfile.Type = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		
 		else if(strcmp(name, "sSectorX") == 0)
@@ -960,7 +1064,7 @@ profileEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curProfile.bSectorZ = (INT8) atol(pData->szCharData);
-		}			
+		}
 		else if(strcmp(name, "ubCivilianGroup") == 0)
 		{
 			pData->curElement = ELEMENT;
@@ -970,12 +1074,19 @@ profileEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curProfile.bTown = (INT8) atol(pData->szCharData);
-		}	
-		else if(strcmp(name, "bTownAttachment") == 0)
+		}
+
+		// Flugente: need to break the 'else if' structure here. Otherwise the compiler will complain about fatal error C1061: compiler limit : blocks nested too deeply
+		if(strcmp(name, "bTownAttachment") == 0)
 		{
 			pData->curElement = ELEMENT;
 			pData->curProfile.bTownAttachment = (INT8) atol(pData->szCharData);
-		}	
+		}
+		else if(strcmp(name, "usBackground") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curProfile.usBackground = (UINT16) atol(pData->szCharData);
+		}
 		
 
 		pData->maxReadDepth--;
@@ -1516,6 +1627,17 @@ BOOLEAN WriteMercProfiles()
 			FilePrintf(hFile,"\t\t<bLearnToHate>%d</bLearnToHate>\r\n", gMercProfiles[ cnt ].bLearnToHate);
 			FilePrintf(hFile,"\t\t<bLearnToHateTime>%d</bLearnToHateTime>\r\n", gMercProfiles[ cnt ].bLearnToHateTime);
 
+			FilePrintf(hFile,"\t\t<bRace>%d</bRace>\r\n",											gMercProfiles[ cnt ].bRace);
+			FilePrintf(hFile,"\t\t<bNationality>%d</bNationality>\r\n",								gMercProfiles[ cnt ].bNationality);
+			FilePrintf(hFile,"\t\t<bAppearance>%d</bAppearance>\r\n",								gMercProfiles[ cnt ].bAppearance);
+			FilePrintf(hFile,"\t\t<bAppearanceCareLevel>%d</bAppearanceCareLevel>\r\n",				gMercProfiles[ cnt ].bAppearanceCareLevel);
+			FilePrintf(hFile,"\t\t<bRefinement>%d</bRefinement>\r\n",								gMercProfiles[ cnt ].bRefinement);
+			FilePrintf(hFile,"\t\t<bRefinementCareLevel>%d</bRefinementCareLevel>\r\n",				gMercProfiles[ cnt ].bRefinementCareLevel);
+			FilePrintf(hFile,"\t\t<bHatedNationality>%d</bHatedNationality>\r\n",					gMercProfiles[ cnt ].bHatedNationality);
+			FilePrintf(hFile,"\t\t<bHatedNationalityCareLevel>%d</bHatedNationalityCareLevel>\r\n",	gMercProfiles[ cnt ].bHatedNationalityCareLevel);
+			FilePrintf(hFile,"\t\t<bRacist>%d</bRacist>\r\n",										gMercProfiles[ cnt ].bRacist);
+			FilePrintf(hFile,"\t\t<bSexist>%d</bSexist>\r\n",										gMercProfiles[ cnt ].bSexist);
+			
 			FilePrintf(hFile,"\t\t<sSalary>%d</sSalary>\r\n", gMercProfiles[ cnt ].sSalary);
 			FilePrintf(hFile,"\t\t<uiWeeklySalary>%d</uiWeeklySalary>\r\n", gMercProfiles[ cnt ].uiWeeklySalary);
 			FilePrintf(hFile,"\t\t<uiBiWeeklySalary>%d</uiBiWeeklySalary>\r\n", gMercProfiles[ cnt ].uiBiWeeklySalary);
@@ -1540,7 +1662,8 @@ BOOLEAN WriteMercProfiles()
 			FilePrintf(hFile,"\t\t<ubCivilianGroup>%d</ubCivilianGroup>\r\n", gMercProfiles[ cnt ].ubCivilianGroup);
 			FilePrintf(hFile,"\t\t<bTown>%d</bTown>\r\n", gMercProfiles[ cnt ].bTown);
 			FilePrintf(hFile,"\t\t<bTownAttachment>%d</bTownAttachment>\r\n", gMercProfiles[ cnt ].bTownAttachment);
-
+			FilePrintf(hFile,"\t\t<usBackground>%d</usBackground>\r\n", gMercProfiles[ cnt ].usBackground);
+			
 
 			FilePrintf(hFile,"\t</PROFILE>\r\n");
 		}

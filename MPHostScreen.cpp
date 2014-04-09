@@ -16,7 +16,6 @@
 	#include "Sysutil.h"
 	#include "Fade Screen.h"
 	#include "Cursor Control.h"
-	#include "Music Control.h"
 	#include "cursors.h"
 	#include "Intro.h"
 	#include "Text.h"
@@ -234,7 +233,7 @@ void BtnMPHOldTraitsCallback(GUI_BUTTON *btn,INT32 reason)
 
 BOOLEAN DoMPHMessageBox( UINT8 ubStyle, const STR16 zString, UINT32 uiExitScreen, UINT16 usFlags, MSGBOX_CALLBACK ReturnCallback )
 {
-	SGPRect CenteringRect= {0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
+	SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, SCREEN_HEIGHT };
 
 	// do message box and return
 	giMPHMessageBox = DoMessageBox(	ubStyle,	zString,	uiExitScreen, ( UINT16 ) ( usFlags| MSG_BOX_FLAG_USE_CENTERING_RECT ),	ReturnCallback,	&CenteringRect );
@@ -1792,21 +1791,17 @@ BOOLEAN		EnterMPHScreen()
 
 	SetCurrentCursorFromDatabase( CURSOR_NORMAL );
 
-	// load the Main trade screen backgroiund image
+		// load the Main trade screen backgroiund image
+	//ColorFillVideoSurfaceArea( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Get16BPPColor( FROMRGB( 0, 0, 0 ) ) );
 	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
 
-	if (iResolution == 0)
-	{
+	if (iResolution >= _640x480 && iResolution < _800x600)
 		FilenameForBPP("INTERFACE\\OptionsScreenBackGround.sti", VObjectDesc.ImageFile);
-	}
-	else if (iResolution == 1)
-	{
+	else if (iResolution < _1024x768)
 		FilenameForBPP("INTERFACE\\OptionsScreenBackGround_800x600.sti", VObjectDesc.ImageFile);
-	}
-	else if (iResolution == 2)
-	{
+	else
 		FilenameForBPP("INTERFACE\\OptionsScreenBackGround_1024x768.sti", VObjectDesc.ImageFile);
-	}
+
 
 	CHECKF(AddVideoObject(&VObjectDesc, &guiMPHMainBackGroundImage ));
 
@@ -2615,7 +2610,8 @@ BOOLEAN		RenderMPHScreen()
 
 	//Get the main background screen graphic and blt it
 	GetVideoObject(&hPixHandle, guiMPHMainBackGroundImage );
-	BltVideoObject(FRAME_BUFFER, hPixHandle, 0,0,0, VO_BLT_SRCTRANSPARENCY,NULL);
+
+		BltVideoObject(FRAME_BUFFER, hPixHandle, 0,(SCREEN_WIDTH - xResSize)/2,(SCREEN_HEIGHT - yResSize)/2, VO_BLT_SRCTRANSPARENCY,NULL);
 
 	//Shade the background
 	ShadowVideoSurfaceRect( FRAME_BUFFER, iScreenWidthOffset, iScreenHeightOffset, iScreenWidthOffset + 640, iScreenHeightOffset + 480 );
@@ -2743,7 +2739,7 @@ void			GetMPHScreenUserInput()
 
 //	GetCursorPos(&MousePos);
 
-	while( DequeueEvent( &Event ) )
+	while (DequeueSpecificEvent(&Event, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 		// check if this event is swallowed by text input, otherwise process key
 		if( !HandleTextInput( &Event ) && Event.usEvent == KEY_DOWN )
@@ -2834,11 +2830,16 @@ void DoneFadeOutForExitMPHScreen( void )
 		gGameOptions.fTurnTimeLimit = FALSE;
 	
 	// Bobby Rays - why would we want anything less than the best
-	gGameOptions.ubBobbyRay = BR_AWESOME;
+	gGameOptions.ubBobbyRayQuality = BR_AWESOME;
+	gGameOptions.ubBobbyRayQuantity = BR_AWESOME;
 			
 	gubMPHExitScreen = INTRO_SCREEN;
 
+#ifdef JA2UB
+	//SetIntroType( INTRO_BEGINNING );
+#else
 	SetIntroType( INTRO_BEGINNING );
+#endif
 
 	ExitMPHScreen(); // cleanup please, if we called a fadeout then we didnt do it above
 

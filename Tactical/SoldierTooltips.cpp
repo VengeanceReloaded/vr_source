@@ -25,6 +25,7 @@
 #include "SkillCheck.h"
 #include "soldier profile type.h"
 #include "Soldier macros.h"
+#include "Encyclopedia_new.h"	///< Encyclopedia item visibility
 #endif
 
 //forward declarations of common classes to eliminate includes
@@ -55,6 +56,9 @@ void DrawMouseTooltip(void);
 
 void SoldierTooltip( SOLDIERTYPE* pSoldier )
 {
+	if(!pSoldier)
+		return;
+
 	// WANNE: No tooltips on bloodcats, bugs, tanks, roboter
 	if ( CREATURE_OR_BLOODCAT( pSoldier ) || TANK ( pSoldier ) ||
 		 AM_A_ROBOT( pSoldier))
@@ -67,6 +71,13 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 	GetSoldierScreenRect( pSoldier,	&aRect );
 	INT16		a1,a2;
 	BOOLEAN		fDrawTooltip = FALSE;
+
+	// sevenfm: do not show tooltip if ALT is pressed for adding autofire bullets
+	// EDIT: commented this out because with default autofire bullets> 1 it will confuse players
+	//SOLDIERTYPE *pShooter;
+	//GetSoldier( &pShooter, gusSelectedSoldier );
+	//if(gfUICtHBar && pShooter && pShooter->bDoAutofire > 1)
+	//	return;
 
 	if ( gfKeyState[ALT] && pSoldier &&
 		IsPointInScreenRectWithRelative( gusMouseXPos, gusMouseYPos, &aRect, &a1, &a2 ) )
@@ -88,7 +99,7 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 		GetMouseMapPos( &usSoldierGridNo );
 
 		// get the distance to enemy's tile from the selected merc
-		if ( gusSelectedSoldier != NOBODY )
+		if ( gusSelectedSoldier != NOBODY && gusUIFullTargetID != NOBODY )
 		{
 			//CHRISL: Changed the second parameter to use the same information as the 'F' hotkey uses.
 			//iRangeToTarget = GetRangeInCellCoordsFromGridNoDiff( MercPtrs[ gusSelectedSoldier ]->sGridNo, sSoldierGridNo ) / 10;
@@ -133,10 +144,12 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 		if (gGameExternalOptions.fEnableDynamicSoldierTooltips && fMercIsUsingScope == 0 && !gGameExternalOptions.gfAllowUDTRange)
 		{
 				// add 10% to max tooltip viewing distance per level of the merc
-				uiMaxTooltipDistance *= 1 + (EffectiveExpLevel(MercPtrs[ gusSelectedSoldier ])/ 10); // SANDRO - changed to effective level calc
+				// sevenfm: fixed incorrect integer calculation
+				uiMaxTooltipDistance = (INT32)( uiMaxTooltipDistance * ( 1 + ( (FLOAT)( EffectiveExpLevel( MercPtrs[ gusSelectedSoldier ] ) ) / 10.0 ) ) ); // SANDRO - changed to effective level calc
 
-				if ( gGameExternalOptions.gfAllowLimitedVision )
-					uiMaxTooltipDistance *= 1 - (gGameExternalOptions.ubVisDistDecreasePerRainIntensity / 100);
+				// sevenfm: this calculation doesn't make sense: disabled
+				//if ( gGameExternalOptions.gfAllowLimitedVision )
+				//	uiMaxTooltipDistance *= 1 - (gGameExternalOptions.ubVisDistDecreasePerRainIntensity / 100);
 
 				if ( !(Item[MercPtrs[gusSelectedSoldier]->inv[HEAD1POS].usItem].nightvisionrangebonus > 0) &&
 					!(Item[MercPtrs[gusSelectedSoldier]->inv[HEAD2POS].usItem].nightvisionrangebonus > 0) &&
@@ -226,7 +239,25 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_CURRENT_APS], pStrInfo, pSoldier->bActionPoints );
 			if ( gGameExternalOptions.fEnableSoldierTooltipHealth )
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_CURRENT_HEALTH], pStrInfo, pSoldier->stats.bLife );
-			
+			if ( gGameExternalOptions.fEnableSoldierTooltipEnergy )
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_CURRENT_ENERGY], pStrInfo, pSoldier->bBreath );
+			if ( gGameExternalOptions.fEnableSoldierTooltipMorale )
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_CURRENT_MORALE], pStrInfo, pSoldier->aiData.bMorale );
+			//Moa: show shock and suppression values in debug tooltip
+			if ( gGameExternalOptions.fEnableSoldierTooltipShock )
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_SHOCK], pStrInfo, pSoldier->aiData.bShock );
+			// sevenfm: ubSuppressionPoints always show 0 because this value is cleared after each attack
+			// changed this to ubLastSuppression - it stores suppression points from last attack
+			if ( gGameExternalOptions.fEnableSoldierTooltipSuppressionPoints )
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_SUPPRESION], pStrInfo, pSoldier->ubLastSuppression );
+			// sevenfm: show additional suppression info
+			if ( gGameExternalOptions.fEnableSoldierTooltipSuppressionInfo )
+			{				 
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_SUPPRESSION_AP], pStrInfo, pSoldier->ubAPsLostToSuppression );
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_SUPPRESSION_TOLERANCE], pStrInfo, CalcSuppressionTolerance( pSoldier ) );
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_EFFECTIVE_SHOCK], pStrInfo, CalcEffectiveShockLevel( pSoldier ) );
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_AI_MORALE], pStrInfo, pSoldier->aiData.bAIMorale );
+			}
 			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			// Added by SANDRO - show enemy skills
 			if ( gGameExternalOptions.fEnableSoldierTooltipTraits )
@@ -236,33 +267,33 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 					if (( pSoldier->stats.ubSkillTraits[0] == pSoldier->stats.ubSkillTraits[1] ) && pSoldier->stats.ubSkillTraits[0] != 0 )
 					{
 						CHAR16 pStrAux[50]; 
-						swprintf( pStrAux, L"(%s)", gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[0]]);
+						swprintf( pStrAux, L"(%s)", gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[0] ]);
 						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_1], pStrInfo, pStrAux );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[1] + NEWTRAIT_MERCSKILL_EXPERTOFFSET ] );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[2]] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[1] + NEWTRAIT_MERCSKILL_EXPERTOFFSET ] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[2] ] );
 						//swprintf( pStrInfo, L"%s\n", pStrInfo );
 					}
 					else if (( pSoldier->stats.ubSkillTraits[1] == pSoldier->stats.ubSkillTraits[2] ) && pSoldier->stats.ubSkillTraits[1] != 0 )
 					{
 						CHAR16 pStrAux[50]; 
-						swprintf( pStrAux, L"(%s)", gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[1]]);
+						swprintf( pStrAux, L"(%s)", gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[1] ]);
 						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_1], pStrInfo, pStrAux );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[2] + NEWTRAIT_MERCSKILL_EXPERTOFFSET] );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[0]] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[2] + NEWTRAIT_MERCSKILL_EXPERTOFFSET ] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[0] ] );
 					}
 					else if (( pSoldier->stats.ubSkillTraits[0] == pSoldier->stats.ubSkillTraits[2] ) && pSoldier->stats.ubSkillTraits[0] != 0 )
 					{
 						CHAR16 pStrAux[50]; 
-						swprintf( pStrAux, L"(%s)", gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[0]]);
+						swprintf( pStrAux, L"(%s)", gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[0] ]);
 						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_1], pStrInfo, pStrAux );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[2] + NEWTRAIT_MERCSKILL_EXPERTOFFSET] );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[1]] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[2] + NEWTRAIT_MERCSKILL_EXPERTOFFSET ] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[1] ] );
 					}
 					else
 					{
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_1], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[0]] );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[1]] );
-						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[pSoldier->stats.ubSkillTraits[2]] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_1], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[0] ] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_2], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[1] ] );
+						swprintf( pStrInfo, gzTooltipStrings[STR_TT_SKILL_TRAIT_3], pStrInfo, gzMercSkillTextNew[ pSoldier->stats.ubSkillTraits[2] ] );
 					}
 				}
 				else
@@ -278,11 +309,26 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 		if ( ubTooltipDetailLevel >= DL_Full )
 		{
 			if ( gGameExternalOptions.fEnableSoldierTooltipHelmet )
+			{
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_HELMET], pStrInfo, pSoldier->inv[HELMETPOS].usItem ? ItemNames[ pSoldier->inv[HELMETPOS].usItem ] : gzTooltipStrings[STR_TT_NO_HELMET] );
+				//Moa: encyclopedia item visibility
+				if ( pSoldier->inv[HELMETPOS].usItem )
+					EncyclopediaSetItemAsVisible( pSoldier->inv[HELMETPOS].usItem, ENC_ITEM_DISCOVERED_NOT_REACHABLE );
+			}
 			if ( gGameExternalOptions.fEnableSoldierTooltipVest )
+			{
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_VEST], pStrInfo, pSoldier->inv[VESTPOS].usItem ? ItemNames[ pSoldier->inv[VESTPOS].usItem ] : gzTooltipStrings[STR_TT_NO_VEST] );
+				//Moa: encyclopedia item visibility
+				if ( pSoldier->inv[VESTPOS].usItem )
+					EncyclopediaSetItemAsVisible( pSoldier->inv[VESTPOS].usItem, ENC_ITEM_DISCOVERED_NOT_REACHABLE );
+			}
 			if ( gGameExternalOptions.fEnableSoldierTooltipLeggings )
+			{
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_LEGGINGS], pStrInfo, pSoldier->inv[LEGPOS].usItem ? ItemNames[ pSoldier->inv[LEGPOS].usItem ] : gzTooltipStrings[STR_TT_NO_LEGGING] );
+				//Moa: encyclopedia item visibility
+				if ( pSoldier->inv[LEGPOS].usItem )
+					EncyclopediaSetItemAsVisible( pSoldier->inv[LEGPOS].usItem, ENC_ITEM_DISCOVERED_NOT_REACHABLE );
+			}
 		}
 		else
 		{
@@ -296,12 +342,12 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 					swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_ARMOR] );
 					if ( ubTooltipDetailLevel == DL_Basic )
 					{
-						if ( gGameExternalOptions.fEnableSoldierTooltipHelmet )
-							swprintf( pStrInfo, L"%s%s", pStrInfo, pSoldier->inv[HELMETPOS].usItem ? gzTooltipStrings[STR_TT_HELMET] : L"" );
-						if ( gGameExternalOptions.fEnableSoldierTooltipVest )
-							swprintf( pStrInfo, L"%s%s", pStrInfo, pSoldier->inv[VESTPOS].usItem ? gzTooltipStrings[STR_TT_VEST] : L"" );
-						if ( gGameExternalOptions.fEnableSoldierTooltipLeggings )
-							swprintf( pStrInfo, L"%s%s", pStrInfo, pSoldier->inv[LEGPOS].usItem ? gzTooltipStrings[STR_TT_LEGGINGS] : L"" );
+						if ( gGameExternalOptions.fEnableSoldierTooltipHelmet && pSoldier->inv[HELMETPOS].usItem  )
+							swprintf( pStrInfo, L"%s%s ", pStrInfo, gzTooltipStrings[STR_TT_HELMET] );
+						if ( gGameExternalOptions.fEnableSoldierTooltipVest && pSoldier->inv[VESTPOS].usItem )
+							swprintf( pStrInfo, L"%s%s ", pStrInfo, gzTooltipStrings[STR_TT_VEST] );
+						if ( gGameExternalOptions.fEnableSoldierTooltipLeggings && pSoldier->inv[LEGPOS].usItem )
+							swprintf( pStrInfo, L"%s%s", pStrInfo, gzTooltipStrings[STR_TT_LEGGINGS] );
 						wcscat( pStrInfo, L"\n" );
 					}
 					else // ubTooltipDetailLevel == DL_Limited
@@ -334,6 +380,9 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 				{
 					swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_NVG], pStrInfo,
 						iNVG ? ItemNames[ pSoldier->inv[ iNVG ].usItem ] : gzTooltipStrings[STR_TT_NO_NVG] );
+					//Moa: encyclopedia item visibility
+					if ( iNVG )
+						EncyclopediaSetItemAsVisible( pSoldier->inv[ iNVG ].usItem, ENC_ITEM_DISCOVERED_NOT_REACHABLE );
 				}
 				else
 				{
@@ -346,9 +395,19 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 		else // gGameExternalOptions.ubSoldierTooltipDetailLevel == DL_Debug
 		{
 			if ( gGameExternalOptions.fEnableSoldierTooltipHeadItem1 )
+			{
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_HEAD_POS_1], pStrInfo, ItemNames[ pSoldier->inv[HEAD1POS].usItem ] );
+				//Moa: encyclopedia item visibility
+				if ( pSoldier->inv[HEAD1POS].usItem )
+					EncyclopediaSetItemAsVisible( pSoldier->inv[ HEAD1POS ].usItem, ENC_ITEM_DISCOVERED_NOT_REACHABLE );
+			}
 			if ( gGameExternalOptions.fEnableSoldierTooltipHeadItem2 )
+			{
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_HEAD_POS_2], pStrInfo, ItemNames[ pSoldier->inv[HEAD2POS].usItem ] );
+				//Moa: encyclopedia item visibility
+				if ( pSoldier->inv[HEAD2POS].usItem )
+					EncyclopediaSetItemAsVisible( pSoldier->inv[ HEAD2POS ].usItem, ENC_ITEM_DISCOVERED_NOT_REACHABLE );
+			}
 		}
 		// head slots info code block end
 
@@ -470,6 +529,9 @@ void DisplayWeaponInfo( SOLDIERTYPE* pSoldier, CHAR16* pStrInfo, UINT8 ubSlot, U
 		// display exact weapon model
 		swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_WEAPON], pStrInfo,
 			WeaponInHand( pSoldier ) ? ItemNames[ pSoldier->inv[ubSlot].usItem ] : gzTooltipStrings[STR_TT_NO_WEAPON] );
+		//Moa: encyclopedia item visibility
+		if ( pSoldier->inv[ubSlot].usItem )
+			EncyclopediaSetItemAsVisible( pSoldier->inv[ ubSlot ].usItem, ENC_ITEM_DISCOVERED_NOT_REACHABLE );
 	}
 	else
 	{
@@ -514,19 +576,17 @@ void DisplayWeaponInfo( SOLDIERTYPE* pSoldier, CHAR16* pStrInfo, UINT8 ubSlot, U
 		// display weapon attachments
 		for (attachmentList::iterator iter = pSoldier->inv[ubSlot][0]->attachments.begin(); iter != pSoldier->inv[ubSlot][0]->attachments.end(); ++iter) {
 			if(iter->exists()){
-				if ( ubTooltipDetailLevel == DL_Basic )
+				fDisplayAttachment = FALSE; //Madd: changed this, it was incorrectly showing attachments when it shouldn't be
+
+				if ( ubTooltipDetailLevel == DL_Basic || ubTooltipDetailLevel == DL_Full ) // Madd: also hidden attachments should be hidden at the full level as well... unless the mercs have x-ray vision to see that rod&spring inside the gun!! :p
 				{
 					// display only externally-visible weapon attachments
-					if ( !Item[iter->usItem].hiddenattachment )
-					{
-							fDisplayAttachment = TRUE;
-					}
+					if ( Item[iter->usItem].hiddenattachment )
+						fDisplayAttachment = FALSE;
+					else
+						fDisplayAttachment = TRUE;
 				}
-				else
-				{
-					// display all weapon attachments
-					fDisplayAttachment = TRUE;
-				}
+
 				if ( fDisplayAttachment )
 				{
 					iNumAttachments++;
@@ -535,7 +595,6 @@ void DisplayWeaponInfo( SOLDIERTYPE* pSoldier, CHAR16* pStrInfo, UINT8 ubSlot, U
 					else
 						wcscat( pStrInfo, L", " );
 					wcscat( pStrInfo, ItemNames[ iter->usItem ] );
-					fDisplayAttachment = FALSE; // clear flag for next loop iteration
 				}
 			}
 		} // for

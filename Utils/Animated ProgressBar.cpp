@@ -12,7 +12,11 @@
 	#include "music control.h"
 	#include "Timer Control.h"
 	#include "sysutil.h"
-#include "math.h"
+	#include "random.h"
+	#include "math.h"
+	#include "WordWrap.h"
+	#include "Message.h"
+	#include "Text.h"
 #endif
 
 double rStart, rEnd;
@@ -28,39 +32,57 @@ UINT16 gusLeftmostShaded = 0;
 
 extern BOOLEAN bShowSmallImage;
 
-void CreateLoadingScreenProgressBar()
+// Flugente: stuff needed for loadscreen hints
+extern UINT16 num_found_loadscreenhints;
+static UINT16 usCurrentLoadScreenHint = 0;
+static BOOLEAN bShowLoadScreenHintInLog = FALSE;	// FALSE: No Display in Strategic/Tactical Log, TRUE: Display in Strategic/Tactical Log
+
+void CreateLoadingScreenProgressBar(BOOLEAN resetLoadScreenHint)
 {
+	if (resetLoadScreenHint)
+		ResetLoadScreenHint();
+
 	gusLeftmostShaded = 162;
 
-	// Special case->show small image centered
-	if (bShowSmallImage == TRUE)
-	{
-		if (iResolution > 0)
-		{
-			CreateProgressBar(0, iScreenWidthOffset + 162, iScreenHeightOffset + 427, iScreenWidthOffset + 480, iScreenHeightOffset + 443);
-		}
-	}
-	else
-	{
-		if (iResolution == 0)
-		{
-			CreateProgressBar(0, 162, 427, 480, 443);
-		}
-		else if (iResolution == 1)
-		{
-			CreateProgressBar(0, 202, 533, 600, 554);
-		}
-		else if (iResolution == 2)
-		{
-			CreateProgressBar(0, 259, 683, 767, 708);
-		}
-	}
+	//// Special case->show small image centered
+	//if (bShowSmallImage == TRUE)
+	//{
+	//	if (iResolution >= _800x600)
+	//	{
+	//		CreateProgressBar(0, iScreenWidthOffset + 162, iScreenHeightOffset + 427, iScreenWidthOffset + 480, iScreenHeightOffset + 443);
+	//	}
+	//}
+	//else
+	//{
+	//	if (iResolution >= _640x480 && iResolution < _800x600)
+	//	{
+	//		CreateProgressBar(0, 162, 427, 480, 443);
+	//	}
+	//	else if (iResolution < _1024x768)
+	//	{
+	//		CreateProgressBar(0, (202 + (SCREEN_WIDTH - 800)/2), 533 + ((SCREEN_HEIGHT - 600) / 2), 600 + ((SCREEN_WIDTH - 800) / 2), 554 + ((SCREEN_HEIGHT - 600) / 2));
+	//	}
+	//	else
+	//	{
+	//		CreateProgressBar(0, 259 + ((SCREEN_WIDTH - 1024) / 2), 683 + ((SCREEN_HEIGHT - 768) / 2), 767 + ((SCREEN_WIDTH - 1024) / 2), 708 + ((SCREEN_HEIGHT - 768) / 2));
+	//	}
+	//}
+	
+
+	CreateProgressBar(0, SCREEN_WIDTH*162/640, SCREEN_HEIGHT*427/480, SCREEN_WIDTH*480/640, SCREEN_HEIGHT*443/480);
+
 
 	SetProgressBarUseBorder(0, FALSE );
 }
 
 void RemoveLoadingScreenProgressBar()
 {
+	// WANNE: Sleep for a while, so we have time to read the load screen hint
+	if (gGameExternalOptions.gfUseLoadScreenHints && gGameExternalOptions.ubAdditionalDelayUntilLoadScreenDisposal > 0 && usCurrentLoadScreenHint )
+	{
+		Sleep(gGameExternalOptions.ubAdditionalDelayUntilLoadScreenDisposal * 1000);
+	}
+
 	RemoveProgressBar( 0 );
 	SetFontShadow(DEFAULT_SHADOW);
 }
@@ -214,6 +236,90 @@ void RemoveProgressBar( UINT8 ubID )
 	}
 }
 
+void ResetLoadScreenHint()
+{
+	usCurrentLoadScreenHint = 0;
+	bShowLoadScreenHintInLog = FALSE;
+}
+
+void ShowLoadScreenHintInLoadScreen(UINT16 bottomPosition)
+{
+	DisplayWrappedString( 0, bottomPosition, SCREEN_WIDTH, 2, FONT14ARIAL, FONT_GRAY2, zLoadScreenHint[usCurrentLoadScreenHint].szName, FONT_MCOLOR_BLACK, TRUE, CENTER_JUSTIFIED );
+
+	// Next show the hint in the log (strategic / tactical)
+	bShowLoadScreenHintInLog = TRUE;
+}
+
+void ShowLoadScreenHintInStrategicLog()
+{
+	// We should display the hint in strategic log
+	if (bShowLoadScreenHintInLog == TRUE && gGameExternalOptions.gfUseLoadScreenHints && usCurrentLoadScreenHint )
+	{
+		ScreenMsg( FONT_GRAY2, MSG_INTERFACE, New113Message[MSG113_HINT_TEXT], zLoadScreenHint[usCurrentLoadScreenHint].szName);
+		bShowLoadScreenHintInLog = FALSE;	
+	}		
+}
+
+void ShowLoadScreenHintInTacticalLog()
+{	
+	if (bShowLoadScreenHintInLog == TRUE && gGameExternalOptions.gfUseLoadScreenHints && usCurrentLoadScreenHint)
+	{
+		ScreenMsg( FONT_GRAY2, MSG_INTERFACE, New113Message[MSG113_HINT_TEXT], zLoadScreenHint[usCurrentLoadScreenHint].szName);
+		bShowLoadScreenHintInLog = FALSE;
+	}	
+}
+
+// Flugente: this function selects the next hint to display, and makes sure it is not played again during this run of the exe
+void SetNewLoadScreenHint()
+{
+	if ( !gGameExternalOptions.gfUseLoadScreenHints )
+		return;
+
+	UINT16 lastfnd = 0;
+	UINT8 possiblehints[LOADSCREENHINT_MAX];
+
+	for(UINT32 cnt = 1; cnt <= num_found_loadscreenhints; ++cnt)
+	{
+		if ( !zLoadScreenHint[cnt].fAlreadyShown )
+		{
+			// we now check the flags of a hint to determine wether it can show up. It can if at least one flag is valid
+			BOOLEAN fShow = FALSE;			
+			// still unsure how to check for these...
+			if ( zLoadScreenHint[cnt].usFlags & (LOADSCREEN_LORE|LOADSCREEN_WEAPON|LOADSCREEN_ITEM|LOADSCREEN_KEYBIND)  )
+				fShow = TRUE;
+			else if ( zLoadScreenHint[cnt].usFlags & LOADSCREEN_FOOD && gGameOptions.fFoodSystem )
+				fShow = TRUE;
+#ifdef ENABLE_ZOMBIES
+			else if ( zLoadScreenHint[cnt].usFlags & LOADSCREEN_ZOMBIE && gGameSettings.fOptions[TOPTION_ZOMBIES] )
+				fShow = TRUE;
+#endif
+			else if ( zLoadScreenHint[cnt].usFlags & LOADSCREEN_OVERHEAT_DIRT && (gGameExternalOptions.fWeaponOverheating || gGameExternalOptions.fDirtSystem) )
+				fShow = TRUE;
+			else if ( zLoadScreenHint[cnt].usFlags & LOADSCREEN_NCTH && UsingNewCTHSystem() )
+				fShow = TRUE;
+			else if ( zLoadScreenHint[cnt].usFlags & LOADSCREEN_COVERTOPS && gGameOptions.fNewTraitSystem )
+				fShow = TRUE;
+						
+			if ( fShow )
+				possiblehints[lastfnd++] = cnt;
+		}
+	}
+
+	UINT16 sel = possiblehints[ Random(lastfnd) ];
+	
+	// WANNE: All the loadscreen hints we have, have already been displayed. No matter, re-display a random loadscreen
+	if (sel <= 0 || sel > num_found_loadscreenhints)
+	{
+		sel = Random(num_found_loadscreenhints);
+		if (sel == 0)
+			sel++;
+	}
+
+	zLoadScreenHint[sel].fAlreadyShown = TRUE;
+
+	usCurrentLoadScreenHint = sel;
+}
+
 //An important setup function.	The best explanation is through example.	The example being the loading
 //of a file -- there are many stages of the map loading.	In JA2, the first step is to load the tileset.
 //Because it is a large chunk of the total loading of the map, we may gauge that it takes up 30% of the
@@ -279,6 +385,12 @@ void SetRelativeStartAndEndPercentage( UINT8 ubID, UINT16 uiRelStartPerc, UINT16
 			SetFontBackground( 0 );
 			mprintf( pCurr->usBarLeft, pCurr->usBarBottom + 3, str );
 		}
+	}
+
+	// Flugente: loadscreen hints
+	if (gGameExternalOptions.gfUseLoadScreenHints && usCurrentLoadScreenHint )
+	{		
+		ShowLoadScreenHintInLoadScreen(pCurr->usBarBottom + 3 - 100);		
 	}
 }
 

@@ -19,13 +19,11 @@
 	#include "items.h"
 	#include "interface.h"
 	#include "Assignments.h"
-	#include "QuestDebug.h"
 	#include "soldier macros.h"
 	#include "dialogue control.h"
 	#include "Strategic Town Loyalty.h"
 	#include "message.h"
 	#include "Timer Control.h"
-	#include "WorldMan.h"
 	#include "Soldier Add.h"
 	#include "Soldier Tile.h"
 	#include "Weapons.h"
@@ -52,6 +50,18 @@
 	#include "GameVersion.h"
 #endif
 	#include "Soldier Profile.h"
+	
+	#include "BriefingRoom_Data.h"
+
+	#include "Map Screen Helicopter.h"
+	
+#ifdef JA2UB
+#include "Ja25_Tactical.h"
+#include "Ja25_Tactical.h"
+#include "ub_config.h"
+#endif
+
+	
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
@@ -147,19 +157,115 @@ NPCQuoteInfo * LoadQuoteFile( UINT8 ubNPC )
 
 	if ( ubNPC == PETER || ubNPC == ALBERTO || ubNPC == CARLO )
 	{
-		// use a copy of Herve's data file instead!
-		sprintf( zFileName, "NPCData\\%03d.npc", HERVE );
+	
+		if ( ubNPC == PETER )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", PETER );
+			if ( !FileExists( zFileName ) )
+			{
+				// use a copy of Herve's data file instead!
+				sprintf( zFileName, "NPCData\\%03d.npc", HERVE );
+			}
+		}		
+		else if ( ubNPC == ALBERTO )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", ALBERTO );
+			if ( !FileExists( zFileName ) )
+			{
+				// use a copy of Herve's data file instead!
+				sprintf( zFileName, "NPCData\\%03d.npc", HERVE );
+			}
+		}	
+		else if ( ubNPC == CARLO )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", CARLO );
+			if ( !FileExists( zFileName ) )
+			{
+				// use a copy of Herve's data file instead!
+				sprintf( zFileName, "NPCData\\%03d.npc", HERVE );
+			}
+		}	
+
 	}
+	
+		#ifdef JA2UB
+		if ( ubNPC == MANUEL_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", MANUEL_UB );
+		}
+		
+		if ( ubNPC == BIGGENS_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", BIGGENS_UB );
+		}
+		
+		if ( ubNPC == JOHN_K_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", JOHN_K_UB );
+		}
+		
+		if ( ubNPC == TEX_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", TEX_UB );
+		}
+		
+		if ( ubNPC == GASTON_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", GASTON_UB );
+		}
+		
+		if ( ubNPC == STOGIE_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", STOGIE_UB );
+		}
+		
+		if ( ubNPC == JERRY_MILO_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", JERRY_MILO_UB );
+		}
+		
+		if ( ubNPC == PGMALE4_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", PGMALE4_UB );
+		}
+		
+		if ( ubNPC == BETTY_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", BETTY_UB );
+		}
+		
+		if ( ubNPC == RAUL_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", RAUL_UB );
+		}
+		
+		if ( ubNPC == MORRIS_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", MORRIS_UB );
+		}
+		
+		if ( ubNPC == RUDY_UB )
+		{
+			sprintf( zFileName, "NPCData\\%03d.npc", RUDY_UB );
+		}
+		
+		#endif
+	
+	
 	//else if ( ubNPC < FIRST_RPC || ubNPC >= GASTON || (ubNPC < FIRST_NPC && gMercProfiles[ ubNPC ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED ) )
 	//new profiles by Jazz
 	else if ( gProfilesIMP[ubNPC].ProfilId == ubNPC || gProfilesAIM[ubNPC].ProfilId == ubNPC || gProfilesMERC[ubNPC].ProfilId == ubNPC || ( gProfilesRPC[ubNPC].ProfilId == ubNPC && gMercProfiles[ ubNPC ].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED ) )	
 	{
-		sprintf( zFileName, "NPCData\\000.npc", ubNPC );
+		sprintf( zFileName, "NPCData\\000.npc", ubNPC ); // FIXME: extra/unused argument
 	}
 	else
 	{
 		sprintf( zFileName, "NPCData\\%03d.npc", ubNPC );
 	}
+#ifdef JA2UB
+//Ja25:  No meanwhiles
+#else
+
 
 	// ATE: Put some stuff i here to use a different NPC file if we are in a meanwhile.....
 	if ( AreInMeanwhile( ) )
@@ -177,7 +283,7 @@ NPCQuoteInfo * LoadQuoteFile( UINT8 ubNPC )
 		}
 
 	}
-
+#endif
 	CHECKN( FileExists( zFileName ) );
 
 	hFile = FileOpen( zFileName, FILE_ACCESS_READ, FALSE );
@@ -460,12 +566,14 @@ BOOLEAN RefreshNPCScriptRecord( UINT8 ubNPC, UINT8 ubRecord )
 			if ( gProfilesIMP[ubLoop].ProfilId == ubLoop || gProfilesAIM[ubLoop].ProfilId == ubLoop || gProfilesMERC[ubLoop].ProfilId == ubLoop )	
 			RefreshNPCScriptRecord( ubLoop, ubRecord );
 		}
-		
+#ifdef JA2UB
+//no UB
+#else		
 		//for ( ubLoop = GASTON; ubLoop < NUM_PROFILES; ubLoop++ ) // need more finesse here
 		//{
 		//	RefreshNPCScriptRecord( ubLoop, ubRecord );
 		//}
-		
+#endif		
 		//new profiles by Jazz	
 		//for ( ubLoop = FIRST_RPC; ubLoop < FIRST_NPC; ubLoop++ )
 		for ( ubLoop = 0; ubLoop < NUM_PROFILES; ubLoop++ )
@@ -499,7 +607,7 @@ BOOLEAN RefreshNPCScriptRecord( UINT8 ubNPC, UINT8 ubRecord )
 	return( TRUE );
 }
 
-// VENGEANCE
+// anv: VR
 BOOLEAN RefreshAllNPCScripts()
 {
 	UINT8 ubLoop, ubRecord;
@@ -513,7 +621,6 @@ BOOLEAN RefreshAllNPCScripts()
 	}
 	return( TRUE );
 }
-// /VENGEANCE
 
 //
 // CIV QUOTE LOW LEVEL ROUTINES
@@ -762,7 +869,7 @@ INT32 CalcThreateningEffectiveness( UINT8 ubMerc )
 		return( 0 );
 	}
 
-	iStrength = EffectiveStrength( pSoldier );
+	iStrength = EffectiveStrength( pSoldier, TRUE );
 
 	if ( Item[ pSoldier->inv[HANDPOS].usItem ].usItemClass & IC_WEAPON )
 	{
@@ -825,13 +932,38 @@ UINT8 CalcDesireToTalk( UINT8 ubNPC, UINT8 ubMerc, INT8 bApproach )
 	else if ( bApproach == APPROACH_THREATEN )
 	{
 		iEffectiveLeadership = CalcThreateningEffectiveness( ubMerc ) * pMercProfile->usApproachFactor[bApproach - 1] / 100;
+
+		// Flugente: backgrounds
+		SOLDIERTYPE* pSoldier = FindSoldierByProfileID( ubMerc, TRUE );
+
+		if ( pSoldier )
+		{
+			if ( bApproach == APPROACH_THREATEN )
+				iEffectiveLeadership = (iEffectiveLeadership * (100 + pSoldier->GetBackgroundValue(BG_PERC_APPROACH_THREATEN))) / 100;
+		}
+
 		iApproachVal = pNPCProfile->ubApproachVal[bApproach - 1] * iEffectiveLeadership / 50;
 	}
 	else
 	{
 		iEffectiveLeadership = ((INT32) pMercProfile->bLeadership) * pMercProfile->usApproachFactor[bApproach - 1] / 100;
+		
+		// Flugente: backgrounds
+		SOLDIERTYPE* pSoldier = FindSoldierByProfileID( ubMerc, TRUE );
+
+		if ( pSoldier )
+		{
+			if ( bApproach == APPROACH_FRIENDLY )
+				iEffectiveLeadership = (iEffectiveLeadership * (100 + pSoldier->GetBackgroundValue(BG_PERC_APPROACH_FRIENDLY))) / 100;
+			else if ( bApproach == APPROACH_DIRECT )
+				iEffectiveLeadership = (iEffectiveLeadership * (100 + pSoldier->GetBackgroundValue(BG_PERC_APPROACH_DIRECT))) / 100;
+			else if ( bApproach == APPROACH_RECRUIT )
+				iEffectiveLeadership = (iEffectiveLeadership * (100 + pSoldier->GetBackgroundValue(BG_PERC_APPROACH_RECRUIT))) / 100;
+		}
+				
 		iApproachVal = pNPCProfile->ubApproachVal[bApproach - 1] * iEffectiveLeadership / 50;
 	}
+
 	// NB if town attachment is less than 100% then we should make personal value proportionately more important!
 	if ( pNPCProfile->bTownAttachment < 100 )
 	{
@@ -1079,7 +1211,16 @@ UINT8 NPCConsiderReceivingItemFromMerc( UINT8 ubNPC, UINT8 ubMerc, OBJECTTYPE * 
 			{
 				SetFactTrue( FACT_LARGE_AMOUNT_OF_MONEY );
 			}
-			usItemToConsider = MONEY;
+
+			// anv: Waldo!
+			if ((*pObj)[0]->data.money.uiMoneyAmount >= CalculateHelicopterRepairCost( FALSE ) )
+			{
+				SetFactTrue( FACT_GIVEN_ENOUGH_TO_REPAIR_HELI );
+			}
+			if ((*pObj)[0]->data.money.uiMoneyAmount >= CalculateHelicopterRepairCost( TRUE ) )
+			{
+				SetFactTrue( FACT_GIVEN_ENOUGH_TO_SERIOUSLY_REPAIR_HELI );
+			}
 			break;
 		case WINE:
 		case BEER:
@@ -1159,12 +1300,14 @@ UINT8 NPCConsiderReceivingItemFromMerc( UINT8 ubNPC, UINT8 ubMerc, OBJECTTYPE * 
 								{
 									// find Kingpin, if he's in his house, invoke the script to move him to the bar
 									SOLDIERTYPE *		pKingpin;
-									UINT8						ubKingpinRoom;
+									//DBrot: More Rooms
+									//UINT8						ubKingpinRoom;
+									UINT16 usKingpinRoom;
 
 									pKingpin = FindSoldierByProfileID( KINGPIN, FALSE );
-									if ( pKingpin && InARoom( pKingpin->sGridNo, &ubKingpinRoom ) )
+									if ( pKingpin && InARoom( pKingpin->sGridNo, &usKingpinRoom ) )
 									{
-										if ( IN_KINGPIN_HOUSE( ubKingpinRoom ) )
+										if ( IN_KINGPIN_HOUSE( usKingpinRoom ) )
 										{
 											// first boxer, bring kingpin over
 											(*ppResultQuoteInfo) = &pNPCQuoteInfoArray[17];
@@ -1868,6 +2011,7 @@ void Converse( UINT8 ubNPC, UINT8 ubMerc, INT8 bApproach, UINT32 uiApproachData 
 	if (zHiddenNames[ubNPC].Hidden == TRUE) 
 	{
 		zHiddenNames[ubNPC].Hidden = FALSE;
+		ShowNPCEncyclopediaEntry(ubNPC, TRUE);
 	}
 
 
@@ -2334,41 +2478,46 @@ void Converse( UINT8 ubNPC, UINT8 ubMerc, INT8 bApproach, UINT32 uiApproachData 
 				{
 					pSoldier = FindSoldierByProfileID( ubNPC, FALSE );
 
-					// stupid hack CC
-					if (pSoldier && ubNPC == KYLE)
-					{
-						// make sure he has keys
-						pSoldier->flags.bHasKeys = TRUE;
-					}
-					if (pSoldier && pSoldier->sGridNo == pQuotePtr->usGoToGridNo )
-					{
-						// search for quotes to trigger immediately!
-						pSoldier->ubQuoteRecord = ubRecordNum + 1; // add 1 so that the value is guaranteed nonzero
-						NPCReachedDestination( pSoldier, TRUE );
-					}
-					else
-					{
-						// turn off cowering
-						if ( pNPC->flags.uiStatusFlags & SOLDIER_COWERING)
-						{
-							//pNPC->flags.uiStatusFlags &= ~SOLDIER_COWERING;
-							pNPC->EVENT_InitNewSoldierAnim( STANDING, 0 , FALSE );
-						}
+					
+                    if (pSoldier)
+                    {
+                        // stupid hack CC
+					    if (ubNPC == KYLE)
+					    {
+						    // make sure he has keys
+						    pSoldier->flags.bHasKeys = TRUE;
+					    }
 
-						pSoldier->ubQuoteRecord = ubRecordNum + 1; // add 1 so that the value is guaranteed nonzero
+					    if (pSoldier->sGridNo == pQuotePtr->usGoToGridNo )
+					    {
+						    // search for quotes to trigger immediately!
+						    pSoldier->ubQuoteRecord = ubRecordNum + 1; // add 1 so that the value is guaranteed nonzero
+						    NPCReachedDestination( pSoldier, TRUE );
+					    }
+					    else
+					    {
+						    // turn off cowering
+						    if ( pNPC->flags.uiStatusFlags & SOLDIER_COWERING) // FIXME: Dereferencing null pointer
+						    {
+							    //pNPC->flags.uiStatusFlags &= ~SOLDIER_COWERING;
+							    pNPC->EVENT_InitNewSoldierAnim( STANDING, 0 , FALSE );
+						    }
 
-						if (pQuotePtr->sActionData == NPC_ACTION_TELEPORT_NPC)
-						{
-							BumpAnyExistingMerc( pQuotePtr->usGoToGridNo );
-							TeleportSoldier( pSoldier, pQuotePtr->usGoToGridNo, FALSE );
-							// search for quotes to trigger immediately!
-							NPCReachedDestination( pSoldier, FALSE );
-						}
-						else
-						{
-							NPCGotoGridNo( ubNPC, pQuotePtr->usGoToGridNo, ubRecordNum );
-						}
-					}
+						    pSoldier->ubQuoteRecord = ubRecordNum + 1; // add 1 so that the value is guaranteed nonzero
+
+						    if (pQuotePtr->sActionData == NPC_ACTION_TELEPORT_NPC)
+						    {
+							    BumpAnyExistingMerc( pQuotePtr->usGoToGridNo );
+							    TeleportSoldier( pSoldier, pQuotePtr->usGoToGridNo, FALSE );
+							    // search for quotes to trigger immediately!
+							    NPCReachedDestination( pSoldier, FALSE );
+						    }
+						    else
+						    {
+							    NPCGotoGridNo( ubNPC, pQuotePtr->usGoToGridNo, ubRecordNum );
+						    }
+					    }
+                    }
 				}
 
 				// Trigger other NPC?
@@ -3286,7 +3435,11 @@ BOOLEAN LoadNPCInfoFromSavedGameFile( HWFILE hFile, UINT32 uiSaveGameVersion )
 	if ( uiSaveGameVersion < 92 )
 	{
 		RefreshNPCScriptRecord( MATT, 14 );
+#ifdef JA2UB
+//no Ub
+#else
 		RefreshNPCScriptRecord( AUNTIE, 8 );
+#endif
 	}
 	if ( uiSaveGameVersion < 93 )
 	{
@@ -3334,6 +3487,20 @@ BOOLEAN LoadNPCInfoFromSavedGameFile( HWFILE hFile, UINT32 uiSaveGameVersion )
 		RefreshNPCScriptRecord( SKYRIDER, 22 );
 	}
 
+	// anv: 
+	if ( uiSaveGameVersion < WALDO_CAN_REPAIR_HELICOPTER )
+	{
+		RefreshNPCScriptRecord( WALDO, 5 );
+		RefreshNPCScriptRecord( WALDO, 6 );
+		RefreshNPCScriptRecord( WALDO, 7 );
+		RefreshNPCScriptRecord( WALDO, 13 );
+		RefreshNPCScriptRecord( WALDO, 14 );
+		RefreshNPCScriptRecord( WALDO, 15 );
+		RefreshNPCScriptRecord( WALDO, 16 );
+		RefreshNPCScriptRecord( WALDO, 17 );
+		RefreshNPCScriptRecord( WALDO, 18 );
+	}
+	
 	return( TRUE );
 }
 
@@ -3839,3 +4006,15 @@ INT8 ConsiderCivilianQuotes( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ, BOO
 
 	return( -1 );
 }
+
+#ifdef JA2UB
+//UB
+
+BOOLEAN HasNpcSaidQuoteBefore( UINT8 ubNPC, UINT8 ubRecord )
+{
+	if( CHECK_FLAG( gpNPCQuoteInfoArray[ ubNPC ][ ubRecord ].fFlags, QUOTE_FLAG_SAID ) )
+		return( TRUE );
+	else
+		return( FALSE );
+}
+#endif

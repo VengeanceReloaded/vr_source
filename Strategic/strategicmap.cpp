@@ -92,7 +92,6 @@
 	#include "Loading Screen.h"
 	#include "Queen Command.h"
 	#include "Enemy Soldier Save.h"
-	#include "Boxing.h"
 	#include "NPC.h"
 	#include "Strategic Event Handler.h"
 	#include "MessageBoxScreen.h"
@@ -106,13 +105,36 @@
 	#include "cursors.h"
 #endif
 
+#include "LuaInitNPCs.h"
+#include "Luaglobal.h"
+
+#ifdef JA2UB
+#include "SaveLoadGame.h"
+#include "email.h"
+#include "Ja25 Strategic Ai.h"
+#include "Merc Hiring.h"
+#include "Ja25_Tactical.h"
+#include "Timer Control.h"
+#include "Soldier Control.h"
+#include "Ja25Update.h"
+#include "Map Screen Interface Bottom.h"
+#include "Strategic AI.h"
+#include "ub_config.h"
+#include "Luaglobal.h"
+#endif
+
 #include "connect.h" //hayden added alot ""'s to get around client spawing random/different placed AI
 #include "SaveLoadGame.h"
 #include "Strategic Mines.h"
 #include "Strategic Mines LUA.h"
 #include "UndergroundInit.h"
 
+#include "LuaInitNPCs.h"
+#include "Luaglobal.h"
+
 #include "sgp_logger.h"
+
+#include "Map Screen Interface Map Inventory.h"	// added by Flugente
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -194,6 +216,10 @@ INT16 pSamList[ MAX_NUMBER_OF_SAMS ];
 // girdno's of control terminal of sam site
 INT32 pSamGridNoAList[ MAX_NUMBER_OF_SAMS ];
 INT32 pSamGridNoBList[ MAX_NUMBER_OF_SAMS ];
+
+// coordinates X,Y of sam sites on strategic map
+INT16 gpSamSectorX[ MAX_NUMBER_OF_SAMS ];
+INT16 gpSamSectorY[ MAX_NUMBER_OF_SAMS ];
 
 // ATE: Update this w/ graphic used
 // Use 3 if / orientation, 4 if \ orientation
@@ -316,6 +342,29 @@ void DoneFadeOutExitGridSector( void );
 INT32 PickGridNoNearestEdge( SOLDIERTYPE *pSoldier, UINT8 ubTacticalDirection );
 INT32 PickGridNoToWalkIn( SOLDIERTYPE *pSoldier, UINT8 ubInsertionDirection, UINT32 *puiNumAttempts );
 
+
+//JA25UB
+#ifdef JA2UB
+void HandleQuestCodeOnSectorExit( INT16 sOldSectorX, INT16 sOldSectorY, INT8 bOldSectorZ );
+void HandlePotentialMoraleHitForSkimmingSectors( GROUP *pGroup );
+void HandlePlayerTeamQuotesWhenEnteringSector( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ );
+void ShouldNpcBeAddedToSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ );
+void HandlePlayerQuotesWhenEnteringFirstTunnelSector();
+void AddExitGridForFanToPowerGenSector();
+void HandleSectorSpecificUnLoadingOfMap( INT16 sMapX, INT16 sMapY, INT8 bMapZ );
+//void MakeAllTeamMembersCrouchedThenStand();
+void HandleMovingTheEnemiesToBeNearPlayerWhenEnteringComplexMap();
+void HandleFortifiedDoor();
+void CreateAndAddMoneyObjectToGround( UINT32 sGridNo, INT32 iEasyAmount, INT32 iNormalAmount, INT32 iHardAmount );
+void HandleGoingUpOrDownStairsForLoadScreensPurposes( INT16 sCurrentlyInSectorZ, INT16 sGoingToSectorZ );
+void HandleMovingEnemiesCloseToEntranceInFirstTunnelMap();
+void HandleMovingEnemiesCloseToEntranceInSecondTunnelMap();
+void HandleFirstPartOfTunnelFanSound();
+void HandlePowerGenFanSoundModification();
+BOOLEAN MoveEnemyFromGridNoToRoofGridNo( UINT32 sSourceGridNo, UINT32 sDestGridNo );
+void		HandleMovingEnemiesOntoRoofs();
+#endif
+
 void HandleQuestCodeOnSectorExit( INT16 sOldSectorX, INT16 sOldSectorY, INT8 bOldSectorZ );
 void HandlePotentialMoraleHitForSkimmingSectors( GROUP *pGroup );
 
@@ -325,6 +374,7 @@ extern void InitializeTacticalStatusAtBattleStart();
 extern HVSURFACE ghFrameBuffer;
 extern BOOLEAN gfOverrideSector;
 
+extern BOOLEAN sBadSectorsList[ WORLD_MAP_X ][ WORLD_MAP_X ];
 extern STR16 pBullseyeStrings[];
 
 extern void HandleRPCDescription( );
@@ -369,8 +419,6 @@ void CrippledVersionFailureToLoadMapCheck();
 #define MAX_CHAR_DATA_LENGTH			500
 #define INVALID_SAMSITE_INDEX			-1
 
-extern INT16 gpSamSectorX[ MAX_NUMBER_OF_SAMS ];
-extern INT16 gpSamSectorY[ MAX_NUMBER_OF_SAMS ];
 
 typedef enum
 {
@@ -633,7 +681,7 @@ samsiteEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = SAMSITE_ELEMENT_SAM;
 
 			pData->curSamInfo.samGridNoA = atol(pData->szCharData);
-			if ( pData->curSamInfo.samGridNoA >= WORLD_MAX )
+			if ( pData->curSamInfo.samGridNoA >= MAX_ALLOWED_WORLD_MAX )
 			{
 				pData->curSamInfo.samGridNoA = 0;
 			}
@@ -643,7 +691,7 @@ samsiteEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = SAMSITE_ELEMENT_SAM;
 
 			pData->curSamInfo.samGridNoB = atol(pData->szCharData);
-			if ( pData->curSamInfo.samGridNoB >= WORLD_MAX )
+			if ( pData->curSamInfo.samGridNoB >= MAX_ALLOWED_WORLD_MAX )
 			{
 				pData->curSamInfo.samGridNoB = 1;
 			}
@@ -780,7 +828,7 @@ INT8 NUM_TOWNS;
 extern UINT8	gubTownRebelSentiment	[ MAX_TOWNS ];
 extern BOOLEAN	gfTownUsesLoyalty		[ MAX_TOWNS ];
 extern BOOLEAN	gfMilitiaAllowedInTown	[ MAX_TOWNS ];
-BOOLEAN	gfHiddenTown			[ MAX_TOWNS ];		// Info: Visible town are TRUE, hidden towns are FALSE
+BOOLEAN	gfHiddenTown			[ MAX_TOWNS ];				// Info: Visible town are TRUE, hidden towns are FALSE
 BOOLEAN	gfDrawHiddenTown		[ MAX_TOWNS ];
 BOOLEAN	gfDrawHiddenTownTemp	[ MAX_TOWNS ];
 BOOLEAN	gfHiddenTownTemp		[ MAX_TOWNS ];
@@ -813,7 +861,10 @@ typedef enum
 	CITYTABLE_ELEMENT_ICONFILE,
 	CITYTABLE_ELEMENT_ICON_POSITION,
 	CITYTABLE_ELEMENT_ICON_POSITION_X,
-	CITYTABLE_ELEMENT_ICON_POSITION_Y
+	CITYTABLE_ELEMENT_ICON_POSITION_Y,
+	CITYTABLE_ELEMENT_COUNTRYINFO,
+	CITYTABLE_ELEMENT_COUNTRYNAME,
+	CITYTABLE_ELEMENT_COUNTRYNOUN
 	
 } CITYTABLE_PARSE_STAGE;
 
@@ -839,6 +890,8 @@ typedef struct
 	CITYTABLE_PARSE_STAGE	curElement;
 
 	CHAR8					szCharData[MAX_CHAR_DATA_LENGTH+1];
+	CHAR8					countryName[MAX_TOWN_NAME_LENGHT];
+	CHAR8					countryNoun[MAX_TOWN_NAME_LENGHT];
 	cityInfo				curCityInfo;
 	
 	//cityInfo *				curArray;	// ROMAN: added
@@ -860,7 +913,6 @@ citytableStartElementHandle(void *userData, const XML_Char *name, const XML_Char
 
 	if(pData->currentDepth <= pData->maxReadDepth) //are we reading this element?
 	{
-
 		if(strcmp(name, "CITY_INFO") == 0 && pData->curElement == CITYTABLE_ELEMENT_NONE)
 		{
 			pData->curElement = CITYTABLE_ELEMENT_CITYINFO;
@@ -1016,6 +1068,21 @@ citytableStartElementHandle(void *userData, const XML_Char *name, const XML_Char
 			pData->curElement = CITYTABLE_ELEMENT_TOWNPOINT_Y;
 			pData->maxReadDepth++; //we are not skipping this element
 		}
+		else if(strcmp(name, "COUNTRY") == 0 && pData->curElement == CITYTABLE_ELEMENT_CITYINFO)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_COUNTRYINFO;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "countryName") == 0 && pData->curElement == CITYTABLE_ELEMENT_COUNTRYINFO)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_COUNTRYNAME;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "countryNoun") == 0 && pData->curElement == CITYTABLE_ELEMENT_COUNTRYINFO)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_COUNTRYNOUN;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
 
 		//pData->szCharData[0] = '\0';
 	}
@@ -1037,7 +1104,9 @@ citytableCharacterDataHandle(void *userData, const XML_Char *str, int len)
 static void XMLCALL
 citytableEndElementHandle(void *userData, const XML_Char *name)
 {
-	char temp;
+
+char temp;
+
 	citytableParseData * pData = (citytableParseData *) userData;
 
 	if(pData->currentDepth <= pData->maxReadDepth) //we're at the end of an element that we've been reading
@@ -1189,7 +1258,7 @@ citytableEndElementHandle(void *userData, const XML_Char *name)
 			else
 			{
 				strncpy(pData->curCityInfo.IconSTI,pData->szCharData,MAX_ICON_CHARS);
-				pData->curCityInfo.IconSTI[MAX_ICON_CHARS] = '\0';
+				pData->curCityInfo.IconSTI[MAX_ICON_CHARS-1] = '\0';
 			}
 
 			for(int i=0;i<min((int)strlen(pData->szCharData),MAX_ICON_CHARS);i++)
@@ -1247,6 +1316,36 @@ citytableEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = CITYTABLE_ELEMENT_TOWNPOINT;
 
 			pData->curCityInfo.townPoint.y = atol(pData->szCharData);
+		}
+		else if(strcmp(name, "COUNTRY") == 0 && pData->curElement == CITYTABLE_ELEMENT_COUNTRYINFO)
+		{
+			pData->curElement = CITYTABLE_ELEMENT_CITYINFO;
+
+			if ( !localizedMapTextOnly )
+			{
+				MultiByteToWideChar( CP_UTF8, 0, pData->countryName, -1, pCountryNames[COUNTRY_NAME], MAX_TOWN_NAME_LENGHT);
+				MultiByteToWideChar( CP_UTF8, 0, pData->countryNoun, -1, pCountryNames[COUNTRY_NOUN], MAX_TOWN_NAME_LENGHT);
+				
+			}
+			else if ( localizedMapTextOnly )
+			{
+				MultiByteToWideChar( CP_UTF8, 0, pData->countryName, -1, pCountryNames[COUNTRY_NAME], MAX_TOWN_NAME_LENGHT);
+				MultiByteToWideChar( CP_UTF8, 0, pData->countryNoun, -1, pCountryNames[COUNTRY_NOUN], MAX_TOWN_NAME_LENGHT);
+			}
+		}
+		else if(strcmp(name, "countryName") == 0 && pData->curElement == CITYTABLE_ELEMENT_COUNTRYNAME)
+		{
+			strncpy(pData->countryName, pData->szCharData, MAX_TOWN_NAME_LENGHT - 1);
+			pData->countryName[MAX_TOWN_NAME_LENGHT - 1] = 0;
+
+			pData->curElement = CITYTABLE_ELEMENT_COUNTRYINFO;
+		}
+		else if(strcmp(name, "countryNoun") == 0 && pData->curElement == CITYTABLE_ELEMENT_COUNTRYNOUN)
+		{
+			strncpy(pData->countryNoun, pData->szCharData, MAX_TOWN_NAME_LENGHT - 1);
+			pData->countryNoun[MAX_TOWN_NAME_LENGHT - 1] = 0;
+
+			pData->curElement = CITYTABLE_ELEMENT_COUNTRYINFO;
 		}
 
 		pData->maxReadDepth--;
@@ -1437,7 +1536,12 @@ void BeginLoadScreen( void )
 
 	SetCurrentCursorFromDatabase( VIDEO_NO_CURSOR );
 
+#ifdef JA2UB
+	if( guiCurrentScreen == MAP_SCREEN && !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME) )
+#else
+//Ja25: No meanwhiles
 	if( guiCurrentScreen == MAP_SCREEN && !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME) && !AreInMeanwhile() )
+#endif
 	{
 		if (!gGameExternalOptions.fDisableStrategicTransition)	
 		{
@@ -1485,6 +1589,15 @@ void BeginLoadScreen( void )
 	ColorFillVideoSurfaceArea( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Get16BPPColor( FROMRGB( 0, 0, 0 ) ) );
 	InvalidateScreen( );
 	RefreshScreen( NULL );
+
+#ifdef JA2UB	
+	//if we are going to the intro screen, return before putting up a loadscreen
+	if( gbExitingMapScreenToWhere == MAP_EXIT_TO_INTRO_SCREEN )
+	{
+		SetPendingNewScreen( INTRO_SCREEN );
+		return;
+	}
+#endif
 
 	//If we are loading a saved game, use the Loading screen we saved into the SavedGameHeader file
 	// ( which gets reloaded into gubLastLoadingScreenID )
@@ -1594,7 +1707,7 @@ void EndLoadScreen( )
 		uiHundreths = (uiBuildShadeTableTime / 10) % 100;
 		fprintf( fp, "  1)  BuildShadeTables: %d.%02d\n", uiSeconds, uiHundreths );
 
-		uiPercentage = uiNumImagesReloaded * 100 / NUMBEROFTILETYPES;
+		uiPercentage = uiNumImagesReloaded * 100 / giNumberOfTileTypes;
 		fprintf( fp, "  2)  %d%% of the tileset images were actually reloaded.\n", uiPercentage );
 		if ( ( uiNumTablesSaved+uiNumTablesLoaded ) != 0 )
 		{
@@ -1657,7 +1770,7 @@ void EndLoadScreen( )
 	uiHundreths = (uiBuildShadeTableTime / 10) % 100;
 	timeResults << "  1)  BuildShadeTables: " << uiSeconds << "." << uiHundreths << sgp::endl;
 
-	uiPercentage = uiNumImagesReloaded * 100 / NUMBEROFTILETYPES;
+	uiPercentage = uiNumImagesReloaded * 100 / giNumberOfTileTypes;
 	timeResults << "  2)  " << uiPercentage << "% of the tileset images were actually reloaded." << sgp::endl;
 	if ( ( uiNumTablesSaved+uiNumTablesLoaded ) != 0 )
 	{
@@ -1843,14 +1956,18 @@ void GetMapFileName(INT16 sMapX,INT16 sMapY, INT8 bSectorZ, STR8 bString, BOOLEA
 		}
 	}
 
+#ifdef JA2UB
+/* Ja25: No meanwhiles */
+#else
 	// If we are in a meanwhile...
-	if ( AreInMeanwhile( ) && sMapX == 3 && sMapY == 16 && !bSectorZ )//GetMeanwhileID() != INTERROGATION )
+	if ( AreInMeanwhile( ) && sMapX == gModSettings.ubMeanwhilePalaceSectorX && sMapY == gModSettings.ubMeanwhilePalaceSectorY && !bSectorZ ) //GetMeanwhileID() != INTERROGATION ), (3, 16)
 	{
 		if( fAddAlternateMapLetter )
 		{
 			strcat( bExtensionString, "_m" );
 		}
 	}
+#endif
 
 	// This is the string to return, but...
 	sprintf( bString, "%s%s%s.DAT", pVertStrings[sMapY], pHortStrings[sMapX], bExtensionString );
@@ -1962,8 +2079,11 @@ void HandleRPCDescriptionOfSector( INT16 sSectorX, INT16 sSectorY, INT16 sSector
 	}
 
   // Handle guide description ( will be needed if a SAM one )
+#ifdef JA2UB
+//UB
+#else
 	HandleRPCDescription( );
-
+#endif
 }
 
 
@@ -2100,10 +2220,15 @@ BOOLEAN	SetCurrentWorldSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 		{
 			StopAnyCurrentlyTalkingSpeech( );
 
-			if( gWorldSectorX == 9 && gWorldSectorY == 10 && gbWorldSectorZ == 2 )
+#ifdef JA2UB
+/*  Ja25 no creatures  */
+#else			
+			if( gWorldSectorX == gCreaturesSettings.ubCrepitusFeedingSectorX && gWorldSectorY == gCreaturesSettings.ubCrepitusFeedingSectorY
+				&& gbWorldSectorZ == gCreaturesSettings.ubCrepitusFeedingSectorZ ) // (9, 10, 2)
 			{
 				InitCreatureQuest(); //Ignored if already active.
 			}
+#endif
 		}
 
 		//Stop playing any music -- will fade out.
@@ -2162,6 +2287,10 @@ BOOLEAN	SetCurrentWorldSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 
 			// Check for helicopter being on the ground in this sector...
 			HandleHelicopterOnGroundSkyriderProfile( );
+#ifdef JA2UB			
+		//Check to see if we should add Manuel to this sector, if so add him
+		ShouldNpcBeAddedToSector( gWorldSectorX, gWorldSectorY, bMapZ );
+#endif		
 		}
 
 		//Load and enter the new sector
@@ -2205,17 +2334,32 @@ BOOLEAN	SetCurrentWorldSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 			{
 				// ATE; Fade FA.T....
 				SetMusicFadeSpeed( 5 );
-
+				
+				#ifdef NEWMUSIC
+				GlobalSoundID = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ];
+				if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] != -1 )
+					SetMusicModeID( MUSIC_TACTICAL_NOTHING, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] );
+				else
+				#endif
 				SetMusicMode( MUSIC_TACTICAL_NOTHING );
 			}
-
+			
+	#ifdef JA2UB			
+			// Say a quote from a merc who has new lines for the sector ( if any )
+			HandlePlayerTeamQuotesWhenEnteringSector( sMapX, sMapY, bMapZ ); 
+	#else
 			// ATE: Check what sector we are in, to show description if we have an RPC.....
 			HandleRPCDescriptionOfSector( sMapX, sMapY, bMapZ );
-
+	#endif
 
 
 			// ATE: Set Flag for being visited...
 			SetSectorFlag( sMapX, sMapY, bMapZ, SF_HAS_ENTERED_TACTICAL );
+#ifdef JA2UB			
+			//ja2ub
+			// If any emails should be sent from this sector
+			HandleEmailBeingSentWhenEnteringSector( sMapX, sMapY, bMapZ, FALSE );
+#endif
 
 			// ATE; Reset some flags for creature sayings....
 			gTacticalStatus.fSaidCreatureFlavourQuote = FALSE;
@@ -2228,7 +2372,10 @@ BOOLEAN	SetCurrentWorldSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 			gTacticalStatus.fGoodToAllowCrows					= FALSE;
 			gTacticalStatus.fHasEnteredCombatModeSinceEntering = FALSE;
 			gTacticalStatus.fDontAddNewCrows          = FALSE;
-
+#ifdef JA2UB			
+		//Call this function, if Jerry doesnt need to be added, it will return
+		UpdateJerryMiloInInitialSector();
+#endif
 			// Adjust delay for tense quote
 			gTacticalStatus.sCreatureTenseQuoteDelay = (INT16)( 10 + Random( 20 ) );
 
@@ -2299,8 +2446,11 @@ void PrepareLoadedSector()
 	BOOLEAN fEnemyPresenceInThisSector = FALSE;
 	BOOLEAN fAddCivs = TRUE;
 	INT8 bMineIndex = -1;
-
+#ifdef JA2UB
+//Ja25 No meanwhiles
+#else
 	if( AreInMeanwhile( ) == FALSE )
+#endif
 	{
 		if( gbWorldSectorZ == 0 )
 		{
@@ -2324,7 +2474,12 @@ void PrepareLoadedSector()
 	//if we are loading a 'pristine' map ( ie, not loading a saved game )
 	if( !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME ))
 	{
+
+#ifdef JA2UB
+//Ja25 No meanwhiles
+#else
 		if ( !AreReloadingFromMeanwhile( ) )
+#endif
 		{
 			SetPendingNewScreen(GAME_SCREEN);
 
@@ -2445,8 +2600,11 @@ void PrepareLoadedSector()
 		{
 			AddProfilesNotUsingProfileInsertionData();
 		}
-
+#ifdef JA2UB
+//Ja25 No meanwhiles
+#else
 		if( !AreInMeanwhile() || GetMeanwhileID() == INTERROGATION )
+#endif
 		{
 			if (is_networked)
 			{
@@ -2514,6 +2672,13 @@ void PrepareLoadedSector()
 
 	ScreenMsg( FONT_YELLOW, MSG_DEBUG, L"Current Time is: %d", GetWorldTotalMin() );
 
+#ifdef JA2UB	
+	HandleSectorSpecificModificatioToMap( gWorldSectorX, gWorldSectorY, gbWorldSectorZ, FALSE );
+
+	//If there needs to be modifications done to the enemy exp levels...
+	HandleJa25EnemyExpLevelModifier( );
+#endif
+
 	AllTeamsLookForAll( TRUE );
 }
 
@@ -2525,17 +2690,6 @@ void HandleQuestCodeOnSectorEntry( INT16 sNewSectorX, INT16 sNewSectorY, INT8 bN
 	UINT8		ubThisMine;
 	UINT8		cnt;
 	SOLDIERTYPE * pSoldier;
-
-	if ( CheckFact( FACT_ALL_TERRORISTS_KILLED, 0 ) )
-	{
-		// end terrorist quest
-		// SANDRO - removed ending quest from here, placed to Interface Dialogue
-		//EndQuest( QUEST_KILL_TERRORISTS, gMercProfiles[ CARMEN ].sSectorX, gMercProfiles[ CARMEN ].sSectorY );
-		// remove Carmen
-		gMercProfiles[ CARMEN ].sSectorX = 0;
-		gMercProfiles[ CARMEN ].sSectorY = 0;
-		gMercProfiles[ CARMEN ].bSectorZ = 0;
-	}
 
 	// are we in a mine sector, on the surface?
 	if ( IsThereAMineInThisSector( sNewSectorX, sNewSectorY ) && ( bNewSectorZ == 0 ))
@@ -2605,18 +2759,16 @@ void HandleQuestCodeOnSectorEntry( INT16 sNewSectorX, INT16 sNewSectorY, INT8 bN
 #endif
 		}
 	}
-
-	if ( CheckFact( FACT_ROBOT_RECRUITED_AND_MOVED, 0 ) == FALSE )
+	
+	if ( CheckFact( FACT_ALL_TERRORISTS_KILLED, 0 ) )
 	{
-		SOLDIERTYPE * pRobot;
-		pRobot = FindSoldierByProfileID( ROBOT, TRUE );
-		if (pRobot)
-		{
-			// robot is on our team and we have changed sectors, so we can
-			// replace the robot-under-construction in Madlab's sector
-			RemoveGraphicFromTempFile( gsRobotGridNo, SEVENTHISTRUCT1, gMercProfiles[MADLAB].sSectorX, gMercProfiles[MADLAB].sSectorY, gMercProfiles[MADLAB].bSectorZ );
-			SetFactTrue( FACT_ROBOT_RECRUITED_AND_MOVED );
-		}
+		// end terrorist quest
+		// SANDRO - removed ending quest from here, placed to Interface Dialogue
+		//EndQuest( QUEST_KILL_TERRORISTS, gMercProfiles[ CARMEN ].sSectorX, gMercProfiles[ CARMEN ].sSectorY );
+		// remove Carmen
+		gMercProfiles[ CARMEN ].sSectorX = 0;
+		gMercProfiles[ CARMEN ].sSectorY = 0;
+		gMercProfiles[ CARMEN ].bSectorZ = 0;
 	}
 
 	// Check to see if any player merc has the Chalice; if so,
@@ -2633,11 +2785,30 @@ void HandleQuestCodeOnSectorEntry( INT16 sNewSectorX, INT16 sNewSectorY, INT8 bN
 			}
 		}
 	}
-
+	
 	if ( (gubQuest[ QUEST_KINGPIN_MONEY ] == QUESTINPROGRESS) && CheckFact( FACT_KINGPIN_CAN_SEND_ASSASSINS, 0 ) && (GetTownIdForSector( sNewSectorX, sNewSectorY ) != BLANK_SECTOR) && Random( 10 + GetNumberOfMilitiaInSector( sNewSectorX, sNewSectorY, bNewSectorZ ) ) < 3 )
 	{
 		DecideOnAssassin();
 	}
+	
+	if ( CheckFact( FACT_ROBOT_RECRUITED_AND_MOVED, 0 ) == FALSE )
+	{
+		SOLDIERTYPE * pRobot;
+		pRobot = FindSoldierByProfileID( ROBOT, TRUE );
+		if (pRobot)
+		{
+			// robot is on our team and we have changed sectors, so we can
+			// replace the robot-under-construction in Madlab's sector
+			RemoveGraphicFromTempFile( gsRobotGridNo, SEVENTHISTRUCT1, gMercProfiles[MADLAB].sSectorX, gMercProfiles[MADLAB].sSectorY, gMercProfiles[MADLAB].bSectorZ );
+			SetFactTrue( FACT_ROBOT_RECRUITED_AND_MOVED );
+		}
+	}
+	
+	#ifdef LUA_HANDLE_QUEST_CODE_ON_SECTOR
+		
+	LuaHandleQuestCodeOnSector( sNewSectorX, sNewSectorY, bNewSectorZ, 1);
+
+	#else
 
 /*
 	if ( sNewSectorX == 5 && sNewSectorY == MAP_ROW_C )
@@ -2672,12 +2843,25 @@ void HandleQuestCodeOnSectorEntry( INT16 sNewSectorX, INT16 sNewSectorY, INT8 bN
 			gMercProfiles[ ELLIOT ].bLife = gMercProfiles[ ELLIOT ].bLifeMax;
 		}
 	}
-
+	
+	#endif
+	
 	ResetOncePerConvoRecordsForAllNPCsInLoadedSector();
 }
 
 void HandleQuestCodeOnSectorExit( INT16 sOldSectorX, INT16 sOldSectorY, INT8 bOldSectorZ )
 {
+
+#ifdef JA2UB
+SOLDIERTYPE *pSoldier=NULL;
+#endif
+
+	#ifdef LUA_HANDLE_QUEST_CODE_ON_SECTOR
+	
+	LuaHandleQuestCodeOnSector( sOldSectorX, sOldSectorY, bOldSectorZ, 0);
+
+	#else
+	
 	if ( sOldSectorX == KINGPIN_MONEY_SECTOR_X && sOldSectorY == KINGPIN_MONEY_SECTOR_Y && bOldSectorZ == KINGPIN_MONEY_SECTOR_Z )
 	{
 		CheckForKingpinsMoneyMissing( TRUE );
@@ -2689,7 +2873,57 @@ void HandleQuestCodeOnSectorExit( INT16 sOldSectorX, INT16 sOldSectorY, INT8 bOl
 		gMercProfiles[ CONRAD ].sSectorX = 0;
 		gMercProfiles[ CONRAD ].sSectorY = 0;
 	}
+#ifdef JA2UB	
+	//JA25 UB
+	if( sOldSectorX == 7 && sOldSectorY == MAP_ROW_H && bOldSectorZ == 0 )
+	{
+		// remove Jerry from the map
+		gMercProfiles[ JERRY_MILO_UB ].sSectorX = 0;
+		gMercProfiles[ JERRY_MILO_UB ].sSectorY = 0;
+	}
 
+	//if the player is leaving a sector with  Tex in it
+	if( sOldSectorX == gMercProfiles[ TEX_UB ].sSectorX && sOldSectorY == gMercProfiles[ TEX_UB ].sSectorY && bOldSectorZ == 0 && gMercProfiles[ TEX_UB ].ubLastDateSpokenTo != 0 )
+	{
+		pSoldier = FindSoldierByProfileID( TEX_UB, TRUE );
+
+		//if the npc isnt on the players team AND the player has never spoken to them
+		if( pSoldier == NULL && gMercProfiles[ TEX_UB ].ubLastDateSpokenTo != 0 )
+		{
+			// remove Tex from the map
+			gMercProfiles[ TEX_UB ].sSectorX = 0;
+			gMercProfiles[ TEX_UB ].sSectorY = 0;
+		}
+	}
+
+	//if the player is leaving a sector with  John kulba in it
+	if( sOldSectorX == gMercProfiles[ JOHN_K_UB ].sSectorX && sOldSectorY == gMercProfiles[ JOHN_K_UB ].sSectorY && bOldSectorZ == 0 && gMercProfiles[ JOHN_K_UB ].ubLastDateSpokenTo != 0 )
+	{
+		pSoldier = FindSoldierByProfileID( JOHN_K_UB, TRUE );
+
+		//if the npc isnt on the players team AND the player has never spoken to them
+		if( pSoldier == NULL && gMercProfiles[ JOHN_K_UB ].ubLastDateSpokenTo != 0 )
+		{
+			// remove Tex from the map
+			gMercProfiles[ JOHN_K_UB ].sSectorX = 0;
+			gMercProfiles[ JOHN_K_UB ].sSectorY = 0;
+		}
+	}
+
+	//if the player is leaving a sector with  Manuel in it
+	if( sOldSectorX == gMercProfiles[ MANUEL_UB ].sSectorX && sOldSectorY == gMercProfiles[ MANUEL_UB ].sSectorY && bOldSectorZ == 0 )
+	{
+		pSoldier = FindSoldierByProfileID( MANUEL_UB, TRUE );
+
+		//if the npc isnt on the players team AND the player has never spoken to them
+		if( pSoldier == NULL && gMercProfiles[ MANUEL_UB ].ubLastDateSpokenTo != 0 )
+		{
+			// remove Manuel from the map
+			gMercProfiles[ MANUEL_UB ].sSectorX = 0;
+			gMercProfiles[ MANUEL_UB ].sSectorY = 0;
+		}
+	}
+#endif
 	if ( sOldSectorX == HOSPITAL_SECTOR_X && sOldSectorY == HOSPITAL_SECTOR_Y && bOldSectorZ == HOSPITAL_SECTOR_Z )
 	{
 		CheckForMissingHospitalSupplies();
@@ -2697,13 +2931,22 @@ void HandleQuestCodeOnSectorExit( INT16 sOldSectorX, INT16 sOldSectorY, INT8 bOl
 
 	// reset the state of the museum alarm for Eldin's quotes
 	SetFactFalse( FACT_MUSEUM_ALARM_WENT_OFF );
+	
+	#endif
 }
 
+extern void SetLastTimePlayerWasInSector();
+//Moa: 09/14/2013 this function modifies uiTimeCurrentSectorWasLastLoaded and the various decay of items in that sector as well
+// @calls HandleSectorCooldownFunctions
+// @calls SetLastTimePlayerWasInSector
 BOOLEAN EnterSector( INT16 sSectorX, INT16 sSectorY , INT8 bSectorZ )
 {
 	INT32 i;
 	UNDERGROUND_SECTORINFO *pNode = NULL;
 	CHAR8 bFilename[ 50 ];
+
+	// Reset
+	//ResetLoadScreenHint();
 
 	// pause game
 	PauseGame( );
@@ -2742,7 +2985,11 @@ BOOLEAN EnterSector( INT16 sSectorX, INT16 sSectorY , INT8 bSectorZ )
 		memset( &(gTacticalStatus.bNumFoughtInBattle), 0, MAXTEAMS ); 
 	}
 
+#ifdef JA2UB
+//Ja25 No meanwhiles
+#else
 	if( AreInMeanwhile() == FALSE )
+#endif
 	{
 		SetSectorFlag( sSectorX, sSectorY, bSectorZ, SF_ALREADY_VISITED );
 	}
@@ -2757,7 +3004,7 @@ BOOLEAN EnterSector( INT16 sSectorX, INT16 sSectorY , INT8 bSectorZ )
 			AssertMsg( 0, "Failed to find Placeholder1.dat (placeholder map)." );
 	}
 
-	CreateLoadingScreenProgressBar();
+	CreateLoadingScreenProgressBar(TRUE);
 	#ifdef JA2BETAVERSION
 	//set the font
 	SetProgressBarMsgAttributes( 0, FONT12ARIAL, FONT_MCOLOR_WHITE, 0 );
@@ -2821,6 +3068,21 @@ BOOLEAN EnterSector( INT16 sSectorX, INT16 sSectorY , INT8 bSectorZ )
 	// This function will either hide or display the tree tops, depending on the game setting
 	SetTreeTopStateForMap();
 
+	// Flugente: certain features need to alter an item's temperature value depending on the time passed
+	// if we do these functions here and adjust for the time passed since this sector was loaded last, it will seem to the player
+	// as if these checks are always performed in any sector
+	//Moa: removed this function and replaced by the handling function.
+	//SectorInventoryCooldownFunctions(sSectorX, sSectorY, bSectorZ);
+	//moved from SectorInventoryCooldownFunctions. Invisible items are handled as well.
+	//Since we have allready loaded the items previously we can use the globals here.
+	HandleSectorCooldownFunctions( sSectorX, sSectorY, (INT8)bSectorZ, gWorldItems, guiNumWorldItems, TRUE );
+	//Update LastTimePlayerWasInSector
+	SetLastTimePlayerWasInSector();
+	
+	//Save to tempfile
+	SaveWorldItemsToTempItemFile( sSectorX, sSectorY, (INT8)bSectorZ, guiNumWorldItems, gWorldItems );
+
+
 	return TRUE; //because the map was loaded.
 }
 
@@ -2831,6 +3093,7 @@ void UpdateMercsInSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ )
 	SOLDIERTYPE		*pSoldier;
 	BOOLEAN				fPOWSquadSet = FALSE;
 	UINT8					ubPOWSquad=0;
+	CHAR16		zTemp[256];
 
 	// Remove from interface slot
 	RemoveAllPlayersFromSlot( );
@@ -2902,9 +3165,10 @@ void UpdateMercsInSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ )
 								fPOWSquadSet = TRUE;
 
 								// ATE: If we are in i13 - pop up message!
-								if ( sSectorY == MAP_ROW_I && sSectorX == 13 )
+								if ( sSectorX == gModSettings.ubInitialPOWSectorX && sSectorY == gModSettings.ubInitialPOWSectorY ) //(13, 9)
 								{
-									DoMessageBox( MSG_BOX_BASIC_STYLE, TacticalStr[ POW_MERCS_ARE_HERE ], GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_OK, NULL, NULL );
+									swprintf( zTemp, TacticalStr[ POW_MERCS_ARE_HERE ], gMercProfiles[ QUEEN ].zNickname );
+									DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_OK, NULL, NULL );
 								}
 								else
 								{
@@ -2915,7 +3179,7 @@ void UpdateMercsInSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ )
 							}
 							else
 							{
-								if ( sSectorY != MAP_ROW_I && sSectorX != 13 )
+								if ( sSectorX != gModSettings.ubInitialPOWSectorX && sSectorY != gModSettings.ubInitialPOWSectorY ) //(13, 9)
 								{
 									AddCharacterToSquad( pSoldier, ubPOWSquad );
 								}
@@ -3096,10 +3360,17 @@ void UpdateMercInSector( SOLDIERTYPE *pSoldier, INT16 sSectorX, INT16 sSectorY, 
 					}
 					else
 					{
+					#ifdef JA2UB
+						//pSoldier->ubStrategicInsertionCode = INSERTION_CODE_NORTH;
+						//pSoldier->sInsertionGridNo		   = gMapInformation.sNorthGridNo;
+						pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+						pSoldier->sInsertionGridNo		   = gGameUBOptions.LOCATEGRIDNO;
+					#else
 						//pSoldier->ubStrategicInsertionCode = INSERTION_CODE_NORTH;
 						//pSoldier->sInsertionGridNo				 = gMapInformation.sNorthGridNo;
 						pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
 						pSoldier->sInsertionGridNo = gGameExternalOptions.iInitialMercArrivalLocation;
+					#endif
 					}
 					break;
 				case INSERTION_CODE_CHOPPER:
@@ -3110,8 +3381,8 @@ void UpdateMercInSector( SOLDIERTYPE *pSoldier, INT16 sSectorX, INT16 sSectorY, 
 					return;
 					break;
 				default:
-					// TODO.WANNE: Hardcoded grid number
-					pSoldier->sInsertionGridNo = 12880;//dnl!!!
+					//Moa: Hardcoded grid number set to CenterGrid
+					pSoldier->sInsertionGridNo = ( WORLD_ROWS * WORLD_COLS + WORLD_COLS ) / 2;//12880
 					DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "Improper insertion code %d given to UpdateMercsInSector", pSoldier->ubStrategicInsertionCode ) );
 					break;
 			}
@@ -3151,7 +3422,7 @@ void UpdateMercInSector( SOLDIERTYPE *pSoldier, INT16 sSectorX, INT16 sSectorY, 
 				else
 				{
 					ScreenMsg( FONT_RED, MSG_BETAVERSION, L"Sector %s has NO entrypoints -- using precise center of map for %s.", szSector, pSoldier->name );
-					pSoldier->sInsertionGridNo = 12880;//dnl!!!
+					pSoldier->sInsertionGridNo = ( WORLD_ROWS * WORLD_COLS + WORLD_COLS ) / 2;//12880
 					AddSoldierToSector( pSoldier->ubID );
 					return;
 				}
@@ -3179,7 +3450,7 @@ void UpdateMercInSector( SOLDIERTYPE *pSoldier, INT16 sSectorX, INT16 sSectorY, 
 			if ( pSoldier->sInsertionGridNo == -1 )
 			{
 				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "Insertion gridno for direction %d not added to map sector %d %d", pSoldier->ubStrategicInsertionCode, sSectorX, sSectorY ) );
-				pSoldier->sInsertionGridNo = 12880;//dnl!!!
+				pSoldier->sInsertionGridNo = ( WORLD_ROWS * WORLD_COLS + WORLD_COLS ) / 2;//12880
 			}
 
 			AddSoldierToSector( pSoldier->ubID );
@@ -3474,7 +3745,7 @@ void GetSectorIDString( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ , STR16 zS
 						break;
 					case SEC_K4: //Orta
 						//if( !fFoundOrta )
-						if( gfHiddenTown[ ORTA ] == FALSE )	
+						if( gfHiddenTown[ ORTA ] == FALSE )
 							wcscat( zString, pLandTypeStrings[ SWAMP ] );
 						else
 							wcscat( zString, pTownNames[ ORTA ] );
@@ -3498,6 +3769,13 @@ void GetSectorIDString( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ , STR16 zS
 							wcscat( zString, pTownNames[ bTownNameID ] );
 							if( fDetailed )
 							{
+								/*
+								UINT8 ubMineIndex = GetMineIndexForSector( sSectorX, sSectorY );
+								if ( gMineStatus[ubMineIndex].sSectorX == sSectorX && gMineStatus[ubMineIndex].sSectorY == sSectorY )
+								{
+									swprintf( zString, L" %s", MineralsName[gMineStatus[ubMineIndex].ubMineType].sType );
+								}
+								*/
 								switch( ubSectorID )
 								{ //Append the word, "mine" for town sectors containing a mine.
 									case SEC_B2:
@@ -3703,6 +3981,7 @@ void JumpIntoAdjacentSector( UINT8 ubTacticalDirection, UINT8 ubJumpCode, INT32 
 		}
 
 		// save info for desired squad and and time for all single mercs leaving their squad.
+        Assert(pValidSoldier);
 		bPrevAssignment = pValidSoldier->bAssignment;
 		ubPrevGroupID = pValidSoldier->ubGroupID;
 
@@ -4013,7 +4292,7 @@ void AllMercsWalkedToExitGrid()
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - reset num enemies here if the sector was unloaded
-		if( gWorldSectorX == 0 && gWorldSectorX == 0 && gbWorldSectorZ == -1 )
+		if( gWorldSectorX == 0 && gWorldSectorY == 0 && gbWorldSectorZ == -1 )
 		{
 			memset( &(gTacticalStatus.bNumFoughtInBattle), 0, MAXTEAMS );
 		}
@@ -4200,7 +4479,7 @@ void AllMercsHaveWalkedOffSector( )
 		SetDefaultSquadOnSectorEntry( TRUE );
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - reset num enemies here if the sector was unloaded
-		if( !fEnemiesInLoadedSector || (gWorldSectorX == 0 && gWorldSectorX == 0 && gbWorldSectorZ == -1 ) )
+		if( !fEnemiesInLoadedSector || (gWorldSectorX == 0 && gWorldSectorY == 0 && gbWorldSectorZ == -1 ) )
 		{
 			memset( &(gTacticalStatus.bNumFoughtInBattle), 0, MAXTEAMS );
 		}
@@ -4267,6 +4546,13 @@ void AllMercsHaveWalkedOffSector( )
 
 			// ATE; Fade FAST....
 			SetMusicFadeSpeed( 5 );
+			
+			#ifdef NEWMUSIC
+			GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ];
+			if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] != -1 )
+				SetMusicModeID( MUSIC_TACTICAL_NOTHING, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] );
+			else
+			#endif
 			SetMusicMode( MUSIC_TACTICAL_NOTHING );
 		}
 	}
@@ -4694,6 +4980,13 @@ void SetupNewStrategicGame( )
 			StrategicMap[ CALCULATE_STRATEGIC_INDEX( sSectorX, sSectorY ) ].fEnemyControlled = TRUE;
 		}
 	}
+	
+#ifdef JA2UB	
+	//Ja25
+	// Make the initial sector free of enemies
+	StrategicMap[ CALCULATE_STRATEGIC_INDEX( JA2_5_START_SECTOR_X, JA2_5_START_SECTOR_Y ) ].fEnemyControlled = FALSE;
+
+#endif
 
 	//Initialize the game time
 	InitNewGameClock();
@@ -4711,6 +5004,12 @@ void SetupNewStrategicGame( )
 	AddEveryDayStrategicEvent( EVENT_DAILY_UPDATE_BOBBY_RAY_INVENTORY, BOBBYRAY_UPDATE_TIME, 0 );
 	//Daily Update of the M.E.R.C. site.
 	AddEveryDayStrategicEvent( EVENT_DAILY_UPDATE_OF_MERC_SITE, 0, 0 );
+
+#ifdef JA2UB
+//Ja25:  No insurance for mercs
+//JA25: There is no mines
+//Ja25 no town opinions
+#else	
 	//Daily update of insured mercs
 	AddEveryDayStrategicEvent( EVENT_HANDLE_INSURED_MERCS, INSURANCE_UPDATE_TIME,	0 );
 	//Daily update of mercs
@@ -4721,6 +5020,8 @@ void SetupNewStrategicGame( )
 	AddEveryDayStrategicEvent( EVENT_SETUP_TOWN_OPINION, 0, 0 );
 	// Daily checks for E-mail from Enrico
 	AddEveryDayStrategicEvent( EVENT_ENRICO_MAIL, ENRICO_MAIL_TIME , 0 );
+#endif
+
 
 //	if ( gGameOptions.fAirStrikes )
 //	{
@@ -4915,7 +5216,7 @@ void UpdateAirspaceControl( void )
 			{
 				for (UINT8 ubSectorY = 1; ubSectorY <=16; ubSectorY++)
 				{
-					if ( StrategicMap[ CALCULATE_STRATEGIC_INDEX( ubSectorX, ubSectorY ) ].fEnemyAirControlled == FALSE )
+					if ( StrategicMap[ CALCULATE_STRATEGIC_INDEX( ubSectorX, ubSectorY ) ].fEnemyAirControlled == FALSE && !sBadSectorsList[ ubSectorX ][ ubSectorY ] )
 					{
 						gsMercArriveSectorX = ubSectorX;
 						gsMercArriveSectorY = ubSectorY;
@@ -5810,7 +6111,9 @@ void GetLoadedSectorString( STR16 pString )
 	}
 }
 
-
+#ifdef JA2UB
+// no UB
+#else
 void HandleSlayDailyEvent( void )
 {
 	SOLDIERTYPE *pSoldier = NULL;
@@ -5839,6 +6142,7 @@ void HandleSlayDailyEvent( void )
 		TacticalCharacterDialogueWithSpecialEvent( pSoldier, 0, DIALOGUE_SPECIAL_EVENT_CONTRACT_ENDING_NO_ASK_EQUIP, 0, 0 );
 	}
 }
+#endif
 
 BOOLEAN IsSectorDesert( INT16 sSectorX, INT16 sSectorY )
 {
@@ -5908,6 +6212,8 @@ BOOLEAN HandleDefiniteUnloadingOfWorld( UINT8 ubUnloadCode )
 		//if we arent loading a saved game
 		if( !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME ) )
 		{
+			// Flugente: cause all militia whose equipment is from this sector to drop it
+			TeamDropAll( MILITIA_TEAM );
 
 			// Save the current sectors Item list to a temporary file, if its not the first time in
 			SaveCurrentSectorsInformationToTempItemFile();
@@ -5918,6 +6224,13 @@ BOOLEAN HandleDefiniteUnloadingOfWorld( UINT8 ubUnloadCode )
 	}
 	else if( ubUnloadCode == ABOUT_TO_TRASH_WORLD )
 	{
+		//if we arent loading a saved game
+		if( !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME ) )
+		{
+			// Flugente: cause all militia whose equipment is from this sector to drop it
+			TeamDropAll( MILITIA_TEAM );
+		}
+
 		//Save the current sectors open temp files to the disk
 		if( !SaveCurrentSectorsInformationToTempItemFile() )
 		{
@@ -6053,8 +6366,14 @@ BOOLEAN CheckAndHandleUnloadingOfCurrentWorld()
 		//     Added logic to prevent a crash when player mercs would retreat from a battle involving militia and enemies.
 		//		 Without the return here, it would proceed to trash the world, and then when autoresolve would come up to
 		//     finish the tactical battle, it would fail to find the existing soldier information (because it was trashed).
-    if( HandlePotentialBringUpAutoresolveToFinishBattle( sBattleSectorX, sBattleSectorY, sBattleSectorZ ) )
+		if( HandlePotentialBringUpAutoresolveToFinishBattle( sBattleSectorX, sBattleSectorY, sBattleSectorZ ) )
 		{
+			// Flugente: cause all militia whose equipment is from this sector to drop it - otherwise it can get lost
+			TeamDropAll( MILITIA_TEAM, TRUE );
+
+			// Save the current sectors Item list to a temporary file, if its not the first time in
+			SaveCurrentSectorsInformationToTempItemFile();
+
 			return FALSE;
 		}
 		//end
@@ -6280,3 +6599,897 @@ BOOLEAN EscapeDirectionIsValid( INT8 * pbDirection )
 	}
 	return( *pbDirection != -1 );
 }
+#ifdef JA2UB
+
+
+//------------ub
+
+typedef struct
+{
+	INT16	sSectorID;
+	INT8	bSectorZ;
+	UINT8	ubQuoteNum;
+} ENTER_SECTOR_PLAYER_QUOTE;
+
+void HandlePlayerTeamQuotesWhenEnteringSector( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ )
+{
+	UINT32	uiCnt;
+	INT8		bNumValidMercs=-1;
+	INT32		iSectorID = SECTOR( sSectorX, sSectorY );
+	UINT8		ubValidMercProfileIDArray[ NUM_MERCS_WITH_NEW_QUOTES ];
+	SOLDIERTYPE *pSoldier=NULL;
+
+
+	#define	NUM_VALID_SECTORS									6
+	#define	DELAY_FOR_PLAYER_DESC_OF_SECTOR		2
+	ENTER_SECTOR_PLAYER_QUOTE	PlayerSectorDescQuote[ NUM_VALID_SECTORS ] = 
+	{
+		{ SEC_H9,		0,	QUOTE_HATE_MERC_1_ON_TEAM },
+		{ SEC_I9,		0,	QUOTE_LEARNED_TO_HATE_MERC_ON_TEAM },
+		{ SEC_H10,	0,	QUOTE_LEARNED_TO_HATE_MERC_ON_TEAM },
+		{ SEC_I10,	0,	QUOTE_HATE_MERC_2_ON_TEAM },
+		{ SEC_J13,	0,	QUOTE_ENTER_SECTOR_WITH_FAN_1 },
+		{ SEC_J14,	1,	0 },
+	};
+
+	//loop through all the sectors that have the quotes
+	for( uiCnt=0; uiCnt<NUM_VALID_SECTORS; uiCnt++ )
+	{
+		//if this sector is the right x & y
+		if( PlayerSectorDescQuote[ uiCnt ].sSectorID == iSectorID )
+		{
+			//if is the right level
+			if( PlayerSectorDescQuote[ uiCnt ].bSectorZ == sSectorZ )
+			{
+
+				// If the player has never said the "enter sector" desc before
+				if( GetSectorFlagStatus( sSectorX, sSectorY, ( UINT8 )sSectorZ, SF_HAVE_SAID_PLAYER_QUOTE_NEW_SECTOR ) != TRUE )
+				{
+					//Get # of valid mercs
+					bNumValidMercs = GetNumSoldierIdAndProfileIdOfTheNewMercsOnPlayerTeam( NULL, ubValidMercProfileIDArray );
+
+					//if there isnt any valid mercs
+					if( bNumValidMercs == 0 )
+					{
+						//exit
+						return;
+					}
+
+					//Switch on the town ID
+					switch( iSectorID )
+					{
+						case SEC_I10:
+							{
+								UINT8	cnt;
+	
+								for( cnt=0; cnt<bNumValidMercs; cnt++ )
+								{
+									//Say the qoute in a couple of seconds
+									DelayedMercQuote( ubValidMercProfileIDArray[ cnt ], PlayerSectorDescQuote[ uiCnt ].ubQuoteNum, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR + cnt );
+								}
+							}
+							break;
+
+						case SEC_J13:
+							if( PlayerSectorDescQuote[ uiCnt ].bSectorZ == 0 )
+							{
+								//See if Manuel is on the team
+								pSoldier = FindSoldierByProfileID( MANUEL_UB, TRUE );
+
+								//if he is ON the team
+								if( pSoldier != NULL )
+								{
+									//get manuel to say the quote
+									DelayedMercQuote( MANUEL_UB, PlayerSectorDescQuote[ uiCnt ].ubQuoteNum, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR );
+
+									//get manuel to say his additional quote
+									DelayedMercQuote( MANUEL_UB, QUOTE_ENTER_SECTOR_WITH_FAN_2, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR );
+								}
+								else
+								{
+									//else if Biggens is not on the team, check for biggens
+									pSoldier = FindSoldierByProfileID( BIGGENS_UB, TRUE );
+
+									//if he is ON the team
+									if( pSoldier != NULL )
+									{
+										//get manuel to say the quote
+										DelayedMercQuote( BIGGENS_UB, PlayerSectorDescQuote[ uiCnt ].ubQuoteNum, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR );
+
+										//Remember he said
+										SetJa25GeneralFlag( JA_GF__BIGGENS_SAID_QUOTE_117 );
+									}
+								}
+
+								//Remeber the quote was said
+								SetFactTrue( FACT_PLAYER_KNOWS_ABOUT_FAN_STOPPING );
+							}
+							break;
+						case SEC_J14:
+							{
+								//first underground sector
+								HandlePlayerQuotesWhenEnteringFirstTunnelSector();
+							}
+							break;
+						default:
+							{
+								//Get a random merc from the list
+								UINT8	ubMercToSayQuote = RandomProfileIdFromNewMercsOnPlayerTeam();
+
+								//Say the qoute in a couple of seconds
+								DelayedMercQuote( ubMercToSayQuote, PlayerSectorDescQuote[ uiCnt ].ubQuoteNum, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR );
+							}
+							break;
+					}
+
+					//if this sector is one of the fields before the town, only say the quote once for both sectors
+					if( ( iSectorID == SEC_I9 || iSectorID == SEC_H10 ) && sSectorZ == 0 )
+					{
+						//Remeber that we said the quote
+						SetSectorFlag( 9, 9, 0, SF_HAVE_SAID_PLAYER_QUOTE_NEW_SECTOR );
+						SetSectorFlag( 10, 8, 0, SF_HAVE_SAID_PLAYER_QUOTE_NEW_SECTOR );
+					}
+
+					//default
+					else
+					{
+						//Remeber that we said the quote
+						SetSectorFlag( sSectorX, sSectorY, ( UINT8 )sSectorZ, SF_HAVE_SAID_PLAYER_QUOTE_NEW_SECTOR );
+					}
+				}
+
+				//we are done here, leave
+				return;
+			}
+		}
+	}
+}
+
+void HandlePlayerQuotesWhenEnteringFirstTunnelSector()
+{
+	UINT8 ubID;
+
+	//if the player got through using the timed method
+	if( gJa25SaveStruct.ubHowPlayerGotThroughFan == PG__PLAYER_STOPPED_FAN_TO_GET_THROUGH )
+	{
+		UINT8 ubNumPlayersInSector = NumActiveAndConsciousTeamMembers( OUR_TEAM );
+		UINT8 ubNumPlayersOnTeam = NumberOfMercsOnPlayerTeam();
+
+		//Get a random qualified merc to say the quote
+		ubID = RandomSoldierIdFromNewMercsOnPlayerTeam();
+
+		//if there is no valid merc
+		if( ubID == -1 )
+			return;
+
+		//if not all the players made it through
+		if( ubNumPlayersInSector < ubNumPlayersOnTeam )
+		{
+//			TacticalCharacterDialogue( &Menptr[ ubID ], QUOTE_CONTRACTS_OVER );
+			DelayedMercQuote( Menptr[ ubID ].ubProfile, QUOTE_CONTRACTS_OVER, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR );
+		}
+
+		//if ALL mercs made it through
+		else if( ubNumPlayersInSector == ubNumPlayersOnTeam )
+		{
+			DelayedMercQuote( Menptr[ ubID ].ubProfile, QUOTE_CONTRACT_ACCEPTANCE, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR );
+//			TacticalCharacterDialogue( &Menptr[ ubID ], QUOTE_CONTRACT_ACCEPTANCE );
+		}
+	}
+
+	else if( gJa25SaveStruct.ubHowPlayerGotThroughFan == PG__PLAYER_BLEW_UP_FAN_TO_GET_THROUGH )
+	{
+/*
+Chnaged to be played when fan blows up
+		//Get a random qualified merc to say the quote
+		ubID = RandomSoldierIdFromNewMercsOnPlayerTeam();
+
+		DelayedMercQuote( Menptr[ ubID ].ubProfile, QUOTE_ACCEPT_CONTRACT_RENEWAL, GetWorldTotalSeconds() + DELAY_FOR_PLAYER_DESC_OF_SECTOR );
+*/
+	}
+
+	else
+	{
+		Assert( 0 );
+	}
+}
+
+void HandleEmailBeingSentWhenEnteringSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, BOOLEAN fLaptopJustGotFixed )
+{
+	SOLDIERTYPE *pSoldier=NULL;
+
+	//
+	// if this sector is a sector we are to send an email to the player from
+	//
+
+	//if the laptop transmiter is not working yet
+	if( gubQuest[ QUEST_FIX_LAPTOP ] != QUESTDONE && !fLaptopJustGotFixed && gGameUBOptions.LaptopQuestEnabled == TRUE )
+	{
+		//we will send these emails later
+		return;
+	}
+
+	//if miguel is alive
+	if( gubFact[ FACT_PLAYER_IMPORTED_SAVE_MIGUEL_DEAD ] == FALSE )
+	{
+		//if its either J11 or I12 ( or we just got the email back up and we have been to the sector
+		if( ( ( sMapY == 10 && sMapX == 11 ) || ( sMapY == 9 && sMapX == 12 ) && bMapZ == 0 ) ||
+			fLaptopJustGotFixed && 
+			( GetSectorFlagStatus( 11, 10, 0, SF_HAS_ENTERED_TACTICAL ) == TRUE || GetSectorFlagStatus( 12, 9, 0, SF_HAS_ENTERED_TACTICAL ) == TRUE ) )
+		{
+			//and we havent sent it before
+			if( !( gJa25SaveStruct.ubEmailFromSectorFlag & SECTOR_EMAIL__J11_J12 ) )
+			{
+				pSoldier = FindSoldierByProfileID( MANUEL_UB, TRUE ); //MANUEL
+
+				//if Manuel isnt on the team
+				if( pSoldier == NULL || gMercProfiles[ MANUEL_UB ].bMercStatus == MERC_IS_DEAD ) //MANUEL
+				{
+					//email 8a
+					AddEmail( EMAIL_MIGUELSORRY, EMAIL_MIGUELSORRY_LENGTH, MAIL_MIGUEL,  GetWorldTotalMin() , -1,-1 ,TYPE_EMAIL_EMAIL_EDT);
+				}
+				else
+				{
+					//email 8b
+					AddEmail( EMAIL_MIGUELMANUEL, EMAIL_MIGUELMANUEL_LENGTH, MAIL_MIGUEL,  GetWorldTotalMin() , -1,-1, TYPE_EMAIL_EMAIL_EDT);
+				}
+
+				//Remeber we sent it
+				gJa25SaveStruct.ubEmailFromSectorFlag |= SECTOR_EMAIL__J11_J12;
+			}
+		}
+
+		//if its the power generator sector
+		if( sMapY == 10 && sMapX == 13 && bMapZ == 0 ||
+			fLaptopJustGotFixed && GetSectorFlagStatus( 13, 10, 0, SF_HAS_ENTERED_TACTICAL ) == TRUE )
+		{
+			//and we havent sent it before
+			if( !( gJa25SaveStruct.ubEmailFromSectorFlag & SECTOR_EMAIL__POWER_GEN ) )
+			{
+				AddEmail( EMAIL_MIGUELSICK, EMAIL_MIGUELSICK_LENGTH, MAIL_MIGUEL,  GetWorldTotalMin(), -1 ,-1, TYPE_EMAIL_EMAIL_EDT);
+
+				//Remeber we sent it
+				gJa25SaveStruct.ubEmailFromSectorFlag |= SECTOR_EMAIL__POWER_GEN;
+			}
+		}
+	}
+
+
+	//if its the tunnel sector
+	if( sMapY == 10 && sMapX == 14 && bMapZ == 1 ||
+		fLaptopJustGotFixed && GetSectorFlagStatus( 14, 10, 1, SF_HAS_ENTERED_TACTICAL ) == TRUE	)
+	{
+		//and we havent sent it before
+		if( !( gJa25SaveStruct.ubEmailFromSectorFlag & SECTOR_EMAIL__TUNNEL ) )
+		{
+			//If Jerry isnt dead
+			if( gMercProfiles[ JERRY_MILO_UB ].bMercStatus != MERC_IS_DEAD ) //JERRY
+			{
+				AddEmail( EMAIL_PILOTFOUND, EMAIL_PILOTFOUND_LENGTH, MAIL_ENRICO,  GetWorldTotalMin() , -1, -1, TYPE_EMAIL_EMAIL_EDT);
+			}
+
+			//Remeber we sent it
+			gJa25SaveStruct.ubEmailFromSectorFlag |= SECTOR_EMAIL__TUNNEL;
+		}
+	}
+}
+
+
+
+void ShouldNpcBeAddedToSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
+{
+	//if Manuel has never been added before
+	if( !( gJa25SaveStruct.fNpcHasBeenAdded & SECTOR_ADDED_NPC__MANUEL) )
+	{
+		//if it is the right sector
+		if( ( sMapY == MAP_ROW_H && sMapX == 10 && bMapZ == 0 ) ||
+				( sMapY == MAP_ROW_I && sMapX == 9 && bMapZ == 0 ) )
+		{
+			//Change his sector values to 
+			gMercProfiles[ MANUEL_UB ].sSectorX = sMapX;
+			gMercProfiles[ MANUEL_UB ].sSectorY = sMapY;
+			gMercProfiles[ MANUEL_UB ].bSectorZ = bMapZ;
+
+			//remember that we have added him
+			gJa25SaveStruct.fNpcHasBeenAdded |= SECTOR_ADDED_NPC__MANUEL;
+		}
+	}
+
+	//if Tex has never been added before 
+	if( !( gJa25SaveStruct.fNpcHasBeenAdded & SECTOR_ADDED_NPC__TEX ) )
+	{
+		//and tex is TO be added
+		if( gubFact[ FACT_TEX_IS_IN_GAME_AND_ALIVE_IN_STORE ] )
+		{
+			//if it is the right sector
+			if( sMapY == MAP_ROW_I && sMapX == 10 && bMapZ == 0 )
+			{
+				//Change his sector values to 
+				gMercProfiles[ TEX_UB ].sSectorX = sMapX;
+				gMercProfiles[ TEX_UB ].sSectorY = sMapY;
+				gMercProfiles[ TEX_UB ].bSectorZ = bMapZ;
+
+				//remember that we have added him
+				gJa25SaveStruct.fNpcHasBeenAdded |= SECTOR_ADDED_NPC__TEX;
+			}
+		}
+	}
+
+	//if John has never been added before 
+	if( !( gJa25SaveStruct.fNpcHasBeenAdded & SECTOR_ADDED_NPC__JOHN_K ) )
+	{
+		//and John is TO be added ( Tex not in game )
+		//if( !gubFact[ FACT_TEX_IS_IN_GAME_AND_ALIVE_IN_STORE ] )
+	//	{
+			//if it is the right sector
+			if( sMapX == gJa25SaveStruct.ubJohnKulbaInitialSectorX && 
+					sMapY == gJa25SaveStruct.ubJohnKulbaInitialSectorY && 
+					bMapZ == 0 )
+			{
+				//Change his sector values to 
+				gMercProfiles[ JOHN_K_UB ].sSectorX = sMapX;
+				gMercProfiles[ JOHN_K_UB ].sSectorY = sMapY;
+				gMercProfiles[ JOHN_K_UB ].bSectorZ = bMapZ;
+
+				//remember that we have added him
+				gJa25SaveStruct.fNpcHasBeenAdded |= SECTOR_ADDED_NPC__JOHN_K;
+			}
+	//	}
+	}
+}
+
+void HandleSectorSpecificUnLoadingOfMap( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
+{
+	//if this is the power gen map
+	if( sMapX == 13 && sMapY == MAP_ROW_J && bMapZ == 0 )
+	{
+		BOOLEAN fGoingToTunnelSector=FALSE;
+
+		//if we are going to the first sector if the tunnel
+		if( gWorldSectorX == 14 &&
+				gWorldSectorY == MAP_ROW_J &&
+				gbWorldSectorZ == 1 )
+		{
+			fGoingToTunnelSector = TRUE;
+		}
+
+		switch( gJa25SaveStruct.ubStateOfFanInPowerGenSector )
+		{
+			case PGF__RUNNING_NORMALLY:
+				HandleRemovingPowerGenFanSound();
+				break;
+		}
+
+		//Remeber how the player got through
+		HandleHowPlayerGotThroughFan();
+	}
+	//else if this is the 1st level of tunne;l
+	else	if( sMapX == 14 && sMapY == MAP_ROW_J && bMapZ == 1 )
+	{
+		switch( gJa25SaveStruct.ubStateOfFanInPowerGenSector )
+		{
+			case PGF__RUNNING_NORMALLY:
+			case PGF__STOPPED:
+
+				//remove the sound to the world
+				HandleRemovingPowerGenFanSound();
+				break;
+		}
+	}
+}
+
+
+void HandleSectorSpecificModificatioToMap( INT16 sMapX, INT16 sMapY, INT8 bMapZ, BOOLEAN fLoadingSavedGame )
+{
+//	SOLDIERTYPE *pSoldier=NULL;
+//	INT32				iCash=0;
+
+	//if we are loading a game, dont do this yet ( it will be done after everything is loaded
+	if( gTacticalStatus.uiFlags & LOADING_SAVED_GAME )
+	{
+		return;
+	}
+
+	SetTileAnimCounter( TILE_ANIM__NORMAL_SPEED );
+
+	//if we are being called from LoadSavedGame()
+	if( fLoadingSavedGame )
+	{
+		//
+		// only do certain modifications
+		//
+
+		//if this is the power gen map
+		if( sMapX == 13 && sMapY == MAP_ROW_J && bMapZ == 0 )
+		{
+			HandlePowerGenFanSoundModification();
+		}
+		else	if( sMapX == 14 && sMapY == MAP_ROW_J && bMapZ == 1 )
+		{
+			HandleFirstPartOfTunnelFanSound();
+		}
+
+		//if this is the Final Sector of the complex
+		else if( sMapX == 15 && sMapY == MAP_ROW_L && bMapZ == 3 )
+		{
+			HandleOpenControlPanelToRevealSwitchInMorrisArea();
+		}
+	}
+	else
+	{
+		//if this is the first map
+		if( sMapX == 7 && sMapY == MAP_ROW_H && bMapZ == 0 )
+		{
+		}
+
+		//if this is the guardpost
+		else if( sMapX == 9 && sMapY == MAP_ROW_H && bMapZ == 0 )
+		{
+			//if we havent added the money to the sector before
+			if( !IsJa25GeneralFlagSet( JA_GF__PICKED_UP_MONEY_IN_GUARD_POST ) )
+			{
+				SetJa25GeneralFlag( JA_GF__PICKED_UP_MONEY_IN_GUARD_POST );
+
+				// Add some money to the location
+				CreateAndAddMoneyObjectToGround( 9026, 15000, 10000, 7000 );
+			}
+		}
+
+		//if this is the First sector of the town
+		else if( sMapX == 10 && sMapY == MAP_ROW_I && bMapZ == 0 )
+		{
+			//if we havent added the money to the sector before
+			if( !IsJa25GeneralFlagSet( JA_GF__PICKED_UP_MONEY_IN_FIRST_TOWN ) )
+			{
+				SetJa25GeneralFlag( JA_GF__PICKED_UP_MONEY_IN_FIRST_TOWN );
+
+				// Add some money to the location
+				CreateAndAddMoneyObjectToGround( 11894, 8000, 4000, 3000 );
+				CreateAndAddMoneyObjectToGround( 7906,  12000, 6000, 5000 );
+			}
+		}
+
+		//if this is the power gen map
+		else if( sMapX == 13 && sMapY == MAP_ROW_J && bMapZ == 0 )
+		{
+			HandlePowerGenFanSoundModification();
+		}
+
+		//else if this is the 1st part of tunnel
+		else	if( sMapX == 14 && sMapY == MAP_ROW_J && bMapZ == 1 )
+		{
+			HandleFirstPartOfTunnelFanSound();
+
+			if( IsJa25GeneralFlagSet( JA_GF__MOVE_ENEMIES_TO_EDGE_IN_TUNNEL_1 ) )
+			{
+				HandleMovingEnemiesCloseToEntranceInFirstTunnelMap();
+			}
+		}
+
+		//else if this is the 2nd part of tunnel
+		else	if( sMapX == 14 && sMapY == MAP_ROW_K && bMapZ == 1 )
+		{
+			if( IsJa25GeneralFlagSet( JA_GF__MOVE_ENEMIES_TO_EDGE_IN_TUNNEL_1 ) )
+			{
+				HandleMovingEnemiesCloseToEntranceInSecondTunnelMap();
+			}
+		}
+
+		//else if this is the 1st level in the complex
+		else	if( sMapX == 15 && sMapY == MAP_ROW_K && bMapZ == 1 )
+		{
+			//Make all the team members look like they dropped from a high place
+			//		MakeAllTeamMembersCrouchedThenStand();
+
+			//If the player made noise in the tunnel, enemies should be placed near them
+			HandleMovingTheEnemiesToBeNearPlayerWhenEnteringComplexMap();
+
+			//if the big door should be opened
+			HandleFortifiedDoor();
+		}
+
+		//if this is the Final Sector of the complex
+		else if( sMapX == 15 && sMapY == MAP_ROW_L && bMapZ == 3 )
+		{
+			HandleOpenControlPanelToRevealSwitchInMorrisArea();
+		}
+
+		
+		
+		
+		//if the enemies should go and find the player mercs
+		if( GetSectorEnemyIsToImmediatelySeekEnemyIn() != -1 )
+		{
+			//Make the enemies go find the player mercs
+			SetEnemiesToFindThePlayerMercs();
+		}
+
+		//if this is a sector we feel can be made harder for players ( on hard difficulty levels ), then move some
+		//enemies onto roofs.
+		HandleMovingEnemiesOntoRoofs();		
+	}
+}
+/*
+void MakeAllTeamMembersCrouchedThenStand()
+{
+	UINT8	cnt;
+	SOLDIERTYPE *pSoldier=NULL;
+
+	//Move some of the enemies to be 'near' them player when the enter the room
+	cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID;
+
+	// Loop through the list and move some of the enemies
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; cnt++, pSoldier++)
+	{	
+		//if the soldier is active,
+		if( pSoldier->bActive && pSoldier->bInSector )
+		{
+			pSoldier->EVENT_InitNewSoldierAnim( CRAWLING, 1, TRUE );
+			pSoldier->ChangeSoldierStance( PRONE );
+		}
+	}
+}
+*/
+void HandleMovingTheEnemiesToBeNearPlayerWhenEnteringComplexMap()
+{
+	SOLDIERTYPE *pSoldier=NULL;
+	UINT8				ubNumEnemiesMoved=0;
+
+	//if we are loading a saved game, or we have already moved the enemies, get out.
+	if( gTacticalStatus.uiFlags & LOADING_SAVED_GAME || 
+			gJa25SaveStruct.uiJa25GeneralFlags & JA_GF__ALREADY_MOVED_ENEMIES_IN_COMPLEX )
+	{
+		return;
+	}
+
+	//if the player made a 'noise' going through the gate at the end of the tunnel sector
+	if( gJa25SaveStruct.uiJa25GeneralFlags & JA_GF__DID_PLAYER_MAKE_SOUND_GOING_THROUGH_TUNNEL_GATE )
+	{
+		UINT8	cnt;
+
+		//
+		//Move some of the enemies to be 'near' them player when the enter the room
+		//
+
+		// Loop through the list and move some of the enemies
+		cnt = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID;
+		for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ ENEMY_TEAM ].bLastID; cnt++, pSoldier++)
+		{	
+			//if the soldier is active,
+			if ( pSoldier->bActive  )
+			{
+				//
+				// move the soldier to the modified location
+				//
+
+				if( pSoldier->sGridNo	== 13959 )
+				{
+					 pSoldier->SetSoldierGridNo( 15705, TRUE );
+					ubNumEnemiesMoved++;
+				}
+
+				if( pSoldier->sGridNo	== 13983 )
+				{
+					pSoldier->SetSoldierGridNo( 15712, TRUE );
+					ubNumEnemiesMoved++;
+				}
+
+				if( pSoldier->sGridNo	== 12543 )
+				{
+					pSoldier->SetSoldierGridNo( 15233, TRUE );
+					ubNumEnemiesMoved++;
+				}
+			}
+		}
+
+		while( ubNumEnemiesMoved < 3 )
+		{
+			cnt = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID;
+			for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ ENEMY_TEAM ].bLastID; cnt++, pSoldier++)
+			{	
+				//if the soldier is active,
+				if ( pSoldier->bActive  && pSoldier->sGridNo != 15705 && pSoldier->sGridNo != 15712 && pSoldier->sGridNo != 15233 )
+				{
+					//
+					// move the soldier to the modified location
+					//
+
+					if( ubNumEnemiesMoved == 0 )
+					{
+						pSoldier->SetSoldierGridNo( 15706, TRUE );
+						ubNumEnemiesMoved++;
+					}
+
+					if( ubNumEnemiesMoved == 1 )
+					{
+						pSoldier->SetSoldierGridNo( 15713, TRUE );
+						ubNumEnemiesMoved++;
+					}
+
+					if( ubNumEnemiesMoved == 2 )
+					{
+						pSoldier->SetSoldierGridNo( 15234, TRUE );
+						ubNumEnemiesMoved++;
+					}
+				}
+			}
+		}
+
+		//Remeber we have moved the enemies
+		gJa25SaveStruct.uiJa25GeneralFlags |= JA_GF__ALREADY_MOVED_ENEMIES_IN_COMPLEX;
+	}
+}
+
+void HandleFortifiedDoor()
+{
+	//if the fortified door should be open
+	if( gJa25SaveStruct.ubStatusOfFortifiedDoor == FD__OPEN )
+	{
+		ModifyDoorStatus( 11419, TRUE, DONTSETDOORSTATUS );
+	}
+}
+
+void CreateAndAddMoneyObjectToGround( UINT32 sGridNo, INT32 iEasyAmount, INT32 iNormalAmount, INT32 iHardAmount )
+{
+	OBJECTTYPE	Object;
+	INT32				iCash=0;
+//	INT8				bAmountToAdd=0;
+
+	switch( gGameOptions.ubDifficultyLevel )
+	{
+		case DIF_LEVEL_EASY:
+			iCash = iEasyAmount;
+			break;
+
+		case DIF_LEVEL_MEDIUM:
+			iCash = iNormalAmount;
+			break;
+
+		case DIF_LEVEL_HARD:
+			iCash = iHardAmount;
+			break;
+
+		default:
+			Assert(0);
+	}
+
+	CreateMoney( iCash, &Object );
+
+	//add the item to the world
+	AddItemToPool( sGridNo, &Object, FALSE, 0, 0, 0 );
+}
+
+
+void HandleGoingUpOrDownStairsForLoadScreensPurposes( INT16 sCurrentlyInSectorZ, INT16 sGoingToSectorZ )
+{
+	if( sCurrentlyInSectorZ == sGoingToSectorZ )
+	{
+		gJa25SaveStruct.ubLoadScreenStairTraversal = LS__NOT_GOING_UP_STAIRS;
+	}
+	else if( sCurrentlyInSectorZ < sGoingToSectorZ )
+	{
+		gJa25SaveStruct.ubLoadScreenStairTraversal = LS__GOING_DOWN_STAIRS;
+	}
+	else
+	{
+		gJa25SaveStruct.ubLoadScreenStairTraversal = LS__GOING_UP_STAIRS;
+	}
+}
+
+void HandleMovingEnemiesCloseToEntranceInFirstTunnelMap()
+{
+	SOLDIERTYPE *pSoldier=NULL;
+	UINT8	ubIndex=0;
+	UINT32 cnt;
+	BOOLEAN	fDone=FALSE;
+	INT16							sXPos, sYPos;
+	UINT32 sGridNos[27]={ 18200, 18360, 18520,
+											 18199, 18359, 18519,
+											 18198, 18358, 18518,
+											 18197, 18357, 18517,
+											 18196, 18356, 18516,
+											 18195, 18355, 18515,
+											 18194, 18354, 18514,
+											 18193, 18353, 18513,
+											 18035, 18034, 18033,
+	};
+
+
+	//
+	//Move some of the enemies to be 'near' them player when the enter the room
+	//
+
+	// Loop through the list and move some of the enemies
+	cnt = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ ENEMY_TEAM ].bLastID; cnt++, pSoldier++)
+	{	
+		//if the soldier is active,
+		if ( pSoldier->bActive  )
+		{
+			fDone = FALSE;
+			while( !fDone )
+			{
+				//if there is no one in the gridno
+				if( WhoIsThere2( sGridNos[ ubIndex ], 0 ) == NOBODY )
+				{
+					// move the soldier to the modified location
+					ConvertGridNoToCenterCellXY( sGridNos[ ubIndex ], &sXPos, &sYPos );
+					pSoldier->EVENT_SetSoldierPosition( sXPos, sYPos );
+//					SetSoldierGridNo( pSoldier, sGridNos[ ubIndex ], TRUE );
+					ubIndex++;
+					fDone=TRUE;
+				}
+				else
+				{
+					ubIndex++;
+				}
+
+				if( ubIndex >= 27 )
+				{
+					Assert( 0 );
+					return;
+				}
+			}
+		}
+	}
+}
+
+void HandleMovingEnemiesCloseToEntranceInSecondTunnelMap()
+{
+	SOLDIERTYPE *pSoldier=NULL;
+	UINT8	ubIndex=0;
+	BOOLEAN	fDone=FALSE;
+	UINT32 cnt;
+	INT16							sXPos, sYPos;
+	UINT32 sGridNos[30]={ 4900, 4901, 4902, 4903, 4904, 
+											 5060, 5061, 5062, 5063, 5064,
+											 5220, 5221, 5222, 5223, 5224,
+											 5380, 5381, 5382, 5383, 5384,
+											 5540, 5541, 5542, 5543, 5544,
+											 5700, 5701, 5702, 5703, 5704 };
+
+
+
+	//
+	//Move some of the enemies to be 'near' them player when the enter the room
+	//
+
+	// Loop through the list and move some of the enemies
+	cnt = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ ENEMY_TEAM ].bLastID; cnt++, pSoldier++)
+	{	
+		//if the soldier is active,
+		if ( pSoldier->bActive  )
+		{
+			fDone = FALSE;
+			while( !fDone )
+			{
+				//if there is no one in the gridno
+				if( WhoIsThere2( sGridNos[ ubIndex ], 0 ) == NOBODY )
+				{
+					// move the soldier to the modified location
+					ConvertGridNoToCenterCellXY( sGridNos[ ubIndex ], &sXPos, &sYPos );
+					pSoldier->EVENT_SetSoldierPosition( sXPos, sYPos );
+//					SetSoldierGridNo( pSoldier, sGridNos[ ubIndex ], TRUE );
+					ubIndex++;
+					fDone=TRUE;
+				}
+				else
+				{
+					ubIndex++;
+				}
+
+				if( ubIndex >= 26 )
+				{
+					Assert( 0 );
+					return;
+				}
+			}
+		}
+	}
+}
+
+void HandlePowerGenFanSoundModification()
+{
+	SetTileAnimCounter( TILE_ANIM__FAST_SPEED );
+
+	switch( gJa25SaveStruct.ubStateOfFanInPowerGenSector )
+	{
+		case PGF__RUNNING_NORMALLY:
+			HandleAddingPowerGenFanSound();
+
+			//MAKE SURE the fan does not have an exit grid
+			RemoveExitGridFromWorld( PGF__FAN_EXIT_GRID_GRIDNO );
+			break;
+		
+		case PGF__STOPPED:
+			//Add an exit grid to the map
+			AddExitGridForFanToPowerGenSector();
+			break;
+		
+		case PGF__BLOWN_UP:
+			break;
+
+		default:
+			Assert( 0 );
+	}
+}
+
+void HandleFirstPartOfTunnelFanSound()
+{
+	switch( gJa25SaveStruct.ubStateOfFanInPowerGenSector )
+	{
+		case PGF__RUNNING_NORMALLY:
+		case PGF__STOPPED:
+
+			//add the sound to the world
+			HandleAddingPowerGenFanSound();
+			break;
+	}
+}
+
+void HandleMovingEnemiesOntoRoofs()
+{
+	if( gWorldSectorX <= 0 || gWorldSectorY <= 0 || gbWorldSectorZ < 0 )
+	{
+		return;
+	}
+
+	//if this is the sector south of the town
+	if( gWorldSectorX == 11 && gWorldSectorY == MAP_ROW_J && gbWorldSectorZ == 0 )
+	{
+		switch( gGameOptions.ubDifficultyLevel )
+		{
+			case DIF_LEVEL_EASY:
+			case DIF_LEVEL_MEDIUM:
+				break;
+			case DIF_LEVEL_HARD:
+				MoveEnemyFromGridNoToRoofGridNo( 15446, 13993 );
+				MoveEnemyFromGridNoToRoofGridNo( 15436, 14006 );
+				break;
+		}
+	}
+
+	//else if this is the sector south of the town
+	else if( gWorldSectorX == 11 && gWorldSectorY == MAP_ROW_H && gbWorldSectorZ == 0 )
+	{
+		switch( gGameOptions.ubDifficultyLevel )
+		{
+			case DIF_LEVEL_EASY:
+			case DIF_LEVEL_MEDIUM:
+				break;
+			case DIF_LEVEL_HARD:
+				MoveEnemyFromGridNoToRoofGridNo( 8711, 5521 );
+				break;
+		}
+	}
+}
+
+
+
+BOOLEAN MoveEnemyFromGridNoToRoofGridNo( UINT32 sSourceGridNo, UINT32 sDestGridNo )
+{
+	SOLDIERTYPE *pSoldier=NULL;
+	INT32				cnt;
+	INT16				sXPos, sYPos;
+
+	cnt = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID;
+  for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ ENEMY_TEAM ].bLastID; cnt++, pSoldier++)
+	{	
+		if( pSoldier->stats.bLife >= OKLIFE && pSoldier->bActive && pSoldier->bInSector &&
+				pSoldier->sGridNo == sSourceGridNo )
+		{
+			pSoldier->SetSoldierHeight( 50.0 );
+
+			// move soldier
+			ConvertGridNoToCenterCellXY( sDestGridNo, &sXPos, &sYPos );
+			pSoldier->EVENT_SetSoldierPosition( sXPos, sYPos );
+
+			return( TRUE );
+//			pSoldier->bOrders = SEEKENEMY;
+		}
+	}
+
+	return( FALSE );
+}
+#endif

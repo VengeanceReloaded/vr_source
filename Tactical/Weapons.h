@@ -12,8 +12,28 @@ enum WeaponMode
 	WM_ATTACHED_GL,
 	WM_ATTACHED_GL_BURST,
 	WM_ATTACHED_GL_AUTO,
+	WM_ATTACHED_UB,
+	WM_ATTACHED_UB_BURST,
+	WM_ATTACHED_UB_AUTO,
+	WM_ATTACHED_BAYONET,
 	NUM_WEAPON_MODES
 } ;
+
+enum ScopeMode
+{
+	USE_BEST_SCOPE = 0,
+	USE_SCOPE_2,
+	USE_SCOPE_3,
+	USE_SCOPE_4,
+	USE_SCOPE_5,
+	USE_SCOPE_6,
+	USE_SCOPE_7,
+	USE_SCOPE_8,
+	USE_SCOPE_9,
+	USE_SCOPE_10,
+	NUM_SCOPE_MODES
+};
+#define USE_ALT_WEAPON_HOLD -1 // SANDRO - using this for hip/onehandpistol fire
 
 //ADB moved from Interface Panels.h
 void HandleTacticalEffectsOfEquipmentChange( SOLDIERTYPE *pSoldier, UINT32 uiInvPos, UINT16 usOldItem, UINT16 usNewItem );
@@ -27,7 +47,8 @@ void HandleTacticalEffectsOfEquipmentChange( SOLDIERTYPE *pSoldier, UINT32 uiInv
 #define SOLID_SLUG_RANGE_BONUS	65
 #define DUCKBILL_RANGE_BONUS	40
 
-#define MAX_PERCENT_NOISE_VOLUME_FOR_SILENCED_SOUND 35
+// silversurfer: externalized this to gGameExternalOptions.gubMaxPercentNoiseSilencedSound
+//#define MAX_PERCENT_NOISE_VOLUME_FOR_SILENCED_SOUND 35
 
 // JA2 GOLD: for weapons and attachments, give penalties only for status values below 85
 #define WEAPON_STATUS_MOD( x ) ( (x) >= 85 ? 100 : (((x) * 100) / 85) )
@@ -58,6 +79,9 @@ void HandleTacticalEffectsOfEquipmentChange( SOLDIERTYPE *pSoldier, UINT32 uiInv
 #define BUCKSHOT_SHOTS 9
 
 #define MIN_MORTAR_RANGE				150			// minimum range of a mortar
+
+// NB this is arbitrary, chances in DG ranged from 1 in 6 to 1 in 20
+#define BASIC_DEPRECIATE_CHANCE	15
 
 // WEAPON CLASSES
 enum
@@ -127,6 +151,14 @@ enum
 
 enum
 {
+	AMMO_MAGAZINE = 0,
+	AMMO_BULLET,
+	AMMO_BOX,
+	AMMO_CRATE
+};
+
+enum
+{
 	AMMO_REGULAR = 0,
 	AMMO_HP,
 	AMMO_AP,
@@ -141,6 +173,49 @@ enum
 	AMMO_SLEEP_DART,
 	AMMO_FLAME,
 };
+
+// -------- added by Flugente: various ammo flags --------
+// flags used for various ammo properties (easier than adding 32 differently named variables). DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+#define AMMO_NEUROTOXIN			0x00000001	//1			// this ammo adds the cyanide drug effect to its target, killing it in a few turns
+#define AMMO_BLIND				0x00000002	//2			// this ammo will blind if it hits the head
+/*#define SHOVEL					0x00000004	//4
+#define CONCERTINA				0x00000008	//8
+
+#define WATER_DRUM				0x00000010	//16		// water drums allow to refill canteens in the sector they are in
+#define MEAT_BLOODCAT			0x00000020	//32		// retrieve this by gutting a bloodcat
+#define COW_MEAT   				0x00000040	//64		// retrieve this by gutting a cow
+#define BELT_FED				0x00000080	//128		// item can be fed externally
+
+#define AMMO_BELT				0x00000100	//256		// this item can be used to feed externally
+#define AMMO_BELT_VEST			0x00000200	//512		// this is a vest that can contain AMMO_BELT items in its medium slots
+#define COVERT_OPS_KIT			0x00000400	//1024		// this kit can restore the covert ops disguise
+#define RAG						0x00000800	//2048		// this item is a rag and can be used to remove camo
+
+#define ENEMY_NET_1_LVL_4		0x00001000	//4096
+#define ENEMY_NET_2_LVL_4       0x00002000	//8192
+#define ENEMY_NET_3_LVL_4 		0x00004000	//16384
+#define ENEMY_NET_4_LVL_4		0x00008000	//32768
+
+#define PLAYER_NET_1_LVL_1		0x00010000	//65536
+#define PLAYER_NET_2_LVL_1      0x00020000	//131072
+#define PLAYER_NET_3_LVL_1		0x00040000	//262144
+#define PLAYER_NET_4_LVL_1		0x00080000	//524288
+
+#define PLAYER_NET_1_LVL_2		0x00100000	//1048576
+#define PLAYER_NET_2_LVL_2		0x00200000	//2097152
+#define PLAYER_NET_3_LVL_2		0x00400000	//4194304
+#define PLAYER_NET_4_LVL_2		0x00800000	//8388608
+
+#define PLAYER_NET_1_LVL_3		0x01000000	//16777216
+#define PLAYER_NET_2_LVL_3		0x02000000	//33554432
+#define PLAYER_NET_3_LVL_3		0x04000000	//67108864
+#define PLAYER_NET_4_LVL_3		0x08000000	//134217728
+
+#define PLAYER_NET_1_LVL_4		0x10000000	//268435456
+#define PLAYER_NET_2_LVL_4		0x20000000	//536870912
+#define PLAYER_NET_3_LVL_4		0x40000000	//1073741824
+#define PLAYER_NET_4_LVL_4		0x80000000	//2147483648*/
+// ----------------------------------------------------------------
 
 typedef struct
 {
@@ -174,7 +249,7 @@ typedef struct
 	UINT8 numberOfBullets;
 	INT32 multipleBulletDamageMultiplier;
 	INT32 multipleBulletDamageDivisor;
-	BOOLEAN highExplosive;
+	UINT16 highExplosive;
 	UINT8 explosionSize; //0=none, 1=small, 2=medium, 3=large
 	BOOLEAN antiTank;
 	BOOLEAN dart;
@@ -184,9 +259,15 @@ typedef struct
 	BOOLEAN acidic;
 	INT16	lockBustingPower;
 	BOOLEAN tracerEffect;
+	FLOAT	temperatureModificator;	// Flugente: modificator for weapon temperature
+	INT16	poisonPercentage;	// Flugente: modificator for weapon temperature
+	FLOAT	dirtModificator;	// Flugente: modificator for dirt generation
 
 	//zilpin: pellet spread patterns externalized in XML
 	INT32 spreadPattern;
+
+	// Flugente: item flag for various properties. Way easier than 32 boolean flags
+	UINT32	ammoflag;
 	
 } AMMOTYPE;
 
@@ -202,6 +283,7 @@ enum
 	EXPLOSV_CREATUREGAS,
 	EXPLOSV_BURNABLEGAS,
 	EXPLOSV_FLASHBANG,
+	EXPLOSV_SIGNAL_SMOKE,
 };
 
 #define AMMO_DAMAGE_ADJUSTMENT_BUCKSHOT( x ) (x / 4)
@@ -297,8 +379,8 @@ typedef struct
  UINT16 ManualReloadSound;
  BOOLEAN EasyUnjam; // Guns where each bullet has its own chamber (like revolvers) are easyer to unjam 
 
- INT8	bRecoilX;		// HEADROCK HAM 4: Recoil now measured in points of muzzle deviation X and Y.
- INT8	bRecoilY;		// Positive values indicated upwards (Y) and rightwards (X). Negatives are down (-Y) and left (-X).
+ FLOAT	bRecoilX;		// HEADROCK HAM 4: Recoil now measured in points of muzzle deviation X and Y.
+ FLOAT	bRecoilY;		// Positive values indicated upwards (Y) and rightwards (X). Negatives are down (-Y) and left (-X).
 							// Note that each value is an array. Each item in the array determines recoil
 							// for a different bullet in the sequence. Not all values have to be filled,
 							// but the last filled value will determine the recoil for longer volleys.
@@ -306,7 +388,15 @@ typedef struct
 
  UINT8	ubAimLevels;		// HEADROCK HAM 4: Dictates how many aiming levels this gun supports. If 0, the program
 							// chooses automatically based on the type of gun (see AllowedAimingLevels() ).
+
  UINT8	ubHandling;			// CHRISL HAM 4: This value replaces ubReadyTime for determining a weapons base handling characteristics.
+
+ // Flugente FTW 1
+ FLOAT usOverheatingJamThreshold;				// if a gun's temperature is above this treshold, it is increasingly prone to jamming
+ FLOAT usOverheatingDamageThreshold;			// if a gun is fired while its temperature is above this value, it degrades much faster
+ FLOAT usOverheatingSingleShotTemperature;		// a single shot raises a gun's temperature by this amount
+ 
+ BOOLEAN HeavyGun;	// SANDRO - a gun with this cannot be shouldered in standing position, part of shooting from hip feature
 
 } WEAPONTYPE;
 typedef struct
@@ -314,6 +404,7 @@ typedef struct
 	UINT8	ubCalibre;
 	UINT16	ubMagSize;
 	UINT8	ubAmmoType;
+	UINT8   ubMagType;
 
 	UINT32 uiIndex;
 } MAGTYPE;
@@ -340,6 +431,14 @@ typedef struct
 	UINT16		ubDuration;	
 	UINT16		ubStartRadius;	
 	UINT8		ubMagSize;
+	BOOLEAN		fExplodeOnImpact;	// HEADROCK HAM 5: Flag for impact explosives.
+	UINT16		usNumFragments;		// HEADROCK HAM 5.1: Fragmenting Explosive Data
+	UINT8		ubFragType;
+	UINT16		ubFragDamage;
+	UINT16		ubFragRange;
+	UINT16		ubHorizontalDegree;	// Flugente: size of the horizontal arc into which fragments will be shot
+	UINT16		ubVerticalDegree;	// Flugente: size of the vertical arc into which fragments will be shot
+	FLOAT		bIndoorModifier; //DBrot: confined areas enhance effect
 } EXPLOSIVETYPE;
 
 //GLOBALS
@@ -363,12 +462,12 @@ extern BOOLEAN FireWeapon( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo );
 extern void WeaponHit( UINT16 usSoldierID, UINT16 usWeaponIndex, INT16 sDamage, INT16 sBreathLoss, UINT16 usDirection, INT16 sXPos, INT16 sYPos, INT16 sZPos, INT16 sRange , UINT8 ubAttackerID, BOOLEAN fHit, UINT8 ubSpecial, UINT8 ubHitLocation );
 extern void StructureHit( INT32 iBullet, UINT16 usWeaponIndex, INT16 bWeaponStatus, UINT8 ubAttackerID, UINT16 sXPos, INT16 sYPos, INT16 sZPos, UINT16 usStructureID, INT32 iImpact, BOOLEAN fStopped );
 extern void WindowHit( INT32 sGridNo, UINT16 usStructureID, BOOLEAN fBlowWindowSouth, BOOLEAN fLargeForce );
-extern INT32 BulletImpact( SOLDIERTYPE *pFirer, SOLDIERTYPE * pTarget, UINT8 ubHitLocation, INT32 iImpact, INT16 sHitBy, UINT8 * pubSpecial );
+// HEADROCK HAM 5.1: Moved to Bullets.h
 extern BOOLEAN InRange( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 extern void ShotMiss( UINT8 ubAttackerID, INT32 iBullet );
 extern UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos );
 extern UINT32 CalcNewChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos );
-extern UINT32 AICalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos );
+extern UINT32 AICalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos, INT8 bTargetLevel, UINT16 usAnimState);//dnl ch59 180813
 extern UINT32 CalcChanceToPunch(SOLDIERTYPE *pAttacker, SOLDIERTYPE * pDefender, INT16 ubAimTime);
 extern UINT32 CalcChanceToStab(SOLDIERTYPE * pAttacker,SOLDIERTYPE *pDefender, INT16 ubAimTime);
 UINT32 CalcChanceToSteal(SOLDIERTYPE *pAttacker, SOLDIERTYPE * pDefender, INT16 ubAimTime);
@@ -381,18 +480,21 @@ extern BOOLEAN IsGunWeaponModeCapable( OBJECTTYPE* pObject, WeaponMode weaponMod
 extern BOOLEAN IsGunBurstCapable( OBJECTTYPE* pObject, BOOLEAN fNotify, SOLDIERTYPE *pSoldier = NULL );
 extern BOOLEAN IsGunAutofireCapable( OBJECTTYPE* pObject );
 extern INT32 CalcBodyImpactReduction( UINT8 ubAmmoType, UINT8 ubHitLocation );
-extern INT32 TotalArmourProtection( SOLDIERTYPE *pFirer, SOLDIERTYPE * pTarget, UINT8 ubHitLocation, INT32 iImpact, UINT8 ubAmmoType );
+extern INT32 TotalArmourProtection( SOLDIERTYPE * pTarget, UINT8 ubHitLocation, INT32 iImpact, UINT8 ubAmmoType );
 extern INT32 ArmourPercent( SOLDIERTYPE * pSoldier );
 
 extern void GetTargetWorldPositions( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, FLOAT *pdXPos, FLOAT *pdYPos, FLOAT *pdZPos );
 
 extern BOOLEAN	OKFireWeapon( SOLDIERTYPE *pSoldier );
 extern BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier );
+extern FLOAT   GetGunOverheatDamagePercentage( FLOAT usTemperature, UINT16 usIndx );	// Flugente: Get percentage: temperature/damagethreshold
+extern FLOAT   GetGunOverheatJamPercentage( FLOAT usTemperature, UINT16 usIndx );		// Flugente: Get percentage: temperature/jamthreshold
 
-extern INT32 CalcMaxTossRange( SOLDIERTYPE * pSoldier, UINT16 usItem, BOOLEAN fArmed );
+extern INT32 CalcMaxTossRange( SOLDIERTYPE * pSoldier, UINT16 usItem, BOOLEAN fArmed, OBJECTTYPE* pObject =NULL );
 extern UINT32 CalcThrownChanceToHit(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos );
 
 extern void ChangeWeaponMode( SOLDIERTYPE * pSoldier );
+extern void ChangeScopeMode( SOLDIERTYPE * pSoldier, INT32 iTrgGridNo );		// Flugente: use different scope
 
 extern BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo, BOOLEAN fStealing );
 
@@ -414,7 +516,7 @@ UINT16 GetMagSize( OBJECTTYPE *pObj, UINT8 subObject = 0 );
 UINT16 GetExpMagSize( OBJECTTYPE *pObj );
 UINT8 GetAmmoType( OBJECTTYPE *pObj );
 bool WeaponReady(SOLDIERTYPE * pSoldier);
-INT8 GetAPsToReload( OBJECTTYPE *pObj );
+INT16 GetAPsToReload( OBJECTTYPE *pObj );
 
 // HEADROCK HAM 3.4: Estimate bullets left in gun. Returns an "errorcode" telling the calling function if the check
 // was successful and to what degree.
@@ -422,8 +524,22 @@ void EstimateBulletsLeft( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj );
 extern CHAR16 gBulletCount[10];
 
 // HEADROCK HAM 4: This function generates a mag-factor bar percentage.
-void CalcMagFactorSimple( SOLDIERTYPE *pSoldier, FLOAT d2DDistance, INT16 bAimTime );
+void CalcMagFactorSimple( SOLDIERTYPE *pSoldier, FLOAT d2DDistance, INT16 bAimTime, INT32 iGridNo );
 // HEADROCK HAM 4: This gets the Z of a target regardless of what's there.
 FLOAT GetTargetZPos( SOLDIERTYPE *pShooter, INT32 sTargetGridNo );
+
+// Flugente: Overheating Weapons
+void GunIncreaseHeat( OBJECTTYPE *pObj, SOLDIERTYPE* pSoldier );	// adding pSoldier allows soldier-specific modification of generated heat
+FLOAT GetTemperatureModifier( OBJECTTYPE *pObj );
+FLOAT GetSingleShotTemperature( OBJECTTYPE *pObj );
+FLOAT GetGunOverheatDamagePercentage( OBJECTTYPE * pObj );	// Flugente: Get percentage: temperature/damagethreshold
+FLOAT GetGunOverheatJamPercentage( OBJECTTYPE * pObj );		// Flugente: Get percentage: temperature/jamthreshold
+FLOAT GetGunOverheatDisplayPercentage( OBJECTTYPE * pObj );	// Flugente: Get displyed overheat percentage - either GetGunOverheatDamagePercentage or GetGunOverheatJamPercentage
+FLOAT GetOverheatJamThresholdModifier( OBJECTTYPE *pObj );
+FLOAT GetOverheatJamThreshold( OBJECTTYPE *pObj );
+FLOAT GetOverheatDamageThresholdModifier( OBJECTTYPE *pObj );
+FLOAT GetOverheatDamageThreshold( OBJECTTYPE *pObj );
+
+BOOLEAN ArtilleryStrike( UINT16 usItem, UINT32 usStartingGridNo, UINT32 usTargetMapPos );
 
 #endif

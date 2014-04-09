@@ -8,7 +8,6 @@
 	#include "WCheck.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "Soldier Profile.h"
@@ -21,6 +20,7 @@
 	#include "Facilities.h"
 	// HEADROCK HAM 3.6: Militia upkeep
 	#include "Town Militia.h"
+	#include "CampaignStats.h"		// added by Flugente
 #endif
 
 // the global defines
@@ -232,15 +232,25 @@ UINT32 AddTransactionToPlayersBook (UINT8 ubCode, UINT8 ubSecondCode, UINT32 uiD
 
 	if( !fInFinancialMode )
 	{
-	ClearFinanceList( );
+		ClearFinanceList( );
 	}
 	else
 	{
 		SetFinanceButtonStates( );
 
 		// force update
-	fPausedReDrawScreenFlag = TRUE;
+		fPausedReDrawScreenFlag = TRUE;
 	}
+
+	// Flugente: campaign stats
+	if ( ubCode == ANONYMOUS_DEPOSIT )
+		gCampaignStats.AddMoneyEarned(CAMPAIGN_MONEY_START, iAmount );
+	else if ( ubCode == DEPOSIT_FROM_GOLD_MINE || ubCode == DEPOSIT_FROM_SILVER_MINE )
+		gCampaignStats.AddMoneyEarned(CAMPAIGN_MONEY_MINES, iAmount );
+	else if ( ubCode == SOLD_ITEMS )
+		gCampaignStats.AddMoneyEarned(CAMPAIGN_MONEY_TRADE, iAmount );
+	else
+		gCampaignStats.AddMoneyEarned(CAMPAIGN_MONEY_ETC, iAmount );
 
 	fMapScreenBottomDirty = TRUE;
 
@@ -747,6 +757,8 @@ void DrawRecordsColumnHeadersText( void )
 
 void DrawRecordsText( void )
 {
+    Assert(pFinanceListHead);
+
 	// draws the text of the records
 	FinanceUnitPtr pCurFinance=pCurrentFinance;
 	FinanceUnitPtr pTempFinance=pFinanceListHead;
@@ -1464,7 +1476,7 @@ void ProcessTransactionString(STR16 pString, FinanceUnitPtr pFinance)
 			break;
 
 		case PAY_SPECK_FOR_MERC:
-			swprintf(pString, L"%s", pTransactionText[ PAY_SPECK_FOR_MERC ], gMercProfiles[pFinance->ubSecondCode].zName);
+			swprintf(pString, L"%s", pTransactionText[ PAY_SPECK_FOR_MERC ], gMercProfiles[pFinance->ubSecondCode].zName); // FIXME: param4 unused
 			break;
 
 		case MEDICAL_DEPOSIT:
@@ -1569,6 +1581,11 @@ void ProcessTransactionString(STR16 pString, FinanceUnitPtr pFinance)
 		// HEADROCK HAM 3.6: Paid for militia upkeep
 		case( MILITIA_UPKEEP ):
 			swprintf(pString, L"%s", pTransactionText[ MILITIA_UPKEEP ]);
+			break;
+
+		// Flugente: ransom from released prisoners
+		case PRISONER_RANSOM:
+			swprintf(pString, L"%s", pTransactionText[ PRISONER_RANSOM ]);
 			break;
 
 	}

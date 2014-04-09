@@ -27,6 +27,8 @@ struct
 }
 typedef attachmentslotParseData;
 
+BOOLEAN localizedTextOnly_AttachmentSlots;
+
 static void XMLCALL
 attachmentslotStartElementHandle(void *userData, const XML_Char *name, const XML_Char **atts)
 {
@@ -38,7 +40,9 @@ attachmentslotStartElementHandle(void *userData, const XML_Char *name, const XML
 		{
 			pData->curElement = ELEMENT_LIST;
 
-			memset(pData->curArray,0,sizeof(AttachmentSlotStruct)*pData->maxArraySize);
+			// WANNE: Only init memory, when we read the complete data, otherwise the data will be erased!
+			if (!localizedTextOnly_AttachmentSlots)
+				memset(pData->curArray,0,sizeof(AttachmentSlotStruct)*pData->maxArraySize);
 
 			pData->maxReadDepth++; //we are not skipping this element
 		}
@@ -46,10 +50,13 @@ attachmentslotStartElementHandle(void *userData, const XML_Char *name, const XML
 		{
 			pData->curElement = ELEMENT;
 
-			memset(&pData->curAttachmentSlot,0,sizeof(AttachmentSlotStruct));
+			// WANNE: Only init memory, when we read the complete data, otherwise the data will be erased!
+			if (!localizedTextOnly_AttachmentSlots)
+				memset(&pData->curAttachmentSlot,0,sizeof(AttachmentSlotStruct));
 
 			pData->maxReadDepth++; //we are not skipping this element
 		}
+		//DBrot: MOLLE new tag
 		else if(pData->curElement == ELEMENT &&
 				(strcmp(name, "uiSlotIndex") == 0 ||
 				strcmp(name, "szSlotName") == 0 ||
@@ -58,6 +65,7 @@ attachmentslotStartElementHandle(void *userData, const XML_Char *name, const XML
 				strcmp(name, "usDescPanelPosX") == 0 ||
 				strcmp(name, "usDescPanelPosY") == 0 ||
 				strcmp(name, "fMultiShot") == 0 ||
+				strcmp(name, "ubPocketMapping") == 0 ||
 				strcmp(name, "fBigSlot") == 0 ))
 		{
 			pData->curElement = ELEMENT_PROPERTY;
@@ -100,18 +108,27 @@ attachmentslotEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = ELEMENT_LIST;
 
 			if(pData->curAttachmentSlot.uiSlotIndex < pData->maxArraySize)
-			{
-				pData->curArray[pData->curAttachmentSlot.uiSlotIndex] = pData->curAttachmentSlot; //write the attachmentinfo into the table
-				//Save the highest known index up till now.
-				if(LAST_SLOT_INDEX < pData->curAttachmentSlot.uiSlotIndex){
-					LAST_SLOT_INDEX = (UINT16) pData->curAttachmentSlot.uiSlotIndex;
+			{				
+				if (!localizedTextOnly_AttachmentSlots)
+				{
+					pData->curArray[pData->curAttachmentSlot.uiSlotIndex] = pData->curAttachmentSlot; //write the attachmentinfo into the table
+
+					//Save the highest known index up till now.
+					if(LAST_SLOT_INDEX < pData->curAttachmentSlot.uiSlotIndex)
+					{
+						LAST_SLOT_INDEX = (UINT16) pData->curAttachmentSlot.uiSlotIndex;
+					}
 				}
+				else
+				{
+					wcscpy(AttachmentSlots[pData->curAttachmentSlot.uiSlotIndex].szSlotName, pData->curAttachmentSlot.szSlotName);
+				}				
 			}
 		}
 		else if(strcmp(name, "uiSlotIndex") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curAttachmentSlot.uiSlotIndex	= (UINT32) atol(pData->szCharData);
+			pData->curAttachmentSlot.uiSlotIndex	= (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "szSlotName") == 0)
 		{
@@ -122,12 +139,12 @@ attachmentslotEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "nasAttachmentClass") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curAttachmentSlot.nasAttachmentClass	= (UINT32) atol(pData->szCharData);
+			pData->curAttachmentSlot.nasAttachmentClass	= (UINT64) atof(pData->szCharData);
 		}
 		else if(strcmp(name, "nasLayoutClass") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curAttachmentSlot.nasLayoutClass	= (UINT128) atol(pData->szCharData);
+			pData->curAttachmentSlot.nasLayoutClass	= (UINT64) atof(pData->szCharData);
 		}
 		else if(strcmp(name, "usDescPanelPosX") == 0)
 		{
@@ -138,6 +155,12 @@ attachmentslotEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curAttachmentSlot.usDescPanelPosY	= (UINT16) atol(pData->szCharData);
+		}
+		//DBrot: MOLLE
+		else if(strcmp(name, "ubPocketMapping") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curAttachmentSlot.ubPocketMapping	= (UINT8) atol(pData->szCharData);
 		}
 		else if(strcmp(name, "fMultiShot") == 0)
 		{
@@ -156,7 +179,7 @@ attachmentslotEndElementHandle(void *userData, const XML_Char *name)
 }
 
 
-BOOLEAN ReadInAttachmentSlotsStats(STR fileName)
+BOOLEAN ReadInAttachmentSlotsStats(STR fileName, BOOLEAN localizedVersion)
 {
 	HWFILE		hFile;
 	UINT32		uiBytesRead;
@@ -165,6 +188,8 @@ BOOLEAN ReadInAttachmentSlotsStats(STR fileName)
 	XML_Parser	parser = XML_ParserCreate(NULL);
 
 	attachmentslotParseData pData;
+
+	localizedTextOnly_AttachmentSlots = localizedVersion;
 
 	DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "Loading AttachmentSlots.xml" );
 
@@ -187,23 +212,20 @@ BOOLEAN ReadInAttachmentSlotsStats(STR fileName)
 
 	FileClose( hFile );
 
-
 	XML_SetElementHandler(parser, attachmentslotStartElementHandle, attachmentslotEndElementHandle);
 	XML_SetCharacterDataHandler(parser, attachmentslotCharacterDataHandle);
 
-
 	// This should fix the crash in a Release Version with VS 2008	
 	//memset(&pData,0,sizeof(pData));
+	
 	pData.curElement = ELEMENT_NONE;
 	pData.szCharData[0] = 0;
 	pData.currentDepth = 0;
 	pData.maxReadDepth = 0;	
- 	pData.curArray = AttachmentSlots;
- 	pData.maxArraySize = MAXITEMS;
-
-
+	pData.curArray = AttachmentSlots;
+	pData.maxArraySize = MAXITEMS;	
+	
 	XML_SetUserData(parser, &pData);
-
 
 	if(!XML_Parse(parser, lpcBuffer, uiFSize, TRUE))
 	{
@@ -218,9 +240,7 @@ BOOLEAN ReadInAttachmentSlotsStats(STR fileName)
 
 	MemFree(lpcBuffer);
 
-
 	XML_ParserFree(parser);
-
 	
 	return( TRUE );
 }
@@ -252,8 +272,10 @@ BOOLEAN WriteAttachmentSlotsStats()
 			FilePrintf(hFile,"\t\t<usDescPanelPosX>%d</usDescPanelPosX>\r\n",							AttachmentSlots[cnt].usDescPanelPosX				);
 			FilePrintf(hFile,"\t\t<usDescPanelPosY>%d</usDescPanelPosY>\r\n",							AttachmentSlots[cnt].usDescPanelPosY				);
 			FilePrintf(hFile,"\t\t<fMultiShot>%d</fMultiShot>\r\n",									AttachmentSlots[cnt].fMultiShot				);
+			//DBrot: MOLLE
+			FilePrintf(hFile,"\t\t<ubPocketMapping>%d</ubPocketMapping>\r\n",											AttachmentSlots[cnt].ubPocketMapping						);
 			FilePrintf(hFile,"\t\t<fBigSlot>%d</fBigSlot>\r\n",											AttachmentSlots[cnt].fBigSlot						);
-
+			
 			FilePrintf(hFile,"\t</ATTACHMENTSLOT>\r\n");
 		}
 		FilePrintf(hFile,"</ATTACHMENTSLOTLIST>\r\n");

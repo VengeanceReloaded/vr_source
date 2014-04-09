@@ -8,7 +8,6 @@
 	#include "mousesystem.h"
 	#include "Button System.h"
 	#include "sgp.h"
-	#include "WCheck.h"
 	#include "Utilities.h"
 	#include "message.h"
 	#include "mapscreen.h"
@@ -16,7 +15,6 @@
 	#include "font control.h"
 	#include "Radar Screen.h"
 	#include "game clock.h"
-	#include "cursors.h"
 	#include "sysutil.h"
 	#include "Render Dirty.h"
 	#include "Map Screen Interface.h"
@@ -33,7 +31,6 @@
 	#include "Air Raid.h"
 	#include "Finances.h"
 	#include "LaptopSave.h"
-	#include "Sound Control.h"
 	#include "Interface Items.h"
 	#include "wordwrap.h"
 	#include "meanwhile.h"
@@ -47,11 +44,17 @@
 	#include "Assignments.h"
 	#include "Soldier macros.h"
 	#include "GameSettings.h"
-	#include "_Ja25EnglishText.h"
 	#include "SaveLoadScreen.h"
 	#include "Interface Control.h"
 	#include "Sys Globals.h"
 #include "game init.h"
+#endif
+
+#ifdef JA2UB
+#include "Ja25 Strategic Ai.h"
+#include "MapScreen Quotes.h"
+#include "SaveLoadGame.h"
+#include "strategicmap.h"
 #endif
 
 #include "connect.h"
@@ -232,15 +235,15 @@ void HandleLoadOfMapBottomGraphics( void )
 	// will create buttons for interface bottom
 	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
 
-	if (iResolution == 0)
+	if (iResolution >= _640x480 && iResolution < _800x600)
 	{
 		FilenameForBPP( "INTERFACE\\map_screen_bottom.sti", VObjectDesc.ImageFile );
 	}
-	else if (iResolution == 1)
+	else if (iResolution < _1024x768)
 	{
 		FilenameForBPP( "INTERFACE\\map_screen_bottom_800x600.sti", VObjectDesc.ImageFile );
 	}
-	else if (iResolution == 2)
+	else
 	{
 		FilenameForBPP( "INTERFACE\\map_screen_bottom_1024x768.sti", VObjectDesc.ImageFile );
 	}
@@ -304,12 +307,13 @@ void RenderMapScreenInterfaceBottom( BOOLEAN fForceMapscreenFullRender )
 	// HEADROCK Changed this line to accept outside influence through the new boolean:
 	//if ( fForceMapscreenFullRender == TRUE || fMapScreenBottomDirty == TRUE)
 	// HEADROCK HAM 3.6: OK, let's always render this panel, as long as the team inventory screen isn't open.
-	if ( fMapScreenBottomDirty || !fShowInventoryFlag )
+	if ( fMapScreenBottomDirty || (!fShowInventoryFlag && fForceMapscreenFullRender))
 	{
 		// get and blt panel
 		GetVideoObject(&hHandle, guiMAPBOTTOMPANEL );
-		BltVideoObject( guiSAVEBUFFER , hHandle, 0, MAP_BOTTOM_X, MAP_BOTTOM_Y, VO_BLT_SRCTRANSPARENCY,NULL );
 
+		BltVideoObject( guiSAVEBUFFER , hHandle, 0, xResOffset + MAP_BOTTOM_X, MAP_BOTTOM_Y, VO_BLT_SRCTRANSPARENCY,NULL );
+	
 		// WANNE - MP: Radarmap image should be displayed on every sector in multiplayer game
 		if( GetSectorFlagStatus( sSelMapX, sSelMapY, ( UINT8 )iCurrentMapSectorZ, SF_ALREADY_VISITED ) == TRUE 
 			|| is_networked)
@@ -330,8 +334,8 @@ void RenderMapScreenInterfaceBottom( BOOLEAN fForceMapscreenFullRender )
 		// dirty buttons
 		MarkButtonsDirty( );
 
-		// invalidate region
-		RestoreExternBackgroundRect( MAP_BOTTOM_X, MAP_BOTTOM_Y, SCREEN_WIDTH - MAP_BOTTOM_X, SCREEN_HEIGHT - MAP_BOTTOM_Y );
+		// TODO.RW.ARSP: Check: Is the height 121 OK?
+		RestoreExternBackgroundRect( xResOffset + MAP_BOTTOM_X, MAP_BOTTOM_Y, SCREEN_WIDTH - MAP_BOTTOM_X - 2 * xResOffset, 121 );
 
 		// re render radar map
 		RenderRadarScreen( );
@@ -372,6 +376,11 @@ void RenderMapScreenInterfaceBottom( BOOLEAN fForceMapscreenFullRender )
 	EnableDisableBottomButtonsAndRegions( );
 
 	fMapBottomDirtied = FALSE;
+	
+	#ifdef JA113DEMO
+	DisableButton (guiMapBottomExitButtons[MAP_EXIT_TO_LAPTOP]);
+	#endif
+	
 	return;
 }
 
@@ -380,20 +389,20 @@ BOOLEAN CreateButtonsForMapScreenInterfaceBottom( void )
 {
 	// laptop
 	guiMapBottomExitButtonsImage[ MAP_EXIT_TO_LAPTOP ]=	LoadButtonImage( "INTERFACE\\map_border_buttons.sti" ,-1,6,-1,15,-1 );
-	guiMapBottomExitButtons[ MAP_EXIT_TO_LAPTOP ] = QuickCreateButton( guiMapBottomExitButtonsImage[ MAP_EXIT_TO_LAPTOP ], (SCREEN_WIDTH - 184), (SCREEN_HEIGHT - 70),
+	guiMapBottomExitButtons[ MAP_EXIT_TO_LAPTOP ] = QuickCreateButton( guiMapBottomExitButtonsImage[ MAP_EXIT_TO_LAPTOP ], xResOffset + (xResSize - 184), (SCREEN_HEIGHT - 70),
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
 										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnLaptopCallback);
 
 	// tactical
 	guiMapBottomExitButtonsImage[ MAP_EXIT_TO_TACTICAL ]=	LoadButtonImage( "INTERFACE\\map_border_buttons.sti" ,-1,7,-1,16,-1 );
 
-	guiMapBottomExitButtons[ MAP_EXIT_TO_TACTICAL ] = QuickCreateButton( guiMapBottomExitButtonsImage[ MAP_EXIT_TO_TACTICAL ], (SCREEN_WIDTH - 144), (SCREEN_HEIGHT - 70),
+	guiMapBottomExitButtons[ MAP_EXIT_TO_TACTICAL ] = QuickCreateButton( guiMapBottomExitButtonsImage[ MAP_EXIT_TO_TACTICAL ], xResOffset + (xResSize - 144), (SCREEN_HEIGHT - 70),
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
 										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnTacticalCallback);
 
 	// options
 	guiMapBottomExitButtonsImage[ MAP_EXIT_TO_OPTIONS ]=	LoadButtonImage( "INTERFACE\\map_border_buttons.sti" ,-1,18,-1,19,-1 );
-	guiMapBottomExitButtons[ MAP_EXIT_TO_OPTIONS ] = QuickCreateButton( guiMapBottomExitButtonsImage[ MAP_EXIT_TO_OPTIONS ], (SCREEN_WIDTH - 182), (SCREEN_HEIGHT - 108),
+	guiMapBottomExitButtons[ MAP_EXIT_TO_OPTIONS ] = QuickCreateButton( guiMapBottomExitButtonsImage[ MAP_EXIT_TO_OPTIONS ], xResOffset + (xResSize - 182), (SCREEN_HEIGHT - 108),
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
 										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnOptionsFromMapScreenCallback);
 
@@ -409,12 +418,12 @@ BOOLEAN CreateButtonsForMapScreenInterfaceBottom( void )
 
 	// time compression buttons
 	guiMapBottomTimeButtonsImage[ MAP_TIME_COMPRESS_MORE ]=	LoadButtonImage( "INTERFACE\\map_screen_bottom_arrows.sti" ,10,1,-1,3,-1 );
-	guiMapBottomTimeButtons[ MAP_TIME_COMPRESS_MORE ] = QuickCreateButton( guiMapBottomTimeButtonsImage[ MAP_TIME_COMPRESS_MORE ], (SCREEN_WIDTH - 112), (SCREEN_HEIGHT - 24),
+	guiMapBottomTimeButtons[ MAP_TIME_COMPRESS_MORE ] = QuickCreateButton( guiMapBottomTimeButtonsImage[ MAP_TIME_COMPRESS_MORE ], xResOffset + (xResSize - 112), (SCREEN_HEIGHT - 24),
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 2 ,
 										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnTimeCompressMoreMapScreenCallback);
 
 	guiMapBottomTimeButtonsImage[ MAP_TIME_COMPRESS_LESS ]=	LoadButtonImage( "INTERFACE\\map_screen_bottom_arrows.sti" ,9,0,-1,2,-1 );
-	guiMapBottomTimeButtons[ MAP_TIME_COMPRESS_LESS ] = QuickCreateButton( guiMapBottomTimeButtonsImage[ MAP_TIME_COMPRESS_LESS ], (SCREEN_WIDTH - 174), (SCREEN_HEIGHT - 24),
+	guiMapBottomTimeButtons[ MAP_TIME_COMPRESS_LESS ] = QuickCreateButton( guiMapBottomTimeButtonsImage[ MAP_TIME_COMPRESS_LESS ], xResOffset + (xResSize - 174), (SCREEN_HEIGHT - 24),
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 2,
 					(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnTimeCompressLessMapScreenCallback);
 
@@ -429,21 +438,12 @@ BOOLEAN CreateButtonsForMapScreenInterfaceBottom( void )
  // scroll buttons
 // CHRISL: Changed coordinates to dynamically place scroll buttons from the right edge of screen.
   guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_UP ]=  LoadButtonImage( "INTERFACE\\map_screen_bottom_arrows.sti" ,11,4,-1,6,-1 );
-//  guiMapMessageScrollButtons[ MAP_SCROLL_MESSAGE_UP ] = QuickCreateButton( guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_UP ], (SCREEN_WIDTH - 533), (SCREEN_HEIGHT - 109), 
-//										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
-//										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnMessageUpMapScreenCallback);
- 
 	guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_DOWN ]=  LoadButtonImage( "INTERFACE\\map_screen_bottom_arrows.sti" ,12,5,-1,7,-1 );
-//  guiMapMessageScrollButtons[ MAP_SCROLL_MESSAGE_DOWN ] = QuickCreateButton( guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_DOWN ], (SCREEN_WIDTH - 533), (SCREEN_HEIGHT - 28), 
-//										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
-//										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnMessageDownMapScreenCallback);
-// CHRISL: Use these if we want buttons based on left edge of screen
-// HEADROCK HAM 3.6: Message window is now as wide as possible.
-  
-	guiMapMessageScrollButtons[ MAP_SCROLL_MESSAGE_UP ] = QuickCreateButton( guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_UP ], (SCREEN_WIDTH - 306), (SCREEN_HEIGHT - 109),
+
+	guiMapMessageScrollButtons[ MAP_SCROLL_MESSAGE_UP ] = QuickCreateButton( guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_UP ], xResOffset + (xResSize - 306), (SCREEN_HEIGHT - 109),
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
 										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnMessageUpMapScreenCallback);
-	guiMapMessageScrollButtons[ MAP_SCROLL_MESSAGE_DOWN ] = QuickCreateButton( guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_DOWN ], (SCREEN_WIDTH - 306), (SCREEN_HEIGHT - 28),
+	guiMapMessageScrollButtons[ MAP_SCROLL_MESSAGE_DOWN ] = QuickCreateButton( guiMapMessageScrollButtonsImage[ MAP_SCROLL_MESSAGE_DOWN ], xResOffset + (xResSize - 306), (SCREEN_HEIGHT - 28),
 										BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST - 1,
 										(GUI_CALLBACK)BtnGenericMouseMoveButtonCallback, (GUI_CALLBACK)BtnMessageDownMapScreenCallback);
 
@@ -451,8 +451,6 @@ BOOLEAN CreateButtonsForMapScreenInterfaceBottom( void )
 	SetButtonFastHelpText( guiMapMessageScrollButtons[ 1 ], pMapScreenBottomFastHelp[ 6 ] );
 	SetButtonCursor(guiMapMessageScrollButtons[ 0 ], MSYS_NO_CURSOR );
 	SetButtonCursor(guiMapMessageScrollButtons[ 1 ], MSYS_NO_CURSOR );
-
-
 
 	return( TRUE );
 }
@@ -629,8 +627,8 @@ void DrawNameOfLoadedSector( void )
 	GetSectorIDString( sSelMapX, sSelMapY, ( INT8 )( iCurrentMapSectorZ ),sString, TRUE );
 	ReduceStringLength( sString, 80, COMPFONT );
 
-	//VarFindFontCenterCoordinates( 548, 426, 80, 16, COMPFONT, &sFontX, &sFontY, sString );
-	VarFindFontCenterCoordinates( (SCREEN_WIDTH - 92), (SCREEN_HEIGHT - 55), 80, 16, COMPFONT, &sFontX, &sFontY, sString );
+	VarFindFontCenterCoordinates( xResOffset + (xResSize - 92), (SCREEN_HEIGHT - 55), 80, 16, COMPFONT, &sFontX, &sFontY, sString );
+
 	mprintf( sFontX, sFontY, L"%s", sString );
 }
 
@@ -973,10 +971,9 @@ void DisplayCompressMode( void )
 		}
 	}
 
-	//RestoreExternBackgroundRect( 489, 456, 522 - 489, 467 - 454 );
-	RestoreExternBackgroundRect( (SCREEN_WIDTH - 151), (SCREEN_HEIGHT - 24), 63, 13 );
-
-	SetFontDestBuffer( FRAME_BUFFER, 0,0,SCREEN_WIDTH,SCREEN_HEIGHT, FALSE );
+	// ABCDEFG
+	RestoreExternBackgroundRect( xResOffset + (xResSize - 151), (SCREEN_HEIGHT - 24), 63, 13 );
+	SetFontDestBuffer( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, FALSE );
 	SetFont( COMPFONT );
 
 	if( GetJA2Clock() - guiCompressionStringBaseTime >= PAUSE_GAME_TIMER )
@@ -1001,10 +998,9 @@ void DisplayCompressMode( void )
 	SetFontForeground( usColor );
 	SetFontBackground( FONT_BLACK );
 
-	//FindFontCenterCoordinates( 489, 456, 522 - 489, 467 - 454, sString, COMPFONT, &sX, &sY );
-	FindFontCenterCoordinates( (SCREEN_WIDTH - 151), (SCREEN_HEIGHT - 24), 33, 13, sString, COMPFONT, &sX, &sY );
+	FindFontCenterCoordinates( xResOffset + (xResSize - 151), (SCREEN_HEIGHT - 24), 33, 13, sString, COMPFONT, &sX, &sY );
+		
 	mprintf( sX, sY, sString );
-
 
 	return;
 }
@@ -1012,10 +1008,7 @@ void DisplayCompressMode( void )
 
 void CreateCompressModePause( void )
 {
-	/*MSYS_DefineRegion( &gMapPauseRegion, 487, 456, 522, 467, MSYS_PRIORITY_HIGH,
-							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressModeClickCallback );*/
-
-	MSYS_DefineRegion( &gMapPauseRegion, (SCREEN_WIDTH - 153), (SCREEN_HEIGHT - 24), (SCREEN_WIDTH - 118), (SCREEN_HEIGHT - 13), MSYS_PRIORITY_HIGH,
+	MSYS_DefineRegion( &gMapPauseRegion, xResOffset + (xResSize - 153), (SCREEN_HEIGHT - 24), xResOffset + (xResSize - 118), (SCREEN_HEIGHT - 13), MSYS_PRIORITY_HIGH,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressModeClickCallback );
 
 	SetRegionFastHelpText( &gMapPauseRegion, pMapScreenBottomFastHelp[ 7 ] );
@@ -1329,11 +1322,15 @@ BOOLEAN AllowedToTimeCompress( void )
 		return( FALSE );
 	}
 
+#ifdef JA2UB
+//Ja25 no meanwhiles
+#else
 	// meanwhile coming up
 	if ( gfMeanwhileTryingToStart )
 	{
 		return( FALSE );
 	}
+#endif
 
 	// someone has something to say
 	if ( !DialogueQueueIsEmpty() )
@@ -1420,6 +1417,25 @@ BOOLEAN AllowedToTimeCompress( void )
 		return FALSE;
 	}
 
+	// Flugente: no time compression if hostile civilians bloodcats are in the current sector. 
+	// Otherwise time progresses, but squad arrivals will be delayed as long as they still exist
+	if ( HostileCiviliansPresent() || HostileBloodcatsPresent() )
+	{
+		return FALSE;
+	}
+
+#ifdef JA2UB  
+		//if the player hasnt been to the initial sector yet
+	if( !GetSectorFlagStatus( gGameExternalOptions.ubDefaultArrivalSectorX, gGameExternalOptions.ubDefaultArrivalSectorY, 0, SF_HAS_ENTERED_TACTICAL ) ) //7, 8
+	{
+		//if there is something that jerry wants to say
+		if( !WillJerryMiloAllowThePlayerToCompressTimeAtBeginingOfGame() )
+		{
+			return( FALSE );
+		}
+	}
+#endif
+	
 	return( TRUE );
 }
 
@@ -1440,11 +1456,11 @@ void DisplayCurrentBalanceTitleForMapBottom( void )
 
 	// center it
 	// CHRISL: Replaced X coordinate with dynamic coordinate set from right edge of screen
-	//VarFindFontCenterCoordinates( (SCREEN_WIDTH - 637), (SCREEN_HEIGHT - 107),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
+	//VarFindFontCenterCoordinates( (1024 - 637), (SCREEN_HEIGHT - 107),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
 	// CHRISL: Use this if we want to display from the left edge
 	//VarFindFontCenterCoordinates( 359, (SCREEN_HEIGHT - 107),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
 	// HEADROCK HAM 3.6: The balance/income box has been moved to the right side, near the laptop button.
-	VarFindFontCenterCoordinates( (SCREEN_WIDTH - 278), (SCREEN_HEIGHT - 111), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
+	VarFindFontCenterCoordinates( xResOffset + (xResSize - 278), (SCREEN_HEIGHT - 111), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
 	
 	// print it
 	mprintf( sFontX, sFontY, L"%s", sString );
@@ -1453,11 +1469,11 @@ void DisplayCurrentBalanceTitleForMapBottom( void )
 
 	// center it
 	// CHRISL: Replaced X coordinate with dynamic coordinate set from right edge of screen
-	//VarFindFontCenterCoordinates( (SCREEN_WIDTH - 637), (SCREEN_HEIGHT - 61),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
+	//VarFindFontCenterCoordinates( (1024 - 637), (SCREEN_HEIGHT - 61),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
 	// CHRISL: Use this if we want to display from the left edge
 	//VarFindFontCenterCoordinates( 359, (SCREEN_HEIGHT - 61),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
 	// HEADROCK HAM 3.6: The balance/income box has been moved to the right side, near the laptop button.	
-	VarFindFontCenterCoordinates( (SCREEN_WIDTH - 278), (SCREEN_HEIGHT - 74), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
+	VarFindFontCenterCoordinates( xResOffset + (xResSize - 278), (SCREEN_HEIGHT - 74), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
 
 	// print it
 	mprintf( sFontX, sFontY, L"%s", sString );
@@ -1466,13 +1482,14 @@ void DisplayCurrentBalanceTitleForMapBottom( void )
 
 	// HEADROCK HAM 3.6: Projected expenses for today, with facilities (and in the future, merc contracts) taken into
 	// account.
-	VarFindFontCenterCoordinates( (SCREEN_WIDTH - 278), (SCREEN_HEIGHT - 37), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
+	VarFindFontCenterCoordinates( xResOffset + (xResSize - 278), (SCREEN_HEIGHT - 37), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
 
 	// print it
 	mprintf( sFontX, sFontY, L"%s", sString );
 
 	// ste the font buffer
 	SetFontDestBuffer( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, FALSE );
+	
 	return;
 }
 
@@ -1493,17 +1510,10 @@ void DisplayCurrentBalanceForMapBottom( void )
 	swprintf( sString, L"%d", LaptopSaveInfo.iCurrentBalance );
 
 	// insert
-
 	InsertCommasForDollarFigure( sString );
 	InsertDollarSignInToString( sString );
 
-	// center it
-	// CHRISL: Replaced X coordinate with dynamic coordinate set from right edge of screen
-	//VarFindFontCenterCoordinates( (SCREEN_WIDTH - 637), (SCREEN_HEIGHT - 91),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
-	// CHRISL: Use this if we want to display from the left edge
-	//VarFindFontCenterCoordinates( 359, (SCREEN_HEIGHT - 91),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
-	// HEADROCK HAM 3.6: The balance/income box has been moved to the right side, near the laptop button.	
-	VarFindFontCenterCoordinates( (SCREEN_WIDTH - 278), (SCREEN_HEIGHT - 95), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
+	VarFindFontCenterCoordinates( xResOffset + (xResSize - 278), (SCREEN_HEIGHT - 95), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
 	
 	// print it
 	mprintf( sFontX, sFontY, L"%s", sString );
@@ -1531,31 +1541,18 @@ void CreateDestroyMouseRegionMasksForTimeCompressionButtons( void )
 	// check if disabled and not created, create
 	if( ( fDisabled ) && ( fCreated == FALSE ) )
 	{
-
 		// mask over compress more button
-		//MSYS_DefineRegion( &gTimeCompressionMask[ 0 ], 528, 456, 528 + 13, 456 + 14, MSYS_PRIORITY_HIGHEST - 1,
-		//					MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback );
-
-		//// mask over compress less button
-		//MSYS_DefineRegion( &gTimeCompressionMask[ 1 ], 466, 456, 466 + 13, 456 + 14, MSYS_PRIORITY_HIGHEST - 1,
-		//					MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback );
-
-		//// mask over pause game button
-		//MSYS_DefineRegion( &gTimeCompressionMask[ 2 ], 487, 456, 522, 467, MSYS_PRIORITY_HIGHEST - 1,
-		//					MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback );
-
-		// mask over compress more button
-		MSYS_DefineRegion( &gTimeCompressionMask[ 0 ], (SCREEN_WIDTH - 112), (SCREEN_HEIGHT - 24), (SCREEN_WIDTH - 112) + 13, (SCREEN_HEIGHT - 24) + 14, MSYS_PRIORITY_HIGHEST - 1,
+		MSYS_DefineRegion( &gTimeCompressionMask[ 0 ], xResOffset + (xResSize - 112), (SCREEN_HEIGHT - 24), xResOffset + (xResSize - 112) + 13, (SCREEN_HEIGHT - 24) + 16, MSYS_PRIORITY_HIGHEST - 1,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback );
 
 		// mask over compress less button
-		MSYS_DefineRegion( &gTimeCompressionMask[ 1 ], (SCREEN_WIDTH - 174), (SCREEN_HEIGHT - 24), (SCREEN_WIDTH - 174) + 13, (SCREEN_HEIGHT - 24) + 14, MSYS_PRIORITY_HIGHEST - 1,
+		MSYS_DefineRegion( &gTimeCompressionMask[ 1 ], xResOffset + (xResSize - 174), (SCREEN_HEIGHT - 24), xResOffset + (xResSize - 174) + 13, (SCREEN_HEIGHT - 24) + 16, MSYS_PRIORITY_HIGHEST - 1,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback );
 
 		// mask over pause game button
-		MSYS_DefineRegion( &gTimeCompressionMask[ 2 ], (SCREEN_WIDTH - 153), (SCREEN_HEIGHT - 24), (SCREEN_WIDTH - 118), (SCREEN_HEIGHT - 13), MSYS_PRIORITY_HIGHEST - 1,
+		MSYS_DefineRegion( &gTimeCompressionMask[ 2 ], xResOffset + (xResSize - 153), (SCREEN_HEIGHT - 24), xResOffset + (xResSize - 153) + 118, (SCREEN_HEIGHT - 13), MSYS_PRIORITY_HIGHEST - 1,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, CompressMaskClickCallback );
-
+		RemoveMouseRegionForPauseOfClock();
 		fCreated = TRUE;
 	}
 	else if( ( fDisabled == FALSE ) && ( fCreated ) )
@@ -1564,6 +1561,7 @@ void CreateDestroyMouseRegionMasksForTimeCompressionButtons( void )
 		MSYS_RemoveRegion( &gTimeCompressionMask[ 0 ] );
 		MSYS_RemoveRegion( &gTimeCompressionMask[ 1 ] );
 		MSYS_RemoveRegion( &gTimeCompressionMask[ 2 ] );
+		CreateMouseRegionForPauseOfClock( INTERFACE_CLOCK_X, INTERFACE_CLOCK_Y );
 		fCreated = FALSE;
 	}
 }
@@ -1613,14 +1611,8 @@ void DisplayProjectedDailyMineIncome( void )
 	InsertCommasForDollarFigure( sString );
 	InsertDollarSignInToString( sString );
 
-	// center it
-	// CHRISL: Replaced X coordinate with dynamic coordinate set from right edge of screen
-	//VarFindFontCenterCoordinates( (SCREEN_WIDTH - 637), (SCREEN_HEIGHT - 45),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
-	// CHRISL: Use this if we want to display from the left edge
-	//VarFindFontCenterCoordinates( 359, (SCREEN_HEIGHT - 45),  78, 10,  COMPFONT, &sFontX, &sFontY, sString );
-	// HEADROCK HAM 3.6: The balance/income box has been moved to the right side, near the laptop button.	
-	VarFindFontCenterCoordinates( (SCREEN_WIDTH - 278), (SCREEN_HEIGHT - 58), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
-	
+	VarFindFontCenterCoordinates( xResOffset + (xResSize - 278), (SCREEN_HEIGHT - 58), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
+
 	// print it
 	mprintf( sFontX, sFontY, L"%s", sString );
 
@@ -1670,8 +1662,7 @@ void DisplayProjectedDailyExpenses( void )
 	InsertCommasForDollarFigure( sString );
 	InsertDollarSignInToString( sString );
 
-	// center it
-	VarFindFontCenterCoordinates( (SCREEN_WIDTH - 278), (SCREEN_HEIGHT - 21), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
+	VarFindFontCenterCoordinates( xResOffset + (xResSize - 278), (SCREEN_HEIGHT - 21), 78, 10, COMPFONT, &sFontX, &sFontY, sString );
 
 	// print it
 	mprintf( sFontX, sFontY, L"%s", sString );
@@ -1734,8 +1725,11 @@ BOOLEAN AnyUsableRealMercenariesOnTeam( void )
 
 void RequestTriggerExitFromMapscreen( INT8 bExitToWhere )
 {
-	Assert( ( bExitToWhere >= MAP_EXIT_TO_LAPTOP ) && ( bExitToWhere <= MAP_EXIT_TO_MAINMENU ) );
-
+#ifdef JA2UB
+	Assert( ( bExitToWhere >= MAP_EXIT_TO_LAPTOP ) && ( bExitToWhere <= MAP_EXIT_TO_INTRO_SCREEN ));//MAP_EXIT_TO_MAINMENU ) );
+#else
+	Assert( ( bExitToWhere >= MAP_EXIT_TO_LAPTOP ) && ( bExitToWhere <= MAP_EXIT_TO_MAINMENU ));
+#endif
 	// if allowed to do so
 	if ( AllowedToExitFromMapscreenTo( bExitToWhere ) )
 	{
@@ -1777,8 +1771,11 @@ void RequestTriggerExitFromMapscreen( INT8 bExitToWhere )
 
 BOOLEAN AllowedToExitFromMapscreenTo( INT8 bExitToWhere )
 {
+#ifdef JA2UB
+	Assert( ( bExitToWhere >= MAP_EXIT_TO_LAPTOP ) && ( bExitToWhere <= MAP_EXIT_TO_INTRO_SCREEN)); //MAP_EXIT_TO_MAINMENU ) );
+#else
 	Assert( ( bExitToWhere >= MAP_EXIT_TO_LAPTOP ) && ( bExitToWhere <= MAP_EXIT_TO_MAINMENU ) );
-
+#endif
 	// if already leaving, disallow any other attempts to exit
 	if ( fLeavingMapScreen )
 	{
@@ -1813,11 +1810,15 @@ BOOLEAN AllowedToExitFromMapscreenTo( INT8 bExitToWhere )
 		return( FALSE );
 	}
 
+#ifdef JA2UB
+//Ja25 No meanwhiles
+#else
 	// meanwhile coming up
 	if ( gfMeanwhileTryingToStart )
 	{
 		return( FALSE );
 	}
+#endif
 
 	// if we're locked into paused time compression by some event that enforces that
 	if ( PauseStateLocked() )
@@ -1953,6 +1954,13 @@ void HandleExitsFromMapScreen( void )
 					ReStartingGame();
 					SetPendingNewScreen( MAINMENU_SCREEN );
 					break;
+#ifdef JA2UB
+				//JA25 ub
+				case MAP_EXIT_TO_INTRO_SCREEN:
+				//	SetPendingNewScreen( INTRO_SCREEN );
+					BeginLoadScreen();
+					break;
+#endif
 				default:
 					// invalid exit type
 					Assert( FALSE );
@@ -2041,7 +2049,7 @@ void ChangeCurrentMapscreenMessageIndex( UINT8 ubNewMessageIndex )
 void InitMapScreenInterfaceBottomCoords( void )
 {
 	// HEADROCK HAM 3.6: Message window is now as wide as possible.
-	MESSAGE_SCROLL_AREA_START_X = SCREEN_WIDTH - 307;
-	MESSAGE_SCROLL_AREA_END_X = SCREEN_WIDTH - 293;
+	MESSAGE_SCROLL_AREA_START_X = xResOffset + xResSize - 307;
+	MESSAGE_SCROLL_AREA_END_X = xResOffset + xResSize - 293;
 }
 

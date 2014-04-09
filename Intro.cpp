@@ -4,21 +4,15 @@
 	#include "Cinematics.h"
 #else
 	#include "sgp.h"
-	#include "sys globals.h"
 	#include "sysutil.h"
 	#include "vobject_blitters.h"
-	#include "wcheck.h"
-	#include "cursors.h"
 	#include "font control.h"
 	#include "cursor control.h"
 	#include "render dirty.h"
-	#include "GameScreen.h"
 	#include	"Text.h"
 	#include	"Utilities.h"
 	#include	"WordWrap.h"
-	#include "Font Control.h"
 	#include "text.h"
-	#include "Multi Language Graphic Utils.h"
 	#include "Line.h"
 	#include "Intro.h"
 	#include "Cinematics.h"
@@ -27,8 +21,6 @@
 	#include "Music Control.h"
 	#include "LibraryDataBase.h"
 	#include "english.h"
-	#include "Game Init.h"
-	#include "Soldier Profile.h"
 	#include "soldier profile type.h"
 	#include "MessageBoxScreen.h"
 	#include "sgp_logger.h"
@@ -38,13 +30,23 @@
 #include <vfs/Core/vfs.h>
 
 #include "Luaglobal.h"
+#ifdef JA2UB
+#include "strategicmap.h"
+#include "Map Screen Interface Map.h"
+#include "Map Screen Interface.h"
+#include "End Game.h"
+#include "Cinematics Bink.h"
+#endif
+
 #include "LuaInitNPCs.h"
 #include "XML.h"
 
 BOOLEAN Style_JA = TRUE;
 extern INT8 Test = 0;
 
+INTRO_NAMES_VALUES zVideoFile[255];
 UINT32 iStringToUseLua = -1;
+
 // BF
 class VideoPlayer
 {
@@ -241,6 +243,13 @@ enum EGameVideos
 	INTRO_SPLASH_SCREEN,
 	INTRO_SPLASH_TALONSOFT,
 
+#ifdef JA2UB
+
+	INTRO_HELI_CRASH_SCENE_1,
+	INTRO_END_SCENE_1,
+
+#endif
+
 	//there are no more videos shown for the endgame
 	INTRO_LAST_END_GAME,
 
@@ -316,6 +325,13 @@ UINT32	IntroScreenInit( void )
 
 	s_VFN[INTRO_SPLASH_SCREEN]				= inireader.ReadString("INTRO_SPLASH","INTRO_SPLASH_SCREEN",    no_defaults ? "" : "INTRO\\SplashScreen");
 	s_VFN[INTRO_SPLASH_TALONSOFT]			= inireader.ReadString("INTRO_SPLASH","INTRO_SPLASH_TALONSOFT", no_defaults ? "" : "INTRO\\TalonSoftid_endhold");
+
+	//UB
+#ifdef JA2UB
+	s_VFN[INTRO_HELI_CRASH_SCENE_1]		= inireader.ReadString("INTRO_BEGINNING","INTRO_HELI_CRASH_SCENE",    no_defaults ? "" : "INTRO\\Intro");
+	s_VFN[INTRO_END_SCENE_1]			= inireader.ReadString("INTRO_ENDING","INTRO_END_SCENE",    no_defaults ? "" : "INTRO\\MissileEnding");
+#endif
+	
 
 	//there are no more videos shown for the endgame
 

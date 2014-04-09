@@ -41,14 +41,18 @@ typedef struct
 extern INT16	gsMercArriveSectorX;
 extern INT16	gsMercArriveSectorY;
 
+//ja25ub
+//extern	BOOLEAN		gfFirstTimeInGameHeliCrash;
+
 
 INT8		HireMerc( MERC_HIRE_STRUCT *pHireMerc);
 void		MercArrivesCallback(	UINT8 ubSoldierID );
 BOOLEAN IsMercHireable( UINT8 ubMercID );
 BOOLEAN IsMercDead( UINT8 ubMercID );
-// VENGEANCE
+
+// anv: VR - MIA
 BOOLEAN IsMercMIA( UINT8 ubMercID );
-// /VENEGANCE
+
 UINT8		NumberOfMercsOnPlayerTeam();
 BOOLEAN IsTheSoldierAliveAndConcious( 	SOLDIERTYPE		*pSoldier );
 void		HandleMercArrivesQuotes( SOLDIERTYPE *pSoldier );
@@ -58,4 +62,9 @@ void		UpdateAnyInTransitMercsWithGlobalArrivalSector( );
 UINT32	GetMercArrivalTimeOfDay( );
 extern INT16 StrategicPythSpacesAway(INT16 sOrigin, INT16 sDest);
 
+#ifdef JA2UB
+void UpdateJerryMiloInInitialSector();
+void InitializeHeliGridnoAndTime( BOOLEAN fLoading );
+void InitJerryMiloInfo();
+#endif
 #endif

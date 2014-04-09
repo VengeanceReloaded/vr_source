@@ -9,9 +9,10 @@
 	#include "WordWrap.h"
 	#include "Soldier Profile.h"
 	#include "stdlib.h"
-	#include "Game Clock.h"
 	#include "Text.h"
 	#include "Multi Language Graphic Utils.h"
+	#include "english.h"
+	#include "sysutil.h"
 #endif
 
 //#define
@@ -206,7 +207,8 @@ UINT32		guiToStats;
 UINT32		guiSelectLight;
 
 
-
+//Hotkey Assignment
+void HandleAimSortKeyBoardInput();
 
 
 void GameInitAimSort()
@@ -456,7 +458,7 @@ void ExitAimSort()
 
 void HandleAimSort()
 {
-
+	HandleAimSortKeyBoardInput();
 }
 
 void RenderAimSort()
@@ -1081,7 +1083,35 @@ INT32 CompareValue(const INT32 Num1, const INT32 Num2)
 
 
 
+void HandleAimSortKeyBoardInput()
+{
+	InputAtom					InputEvent;
 
-
-
-
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
+	{//!HandleTextInput( &InputEvent ) &&
+		if( InputEvent.usEvent == KEY_DOWN )
+		{
+			switch (InputEvent.usParam)
+			{
+				case BACKSPACE:
+				case 'q':
+					guiCurrentLaptopMode = LAPTOP_MODE_AIM;
+					break;
+				case 'a':
+					guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS_ARCHIVES;
+					break;
+				case 'f':
+					guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS;
+					break;
+				case ENTER:
+				case 'e':
+				case 'm':
+					guiCurrentLaptopMode = LAPTOP_MODE_AIM_MEMBERS_FACIAL_INDEX;
+					break;
+				default:
+					HandleKeyBoardShortCutsForLapTop( InputEvent.usEvent, InputEvent.usParam, InputEvent.usKeyState );
+					break;
+			}
+		}
+	}
+}

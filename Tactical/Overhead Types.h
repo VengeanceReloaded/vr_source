@@ -12,7 +12,8 @@
 #define REFINE_AIM_4					6
 #define REFINE_AIM_MID4				7
 #define REFINE_AIM_5					8
-#define REFINE_AIM_BURST			10
+#define REFINE_AIM_BURST			-1	// SANDRO - I've changed this from 10 to -1, so when the code asks about how much we aim, it does not return this high value when we don't aim at all
+										// hopefully, it will not cause any troubles anywhere .. it shouldn't 
 
 #define AIM_SHOT_RANDOM				0
 #define AIM_SHOT_HEAD					1
@@ -172,18 +173,19 @@ enum
 };
 
 // DEFINES FOR WEAPON HIT EVENT SPECIAL PARAM
-#define		FIRE_WEAPON_NO_SPECIAL						0
-#define		FIRE_WEAPON_BURST_SPECIAL					1
+#define		FIRE_WEAPON_NO_SPECIAL				0
+#define		FIRE_WEAPON_BURST_SPECIAL			1
 #define		FIRE_WEAPON_HEAD_EXPLODE_SPECIAL	2
 #define		FIRE_WEAPON_CHEST_EXPLODE_SPECIAL	3
 #define		FIRE_WEAPON_LEG_FALLDOWN_SPECIAL	4
 #define		FIRE_WEAPON_HIT_BY_KNIFE_SPECIAL	5
 #define		FIRE_WEAPON_SLEEP_DART_SPECIAL		6
 #define		FIRE_WEAPON_BLINDED_BY_SPIT_SPECIAL 7
-#define		FIRE_WEAPON_TOSSED_OBJECT_SPECIAL 8
+#define		FIRE_WEAPON_TOSSED_OBJECT_SPECIAL   8
 #define		FIRE_WEAPON_BLINDED					9
 #define		FIRE_WEAPON_DEAFENED				10
 #define		FIRE_WEAPON_BLINDED_AND_DEAFENED	11
+#define		FIRE_WEAPON_BLINDED_SPECIAL			12	// Flugente: works like FIRE_WEAPON_BLINDED_BY_SPIT_SPECIAL but without the damage dependency
 
 
 #define NO_INTERRUPTS			0
@@ -356,10 +358,8 @@ enum
 	UNNAMED_CIV_GROUP_17,
 	UNNAMED_CIV_GROUP_18,
 	UNNAMED_CIV_GROUP_19,
-	// VENGANCE
-	CIA_OPERATIVES_GROUP,
-	TRACONA_OPERATIVES_GROUP,
-	// /VENGANCE
+	ASSASSIN_CIV_GROUP,		// Flugente: enemy assassins belong to this group
+	POW_PRISON_CIV_GROUP,	// Flugente: prisoners of war the player caught are in this group
 	UNNAMED_CIV_GROUP_22,
 	UNNAMED_CIV_GROUP_23,
 	UNNAMED_CIV_GROUP_24,
@@ -438,8 +438,8 @@ enum
 	UNNAMED_CIV_GROUP_97,
 	UNNAMED_CIV_GROUP_98,
 	UNNAMED_CIV_GROUP_99,
-	UNNAMED_CIV_GROUP_100,
-	UNNAMED_CIV_GROUP_101,
+	CIA_OPERATIVES_GROUP,		// anv: VR
+	TRACONA_OPERATIVES_GROUP,	// anv: VR
 	UNNAMED_CIV_GROUP_102,
 	UNNAMED_CIV_GROUP_103,
 	UNNAMED_CIV_GROUP_104,

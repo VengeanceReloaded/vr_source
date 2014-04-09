@@ -5,7 +5,6 @@
 	#include <wchar.h>
 	#include <stdio.h>
 	#include <string.h>
-	#include "wcheck.h"
 	#include "stdlib.h"
 	#include "debug.h"
 	#include "MemMan.h"
@@ -35,9 +34,23 @@
 	#include "Town Militia.h"
 	#include "Campaign Types.h"
 	#include "Tactical Save.h"
+	#include "Strategic AI.h"
+	#include "interface Dialogue.h"
+#endif
+
+#ifdef JA2UB
+#include "Explosion Control.h"
+#include "Ja25_Tactical.h"
+#include "Ja25 Strategic Ai.h"
+#include "MapScreen Quotes.h"
+#include "email.h"
+#include "interface Dialogue.h"
+#include "mercs.h"
+#include "ub_config.h"
 #endif
 
 #include "email.h"
+#include "mercs.h"
 
 
 //forward declarations of common classes to eliminate includes
@@ -104,7 +117,7 @@ void StatChange(SOLDIERTYPE *pSoldier, UINT8 ubStat, UINT16 usNumChances, UINT8 
 
 	if( pSoldier->bAssignment == ASSIGNMENT_POW )
 	{
-		ScreenMsg( FONT_ORANGE, MSG_BETAVERSION, L"ERROR: StatChange: %s improving stats while POW! ubStat %d", pSoldier->name, ubStat );
+		ScreenMsg( FONT_ORANGE, MSG_BETAVERSION, L"ERROR: StatChange: %s improving stats while POW! ubStat %d", pSoldier->GetName(), ubStat );
 		return;
 	}
 
@@ -123,7 +136,7 @@ void StatChange(SOLDIERTYPE *pSoldier, UINT8 ubStat, UINT16 usNumChances, UINT8 
 	ProcessStatChange( &( gMercProfiles[ pSoldier->ubProfile ] ), ubStat, usNumChances, ubReason );
 
 	// Update stats....right away... ATE
-	UpdateStats( pSoldier );
+	UpdateStats( pSoldier, ubReason );
 }
 
 
@@ -141,29 +154,29 @@ void ProfileStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 	ProcessStatChange( pProfile, ubStat, usNumChances, ubReason );
 
 	// Update stats....right away... ATE
-	ProfileUpdateStats( pProfile );
+	ProfileUpdateStats( pProfile, ubReason );
 }
 
 
 void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumChances, UINT8 ubReason)
 {
-  UINT32 uiCnt,uiEffLevel;
-  INT16 sSubPointChange = 0;
+	UINT32 uiCnt,uiEffLevel;
+	INT16 sSubPointChange = 0;
 	UINT16 usChance=0;
 	UINT16 usSubpointsPerPoint;
 	UINT16 usSubpointsPerLevel;
 	INT8 bCurrentRating;
-  UINT16 *psStatGainPtr;
+	UINT16 *psStatGainPtr;
 	BOOLEAN fAffectedByWisdom = TRUE;
 
 	Assert(pProfile != NULL);
 
-  if ( pProfile->bEvolution == NO_EVOLUTION )
-    return;     // No change possible, quit right away
+	if ( pProfile->bEvolution == NO_EVOLUTION )
+		return;     // No change possible, quit right away
 
-  // if this is a Reverse-Evolving merc who attempting to train
-  if ( ( ubReason == FROM_TRAINING ) && ( pProfile->bEvolution == DEVOLVE ) )
-    return;	// he doesn't get any benefit, but isn't penalized either
+	// if this is a Reverse-Evolving merc who attempting to train
+	if ( ( ubReason == FROM_TRAINING ) && ( pProfile->bEvolution == DEVOLVE ) )
+		return;	// he doesn't get any benefit, but isn't penalized either
 
 	if (usNumChances == 0)
 		return;
@@ -172,73 +185,73 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 	usSubpointsPerPoint = SubpointsPerPoint(ubStat, pProfile->bExpLevel);
 	usSubpointsPerLevel = SubpointsPerPoint(EXPERAMT, pProfile->bExpLevel);
 
-  switch (ubStat)
-  {
-    case HEALTHAMT:
-      bCurrentRating = pProfile->bLifeMax;
-      psStatGainPtr = (UINT16 *)&(pProfile->sLifeGain);
+	switch (ubStat)
+	{
+		case HEALTHAMT:
+			bCurrentRating = pProfile->bLifeMax;
+			psStatGainPtr = (UINT16 *)&(pProfile->sLifeGain);
 			// NB physical stat checks not affected by wisdom, unless training is going on
 			fAffectedByWisdom = FALSE;
-      break;
+		break;
 
-    case AGILAMT:
-      bCurrentRating = pProfile->bAgility;
-      psStatGainPtr = (UINT16 *)&(pProfile->sAgilityGain);
+		case AGILAMT:
+			bCurrentRating = pProfile->bAgility;
+			psStatGainPtr = (UINT16 *)&(pProfile->sAgilityGain);
 			fAffectedByWisdom = FALSE;
-      break;
+		break;
 
-    case DEXTAMT:
-      bCurrentRating = pProfile->bDexterity;
-      psStatGainPtr = (UINT16 *)&(pProfile->sDexterityGain);
+		case DEXTAMT:
+			bCurrentRating = pProfile->bDexterity;
+			psStatGainPtr = (UINT16 *)&(pProfile->sDexterityGain);
 			fAffectedByWisdom = FALSE;
-      break;
+		break;
 
-    case WISDOMAMT:
-      bCurrentRating = pProfile->bWisdom;
-      psStatGainPtr = (UINT16 *)&(pProfile->sWisdomGain);
-      break;
+		case WISDOMAMT:
+			bCurrentRating = pProfile->bWisdom;
+			psStatGainPtr = (UINT16 *)&(pProfile->sWisdomGain);
+		break;
 
-    case MEDICALAMT:
-      bCurrentRating = pProfile->bMedical;
-      psStatGainPtr = (UINT16 *)&(pProfile->sMedicalGain);
-      break;
+		case MEDICALAMT:
+			bCurrentRating = pProfile->bMedical;
+			psStatGainPtr = (UINT16 *)&(pProfile->sMedicalGain);
+		break;
 
-    case EXPLODEAMT:
-      bCurrentRating = pProfile->bExplosive;
-      psStatGainPtr = (UINT16 *)&(pProfile->sExplosivesGain);
-      break;
+		case EXPLODEAMT:
+			bCurrentRating = pProfile->bExplosive;
+			psStatGainPtr = (UINT16 *)&(pProfile->sExplosivesGain);
+		break;
 
-    case MECHANAMT:
-      bCurrentRating = pProfile->bMechanical;
-      psStatGainPtr = (UINT16 *)&(pProfile->sMechanicGain);
-      break;
+		case MECHANAMT:
+			bCurrentRating = pProfile->bMechanical;
+			psStatGainPtr = (UINT16 *)&(pProfile->sMechanicGain);
+		break;
 
-    case MARKAMT:
-      bCurrentRating = pProfile->bMarksmanship;
-      psStatGainPtr = (UINT16 *)&(pProfile->sMarksmanshipGain);
-      break;
+		case MARKAMT:
+			bCurrentRating = pProfile->bMarksmanship;
+			psStatGainPtr = (UINT16 *)&(pProfile->sMarksmanshipGain);
+		break;
 
-    case EXPERAMT:
-      bCurrentRating = pProfile->bExpLevel;
-      psStatGainPtr = (UINT16 *)&(pProfile->sExpLevelGain);
-      break;
+		case EXPERAMT:
+			bCurrentRating = pProfile->bExpLevel;
+			psStatGainPtr = (UINT16 *)&(pProfile->sExpLevelGain);
+		break;
 
 		case STRAMT:
-      bCurrentRating = pProfile->bStrength;
-      psStatGainPtr = (UINT16 *)&(pProfile->sStrengthGain);
+			bCurrentRating = pProfile->bStrength;
+			psStatGainPtr = (UINT16 *)&(pProfile->sStrengthGain);
 			fAffectedByWisdom = FALSE;
-      break;
+		break;
 
 		case LDRAMT:
-      bCurrentRating = pProfile->bLeadership;
-      psStatGainPtr = (UINT16 *)&(pProfile->sLeadershipGain);
-      break;
+			bCurrentRating = pProfile->bLeadership;
+			psStatGainPtr = (UINT16 *)&(pProfile->sLeadershipGain);
+		break;
 
-    default:
+		default:
 			// BETA message
-      ScreenMsg( FONT_ORANGE, MSG_BETAVERSION, L"ERROR: ProcessStatChange: Rcvd unknown ubStat %d", ubStat);
-      return;
-  }
+			ScreenMsg( FONT_ORANGE, MSG_BETAVERSION, L"ERROR: ProcessStatChange: Rcvd unknown ubStat %d", ubStat);
+		return;
+	}
 
 
 	if (ubReason == FROM_TRAINING)
@@ -255,11 +268,11 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 	}
 
 
-  // loop once for each chance to improve
-  for (uiCnt = 0; uiCnt < usNumChances; uiCnt++)
-  {
-    if (pProfile->bEvolution == NORMAL_EVOLUTION)               // Evolves!
-    {
+	// loop once for each chance to improve
+	for (uiCnt = 0; uiCnt < usNumChances; uiCnt++)
+	{
+		if (pProfile->bEvolution != DEVOLVE)               // Evolves!
+		{
 			// if this is improving from a failure, and a successful roll would give us enough to go up a point
 			if ((ubReason == FROM_FAILURE) && ((*psStatGainPtr + 1) >= usSubpointsPerPoint))
 			{
@@ -267,7 +280,7 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 				break;
 			}
 
-      if (ubStat != EXPERAMT)
+			if (ubStat != EXPERAMT)
 			{
 				// NON-experience level changes, actual usChance depends on bCurrentRating
 				// Base usChance is '100 - bCurrentRating'
@@ -279,62 +292,70 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 					usChance = 0;
 				}
 			}
-      else
-      {
-			  // Experience level changes, actual usChance depends on level
-			  // Base usChance is '100 - (10 * current level)'
+			else
+			{
+				// Experience level changes, actual usChance depends on level
+				// Base usChance is '100 - (10 * current level)'
 				usChance = 100 - 10 * (bCurrentRating + (*psStatGainPtr / usSubpointsPerPoint));
-      }
+			}
 
-      // if there IS a usChance, adjust it for high or low wisdom (50 is avg)
-      if (usChance > 0 && fAffectedByWisdom)
+			// if there IS a usChance, adjust it for high or low wisdom (50 is avg)
+			if (usChance > 0 && fAffectedByWisdom)
 			{
 				usChance += (usChance * (pProfile->bWisdom + (pProfile->sWisdomGain / SubpointsPerPoint(WISDOMAMT, pProfile->bExpLevel)) - 50)) / 100;
 			}
 
 /*
-      // if the stat is Marksmanship, and the guy is a hopeless shot
-      if ((ubStat == MARKAMT) && (pProfile->bSpecialTrait == HOPELESS_SHOT))
+			// if the stat is Marksmanship, and the guy is a hopeless shot
+			if ((ubStat == MARKAMT) && (pProfile->bSpecialTrait == HOPELESS_SHOT))
 			{
 				usChance /= 5;		// MUCH slower to improve, divide usChance by 5
 			}
 */
 
-		// SANDRO - penalty for primitive people, they get lesser chance to gain point for certain skills
-		if ( gGameOptions.fNewTraitSystem && (usChance > 10) && (ubStat != EXPERAMT) && (pProfile->bCharacterTrait == CHAR_TRAIT_PRIMITIVE) )
-		{
-			switch (ubStat)
+			// SANDRO - penalty for primitive people, they get lesser chance to gain point for certain skills
+			if ( gGameOptions.fNewTraitSystem && (usChance > 10) && (ubStat != EXPERAMT) && (pProfile->bCharacterTrait == CHAR_TRAIT_PRIMITIVE) )
 			{
-				case WISDOMAMT:
-				case MEDICALAMT:
-				case EXPLODEAMT:
-				case MECHANAMT:
-				case LDRAMT:
-					usChance = max(1, (usChance - 10)); // -10% chance to gain the point
-					break;
-			}
-		}
-
-
-      // maximum possible usChance is 99%
-      if (usChance > 99)
-			{
-				usChance = 99;
+				switch (ubStat)
+				{
+					case WISDOMAMT:
+					case MEDICALAMT:
+					case EXPLODEAMT:
+					case MECHANAMT:
+					case LDRAMT:
+						usChance = max(1, (usChance - 10)); // -10% chance to gain the point
+						break;
+				}
 			}
 
-		if (PreRandom(100) < usChance )
-      {
-        (*psStatGainPtr)++;
+			// Buggler: more evolution rate choices
+			if (pProfile->bEvolution == THREEQUARTER_EVOLUTION)
+				usChance = max(1, usChance * 0.75);
+			else if (pProfile->bEvolution == HALF_EVOLUTION)
+				usChance =  max(1, usChance * 0.5);
+			else if (pProfile->bEvolution == ONEQUARTER_EVOLUTION)
+				usChance =  max(1, usChance * 0.25);
+
+
+			// maximum possible usChance is 99%
+			if (usChance > 99)
+			{
+					usChance = 99;
+			}
+
+			if (PreRandom(100) < usChance )
+			{
+				(*psStatGainPtr)++;
 				sSubPointChange++;
 
-        // as long as we're not dealing with exp_level changes (already added above!)
-        // and it's not from training, and the exp level isn't max'ed out already
-        if ((ubStat != EXPERAMT) && (ubReason != FROM_TRAINING))
-        {
-          uiEffLevel = pProfile->bExpLevel + (pProfile->sExpLevelGain / usSubpointsPerLevel);
+				// as long as we're not dealing with exp_level changes (already added above!)
+				// and it's not from training, and the exp level isn't max'ed out already
+				if ((ubStat != EXPERAMT) && (ubReason != FROM_TRAINING))
+				{
+					uiEffLevel = pProfile->bExpLevel + (pProfile->sExpLevelGain / usSubpointsPerLevel);
 
 					// if level is not at maximum
-	        if (uiEffLevel < MAXEXPLEVEL)
+					if (uiEffLevel < MAXEXPLEVEL)
 					{
 						// if this is NOT improving from a failure, OR it would NOT give us enough to go up a level
 						if ((ubReason != FROM_FAILURE) || ((pProfile->sExpLevelGain + 1) < usSubpointsPerLevel))
@@ -344,14 +365,14 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 						}
 					}
 				}
-	    }
-    }
-    else                          // Regresses!
-    {
+			}
+		}
+		else                          // Regresses!
+		{
 			// regression can happen from both failures and successes (but not training, checked above)
 
-      if (ubStat != EXPERAMT)
-      {
+			if (ubStat != EXPERAMT)
+			{
 				// NON-experience level changes, actual usChance depends on bCurrentRating
 				switch (ubStat)
 				{
@@ -373,8 +394,8 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 						usChance = bCurrentRating + (*psStatGainPtr / usSubpointsPerPoint);
 						break;
 				}
-      }
-      else
+			}
+			else
 			{
 				// Experience level changes, actual usChance depends on level
 				// Base usChance is '10 * (current level - 1)'
@@ -391,32 +412,32 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 				{
 					usChance = 1;
 				}
-      }
+			}
 
 			if (usChance <= 0)
 				usChance = 1;
 
-      if (PreRandom(100) < usChance )
-      {
+			if (PreRandom(100) < usChance )
+			{
 				(*psStatGainPtr)--;
 				sSubPointChange--;
 
-        // as long as we're not dealing with exp_level changes (already added above!)
-        // and it's not from training, and the exp level isn't max'ed out already
-        if ((ubStat != EXPERAMT) && (ubReason != FROM_TRAINING))
-        {
-          uiEffLevel = pProfile->bExpLevel + (pProfile->sExpLevelGain / usSubpointsPerLevel );
+				// as long as we're not dealing with exp_level changes (already added above!)
+				// and it's not from training, and the exp level isn't max'ed out already
+				if ((ubStat != EXPERAMT) && (ubReason != FROM_TRAINING))
+				{
+					uiEffLevel = pProfile->bExpLevel + (pProfile->sExpLevelGain / usSubpointsPerLevel );
 
 					// if level is not at minimum
-          if (uiEffLevel > 1)
+					if (uiEffLevel > 1)
 					{
-            // all other stat changes count towards experience level changes (1 for 1 basis)
-            pProfile->sExpLevelGain--;
+						// all other stat changes count towards experience level changes (1 for 1 basis)
+						pProfile->sExpLevelGain--;
 					}
 				}
-      }
-    }
-  }
+			}
+		}
+	}
 
 #ifdef STAT_CHANGE_DEBUG
 	if (sSubPointChange != 0)
@@ -438,20 +459,20 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 
 
 // convert hired mercs' stats subpoint changes into actual point changes where warranted
-void UpdateStats( SOLDIERTYPE *pSoldier )
+void UpdateStats( SOLDIERTYPE *pSoldier, UINT8 ubReason )
 {
-	ProcessUpdateStats( &( gMercProfiles[ pSoldier->ubProfile ] ), pSoldier );
+	ProcessUpdateStats( &( gMercProfiles[ pSoldier->ubProfile ] ), pSoldier, ubReason );
 }
 
 
 // UpdateStats version for mercs not currently on player's team
-void ProfileUpdateStats( MERCPROFILESTRUCT *pProfile )
+void ProfileUpdateStats( MERCPROFILESTRUCT *pProfile, UINT8 ubReason )
 {
-	ProcessUpdateStats( pProfile, NULL );
+	ProcessUpdateStats( pProfile, NULL, ubReason );
 }
 
 
-void ChangeStat( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubStat, INT16 sPtsChanged )
+void ChangeStat( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubStat, INT16 sPtsChanged, UINT8 ubReason = 0 )
 {
 	// this function changes the stat a given amount...
 	INT16 *psStatGainPtr = NULL;
@@ -662,8 +683,20 @@ void ChangeStat( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubSta
 			// SANDRO - reduce damaged stat if this stat was increased normally
 			if ( fChangeTypeIncrease && (bDamagedStatToRaise != -1) )
 			{
+				INT16 ptstolower = sPtsChanged;
+				UINT8 oldctrpts = pSoldier->ubCriticalStatDamage[ bDamagedStatToRaise ];
+
 				if (pSoldier->ubCriticalStatDamage[ bDamagedStatToRaise ] > 0)
-					pSoldier->ubCriticalStatDamage[ bDamagedStatToRaise ] = max( 0, (pSoldier->ubCriticalStatDamage[ bDamagedStatToRaise ] - sPtsChanged)); 
+				{
+					pSoldier->ubCriticalStatDamage[ bDamagedStatToRaise ] = max( 0, (pSoldier->ubCriticalStatDamage[ bDamagedStatToRaise ] - ptstolower));
+
+					ptstolower -= oldctrpts - pSoldier->ubCriticalStatDamage[ bDamagedStatToRaise ];
+				}
+								
+				if ( bDamagedStatToRaise == DAMAGED_STAT_STRENGTH && pSoldier->usStarveDamageStrength > 0 )
+					pSoldier->usStarveDamageStrength = max(0, pSoldier->usStarveDamageStrength - ptstolower);
+				else if ( bDamagedStatToRaise == DAMAGED_STAT_HEALTH && pSoldier->usStarveDamageHealth > 0 )
+					pSoldier->usStarveDamageHealth = max(0, pSoldier->usStarveDamageHealth - ptstolower);
 			}
 
 			// if it's a level gain, or sometimes for other stats
@@ -675,14 +708,22 @@ void ChangeStat( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubSta
 			{
 				// Pipe up with "I'm getting better at this!"
 				TacticalCharacterDialogueWithSpecialEventEx( pSoldier, 0, DIALOGUE_SPECIAL_EVENT_DISPLAY_STAT_CHANGE, fChangeTypeIncrease, sPtsChanged, ubStat );
-				TacticalCharacterDialogue( pSoldier, QUOTE_EXPERIENCE_GAIN );
+
+				//Madd: option to make mercs quiet during training / doctoring / repairing
+				if ( ((pSoldier->bAssignment == TRAIN_BY_OTHER || pSoldier->bAssignment == TRAIN_TEAMMATE || pSoldier->bAssignment == TRAIN_SELF || 
+							pSoldier->bAssignment == FACILITY_STAFF || pSoldier->bAssignment == TRAIN_TOWN || pSoldier->bAssignment == TRAIN_MOBILE ) 
+							&& !gGameSettings.fOptions[TOPTION_QUIET_TRAINING]) ||
+					 (pSoldier->bAssignment == REPAIR && !gGameSettings.fOptions[TOPTION_QUIET_REPAIRING]) ||
+					 (pSoldier->bAssignment == DOCTOR && !gGameSettings.fOptions[TOPTION_QUIET_DOCTORING]))
+
+					 TacticalCharacterDialogue( pSoldier, QUOTE_EXPERIENCE_GAIN );
 			}
 			else
 			{
 				CHAR16 wTempString[ 128 ];
 
 				// tell player about it
-				BuildStatChangeString( wTempString, pSoldier->name, fChangeTypeIncrease, sPtsChanged, ubStat );
+				BuildStatChangeString( wTempString, pSoldier->GetName(), fChangeTypeIncrease, sPtsChanged, ubStat );
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, wTempString );
 			}
 
@@ -750,6 +791,7 @@ void ChangeStat( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubSta
 						// M.E.R.C.
 						ubMercMercIdValue = pSoldier->ubProfile;
 
+						/*
 						// Biff's profile id ( 40 ) is the base
 						ubMercMercIdValue -= BIFF;
 
@@ -758,14 +800,16 @@ void ChangeStat( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubSta
 						{
 							ubMercMercIdValue--;
 						}
+						*/
 
 						//
 						// Send special E-mail
 						//
 
-//	DEF: 03/06/99 Now sets an event that will be processed later in the day
-//						ubEmailOffset = MERC_UP_LEVEL_BIFF + MERC_UP_LEVEL_LENGTH_BIFF * ( ubMercMercIdValue );
-//						AddEmail( ubEmailOffset, MERC_UP_LEVEL_LENGTH_BIFF, SPECK_FROM_MERC, GetWorldTotalMin() );
+						//	DEF: 03/06/99 Now sets an event that will be processed later in the day
+						//	ubEmailOffset = MERC_UP_LEVEL_BIFF + MERC_UP_LEVEL_LENGTH_BIFF * ( ubMercMercIdValue );
+						//	AddEmail( ubEmailOffset, MERC_UP_LEVEL_LENGTH_BIFF, SPECK_FROM_MERC, GetWorldTotalMin() );
+
 						AddStrategicEvent( EVENT_MERC_MERC_WENT_UP_LEVEL_EMAIL_DELAY, GetWorldTotalMin( ) + 60 + Random( 60 ), ubMercMercIdValue );
 
 						fChangeSalary = TRUE;
@@ -808,7 +852,7 @@ void ChangeStat( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubSta
 
 
 // pSoldier may be NULL!
-void ProcessUpdateStats( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier )
+void ProcessUpdateStats( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier, UINT8 ubReason )
 {
 	// this function will run through the soldier's profile and update their stats based on any accumulated gain pts.
 	UINT8 ubStat = 0;
@@ -1022,7 +1066,7 @@ void ProcessUpdateStats( MERCPROFILESTRUCT *pProfile, SOLDIERTYPE *pSoldier )
 		if ( sPtsChanged != 0 )
 		{
 			// Otherwise, use normal stat increase stuff...
-			ChangeStat( pProfile, pSoldier, ubStat, sPtsChanged );
+			ChangeStat( pProfile, pSoldier, ubStat, sPtsChanged, ubReason );
 		}
 	}
 
@@ -1234,8 +1278,7 @@ void HandleUnhiredMercImprovement( MERCPROFILESTRUCT *pProfile )
 	ProfileUpdateStats( pProfile );
 }
 
-// VENGEANCE
-// handles possible death of saving of mercs MIA
+// anv: VR - handles possible death or saving of mercs MIA
 void HandleMIAMercStatus( INT32 iProfileID )
 {
 	INT16 roll = (INT16) PreRandom(100);
@@ -1290,7 +1333,7 @@ void HandleMIAMercStatus( INT32 iProfileID )
 			//send an email as long as the merc is from aim
 			if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID )
 			{
-				AddEmailWithSpecialData(MERC_MIA_FOUND_ALIVE, MERC_MIA_FOUND_ALIVE_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID );			
+				AddEmailWithSpecialData(MERC_MIA_FOUND_ALIVE, MERC_MIA_FOUND_ALIVE_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );		
 			}
 		}
 		else if ( roll < sChanceAliveFound + sChanceAliveDies && gGameExternalOptions.gfMercsDieOnAssignment == TRUE )
@@ -1314,7 +1357,7 @@ void HandleMIAMercStatus( INT32 iProfileID )
 			//send an email as long as the merc is from aim
 			if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID )  //new profiles by Jazz
 			{
-				AddEmailWithSpecialData(MERC_MIA_FOUND_DEAD, MERC_MIA_FOUND_DEAD_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID );			
+				AddEmailWithSpecialData(MERC_MIA_FOUND_DEAD, MERC_MIA_FOUND_DEAD_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );			
 			}
 		}
 		else if( roll < sChanceDeadFound + sChanceDeadLostForever )
@@ -1429,11 +1472,10 @@ void HandleUnhiredMercMIA( INT32 iProfileID )
 			UINT32 uiCauses = MERC_MIA_CAUSES;
 			UINT32 uiPlaces = MERC_DEATH_MIA_PLACES;
 			INT32 iCauseAndPlace = (INT32)PreRandom( uiCauses ) * 100 + (INT32)PreRandom( uiPlaces );
-			AddEmailWithSpecialData(MERC_MIA_ON_OTHER_ASSIGNMENT, MERC_MIA_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), iCauseAndPlace, iProfileID );
+			AddEmailWithSpecialData(MERC_MIA_ON_OTHER_ASSIGNMENT, MERC_MIA_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), iCauseAndPlace, iProfileID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
 		}
 	}
 }
-// /VENGEANCE
 
 // handles possible death of mercs not currently working for the player
 void HandleUnhiredMercDeaths( INT32 iProfileID )
@@ -1477,11 +1519,11 @@ void HandleUnhiredMercDeaths( INT32 iProfileID )
 		return;
 	}
 
+
 	// calculate this merc's (small) chance to get killed today (out of 1000)
-	// VENGEANCE
-	sChance = gGameExternalOptions.ubBaseChanceMercDiesOnAssignment - pProfile->bExpLevel;
-	// /VENGEANCE
+	// anv: VR
 	//sChance = 10 - pProfile->bExpLevel;
+	sChance = gGameExternalOptions.ubBaseChanceMercDiesOnAssignment - pProfile->bExpLevel;
 
 	// SANDRO - certain traits makes us less likely to get killed
 	if ( gGameOptions.fNewTraitSystem )
@@ -1519,7 +1561,7 @@ void HandleUnhiredMercDeaths( INT32 iProfileID )
 			sChance -= ProfileHasSkillTrait( iProfileID, STEALTHY_OT );
 	}
 
-	if ((INT16) PreRandom(1000) < sChance )
+	if ((INT16) PreRandom(1000) < sChance)
 	{
 		// this merc gets Killed In Action!!!
 		pProfile->bMercStatus = MERC_IS_DEAD;
@@ -1529,19 +1571,27 @@ void HandleUnhiredMercDeaths( INT32 iProfileID )
 		gStrategicStatus.ubUnhiredMercDeaths++;
 
 		//send an email as long as the merc is from aim
+#ifdef JA2UB
+		//ja25 ub	
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID && gGameUBOptions.fDeadMerc == TRUE )  //new profiles by Jazz
+			//send an email to the player telling the player that a merc died
+			AddEmailWithSpecialData(206, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID, TYPE_EMAIL_DEAD_MERC_AIM_SITE_EMAIL_JA2_EDT, TYPE_E_AIM_L1 );
+	}
+#else
 	//	if( iProfileID < BIFF )
 		if ( gProfilesAIM[ iProfileID ].ProfilId == iProfileID )  //new profiles by Jazz
 		{
 			//send an email to the player telling the player that a merc died
-			// VENGEANCE
-			// anv: added generating random cause and place
+			//AddEmailWithSpecialData(MERC_DIED_ON_OTHER_ASSIGNMENT, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+			// anv: VR - added generating random cause and place
 			UINT32 uiCauses = MERC_DEATH_CAUSES;
 			UINT32 uiPlaces = MERC_DEATH_MIA_PLACES;
 			INT32 iCauseAndPlace = (INT32)PreRandom( uiCauses ) * 100 + (INT32)PreRandom( uiPlaces );
-			AddEmailWithSpecialData(MERC_DIED_ON_OTHER_ASSIGNMENT, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), iCauseAndPlace, iProfileID );
-			// /VENEGANCE
-			//AddEmailWithSpecialData(MERC_DIED_ON_OTHER_ASSIGNMENT, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), 0, iProfileID );
+			AddEmailWithSpecialData(MERC_DIED_ON_OTHER_ASSIGNMENT, MERC_DIED_ON_OTHER_ASSIGNMENT_LENGTH, AIM_SITE, GetWorldTotalMin(), iCauseAndPlace, iProfileID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
 		}
+#endif
 	}
 }
 
@@ -1556,6 +1606,11 @@ void HandleUnhiredMercDeaths( INT32 iProfileID )
 // returns a number between 0-100, this is an estimate of how far a player has progressed through the game
 UINT8 CurrentPlayerProgressPercentage(void)
 {
+#ifdef JA2UB
+	INT8	bFurthestSectorPlayerOwns=-1; //JA25 UB
+	UINT8 ubCurrentProgress;
+#else
+	
 	UINT32 uiCurrentIncome;
 	UINT32 uiPossibleIncome;
 	UINT16 usCurrentProgress;
@@ -1573,8 +1628,129 @@ UINT8 CurrentPlayerProgressPercentage(void)
 	UINT16 usMaxIncomeProgress;
 	UINT16 usMaxControlProgress;
 	UINT16 usMaxVisitProgress;
+#endif
 
+#ifdef JA2UB	
+	//Get the furthest sector the player owns
+	bFurthestSectorPlayerOwns = GetTheFurthestSectorPlayerOwns();
+	//JA25 UB
+	switch( bFurthestSectorPlayerOwns )
+	{
+		//initial sector
+		case SEC_H7:
+			ubCurrentProgress = 44;
+			break;
 
+		case SEC_H8:
+			ubCurrentProgress = 45;
+			break;
+
+		//guard post
+		case SEC_H9:
+			ubCurrentProgress = 55;
+			break;
+
+		//field
+		case SEC_H10:
+			ubCurrentProgress = 58;
+			break;
+
+		//field
+		case SEC_I9:
+			ubCurrentProgress = 60;
+			break;
+
+		//first part of town
+		case SEC_I10:
+			ubCurrentProgress = 63;
+			break;
+
+		//second part of town
+		case SEC_I11:
+			ubCurrentProgress = 65;
+			break;
+
+		//field
+		case SEC_I12:
+			ubCurrentProgress = 68;
+			break;
+
+		//Abondoned mine
+		case SEC_I13:
+			ubCurrentProgress = 70;
+			break;
+
+		// cave under abondoned mine
+/*	case SEC_I13_1:
+			ubCurrentProgress = 72;
+			break;
+*/
+		//field
+		case SEC_J11:
+			ubCurrentProgress = 70;
+			break;
+
+		//field
+		case SEC_J12:
+			ubCurrentProgress = 70;
+			break;
+
+		//power gen plant
+		case SEC_J13:
+			ubCurrentProgress = 75;
+			break;
+/*
+			//power gen plant, sub level
+		case JA25_J13_1:
+			ubCurrentProgress = 75;
+			break;
+
+		//first part of tunnel
+		case JA25_J14_1:
+			ubCurrentProgress = 80;
+			break;
+
+		//second part of tunnel
+		case JA25_K14_1:
+			ubCurrentProgress = 82;
+			break;
+
+		//ground level of complex
+		case JA25_K15:
+			ubCurrentProgress = 90;
+			break;
+
+		//initial sector of complex
+		case JA25_K15_1:
+			ubCurrentProgress = 85;
+			break;
+
+		// 2nd level down of complex
+		case JA25_K15_2:
+			ubCurrentProgress = 95;
+			break;
+
+		//2nd last sector
+		case JA25_L15_2:
+			ubCurrentProgress = 98;
+			break;
+
+		//last sector
+		case JA25_L15_3:
+			ubCurrentProgress = 100;
+			break;
+*/
+		default:
+
+			// OK, use percentage complete from map...
+			//Assert( 0 );
+			//ubCurrentProgress = SectorInfo[ bFurthestSectorPlayerOwns ].ubCurrentProgressValue;
+			ubCurrentProgress = 50;
+			break;
+	}
+
+	return(ubCurrentProgress);
+#else
 	if( gfEditMode )
 		return 0;
 
@@ -1719,6 +1895,8 @@ UINT8 CurrentPlayerProgressPercentage(void)
 
 
 	return((UINT8)usCurrentProgress);
+	
+#endif
 }
 
 UINT8 HighestPlayerProgressPercentage(void)
@@ -1743,22 +1921,43 @@ void HourlyProgressUpdate(void)
 		// CJC:  note when progress goes above certain values for the first time
 
 		// at 35% start the Madlab quest
-		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressStartMadlabQuest && gStrategicStatus.ubHighestProgress <= gGameExternalOptions.ubGameProgressStartMadlabQuest )
+#ifdef JA2UB
+// no UB
+#else
+		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressStartMadlabQuest && gStrategicStatus.ubHighestProgress < gGameExternalOptions.ubGameProgressStartMadlabQuest )
 		{
 			HandleScientistAWOLMeanwhileScene();
 		}
-
+#endif
 		// at 50% make Mike available to the strategic AI
-		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressMikeAvailable && gStrategicStatus.ubHighestProgress <= gGameExternalOptions.ubGameProgressMikeAvailable )
+		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressMikeAvailable && gStrategicStatus.ubHighestProgress < gGameExternalOptions.ubGameProgressMikeAvailable )
 		{
-			SetFactTrue( FACT_MIKE_AVAILABLE_TO_ARMY );
+			if( gubFact[FACT_MIKE_AVAILABLE_TO_ARMY] < 2 )
+			{
+				SetFactTrue( FACT_MIKE_AVAILABLE_TO_ARMY );
+			}
 		}
 
 		// at 70% add Iggy to the world
-		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressIggyAvaliable && gStrategicStatus.ubHighestProgress <= gGameExternalOptions.ubGameProgressIggyAvaliable )
+		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressIggyAvaliable && gStrategicStatus.ubHighestProgress < gGameExternalOptions.ubGameProgressIggyAvaliable )
 		{
-			gMercProfiles[ IGGY ].sSectorX = 5;
-			gMercProfiles[ IGGY ].sSectorY = MAP_ROW_C;
+			if ( gubFact[ FACT_IGGY_AVAILABLE_TO_ARMY ] < 2 )
+			{
+				gMercProfiles[ IGGY ].sSectorX = gModSettings.ubAddIggySectorX; //5
+				gMercProfiles[ IGGY ].sSectorY = gModSettings.ubAddIggySectorY; //MAP_ROW_C
+				gMercProfiles[ IGGY ].bSectorZ = gModSettings.ubAddIggySectorZ; //0
+			}
+		}
+
+		// Flugente: on certain progress levels, the queen decides to initiate major attacks
+		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressOffensiveStage1 && gStrategicStatus.ubHighestProgress < gGameExternalOptions.ubGameProgressOffensiveStage1 )
+		{
+			ExecuteStrategicAIAction( NPC_ACTION_GLOBAL_OFFENSIVE_1, 0, 0 );
+		}
+
+		if ( ubCurrentProgress >= gGameExternalOptions.ubGameProgressOffensiveStage2 && gStrategicStatus.ubHighestProgress < gGameExternalOptions.ubGameProgressOffensiveStage2 )
+		{
+			ExecuteStrategicAIAction( NPC_ACTION_GLOBAL_OFFENSIVE_2, 0, 0 );
 		}
 
 		gStrategicStatus.ubHighestProgress = ubCurrentProgress;
@@ -2037,9 +2236,33 @@ UINT16 TotalVisitableSurfaceSectors( void )
 
 void MERCMercWentUpALevelSendEmail( UINT8 ubMercMercIdValue )
 {
+#ifdef JA2UB
+//JA25 UB
+#else
 	UINT8 ubEmailOffset = 0;
 	int iMsgLength = 0;
-
+	
+	UINT8 pMerc = 0;
+	UINT8 iMerc = 0;
+	UINT8 oMerc = 0;
+	
+	// Read from EmailMercAvailable.xml
+	if ( ReadXMLEmail == TRUE )
+	{		
+	oMerc = ubMercMercIdValue;				
+	iMerc = oMerc * 1;
+	
+	if ( oMerc != 0 )
+		pMerc = oMerc + 1;
+	else
+		pMerc = 0;
+	if ( gProfilesMERC[ubMercMercIdValue].ProfilId == ubMercMercIdValue )
+		if( IsSpeckComAvailable() )// anv: only send level up email if Speck is available at website
+			AddEmailTypeXML( pMerc, iMerc, iMerc, GetWorldTotalMin(), -1 , TYPE_EMAIL_MERC_LEVEL_UP);
+	}
+	else
+	{
+	// Read from Email.edt and sender (nickname) from MercProfiles.xml
 	// WANNE: TODO: Tex, Biggins, Stoggy and Gaston have special handling because they are the new MERC merc in 1.13
 	// There is no letter template in Email.edt. We have them hardcoded in the source code.
 	if (ubMercMercIdValue == 124 || ubMercMercIdValue == 125 || ubMercMercIdValue == 126 || ubMercMercIdValue == 127)
@@ -2075,5 +2298,8 @@ void MERCMercWentUpALevelSendEmail( UINT8 ubMercMercIdValue )
 		ubEmailOffset = MERC_UP_LEVEL_BIFF + MERC_UP_LEVEL_LENGTH_BIFF * ( ubMercMercIdValue ); 
 	}
 
-	AddEmail( ubEmailOffset, iMsgLength, SPECK_FROM_MERC, GetWorldTotalMin(), -1, -1);
+	AddEmail( ubEmailOffset, iMsgLength, SPECK_FROM_MERC, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT_NAME_MERC);
+	
+	}
+#endif
 }

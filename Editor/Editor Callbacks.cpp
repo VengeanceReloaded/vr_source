@@ -435,7 +435,7 @@ void BuildingDrawRoomNumCallback(GUI_BUTTON *btn, INT32 reason)
 	{
 		SetEditorBuildingTaskbarMode( BUILDING_DRAW_ROOMNUM );
 	iDrawMode = DRAW_MODE_ROOMNUM;
-		gubCurrRoomNumber = gubMaxRoomNumber;
+		gusCurrRoomNumber = gusMaxRoomNumber;
 	}
 }
 
@@ -787,16 +787,37 @@ void ItemsKeysCallback(GUI_BUTTON *btn,INT32 reason)
 		SetEditorItemsTaskbarMode( ITEMS_KEYS );
 }
 
+void ItemsRandomItemCallback(GUI_BUTTON *btn,INT32 reason)
+{
+	if(reason & MSYS_CALLBACK_REASON_LBUTTON_UP)
+		SetEditorItemsTaskbarMode( ITEMS_RANDOMITEM );
+}
+
 void ItemsLeftScrollCallback(GUI_BUTTON *btn, INT32 reason)
 {
 	if(reason & MSYS_CALLBACK_REASON_LBUTTON_UP)
 	{
+#if 0//dnl ch80 011213
 		gfRenderTaskbar = TRUE;
-		eInfo.sScrollIndex--;
+		if (_KeyDown( 17 ) ) // CTRL
+		{
+			if (_KeyDown( 16 ) ) // SHIFT
+				eInfo.sScrollIndex = 0;
+			else
+				eInfo.sScrollIndex = __max(eInfo.sScrollIndex - 60, 0);
+		}
+		else if (_KeyDown( 16 ) ) // SHIFT
+			eInfo.sScrollIndex = __max(eInfo.sScrollIndex - 6, 0);
+		else
+			eInfo.sScrollIndex--;
+							
 		if( !eInfo.sScrollIndex )
 			DisableButton( iEditorButton[ITEMS_LEFTSCROLL] );
 		if( eInfo.sScrollIndex < ((eInfo.sNumItems+1)/2)-6 )
 			EnableButton( iEditorButton[ITEMS_RIGHTSCROLL] );
+#else
+		ScrollEditorItemsInfo(FALSE);
+#endif
 	}
 }
 
@@ -804,11 +825,26 @@ void ItemsRightScrollCallback(GUI_BUTTON *btn, INT32 reason)
 {
 	if(reason & MSYS_CALLBACK_REASON_LBUTTON_UP)
 	{
+#if 0//dnl ch80 011213
 		gfRenderTaskbar = TRUE;
-		eInfo.sScrollIndex++;
+		if (_KeyDown( 17 ) ) // CTRL
+		{
+			if (_KeyDown( 16 ) ) // SHIFT
+				eInfo.sScrollIndex = max( ((eInfo.sNumItems+1)/2)-6, 0);
+			else
+				eInfo.sScrollIndex = __min(eInfo.sScrollIndex + 60, (eInfo.sNumItems+1)/2-6);
+		}
+		else if (_KeyDown( 16 ) ) // SHIFT
+			eInfo.sScrollIndex = __min(eInfo.sScrollIndex + 6, (eInfo.sNumItems+1)/2-6);
+		else
+			eInfo.sScrollIndex++;
+
 		EnableButton( iEditorButton[ITEMS_LEFTSCROLL] );
 		if( eInfo.sScrollIndex == max( ((eInfo.sNumItems+1)/2)-6, 0) )
 			DisableButton( iEditorButton[ITEMS_RIGHTSCROLL] );
+#else
+		ScrollEditorItemsInfo(TRUE);
+#endif
 	}
 }
 

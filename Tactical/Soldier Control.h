@@ -14,17 +14,24 @@
 #include "worlddef.h"
 #include <vector>
 #include <iterator>
+#include "GameSettings.h"	// added by Flugente
 
 #define PTR_CIVILIAN	(pSoldier->bTeam == CIV_TEAM)
 #define PTR_CROUCHED	(gAnimControl[ pSoldier->usAnimState ].ubHeight == ANIM_CROUCH)
 #define PTR_STANDING	(gAnimControl[ pSoldier->usAnimState ].ubHeight == ANIM_STAND)
 #define PTR_PRONE	 (gAnimControl[ pSoldier->usAnimState ].ubHeight == ANIM_PRONE)
 
+#define DRUG_TYPE_MAX	32
+#define FOOD_TYPE_MAX	128
 
 // TEMP VALUES FOR NAMES
 #define MAXCIVLASTNAMES		30
 extern UINT16 CivLastNames[MAXCIVLASTNAMES][10];
- 
+
+#ifdef JA2UB
+//ja25ub
+#define	NUM_ASSIST_SLOTS				156				//used for when the player asssists in killing the enemty
+#endif
 
 // ANDREW: these are defines for OKDestanation usage - please move to approprite file
 #define IGNOREPEOPLE	0
@@ -106,58 +113,6 @@ extern UINT16 CivLastNames[MAXCIVLASTNAMES][10];
 #define	SOLDIER_TRAIT_MARTIALARTS		0x0800
 #define	SOLDIER_TRAIT_KNIFING				0x1000
 */
-
-// anv: externalised taunts
-// taunt properties
-// attitudes
-#define TAUNT_A_CUNNING_SOLO						0x0000000000000001	//1
-#define TAUNT_A_CUNNING_AID							0x0000000000000002	//2
-#define TAUNT_A_BRAVE_SOLO							0x0000000000000004	//4
-#define TAUNT_A_BRAVE_AID							0x0000000000000008	//8
-
-#define TAUNT_A_AGGRESSIVE							0x0000000000000010	//16
-#define TAUNT_A_DEFENSIVE							0x0000000000000020	//32
-
-// situations
-#define TAUNT_S_FIRE_GUN		   					0x0000000000000040	//64
-#define TAUNT_S_FIRE_LAUNCHER						0x0000000000000080	//128
-
-#define TAUNT_S_GOT_HIT								0x0000000000000100	//256
-#define TAUNT_S_GOT_MISSED							0x0000000000000200	//512			//10
-
-#define TAUNT_S_THROW_KNIFE							0x0000000000000400	//1024
-#define TAUNT_S_THROW_GRENADE						0x0000000000000800	//2048
-
-#define TAUNT_S_CHARGE_KNIFE						0x0000000000001000	//4096
-#define TAUNT_S_CHARGE_FISTS						0x0000000000002000	//8192
-#define TAUNT_S_STEAL								0x0000000000004000	//16384
-#define TAUNT_S_RUN_AWAY							0x0000000000008000	//32768
-
-#define TAUNT_S_SEEK_NOISE							0x0000000000010000	//65536
-#define TAUNT_S_ALERT								0x0000000000020000	//131072
-#define TAUNT_S_NOTICED_UNSEEN						0x0000000000040000	//262144
-
-// class
-#define TAUNT_C_ADMIN		   						0x0000000000080000	//524288
-//20
-#define TAUNT_C_ARMY		   						0x0000000000100000	//1048576
-#define TAUNT_C_ELITE								0x0000000000200000	//2097152
-#define TAUNT_C_GREEN								0x0000000000400000	//4194304
-#define TAUNT_C_REGULAR		   						0x0000000000800000	//8388608
-
-#define TAUNT_C_VETERAN								0x0000000001000000	//16777216
-#define TAUNT_G_MALE								0x0000000002000000	//33554432
-#define TAUNT_G_FEMALE								0x0000000004000000	//67108864
-
-// target
-#define TAUNT_T_MALE								0x0000000008000000	//134217728
-
-#define TAUNT_T_FEMALE								0x0000000010000000	//268435456
-
-
-#define TAUNT_FLAG_MAX	29
-
-
 // SANDRO was here, messed this..
 //#define HAS_SKILL_TRAIT( s, t ) (s->stats.ubSkillTrait1 == t || s->stats.ubSkillTrait2 == t)
 //#define NUM_SKILL_TRAITS( s, t ) ( (s->stats.ubSkillTrait1 == t) ? ( (s->stats.ubSkillTrait2 == t) ? 2 : 1 ) : ( (s->stats.ubSkillTrait2 == t) ? 1 : 0 ) )
@@ -185,11 +140,25 @@ INT8 NUM_SKILL_TRAITS( SOLDIERTYPE * pSoldier, UINT8 uiSkillTraitNumber );
 #define SOLDIER_QUOTE_SAID_EXT_SEEN_CREATURE_ATTACK		0x0002
 #define SOLDIER_QUOTE_SAID_EXT_USED_BATTLESOUND_HIT		0x0004
 #define SOLDIER_QUOTE_SAID_EXT_CLOSE_CALL							0x0008
+
+//Ja25: no mike
+#ifdef JA2UB
+#define SOLDIER_QUOTE_SAID_EXT_MORRIS									0x0010 //Ja25 UB
+#else
 #define SOLDIER_QUOTE_SAID_EXT_MIKE										0x0010
+#endif
+
 #define SOLDIER_QUOTE_SAID_DONE_ASSIGNMENT						0x0020
 #define SOLDIER_QUOTE_SAID_BUDDY_1_WITNESSED					0x0040
 #define SOLDIER_QUOTE_SAID_BUDDY_2_WITNESSED					0x0080
 #define SOLDIER_QUOTE_SAID_BUDDY_3_WITNESSED					0x0100
+#define SOLDIER_QUOTE_SAID_BUDDY_4_WITNESSED					0x0400
+#define SOLDIER_QUOTE_SAID_BUDDY_5_WITNESSED					0x0800
+#define SOLDIER_QUOTE_SAID_BUDDY_6_WITNESSED					0x1000
+
+#ifdef JA2UB
+#define	SOLDIER_QUOTE_SAID_THOUGHT_KILLED_YOU					0x0200
+#endif
 
 
 #define	SOLDIER_CONTRACT_RENEW_QUOTE_NOT_USED					0
@@ -234,6 +203,7 @@ INT8 NUM_SKILL_TRAITS( SOLDIERTYPE * pSoldier, UINT8 uiSkillTraitNumber );
 #define		TURNING_FROM_PRONE_ON						1	
 #define		TURNING_FROM_PRONE_START_UP_FROM_MOVE		2
 #define		TURNING_FROM_PRONE_ENDING_UP_FROM_MOVE		3
+#define		TURNING_FROM_PRONE_FOR_PUNCH_OR_STAB		4//dnl ch73 290913
 
 //ENUMERATIONS FOR ACTIONS
 enum
@@ -256,6 +226,9 @@ enum
 	MERC_TAKEBLOOD,
 	MERC_ATTACH_CAN,
 	MERC_FUEL_VEHICLE,
+	MERC_BUILD_FORTIFICATION,
+	MERC_HANDCUFF_PERSON,
+	MERC_APPLYITEM,
 };
 
 // ENUMERATIONS FOR THROW ACTIONS
@@ -320,6 +293,16 @@ enum
 	NUM_DAMAGABLE_STATS,
 };
 
+// SANDRO - this is for determining what stance to go back after being hit
+enum
+{
+	NO_SPEC_STANCE_AFTER_HIT,
+	GO_TO_AIM_AFTER_HIT,
+	GO_TO_ALTERNATIVE_AIM_AFTER_HIT,
+	GO_TO_HTH_BREATH_AFTER_HIT,
+	GO_TO_COWERING_AFTER_HIT,
+};
+
 // vehicle/human path structure
 struct path
 {
@@ -347,7 +330,12 @@ enum
 	SOLDIER_CLASS_ELITE_MILITIA,
 	SOLDIER_CLASS_CREATURE,
 	SOLDIER_CLASS_MINER,
+	SOLDIER_CLASS_ZOMBIE,
+	SOLDIER_CLASS_MAX,
 };
+
+// Flugente: there are now separate gun choices, depending on a soldier's class
+#define SOLDIER_GUN_CHOICE_SELECTIONS SOLDIER_CLASS_CREATURE
 
 #define SOLDIER_CLASS_ENEMY( bSoldierClass )		( ( bSoldierClass >= SOLDIER_CLASS_ADMINISTRATOR ) && ( bSoldierClass <= SOLDIER_CLASS_ARMY ) )
 #define SOLDIER_CLASS_MILITIA( bSoldierClass )	( ( bSoldierClass >= SOLDIER_CLASS_GREEN_MILITIA ) && ( bSoldierClass <= SOLDIER_CLASS_ELITE_MILITIA ) )
@@ -364,6 +352,230 @@ enum
 	NUM_UNIFORMS,
 };
 
+// -------- added by Flugente: various flags for soldiers --------
+// easier than adding 32 differently named variables. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+#define SOLDIER_DRUGGED						0x00000001	//1			// Soldier is on drugs
+#define SOLDIER_NO_AP						0x00000002	//2			// Soldier has no APs this turn (fix for reinforcement bug)
+#define SOLDIER_COVERT_CIV					0x00000004	//4			// Soldier is currently disguised as a civilian
+#define SOLDIER_COVERT_SOLDIER				0x00000008	//8			// Soldier is currently disguised as an enemy soldier
+
+#define SOLDIER_DAMAGED_VEST				0x00000010	//16		// Soldier's vest is damaged (and thus can't be taken off)
+#define SOLDIER_COVERT_NPC_SPECIAL			0x00000020	//32		// Special flag for NPCs when recruited (used for covert stuff)
+#define SOLDIER_NEW_VEST   					0x00000040	//64		// Soldier is wearing new vest. if having both vest and pants, he can disguise
+#define SOLDIER_NEW_PANTS					0x00000080	//128		// Soldier is wearing new pants
+
+#define SOLDIER_DAMAGED_PANTS				0x00000100	//256		// Soldier's vest is damaged (and thus can't be taken off)
+#define SOLDIER_HEADSHOT					0x00000200	//512		// last hit received was a headshot (attack to the head, so knifes/punches also work)
+#define SOLDIER_POW							0x00000400	//1024		// we are a prisoner of war
+#define SOLDIER_ASSASSIN					0x00000800	//2048		// we are an enemy assassin, and thus we will behave very different from normal enemies
+
+#define SOLDIER_POW_PRISON					0x00001000	//4096		// this guy is a prisoner of war in a prison sector. SOLDIER_POW refers to people we capture, this refers to people we hold captive
+#define SOLDIER_EQUIPMENT_DROPPED			0x00002000	//8192		// under certain circumstances, militia can be ordered to drop their gear twice. Thus we set a marker to avoid that.
+#define SOLDIER_ACCESSTEAMMEMBER			0x00004000	//16384		// this merc is accessing another team member'S inventory (via abusing the stealing mechanic)
+#define SOLDIER_REDOFLASHLIGHT				0x00008000	//32768		// this flag signifies that we somehow interacted with the items in our hands. Thus we have to possible redo lighting from flashlights
+
+#define SOLDIER_LIGHT_OWNER					0x00010000	//65536		// we 'own' at least one light source (via flashlights)
+#define SOLDIER_AIRDROP_TURN				0x00020000	//131072	// we are entering a sector via airdrop this turn
+#define SOLDIER_ASSAULT_BONUS				0x00040000	//262144	// backgrounds: our first turn in an assault
+#define SOLDIER_RADIO_OPERATOR_LISTENING	0x00080000	//524288	// radio operator is listening with his set
+
+#define SOLDIER_RADIO_OPERATOR_JAMMING		0x00100000	//1048576	// radio operator is jamming frequencies
+#define SOLDIER_RADIO_OPERATOR_SCANNING		0x00200000	//2097152	// radio operator is scanning for jammers
+#define SOLDIER_AIRDROP						0x00400000	//4194304	// soldier is entering the sector via airdrop from a helicopter. Slightly different from SOLDIER_AIRDROP_TURN
+#define SOLDIER_FRESHWOUND					0x00800000	//8388608	// campaign stats: soldier was wounded in this battle
+
+#define SOLDIER_BATTLE_PARTICIPATION		0x01000000	//16777216	// campaign stats: soldier took part in this battle
+#define SOLDIER_RAISED_REDALERT				0x02000000	//33554432	// this (AI) soldier has raised red alert. Don't allow him to do so again this turn - either it already worked, or the signal is blocked
+/*#define PLAYER_NET_3_LVL_3		0x04000000	//67108864
+#define PLAYER_NET_4_LVL_3		0x08000000	//134217728
+
+#define PLAYER_NET_1_LVL_4		0x10000000	//268435456
+#define PLAYER_NET_2_LVL_4		0x20000000	//536870912
+#define WH40K_SOLDIER_ILLUSION				0x40000000	//1073741824	// Soldier is an Illusion
+#define WH40K_SOLDIER_KILLTHISTURN			0x80000000	//2147483648	// Soldier is on a kill streak*/
+// ----------------------------------------------------------------
+
+// ------------------- more flags for soldiers --------------------
+#define SOLDIER_SNITCHING_OFF				0x00000001	//1				// isn't allowed to snitch
+#define SOLDIER_PREVENT_MISBEHAVIOUR_OFF	0x00000002	//2				// isn't allowed to prevent misbehaviour
+// ----------------------------------------------------------------
+
+// -------- added by Flugente: background property flags --------
+// easier than adding 32 differently named variables. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+// a merc's background info reveals data about his previous life, like former regiments. These backgrounds add small abilities/disabilities. Nothing substantial, just small bits do
+// diversify your mercs and add more personality
+#define BACKGROUND_DRUGUSE						0x0000000000000001	//1				// might use drugs on his own (the 'Larry'-effect)
+#define BACKGROUND_XENOPHOBIC					0x0000000000000002	//2				// arrogant towards others without this background
+#define BACKGROUND_EXP_UNDERGROUND				0x0000000000000004	//4				// extra level in underground sectors
+#define BACKGROUND_SCROUNGING					0x0000000000000008	//8				// might pick up valuable items on his own
+
+#define BACKGROUND_TRAPLEVEL					0x0000000000000010	//16			// trap level +1
+#define BACKGROUND_CORRUPTIONSPREAD				0x0000000000000020	//32			// spreads corruption to others	- not used in trunk!
+#define BACKGROUND_NO_MALE   					0x0000000000000040	//64			// background cannot be selected by males (IMP creation)
+#define BACKGROUND_NO_FEMALE					0x0000000000000080	//128			// background cannot be selected by females (IMP creation)
+
+#define BACKGROUND_FLAG_MAX	8					// number of flagged backgrounds - keep this updated, or properties will get lost!
+
+// some properties are hidden (forbid background in MP creation)
+// corruption property is not relevant in 1.13
+#define BACKGROUND_HIDDEN_FLAGS					(BACKGROUND_NO_MALE|BACKGROUND_NO_FEMALE|BACKGROUND_CORRUPTIONSPREAD)
+
+// anv: externalised taunts
+// taunt properties
+// attitudes
+#define TAUNT_A_CUNNING_SOLO						0x0000000000000001	//1
+#define TAUNT_A_CUNNING_AID							0x0000000000000002	//2
+#define TAUNT_A_BRAVE_SOLO							0x0000000000000004	//4
+#define TAUNT_A_BRAVE_AID							0x0000000000000008	//8
+
+#define TAUNT_A_AGGRESSIVE							0x0000000000000010	//16
+#define TAUNT_A_DEFENSIVE							0x0000000000000020	//32
+
+// situations
+// actions
+#define TAUNT_S_FIRE_GUN		   					0x0000000000000040	//64
+#define TAUNT_S_FIRE_LAUNCHER						0x0000000000000080	//128
+#define TAUNT_S_ATTACK_BLADE						0x0000000000000100	//256
+#define TAUNT_S_ATTACK_HTH							0x0000000000000200	//512
+
+#define TAUNT_S_THROW_KNIFE							0x0000000000000400	//1024
+#define TAUNT_S_THROW_GRENADE						0x0000000000000800	//2048
+
+#define TAUNT_S_OUT_OF_AMMO							0x0000000000001000	//4096
+#define TAUNT_S_RELOAD								0x0000000000002000	//8192
+
+#define TAUNT_S_STEAL								0x0000000000004000	//16384
+
+// AI routines
+#define TAUNT_S_CHARGE_BLADE						0x0000000000008000	//32768
+#define TAUNT_S_CHARGE_HTH							0x0000000000010000	//65536
+#define TAUNT_S_RUN_AWAY							0x0000000000020000	//131072
+#define TAUNT_S_SEEK_NOISE							0x0000000000040000	//262144
+#define TAUNT_S_ALERT								0x0000000000080000	//...
+#define TAUNT_S_SUSPICIOUS							0x0000000000100000
+#define TAUNT_S_NOTICED_UNSEEN						0x0000000000200000	//
+#define TAUNT_S_SAY_HI								0x0000000000400000	//
+#define	TAUNT_S_INFORM_ABOUT						0x0000000000800000
+
+// got_hit_xxx
+#define TAUNT_S_GOT_HIT								0x0000000001000000	//
+#define TAUNT_S_GOT_HIT_GUNFIRE						0x0000000002000000	//
+#define TAUNT_S_GOT_HIT_BLADE						0x0000000004000000	//
+#define TAUNT_S_GOT_HIT_HTH							0x0000000008000000	//
+#define TAUNT_S_GOT_HIT_FALLROOF					0x0000000010000000	//
+#define TAUNT_S_GOT_HIT_BLOODLOSS					0x0000000020000000	//
+#define TAUNT_S_GOT_HIT_EXPLOSION					0x0000000040000000	//
+#define TAUNT_S_GOT_HIT_GAS							0x0000000080000000	//
+#define TAUNT_S_GOT_HIT_TENTACLES					0x0000000100000000	//
+#define TAUNT_S_GOT_HIT_STRUCTURE_EXPLOSION			0x0000000200000000	//
+#define TAUNT_S_GOT_HIT_OBJECT						0x0000000400000000	//
+#define TAUNT_S_GOT_HIT_THROWING_KNIFE				0x0000000800000000	//
+
+#define TAUNT_S_GOT_DEAFENED						0x0000001000000000	//
+#define TAUNT_S_GOT_BLINDED							0x0000002000000000	//
+
+#define TAUNT_S_GOT_ROBBED							0x0000004000000000	//
+
+// got_missed_xxx
+#define TAUNT_S_GOT_MISSED							0x0000008000000000	//
+#define TAUNT_S_GOT_MISSED_GUNFIRE					0x0000010000000000	//
+#define TAUNT_S_GOT_MISSED_BLADE					0x0000020000000000	//
+#define TAUNT_S_GOT_MISSED_HTH						0x0000040000000000	//
+#define TAUNT_S_GOT_MISSED_THROWING_KNIFE			0x0000080000000000	//
+
+// hit_xxx
+#define TAUNT_S_HIT									0x0000100000000000	//
+#define TAUNT_S_HIT_GUNFIRE							0x0000200000000000	//
+#define TAUNT_S_HIT_BLADE							0x0000400000000000	//
+#define TAUNT_S_HIT_HTH								0x0000800000000000	//
+#define TAUNT_S_HIT_EXPLOSION						0x0001000000000000	//
+#define TAUNT_S_HIT_THROWING_KNIFE					0x0002000000000000	//
+
+// kill_xxx
+#define TAUNT_S_KILL								0x0004000000000000	//
+#define TAUNT_S_KILL_GUNFIRE						0x0008000000000000	//
+#define TAUNT_S_KILL_BLADE							0x0010000000000000	//
+#define TAUNT_S_KILL_HTH							0x0020000000000000	//
+#define TAUNT_S_KILL_THROWING_KNIFE					0x0040000000000000	//
+#define TAUNT_S_HEAD_POP							0x0080000000000000	//
+
+// miss_xxx
+#define TAUNT_S_MISS								0x0100000000000000	//
+#define TAUNT_S_MISS_GUNFIRE						0x0200000000000000	//
+#define TAUNT_S_MISS_BLADE							0x0400000000000000	//
+#define TAUNT_S_MISS_HTH							0x0800000000000000	//
+#define TAUNT_S_MISS_THROWING_KNIFE					0x1000000000000000	//
+
+// NEW FLAGS, starting from the beginning (UINT128 is redundant? yeah, right)
+
+// class
+#define TAUNT_C_ADMIN		   						0x0000000000000004	//4
+#define TAUNT_C_ARMY		   						0x0000000000000008	//8
+#define TAUNT_C_ELITE								0x0000000000000010	//16
+#define TAUNT_C_GREEN								0x0000000000000020	//32
+#define TAUNT_C_REGULAR		   						0x0000000000000040	//64
+#define TAUNT_C_VETERAN								0x0000000000000080	//128
+
+// sex
+#define TAUNT_G_MALE								0x0000000000000100	//256
+#define TAUNT_G_FEMALE								0x0000000000000200	//512
+
+// target
+#define TAUNT_T_MALE								0x0000000000000400	//1024
+#define TAUNT_T_FEMALE								0x0000000000000800	//2048
+
+#define TAUNT_T_ZOMBIE								0x0000000000001000	//4096
+
+#define TAUNT_FLAG_1_MAX	64
+#define TAUNT_FLAG_2_MAX	13
+#define TAUNT_FLAG_MAX	TAUNT_FLAG_1_MAX + TAUNT_FLAG_2_MAX
+
+// Flugente: types of multi-turn actions
+enum
+{
+	MTA_NONE = 0,
+	MTA_FORTIFY,
+	MTA_REMOVE_FORTIFY,
+	MTA_FILL_SANDBAG,
+	NUM_MTA,
+};
+
+//Flugente skills from traits and other sources
+enum{
+	// first skill
+	SKILLS_FIRST = 0,
+
+	// radio operator
+	SKILLS_RADIO_FIRST = SKILLS_FIRST,
+	SKILLS_RADIO_ARTILLERY = SKILLS_RADIO_FIRST,
+	SKILLS_RADIO_JAM,
+	SKILLS_RADIO_SCAN_FOR_JAM,
+	SKILLS_RADIO_LISTEN,
+	SKILLS_RADIO_CALLREINFORCEMENTS,
+	SKILLS_RADIO_TURNOFF,
+	SKILLS_RADIO_LAST = SKILLS_RADIO_TURNOFF,
+
+	// various
+	SKILLS_VARIOUS_FIRST,
+	SKILLS_SPOTTER = SKILLS_VARIOUS_FIRST,
+	SKILLS_VARIOUS_LAST = SKILLS_SPOTTER,
+
+	SKILLS_MAX,
+};
+
+// Flugente: certain skills/traits/taints add effects that require a counter, here are enums for these
+enum {
+	SOLDIER_COUNTER_RADIO_ARTILLERY,		// there is actually no need for an artillery timer, but we use one to forbid the same AI guy ordering multiple strikes at once
+	SOLDIER_COUNTER_SPOTTER,				// used to determine wether we are a spotter
+	
+	SOLDIER_COUNTER_MAX = 20,				// enough space for fillers
+};
+
+// Flugente: certain skills/traits/taints require a cooldown timer 
+enum {
+	SOLDIER_COOLDOWN_MAX = 20,				// enough space for fillers
+};
+
 // enum of uniform pieces
 typedef struct
 {
@@ -374,10 +586,23 @@ typedef struct
 // HEADROCK HAM 3.6: Uniform colors for the different soldier classes
 extern UNIFORMCOLORS gUniformColors[NUM_UNIFORMS];
 
+// Flugente: a structure for clothing items
+typedef struct
+{
+	UINT16			uiIndex;
+	CHAR16			szName[80];				// name of these clothes
+	PaletteRepID	vest;
+	PaletteRepID	pants;
+} CLOTHES_STRUCT;
+
+#define CLOTHES_MAX	50
+
+extern CLOTHES_STRUCT Clothes[CLOTHES_MAX];
+
 // This macro should be used whenever we want to see if someone is neutral
 // IF WE ARE CONSIDERING ATTACKING THEM.	Creatures & bloodcats will attack neutrals
 // but they can't attack empty vehicles!!
-#define CONSIDERED_NEUTRAL( me, them ) ( (them->aiData.bNeutral) && ( me->bTeam != CREATURE_TEAM || (them->flags.uiStatusFlags & SOLDIER_VEHICLE) ) )
+#define CONSIDERED_NEUTRAL( me, them ) ( (them->aiData.bNeutral || them->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER|SOLDIER_POW)) && ( me->bTeam != CREATURE_TEAM || (them->flags.uiStatusFlags & SOLDIER_VEHICLE) ) )
 
 typedef struct
 {
@@ -529,6 +754,7 @@ public:
 	INT8												fAIFlags;
 	INT16												bAimTime;	//100AP
 	INT8												bShownAimTime;
+	UINT8												ubInterruptCounter[MAX_NUM_SOLDIERS]; // SANDRO - interrupt counter added
 };
 
 class STRUCT_Flags//last edited at version 102
@@ -545,7 +771,7 @@ public:
 	INT8											bTurningFromPronePosition;
 	BOOLEAN											fDontChargeReadyAPs;
 	BOOLEAN											fPrevInWater;
-	BOOLEAN											fGoBackToAimAfterHit;
+	INT8											bGoBackToAimAfterHit;
 	BOOLEAN											fForceRenderColor;
 	BOOLEAN											fForceNoRenderPaletteCycle;
 	BOOLEAN											fStopPendingNextTile;
@@ -649,12 +875,12 @@ class STRUCT_Drugs//last edited at version 102
 {
 public:
 	void				ConvertFrom_101_To_102(const OLDSOLDIERTYPE_101& src);
-	INT8			bFutureDrugEffect[2];						// value to represent effect of a needle
-	INT8			bDrugEffectRate[2];							// represents rate of increase and decrease of effect	
-	INT8			bDrugEffect[2];								// value that affects AP & morale calc ( -ve is poorly )
-	INT8			bDrugSideEffectRate[2];					// duration of negative AP and morale effect
-	INT8			bDrugSideEffect[2];							// duration of negative AP and morale effect
-	INT8			bTimesDrugUsedSinceSleep[2];			
+	INT8			bFutureDrugEffect[DRUG_TYPE_MAX];						// value to represent effect of a needle
+	INT8			bDrugEffectRate[DRUG_TYPE_MAX];							// represents rate of increase and decrease of effect	
+	INT8			bDrugEffect[DRUG_TYPE_MAX];								// value that affects AP & morale calc ( -ve is poorly )
+	INT8			bDrugSideEffectRate[DRUG_TYPE_MAX];					// duration of negative AP and morale effect
+	INT8			bDrugSideEffect[DRUG_TYPE_MAX];							// duration of negative AP and morale effect
+	INT8			bTimesDrugUsedSinceSleep[DRUG_TYPE_MAX];			
 };
 
 class STRUCT_TimeCounters//last edited at version 102
@@ -672,6 +898,15 @@ public:
 	TIMECOUNTER									PortraitFlashCounter;
 	TIMECOUNTER									NextTileCounter;
 };
+
+// forward declaration for modularized tactical ai
+namespace AI
+{
+    namespace tactical
+    {
+        class Plan;
+    }
+}
 
 class STRUCT_Statistics//last edited at version 102
 {
@@ -725,10 +960,6 @@ public:
 
 	// Constructor
 	SOLDIERTYPE();
-	// Copy Constructor
-	SOLDIERTYPE(const SOLDIERTYPE&);
-	// Assignment operator
-	SOLDIERTYPE& operator=(const SOLDIERTYPE&);
 	// Destructor
 	~SOLDIERTYPE();
 
@@ -866,11 +1097,11 @@ public:
 	INT8												bTargetCubeLevel;
 	INT32												sLastTarget;
 	// HEADROCK HAM 4: the muzzle offset of the shooter's previous bullet. (NCTH)
-	FLOAT												dPrevMuzzleOffsetX;
-	FLOAT												dPrevMuzzleOffsetY;
+	FLOAT												dPrevMuzzleOffsetX[2];
+	FLOAT												dPrevMuzzleOffsetY[2];
 	// HEADROCK HAM 4: Two more values. These record the shooter's previous Counter Force applied on the gun.
-	FLOAT												dPrevCounterForceX;
-	FLOAT												dPrevCounterForceY;
+	FLOAT												dPrevCounterForceX[2];
+	FLOAT												dPrevCounterForceY[2];
 	// CHRISL: Track initial offsets for autofire
 	FLOAT												dInitialMuzzleOffsetX;
 	FLOAT												dInitialMuzzleOffsetY;
@@ -1180,6 +1411,69 @@ public:
 	// I don't know if this is a good idea at all...
 	//INT16	filler;
 
+	// Flugente: Is this the correct position?
+	INT8												bScopeMode;
+
+	///////////////////////////////////////////////////////
+	// Flugente Zombies: Added variables for the poison system
+	INT8	bPoisonBleeding;		// The number of bleeding points that are also poison points
+	//INT8	bPoisonBandaged;		// The number of bandaged lifepoints that are also poison points
+	INT8	bPoisonLife;			// The number of Lifepoints that are also poison points
+	INT8	bPoisonSum;				// The sum of poison points;
+
+	INT16	bPoisonResistance;		// poison resistance reduces the amount of poison damage received. It is applied before poison absorption
+	INT16	bPoisonAbsorption;		// for x points of poison damage received, you gain x * (bPoisonAbsorption / 100) poison life points
+	///////////////////////////////////////////////////////
+
+	// Flugente: new variables for extra stats	
+	INT16	bExtraStrength;			// additional strength gained via power armor
+	INT16	bExtraDexterity;		// additional dexterity gained via drugs
+	INT16	bExtraAgility;			// additional agility gained via drugs
+	INT16	bExtraWisdom;			// additional wisdom gained via drugs
+	INT8	bExtraExpLevel;			// corruption can temporarily alter our ExpLevel without messing up our stats this way
+
+	INT32	bSoldierFlagMask;		// for various soldier-related flags (Illusion, Kill streak, etc.). Easier than adding 32 bool variables
+
+	// Flugente: food system
+	INT32	bFoodLevel;				// current level of food saturation
+	INT32	bDrinkLevel;			// current level of drink saturation
+
+	UINT8	usStarveDamageHealth;	// damage to health due to starvation. Can be cured by surgery, but only if nutrition level is high enough again
+	UINT8	usStarveDamageStrength;	// damage to strength due to starvation. Can be cured by surgery, but only if nutrition level is high enough again
+
+	// Flugente: multi-turn actions	
+	INT16	bOverTurnAPS;			// remaining AP cost for the next turns	(allows actions to be performed for more than one turn)
+	INT32	sMTActionGridNo;		// gridno on which we perfrom our multi-turn action
+	UINT8	usMultiTurnAction;		// specifies which multi-turn action we are currently performing, 0: none
+
+	INT16	bAIIndex;			    // feynman: PlanFactory from the modularized tactical AI that shall be used
+
+	UINT16	usSoldierProfile;		// Flugente: allow linking to a xml-based profile specifiying name, visuals, traits etc.
+
+	// Flugente: sector ID for move items assignment
+	UINT8	usItemMoveSectorID;
+
+	// Flugente: skill stuff
+	UINT8	usAISkillUse;							// this variable allows the AI to remember which skill it wants to use
+	UINT16	usSkillCounter[SOLDIER_COUNTER_MAX];	// counters used for various skill/trait/taint effects
+	UINT32	usSkillCooldown[SOLDIER_COOLDOWN_MAX];	// cooldown used for various skill/trait/taint effects
+	
+	// Flugente: Decrease this filler by 1 for each new UINT8 / BOOLEAN variable, so we can maintain savegame compatibility!!
+	// Note that we also have to account for padding, so you might need to substract more than just the size of the new variables
+	UINT8	ubFiller[20];
+
+	INT32	bSoldierFlagMask2;		// anv: another bSoldierFlagMask
+
+	
+#ifdef JA2UB
+	//ja25
+	BOOLEAN											fIgnoreGetupFromCollapseCheck;
+	TIMECOUNTER									GetupFromJA25StartCounter;
+	BOOLEAN											fWaitingToGetupFromJA25Start;
+
+	UINT8												ubPercentDamageInflictedByTeam[NUM_ASSIST_SLOTS];			//The percent of damage inflicted by the player team.  Each element corresponds to the Soldier ID.  Each element contains the percent damage inflicted by that merc
+#endif
+	
 	char endOfPOD;	// marker for end of POD (plain old data)
 
 	// Note: Place all non-POD items at the end (after endOfPOD)
@@ -1188,6 +1482,7 @@ public:
 	// properly until it is all fixed and the files updated.
 
 	Inventory inv;
+    AI::tactical::Plan*                             ai_masterplan_; // Interface object for ModularizedTacticalAI
 
 	//data from version 101 wrapped into structs
 	STRUCT_AIData									aiData;
@@ -1202,6 +1497,21 @@ public:
 	INT32 sPlotSrcGrid;
 	//std::vector<UINT32>	CTH;
 
+	// sevenfm: remember suppression points, shock from last attack
+	// these counters are used only for showing suppression values above soldier (similar to damage counter)
+	// these values are not saved
+	UINT8	ubLastShock;
+	UINT8	ubLastSuppression;
+	UINT8	ubLastAP;
+	UINT8	ubLastMorale;
+	UINT8	ubLastShockFromHit;
+	UINT8	ubLastAPFromHit;
+	UINT8	ubLastMoraleFromHit;
+	UINT8	iLastBulletImpact;
+	UINT8	iLastArmourProtection;
+	
+	UINT16	usQuickItemId;
+	UINT8	ubQuickItemSlot;
 
 public:
 	// CREATION FUNCTIONS
@@ -1233,7 +1543,8 @@ public:
 	void EVENT_SoldierBeginRefuel( INT32 sGridNo, UINT8 ubDirection );
 	void EVENT_SoldierBeginKnifeThrowAttack( INT32 sGridNo, UINT8 ubDirection );
 	void EVENT_SoldierBeginUseDetonator( void );
-	void EVENT_SoldierBeginDropBomb( void );
+	void EVENT_SoldierBeginDropBomb( );
+	void EVENT_SoldierDefuseTripwire( INT32 sGridNo, INT32 sItem );
 	void EVENT_SoldierEnterVehicle( INT32 sGridNo, UINT8 ubDirection );
 	void EVENT_SoldierBeginGiveItem( void );
 	void EVENT_SetSoldierPositionAndMaybeFinalDest( FLOAT dNewXPos, FLOAT dNewYPos, BOOLEAN fUpdateFinalDest );
@@ -1242,6 +1553,10 @@ public:
 	void EVENT_SoldierBeginTakeBlood( INT32 sGridNo, UINT8 ubDirection );
 	void EVENT_SoldierBeginAttachCan( INT32 sGridNo, UINT8 ubDirection );
 	void EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCounter );
+
+	void EVENT_SoldierBuildStructure( INT32 sGridNo, UINT8 ubDirection );		// added by Flugente
+	void EVENT_SoldierHandcuffPerson( INT32 sGridNo, UINT8 ubDirection );		// added by Flugente
+	void EVENT_SoldierApplyItemToPerson( INT32 sGridNo, UINT8 ubDirection );	// added by Flugente
 
 	BOOLEAN EVENT_InternalGetNewSoldierPath( INT32 sDestGridNo, UINT16 usMovementAnim, BOOLEAN fFromUI, BOOLEAN fForceRestart );
 	void EVENT_InternalSetSoldierDestination( UINT16	usNewDirection, BOOLEAN fFromMove, UINT16 usAnimState );
@@ -1254,7 +1569,8 @@ public:
 	void ChangeSoldierStance( UINT8 ubDesiredStance );
 	void StopSoldier( void );
 	void ReviveSoldier( void );
-	UINT8 SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBreathDeduct, UINT8 ubReason, UINT8 ubAttacker, INT32 sSourceGrid, INT16 sSubsequent, BOOLEAN fShowDamage );
+	// Flugente: added poison damage, which should be smaller or equal than sLifeDeduct
+	UINT8 SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sPoisonAdd, INT16 sBreathDeduct, UINT8 ubReason, UINT8 ubAttacker, INT32 sSourceGrid, INT16 sSubsequent, BOOLEAN fShowDamage );
 
 
 	// Palette functions for soldiers
@@ -1336,17 +1652,182 @@ public:
 
 
 
-	BOOLEAN SoldierReadyWeapon( INT16 sTargetXPos, INT16 sTargetYPos, BOOLEAN fEndReady );
+	BOOLEAN SoldierReadyWeapon( INT16 sTargetXPos, INT16 sTargetYPos, BOOLEAN fEndReady, BOOLEAN fRaiseToHipOnly );
 	BOOLEAN SoldierReadyWeapon( void );
-	BOOLEAN InternalSoldierReadyWeapon( UINT8 sFacingDir, BOOLEAN fEndReady );
+	BOOLEAN InternalSoldierReadyWeapon( UINT8 sFacingDir, BOOLEAN fEndReady, BOOLEAN fRaiseToHipOnly );
 
 	BOOLEAN CheckSoldierHitRoof( void );
 	BOOLEAN CheckForBreathCollapse( void );
 	BOOLEAN PlayerSoldierStartTalking( UINT8 ubTargetID, BOOLEAN fValidate );
 	BOOLEAN InternalIsValidStance( INT8 bDirection, INT8 bNewStance );
 	BOOLEAN IsValidSecondHandShot( void );
+	BOOLEAN IsValidSecondHandBurst( void );
 	BOOLEAN IsValidSecondHandShotForReloadingPurposes( void );
+	BOOLEAN IsValidAlternativeFireMode( INT16 bAimTime, INT32 iTrgGridNo );
+	BOOLEAN IsValidShotFromHip( INT16 bAimTime, INT32 iTrgGridNo );
+	BOOLEAN IsValidPistolFastShot( INT16 bAimTime, INT32 iTrgGridNo );
 	BOOLEAN SoldierCarriesTwoHandedWeapon( void );
+	void	SoldierInventoryCoolDown( void );		// Flugente: Cool down/decay all items in inventory
+	BOOLEAN	IsWeaponMounted( void );				// determine if we receive a bonus for mounting our weapon on something
+	OBJECTTYPE* GetUsedWeapon( OBJECTTYPE * pObj );		// if in an underbarrel fire mode, return underbarrel weapon
+	UINT16  GetUsedWeaponNumber( OBJECTTYPE * pObj );	// if in an underbarrel fire mode, return number of underbarrel weapon
+
+	// returns damage resistance in percent
+	INT32	GetDamageResistance( BOOLEAN fAutoResolve = FALSE, BOOLEAN fCalcBreathLoss = FALSE);
+	INT8	GetHearingBonus();
+	INT16	GetSightRangeBonus();
+
+	INT16	GetSoldierCriticalDamageBonus( void );	// Flugente: determines critical damage bonus depending on class, skill, etc.
+
+#ifdef ENABLE_ZOMBIES
+	// Flugente: Zombies
+	BOOLEAN IsZombie( void );
+#endif
+	
+	// Flugente: poison system
+	// These functions might one day be modified by traits etc. We'll keep that in these functions and not clutter the rest of the code
+	INT16	GetPoisonResistance( void );
+	INT16	GetPoisonAbsorption( void );
+	// returns the poison percentage of the damage we will be doing with the weapon currently in our hand
+	INT16	GetPoisonDamagePercentage( void );
+
+	// add poison
+	void	AddPoison( INT8 sPoisonAmount );
+
+	// reset the extra stat variables
+	void	ResetExtraStats();
+
+	// Flugente: inventory bombs can ignite while in mapscreen. Workaround: Damage items and health
+	void	InventoryExplosion( void );
+
+	// Flugente: do we currently provide ammo (pAmmoSlot) for someone else's (pubId) gun (pGunSlot)?
+	BOOLEAN		IsFeedingExternal(UINT8* pubId1, UINT16* pGunSlot1, UINT16* pAmmoSlot1, UINT8* pubId2, UINT16* pGunSlot2, UINT16* pAmmoSlot2);
+
+	// Flugente: return a cleaning kit from our inventory
+	OBJECTTYPE* GetCleaningKit();
+
+	// use cleaning kits to clean weapons in inventory. fCleanAll = TRUE: clean all weapons found, otherwise just the first one
+	void	CleanWeapon( BOOLEAN fCleanAll );
+
+	// Flugente: functions for the covert ops trait
+
+	// do we look like a civilian?
+	BOOLEAN		LooksLikeACivilian( void );
+
+	// do we look like a soldier?
+	BOOLEAN		LooksLikeASoldier( void );
+
+	// what kind of uniform are we wearing? returns -1 if none is worn
+	INT8		GetUniformType();
+
+	// is our equipment too good for a soldier?
+	BOOLEAN		EquipmentTooGood( BOOLEAN fCloselook );
+
+	// does soldier ubObserverID recognize us as his enemy?
+	BOOLEAN		SeemsLegit( UINT8 ubObserverID );
+
+	// do we recognize someone else as a combatant?
+	BOOLEAN		RecognizeAsCombatant(UINT8 ubTargetID);
+
+	// loose covert property
+	void		LooseDisguise( void );	
+
+	// lose disguise or take off any clothes item and switch back to original clothes
+	void		Strip();
+
+	// check wether our disguise is any good
+	void		SpySelfTest();
+
+	// Flugente: prisoner system
+	BOOLEAN		CanProcessPrisoners();
+	UINT32		GetSurrenderStrength();
+	BOOLEAN		FreePrisoner();					// used for an enemy liberating fellow prisoners 
+
+	// Flugente: scuba gear
+	BOOLEAN		UsesScubaGear();
+
+	// Flugente: are we an assassin?
+	BOOLEAN		IsAssassin();
+
+	// Flugente: multi-turn actions
+	UINT8		GetMultiTurnAction();
+	void		StartMultiTurnAction(UINT8 usActionType);
+	void		CancelMultiTurnAction(BOOLEAN fFinished);
+	BOOLEAN		UpdateMultiTurnAction();
+
+	void		DropSectorEquipment();
+
+	// sevenfm: Take new bomb with id = usItem from iventory to HANDPOS
+	void 		TakeNewBombFromInventory(UINT16 usItem);
+	void		TakeNewItemFromInventory(UINT16 usItem);
+
+	// Flugente: switch hand item for gunsling weapon, or pistol, or knife
+	void		SwitchWeapons( BOOLEAN fKnife = FALSE, BOOLEAN fSideArm = FALSE );
+
+	// Flugente: return a soldier's name. This allows for very easy manipulation of a soldier's name with pre- an suffixes, ranks etc.
+	STR16		GetName();
+
+	INT8		GetTraitCTHModifier( UINT16 usItem, INT16 ubAimTime, UINT8 ubTargetProfile );
+
+	void		AddDrugValues(UINT8 uDrugType, UINT8 usEffect, UINT8 usTravelRate, UINT8 usSideEffect );
+
+	void		HandleFlashLights();
+	UINT8		GetBestEquippedFlashLightRange();
+
+	// Flugente: soldier profiles
+	INT8		GetSoldierProfileType(UINT8 usTeam);		// retrieves the correct sub-array
+
+	// Flugente: do we have a specific background flag?
+	BOOLEAN		HasBackgroundFlag( UINT64 aFlag );
+	INT16		GetBackgroundValue( UINT16 aNr );
+
+	INT8		GetSuppressionResistanceBonus();			// bonus to resistance against suppression
+	INT16		GetMeleeDamageBonus();
+	INT16		GetAPBonus();
+	INT8		GetFearResistanceBonus();					// fear resistance lowers shock and morale damage from horror
+	UINT8		GetMoraleThreshold();
+	INT16		GetInterruptModifier( UINT8 usDistance );
+
+	void		SoldierPropertyUpkeep();					// update functions for various properties (updating counters, resetting flags etc.)
+
+	// Flugente: functions for skill usage
+	// traits can allow use of certain skills
+	// check if Soldier can use the spell skillwise, with fAPCheck = TRUE also check current APs
+	BOOLEAN CanUseSkill( INT8 iSkill, BOOLEAN fAPCheck = TRUE );
+
+	// use a skill. For safety reasons, this calls CanUseSkill again (it is possible to switch the soldier while the menu is open)
+	BOOLEAN UseSkill( UINT8 iSkill, INT32 usMapPos, UINT8 ID );
+
+	// is the AI allowed to use a skill? we have to check how much breath and life using this skill would cost, as otherwise the AI might commit suicide by casting
+	BOOLEAN IsAIAllowedtoUseSkill( INT8 iSkill );
+
+	// print a small description of the skill if we can use it, or its requirements if we cannot
+	STR16	PrintSkillDesc( INT8 iSkill);
+
+	// Flugente: functions for the radio operator trait
+	BOOLEAN CanUseRadio(BOOLEAN fCheckForAP = TRUE);							// can we use radio, if we even have one?
+	BOOLEAN UseRadio();								// simply drain the batteries
+	BOOLEAN HasMortar();
+	BOOLEAN GetSlotOfSignalShellIfMortar(UINT8* pbLoop); // if we have a mortar and a fitting signal shell, return the inventory slot it is in
+	BOOLEAN CanAnyArtilleryStrikeBeOrdered(UINT32* pSectorID);		// can any artillery strikes be ordered by this guy's team from the neighbouring sectors?
+	BOOLEAN OrderArtilleryStrike( UINT32 usSectorNr, INT32 sTargetGridNo, UINT8 bTeam );
+	BOOLEAN IsJamming();							// are we currently jamming communication frequencies?
+	BOOLEAN JamCommunications();
+	BOOLEAN IsScanning();
+	BOOLEAN ScanForJam();
+	BOOLEAN IsRadioListening();
+	BOOLEAN RadioListen();
+	BOOLEAN RadioCallReinforcements( UINT32 usSector, UINT16 sNumber );
+	BOOLEAN SwitchOffRadio();
+	void	RadioFail();							// display and error sound used either when the radio set fails or the sector is jammed - the player knows of the error, but cannot be sure of the cause
+	void	DepleteActiveRadioSetEnergy(BOOLEAN fActivation = FALSE, BOOLEAN fAssignment = FALSE);
+
+	// Flugente: spotter
+	BOOLEAN IsSpotting();
+	BOOLEAN CanSpot( INT32 sTargetGridNo = -1 );
+	BOOLEAN BecomeSpotter( INT32 sTargetGridNo );
+
+	//////////////////////////////////////////////////////////////////////////////
 
 }; // SOLDIERTYPE;	
 
@@ -1469,8 +1950,17 @@ void HandlePlayerTogglingLightEffects( BOOLEAN fToggleValue );
 UINT8 GetSquadleadersCountInVicinity( SOLDIERTYPE * pSoldier, BOOLEAN fWithHigherLevel, BOOLEAN fDontCheckDistance );
 UINT16 NumberOfDamagedStats( SOLDIERTYPE * pSoldier );
 UINT8 RegainDamagedStats( SOLDIERTYPE * pSoldier, UINT16 usAmountRegainedHundredths );
+BOOLEAN ResolvePendingInterrupt( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType );
+BOOLEAN AIDecideHipOrShoulderStance( SOLDIERTYPE * pSoldier, INT32 iGridNo );
+BOOLEAN DecideAltAnimForBigMerc( SOLDIERTYPE * pSoldier );
 
-BOOLEAN TwoStagedTrait( UINT8 uiSkillTraitNumber );		// Flugente: determine if this (new) trait has two stages
+// added by Flugente
+BOOLEAN TwoStagedTrait( UINT8 uiSkillTraitNumber );						// determine if this (new) trait has two stages
+BOOLEAN GetRadioOperatorSignal(UINT8 usOwner, INT32* psTargetGridNo);	// retrieve the gridno of a radio operator who (or whose team) ordered an artillery strike
+BOOLEAN IsValidArtilleryOrderSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT8 bTeam );		// can an artillery strike be ordered FROM this sector
+BOOLEAN SectorJammed();
+BOOLEAN PlayerTeamIsScanning();
+UINT16	GridNoSpotterCTHBonus( SOLDIERTYPE* pSniper, INT32 sGridNo, UINT bTeam);				// bonus for snipers firing at this location (we get this if there are spotters)
 
 //typedef struct
 class OLDSOLDIERTYPE_101
@@ -1489,7 +1979,7 @@ public:
 
 	// Copy Constructor
 	OLDSOLDIERTYPE_101(const OLDSOLDIERTYPE_101& src) {
-		memcpy(this, &src, SIZEOF_OLDSOLDIERTYPE_101_POD);
+		memcpy(this, &src, SIZEOF_OLDSOLDIERTYPE_101_POD); // FIXME: memcpy std::vector
 		inv = src.inv;
 		bNewItemCount = src.bNewItemCount;
 		bNewItemCycleCount = src.bNewItemCycleCount;
@@ -1499,7 +1989,7 @@ public:
 	OLDSOLDIERTYPE_101& operator=(const OLDSOLDIERTYPE_101& src)
 	{
 		if (this != &src) {
-			memcpy(this, &src, SIZEOF_OLDSOLDIERTYPE_101_POD);
+			memcpy(this, &src, SIZEOF_OLDSOLDIERTYPE_101_POD); // FIXME: memcpy std::vector
 			inv = src.inv;
 			bNewItemCount = src.bNewItemCount;
 			bNewItemCycleCount = src.bNewItemCycleCount;
@@ -1515,7 +2005,7 @@ public:
 	//	Use this instead of the old method of calling memset!
 	//	Note that the constructor does this automatically.
 	void initialize() {
-		memset( this, 0, SIZEOF_OLDSOLDIERTYPE_101_POD);
+		memset( this, 0, SIZEOF_OLDSOLDIERTYPE_101_POD); // FIXME: memcpy std::vector
 		inv.clear();
 		for (int idx=0; idx < (int)inv.size(); ++idx) {
 			bNewItemCount[idx] = 0;
@@ -2041,12 +2531,12 @@ public:
 	INT8												bSleepDrugCounter;
 	UINT8												ubMilitiaKills;
 	
-	INT8												bFutureDrugEffect[2];						// value to represent effect of a needle
-	INT8												bDrugEffectRate[2];							// represents rate of increase and decrease of effect	
-	INT8												bDrugEffect[2];									// value that affects AP & morale calc ( -ve is poorly )
-	INT8												bDrugSideEffectRate[2];					// duration of negative AP and morale effect
-	INT8												bDrugSideEffect[2];							// duration of negative AP and morale effect
-	INT8												bTimesDrugUsedSinceSleep[2];			
+	INT8												bFutureDrugEffect[DRUG_TYPE_MAX];						// value to represent effect of a needle
+	INT8												bDrugEffectRate[DRUG_TYPE_MAX];							// represents rate of increase and decrease of effect	
+	INT8												bDrugEffect[DRUG_TYPE_MAX];									// value that affects AP & morale calc ( -ve is poorly )
+	INT8												bDrugSideEffectRate[DRUG_TYPE_MAX];					// duration of negative AP and morale effect
+	INT8												bDrugSideEffect[DRUG_TYPE_MAX];							// duration of negative AP and morale effect
+	INT8												bTimesDrugUsedSinceSleep[DRUG_TYPE_MAX];			
 
 	INT8												bBlindedCounter;
 	BOOLEAN											fMercCollapsedFlag;
@@ -2150,7 +2640,14 @@ public:
 
 	INT8	snowCamo;	
 	INT8	wornSnowCamo;
+	
+#ifdef JA2UB	
+	BOOLEAN											fIgnoreGetupFromCollapseCheck;
+	TIMECOUNTER									GetupFromJA25StartCounter;
+	BOOLEAN											fWaitingToGetupFromJA25Start;
 
+	UINT8												ubPercentDamageInflictedByTeam[NUM_ASSIST_SLOTS];			//The percent of damage inflicted by the player team.  Each element corresponds to the Soldier ID.  Each element contains the percent damage inflicted by that merc
+#endif
 	UINT8					bFiller[ 36 ];
 
 	//
@@ -2168,6 +2665,11 @@ public:
 	// Debugging data - not saved
 	INT32 sPlotSrcGrid;
 }; // OLDSOLDIERTYPE_101;	
+
+
+void HandleTakeDamageDeath( SOLDIERTYPE *pSoldier, UINT8 bOldLife, UINT8 ubReason );
+
+void SetDamageDisplayCounter(SOLDIERTYPE* pSoldier);
 
 #endif
 

@@ -4,15 +4,12 @@
 	#include "CharProfile.h"
 	#include "IMP Voices.h"
 	#include "IMP MainPage.h"
-	#include "IMP HomePage.h"
 	#include "IMPVideoObjects.h"
 	#include "Utilities.h"
-	#include "WCheck.h"
 	#include "input.h"
 	#include "Isometric Utils.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
@@ -412,7 +409,7 @@ UINT32 PlayVoice( void )
 	char caVoiceSample[] = "Speech\\%03d_001.wav";
 
 	Assert((iSlot >= 0) && (iSlot <= 999));
-	sprintf(caVoiceSample, caVoiceSample, iSlot);
+	sprintf(caVoiceSample, "Speech\\%03d_001.wav", iSlot);
 
 	return( PlayJA2SampleFromFile( caVoiceSample, RATE_11025, MIDVOLUME, 1 , MIDDLEPAN ) );
 }

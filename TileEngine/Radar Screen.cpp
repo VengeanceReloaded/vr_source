@@ -4,7 +4,6 @@
 	#include "TileEngine All.h"
 #else
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include <time.h>
 	#include "sgp.h"
 	#include "Radar Screen.h"
@@ -28,11 +27,11 @@
 	#include "Interface Control.h"
 	#include "Game Clock.h"
 	#include "Map Screen Interface Map Inventory.h"
-	#include "environment.h"
 	#include "meanwhile.h"
 	#include "strategicmap.h"
 	#include "Animation Data.h"
 	#include "GameSettings.h"
+	#include "Map Screen Interface.h"	// added by Flugente
 #endif
 
 //forward declarations of common classes to eliminate includes
@@ -91,14 +90,15 @@ MOUSE_REGION gRadarRegionSquadList[ NUMBER_OF_SQUADS ];
 
 void InitRadarScreenCoords( )
 {
-		RADAR_WINDOW_TM_X = (SCREEN_WIDTH - 97);
-		RADAR_WINDOW_SM_X = (SCREEN_WIDTH - 97);
-		RADAR_WINDOW_TM_Y = (INTERFACE_START_Y + 13);
-		RADAR_WINDOW_SM_Y = ((UsingNewInventorySystem() == false)) ? (INV_INTERFACE_START_Y + 33) : (INV_INTERFACE_START_Y + 116);
-		RADAR_WINDOW_WIDTH = 88;
-		RADAR_WINDOW_HEIGHT = 44;
-		RADAR_WINDOW_STRAT_X = (SCREEN_WIDTH - 97);
-		RADAR_WINDOW_STRAT_Y = (SCREEN_HEIGHT - 107);
+	RADAR_WINDOW_TM_X 		= xResOffset + (xResSize - 97);
+	RADAR_WINDOW_SM_X 		= xResOffset + (xResSize - 97);
+	RADAR_WINDOW_STRAT_X 	= xResOffset + (xResSize - 97);
+	RADAR_WINDOW_STRAT_Y 	= (SCREEN_HEIGHT - 107);
+
+	RADAR_WINDOW_TM_Y = (INTERFACE_START_Y + 13);
+	RADAR_WINDOW_SM_Y = ((UsingNewInventorySystem() == false)) ? (INV_INTERFACE_START_Y + 33) : (INV_INTERFACE_START_Y + 116);
+	RADAR_WINDOW_WIDTH = 88;
+	RADAR_WINDOW_HEIGHT = 44;
 }
 
 // WANNE.RADAR: This method is called in the main menu, so the mouse region is initialized too early. We should initialize the mouse region later, when reaching
@@ -170,7 +170,7 @@ BOOLEAN LoadRadarScreenBitmap(CHAR8 * aFilename )
 		if( GetVideoObject( &hVObject, gusRadarImage ) )
 		{
 				// ATE: Add a shade table!
-				// VENGEANCE
+				// anv: RR
 				// anv: pShades[ 0 ] is a day radar map
 				if( gGameExternalOptions.fMonochromaticRadarMap == TRUE )
 				{
@@ -193,7 +193,6 @@ BOOLEAN LoadRadarScreenBitmap(CHAR8 * aFilename )
 				{
 					hVObject->pShades[ 1 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 100, 100, 100, FALSE );
 				}
-				// /VENGANCE
 				//hVObject->pShades[ 0 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 255, 255, 255, FALSE );
 				//hVObject->pShades[ 1 ]	= Create16BPPPaletteShaded( hVObject->pPaletteEntry, 100, 100, 100, FALSE );
 		}
@@ -391,13 +390,15 @@ void RenderRadarScreen( )
 		RenderSquadList( );
 		return;
 	}
-
+#ifdef JA2UB
+//JA25 No meanwhiles
+#else
 	if( AreInMeanwhile( ) == TRUE )
 	{
 		// in a meanwhile, don't render any map
 		fImageLoaded = FALSE;
 	}
-
+#endif
 	if ( fInterfacePanelDirty == DIRTYLEVEL2 && fImageLoaded )
 	{
 		// Set to default
@@ -588,14 +589,17 @@ void RenderRadarScreen( )
 				// Don't place guys in radar until visible!
 				if ( pSoldier->bVisible == -1 && !(gTacticalStatus.uiFlags&SHOW_ALL_MERCS) && !(pSoldier->ubMiscSoldierFlags & SOLDIER_MISC_XRAYED) )
 				{
-					//hayden
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+					continue;// ie dont render
+#else
 					if(is_networked && pSoldier->bSide==0)
 					{
 					}
 					else
 					{
-					continue;// ie dont render
+						continue;// ie dont render
 					}
+#endif
 				}
 
 				// Don't render guys if they are dead!
@@ -641,26 +645,30 @@ void RenderRadarScreen( )
 						}
 						else
 						{
-				// If on roof, make darker....
-				if ( pSoldier->pathing.bLevel > 0 )
-				{
-						 usLineColor = Get16BPPColor( FROMRGB( 150, 150, 0 ) );
-				}
-				else
-				{
-							usLineColor = Get16BPPColor( gTacticalStatus.Team[ pSoldier->bTeam ].RadarColor );
-				}
+							// If on roof, make darker....
+							if ( pSoldier->pathing.bLevel > 0 )
+							{
+								usLineColor = Get16BPPColor( FROMRGB( 150, 150, 0 ) );
+							}
+							else
+							{
+								usLineColor = Get16BPPColor( gTacticalStatus.Team[ pSoldier->bTeam ].RadarColor );
+							}
 						}
 					}
 					else
 					{
 						usLineColor = Get16BPPColor( gTacticalStatus.Team[ pSoldier->bTeam ].RadarColor );
-
-			// Override civ team with red if hostile...
-			if ( pSoldier->bTeam == CIV_TEAM && !pSoldier->aiData.bNeutral && ( pSoldier->bSide != gbPlayerNum ) )
-			{
+												
+						// Override civ team with red if hostile...
+						if ( pSoldier->bTeam == CIV_TEAM && !pSoldier->aiData.bNeutral && ( pSoldier->bSide != gbPlayerNum ) )
+						{
 							usLineColor = Get16BPPColor( FROMRGB( 255, 0, 0 ) );
-			}
+						}
+
+						// Flugente: if we are a (still covert) enemy assassin, colour us like militia, so that the player wont notice us
+						if ( pSoldier->bSoldierFlagMask & SOLDIER_ASSASSIN && pSoldier->bSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
+							usLineColor = Get16BPPColor( gTacticalStatus.Team[ MILITIA_TEAM ].RadarColor );
 
 						// Render different color if an enemy and he's unconscious
 						if ( pSoldier->bTeam != gbPlayerNum && pSoldier->stats.bLife < OKLIFE )
@@ -668,11 +676,11 @@ void RenderRadarScreen( )
 							usLineColor = Get16BPPColor( FROMRGB( 128, 128, 128 ) );
 						}
 
-			// If on roof, make darker....
-			if ( pSoldier->bTeam == gbPlayerNum && pSoldier->pathing.bLevel > 0 )
-			{
-						usLineColor = Get16BPPColor( FROMRGB( 150, 150, 0 ) );
-			}
+						// If on roof, make darker....
+						if ( pSoldier->bTeam == gbPlayerNum && pSoldier->pathing.bLevel > 0 )
+						{
+							usLineColor = Get16BPPColor( FROMRGB( 150, 150, 0 ) );
+						}
 					}
 
 					RectangleDraw( TRUE, sXSoldRadar, sYSoldRadar, sXSoldRadar+1, sYSoldRadar+1, usLineColor, pDestBuf );
@@ -775,22 +783,20 @@ BOOLEAN CreateDestroyMouseRegionsForSquadList( void )
 	{
 		// create regions
 		// load graphics
-	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
-	FilenameForBPP("INTERFACE\\squadpanel.sti", VObjectDesc.ImageFile);
-	CHECKF(AddVideoObject(&VObjectDesc, &uiHandle));
+		VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
+		FilenameForBPP("INTERFACE\\squadpanel.sti", VObjectDesc.ImageFile);
+		CHECKF(AddVideoObject(&VObjectDesc, &uiHandle));
 
-	GetVideoObject(&hHandle, uiHandle);
+		GetVideoObject(&hHandle, uiHandle);
 
-
-		BltVideoObject( guiSAVEBUFFER , hHandle, 0,(SCREEN_WIDTH - 102 - 1), gsVIEWPORT_END_Y, VO_BLT_SRCTRANSPARENCY,NULL );
-		RestoreExternBackgroundRect ((SCREEN_WIDTH - 102 - 1), gsVIEWPORT_END_Y, 102,( INT16 ) ( SCREEN_HEIGHT - gsVIEWPORT_END_Y ) );
+		BltVideoObject( guiSAVEBUFFER , hHandle, 0,(xResOffset + xResSize - 102 - 1), gsVIEWPORT_END_Y, VO_BLT_SRCTRANSPARENCY,NULL );
+		RestoreExternBackgroundRect ((xResOffset + xResSize - 102 - 1), gsVIEWPORT_END_Y, 102,( INT16 ) ( SCREEN_HEIGHT - gsVIEWPORT_END_Y ) );
 
 		for( sCounter = 0; sCounter < NUMBER_OF_SQUADS; sCounter++ )
 		{
 			// run through list of squads and place appropriatly
 			if( sCounter < NUMBER_OF_SQUADS / 2 )
 			{
-
 				// left half of list
 				// CHRISL:
 				MSYS_DefineRegion( &gRadarRegionSquadList[ sCounter ], RADAR_WINDOW_TM_X , ( INT16 )( SQUAD_WINDOW_TM_Y + ( sCounter * (  ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / ( NUMBER_OF_SQUADS / 2 ) ) ) ), RADAR_WINDOW_TM_X + RADAR_WINDOW_WIDTH / 2 - 1, ( INT16 )( SQUAD_WINDOW_TM_Y + ( ( sCounter + 1 ) * ( ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / ( NUMBER_OF_SQUADS / 2 ) ) ) ) ,MSYS_PRIORITY_HIGHEST,
@@ -876,12 +882,18 @@ void RenderSquadList( void )
 			if( sCounter < NUMBER_OF_SQUADS / 2 )
 			{
 				// CHRISL:
-				FindFontCenterCoordinates( RADAR_WINDOW_TM_X , ( INT16 )( SQUAD_WINDOW_TM_Y + ( sCounter * ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), RADAR_WINDOW_WIDTH / 2 - 1, ( INT16 )( (  ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ) ,pSquadMenuStrings[ sCounter ] , SQUAD_FONT, &sX, &sY);
+				if ( gGameExternalOptions.fUseXMLSquadNames )
+					FindFontCenterCoordinates( RADAR_WINDOW_TM_X , ( INT16 )( SQUAD_WINDOW_TM_Y + ( sCounter * ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), RADAR_WINDOW_WIDTH / 2 - 1, ( INT16 )( (  ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ) , SquadNames[ sCounter ].squadname , SQUAD_FONT, &sX, &sY);
+				else
+					FindFontCenterCoordinates( RADAR_WINDOW_TM_X , ( INT16 )( SQUAD_WINDOW_TM_Y + ( sCounter * ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), RADAR_WINDOW_WIDTH / 2 - 1, ( INT16 )( (  ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ) ,pSquadMenuStrings[ sCounter ] , SQUAD_FONT, &sX, &sY);
 			}
 			else
 			{
 				// CHRISL:
-				FindFontCenterCoordinates(RADAR_WINDOW_TM_X + RADAR_WINDOW_WIDTH / 2, ( INT16 )( SQUAD_WINDOW_TM_Y + ( ( sCounter - ( NUMBER_OF_SQUADS / 2) ) * ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), RADAR_WINDOW_WIDTH / 2 - 1, ( INT16 )(   ( ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), pSquadMenuStrings[ sCounter ] , SQUAD_FONT, &sX, &sY);
+				if ( gGameExternalOptions.fUseXMLSquadNames )
+					FindFontCenterCoordinates(RADAR_WINDOW_TM_X + RADAR_WINDOW_WIDTH / 2, ( INT16 )( SQUAD_WINDOW_TM_Y + ( ( sCounter - ( NUMBER_OF_SQUADS / 2) ) * ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), RADAR_WINDOW_WIDTH / 2 - 1, ( INT16 )(   ( ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), SquadNames[ sCounter ].squadname , SQUAD_FONT, &sX, &sY);
+				else
+					FindFontCenterCoordinates(RADAR_WINDOW_TM_X + RADAR_WINDOW_WIDTH / 2, ( INT16 )( SQUAD_WINDOW_TM_Y + ( ( sCounter - ( NUMBER_OF_SQUADS / 2) ) * ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), RADAR_WINDOW_WIDTH / 2 - 1, ( INT16 )(   ( ( 2 * ( SQUAD_REGION_HEIGHT - SUBTRACTOR_FOR_SQUAD_LIST ) / NUMBER_OF_SQUADS ) ) ), pSquadMenuStrings[ sCounter ] , SQUAD_FONT, &sX, &sY);
 			}
 
 			// highlight line?
@@ -918,7 +930,11 @@ void RenderSquadList( void )
 			{
 				sX = RADAR_WINDOW_TM_X + ( RADAR_WINDOW_WIDTH / 2 ) - 2;
 			}
-			mprintf( sX, sY , pSquadMenuStrings[ sCounter ]);
+
+			if ( gGameExternalOptions.fUseXMLSquadNames )
+				mprintf( sX, sY , SquadNames[ sCounter ].squadname);
+			else
+				mprintf( sX, sY , pSquadMenuStrings[ sCounter ]);
 	}
 }
 

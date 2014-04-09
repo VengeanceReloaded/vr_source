@@ -19,7 +19,6 @@
 	#include "wcheck.h"
 	#include "worldman.h"
 	#include "jascreens.h"
-	#include "edit_sys.h"
 	#include "Isometric Utils.h"
 	#include "line.h"
 	#include "Animation Control.h"
@@ -39,7 +38,6 @@
 	#include "render fun.h"
 	#include "los.h"
 	#include "interactive tiles.h"
-	#include "interface cursors.h"
 	#include "rotting corpses.h"
 	#include "tile cache.h"
 	#include "tile animation.h"
@@ -497,7 +495,8 @@ UINT32		gRenderFlags=0;
  *  any questions? joker
  */
 SGPRect		gClippingRect;//			= { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - INTERFACE_HEIGHT};
-SGPRect		gOldClipRect = { 0, 0, 1024, 768 }; // 0verhaul:  This MUST mirror the gDirtyClipRect init, otherwise funkiness with video overlays will happen
+//SGPRect		gOldClipRect = { 0, 0, 2560, 1600 };
+SGPRect		gOldClipRect = { 0, 0, 0, 0 };
 INT16		gsRenderCenterX;
 INT16		gsRenderCenterY;
 INT16		gsRenderWorldOffsetX	= 0;  //lal was -1 : bugfix for merc screen position in tactical on high resolution
@@ -3573,7 +3572,8 @@ void ScrollWorld( )
 		return;
 
 	// Ignore if ALT DONW
-	if ( _KeyDown( ALT ) )
+	// silversurfer: also ignore CTRL because this is now used for merc portrait switching
+	if ( _KeyDown(ALT) || _KeyDown(CTRL) )
 		return;
 
 
@@ -3651,6 +3651,10 @@ void ScrollWorld( )
 				fDoScroll = TRUE;
 				ScrollFlags |= SCROLL_LEFT;
 			}
+
+
+			//hayden - disable mouse scrolling for window dev ease
+			if(iDisableMouseScrolling)break;
 
 
 			// Do mouse - PUT INTO A TIMER!
@@ -3774,9 +3778,10 @@ void ScrollWorld( )
 			// If here, set scroll pending to false
 			gfScrollPending = FALSE;
 
-
 			// INcrement scroll intertia
 			gfScrollInertia++;
+			if(gfScrollInertia == 1)//dnl ch78 271113
+				RestoreBackgroundRects();
 
 			// Now we actually begin our scrolling
 			HandleScrollDirections( ScrollFlags, sScrollXStep, sScrollYStep, &sTempRenderCenterX, &sTempRenderCenterY, FALSE );
@@ -3832,6 +3837,11 @@ void ScrollWorld( )
 
 void InitializeViewPort()
 {
+	gOldClipRect.iLeft = 0;
+	gOldClipRect.iTop = 0;
+	gOldClipRect.iRight = SCREEN_WIDTH;
+	gOldClipRect.iBottom = SCREEN_HEIGHT;
+
 	gsVIEWPORT_START_X			= 0;
 	gsVIEWPORT_START_Y			= 0;
 	gsVIEWPORT_WINDOW_START_Y	= 0;
@@ -4166,6 +4176,16 @@ BOOLEAN ApplyScrolling( INT16 sTempRenderCenterX, INT16 sTempRenderCenterY, BOOL
 		// Force adjustment, if true
 		if ( fForceAdjust )
 		{
+			if ( fOutRight )
+			{
+				CorrectRenderCenter( (INT16)( gsTRX - sX_S ) , sScreenCenterY , &sNewScreenX, &sNewScreenY );
+				FromScreenToCellCoordinates( sNewScreenX, sNewScreenY , &sTempPosX_W, &sTempPosY_W );
+
+				sTempRenderCenterX = sTempPosX_W;
+				sTempRenderCenterY = sTempPosY_W;
+				fScrollGood = TRUE;
+			}
+			
 			if ( fOutTop )
 			{
 				// Adjust screen coordinates on the Y!
@@ -4199,17 +4219,6 @@ BOOLEAN ApplyScrolling( INT16 sTempRenderCenterX, INT16 sTempRenderCenterY, BOOL
 
 				fScrollGood = TRUE;
 			}
-
-			if ( fOutRight )
-			{
-				CorrectRenderCenter( (INT16)( gsTRX - sX_S ) , sScreenCenterY , &sNewScreenX, &sNewScreenY );
-				FromScreenToCellCoordinates( sNewScreenX, sNewScreenY , &sTempPosX_W, &sTempPosY_W );
-
-				sTempRenderCenterX = sTempPosX_W;
-				sTempRenderCenterY = sTempPosY_W;
-				fScrollGood = TRUE;
-			}
-
 		}
 		else
 		{
@@ -6477,13 +6486,13 @@ void RenderRoomInfo( INT16 sStartPointX_M, INT16 sStartPointY_M, INT16 sStartPoi
 				// THIS ROOM STUFF IS ONLY DONE IN THE EDITOR...
 				// ADJUST BY SHEIGHT
 				sY -= gpWorldLevelData[ usTileIndex ].sHeight;
-				//sY += gsRenderHeight;
+				sY += gsRenderHeight;//dnl ch85 030214
 
-				if ( gubWorldRoomInfo[ usTileIndex ] != NO_ROOM )
+				if ( gusWorldRoomInfo[ usTileIndex ] != NO_ROOM )
 				{
 					SetFont( SMALLCOMPFONT );
 					SetFontDestBuffer( FRAME_BUFFER , 0, 0, SCREEN_WIDTH, gsVIEWPORT_END_Y, FALSE );
-					switch( gubWorldRoomInfo[ usTileIndex ] % 5 )
+					switch( gusWorldRoomInfo[ usTileIndex ] % 5 )
 					{
 						case 0:		SetFontForeground( FONT_GRAY3 );	break;
 						case 1:		SetFontForeground( FONT_YELLOW );	break;
@@ -6491,7 +6500,7 @@ void RenderRoomInfo( INT16 sStartPointX_M, INT16 sStartPointY_M, INT16 sStartPoi
 						case 3:		SetFontForeground( FONT_LTBLUE );	break;
 						case 4:   SetFontForeground( FONT_LTGREEN );break;
 					}
-					mprintf_buffer( pDestBuf, uiDestPitchBYTES, TINYFONT1, sX,  sY , L"%d", gubWorldRoomInfo[ usTileIndex ] );
+					mprintf_buffer( pDestBuf, uiDestPitchBYTES, TINYFONT1, sX,  sY , L"%d", gusWorldRoomInfo[ usTileIndex ] );
 					SetFontDestBuffer( FRAME_BUFFER , 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, FALSE );
 				}
 			}

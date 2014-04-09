@@ -2,7 +2,7 @@
 // HEADROCK HAM 3.5: Facilities
 //
 // This file contains functions that test facility data (read
-// from XML) whenever necessary. See XML_Facilities.cpp and 
+// from XML) whenever necessary. See XML_Facilities.cpp and
 // XML_FacilityTypes.cpp for the reading XML functions.
 //////////////////////////////////////////////////////////////////
 
@@ -29,8 +29,13 @@
 	#include "strategicmap.h"
 	#include "Game Clock.h"
 	#include "Campaign.h"
-	#include "Drugs And Alcohol.cpp"
-	#include "Soldier Control.cpp"
+	#include "Drugs And Alcohol.h"
+	#include "Interface.h"
+	#include "message.h"
+	#include "Morale.h"
+	#include "Points.h"
+	#include "Soldier Control.h"
+	#include "Isometric Utils.h"
 	#include "MilitiaSquads.h"
 	#include "Tactical Save.h"
 #endif
@@ -57,7 +62,7 @@ INT16 GetFacilityModifier( UINT8 ubModifierType, UINT8 ubFacilityType, UINT8 ubA
 	{
 		switch (ubModifierType)
 		{
-			case FACILITY_PERFORMANCE_MOD:	
+			case FACILITY_PERFORMANCE_MOD:
 				sAssignmentModifier = gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].usPerformance;
 				sAmbientModifier = gFacilityTypes[ubFacilityType].AssignmentData[0].usPerformance;
 				sAssignmentModifier = 100 + ((sAssignmentModifier-100) + (sAmbientModifier-100));
@@ -141,6 +146,19 @@ INT16 GetFacilityModifier( UINT8 ubModifierType, UINT8 ubFacilityType, UINT8 ubA
 				sAssignmentModifier = 100 + ((sAssignmentModifier-100) + (sAmbientModifier-100));
 				return (sAssignmentModifier);
 
+			// Flugente: not needed anywhere atm
+			case FACILITY_CANTINA_MOD:
+				sAssignmentModifier = gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].sCantinaFoodModifier;
+				sAmbientModifier = gFacilityTypes[ubFacilityType].AssignmentData[0].sCantinaFoodModifier;
+				sAssignmentModifier = 100 + ((sAssignmentModifier-100) + (sAmbientModifier-100));
+				return (sAssignmentModifier);
+
+			case FACILITY_PRISON_MOD:
+				sAssignmentModifier = gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].usPrisonBaseLimit;
+				sAmbientModifier = gFacilityTypes[ubFacilityType].AssignmentData[0].usPrisonBaseLimit;
+				sAssignmentModifier = 100 + ((sAssignmentModifier-100) + (sAmbientModifier-100));
+				return (sAssignmentModifier);
+
 			default:
 				return (0);
 		}
@@ -150,7 +168,7 @@ INT16 GetFacilityModifier( UINT8 ubModifierType, UINT8 ubFacilityType, UINT8 ubA
 	{
 		switch (ubModifierType)
 		{
-			case FACILITY_PERFORMANCE_MOD:	
+			case FACILITY_PERFORMANCE_MOD:
 				sAmbientModifier = gFacilityTypes[ubFacilityType].AssignmentData[0].usPerformance;
 				return (sAmbientModifier);
 
@@ -212,7 +230,7 @@ INT16 GetFacilityModifier( UINT8 ubModifierType, UINT8 ubFacilityType, UINT8 ubA
 	}
 }
 
-// This is a handler function that runs through every facility in the soldier's sector, retrieving one type of 
+// This is a handler function that runs through every facility in the soldier's sector, retrieving one type of
 // modifier from each facility.
 INT16 GetSectorModifier( SOLDIERTYPE *pSoldier, UINT8 ubModifierType )
 {
@@ -352,7 +370,7 @@ void UpdateStrategicDetectionLevel( )
 		{
 			UINT8 ubSector = SECTOR(pSoldier->sSectorX, pSoldier->sSectorY);
 			UINT8 ubFacilityType = (UINT8)pSoldier->sFacilityTypeOperated;
-			
+
 			if (GetSoldierFacilityAssignmentIndex( pSoldier ) == -1)
 			{
 				// Skip this soldier, he is not performing a facility assignment.
@@ -375,7 +393,7 @@ void UpdateStrategicDetectionLevel( )
 					ubCounter++;
 					continue;
 				}
-				
+
 				/////////////////////////////////////////////////////////
 				// Begin testing for facility detection bonuses.
 
@@ -470,7 +488,7 @@ void UpdateStrategicDetectionLevel( )
 		{
 			SectorInfo[X].ubDetectionLevel |= 1;
 		}
-		
+
 		// ENEMY COUNTING:
 		if (ubStrategicDetectionLevel & (1<<COUNT_ENEMIES_IN_WILD)||
 			ubStrategicDetectionLevel & (1<<COUNT_ENEMIES_IN_CITIES))
@@ -523,7 +541,7 @@ void UpdateSkyriderCostModifier()
 			if ( CanCharacterFacility( pSoldier, ubFacilityType, ubAssignmentType ) &&
 				GetWorldTotalMin() - pSoldier->uiLastAssignmentChangeMin >= (UINT32)gGameExternalOptions.ubMinutesForAssignmentToCount )
 			{
-		
+
 				// Make sure facility type is valid.
 				Assert(ubFacilityType < MAX_NUM_FACILITY_TYPES);
 
@@ -533,7 +551,7 @@ void UpdateSkyriderCostModifier()
 					ubCounter++;
 					continue;
 				}
-				
+
 				// Does facility change Skyrider Costs at all?
 				gsSkyriderCostModifier += GetFacilityModifier( FACILITY_SKYRIDER_COST_MOD, ubFacilityType, ubAssignmentType );
 			}
@@ -595,14 +613,14 @@ void UpdateFacilityUsageCosts( )
 					ubCounter++;
 					continue;
 				}
-				
+
 				sCost = gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].sCostPerHour;
 
 				if (sCost > 0)
 				{
 					/////////////////////////////////////////////////////////
 					// Increase debt for operating this facility
-	
+
 					giTotalOwedForFacilityOperationsToday += gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].sCostPerHour;
 				}
 				else if (sCost < 0)
@@ -619,10 +637,10 @@ void UpdateFacilityUsageCosts( )
 	}
 }
 
-// HEADROCK HAM 3.6: This function runs once at the end of each day. 
-// It handles debt accrued by operation facilities. If there is enough money to pay the debt off, this 
-// is done automatically. If only part of the money is available, or none of it, your account is emptied and all 
-// "expensive" facility work ends immediately. You also suffer a loyalty hit across Arulco based on how much money 
+// HEADROCK HAM 3.6: This function runs once at the end of each day.
+// It handles debt accrued by operation facilities. If there is enough money to pay the debt off, this
+// is done automatically. If only part of the money is available, or none of it, your account is emptied and all
+// "expensive" facility work ends immediately. You also suffer a loyalty hit across Arulco based on how much money
 // you owe. Facility work cannot continue before the debt is paid off!
 void HandleDailyPaymentFacilityDebt( void )
 {
@@ -737,7 +755,7 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 
 // This function converts a soldier's current assignment into a single Facility Assignment Type Index.
 // The Assignment Type Index is used for referencing various data and effects associated with performing a
-// SPECIFIC assignment with the help of a SPECIFIC facility. It's basically a reference number for the gFacilityTypes 
+// SPECIFIC assignment with the help of a SPECIFIC facility. It's basically a reference number for the gFacilityTypes
 // array.
 INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 {
@@ -751,7 +769,7 @@ INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 		bAssignment == IN_TRANSIT ||
 		bAssignment == TRAIN_TOWN ||
 		bAssignment == TRAIN_MOBILE ||
-		bAssignment > FACILITY_REST )
+		( bAssignment > FACILITY_REST && ( bAssignment < FACILITY_PRISON_SNITCH || bAssignment > FACILITY_GATHER_RUMOURS ) ))
 	{
 		// Soldier is performing a distinctly NON-FACILITY assignment.
 		return (-1);
@@ -894,8 +912,26 @@ INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 		case FACILITY_STAFF:
 			bAssignmentIndex = FAC_STAFF;
 			break;
+		case FACILITY_EAT:
+			bAssignmentIndex = FAC_FOOD;
+			break;
 		case FACILITY_REST:
 			bAssignmentIndex = FAC_REST;
+			break;
+		case FACILITY_INTERROGATE_PRISONERS:
+			bAssignmentIndex = FAC_INTERROGATE_PRISONERS;
+			break;
+		case FACILITY_PRISON_SNITCH:
+			bAssignmentIndex = FAC_PRISON_SNITCH;
+			break;
+		case FACILITY_SPREAD_PROPAGANDA:
+			bAssignmentIndex = FAC_SPREAD_PROPAGANDA;
+			break;
+		case FACILITY_SPREAD_PROPAGANDA_GLOBAL:
+			bAssignmentIndex = FAC_SPREAD_PROPAGANDA;
+			break;
+		case FACILITY_GATHER_RUMOURS:
+			bAssignmentIndex = FAC_GATHER_RUMOURS;
 			break;
 		default:
 			bAssignmentIndex = -1;
@@ -910,10 +946,10 @@ INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 INT16 FacilityRiskResult( SOLDIERTYPE *pSoldier, UINT8 ubRiskType, UINT8 ubFacilityType, UINT8 ubAssignmentType )
 {
 	INT16 Result = 0;
-	
+
 	INT32 iChance;
-	INT8 bBaseEffect;
-	UINT8 ubRange;
+	INT16 bBaseEffect;
+	UINT16 ubRange;
 
 	// Read risk data directly from facility array.
 	iChance = gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].Risk[ubRiskType].usChance;
@@ -922,11 +958,11 @@ INT16 FacilityRiskResult( SOLDIERTYPE *pSoldier, UINT8 ubRiskType, UINT8 ubFacil
 
 	// For now, only these variables can effect risk outcome. In the future there may be more effects, like traits
 	// and personality, or even sex.
-	UINT8 ubStrength = EffectiveStrength( pSoldier );
-	UINT8 ubAgility = EffectiveAgility( pSoldier );
-	UINT8 ubDexterity = EffectiveDexterity( pSoldier );
+	INT16 ubStrength = EffectiveStrength( pSoldier, FALSE );
+	INT16 ubAgility = EffectiveAgility( pSoldier, FALSE );
+	INT16 ubDexterity = EffectiveDexterity( pSoldier, FALSE );
 	UINT8 ubHealth = __min(pSoldier->stats.bLife, pSoldier->stats.bLifeMax);
-	UINT8 ubWisdom = EffectiveWisdom( pSoldier );
+	INT16 ubWisdom = EffectiveWisdom( pSoldier );
 	UINT8 ubLeadership = EffectiveLeadership( pSoldier );
 	UINT8 ubExplosives = EffectiveExplosive( pSoldier );
 	UINT8 ubExpLevel = EffectiveExpLevel( pSoldier );
@@ -939,7 +975,7 @@ INT16 FacilityRiskResult( SOLDIERTYPE *pSoldier, UINT8 ubRiskType, UINT8 ubFacil
 	{
 		ubLocalLoyalty = 0;
 	}
-	
+
 	///////////////
 	INT16 sAbsoluteMaxResult;
 	INT16 sAbsoluteMinResult;
@@ -961,7 +997,7 @@ INT16 FacilityRiskResult( SOLDIERTYPE *pSoldier, UINT8 ubRiskType, UINT8 ubFacil
 		sAbsoluteMinResult = bBaseEffect - ubRange;
 	}
 
-	INT8 bCombinedStats;
+	INT16 bCombinedStats;
 
 	// Begin calculating the effect of skills on increasing/reducing final result. Use a mix of stats to reach a range
 	// of 0 to 100.
@@ -969,52 +1005,52 @@ INT16 FacilityRiskResult( SOLDIERTYPE *pSoldier, UINT8 ubRiskType, UINT8 ubFacil
 	switch (ubRiskType)
 	{
 		case RISK_STRENGTH:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.2) + (ubAgility * 0.3) + (ubExpLevel * 5));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.2) + (ubAgility * 0.3) + (ubExpLevel * 5));
 			break;
 		case RISK_DEXTERITY:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.4) + (ubExpLevel * 6));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.4) + (ubExpLevel * 6));
 			break;
 		case RISK_AGILITY:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.2) + (ubExpLevel * 8));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.2) + (ubExpLevel * 8));
 			break;
 		case RISK_HEALTH:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.5) + (ubExpLevel * 5));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.5) + (ubExpLevel * 5));
 			break;
 		case RISK_WISDOM:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.6) + (ubExpLevel * 4));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.6) + (ubExpLevel * 4));
 			break;
 		case RISK_MARKSMANSHIP:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.2) + (ubAgility * 0.4) + (ubExpLevel * 4));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.2) + (ubAgility * 0.4) + (ubExpLevel * 4));
 			break;
 		case RISK_MEDICAL:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.3) + (ubDexterity * 0.4) + (ubExpLevel * 3));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.3) + (ubDexterity * 0.4) + (ubExpLevel * 3));
 			break;
 		case RISK_MECHANICAL:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.3) + (ubDexterity * 0.5) + (ubExpLevel * 2));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.3) + (ubDexterity * 0.5) + (ubExpLevel * 2));
 			break;
 		case RISK_LEADERSHIP:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.4) + (ubLeadership * 0.3) + (ubExpLevel * 3));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.4) + (ubLeadership * 0.3) + (ubExpLevel * 3));
 			break;
 		case RISK_EXPLOSIVES:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.2) + (ubAgility * 0.3) + (ubDexterity * 0.3) + (ubExpLevel * 2));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.2) + (ubAgility * 0.3) + (ubDexterity * 0.3) + (ubExpLevel * 2));
 			break;
 		case RISK_INJURY:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.2) + (ubDexterity * 0.2) + (ubAgility * 0.4) + (ubExpLevel * 2));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.2) + (ubDexterity * 0.2) + (ubAgility * 0.4) + (ubExpLevel * 2));
 			break;
 		case RISK_MORALE:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.2) + (ubLeadership * 0.4) + (ubExpLevel * 4));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.2) + (ubLeadership * 0.4) + (ubExpLevel * 4));
 			break;
 		case RISK_FATIGUE:
-			bCombinedStats = (INT8)__min(100, (ubAgility * 0.1) + (ubStrength * 0.3) + (ubHealth * 0.2) + (ubExpLevel * 4));
+			bCombinedStats = (INT16)__min(100, (ubAgility * 0.1) + (ubStrength * 0.3) + (ubHealth * 0.2) + (ubExpLevel * 4));
 			break;
 		case RISK_DRUNK:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.5) + (ubHealth * 0.3) + (ubExpLevel * 2));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.5) + (ubHealth * 0.3) + (ubExpLevel * 2));
 			break;
 		case RISK_LOYALTY_LOCAL:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.2) + (ubLeadership * 0.3) + (ubStrength * 0.1) + (ubExpLevel * 2) + (ubLocalLoyalty * 0.2) );
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.2) + (ubLeadership * 0.3) + (ubStrength * 0.1) + (ubExpLevel * 2) + (ubLocalLoyalty * 0.2) );
 			break;
 		case RISK_LOYALTY_GLOBAL:
-			bCombinedStats = (INT8)__min(100, (ubWisdom * 0.3) + (ubLeadership * 0.3) + (ubExpLevel * 2) + (ubLocalLoyalty * 0.2));
+			bCombinedStats = (INT16)__min(100, (ubWisdom * 0.3) + (ubLeadership * 0.3) + (ubExpLevel * 2) + (ubLocalLoyalty * 0.2));
 			break;
 	}
 
@@ -1061,7 +1097,7 @@ INT16 FacilityRiskResult( SOLDIERTYPE *pSoldier, UINT8 ubRiskType, UINT8 ubFacil
 	{
 		// Let's find out how bad/good the result is.
 
-		// By now, the Combined Stats variable is anywhere between -100 and +100. 
+		// By now, the Combined Stats variable is anywhere between -100 and +100.
 		// We use this to move the Base Effect point from its original location, effectively giving us a better
 		// or worse result based on our stats.
 		bBaseEffect += (bCombinedStats * (ubRange+1)) / 100;
@@ -1170,7 +1206,7 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 					continue;
 				}
 			}
-					
+
 			Result = FacilityRiskResult( pSoldier, iCounter, ubFacilityType, ubAssignmentType);
 			if (Result != 0)
 			{
@@ -1209,21 +1245,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, STRAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, STRAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[0], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[0], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[0], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[0], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1261,21 +1297,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, AGILAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, AGILAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[1], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[1], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[1], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[1], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1313,7 +1349,7 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
@@ -1325,9 +1361,9 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[2], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[2], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[2], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[2], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1365,21 +1401,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, WISDOMAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, WISDOMAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[3], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[3], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[3], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[3], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1418,7 +1454,7 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							if (pSoldier->stats.bLife < OKLIFE)
@@ -1428,7 +1464,7 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, HEALTHAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, HEALTHAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							if (pSoldier->stats.bLife >= OKLIFE)
@@ -1436,9 +1472,9 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 								// Do Screen Message and stop time.
 								GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 								if (!fOperatingFacility)
-									swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[4], szSectorGrid );
+									swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[4], szSectorGrid );
 								else
-									swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[4], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+									swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[4], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 								DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 								StopTimeCompression();
 							}
@@ -1448,9 +1484,9 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 								// Do Screen Message and stop time.
 								GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 								if (!fOperatingFacility)
-									swprintf( sString, gzFacilityErrorMessage[28], pSoldier->name, szSectorGrid );
+									swprintf( sString, gzFacilityErrorMessage[28], pSoldier->GetName(), szSectorGrid );
 								else
-									swprintf( sString, gzFacilityErrorMessage[29], pSoldier->name, gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+									swprintf( sString, gzFacilityErrorMessage[29], pSoldier->GetName(), gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 								AddCharacterToAnySquad( pSoldier );
 								DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 								StopTimeCompression();
@@ -1490,21 +1526,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, MARKAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, MARKAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[5], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[5], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[5], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[5], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1542,21 +1578,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, LDRAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, LDRAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[6], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[6], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[6], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[6], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1594,21 +1630,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, MECHANAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, MECHANAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[7], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[7], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[7], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[7], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1646,21 +1682,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, MEDICALAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, MEDICALAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 														if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[8], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[8], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[8], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[8], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1698,21 +1734,21 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// merc records - stat damaged
 							if( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
-							
+
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
 							///////////////////////////////////////////////////////////////////////////////////////////
 							fBadResult = TRUE;
 
 							// Log message
-							BuildStatChangeString( sString, pSoldier->name, FALSE, Result, EXPLODEAMT );
+							BuildStatChangeString( sString, pSoldier->GetName(), FALSE, Result, EXPLODEAMT );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 							// Do Screen Message and stop time.
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->name, gzFacilityRiskResultStrings[9], szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[17], pSoldier->GetName(), gzFacilityRiskResultStrings[9], szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->name, gzFacilityRiskResultStrings[9], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[18], pSoldier->GetName(), gzFacilityRiskResultStrings[9], gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 							DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 							StopTimeCompression();
 						}
@@ -1722,7 +1758,7 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 						if (Result < 0)
 						{
 							// Soldier is suffering direct unbandaged injury.
-							pSoldier->SoldierTakeDamage( 0, abs(Result), abs(Result), TAKE_DAMAGE_BLOODLOSS, NOBODY, NOWHERE, 0, FALSE );
+							pSoldier->SoldierTakeDamage( 0, abs(Result), 0, abs(Result), TAKE_DAMAGE_BLOODLOSS, NOBODY, NOWHERE, 0, FALSE );
 							fBadResult = TRUE;
 
 							// SANDRO - add to merc records - facility accidents counter
@@ -1734,15 +1770,15 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 								{
 									// Log message
 									GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
-									swprintf( sString, gzFacilityErrorMessage[31], pSoldier->name, szSectorGrid );
+									swprintf( sString, gzFacilityErrorMessage[31], pSoldier->GetName(), szSectorGrid );
 									ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 									// Do Screen Message, stop time, and take character off duty immediately.
 									GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 									if (!fOperatingFacility)
-										swprintf( sString, gzFacilityErrorMessage[19], pSoldier->name, szSectorGrid );
+										swprintf( sString, gzFacilityErrorMessage[19], pSoldier->GetName(), szSectorGrid );
 									else
-										swprintf( sString, gzFacilityErrorMessage[20], pSoldier->name, gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+										swprintf( sString, gzFacilityErrorMessage[20], pSoldier->GetName(), gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 									AddCharacterToAnySquad( pSoldier );
 									DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 									StopTimeCompression();
@@ -1751,16 +1787,16 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 								{
 									// Log message
 									GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
-									swprintf( sString, gzFacilityErrorMessage[30], pSoldier->name, szSectorGrid );
+									swprintf( sString, gzFacilityErrorMessage[30], pSoldier->GetName(), szSectorGrid );
 									ScreenMsg( usColor, MSG_INTERFACE, sString );
 
 									// Soldier isn't bleeding too bad. Let the player know, but don't take any action.
 									// Do Screen Message and stop time.
 									GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 									if (!fOperatingFacility)
-										swprintf( sString, gzFacilityErrorMessage[21], pSoldier->name, szSectorGrid );
+										swprintf( sString, gzFacilityErrorMessage[21], pSoldier->GetName(), szSectorGrid );
 									else
-										swprintf( sString, gzFacilityErrorMessage[22], pSoldier->name, gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
+										swprintf( sString, gzFacilityErrorMessage[22], pSoldier->GetName(), gFacilityTypes[ubFacilityType].szFacilityName, szSectorGrid );
 									DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 									StopTimeCompression();
 								}
@@ -1788,30 +1824,15 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 						if (GetDrunkLevel(pSoldier) == BORDERLINE)
 						{
 							// Log message
-							swprintf( sString, gzFacilityErrorMessage[27], pSoldier->name );
+							swprintf( sString, gzFacilityErrorMessage[27], pSoldier->GetName() );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
 						}
 
 						// Add effects
-						if ( ( pSoldier->drugs.bFutureDrugEffect[ DRUG_TYPE_ALCOHOL ] + ubDrugEffect[ DRUG_TYPE_ALCOHOL ] ) < 127 )
-						{
-							pSoldier->drugs.bFutureDrugEffect[ DRUG_TYPE_ALCOHOL ] += ubDrugEffect[ DRUG_TYPE_ALCOHOL ];
-						}
-						pSoldier->drugs.bDrugEffectRate[ DRUG_TYPE_ALCOHOL ] = ubDrugTravelRate[ DRUG_TYPE_ALCOHOL ];
-
-						// Reset once we sleep...
-						pSoldier->drugs.bTimesDrugUsedSinceSleep[ DRUG_TYPE_ALCOHOL ]++;
-
-						// Increment side effects..
-						if ( ( pSoldier->drugs.bDrugSideEffect[ DRUG_TYPE_ALCOHOL ] + ubDrugSideEffect[ DRUG_TYPE_ALCOHOL ] ) < 127 )
-						{
-							pSoldier->drugs.bDrugSideEffect[ DRUG_TYPE_ALCOHOL ] += ( ubDrugSideEffect[ DRUG_TYPE_ALCOHOL ] );
-						}
-						// Stop side effects until were done....
-						pSoldier->drugs.bDrugSideEffectRate[ DRUG_TYPE_ALCOHOL ] = 0;
+						pSoldier->AddDrugValues( DRUG_TYPE_ALCOHOL, Drug[DRUG_TYPE_ALCOHOL].ubDrugEffect, Drug[DRUG_TYPE_ALCOHOL].ubDrugTravelRate, Drug[DRUG_TYPE_ALCOHOL].ubDrugSideEffect );
 
 						// ATE: Make guy collapse from heart attack if too much stuff taken....
-						if ( pSoldier->drugs.bDrugSideEffectRate[ DRUG_TYPE_ALCOHOL ] > ( ubDrugSideEffect[ DRUG_TYPE_ALCOHOL ] * 3 ) )
+						if ( pSoldier->drugs.bDrugSideEffectRate[ DRUG_TYPE_ALCOHOL ] > (  Drug[DRUG_TYPE_ALCOHOL].ubDrugSideEffect * 3 ) )
 						{
 							if ( pSoldier->ubProfile == LARRY_NORMAL )
 							{
@@ -1899,9 +1920,9 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							gMercProfiles[ pSoldier->ubProfile ].bDexterity = pSoldier->stats.bDexterity;
 							gMercProfiles[ pSoldier->ubProfile ].bStrength	= pSoldier->stats.bStrength;
 							gMercProfiles[ pSoldier->ubProfile ].bAgility	= pSoldier->stats.bAgility;
-							
+
 							fBadResult = TRUE; // stop the time, call a doctor, we had a heart attack!
-							
+
 							// merc records - stat damaged
 							gMercProfiles[ pSoldier->ubProfile ].records.usTimesStatDamaged++;
 							gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
@@ -1919,11 +1940,11 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							DecrementTownLoyalty( ubTownID, abs(Result) );
 							// Log message
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[23], pTownNames[ubTownID], pSoldier->name );
+								swprintf( sString, gzFacilityErrorMessage[23], pTownNames[ubTownID], pSoldier->GetName() );
 							else
-								swprintf( sString, gzFacilityErrorMessage[24], pTownNames[ubTownID], pSoldier->name, gFacilityTypes[ubFacilityType].szFacilityName );
+								swprintf( sString, gzFacilityErrorMessage[24], pTownNames[ubTownID], pSoldier->GetName(), gFacilityTypes[ubFacilityType].szFacilityName );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
-							
+
 							// SANDRO - add to merc records - facility accidents counter
 							if ( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
@@ -1941,11 +1962,11 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 							// Log message
 							GetShortSectorString( pSoldier->sSectorX, pSoldier->sSectorY, szSectorGrid );
 							if (!fOperatingFacility)
-								swprintf( sString, gzFacilityErrorMessage[25], pSoldier->name, szSectorGrid );
+								swprintf( sString, gzFacilityErrorMessage[25], pSoldier->GetName(), szSectorGrid );
 							else
-								swprintf( sString, gzFacilityErrorMessage[26], pSoldier->name, szSectorGrid, gFacilityTypes[ubFacilityType].szFacilityName );
+								swprintf( sString, gzFacilityErrorMessage[26], pSoldier->GetName(), szSectorGrid, gFacilityTypes[ubFacilityType].szFacilityName );
 							ScreenMsg( usColor, MSG_INTERFACE, sString );
-							
+
 							// SANDRO - add to merc records - facility accidents counter
 							if ( Result < 0 )
 								gMercProfiles[ pSoldier->ubProfile ].records.usFacilityAccidents++;
@@ -1991,7 +2012,7 @@ INT32 GetTotalFacilityHourlyCosts( BOOLEAN fPositive )
 
 			//UINT8 ubSector = SECTOR(pSoldier->sSectorX, pSoldier->sSectorY);
 			INT16 ubFacilityType = pSoldier->sFacilityTypeOperated;
-			
+
 			if (!fPositive && ubFacilityType != -1 && // We want facilities that cost money to operate
 				gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].sCostPerHour > 0) // This facility costs money
 			{

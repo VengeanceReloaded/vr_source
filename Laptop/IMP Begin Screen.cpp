@@ -7,11 +7,9 @@
 	#include "IMP HomePage.h"
 	#include "IMPVideoObjects.h"
 	#include "Utilities.h"
-	#include "WCheck.h"
 	#include "Timer Control.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
@@ -21,18 +19,15 @@
 	#include "messageboxscreen.h"
 	#include "Soldier Profile Type.h"
 	#include "IMP Portraits.h"
-	#include "IMP Voices.h"
 	#include "IMP Attribute Selection.h"
 	#include "english.h"
 	#include "line.h"
 	#include "Merc Hiring.h"
 	#include "strategic.h"
-	#include "Game Clock.h"
 	#include "text.h"
 	#include "LaptopSave.h"
 #endif
 
-#include <vfs/Tools/vfs_parser_tools.h>
 
 #define FULL_NAME_CURSOR_Y LAPTOP_SCREEN_WEB_UL_Y + 138
 #define NICK_NAME_CURSOR_Y LAPTOP_SCREEN_WEB_UL_Y + 195
@@ -117,7 +112,6 @@ BOOLEAN CheckCharacterInputForEgg( void );
 UINT32 GetCyrillicUnicodeChar( UINT32 uiKey );
 UINT32 TranslateKey( UINT32 uiKey, unsigned char* translationTable );
 BOOLEAN CheckIsKeyValid( UINT32 uiKey );
-
 
 // mouse region callbacks
 void SelectFullNameRegionCallBack(MOUSE_REGION * pRegion, INT32 iReason );
@@ -459,26 +453,8 @@ void GetPlayerKeyBoardInputForIMPBeginScreen( void )
 	ScreenToClient(ghWindow, &MousePos); // In window coords!
 
 	// handle input events
-	while( DequeueEvent(&InputEvent) )
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
-/*
-		// HOOK INTO MOUSE HOOKS
-		switch(InputEvent.usEvent)
-		{
-		case LEFT_BUTTON_DOWN:
-			MouseSystemHook(LEFT_BUTTON_DOWN, (INT16)MousePos.x, (INT16)MousePos.y,_LeftButtonDown, _RightButtonDown);
-			break;
-		case LEFT_BUTTON_UP:
-			MouseSystemHook(LEFT_BUTTON_UP, (INT16)MousePos.x, (INT16)MousePos.y ,_LeftButtonDown, _RightButtonDown);
-			break;
-		case RIGHT_BUTTON_DOWN:
-			MouseSystemHook(RIGHT_BUTTON_DOWN, (INT16)MousePos.x, (INT16)MousePos.y,_LeftButtonDown, _RightButtonDown);
-			break;
-		case RIGHT_BUTTON_UP:
-			MouseSystemHook(RIGHT_BUTTON_UP, (INT16)MousePos.x, (INT16)MousePos.y,_LeftButtonDown, _RightButtonDown);
-			break;
-		}
-*/
 		if(	!HandleTextInput( &InputEvent ) && (InputEvent.usEvent == KEY_DOWN || InputEvent.usEvent == KEY_REPEAT) )
 		{
 			switch( InputEvent.usParam )
@@ -593,18 +569,21 @@ void HandleBeginScreenTextEvent( UINT32 uiKey )
 		// ViSoR (07.01.2012) : Russian and Belarussian layouts
 		//
 #if defined(RUSSIAN) || defined(BELARUSSIAN)
-		if( ( (DWORD)GetKeyboardLayout(0) & 0xFFFF ) == 0x419) // Russian
+		// ViSoR (02.02.2013): Fix for Cyrillic layouts
+		DWORD threadId = GetWindowThreadProcessId( ghWindow, 0 );
+		DWORD layout = (DWORD)GetKeyboardLayout( threadId ) & 0xFFFF;
+		if( layout == 0x419 ) // Russian
 		{
 			unsigned char TranslationTable[] = 
-				" #Ý####ý####á-þ.0123456789ÆæÁ#Þ##ÔÈÑÂÓÀÏÐØÎËÄÜÒÙÇÉÊÛÅÃÌÖ×Íßõ#ú#_¸ôèñâóàïðøîëäüòùçéêûåãìö÷íÿÕ#Ú¨";
+				" #Ý####ý####á-þ.0123456789ÆæÁ#Þ,#ÔÈÑÂÓÀÏÐØÎËÄÜÒÙÇÉÊÛÅÃÌÖ×Íßõ#ú#_¸ôèñâóàïðøîëäüòùçéêûåãìö÷íÿÕ#Ú¨";
 
 			uiKey = TranslateKey( uiKey, TranslationTable );
 			uiKey = GetCyrillicUnicodeChar( uiKey );
 		}
-		else if ( ( (DWORD)GetKeyboardLayout(0) & 0xFFFF ) == 0x423) // Belarussian
+		else if( layout == 0x423 ) // Belarussian
 		{
 			unsigned char TranslationTable[] = 
-				" #Ý####ý####á-þ.0123456789ÆæÁ#Þ##Ô²ÑÂÓÀÏÐØÎËÄÜÒ¡ÇÉÊÛÅÃÌÖ×Íßõ#'#_¸ô³ñâóàïðøîëäüò¢çéêûåãìö÷íÿÕ#'¨";
+				" #Ý####ý####á-þ.0123456789ÆæÁ#Þ,#Ô²ÑÂÓÀÏÐØÎËÄÜÒ¡ÇÉÊÛÅÃÌÖ×Íßõ#'#_¸ô³ñâóàïðøîëäüò¢çéêûåãìö÷íÿÕ#'¨";
 
 			uiKey = TranslateKey( uiKey, TranslationTable );
 			uiKey = GetCyrillicUnicodeChar( uiKey );
@@ -613,7 +592,6 @@ void HandleBeginScreenTextEvent( UINT32 uiKey )
 			uiKey = '#';
 
 		if( uiKey != '#')
-
 #else
 	#ifndef USE_CODE_PAGE
 		if( uiKey >= 'A' && uiKey <= 'Z' ||

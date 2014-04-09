@@ -39,9 +39,19 @@
     <ClInclude Include="BobbyRMisc.h" />
     <ClInclude Include="BobbyRShipments.h" />
     <ClInclude Include="BobbyRUsed.h" />
+    <ClInclude Include="BriefingRoom.h" />
+    <ClInclude Include="BriefingRoomM.h" />
+    <ClInclude Include="BriefingRoom_Data.h" />
     <ClInclude Include="BrokenLink.h" />
+    <ClInclude Include="CampaignHistoryData.h" />
+    <ClInclude Include="CampaignHistoryMain.h" />
+    <ClInclude Include="CampaignHistory_Summary.h" />
+    <ClInclude Include="CampaignStats.h" />
     <ClInclude Include="CharProfile.h" />
+    <ClInclude Include="DropDown.h" />
     <ClInclude Include="email.h" />
+    <ClInclude Include="Encyclopedia_Data_new.h" />
+    <ClInclude Include="Encyclopedia_new.h" />
     <ClInclude Include="files.h" />
     <ClInclude Include="finances.h" />
     <ClInclude Include="florist Cards.h" />
@@ -55,6 +65,7 @@
     <ClInclude Include="IMP Attribute Entrance.h" />
     <ClInclude Include="IMP Attribute Finish.h" />
     <ClInclude Include="IMP Attribute Selection.h" />
+    <ClInclude Include="IMP Background.h" />
     <ClInclude Include="IMP Begin Screen.h" />
     <ClInclude Include="IMP Character and Disability Entrance.h" />
     <ClInclude Include="IMP Character Trait.h" />
@@ -70,6 +81,7 @@
     <ClInclude Include="IMP Personality Finish.h" />
     <ClInclude Include="IMP Personality Quiz.h" />
     <ClInclude Include="IMP Portraits.h" />
+    <ClInclude Include="IMP Prejudice.h" />
     <ClInclude Include="IMP Skill Trait.h" />
     <ClInclude Include="IMP Text System.h" />
     <ClInclude Include="IMP Voices.h" />
@@ -109,9 +121,18 @@
     <ClCompile Include="BobbyRMisc.cpp" />
     <ClCompile Include="BobbyRShipments.cpp" />
     <ClCompile Include="BobbyRUsed.cpp" />
+    <ClCompile Include="BriefingRoom.cpp" />
+    <ClCompile Include="BriefingRoomM.cpp" />
+    <ClCompile Include="BriefingRoom_Data.cpp" />
     <ClCompile Include="BrokenLink.cpp" />
+    <ClCompile Include="CampaignHistoryMain.cpp" />
+    <ClCompile Include="CampaignHistory_Summary.cpp" />
+    <ClCompile Include="CampaignStats.cpp" />
     <ClCompile Include="CharProfile.cpp" />
+    <ClCompile Include="DropDown.cpp" />
     <ClCompile Include="email.cpp" />
+    <ClCompile Include="Encyclopedia_Data_new.cpp" />
+    <ClCompile Include="Encyclopedia_new.cpp" />
     <ClCompile Include="files.cpp" />
     <ClCompile Include="finances.cpp" />
     <ClCompile Include="florist Cards.cpp" />
@@ -125,6 +146,7 @@
     <ClCompile Include="IMP Attribute Entrance.cpp" />
     <ClCompile Include="IMP Attribute Finish.cpp" />
     <ClCompile Include="IMP Attribute Selection.cpp" />
+    <ClCompile Include="IMP Background.cpp" />
     <ClCompile Include="IMP Begin Screen.cpp" />
     <ClCompile Include="IMP Character and Disability Entrance.cpp" />
     <ClCompile Include="IMP Character Trait.cpp" />
@@ -140,6 +162,7 @@
     <ClCompile Include="IMP Personality Finish.cpp" />
     <ClCompile Include="IMP Personality Quiz.cpp" />
     <ClCompile Include="IMP Portraits.cpp" />
+    <ClCompile Include="IMP Prejudice.cpp" />
     <ClCompile Include="IMP Skill Trait.cpp" />
     <ClCompile Include="IMP Text System.cpp" />
     <ClCompile Include="IMP Voices.cpp" />
@@ -158,9 +181,15 @@
     <ClCompile Include="sirtech.cpp" />
     <ClCompile Include="Store Inventory.cpp" />
     <ClCompile Include="XML_AIMAvailability.cpp" />
+    <ClCompile Include="XML_BriefingRoom.cpp" />
+    <ClCompile Include="XML_CampaignStatsEvents.cpp" />
     <ClCompile Include="XML_ConditionsForMercAvailability.cpp" />
     <ClCompile Include="XML_DeliveryMethods.cpp" />
+    <ClCompile Include="XML_Email.cpp" />
+    <ClCompile Include="XML_EmailMercAvailable.cpp" />
+    <ClCompile Include="XML_EmailMercLevelUp.cpp" />
     <ClCompile Include="XML_IMPPortraits.cpp" />
+    <ClCompile Include="XML_OldAIMArchive.cpp" />
     <ClCompile Include="XML_ShippingDestinations.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -226,26 +255,11 @@
     <Import Project="..\ja2.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'">
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditor|Win32'">
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Relese_WithDebugInfo|Win32'">
-    <IntDir>..\build\VS2010\$(ProjectName)_$(Configuration)\</IntDir>
-    <OutDir>..\lib\VS2010\$(Configuration)\</OutDir>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditor|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Relese_WithDebugInfo|Win32'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>

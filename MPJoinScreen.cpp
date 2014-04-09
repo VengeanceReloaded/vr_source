@@ -1,6 +1,5 @@
 #ifdef PRECOMPILEDHEADERS
 	#include "JA2 All.h"
-	#include "Intro.h"
 #else
 	#include "Types.h"
 	#include "MPJoinScreen.h"
@@ -16,12 +15,9 @@
 	#include "Sysutil.h"
 	#include "Fade Screen.h"
 	#include "Cursor Control.h"
-	#include "Music Control.h"
 	#include "cursors.h"
-	#include "Intro.h"
 	#include "Text.h"
 	#include "Text Input.h"
-	#include "_Ja25EnglishText.h"
 	#include "Soldier Profile.h"
 #endif
 
@@ -408,20 +404,16 @@ BOOLEAN		EnterMPJScreen()
 	SetCurrentCursorFromDatabase( CURSOR_NORMAL );
 
 	// load the Main trade screen backgroiund image
+	ColorFillVideoSurfaceArea( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Get16BPPColor( FROMRGB( 0, 0, 0 ) ) );
 	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
 
-	if (iResolution == 0)
-	{
+	if (iResolution >= _640x480 && iResolution < _800x600)
 		FilenameForBPP("INTERFACE\\OptionsScreenBackGround.sti", VObjectDesc.ImageFile);
-	}
-	else if (iResolution == 1)
-	{
+	else if (iResolution < _1024x768)
 		FilenameForBPP("INTERFACE\\OptionsScreenBackGround_800x600.sti", VObjectDesc.ImageFile);
-	}
-	else if (iResolution == 2)
-	{
+	else
 		FilenameForBPP("INTERFACE\\OptionsScreenBackGround_1024x768.sti", VObjectDesc.ImageFile);
-	}
+
 
 	CHECKF(AddVideoObject(&VObjectDesc, &guiMPJMainBackGroundImage ));
 
@@ -641,7 +633,9 @@ BOOLEAN		RenderMPJScreen()
 
 	//Get the main background screen graphic and blt it
 	GetVideoObject(&hPixHandle, guiMPJMainBackGroundImage );
-	BltVideoObject(FRAME_BUFFER, hPixHandle, 0,0,0, VO_BLT_SRCTRANSPARENCY,NULL);
+
+		BltVideoObject(FRAME_BUFFER, hPixHandle, 0,(SCREEN_WIDTH - xResSize)/2,(SCREEN_HEIGHT - yResSize)/2, VO_BLT_SRCTRANSPARENCY,NULL);
+
 
 	//Shade the background
 	ShadowVideoSurfaceRect( FRAME_BUFFER, iScreenWidthOffset, iScreenHeightOffset, iScreenWidthOffset + 640, iScreenHeightOffset + 480 );
@@ -667,7 +661,7 @@ void GetMPJScreenUserInput()
 {
 	InputAtom Event;
 
-	while( DequeueEvent( &Event ) )
+	while (DequeueSpecificEvent(&Event, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 		// check if this event is swallowed by text input, otherwise process key
 		if( !HandleTextInput( &Event ) && Event.usEvent == KEY_DOWN )
@@ -761,7 +755,7 @@ void BtnMPJCancelCallback(GUI_BUTTON *btn,INT32 reason)
 
 BOOLEAN DoMPJMessageBox( UINT8 ubStyle, const STR16 zString, UINT32 uiExitScreen, UINT16 usFlags, MSGBOX_CALLBACK ReturnCallback )
 {
-	SGPRect CenteringRect= {0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
+	SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, SCREEN_HEIGHT };
 
 	// do message box and return
 	giMPJMessageBox = DoMessageBox(	ubStyle,	zString,	uiExitScreen, ( UINT16 ) ( usFlags| MSG_BOX_FLAG_USE_CENTERING_RECT ),	ReturnCallback,	&CenteringRect );
@@ -788,7 +782,8 @@ void DoneFadeOutForExitMPJScreen( void )
 		gGameOptions.fTurnTimeLimit = FALSE;
 	
 	// Bobby Rays - why would we want anything less than the best
-	gGameOptions.ubBobbyRay = BR_AWESOME;
+	gGameOptions.ubBobbyRayQuality = BR_AWESOME;
+	gGameOptions.ubBobbyRayQuantity = BR_AWESOME;
 
 	gubMPJExitScreen = MP_CONNECT_SCREEN;
 

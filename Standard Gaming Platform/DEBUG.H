@@ -59,8 +59,7 @@ inline void _Null() { }
 //
 //#define USE_AGGRESSIVE_ASSERTIONS
 
-//#ifdef FORCE_ASSERTS_ON
-#if 0
+#ifdef FORCE_ASSERTS_ON
 
 // If FORCE_ASSERTS_ON is defined, we need to initialize all the debug macros. Otherwise all the
 // debug macros will be substituted by blank lines at compile time
@@ -127,29 +126,8 @@ extern CHAR8			gubAssertString[512];//for long filenames
 
 #else 
 
-template <class T> inline void Nothing(T a) { };
-
-#define Assert(a)		Nothing((a))
-#define AssertMsg(a,b)	Nothing(((b), (a)))
-
-
-#define AssertNotNIL(a) Nothing((a))
-#define AssertT(a)      Nothing((a))
-#define AssertF(a)      Nothing((a))
-#define AssertEQ(a,b)   Nothing(((b), (a)))
-#define AssertNE(a,b)   Nothing(((b), (a)))
-#define AssertLT(a,b)   Nothing(((b), (a)))
-#define AssertLE(a,b)   Nothing(((b), (a)))
-#define AssertGT(a,b)   Nothing(((b), (a)))
-#define AssertGE(a,b)   Nothing(((b), (a)))
-
-extern void _FailMessage(const char* message, unsigned lineNum, const char * functionName, const char* sourceFileName);
-inline void _FailMessage(const char* message, unsigned lineNum, const char* sourceFileName) {
-	_FailMessage(message, lineNum, 0, sourceFileName );
-}
-
-extern CHAR8			gubAssertString[512];//for long filenames
-
+#define Assert(a)		((void *)0)
+#define AssertMsg(a,b)	((void *)0)					
 
 //*******************************************************************************************
 #endif

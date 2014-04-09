@@ -19,6 +19,10 @@
 #include "connect.h"
 #include "Strategic Event Handler.h"
 
+#ifdef JA2UB
+#include "ub_config.h"
+#endif
+
 using namespace std;
 
 /************************************************************************************/
@@ -50,6 +54,8 @@ using namespace std;
 extern StrategicMapElement StrategicMap[];
 
 extern INT16 gusCurShipmentDestinationID;
+
+
 
 /////////////////////////////////////////////////////
 // CShipmentManipulator member implementation
@@ -204,6 +210,7 @@ BOOLEAN CPostalService::AddPackageToShipment(UINT16 usShipmentID, UINT16 usItemI
 
 BOOLEAN CPostalService::SendShipment(UINT16 usShipmentID)
 {
+	BOOLEAN BR_FAST_SHIP = gGameExternalOptions.fBobbyRayFastShipments;
 	if( usShipmentID > _UsedShipmentIDList.size() ||
 		!_UsedShipmentIDList[usShipmentID])
 	{
@@ -234,9 +241,18 @@ BOOLEAN CPostalService::SendShipment(UINT16 usShipmentID)
 	}
 	else
 	{	
-		AddFutureDayStrategicEvent( EVENT_POSTAL_SERVICE_SHIPMENT, (8 + Random(4) ) * 60, usShipmentID, 
-								SHIPMENT(sli).pDestinationDeliveryInfo->bDaysAhead);
+		//JMich
+		//Jenilee: now faster shipments
+		if (!BR_FAST_SHIP)
+		{
+			AddFutureDayStrategicEvent( EVENT_POSTAL_SERVICE_SHIPMENT, (8 + Random(4) ) * 60, usShipmentID, SHIPMENT(sli).pDestinationDeliveryInfo->bDaysAhead);
+		}
+		else
+		{
+			AddStrategicEvent(EVENT_POSTAL_SERVICE_SHIPMENT, GetWorldTotalMin() + ((SHIPMENT(sli).pDestinationDeliveryInfo->bDaysAhead * (5 + Random(3))) * 60), usShipmentID);
+		}
 	}
+
 	return TRUE;
 }
 
@@ -529,14 +545,29 @@ BOOLEAN CPostalService::DeliverShipment(UINT16 usShipmentID)
 		// WANNE - MP: Do not send email notification from Bobby Ray in a multiplayer game
 		if (!is_networked)
 		{
-			StopTimeCompression();
+		
+		StopTimeCompression();
+#ifdef JA2UB
+
+//no UB		
+	if ( gGameUBOptions.fBobbyRSite == TRUE )
+	{
+			// Shipment from Bobby Ray
+			if (shs.sSenderID == BOBBYR_SENDER_ID)
+				AddBobbyREmailJA2( 198, 4, BOBBY_R, GetWorldTotalMin(), -1, gusCurShipmentDestinationID, TYPE_EMAIL_BOBBY_R_EMAIL_JA2_EDT);	
+				// Shipment from John Kulba
+			//else
+			//	AddEmail( JOHN_KULBA_GIFT_IN_DRASSEN, JOHN_KULBA_GIFT_IN_DRASSEN_LENGTH, JOHN_KULBA, GetWorldTotalMin(), -1, gusCurShipmentDestinationID, TYPE_EMAIL_EMAIL_EDT);
+	}
+#else
 
 			// Shipment from Bobby Ray
 			if (shs.sSenderID == BOBBYR_SENDER_ID)
-				AddEmail( BOBBYR_SHIPMENT_ARRIVED, BOBBYR_SHIPMENT_ARRIVED_LENGTH, BOBBY_R, GetWorldTotalMin(), -1, gusCurShipmentDestinationID);	
+				AddEmail( BOBBYR_SHIPMENT_ARRIVED, BOBBYR_SHIPMENT_ARRIVED_LENGTH, BOBBY_R, GetWorldTotalMin(), -1, gusCurShipmentDestinationID, TYPE_EMAIL_EMAIL_EDT);	
 			// Shipment from John Kulba
 			else
-				AddEmail( JOHN_KULBA_GIFT_IN_DRASSEN, JOHN_KULBA_GIFT_IN_DRASSEN_LENGTH, JOHN_KULBA, GetWorldTotalMin(), -1, gusCurShipmentDestinationID);
+				AddEmail( JOHN_KULBA_GIFT_IN_DRASSEN, JOHN_KULBA_GIFT_IN_DRASSEN_LENGTH, JOHN_KULBA, GetWorldTotalMin(), -1, gusCurShipmentDestinationID, TYPE_EMAIL_EMAIL_EDT);
+#endif
 		}
 
 		shs.ShipmentPackages.clear();

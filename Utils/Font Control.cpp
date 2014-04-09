@@ -3,15 +3,12 @@
   #include "winfont.h"
 #else
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include <time.h>
 	#include "sgp.h"
 	#include "himage.h"
 	#include "vsurface.h"
-	#include "vsurface_private.h"
 	#include "wcheck.h"
 	#include "Font Control.h"
-	#include "WinFont.h"
 #endif
 
 INT32		  giCurWinFont = 0;
@@ -228,9 +225,9 @@ BOOLEAN	InitializeFonts( )
 	gfFontsInit = TRUE;
 
   // ATE: Init WinFont System and any winfonts we wish...
-#ifdef WINFONTS
-	InitWinFonts( );
-#endif
+    if ( iUseWinFonts ) {
+	    InitWinFonts( );
+    }
 
 	return( TRUE );
 }
@@ -258,9 +255,9 @@ void ShutdownFonts( )
 	#endif
 
   // ATE: Shutdown any win fonts
-#ifdef WINFONTS
+  if ( iUseWinFonts ) {
 	ShutdownWinFonts();
-#endif
+  }
 }
 
 // Set shades for fonts

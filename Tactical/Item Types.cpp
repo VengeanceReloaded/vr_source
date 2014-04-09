@@ -4,6 +4,8 @@
 #include "Items.h"
 #include "GameSettings.h"
 #include "screenids.h"
+#include "Action Items.h"	// added by Flugente for the ACTION_ITEM_BLOW_UP value
+#include "Random.h"			// added by Flugente
 
 
 int		BODYPOSFINAL		= GUNSLINGPOCKPOS;//RESET in initInventory
@@ -78,11 +80,13 @@ bool DestroyLBEIfEmpty(OBJECTTYPE* pObj)
 {
 	if (pObj->IsActiveLBE(0) == true) {
 		LBENODE* pLBE = pObj->GetLBEPointer(0);
-		if (pLBE) {
-			for (unsigned int x = 0; x < pLBE->inv.size(); ++x) {
-				if (pLBE->inv[x].exists() == true) {
+		if (pLBE)
+		{
+			UINT16 plbesize = pLBE->inv.size();
+			for (UINT16 x = 0; x < plbesize; ++x)
+			{
+				if (pLBE->inv[x].exists() == true)
 					return false;
-				}
 			}
 			for (std::list<LBENODE>::iterator iter = LBEArray.begin(); iter != LBEArray.end(); ++iter) {
 				if (iter->uniqueID == pLBE->uniqueID) {
@@ -105,37 +109,44 @@ void DestroyLBE(OBJECTTYPE* pObj)
 		LBENODE* pLBE = pObj->GetLBEPointer(0);
 		if(pLBE)
 		{
-			for(unsigned int x = 0; x < pLBE->inv.size(); x++)
+			UINT16 plbesize = pLBE->inv.size();
+			for(UINT16 x = 0; x < plbesize; ++x)
 			{
 				if(pLBE->inv[x].exists() == true)
 				{
 					pLBE->inv[x].initialize();
 				}
 			}
-			for (std::list<LBENODE>::iterator iter = LBEArray.begin(); iter != LBEArray.end(); ++iter) {
-				if (iter->uniqueID == pLBE->uniqueID) {
+			for (std::list<LBENODE>::iterator iter = LBEArray.begin(); iter != LBEArray.end(); ++iter)
+			{
+				if (iter->uniqueID == pLBE->uniqueID)
+				{
 					LBEArray.erase(iter);
 					break;
 				}
 			}
+
 			(*pObj)[0]->data.lbe.uniqueID = 0;
 			(*pObj)[0]->data.lbe.bLBE = 0;
 			return;
 		}
 	}
+
 	return;
 }
 
 void MoveItemsInSlotsToLBE( SOLDIERTYPE *pSoldier, std::vector<INT8>& LBESlots, LBENODE* pLBE, OBJECTTYPE* pObj)
 {
-	for(unsigned int i=0; i<LBESlots.size(); i++)	// Go through default pockets one by one
+	UINT16 plbesize = pLBE->inv.size();
+	UINT16 lbesize = LBESlots.size();
+	for(UINT16 i=0; i<lbesize; ++i)	// Go through default pockets one by one
 	{
 		if(pSoldier->inv[LBESlots[i]].exists() == false)	// No item in this pocket
 			continue;
 
 		// Found an item in a default pocket so get it's ItemSize
 		UINT16 dSize = CalculateItemSize(&pSoldier->inv[LBESlots[i]]);
-		for(unsigned int j=0; j<pLBE->inv.size(); j++)	// Search through LBE and see if item fits anywhere
+		for(unsigned int j=0; j<plbesize; ++j)	// Search through LBE and see if item fits anywhere
 		{
 			if(pLBE->inv[j].exists() == true)	// Item already stored in LBENODE pocket
 				continue;
@@ -365,15 +376,19 @@ BOOLEAN MoveItemFromLBEItem( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, OBJECTTYPE
 			}
 		}
 	}
-	if (DestroyLBEIfEmpty(pObj) == false) {
+
+	if (DestroyLBEIfEmpty(pObj) == false)
+	{
 		//we should have copied all the items from the LBE to the soldier
 		//which means the LBE should be empty and destroyed.  However, if it's not empty, we need to force place
 		//some items so that we can empty the LBE without losing anything.
-		for(unsigned int i = 0; i < LBESlots.size(); i++)
+		UINT16 invsize = pSoldier->inv.size();
+		UINT16 lbesize = LBESlots.size();
+		for(UINT16 i = 0; i < lbesize; ++i)
 		{
 			if(pLBE->inv[i].exists() == true)
 			{
-				for(unsigned int j = BIGPOCKSTART; j < pSoldier->inv.size(); j++)
+				for(UINT16 j = BIGPOCKSTART; j < invsize; ++j)
 				{
 					if(pSoldier->inv[j].exists() == false)
 					{
@@ -382,6 +397,7 @@ BOOLEAN MoveItemFromLBEItem( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, OBJECTTYPE
 					}
 				}
 			}
+
 			//Now, check one last time and if we still have an object, drop it to the ground
 			if(pLBE->inv[i].exists() == true)
 			{
@@ -416,11 +432,11 @@ LBETYPE::~LBETYPE(){
 }
 POCKETTYPE::POCKETTYPE(){
 	memset(this, 0, SIZEOF_POCKETTYPE);
-	ItemCapacityPerSize.resize(35);
+	ItemCapacityPerSize.resize(gGameExternalOptions.guiMaxItemSize+1);//JMich
 }
 POCKETTYPE::POCKETTYPE(const POCKETTYPE& src){
 	memcpy(this, &src, SIZEOF_POCKETTYPE);
-	ItemCapacityPerSize.resize(35);
+	ItemCapacityPerSize.resize(gGameExternalOptions.guiMaxItemSize+1);//JMich
 	ItemCapacityPerSize = src.ItemCapacityPerSize;
 }
 POCKETTYPE& POCKETTYPE::operator=(const POCKETTYPE& src){
@@ -480,9 +496,13 @@ LBENODE* OBJECTTYPE::GetLBEPointer(unsigned int index)
 
 bool OBJECTTYPE::exists()
 {
+#if 0//dnl ch75 011113
 	if(this == NULL)
 		return(FALSE);
 	return (ubNumberOfObjects > 0 && usItem != NOTHING);
+#else
+	return(this && ubNumberOfObjects && usItem);
+#endif
 }
 
 void OBJECTTYPE::SpliceData(OBJECTTYPE& sourceObject, unsigned int numToSplice, StackedObjects::iterator beginIter)
@@ -1023,6 +1043,15 @@ ObjectData::ObjectData(const ObjectData& src)
 		this->bTrap = src.bTrap;
 		this->fUsed = src.fUsed;
 		this->ubImprintID = src.ubImprintID;
+
+		this->bTemperature = src.bTemperature;
+		this->ubDirection = src.ubDirection;
+		this->ubWireNetworkFlag = src.ubWireNetworkFlag;
+		this->bDefuseFrequency = src.bDefuseFrequency;
+		this->sRepairThreshold = src.sRepairThreshold;
+		this->bDirtLevel = src.bDirtLevel;
+		this->sObjectFlag = src.sObjectFlag;
+		
 		//copy over the union
 		this->gun = src.gun;
 
@@ -1041,6 +1070,15 @@ ObjectData& ObjectData::operator =(const ObjectData& src)
 		this->bTrap = src.bTrap;
 		this->fUsed = src.fUsed;
 		this->ubImprintID = src.ubImprintID;
+
+		this->bTemperature = src.bTemperature;
+		this->ubDirection = src.ubDirection;
+		this->ubWireNetworkFlag = src.ubWireNetworkFlag;
+		this->bDefuseFrequency = src.bDefuseFrequency;
+		this->sRepairThreshold = src.sRepairThreshold;
+		this->bDirtLevel = src.bDirtLevel;
+		this->sObjectFlag = src.sObjectFlag;
+
 		//copy over the union
 		this->gun = src.gun;
 
@@ -1104,13 +1142,18 @@ OLD_OBJECTTYPE_101& OLD_OBJECTTYPE_101::operator=(OBJECTTYPE& src)
 	if((void*)this != (void*)&src)
 	{
 		memset(this, 0, sizeof(OLD_OBJECTTYPE_101));
+		if(src.usItem >= OLD_MAXITEMS)//dnl ch74 191013
+		{
+			this->fFlags = OBJECT_UNDROPPABLE;
+			return(*this);
+		}
 		this->usItem = src.usItem;
 		this->ubNumberOfObjects = src.ubNumberOfObjects;
-		this->ubWeight = (UINT8)CalculateObjectWeight(&src);//dnl??? need test, probably this should be calculated after you create old object
 		this->fFlags = src.fFlags;
 		this->ubMission = src.ubMission;
 		this->ubNumberOfObjects = src.ubNumberOfObjects;
 		this->usItem = src.usItem;
+		this->ubWeight = Item[this->usItem].ubWeight * this->ubNumberOfObjects;//dnl ch74 191013
 		if(ubNumberOfObjects == 1)
 		{
 			this->ugYucky.bGunStatus = (INT8)src[0]->data.gun.bGunStatus;
@@ -1137,8 +1180,50 @@ OLD_OBJECTTYPE_101& OLD_OBJECTTYPE_101::operator=(OBJECTTYPE& src)
 				this->ugYucky.usGunAmmoItem = src[0]->data.gun.usGunAmmoItem;
 				this->ugYucky.bGunAmmoStatus = (INT8)src[0]->data.gun.bGunAmmoStatus;
 				this->ugYucky.ubGunState = src[0]->data.gun.ubGunState;
+				if(this->ugYucky.ubGunAmmoType && this->ugYucky.ubGunShotsLeft)//dnl ch74 191013
+					this->ubWeight += Item[this->ugYucky.usGunAmmoItem].ubWeight;
 				break;
 			}
+
+			// Flugente fix: there is a severe problem with Action items. The problem is that in the above switch statement, we use the default stuff for action items.
+			// If the action item is a bomb etc. (bActionValue = 3), we want to set the bomb item. But due to EXTREME RETARDNESS, the ugYucky-struct differs on variable positions.
+			// To be precise (see in ItemTypes.h: union OLD_OBJECTTYPE_101_UNION for reference), its
+			// 
+			// ...
+			//	INT8		bGunStatus;			// status % of gun
+			//	UINT8		ubGunAmmoType;	// ammo type, as per weapons.h
+			//	UINT8		ubGunShotsLeft;	// duh, amount of ammo left
+			//	UINT16		usGunAmmoItem;	// the item # for the item table
+			// ...
+			//
+			// in the first struct, that is used for the default stuff, but 
+			//
+			// ...
+			//  INT8		bBombStatus;			// % status
+			//	INT8		bDetonatorType;		// timed, remote, or pressure-activated
+			//	UINT16		usBombItem;				// the usItem of the bomb.
+			//	union
+			//	{
+			// ...
+			// 
+			// in the struct that stores the bomb item.
+			// Now, if our action item has a Bombitem > 255, that value is read from UINT16		ubGunShotsLeft in OBJECT_GUN. 
+			// In the OBJECTTYPE::data union, OBJECT_GUN and OBJECT_BOMBS_AND_OTHER both have the UINT16 that stores the usBombItem or ubGunShotsLeft at the same position. So until here it is ok...
+			// However, this value now gets written into ugYucky.ubGunShotsLeft - which is an UINT8 instead of UINT16. This means that any item number > 255 is cut down.
+			// This error seems to have always been here (13 years). It just never occured until now.
+			// An easy fix would be to just switch  the positions of UINT8ubGunShotsLeft and UINT16 usGunAmmoItem. However we cannot do that, as that will affect every object read ever anywhere.
+			//
+			// For this reason, I now present you this filthy, ugly hack, specifically for action items handle bombs:
+			if ( src.usItem == ACTION_ITEM && src[0]->data.misc.bActionValue == ACTION_ITEM_BLOW_UP )
+			{
+				this->ugYucky.bDetonatorType = src[0]->data.misc.bDetonatorType;
+				this->ugYucky.usBombItem = src[0]->data.misc.usBombItem;
+				this->ugYucky.bDelay = src[0]->data.misc.bDelay;
+				this->ugYucky.ubBombOwner = src[0]->data.misc.ubBombOwner;
+				this->ugYucky.bActionValue = src[0]->data.misc.bActionValue;
+				this->ugYucky.ubTolerance = src[0]->data.misc.ubTolerance;
+			}
+
 			this->bTrap = src[0]->data.bTrap;
 			this->ubImprintID = src[0]->data.ubImprintID;
 			this->fUsed = src[0]->data.fUsed;
@@ -1150,9 +1235,10 @@ OLD_OBJECTTYPE_101& OLD_OBJECTTYPE_101::operator=(OBJECTTYPE& src)
 			int i = 0;
 			for(attachmentList::iterator iter=src[0]->attachments.begin(); iter!=src[0]->attachments.end(); ++iter)
 			{
-				//dnl??? this part should check if attachment is valid for 1.12, but then means you will lost some stuff from NIV, and if you wnat play map in older 1.13 versions this is not good
-				//if(iter->usItem)
-				//	;
+				//dnl ch74 191013 check if attachment is valid for 1.12, that means you will lost some stuff from NIV if save in Vanilla mode, so you should always save map in newest format if want play map in 1.13
+				if(iter->usItem >= OLD_MAXITEMS || iter->usItem == NONE)
+					continue;
+				this->ubWeight += Item[iter->usItem].ubWeight;
 				this->usAttachItem[i] = iter->usItem;
 				this->bAttachStatus[i] = (INT8)(*iter)[0]->data.objectStatus;
 				if(++i >= OLD_MAX_ATTACHMENTS_101)
@@ -1239,6 +1325,95 @@ OBJECTTYPE& OBJECTTYPE::operator=(const OBJECTTYPE& src)
 		this->ubMission = src.ubMission;
 		this->objectStack = src.objectStack;
 		//this->usAttachmentSlotIndexVector = src.usAttachmentSlotIndexVector;
+
+		// Flugente fix: there is a severe problem with Action items. The problem is that in the above switch statement, we use the default stuff for action items.
+		// If the action item is a bomb etc. (bActionValue = 3), we want to set the bomb item. But due to EXTREME RETARDNESS, the ugYucky-struct differs on variable positions.
+		// To be precise (see in ItemTypes.h: union OLD_OBJECTTYPE_101_UNION for reference), its
+		// 
+		// ...
+		//	INT8		bGunStatus;			// status % of gun
+		//	UINT8		ubGunAmmoType;	// ammo type, as per weapons.h
+		//	UINT8		ubGunShotsLeft;	// duh, amount of ammo left
+		//	UINT16		usGunAmmoItem;	// the item # for the item table
+		// ...
+		//
+		// in the first struct, that is used for the default stuff, but 
+		//
+		// ...
+		//  INT8		bBombStatus;			// % status
+		//	INT8		bDetonatorType;		// timed, remote, or pressure-activated
+		//	UINT16		usBombItem;				// the usItem of the bomb.
+		//	union
+		//	{
+		// ...
+		// 
+		// in the struct that stores the bomb item.
+		// Now, if our action item has a Bombitem > 255, that value is read from UINT16		ubGunShotsLeft in OBJECT_GUN. 
+		// In the OBJECTTYPE::data union, OBJECT_GUN and OBJECT_BOMBS_AND_OTHER both have the UINT16 that stores the usBombItem or ubGunShotsLeft at the same position. So until here it is ok...
+		// However, this value now gets written into ugYucky.ubGunShotsLeft - which is an UINT8 instead of UINT16. This means that any item number > 255 is cut down.
+		// This error seems to have always been here (13 years). It just never occured until now.
+		// An easy fix would be to just switch  the positions of UINT8ubGunShotsLeft and UINT16 usGunAmmoItem. However we cannot do that, as that will affect every object read ever anywhere.
+		//
+		// For this reason, I now present you this filthy, ugly hack, specifically for action items handle bombs:
+		if ( src.usItem == ACTION_ITEM && (src)[0]->data.misc.bActionValue == ACTION_ITEM_BLOW_UP )
+		{
+			(*this)[0]->data.misc.bDetonatorType = (src)[0]->data.misc.bDetonatorType;
+			(*this)[0]->data.misc.usBombItem = (src)[0]->data.misc.usBombItem;
+			(*this)[0]->data.misc.bDelay = (src)[0]->data.misc.bDelay;	// includes bFrequency
+			(*this)[0]->data.misc.ubBombOwner = (src)[0]->data.misc.ubBombOwner;
+			(*this)[0]->data.misc.bActionValue = (src)[0]->data.misc.bActionValue;
+			(*this)[0]->data.misc.ubTolerance = (src)[0]->data.misc.ubTolerance;	// includes ubLocationID
+			(*this)[0]->data.ubWireNetworkFlag = TRIPWIRE_NETWORK_OWNER_ENEMY;	// it is always assumed that preplated traps are of hostile origin
+
+			// if the item has any tripwire action item flags, use them, otherwise, use default values
+			if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_ANY )
+			{
+				if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_1 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_1;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_2 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_2;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_3 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_3;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_4 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_4;
+
+				if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_1 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_1;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_2 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_2;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_3 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_3;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_4 )
+					(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_4;
+			}
+			else
+				(*this)[0]->data.ubWireNetworkFlag |= (TRIPWIRE_NETWORK_NET_1|TRIPWIRE_NETWORK_LVL_1);
+
+			// if the item has any directional action item flag, use them, otherwise, direction does not matter
+			if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_ANY )
+			{
+				if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_NORTH )
+					(*this)[0]->data.ubDirection = NORTH;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_NORTHEAST )
+					(*this)[0]->data.ubDirection = NORTHEAST;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_EAST )
+					(*this)[0]->data.ubDirection = EAST;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_SOUTHEAST )
+					(*this)[0]->data.ubDirection = SOUTHEAST;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_SOUTH )
+					(*this)[0]->data.ubDirection = SOUTH;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_SOUTHWEST )
+					(*this)[0]->data.ubDirection = SOUTHWEST;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_WEST )
+					(*this)[0]->data.ubDirection = WEST;
+				else if ( Item[(src)[0]->data.misc.usBombItem].usActionItemFlag & ITEM_DIRECTION_NORTHWEST )
+					(*this)[0]->data.ubDirection = NORTHWEST;
+			}
+			else
+				(*this)[0]->data.ubDirection = DIRECTION_IRRELEVANT;
+
+			(*this)[0]->data.bDefuseFrequency = 0;
+		}
 	}
 	return *this;
 }
@@ -1266,6 +1441,11 @@ OBJECTTYPE& OBJECTTYPE::operator=(const OLD_OBJECTTYPE_101& src)
 			this->usItem = NONE;
 		}
 
+		// Flugente: random items
+		UINT16 newitemfromrandom = NONE;
+		if ( GetItemFromRandomItem(src.usItem, &newitemfromrandom) )
+			this->usItem = newitemfromrandom;
+
 		//and now the big change, the union
 		//copy the old data, making sure not to write over, since the old size is actually 9 bytes
 		if (ubNumberOfObjects == 1) {
@@ -1281,7 +1461,8 @@ OBJECTTYPE& OBJECTTYPE::operator=(const OLD_OBJECTTYPE_101& src)
 			(*this)[0]->data.gun.bGunAmmoStatus = 0;
 			(*this)[0]->data.gun.ubGunState = 0;
 			//Lastly, convert values from the old format to the new based on the type of object
-			switch(Item[src.usItem].usItemClass)
+						
+			switch(Item[this->usItem].usItemClass)
 			{
 			case IC_MONEY:
 				(*this)[0]->data.money.uiMoneyAmount = src.ugYucky.uiMoneyAmount;
@@ -1297,6 +1478,9 @@ OBJECTTYPE& OBJECTTYPE::operator=(const OLD_OBJECTTYPE_101& src)
 				(*this)[0]->data.misc.ubBombOwner = src.ugYucky.ubBombOwner;
 				(*this)[0]->data.misc.bActionValue = src.ugYucky.bActionValue;
 				(*this)[0]->data.misc.ubTolerance = src.ugYucky.ubTolerance;	// includes ubLocationID
+				(*this)[0]->data.ubDirection = DIRECTION_IRRELEVANT;
+				(*this)[0]->data.ubWireNetworkFlag = (TRIPWIRE_NETWORK_OWNER_ENEMY|TRIPWIRE_NETWORK_NET_1|TRIPWIRE_NETWORK_LVL_1);
+				(*this)[0]->data.bDefuseFrequency = 0;
 				break;
 			default:
 				//This should cover all other possibilities since only Money, Key and "Bomb/Misc" have layouts that don't
@@ -1306,18 +1490,158 @@ OBJECTTYPE& OBJECTTYPE::operator=(const OLD_OBJECTTYPE_101& src)
 				(*this)[0]->data.gun.usGunAmmoItem = src.ugYucky.usGunAmmoItem;
 				(*this)[0]->data.gun.bGunAmmoStatus = src.ugYucky.bGunAmmoStatus;
 				(*this)[0]->data.gun.ubGunState = src.ugYucky.ubGunState;
+
+				// Flugente: if we resolved a random item, we have to give it ammo...
+				if ( Item[newitemfromrandom].usItemClass == IC_GUN )
+				{
+					(*this)[0]->data.ubImprintID = NO_PROFILE;
+
+					if (Weapon[ this->usItem ].ubWeaponClass == MONSTERCLASS)
+					{
+						(*this)[0]->data.gun.ubGunShotsLeft = 1;
+						(*this)[0]->data.gun.ubGunAmmoType = AMMO_MONSTER;
+						(*this)[0]->data.gun.ubGunState |= GS_CARTRIDGE_IN_CHAMBER; // 0verhaul:  Monsters don't have to reload!
+					}
+					else if ( EXPLOSIVE_GUN( this->usItem ) )
+					{
+						if ( Item[this->usItem].singleshotrocketlauncher )
+						{
+							(*this)[0]->data.gun.ubGunShotsLeft = 1;
+						}
+						else
+						{
+							// cannon
+							(*this)[0]->data.gun.ubGunShotsLeft = 0;
+						}
+						(*this)[0]->data.gun.bGunAmmoStatus = 100;
+						(*this)[0]->data.gun.ubGunAmmoType = 0;
+					}
+					else
+					{
+						UINT16 usAmmo = DefaultMagazine( this->usItem );
+						if ( usAmmo )
+						{
+							(*this)[0]->data.gun.usGunAmmoItem = usAmmo;
+							(*this)[0]->data.gun.ubGunAmmoType = Magazine[ Item[ usAmmo ].ubClassIndex].ubAmmoType;
+							(*this)[0]->data.gun.bGunAmmoStatus = 100;
+							(*this)[0]->data.gun.ubGunShotsLeft = Magazine[ Item[ usAmmo ].ubClassIndex ].ubMagSize;
+							(*this)[0]->data.gun.ubGunState |= GS_CARTRIDGE_IN_CHAMBER; // Madd: new guns should have cartridge in chamber
+						}
+					}
+				}
+
 				break;
+			}
+
+			// Flugente fix: there is a severe problem with Action items. The problem is that in the above switch statement, we use the default stuff for action items.
+			// If the action item is a bomb etc. (bActionValue = 3), we want to set the bomb item. But due to EXTREME RETARDNESS, the ugYucky-struct differs on variable positions.
+			// To be precise (see in ItemTypes.h: union OLD_OBJECTTYPE_101_UNION for reference), its
+			// 
+			// ...
+			//	INT8		bGunStatus;			// status % of gun
+			//	UINT8		ubGunAmmoType;	// ammo type, as per weapons.h
+			//	UINT8		ubGunShotsLeft;	// duh, amount of ammo left
+			//	UINT16		usGunAmmoItem;	// the item # for the item table
+			// ...
+			//
+			// in the first struct, that is used for the default stuff, but 
+			//
+			// ...
+			//  INT8		bBombStatus;			// % status
+			//	INT8		bDetonatorType;		// timed, remote, or pressure-activated
+			//	UINT16		usBombItem;				// the usItem of the bomb.
+			//	union
+			//	{
+			// ...
+			// 
+			// in the struct that stores the bomb item.
+			// Now, if our action item has a Bombitem > 255, that value is read from UINT16		ubGunShotsLeft in OBJECT_GUN. 
+			// In the OBJECTTYPE::data union, OBJECT_GUN and OBJECT_BOMBS_AND_OTHER both have the UINT16 that stores the usBombItem or ubGunShotsLeft at the same position. So until here it is ok...
+			// However, this value now gets written into ugYucky.ubGunShotsLeft - which is an UINT8 instead of UINT16. This means that any item number > 255 is cut down.
+			// This error seems to have always been here (13 years). It just never occured until now.
+			// An easy fix would be to just switch  the positions of UINT8ubGunShotsLeft and UINT16 usGunAmmoItem. However we cannot do that, as that will affect every object read ever anywhere.
+			//
+			// For this reason, I now present you this filthy, ugly hack, specifically for action items handle bombs:
+			if ( src.usItem == ACTION_ITEM && src.ugYucky.bActionValue == ACTION_ITEM_BLOW_UP )
+			{
+				(*this)[0]->data.misc.bDetonatorType = src.ugYucky.bDetonatorType;
+				(*this)[0]->data.misc.usBombItem = src.ugYucky.usBombItem;
+				(*this)[0]->data.misc.bDelay = src.ugYucky.bDelay;	// includes bFrequency
+				(*this)[0]->data.misc.ubBombOwner = src.ugYucky.ubBombOwner;
+				(*this)[0]->data.misc.bActionValue = src.ugYucky.bActionValue;
+				(*this)[0]->data.misc.ubTolerance = src.ugYucky.ubTolerance;	// includes ubLocationID
+				(*this)[0]->data.ubWireNetworkFlag = TRIPWIRE_NETWORK_OWNER_ENEMY;	// it is always assumed that preplated traps are of hostile origin
+
+				// if the item has any tripwire action item flags, use them, otherwise, use default values
+				if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_ANY )
+				{
+					if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_1 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_1;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_2 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_2;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_3 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_3;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_NET_4 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_NET_4;
+
+					if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_1 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_1;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_2 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_2;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_3 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_3;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_TRIPWIRE_NETWORK_LVL_4 )
+						(*this)[0]->data.ubWireNetworkFlag |= TRIPWIRE_NETWORK_LVL_4;
+				}
+				else
+					(*this)[0]->data.ubWireNetworkFlag |= (TRIPWIRE_NETWORK_NET_1|TRIPWIRE_NETWORK_LVL_1);
+
+				// if the item has any directional action item flag, use them, otherwise, direction does not matter
+				if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_ANY )
+				{
+					if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_NORTH )
+						(*this)[0]->data.ubDirection = NORTH;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_NORTHEAST )
+						(*this)[0]->data.ubDirection = NORTHEAST;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_EAST )
+						(*this)[0]->data.ubDirection = EAST;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_SOUTHEAST )
+						(*this)[0]->data.ubDirection = SOUTHEAST;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_SOUTH )
+						(*this)[0]->data.ubDirection = SOUTH;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_SOUTHWEST )
+						(*this)[0]->data.ubDirection = SOUTHWEST;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_WEST )
+						(*this)[0]->data.ubDirection = WEST;
+					else if ( Item[src.ugYucky.usBombItem].usActionItemFlag & ITEM_DIRECTION_NORTHWEST )
+						(*this)[0]->data.ubDirection = NORTHWEST;
+				}
+				else
+					(*this)[0]->data.ubDirection = DIRECTION_IRRELEVANT;
+
+				(*this)[0]->data.bDefuseFrequency = 0;
 			}
 
 			(*this)[0]->data.bTrap = src.bTrap;		// 1-10 exp_lvl to detect
 			(*this)[0]->data.ubImprintID = src.ubImprintID;	// ID of merc that item is imprinted on
 			(*this)[0]->data.fUsed = src.fUsed;				// flags for whether the item is used or not
+			(*this)[0]->data.bTemperature = 0.0;
+
+			// Flugente: the temperature variable determines the quality of the food, begin with being fresh
+			if ( Item[this->usItem].foodtype > 0 )
+			{
+				(*this)[0]->data.bTemperature = OVERHEATING_MAX_TEMPERATURE;
+			}
 
 			if(src.usItem == OWNERSHIP)//dnl ch29 120909
 			{
 				(*this)[0]->data.owner.ubOwnerProfile = src.ugYucky.ubOwnerProfile;
 				(*this)[0]->data.owner.ubOwnerCivGroup = src.ugYucky.ubOwnerCivGroup;
 			}
+
+			(*this)[0]->data.sRepairThreshold = 100;
+			(*this)[0]->data.bDirtLevel = 0.0f;
+			(*this)[0]->data.sObjectFlag = 0;
 
 			//it's unlikely max will get less over the versions, but still, check the min
 			for (int x = 0; x < OLD_MAX_ATTACHMENTS_101; ++x)
@@ -1342,6 +1666,17 @@ OBJECTTYPE& OBJECTTYPE::operator=(const OLD_OBJECTTYPE_101& src)
 				(*this)[x]->data.bTrap = src.bTrap;		// 1-10 exp_lvl to detect
 				(*this)[x]->data.ubImprintID = src.ubImprintID;	// ID of merc that item is imprinted on
 				(*this)[x]->data.fUsed = src.fUsed;				// flags for whether the item is used or not
+				(*this)[x]->data.bTemperature = 0.0;
+
+				// Flugente: the temperature variable determines the quality of the food, begin with being fresh
+				if ( Item[this->usItem].foodtype > 0 )
+				{
+					(*this)[x]->data.bTemperature = OVERHEATING_MAX_TEMPERATURE;
+				}
+
+				(*this)[x]->data.sRepairThreshold = 100;
+				(*this)[x]->data.bDirtLevel = 0.0f;
+				(*this)[x]->data.sObjectFlag = 0;
 			}
 		}
 
@@ -1353,7 +1688,7 @@ OBJECTTYPE& OBJECTTYPE::operator=(const OLD_OBJECTTYPE_101& src)
 					(*this)[x]->attachments.resize(usAttachmentSlotIndexVector.size());
 			}
 		}*/
-		RemoveProhibitedAttachments(NULL, this, this->usItem);
+		AttachDefaultAttachments(this);//RemoveProhibitedAttachments(NULL, this, this->usItem);//dnl ch75 261013
 		//just a precaution
 		//ADB ubWeight has been removed, see comments in OBJECTTYPE
 		//this->ubWeight = CalculateObjectWeight(this);

@@ -2,7 +2,11 @@
 #define _GAME_SETTINGS__H_
 
 #include "Types.h"
+#include "Strategic Status.h"
+#include "Morale.h"
 
+
+#define				GAME_INI_FILE					"Ja2.ini"
 
 //If you add any options, MAKE sure you add the corresponding string to the Options Screen string array.
 //	 look up : zOptionsScreenHelpText , zOptionsToggleText
@@ -70,19 +74,39 @@ enum
 	TOPTION_ALTERNATE_BULLET_GRAPHICS,
 
 	// CHRISL: HAM 4: Activate/Deactivate NCTH mode
-	TOPTION_USE_NCTH,
-
+	//TOPTION_USE_NCTH,
+	//Jenilee's Merc Ranks
+	TOPTION_SHOW_MERC_RANKS,
+	
 	// WANNE:	
 	TOPTION_SHOW_TACTICAL_FACE_GEAR,
 	TOPTION_SHOW_TACTICAL_FACE_ICONS,
 
 	TOPTION_DISABLE_CURSOR_SWAP,				// Disable cursor swapping every second between talk and quick exchange
+	TOPTION_QUIET_TRAINING,						//Madd: mercs don't say gained experience quote while training
+	TOPTION_QUIET_REPAIRING,					//Madd: mercs don't say gained experience quote while repairing items
+	TOPTION_QUIET_DOCTORING,					//Madd: mercs don't say gained experience quote while doctoring
+	
+	TOPTION_AUTO_FAST_FORWARD_MODE,				// automatically fast forward through AI turns
+
+#ifdef ENABLE_ZOMBIES
+	TOPTION_ZOMBIES,							// Flugente Zombies 1.0: allow zombies	
+#endif
+
+	TOPTION_ENABLE_INVENTORY_POPUPS,			// the_bob : enable popups for picking items from sector inv
+
+	TOPTION_SHOW_LAST_ENEMY,					//DBrot: show approximate locations for the last enemies
+	TOPTION_SHOW_LBE_CONTENT,					//DBrot: toggle between the content of an lbe and its attachments
+	TOPTION_INVERT_WHEEL,						//jikuja: invert mouse wheel
+
+	// Flugente: mercenary formations
+	TOPTION_MERCENARY_FORMATIONS,
 
 	// arynn: Debug/Cheat
 	TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	TOPTION_FORCE_BOBBY_RAY_SHIPMENTS,			// force all pending Bobby Ray shipments
 	TOPTION_CHEAT_MODE_OPTIONS_END,
-	TOPTION_DEBUG_MODE_OPTIONS_HEADER,			// an example options screen options header (pure text)                                                         
+	TOPTION_DEBUG_MODE_OPTIONS_HEADER,			// an example options screen options header (pure text)        
 	
 	// HEADROCK HAM 4:
 	TOPTION_REPORT_MISS_MARGIN,
@@ -92,7 +116,7 @@ enum
 	TOPTION_RETAIN_DEBUG_OPTIONS_IN_RELEASE,	// allow debug options that were set in debug.exe to continue in a rel.exe (debugging release can be beneficial)
 	TOPTION_DEBUG_MODE_RENDER_OPTIONS_GROUP,	// an example option that will show/hide other options                                                          
 	TOPTION_RENDER_MOUSE_REGIONS,				// an example of a DEBUG build option                                                                           
-	TOPTION_DEBUG_MODE_OPTIONS_END,				// an example options screen options divider (pure text)   
+	TOPTION_DEBUG_MODE_OPTIONS_END,				// an example options screen options divider (pure text)
 
 	// this is THE LAST option that exists (intended for debugging the options screen, doesnt do anything, except exist)
 	TOPTION_LAST_OPTION, 
@@ -125,9 +149,17 @@ typedef struct
 
 	BOOLEAN				fHideHelpInAllScreens;              // Controls Help "do not show help again" checkbox
 
+#ifdef JA2UB	
+	//JA25UB
+	BOOLEAN			fPlayerFinishedTheGame;
+#endif
+
 	UINT8				ubSizeOfDisplayCover;               // The number of grids the player designates thru "Delete + '=' or '-'"
 	UINT8				ubSizeOfLOS;                        // The number of grids the player designates thru "End    + '=' or '-'"
-
+                     // The number of grids the player designates thru "End    + '=' or '-'"
+#ifdef JA2UB
+	UINT8		ubFiller[17];
+#endif	
 }	GAME_SETTINGS;
 
 // CHRISL: New Enums to track inventory system
@@ -189,17 +221,26 @@ typedef struct
 	UINT8	ubDifficultyLevel;
 	BOOLEAN	fTurnTimeLimit;
 	BOOLEAN	fIronManMode;
-	UINT8	ubBobbyRay;
+	UINT8	ubBobbyRayQuality;
+	UINT8	ubBobbyRayQuantity;
 	UINT8	ubInventorySystem;
 	UINT8	ubAttachmentSystem;
+	UINT8	ubSquadSize;
 	// SANDRO - added variables
 	UINT8	ubMaxIMPCharacters;
 	BOOLEAN	fNewTraitSystem;
-	BOOLEAN fEnableAllTerrorists;
 	BOOLEAN	fEnemiesDropAllItems;
 	UINT8   ubProgressSpeedOfItemsChoices;
-	BOOLEAN fEnableAllWeaponCaches;
-	//UINT8	ubFiller[];
+
+	BOOLEAN fInventoryCostsAP;			// ubFiller:	From 500 to 499
+
+	BOOLEAN fUseNCTH;					// ubFiller:	From 499 to 498
+	BOOLEAN fImprovedInterruptSystem;	// ubFiller:	From 498 to 497
+	BOOLEAN fBackGround;				// ubFiller:	From 497 to 496
+	BOOLEAN fFoodSystem;				// ubFiler:		From 496 to 495
+	
+	// WANNE: Decrease this filler by 1, for each new UINT8 / BOOLEAN variable, so we can maintain savegame compatibility!!
+	UINT8	ubFiller[495];		
 
 } GAME_OPTIONS;
 
@@ -291,6 +332,10 @@ typedef struct
 	INT16 sEnemyRegularCtHBonusPercent;
 	INT16 sEnemyEliteCtHBonusPercent;
 
+	INT8 sEnemyAdminEquipmentQualityModifier;
+	INT8 sEnemyRegularEquipmentQualityModifier;
+	INT8 sEnemyEliteEquipmentQualityModifier;
+
 	INT8 sEnemyAdminDamageResistance;	
 	INT8 sEnemyRegularDamageResistance;
 	INT8 sEnemyEliteDamageResistance;
@@ -300,9 +345,22 @@ typedef struct
 	INT8 bAssignedTraitsRarity;
 
 	BOOLEAN fCamoRemoving;
+	INT8	bCamoKitArea;	// silversurfer added this. It defines how much of the body can be painted with camo kits (usually face and hands).
 	BOOLEAN fEnhancedCloseCombatSystem;
 
+	//BOOLEAN fImprovedInterruptSystem;
+	UINT8 ubBasicPercentRegisterValueIIS;
+	UINT8 ubPercentRegisterValuePerLevelIIS;
+	UINT8 ubBasicReactionTimeLengthIIS;
+	BOOLEAN fAllowCollectiveInterrupts;
+	BOOLEAN fAllowInstantInterruptsOnSight;
+
+	BOOLEAN fNoEnemyAutoReadyWeapon;
+	BOOLEAN fAllNamedNpcsDecideAction;
+
 	UINT16 usAwardSpecialExpForQuests;
+
+	BOOLEAN fAllowWalkingWithWeaponRaised;
 	////////////////////////////////////
 
 	// Kaiden: Vehicle Inventory change - Added for INI Option
@@ -315,6 +373,15 @@ typedef struct
 	BOOLEAN fEnableChanceOfEnemyAmbushes; 
 	INT8 bChanceModifierEnemyAmbushes;
 	UINT8 usSpecialNPCStronger;
+
+	// Flugente: should kingpin's hitmen be disguised? This will make them have random clothes among other stuff
+	BOOLEAN fAssassinsAreDisguised;
+
+	// Flugente: does the queen send out assassins that mix among your militia?
+	BOOLEAN fEnemyAssassins;
+	UINT8	usAssassinMinimumProgress;
+	UINT8	usAssassinMinimumMilitia;
+	UINT32  usAssassinPropabilityModifier;
 	///////////////////////////////////////
 
 	// System settings
@@ -325,6 +392,48 @@ typedef struct
 	//Video settings	
 	BOOLEAN gfVSync;
 
+#ifdef ENABLE_ZOMBIES
+	// Flugente: zombie settings
+	INT8	sZombieRiseBehaviour;
+	BOOLEAN fZombieSpawnWaves;
+	INT8	sZombieRiseWaveFrequency;	
+	BOOLEAN fZombieCanClimb;
+	BOOLEAN fZombieCanJumpWindows;
+	BOOLEAN fZombieExplodingCivs;
+	INT8	sEnemyZombieDamageResistance;
+	INT8	sEnemyZombieBreathDamageResistance;
+	BOOLEAN fZombieOnlyHeadshotsWork;
+	INT8	sZombieDifficultyLevel;
+	BOOLEAN fZombieRiseWithArmour;
+	BOOLEAN fZombieOnlyHeadShotsPermanentlyKill;
+#endif
+	
+	// Flugente: poison settings
+	INT32	ubPoisonBaseMedicalSkillToCure;
+	FLOAT	sPoisonMedicalPtsToCureMultiplicator;
+	INT16	sZombiePoisonDamagePercentage;
+	FLOAT	sPoisonInfectionDamageMultiplier;
+
+	// Flugente: fortification settings
+	BOOLEAN fFortificationAllowInHostileSector;
+
+	// Flugente: food settings
+	UINT16	usFoodDigestionHourlyBaseFood;
+	UINT16	usFoodDigestionHourlyBaseDrink;
+	FLOAT	sFoodDigestionSleep;
+	FLOAT	sFoodDigestionTravelVehicle;
+	FLOAT	sFoodDigestionTravel;
+	FLOAT	sFoodDigestionAssignment;
+	FLOAT	sFoodDigestionOnDuty;
+	FLOAT	sFoodDigestionCombat;
+		
+	BOOLEAN fFoodDecayInSectors;
+	FLOAT	sFoodDecayModificator;
+
+	UINT8	usFoodMaxPoisoning;
+
+	BOOLEAN fFoodEatingSounds;
+	
 	//Animation settings
 	FLOAT giPlayerTurnSpeedUpFactor;
 	FLOAT giEnemyTurnSpeedUpFactor;
@@ -334,6 +443,7 @@ typedef struct
 
 	//Sound settings
 	UINT32 guiWeaponSoundEffectsVolume;
+	UINT8  gubMaxPercentNoiseSilencedSound;
 
 	// WDS - Option to turn off stealing
 	BOOLEAN fStealingDisabled;
@@ -347,6 +457,12 @@ typedef struct
 	BOOLEAN gfAllowMilitiaGroups;
 	BOOLEAN gfmusttrainroaming;
 	BOOLEAN gflimitedRoaming;
+	BOOLEAN gfAllowMilitiaFollowPlayer;			//Moa: TRUE try to follow, FALSE do what they want
+	BOOLEAN gfAllowMilitiaSpreadWhenFollowing;	//Moa: TRUE spread normal, FALSE dont spread when following
+	BOOLEAN gfAllowMilitiaSpread;				//Moa: TRUE spread normal, FALSE fill up to max
+	UINT8	gbMobileMilitiaMaxActiveMode;		//Moa: Used to check if the maximum of mobile militia is reached (for training/deserting). THIS IS A MODE
+	FLOAT	gfpMobileMilitiaMaxActiveModifier;	//Moa: const multiplier for the mode used (precalculated with MOBILE_MILITIA_MAX_ACTIVE_MODIFIER * MAX_MILITIA_PER_SECTOR).
+	
 	BOOLEAN gfAllowReinforcements;
 	BOOLEAN gfAllowReinforcementsOnlyInCity;
 	UINT32	guiBaseQueenPoolIncrement;
@@ -377,9 +493,30 @@ typedef struct
 	INT8	bRegularMilitiaEquipmentQualityModifier;
 	INT8	bVeteranMilitiaEquipmentQualityModifier;
 
+	// Flugente - militia equipment
+	BOOLEAN	fMilitiaUseSectorInventory;
+	BOOLEAN fMilitiaUseSectorInventory_Armour;
+	BOOLEAN fMilitiaUseSectorInventory_Face;
+	BOOLEAN fMilitiaUseSectorInventory_Melee;
+	BOOLEAN fMilitiaUseSectorInventory_Gun;
+	BOOLEAN fMilitiaUseSectorInventory_Ammo;
+	BOOLEAN fMilitiaUseSectorInventory_Grenade;
+	BOOLEAN fMilitiaUseSectorInventory_Launcher;
+	UINT16 usMilitiaAmmo_Min;
+	UINT16 usMilitiaAmmo_Max;
+	UINT16 usMilitiaAmmo_OptimalMagCount;
+	BOOLEAN	fMilitiaUseSectorClassSpecificTaboos;
+
+	// Flugente - allow accessing other mercs inventory via 'stealing'
+	BOOLEAN fAccessOtherMercInventories;
+
+	// Moa - weight of filled backpack lowers our AP
+	BOOLEAN	fBackPackWeightLowersAP;
+
 	// WDS - Improve Tony's and Devin's inventory like BR's
-	BOOLEAN tonyUsesBRSetting;
-	BOOLEAN devinUsesBRSetting;
+	// silversurfer: not used anymore, see "Tactical\XML_Merchants.cpp" for "useBRSetting"
+	// BOOLEAN tonyUsesBRSetting;
+	// BOOLEAN devinUsesBRSetting;
 
 	// WDS - Smart goggle switching
 	BOOLEAN smartGoggleSwitch;
@@ -391,8 +528,20 @@ typedef struct
 	BOOLEAN autoSaveOnAssertionFailure;
 	UINT32  autoSaveTime;
 
+	//JMich
+	UINT16 guiMaxWeaponSize;
+	UINT16 guiMaxItemSize;
+	UINT16 guiOIVSizeNumber;
+
+	// silversurfer: this is only for the cleaned up NCTH calculation. Please remove if the new functions are accepted
+	// see Tactical\Weapons.cpp funtion CalcNewChanceToHitGun()
+	BOOLEAN fUseNewCTHCalculation;
+
 	//Sight range
 	UINT32	ubStraightSightRange;
+
+	INT8 ubBrightnessVisionMod[16];
+
 	UINT32 ubVisDistDecreasePerRainIntensity;
 	BOOLEAN gfAllowLimitedVision;
 
@@ -430,6 +579,11 @@ typedef struct
 	UINT32 ubGameProgressMikeAvailable;
 	UINT32 ubGameProgressIggyAvaliable;
 	BOOLEAN ubSendTroopsToDrassen;
+
+	// Flugente: new counterattacks and other new AI tactics
+	UINT8  ubAgressiveStrategicAI;
+	UINT32 ubGameProgressOffensiveStage1;
+	UINT32 ubGameProgressOffensiveStage2;
 
 	// WDS - make number of mercenaries, etc. be configurable
 	// group sizes
@@ -501,6 +655,8 @@ typedef struct
 	INT32 ubEnemiesItemDrop;
 
 	BOOLEAN	gfUseExternalLoadscreens;
+	BOOLEAN gfUseLoadScreenHints;		// added by Flugente
+	UINT32	ubAdditionalDelayUntilLoadScreenDisposal;		// added by WANNE to have time to read the load screen hints
 
 	//tais: nsgi
 	BOOLEAN gfUseNewStartingGearInterface;
@@ -519,6 +675,9 @@ typedef struct
 	// HEADROCK HAM 3.5: No longer necessary.
 	//INT32 ubGunRangeTrainingBonus;
 	INT32 ubTownMilitiaTrainingRate;
+
+	BOOLEAN gfMilitiaTrainingCarryOver;	// added by Flugente
+
 	// HEADROCK HAM 3.5: No longer necessary.
 	//INT32 ubMaxMilitiaTrainersPerSector;
 	INT32 ubTeachBonusToTrain;
@@ -540,9 +699,9 @@ typedef struct
 	//Misc settings
 	BOOLEAN fAmmoDynamicWeight; //Pulmu
 	BOOLEAN fEnableCrepitus;
-	// SANDRO was here - removed these two
-	//BOOLEAN fEnableAllWeaponCaches;
-	//BOOLEAN fEnableAllTerrorists;
+	BOOLEAN fCrepitusAttackAllTowns;
+	BOOLEAN fEnableAllWeaponCaches;
+	BOOLEAN fEnableAllTerrorists;
 	BOOLEAN gfRevealItems;
 	BOOLEAN fEnableArmorCoverage; // ShadoWarrior for Captain J's armor coverage
 
@@ -558,6 +717,11 @@ typedef struct
 	BOOLEAN fEnableSoldierTooltipAttitude;
 	BOOLEAN fEnableSoldierTooltipActionPoints;
 	BOOLEAN fEnableSoldierTooltipHealth;
+	BOOLEAN fEnableSoldierTooltipEnergy;
+	BOOLEAN fEnableSoldierTooltipMorale;
+	BOOLEAN fEnableSoldierTooltipShock;	//Moa: debug tooltip only
+	BOOLEAN fEnableSoldierTooltipSuppressionPoints; //Moa: debug tooltip only
+	BOOLEAN fEnableSoldierTooltipSuppressionInfo; //sevenfm: additional suppression info
 	BOOLEAN fEnableSoldierTooltipTraits; // added by SANDRO
 	BOOLEAN fEnableSoldierTooltipHelmet;
 	BOOLEAN fEnableSoldierTooltipVest;
@@ -595,6 +759,14 @@ typedef struct
 	// CHRISL: option to allow Slay to remain as a hired PC
 	BOOLEAN fEnableSlayForever;
 
+	// anv: playable Speck
+	BOOLEAN fEnableRecruitableSpeck;
+	// anv: John Kulba becomes recruitable as a merc after finishing escort quest
+	BOOLEAN fEnableRecruitableJohnKulba;
+	UINT16  ubRecruitableJohnKulbaDelay;
+	// anv: enable JA1 natives as MERC mercs
+	BOOLEAN fEnableRecruitableJA1Natives;
+
 	// CHRISL: Setting to turn off the description and stack popup options from the sector inventory panel
 	BOOLEAN fSectorDesc;
 
@@ -610,25 +782,49 @@ typedef struct
 	UINT32	usAttachmentDropRate;
 	INT16   iMaxEnemyAttachments;
 
+	// Flugente: class specific gun/item choice
+	BOOLEAN	fSoldierClassSpecificItemTables;
+
 	//** ddd
 	//enable ext mouse key
 	BOOLEAN fExtMouseKeyEnabled;
+	// sevenfm: new mouse commands
+	BOOLEAN bAlternateMouseCommands;
+	INT32 iQuickItem1;
+	INT32 iQuickItem2;
+	INT32 iQuickItem3;
+	INT32 iQuickItem4;
+	INT32 iQuickItem5;
+	INT32 iQuickItem6;
+	INT32 iQuickItem7;
+	INT32 iQuickItem8;
+	INT32 iQuickItem9;
+	INT32 iQuickItem0;
+
 	// for small progress bar
 	BOOLEAN fSmallSizeProgressbar;
 	// stamina multiplier (for all weapons eg knife fist gun
 	INT32 uStaminaHit;
 	//enable ext mouse key
 	BOOLEAN bAltAimEnabled;	
-	BOOLEAN bAimedBurstEnabled;	
+	BOOLEAN bAimedBurstEnabled;
 	INT16 uAimedBurstPenalty;
 	BOOLEAN	bWeSeeWhatMilitiaSeesAndViceVersa;
 	BOOLEAN	bAllowWearSuppressor;
 	BOOLEAN	bLazyCivilians;
+	BOOLEAN	bNeutralCiviliansAvoidPlayerMines;		//sevenfm:  Neutral civilians can detect mines with MAPELEMENT_PLAYER_MINE_PRESENT flag set
+	BOOLEAN	bAddSmokeAfterExplosion;
+	BOOLEAN	bAllowExplosiveAttachments;
+	BOOLEAN	bAllowSpecialExplosiveAttachments;
 	INT16 iChanceSayAnnoyingPhrase;
 	BOOLEAN	bNewTacticalAIBehavior;
 	FLOAT uShotHeadPenalty;
 	FLOAT fShotHeadDivisor;
 	INT16 iPenaltyShootUnSeen;
+	BOOLEAN fNoStandingAnimAdjustInCombat;	// Flugente: in turnbased combat, do not adjust animation after arriving at target location
+
+	//Inventory AP Weight Divisor
+	FLOAT uWeightDivisor;
 
 	FLOAT fOutOfGunRangeOrSight;
 	// WANNE: Always use "prof.dat".
@@ -640,10 +836,17 @@ typedef struct
 	// CHRISL: Skyrider and enemy occupied sectors
 	UINT8 ubSkyriderHotLZ;
 
+	// Laptop mouse capturing
+	BOOLEAN fLaptopMouseCaptured;
+
 	// WANNE: Fast loading settings
 	BOOLEAN fDisableLaptopTransition;
 	BOOLEAN fFastWWWSitesLoading;
 	BOOLEAN fDisableStrategicTransition;
+
+	// Flugente: campaign history
+	BOOLEAN	fCampaignHistoryWebSite;	// if set to FALSE, the website won't be displayed, and thus the data cannot be seen
+	INT16	usReportsToLoad;			// number of reports to read when loading a game, older reports will be lost. This is irreversible. -1: read all (default)
 
 	// CPT: Cover System Settings
 	UINT8 ubStealthTraitCoverValue;
@@ -653,7 +856,7 @@ typedef struct
 	UINT8 ubStanceEffectiveness;
 	UINT8 ubLBEEffectiveness;
 	UINT8 ubMovementEffectiveness;
-	UINT8 ubCoverDisplayUpdateWait;
+	UINT16 ubCoverDisplayUpdateWait;//Moa: changed to UINT16 to allow values 500ms to 10000ms, see ini file and DisplayCover( BOOLEAN ), DisplayMines( BOOLEAN )
 
 	// HEADROCK HAM B1: Global modifier for mine income (0 is automatically turned to 1 to avoid divide-by-zero.)
 	INT16 usMineIncomePercentage;
@@ -667,7 +870,7 @@ typedef struct
 	// HEADROCK HAM B1: Allows reducing the chance of scoring a hit fractionally, if CTH = Minimum CTH
 	UINT16 usMinimumCTHDivisor;
 
-	// HEADROCK HAM B1: Allows Restricted Roaming Militia to move through previously visited sectors, even if restricted.
+	// HEADROCK HAM B1: Allows Restricted Roaming Militia to move through previously visited sectors.
 	BOOLEAN fUnrestrictVisited;
 
 	// HEADROCK HAM B1: Allows the capture of towns to dynamically alter roaming restrictions
@@ -678,6 +881,10 @@ typedef struct
 
 	UINT8 ubSuppressionToleranceMax;
 	UINT8 ubSuppressionToleranceMin;
+
+	// Flugente: suppression modifiers for player and other teams
+	UINT16 usSuppressionEffectivenessPlayer;
+	UINT16 usSuppressionEffectivenessAI;
 
 	// HEADROCK HAM B2: Suppression Shock effectiveness (percentage, 100 = "normal", 0 = deactivated. Range 0-65535)
 	UINT16 usSuppressionShockEffect;
@@ -738,6 +945,11 @@ typedef struct
 
 	// HEADROCK HAM B2.6/2/1: Toggle new Burst/Auto CTH bars: 0=neither, 1=both, 2=Burst, 3=Auto
 	UINT8 ubNewCTHBars;
+
+	// sevenfm: default autofire bullets
+	UINT8 ubSetDefaultAutofireBulletsSMG;
+	UINT8 ubSetDefaultAutofireBulletsAR;
+	UINT8 ubSetDefaultAutofireBulletsMG;
 
 	// CHRISL: Changed from a simple flag to two externalized values for more modder control over AI suppression
 	UINT16 ubAISuppressionMinimumMagSize;
@@ -813,6 +1025,9 @@ typedef struct
 
 	// HEADROCK HAM 3: If enabled, tooltipping over Bobby Ray's weapons will show a list of possible attachments to those weapons.
 	BOOLEAN fBobbyRayTooltipsShowAttachments;
+
+	//JMich Externalized gGameExternalOptions.ubBobbyRayMaxPurchaseAmount for BobbyRay
+	UINT8 ubBobbyRayMaxPurchaseAmount;
 
 	// CHRISL: Converts the AutoFireToHitBonus value to a percentage for CTH calculations
 	UINT8 ubFlatAFTHBtoPrecentMultiplier;
@@ -959,6 +1174,8 @@ typedef struct
 	UINT8 ubEarlyRebelsRecruitment[4];	// early recruitment of Miguel and Carlos
 	// silversurfer: don't play quote when merc spots a mine? TRUE = shut up! FALSE = tell me that you found a mine!
 	BOOLEAN fMineSpottedNoTalk;
+	// enables item drops for civilians
+	BOOLEAN fCiviliansDropAll;
 
 	// WANNE: Don't stop and talk when spotting a new item in turn based mode
 	BOOLEAN fItemSpottedNoTalk;
@@ -970,7 +1187,14 @@ typedef struct
 
 	//legion by Jazz
 	BOOLEAN fCanJumpThroughWindows;
+	BOOLEAN fCanJumpThroughClosedWindows;	
 	BOOLEAN fCanClimbOnWalls;
+
+	// sevenfm: show enemy weapon above soldier in tactical
+	BOOLEAN fShowEnemyWeapon;
+	BOOLEAN fShowEnemyExtendedInfo;
+	// show awareness sight and level
+	BOOLEAN fShowEnemyAwareness;
 
 	//legion by Jazz
 	BOOLEAN fIndividualHiddenPersonNames;
@@ -979,7 +1203,7 @@ typedef struct
 	BOOLEAN fSaveGameSlot;
 
 	//dnl ch51 081009 JA2 Debug Settings
-	BOOLEAN fEnableInventoryPoolQ;		
+	BOOLEAN fEnableInventoryPoolQ;
 	
 	//legion by Jazz
 	//BOOLEAN fShowTacticalFaceGear; //legion 2
@@ -994,18 +1218,43 @@ typedef struct
 	
 	//Enemy Rank Legion 2 by Jazz
 	BOOLEAN fEnemyRank;
+
+	// sevenfm: show enemy rank as icon
+	UINT8 ubShowEnemyRankIcon;
+
+	// Flugente: soldier profiles
+	BOOLEAN	fSoldierProfiles_Enemy;
+	BOOLEAN	fSoldierProfiles_Militia;
 	
 	BOOLEAN fShowCamouflageFaces;
 
-	// VENGEANCE
+	//BOOLEAN fHideEnemyHealthText;
+	UINT8 ubShowHealthBarsOnHead;
+	UINT8 ubShowCoverIndicator;
+	UINT8 ubShowEnemyHealth;
+
+	UINT8 ubEnemyHitCount;
+	UINT8 ubPlayerHitCount;
+	BOOLEAN fShowHitInfo;
+	UINT8 ubAdditionalNCTHCursorInfo;
+
+	// sevenfm: new additional info above soldier
+	UINT8 ubShowSuppressionCount;
+	UINT8 ubShowShockCount;
+	UINT8 ubShowAPCount;
+	UINT8 ubShowMoraleCount;
+	BOOLEAN ubShowSuppressionUseAsterisks;
+	BOOLEAN ubShowSuppressionCountAlt;
+	BOOLEAN ubShowSuppressionScaleAsterisk;
+
+	// anv: VR
 	BOOLEAN fMonochromaticRadarMap;
 	BOOLEAN fMonochromaticOverheadMap;
 	BOOLEAN fNoctovisionNightRadarMap;
 
 	UINT16 ubBaseChanceMercDiesOnAssignment;
 
-
-	// anv: mercs can become MIA instead of outright dead
+	// anv: VR - mercs can become MIA instead of outright dead
 	BOOLEAN gfMercsGetMIAOnAssignment;
 	UINT16 ubBaseChanceMercGetsMIAOnAssignment;
 	UINT8 ubChanceMIAIsAlive; 
@@ -1014,28 +1263,188 @@ typedef struct
 	UINT8 ubChanceAliveMIAIsMIAForeverPerDay;
 	UINT8 ubChanceDeadMIAIsFoundPerDay;
 	UINT8 ubChanceDeadMIAIsMIAForeverPerDay;
-
 	BOOLEAN fRandomizedDeathAndMIAEmails;
-	// /VENGEANCE
 
 	FLOAT gMercLevelUpSalaryIncreasePercentage;
 
 	UINT8 ubChanceTonyAvailable; // silversurfer/SANDRO
+
+	BOOLEAN fShowSkillsInHirePage;
+
+	UINT8 ubMercRandomStats;
 	
+	BOOLEAN fMercRandomBellDistribution;
+	
+	UINT8 ubMercRandomStatsRange;
+
+	BOOLEAN fMercRandomGearKits;
+
+	UINT8 ubMercRandomExpRange;
+
+	BOOLEAN fMercRandomStartSalary;
+
+	UINT8 ubMercRandomStartSalaryPercentMod;
+
+	BOOLEAN fBobbyRayFastShipments;
+
+	BOOLEAN fGridExitInTurnBased;
+
 	BOOLEAN fStandUpAfterBattle;
 	
 	INT32 iInitialMercArrivalLocation;
+
+	// Keyboard shortcut (as VK) for fastforward key.  See Utils/KeyMap
+	INT32 iFastForwardKey;
+	// Turn on fast forward whenever ui is disabled.
+	BOOLEAN fEnableAutoFastForwardMode;
+	// When fast forward is enabled what is the period to update clock in milliseconds.
+	FLOAT iFastForwardPeriod;
+	// Frequency that the screen is updated
+	INT32 iNotifyFrequency;
+	// Frequency that the screen is updated
+	FLOAT fClockSpeedPercent;
+	FLOAT fEnemyClockSpeedPercent;
+
+	// sevenfm: improved auto fast forwarding
+	UINT8 ubAutoFastForwardEnemies;
+	UINT8 ubAutoFastForwardMilitia;
+	UINT8 ubAutoFastForwardCivs;
+	UINT8 ubAutoFastForwardCreatures;
+
+	// Flugente: Weapon Overheating
+	BOOLEAN	fWeaponOverheating;						// Should weapons overheat, thus increasing the chance of malfunction?
+	BOOLEAN	fDisplayOverheatThermometer;			// Should a 'thermometer' for guns and replacable barrels be displayed?
+	BOOLEAN fDisplayOverheatJamPercentage;			// Should we display temperature/jam threshold (true) or temperature/damage threshold (false)?
+	UINT8	ubOverheatThermometerRedOffset;			// amount of red colour while temperature is below threshold
+	FLOAT   iCooldownModificatorLonelyBarrel;		// Cooldown modificator for barrels left alone in the landscape ;-)
 	
+	// Flugente: Weapon Mounting
+	BOOLEAN	fWeaponResting;							// Should it be possible to rest your weapon on structures in crouched position?
+	BOOLEAN fDisplayWeaponRestingIndicator;			// Should a little indicator show if the weapon is currently rested on something?
+	UINT8	ubProneModifierPercentage;				// for boni, use ubProneModifierPercentage*boni[PRONE] + (100 - ubProneModifierPercentage)*boni[CROUCHED]
+
+	// Flugente: Scope Modes
+	BOOLEAN fScopeModes;							// allow the player to toggle between existing scopes/sights
+	BOOLEAN fDisplayScopeModes;						// allow display of scope modes
+
+	// Flugente: Spotter skill
+	UINT8	usSpotterPreparationTurns;
+	UINT16	usSpotterRange;
+	UINT16	usSpotterMaxCTHBoost;
+	
+	// Flugente: External Feeding
+	UINT8	ubExternalFeeding;						// allow external feeding of guns (0 = no, 1 = only for others, 2 = we can also fed ourselves)
+
+	// Flugente: advanced repair/dirt system
+	BOOLEAN	fAdvRepairSystem;						// allow thresholds to repairing
+	BOOLEAN fOnlyRepairGunsArmour;					// we can only repair guns and armour
+	BOOLEAN fMercsCanDoAdvancedRepairs;				// allow mercs with technician/engineer trait (New Trait System) to raise weapon threshold
+	BOOLEAN fDirtSystem;							// allow dirt on items increase the chance for weapon jamming
+	BOOLEAN fFullRepairCleansGun;					// repairing a gun up to its current repair threshold also cleans the gun
+	UINT32	usSectorDirtDivider;					// divide a guns dirt factor by this to get dirt increase for every turn
+	FLOAT	iDirtGlobalModifier;					// a global modifier to dirt generation, if one feels that all values should be lower/higher
+
+	// Flugente: prisoner related settings
+	BOOLEAN fAllowPrisonerSystem;
+	BOOLEAN	fEnemyCanSurrender;
+	BOOLEAN fDisplaySurrenderSValues;
+	FLOAT	fSurrenderMultiplier;
+	BOOLEAN	fPlayerCanAsktoSurrender;
+	UINT8	ubPrisonerReturntoQueenChance;
+	UINT8	ubPrisonerProcessDefectChance;
+	UINT8	ubPrisonerProcessInfoBaseChance;
+	UINT8	ubPrisonerProcessInfoNumberChance;
+	UINT8	ubPrisonerProcessInfoDirectionChance;
+	UINT8	ubPrisonerProcessRansomBaseChance;
+	UINT16	ubPrisonerInterrogationPoints[4];		// points needed to interrogate a prisoner of a specific type
+	
+	// Flugente: sexism/racism/etc.
+	INT8	sMoraleModAppearance;
+	INT8	sMoraleModRefinement;
+	INT8	sMoraleModHatedNationality;
+	INT8	sMoraleModRacism;
+	INT8	sMoraleModSexism;
+	INT8	sMoraleModXenophobicBackGround;
+	
+	// Sandro: Alternative weapon holding (rifles fired from hip / pistols fired one-handed)
+	UINT8 ubAllowAlternativeWeaponHolding;
+	UINT8 ubToAltWeaponHoldReadyAPsPerc;
+	UINT8 ubFromAltWeaponHoldReadyAPsPerc;
+	UINT8 ubAltWeaponHoldingFireSpeedBonus;
+	UINT8 ubAltWeaponHoldingCtHPenaly;
+	UINT8 ubAltWeaponHoldingAimingPenaly;
+	UINT8 ubAltWeaponHoldingAimLevelsReduced;
+
+	// Sandro: Energy cost on weapon manipulation
+	UINT8 ubEnergyCostForWeaponWeight;
+	UINT8 ubEnergyCostForWeaponRecoilKick;
+
+	BOOLEAN gBriefingRoom;
+	BOOLEAN gEncyclopedia;
+	UINT8 ubEncyclopediaItemMask;					//Moa: visibility of items in encyclopedia, see ENC_ITEM_VISIBILITY_T
+
+	UINT8	ubMapItemChanceOverride;				//Madd: special map override, mostly for debugging
+	UINT8	ubNumPItems;							//Madd: set number of PItem files to be used - default 3
+	BOOLEAN	fUseXmlTileSets;						//Madd: move this variable here, it should be mod dependent
+
+	UINT8	ubMarkerMode;							//DBrot: how should we mark the last hostile area?
+	UINT8	ubSoldiersLeft;							//DBrot: how many soldiers may still be standing for this to become active
+	UINT8	ubGridResolutionDay;					//DBrot: how precise we want to show their location
+	UINT8	ubGridResolutionNight;					//DBrot: how precise we want to show their location - adjust for shorter night time ranges ... or don't
+
+	BOOLEAN fRobotNoReadytime;						//DBrot: should the robot need to ready his gun?
+
+	// Flugente: externalised squad names
+	BOOLEAN fUseXMLSquadNames;
+
+	//dnl ch68 090913 Reinforcements Setttings
+	UINT16 sMinDelayEnemyReinforcements;
+	UINT16 sRndDelayEnemyReinforcements;
+	UINT16 sMinEnterEnemyReinforcements;
+	UINT16 sRndEnterEnemyReinforcements;
+	UINT16 sMinDelayMilitiaReinforcements;
+	UINT16 sRndDelayMilitiaReinforcements;
+	UINT16 sMinEnterMilitiaReinforcements;
+	UINT16 sRndEnterMilitiaReinforcements;
+
+	BOOLEAN fNoRemoveRandomSectorItems;//dnl ch68 090913
+
+	// anv: helicopter repair settings
+	BOOLEAN fWaldoCanRepairHelicopter;
+	BOOLEAN fAllowWaldoToOfferRepairInStrategic;
+	BOOLEAN fWaldoSubsequentRepairsIncreaseCosts;
+	BOOLEAN fSeriouslyDamagedSkyriderWontFly;
+
+	BOOLEAN fAlternativeHelicopterFuelSystem;
+	BOOLEAN fHelicopterPassengersCanGetHit;
+
+	UINT16 usHelicopterHoverCostOnGreenTile;
+	UINT16 usHelicopterHoverCostOnRedTile;
+
+	BOOLEAN fHelicopterReturnToBaseIsNotFree;
+	BOOLEAN fPaySkyriderInBase;
+
 } GAME_EXTERNAL_OPTIONS;
 
 typedef struct
 {
+	BOOLEAN fTauntCensoredMode;
+	BOOLEAN fTauntShowPopupBox;
 	BOOLEAN fTauntShowInLog;
+	BOOLEAN fTauntMakeNoise;
+	BOOLEAN fTauntOnlyVisibleEnemies;
+	BOOLEAN fTauntShowPopupBoxIfHeard;
+	BOOLEAN fTauntShowInLogIfHeard;
+	BOOLEAN fTauntAlwaysShowPopupBox;
+	BOOLEAN fTauntAlwaysShowInLog;
+	UINT16 sVolume;
 	INT16 sModDelay;
 	UINT16 sMinDelay;
 	UINT16 sMaxDelay;
 	UINT8 ubTauntFireGunChance;
 	UINT8 ubTauntFireLauncherChance;
+	UINT8 ubTauntAttackBladeChance;
+	UINT8 ubTauntAttackHTHChance;
 	UINT8 ubTauntThrowKnifeChance;
 	UINT8 ubTauntThrowGrenadeChance;
 	UINT8 ubTauntChargeKnifeChance;
@@ -1044,16 +1453,121 @@ typedef struct
 	UINT8 ubTauntRunAwayChance;
 	UINT8 ubTauntSeekNoiseChance;
 	UINT8 ubTauntAlertChance;
+	UINT8 ubTauntSuspiciousChance;
 	UINT8 ubTauntGotHitChance;
+	UINT8 ubTauntGotDeafenedBlindedChance;
+	UINT8 ubTauntGotRobbedChance;
 	UINT8 ubTauntGotMissedChance;
+	UINT8 ubTauntKillChance;
+	UINT8 ubTauntHeadPopChance;
+	UINT8 ubTauntHitChance;
+	UINT8 ubTauntMissChance;
+	UINT8 ubTauntOutOfAmmoChance;
+	UINT8 ubTauntReloadChance;
 	UINT8 ubTauntNoticedUnseenChance;
+	UINT8 ubTauntSayHiChance;
+	UINT8 ubTauntInformAboutChance;
+	UINT8 ubRiposteChance;
 
 } TAUNTS_SETTINGS;
 
 typedef struct
 {
+	UINT16 usHelicopterBasicRepairCost;
+	UINT16 usHelicopterSeriousRepairCost;
+	UINT8 ubHelicopterBasicRepairTime;
+	UINT8 ubHelicopterBasicRepairTimeVariation;
+	UINT8 ubHelicopterSeriousRepairTime;
+	UINT8 ubHelicopterSeriousRepairTimeVariation;
+	UINT16 usHelicopterBasicCostIncreaseAfterBasicRepair;
+	UINT16 usHelicopterBasicCostIncreaseAfterSeriousRepair;
+	UINT16 usHelicopterSeriousCostIncreaseAfterBasicRepair;
+	UINT16 usHelicopterSeriousCostIncreaseAfterSeriousRepair;
+	UINT16 usHelicopterBasicRepairCostMax;
+	UINT16 usHelicopterSeriousRepairCostMax;
+
+	UINT8 ubHelicopterDistanceWithoutRefuel;
+	UINT8 ubHelicopterHoverTimePerFuelUnit;
+	UINT8 ubHelicopterRefuelTime;
+	UINT8 ubHelicopterTimeDelayForHoverWait;
+	UINT8 ubHelicopterTimeDelayForHoverWaitTooLong;
+	BOOLEAN fAskBeforeKickingPassengersOut;
+
+	UINT8 ubHelicopterSAMSiteAccuracy;
+	UINT8 ubHelicopterPassengerHitChance;
+	UINT8 ubHelicopterPassengerHitMinDamage;
+	UINT8 ubHelicopterPassengerHitMaxDamage;
+
+	BOOLEAN fHelicopterTownLoyaltyCheck;
+
+} HELICOPTER_SETTINGS;
+
+typedef struct
+{
+	UINT8 ubDefaultMorale;
+	UINT8 ubHoursBetweenStrategicDelay;
+	INT8 bValues[64];
+	INT8 bModifiers[32];
+	INT16 sDrugAndAlcoholModifiers[2];
+} MORALE_SETTINGS;
+
+typedef struct
+{
+	INT8 bValues[32];
+} REPUTATION_SETTINGS;
+
+typedef struct
+{
+	//Crepitus Feeding Sector
+	UINT8 ubCrepitusFeedingSectorX;
+	UINT8 ubCrepitusFeedingSectorY;
+	UINT8 ubCrepitusFeedingSectorZ;
+	
+	UINT16 usCreatureSpreadTimeNovice;
+	UINT16 usCreatureSpreadTimeExperienced;
+	UINT16 usCreatureSpreadTimeExpert;
+	UINT16 usCreatureSpreadTimeInsane;
+
+	UINT8 ubQueenReproductionBaseNovice;
+	UINT8 ubQueenReproductionBaseExperienced;
+	UINT8 ubQueenReproductionBaseExpert;
+	UINT8 ubQueenReproductionBaseInsane;
+
+	UINT8 ubQueenReproductionBonusNovice;
+	UINT8 ubQueenReproductionBonusExperienced;
+	UINT8 ubQueenReproductionBonusExpert;
+	UINT8 ubQueenReproductionBonusInsane;
+
+	UINT8 ubQueenInitBonusSpreadsNovice;
+	UINT8 ubQueenInitBonusSpreadsExperienced;
+	UINT8 ubQueenInitBonusSpreadsExpert;
+	UINT8 ubQueenInitBonusSpreadsInsane;
+
+	INT8 bCreaturePopulationModifierNovice;
+	INT8 bCreaturePopulationModifierExperienced;
+	INT8 bCreaturePopulationModifierExpert;
+	INT8 bCreaturePopulationModifierInsane;
+
+	INT8 bCreatureTownAggressivenessNovice;
+	INT8 bCreatureTownAggressivenessExperienced;
+	INT8 bCreatureTownAggressivenessExpert;
+	INT8 bCreatureTownAggressivenessInsane;
+	
+	
+} CREATURES_SETTINGS;
+
+typedef struct
+{
 	UINT8 ubMaxNumberOfTraits;
 	UINT8 ubNumberOfMajorTraitsAllowed;
+	
+	UINT8 ubMaxNumberOfTraitsForIMP;
+	UINT8 ubNumberOfMajorTraitsAllowedForIMP;
+
+	//BOOLEAN fAllowSpecialMercTraitsException;
+	//UINT8 ubSpecialMercID;
+
+	BOOLEAN fAllowAttributePrereq;
 
 	// GENERIC SETTINGS
 	INT8 bCtHModifierAssaultRifles;
@@ -1134,7 +1648,9 @@ typedef struct
 	UINT8 ubRAWeatherPenaltiesReduction;
 	//UINT8 ubRACamoEffectivenessBonus;
 	UINT8 ubRACamoWornountSpeedReduction;
-	BOOLEAN fRAAsleepInCarAndStillGetsTravellingReduction;
+	UINT8 ubRAFiringSpeedBonusShotguns;
+	UINT8 ubRAAimClicksAdded;
+	BOOLEAN fRAAsleepInCarAndStillGetsTravellingReduction;	// anv: VR addition
 
 	// GUNSLINGER
 	UINT8 ubGSFiringSpeedBonusPistols;
@@ -1164,6 +1680,7 @@ typedef struct
 	UINT8 ubMAAPsChangeStanceReduction;
 	UINT8 ubMAApsTurnAroundReduction;
 	UINT8 ubMAAPsClimbOrJumpReduction;
+	UINT8 ubMAReducedAPsRegisteredWhenMoving;
 	UINT8 ubMAChanceToCkickDoors;
 	BOOLEAN fPermitExtraAnimationsOnlyToMA;
 
@@ -1174,6 +1691,7 @@ typedef struct
 	UINT8 ubSLBonusAPsPercent;
 	UINT8 ubSLEffectiveLevelInRadius;
 	UINT8 ubSLEffectiveLevelAsStandby;
+	UINT8 ubSLCollectiveInterruptsBonus;
 	UINT8 ubSLOverallSuppresionBonusPercent;
 	UINT8 ubSLMoraleGainBonus;
 	UINT8 ubSLMoraleLossReduction;
@@ -1252,6 +1770,7 @@ typedef struct
 	UINT8 ubSTStealthModeSpeedBonus;
 	UINT8 ubSTBonusToMoveQuietly;
 	UINT8 ubSTStealthBonus;
+	UINT8 ubSTReducedAPsRegistered;
 	UINT8 ubSTStealthPenaltyForMovingReduction;
 
 	// ATHLETICS
@@ -1292,14 +1811,53 @@ typedef struct
 	BOOLEAN fSCPreventsBloodcatsAmbushes;
 	BOOLEAN fSCThrowMessageIfAmbushPrevented;
 
-	// DRIVER
+	// COVERT OPS
+	INT16	sCOMeleeCTHBonus;
+	INT16	sCoMeleeInstakillBonus;
+	INT16	sCODisguiseAPReduction;
+	INT16	sCOCloseDetectionRange;
+	INT16	sCOCloseDetectionRangeSoldierCorpse;
+	BOOLEAN fCOElitesDetectNextTile;
+
+	// RADIO OPERATOR
+	BOOLEAN fROAllowArtillery;						// artillery can be forbidden for all teams with this setting
+	BOOLEAN fROArtilleryDistributedOverTurns;		// shells don't come in at once, but over multiple turns
+	INT16 bVOArtillerySectorFrequency;				// ability to call an a artillery strike from a sector every '_' minutes. Only applies if ordered from enemy/militia
+	UINT8 usVOMortarCountDivisor;
+	UINT8 usVOMortarShellDivisor;
+	UINT8 usVOMortarPointsAdmin;
+	UINT8 usVOMortarPointsTroop;
+	UINT8 usVOMortarPointsElite;
+	UINT8 usVOMortarRadius;
+	UINT8 usVOMortarSignalShellRadius;
+	INT8  sVOScanAssignmentBaseRange;
+	INT8  sVOListeningHearingBonus;
+	BOOLEAN fVOJammingBlocksRemoteBombs;
+	BOOLEAN fVOEnemyVOSetsOffRemoteBombs;
+
+
+	// SNITCH
+	UINT8 ubSNTBaseChance;						// Base chance that snitch will inform about certain event (in percents)
+	FLOAT fSNTMercOpinionAboutSnitchBonusModifier;	// How much chance is influenced by relation between snitch and target
+	FLOAT fSNTSnitchOpinionAboutMercBonusModifier;	// How much chance is influenced by relation between snitch and target
+	FLOAT fSNTSnitchLeadershipBonusModifer;	// How much chance is influenced by snitch's leadership
+	INT8 bSNTSociableMercBonus;				// Bonus to chance if merc is sociable
+	INT8 bSNTLonerMercBonus;					// Bonus to chance if merc is loner
+	INT8 bSNTSameAssignmentBonus;				// Bonus to chance if snitch and merc are on the same assignment
+	INT8 bSNTMercOpinionAboutMercTreshold;		// For reports "merc hates merc" final chance is proportional to dislike in range between treshold (0%) and -25(100%)
+	UINT8 ubSNTPassiveReputationGain;			// Reputation gain per day if snitch is happy
+	UINT8 ubSNTHearingRangeBonus;				// Hearing range bonus
+	FLOAT fSNTPrisonSnitchInterrogationMultiplier;	// Undercover snitch interrogation effectivness multiplier (compared to normal interrogation)
+	FLOAT fSNTPrisonSnitchGuardStrengthMultiplier;	// Undercover snitch guarding effectivness multiplier (compared to normal guards)
+
+	// anv: VR - DRIVING
 	UINT8 ubDRGroupTimeSpentForTravellingVehicle;
 	UINT8 ubDRFuelSavedWhileTravellingVehicle;
 	UINT8 ubDRMaxBonusesToTravelSpeed;
 	UINT8 ubDRMaxSavedFuel;
 	UINT8 ubDRStackableDriverAndRanger;
 
-	// PILOT
+	// anv: VR - PILOT
 	UINT8 ubPILFlyboyAvoidSAMChance;
 	UINT8 ubPILAceAvoidSAMChance;
 	UINT8 ubPILFlyboyAccidentChance;
@@ -1311,33 +1869,33 @@ typedef struct
 
 typedef struct
 {
-    BOOLEAN bExtendedPanelsOn;
-    BOOLEAN bExtendedPanelsPresetFileLoaded;
-    STR8 bExtendedPanelsPresetFile;
-    UINT16 uepMaxPanels;
+	BOOLEAN bExtendedPanelsOn;
+	BOOLEAN bExtendedPanelsPresetFileLoaded;
+	STR8 bExtendedPanelsPresetFile;
+	UINT16 uepMaxPanels;
 
-    STR8  sepFont;
+	STR8  sepFont;
 	UINT8  uepDescriptionColor;
-    UINT8  uepAwesomeColor;
-    UINT8  uepGreatColor;
-    UINT8  uepNormalColor;
+	UINT8  uepAwesomeColor;
+	UINT8  uepGreatColor;
+	UINT8  uepNormalColor;
 	UINT8  uepPoorColor;
-    UINT8  uepAwfulColor;
-    UINT16 uepMaxRow;
-    UINT16 uepMinWidth;
-    UINT16 uepXLShift;
-    UINT16 uepXRShift;
-    UINT16 uepRowDist;
-    UINT16 uepColDist;
-    UINT16 uepYShift;
-    UINT16 uepRowCapacity[32];
+	UINT8  uepAwfulColor;
+	UINT16 uepMaxRow;
+	UINT16 uepMinWidth;
+	UINT16 uepXLShift;
+	UINT16 uepXRShift;
+	UINT16 uepRowDist;
+	UINT16 uepColDist;
+	UINT16 uepYShift;
+	UINT16 uepRowCapacity[32];
 
-    STR8  sepPanel[32][32];   
-    STR8  sepTypes[32][32];
-    STR8  sepLabelFonts[32][32];
-    STR8  sepValueFonts[32][32];
-    UINT8  sepLabelColors[32][32];
-    UINT8  sepValueColors[32][32];
+	STR8  sepPanel[32][32];   
+	STR8  sepTypes[32][32];
+	STR8  sepLabelFonts[32][32];
+	STR8  sepValueFonts[32][32];
+	UINT8  sepLabelColors[32][32];
+	UINT8  sepValueColors[32][32];
 
 	//tresholds
 	UINT16 uepAwesomeKills;
@@ -1375,12 +1933,22 @@ typedef struct
 typedef struct
 {
 	UINT32 NORMAL_SHOOTING_DISTANCE;		// Distance at which 1x magnification is 100% effective. This is a major component of the entire shooting mechanism.
+	FLOAT IRON_SIGHT_PERFORMANCE_BONUS;		// percentage bonus to base aperture size for iron sights
+	FLOAT LASER_PERFORMANCE_BONUS_HIP;		// percentage bonus to base aperture size for laser pointers when shooting from hip
+	FLOAT LASER_PERFORMANCE_BONUS_IRON;		// percentage bonus to base aperture size for laser pointers when using iron sights
+	FLOAT LASER_PERFORMANCE_BONUS_SCOPE;	// percentage bonus to base aperture size for laser pointers when using scopes
 	FLOAT DEGREES_MAXIMUM_APERTURE;			// Maximum possible aperture for a 100% muzzle sway shot. Decrease to make all shots more accurate.
 	FLOAT RANGE_COEFFICIENT;				// Determines maximum range which decides when gravity forces bullets to drop
 	FLOAT GRAVITY_COEFFICIENT;				// Changes the way gravity works in the game. Higher values mean bullets don't drop as quickly after reaching max range.
 	FLOAT VERTICAL_BIAS;					// This float can be used to reduce the chance of missing too far upwards or downwards (compared to left/right).
 	FLOAT SCOPE_RANGE_MULTIPLIER;			// Adjusts the minimum effective range of scopes
+	FLOAT SCOPE_EFFECTIVENESS_MULTIPLIER;	// This modifies the maximum effective magnification that is applied to the shooting aperture.
+	UINT16 SCOPE_EFFECTIVENESS_MINIMUM;		// Defines a minimum effectiveness level that every shooter gets. 0 = fully dynamic, no minimum, 100 = no skills required to use scopes
+	UINT16 SCOPE_EFFECTIVENESS_MINIMUM_RANGER;		// the minimum effectiveness for the ranger. He can reach more using the normal formula.
+	UINT16 SCOPE_EFFECTIVENESS_MINIMUM_MARKSMAN;	// the minimum effectiveness for the marksman. He can reach more using the normal formula.
+	UINT16 SCOPE_EFFECTIVENESS_MINIMUM_SNIPER;		// the minimum effectiveness for the sniper. He can reach more using the normal formula.
 	FLOAT SIDE_FACING_DIVISOR;				// Deals with a visual error in NCTH relating to shooting at a target who is facing directly perpendicular to the shooters facing.
+	UINT16 BASIC_RELIABILITY_ODDS;			// Determines the base chance to lose one condition point when firing a gun.
 
 	FLOAT BASE_EXP;				// Importance of Experience for BASE CTH
 	FLOAT BASE_MARKS;				// Importance of Marksmanship for BASE CTH
@@ -1478,6 +2046,296 @@ typedef struct
 	BOOLEAN MAX_EFFECTIVE_USE_GRADIENT;
 
 } CTH_CONSTANTS;
+//DBrot: Grids
+typedef struct
+{
+	//AI
+	UINT8 ubSAISpawnSectorX;
+	UINT8 ubSAISpawnSectorY;
+	
+	//defines the basement and the bottom of the stairs
+	UINT8 ubHideoutSectorX;
+	UINT8 ubHideoutSectorY;
+	UINT8 ubHideoutSectorZ;
+	INT32 iHideoutExitGrid;
+	//defines the surface and the top of the stairs
+	UINT8 ubHideoutSurfaceX;
+	UINT8 ubHideoutSurfaceY;
+	UINT8 ubHideoutSurfaceZ;
+	INT32 iHideoutEntryGrid;
+	//where your mercs land when entering the basement, added some for 10 man squads
+	INT32 iBasementEntry[10];
+	
+	//where your mercs land when leaving the basement, again added some
+	INT32 iBasementExit[12];
+	
+	//this moves the crate to reveal the entrance
+	INT32 iFinalCrateGrid;
+	UINT16 usCrateTileDef;
+	UINT16 usTrapdoorTileDef;
+	
+	//Leave Stuff
+	UINT8 ubOmertaDropOffX;
+	UINT8 ubOmertaDropOffY;
+	UINT8 ubOmertaDropOffZ;
+	INT32 iOmertaDropOff;
+	INT32 iAirportDropOff;
+
+	//Airport Stuff
+	UINT8 ubAirportX;
+	UINT8 ubAirportY;
+	INT32 iHeliSquadDropOff;
+	
+	UINT8 ubAirport2X;
+	UINT8 ubAirport2Y;
+
+	//BobbyR stuff
+	UINT8 ubBobbyRShipDestSectorX;
+	UINT8 ubBobbyRShipDestSectorY;
+	UINT8 ubBobbyRShipDestSectorZ;
+	INT32 iBobbyRShipDestGridNo;
+	INT32 iPablosStolenDestGridNo;
+	INT32 iLostShipmentGridNo;
+
+	//[Omerta]
+
+	//[Drassen]
+	//meet Carmen in sector for reward collection
+	UINT8 ubCarmenGiveRewardSectorX;
+	UINT8 ubCarmenGiveRewardSectorY;
+	UINT8 ubCarmenGiveRewardSectorZ;
+
+	//[Alma]
+	INT32 sRocketRifleGridNo;
+	
+	//POW stuff for QUEST_HELD_IN_ALMA
+	UINT8 ubInitialPOWSectorX;
+	UINT8 ubInitialPOWSectorY;
+	INT32 iInitialPOWGridNo[3];
+	INT32 iInitialPOWItemGridNo[3];
+
+	//[Grumm]
+
+	//[Tixa]
+	UINT8 ubTixaPrisonSectorX;
+	UINT8 ubTixaPrisonSectorY;
+
+	//Dynamo Captive Sector
+	UINT8 ubDyanmoCaptiveSectorX;
+	UINT8 ubDyanmoCaptiveSectorY;
+	UINT8 ubDyanmoCaptiveSectorZ;
+
+	//[Cambria]
+	//Hospital Sector
+	UINT8 ubHospitalSectorX;
+	UINT8 ubHospitalSectorY;
+	UINT8 ubHospitalSectorZ;
+
+	//add Rat to location after creature meanwhile scene
+	UINT8 ubAddRatSectorX;
+	UINT8 ubAddRatSectorY;
+	UINT8 ubAddRatSectorZ;
+
+	//[San Mona]
+	//Porn Quest
+	UINT16 usPornShopRoomHans;
+	INT32  iHansGridNo;
+	UINT16 usPornShopRoomBrenda;
+	UINT16 usPornShopRoomTony;
+	UINT8 ubPornShopTonySectorX;
+	UINT8 ubPornShopTonySectorY;
+	UINT8 ubPornShopTonySectorZ;
+
+	// Kyle Lemmons Leather Shop Deed Quest
+	INT32  iKyleMoneyGridNo;
+
+	//Brothel Quests
+	UINT16 usLeatherShop;
+	
+	UINT8 ubBrothelSectorX;
+	UINT8 ubBrothelSectorY;
+	INT32  iCarlaDoorGridNo;
+	INT32  iCindyDoorGridNo;
+	INT32  iBambiDoorGridNo;
+	INT32  iMariaDoorGridNo;
+
+	UINT16 usBrothelRoomRangeStart;
+	UINT16 usBrothelRoomRangeEnd;
+	UINT16 usBrothelGuardRoom;
+
+	INT32 iBrothelDoor1;
+	INT32 iBrothelDoor2;
+	INT32 iBrothelDoor3;
+
+	UINT8 ubKingpinHouseSectorX;
+	UINT8 ubKingpinHouseSectorY;
+	UINT8 ubKingpinHouseSectorZ;
+	UINT16 usKingpinRoomRangeStart;
+	UINT16 usKingpinRoomRangeEnd;
+	
+	//Kingpin Private Stash
+	UINT8 ubKingpinMoneySectorX;
+	UINT8 ubKingpinMoneySectorY;
+	UINT8 ubKingpinMoneySectorZ;
+
+	//Joey primary and alternate Location to be found
+	UINT8 ubJoeyPrimarySectorX;
+	UINT8 ubJoeyPrimarySectorY;
+	UINT8 ubJoeyPrimarySectorZ;
+	UINT8 ubJoeyAlternateSectorX;
+	UINT8 ubJoeyAlternateSectorY;
+	UINT8 ubJoeyAlternateSectorZ;
+
+	//Spike new location when assassins are sent
+	UINT8 ubSpikeNewSectorX;
+	UINT8 ubSpikeNewSectorY;
+	UINT8 ubSpikeNewSectorZ;
+
+	//add Iggy to location when game progress condition met
+	UINT8 ubAddIggySectorX;
+	UINT8 ubAddIggySectorY;
+	UINT8 ubAddIggySectorZ;
+
+	//[Estoni]
+
+	//[Orta]
+
+	//[Balime]
+
+	//[Meduna]
+
+	//[Chitzena]
+
+
+	//Weapon Cache Locations
+	UINT8 ubWeaponCache1X;
+	UINT8 ubWeaponCache1Y;
+	UINT8 ubWeaponCache2X;
+	UINT8 ubWeaponCache2Y;
+	UINT8 ubWeaponCache3X;
+	UINT8 ubWeaponCache3Y;
+	UINT8 ubWeaponCache4X;
+	UINT8 ubWeaponCache4Y;
+	UINT8 ubWeaponCache5X;
+	UINT8 ubWeaponCache5Y;
+
+	//Meanwhile scenes
+	//palace sector
+	UINT8 ubMeanwhilePalaceSectorX;
+	UINT8 ubMeanwhilePalaceSectorY;
+
+	//interrogate and second POW stuff
+	UINT8 ubMeanwhileInterrogatePOWSectorX;
+	UINT8 ubMeanwhileInterrogatePOWSectorY;
+	INT32 iMeanwhileInterrogatePOWGridNo[3];
+	INT32 iMeanwhileInterrogatePOWItemGridNo[3];
+
+	//row sectors to trigger meduna outskirts meanwhile
+	UINT8 ubMeanwhileMedunaOutskirtsRowMinX;
+	UINT8 ubMeanwhileMedunaOutskirtsRowMaxX;
+	UINT8 ubMeanwhileMedunaOutskirtsRowY;
+	//column sectors to trigger meduna outskirts meanwhile
+	UINT8 ubMeanwhileMedunaOutskirtsColX;
+	UINT8 ubMeanwhileMedunaOutskirtsColMinY;
+	UINT8 ubMeanwhileMedunaOutskirtsColMaxY;
+
+	//add Madlab to location after scientist AWOL meanwhile scene
+	UINT8 ubMeanwhileAddMadlabSector1X;
+	UINT8 ubMeanwhileAddMadlabSector1Y;
+	UINT8 ubMeanwhileAddMadlabSector2X;
+	UINT8 ubMeanwhileAddMadlabSector2Y;
+	UINT8 ubMeanwhileAddMadlabSector3X;
+	UINT8 ubMeanwhileAddMadlabSector3Y;
+	UINT8 ubMeanwhileAddMadlabSector4X;
+	UINT8 ubMeanwhileAddMadlabSector4Y;
+	
+	//[End Game]
+	//victory celebration stuff
+	UINT8 ubEndGameVictorySectorX;
+	UINT8 ubEndGameVictorySectorY;
+	INT32 iEndGameVictoryGridNo;
+	
+	//enable meanwhile cutscene
+	BOOLEAN AllMeanwhileCutscene;
+	BOOLEAN CreatureMeanwhileCutscene;
+
+}MOD_SETTINGS;
+
+// silversurfer: item property modifiers
+typedef struct
+{
+	// -------------- COMMON MODIFIERS ----------------
+	FLOAT fBestLaserRangeModifier;
+
+	// -------------- WEAPON MODIFIERS ----------------
+	// weapon overheating modifiers
+	FLOAT fOverheatJamThresholdModifierGun[9];
+	FLOAT fOverheatDamageThresholdModifierGun[9];
+	FLOAT fOverheatTemperatureModifierGun[9];
+	FLOAT fOverheatCooldownModifierGun[9];
+	FLOAT fOverheatJamThresholdModifierLauncher;
+	FLOAT fOverheatDamageThresholdModifierLauncher;
+	FLOAT fOverheatTemperatureModifierLauncher;
+	FLOAT fOverheatCooldownModifierLauncher;
+	// range modifiers
+	FLOAT fRangeModifierGun[9];
+	FLOAT fRangeModifierLauncher;
+	FLOAT fRangeModifierGrenade;
+
+	// damage modifiers
+	FLOAT fDamageModifierGun[9];
+	FLOAT fDamageModifierBlade;
+	FLOAT fDamageModifierPunch;
+	FLOAT fDamageModifierTentacle;
+	// AP modifiers for single attacks (ubShotsPer4Turns)
+	FLOAT fShotsPer4TurnsModifierGun[9];
+	FLOAT fShotsPer4TurnsModifierLauncher;
+	FLOAT fShotsPer4TurnsModifierBlade;
+	FLOAT fShotsPer4TurnsModifierPunch;
+	FLOAT fShotsPer4TurnsModifierTentacle;
+	FLOAT fShotsPer4TurnsModifierThrowKnife;
+	// Burst AP modifiers
+	FLOAT fBurstAPModifierGun[9];
+	// AP modifiers for Auto Fire Shots per 5 AP (bAutofireShotsPerFiveAP)
+	FLOAT fAFShotsPer5APModifierGun[9];
+	// AP to Reload modifiers
+	FLOAT fAPtoReloadModifierGun[9];
+	FLOAT fAPtoReloadModifierLauncher;
+	// AP to Reload manually modifiers
+	FLOAT fAPtoReloadManuallyModifierGun[9];
+	FLOAT fAPtoReloadManuallyModifierLauncher;
+	// Max Distance for messy shot modifiers
+	FLOAT fDistMessyModifierGun[9];
+	// Handling modifiers
+	FLOAT fHandlingModifierGun[9];
+	FLOAT fHandlingModifierLauncher;
+	// Recoil modifiers
+	FLOAT fRecoilXModifierGun[9];
+	FLOAT fRecoilYModifierGun[9];
+
+	// -------------- ARMOR MODIFIERS ----------------
+	FLOAT fCamoLBEoverVestModifier;
+	FLOAT fCamoLBEoverPantsModifier;
+
+	// ------------ EXPLOSIVE MODIFIERS --------------
+	// Grenade Damage Modifiers
+	FLOAT fDamageHealthModifierExplosive;
+	FLOAT fDamageBreathModifierExplosive;
+	FLOAT fDamageHealthMoveModifierExplosive;	// applies when character moves through gas cloud without a gas mask
+	FLOAT fDamageBreathMoveModifierExplosive;	// applies when character moves through gas cloud without a gas mask
+
+	// ------------ ENERGY MODIFIERS -----------------
+	// Flugente: energy consumption settings (energy-consumption of attached non-vanilla batteries)
+	FLOAT	energy_cost_radioset_activate;
+	FLOAT	energy_cost_radioset_jam;
+	FLOAT	energy_cost_radioset_scan;
+	FLOAT	energy_cost_radioset_scan_assignment;
+
+}ITEM_SETTINGS;
+
+extern MOD_SETTINGS gModSettings;
+
+extern ITEM_SETTINGS gItemSettings;
 
 //This structure will contain general Ja2 settings	NOT individual game settings.
 extern GAME_SETTINGS		gGameSettings;
@@ -1490,9 +2348,17 @@ extern GAME_EXTERNAL_OPTIONS gGameExternalOptions;
 
 extern SKILL_TRAIT_VALUES gSkillTraitValues;  // SANDRO - added this one
 
-extern EXTENDED_PANELS_SETTINGS gExtendedPanelsSettings; // anv - extended panels
-
 extern TAUNTS_SETTINGS gTauntsSettings;
+
+extern HELICOPTER_SETTINGS gHelicopterSettings;
+
+extern MORALE_SETTINGS gMoraleSettings;
+
+extern REPUTATION_SETTINGS gReputationSettings;
+
+extern CREATURES_SETTINGS gCreaturesSettings;
+
+extern EXTENDED_PANELS_SETTINGS gExtendedPanelsSettings; // anv - extended panels
 
 // HEADROCK HAM 4: CTH constants read from a separate INI file
 extern CTH_CONSTANTS gGameCTHConstants;
@@ -1505,12 +2371,17 @@ BOOLEAN LoadGameSettings();
 // Snap: Read options from an INI file in the default of custom Data directory
 void LoadGameExternalOptions();
 void LoadSkillTraitsExternalSettings(); // SANDRO - added this one
-// anv - extended panels
-void LoadExtendedPanelsExternalSettings();
+void LoadModSettings();
+void LoadItemSettings(); // silversurfer: reads item property modifiers
 void LoadGameAPBPConstants();
 // HEADROCK HAM 4: Read CTH/Shooting coefficients from file
 void LoadCTHConstants();
 void LoadTauntsSettings();
+void LoadHelicopterRepairRefuelSettings();
+void LoadMoraleSettings();
+void LoadReputationSettings();
+void LoadCreaturesSettings();
+void LoadExtendedPanelsExternalSettings(); // anv - extended panels
 void FreeGameExternalOptions();
 
 void InitGameOptions();

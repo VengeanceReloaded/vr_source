@@ -1167,7 +1167,7 @@ void PostNextSchedule( SOLDIERTYPE *pSoldier )
 			usBestTime = NUM_MIN_IN_DAY - (usTime - pSchedule->usTime[ i ]);
 			iBestIndex = i;
 		}
-	}	
+	}
 
 	// WANNE: Removed the assertion and added the check instead
 	//Assert( iBestIndex >= 0 );
@@ -1177,6 +1177,7 @@ void PostNextSchedule( SOLDIERTYPE *pSoldier )
 		AddStrategicEvent( EVENT_PROCESS_TACTICAL_SCHEDULE, GetWorldDayInMinutes() + pSchedule->usTime[iBestIndex], pSchedule->ubScheduleID );
 	}
 }
+
 
 
 BOOLEAN ExtractScheduleEntryAndExitInfo( SOLDIERTYPE * pSoldier, UINT32 * puiEntryTime, UINT32 * puiExitTime )
@@ -1385,7 +1386,7 @@ void ReplaceSleepSpot( SCHEDULENODE * pSchedule, UINT16 usNewSpot )
 void SecureSleepSpot( SOLDIERTYPE * pSoldier, UINT32 usSleepSpot )
 {
 	SOLDIERTYPE *			pSoldier2;
-	UINT32						usSleepSpot2, usNewSleepSpot;
+	UINT32				usSleepSpot2;
 	UINT32						uiLoop;
 	SCHEDULENODE *		pSchedule;
 	UINT8							ubDirection;
@@ -1404,7 +1405,7 @@ void SecureSleepSpot( SOLDIERTYPE * pSoldier, UINT32 usSleepSpot )
 				{
 					// conflict!
 					//usNewSleepSpot = (INT16) FindGridNoFromSweetSpotWithStructData( pSoldier2, pSoldier2->usAnimState, usSleepSpot2, 3, &ubDirection, FALSE );
-					usNewSleepSpot = FindGridNoFromSweetSpotExcludingSweetSpot( pSoldier2, usSleepSpot2, 3, &ubDirection );
+					INT32 usNewSleepSpot = FindGridNoFromSweetSpotExcludingSweetSpot( pSoldier2, usSleepSpot2, 3, &ubDirection );
 					if (!TileIsOutOfBounds(usNewSleepSpot))
 					{
 						ReplaceSleepSpot( pSchedule, usNewSleepSpot );

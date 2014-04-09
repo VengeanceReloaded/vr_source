@@ -57,7 +57,15 @@ explosiveStartElementHandle(void *userData, const XML_Char *name, const XML_Char
 				strcmp(name, "ubStartRadius") == 0 ||
 				strcmp(name, "ubMagSize") == 0 ||
 				strcmp(name, "ubDuration") == 0 ||
-				strcmp(name, "ubAnimationID") == 0 ))
+				strcmp(name, "ubAnimationID") == 0 ||
+				strcmp(name, "fExplodeOnImpact") == 0 ||// HEADROCK HAM 5: Explode on impact flag
+				strcmp(name, "usNumFragments") == 0 || // HEADROCK HAM 5.1: Fragmenting explosive data
+				strcmp(name, "ubFragType") == 0 ||
+				strcmp(name, "ubFragDamage") == 0 ||
+				strcmp(name, "ubFragRange") == 0 ||
+				strcmp(name, "ubHorizontalDegree") == 0 ||
+				strcmp(name, "ubVerticalDegree") == 0 ||
+				strcmp(name, "bIndoorModifier") == 0 ))  
 		{
 			pData->curElement = ELEMENT_PROPERTY;
 
@@ -107,7 +115,7 @@ explosiveEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "uiIndex") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curExplosive.uiIndex	= (UINT32) atol(pData->szCharData);
+			pData->curExplosive.uiIndex	= (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "ubType") == 0)
 		{
@@ -128,6 +136,9 @@ explosiveEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curExplosive.ubRadius	= (UINT8) atol(pData->szCharData);
+
+			// Flugente: variable is UINT16, but is always used as UINT8, so better keep it in line
+			pData->curExplosive.ubRadius	= max( 0, min(255, pData->curExplosive.ubRadius));
 		}
 		else if(strcmp(name, "ubVolume") == 0)
 		{
@@ -158,6 +169,55 @@ explosiveEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curExplosive.ubDuration	= (UINT8) atol(pData->szCharData);
+		}
+		// HEADROCK HAM 5: Flag for "Explosion on Impact"
+		else if(strcmp(name, "fExplodeOnImpact") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.fExplodeOnImpact = (BOOLEAN) atol(pData->szCharData);
+		}
+
+		// HEADROCK HAM 5.1: Four tags for Fragmenting Explosives
+		else if(strcmp(name, "usNumFragments") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.usNumFragments = (UINT16) atol(pData->szCharData);
+		}
+
+		else if(strcmp(name, "ubFragType") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.ubFragType = (UINT8) atol(pData->szCharData);
+		}
+
+		else if(strcmp(name, "ubFragDamage") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.ubFragDamage = (UINT16) atol(pData->szCharData);
+		}
+
+		else if(strcmp(name, "ubFragRange") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.ubFragRange = (UINT16) atol(pData->szCharData);
+		}
+
+		else if(strcmp(name, "ubHorizontalDegree") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.ubHorizontalDegree = (UINT16) atol(pData->szCharData);
+		}
+
+		else if(strcmp(name, "ubVerticalDegree") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.ubVerticalDegree = (UINT16) atol(pData->szCharData);
+		}
+
+		else if(strcmp(name, "bIndoorModifier") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curExplosive.bIndoorModifier = (FLOAT) atof(pData->szCharData);
 		}
 
 		pData->maxReadDepth--;
@@ -251,17 +311,26 @@ BOOLEAN WriteExplosiveStats()
 
 			FilePrintf(hFile,"\t<EXPLOSIVE>\r\n");
 
-			FilePrintf(hFile,"\t\t<uiIndex>%d</uiIndex>\r\n",								cnt );
-			FilePrintf(hFile,"\t\t<ubType>%d</ubType>\r\n",								Explosive[cnt].ubType	);
-			FilePrintf(hFile,"\t\t<ubDamage>%d</ubDamage>\r\n",								Explosive[cnt].ubDamage	);
-			FilePrintf(hFile,"\t\t<ubStunDamage>%d</ubStunDamage>\r\n",								Explosive[cnt].ubStunDamage	);
-			FilePrintf(hFile,"\t\t<ubRadius>%d</ubRadius>\r\n",								Explosive[cnt].ubRadius	);
-			FilePrintf(hFile,"\t\t<ubVolume>%d</ubVolume>\r\n",								Explosive[cnt].ubVolume	);
-			FilePrintf(hFile,"\t\t<ubVolatility>%d</ubVolatility>\r\n",								Explosive[cnt].ubVolatility	);
-			FilePrintf(hFile,"\t\t<ubAnimationID>%d</ubAnimationID>\r\n",								Explosive[cnt].ubAnimationID	);
+			FilePrintf(hFile,"\t\t<uiIndex>%d</uiIndex>\r\n",									cnt );
+			FilePrintf(hFile,"\t\t<ubType>%d</ubType>\r\n",										Explosive[cnt].ubType	);
+			FilePrintf(hFile,"\t\t<ubDamage>%d</ubDamage>\r\n",									Explosive[cnt].ubDamage	);
+			FilePrintf(hFile,"\t\t<ubStunDamage>%d</ubStunDamage>\r\n",							Explosive[cnt].ubStunDamage	);
+			FilePrintf(hFile,"\t\t<ubRadius>%d</ubRadius>\r\n",									Explosive[cnt].ubRadius	);
+			FilePrintf(hFile,"\t\t<ubVolume>%d</ubVolume>\r\n",									Explosive[cnt].ubVolume	);
+			FilePrintf(hFile,"\t\t<ubVolatility>%d</ubVolatility>\r\n",							Explosive[cnt].ubVolatility	);
+			FilePrintf(hFile,"\t\t<ubAnimationID>%d</ubAnimationID>\r\n",						Explosive[cnt].ubAnimationID	);
 			FilePrintf(hFile,"\t\t<ubDuration>%d</ubDuration>\r\n",								Explosive[cnt].ubDuration	);
-			FilePrintf(hFile,"\t\t<ubStartRadius>%d</ubStartRadius>\r\n",								Explosive[cnt].ubStartRadius	);
+			FilePrintf(hFile,"\t\t<ubStartRadius>%d</ubStartRadius>\r\n",						Explosive[cnt].ubStartRadius	);
 			FilePrintf(hFile,"\t\t<ubMagSize>%d</ubMagSize>\r\n",								Explosive[cnt].ubMagSize	);
+			FilePrintf(hFile,"\t\t<fExplodeOnImpact>%d</fExplodeOnImpact>\r\n",					(UINT8)Explosive[cnt].fExplodeOnImpact	);
+
+			FilePrintf(hFile,"\t\t<usNumFragments>%d</usNumFragments>\r\n",						Explosive[cnt].usNumFragments	);
+			FilePrintf(hFile,"\t\t<ubFragType>%d</ubFragType>\r\n",								Explosive[cnt].ubFragType	);
+			FilePrintf(hFile,"\t\t<ubFragDamage>%d</ubFragDamage>\r\n",							Explosive[cnt].ubFragDamage	);
+			FilePrintf(hFile,"\t\t<ubFragRange>%d</ubFragRange>\r\n",							Explosive[cnt].fExplodeOnImpact	);
+			FilePrintf(hFile,"\t\t<ubHorizontalDegree>%d</ubHorizontalDegree>\r\n",				Explosive[cnt].ubHorizontalDegree	);
+			FilePrintf(hFile,"\t\t<ubVerticalDegree>%d</ubVerticalDegree>\r\n",					Explosive[cnt].ubVerticalDegree	);
+			FilePrintf(hFile,"\t\t<bIndoorModifier>%d</bIndoorModifier>\r\n",					Explosive[cnt].bIndoorModifier	);
 
 			FilePrintf(hFile,"\t</EXPLOSIVE>\r\n");
 		}

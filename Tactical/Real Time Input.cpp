@@ -3,7 +3,6 @@
 #else
 #include <stdio.h>
 #include <string.h>
-#include "wcheck.h"
 #include "stdlib.h"
 #include "debug.h"
 #include "math.h"
@@ -14,7 +13,6 @@
 #include "Animation Data.h"
 #include "Event Pump.h"
 #include "Timer Control.h"
-#include "cursors.h"
 #include "Handle UI.h"
 #include "Isometric Utils.h"
 #include "input.h"
@@ -23,20 +21,12 @@
 #include "screenids.h"
 #include "interface.h"
 #include "cursor control.h"
-#include "points.h"
 #include "Interactive Tiles.h"
-#include "interface cursors.h"
-#include "Sound Control.h"
-#include "environment.h"
-#include "opplist.h"
 #include "spread burst.h"
-#include "overhead map.h"
 #include "world items.h"
-#include "Game Clock.h"
 #include "interface items.h"
 #include "physics.h"
 #include "ui cursors.h"
-#include "worldman.h"
 #include "strategicmap.h"
 #include "soldier profile.h"
 #include "soldier create.h"
@@ -46,10 +36,7 @@
 #include "interactive tiles.h"
 #include "messageboxscreen.h"
 #include "gameloop.h"
-#include "gamescreen.h"
 #include "spread burst.h"
-#include "tile animation.h"
-#include "merc entering.h"
 #include "explosion control.h"
 #include "message.h"
 #include "Strategic Exit GUI.h"
@@ -72,6 +59,7 @@
 #include "worlddat.h" //for gtileset
 #include "Debug Control.h" //for livelog
 
+#include "SkillMenu.h"						// sevenfm: need this for TraitsMenu
 
 
 #endif
@@ -122,6 +110,58 @@ void	QueryRTMButton( UINT32 *puiNewEvent );
 void	QueryRTWheels( UINT32 *puiNewEvent );
 void	QueryRTX1Button( UINT32 *puiNewEvent );
 void	QueryRTX2Button( UINT32 *puiNewEvent );
+
+// sevenfm: new mouse commands
+void HandleAltMouseRTWheel( void );
+void HandleAltMouseRTMButton( UINT32 *puiNewEvent );
+void HandleAltMouseRTX1Button( UINT32 *puiNewEvent );
+void HandleAltMouseRTX2Button( UINT32 *puiNewEvent );
+
+// sevenfm: original mouse commands functionality
+void HandleMouseRTWheel( void );
+void HandleMouseRTMButton( UINT32 *puiNewEvent );
+void HandleMouseRTX1Button( UINT32 *puiNewEvent );
+void HandleMouseRTX2Button( UINT32 *puiNewEvent );
+
+// sevenfm: common functionality
+void HandleRTToggleFireMode( void );
+void HandleRTJumpThroughWindow( void );
+void HandleRTJump( void );
+void HandleRTLook( UINT32 *puiNewEvent );
+void HandleRTLocateSoldier( void );
+
+extern void SetScopeMode( INT32 usMapPos );
+
+extern void HandleStealthChangeFromUIKeys( );
+extern void HandleTBReloadAll( void );
+extern void HandleTBEnterTurnbased( void );
+extern void HandleTBToggleSneak( void );
+extern void HandleTBSoldierRun( void );
+extern void HandleTBPickUpBackpacks( void );
+extern void HandleTBDropBackpacks( void );
+extern void HandleTBLocatePrevMerc( void );
+extern void HandleTBLocateNextMerc( void );
+extern void HandleTBSwapGoogles( void );
+extern void HandleTBSwapSidearm( void );
+extern void HandleTBSwapKnife( void );
+extern void HandleTBSwapGunsling( void );
+extern void HandleTBSwapHands( void );
+extern void HandleTBChangeLevel( void );
+extern void HandleTBCycleThroughKnownEnemies( void );
+extern void HandleTBGotoHigherStance( void );
+extern void HandleTBCycleThroughVisibleEnemies( void );
+extern void HandleTBCycleThroughKnownEnemiesBackward( void );
+extern void HandleTBGotoLowerStance( void );
+extern void HandleTBCycleThroughVisibleEnemiesBackward( void );
+extern void HandleTBLocateSoldier( void );
+extern void HandleTBToggleFormation( void );
+extern void HandleTBToggleTrapNetworkView( void );
+extern void HandleTBShowMines( void );
+extern void HandleTBToggleStealthAll( void );
+extern void HandleTBShowLOS( void );
+extern void HandleTBShowCover( void );
+extern void HandleTBReload( void );
+extern void HandleTBToggleStealth( void );
 
 void	GetRTMouseButtonInput( UINT32 *puiNewEvent )
 {
@@ -1187,58 +1227,74 @@ void	QueryRTRightButton( UINT32 *puiNewEvent )
 								// ATE:
 								if ( gusSelectedSoldier != NOBODY )
 								{
-									// Switch on UI mode
-									switch( gCurrentUIMode )
+									// sevenfm: ALT+RMB - TraitsMenu
+									if(_KeyDown(ALT))
 									{
-									case IDLE_MODE:
-
-										break;
-
-									case CONFIRM_MOVE_MODE:
-									case MOVE_MODE:
-									case TALKCURSOR_MODE:
-
+										switch( gCurrentUIMode )
+										{										
+										case MOVE_MODE:
+										case TALKCURSOR_MODE:
+										case ACTION_MODE:
+										case CONFIRM_ACTION_MODE:
+										case LOOKCURSOR_MODE:
+											TraitsMenu(usMapPos);
+											fClickIntercepted = TRUE;
+											break;
+										}
+									}
+									else
+									{
+										// Switch on UI mode
+										switch( gCurrentUIMode )
 										{
+										case IDLE_MODE:
+
+											break;
+
+										case CONFIRM_MOVE_MODE:
+										case MOVE_MODE:
+										case TALKCURSOR_MODE:
+
 											// We have here a change to action mode
 											*puiNewEvent = M_CHANGE_TO_ACTION;
+											fClickIntercepted = TRUE;
+											break;
+
+										case ACTION_MODE:
+
+											// We have here a change to move mode
+											*puiNewEvent = A_END_ACTION;
+											fClickIntercepted = TRUE;
+											break;
+
+										case CONFIRM_ACTION_MODE:
+
+											if ( GetSoldier( &pSoldier, gusSelectedSoldier ) )
+											{
+												HandleRightClickAdjustCursor( pSoldier, usMapPos );
+											}
+											fClickIntercepted = TRUE;
+											break;
+
+										case MENU_MODE:
+
+											// If we get a hit here and we're in menu mode, quit the menu mode
+											EndMenuEvent( guiCurrentEvent );
+											fClickIntercepted = TRUE;
+											break;
+
+										case HANDCURSOR_MODE:
+											// If we cannot actually do anything, return to movement mode
+											*puiNewEvent = A_CHANGE_TO_MOVE;
+											break;
+
+										case LOOKCURSOR_MODE:
+
+											// If we cannot actually do anything, return to movement mode
+											*puiNewEvent = A_CHANGE_TO_MOVE;
+											break;
+
 										}
-										fClickIntercepted = TRUE;
-										break;
-
-									case ACTION_MODE:
-
-										// We have here a change to move mode
-										*puiNewEvent = A_END_ACTION;
-										fClickIntercepted = TRUE;
-										break;
-
-									case CONFIRM_ACTION_MODE:
-
-										if ( GetSoldier( &pSoldier, gusSelectedSoldier ) )
-										{
-											HandleRightClickAdjustCursor( pSoldier, usMapPos );
-										}
-										fClickIntercepted = TRUE;
-										break;
-
-									case MENU_MODE:
-
-										// If we get a hit here and we're in menu mode, quit the menu mode
-										EndMenuEvent( guiCurrentEvent );
-										fClickIntercepted = TRUE;
-										break;
-
-									case HANDCURSOR_MODE:
-										// If we cannot actually do anything, return to movement mode
-										*puiNewEvent = A_CHANGE_TO_MOVE;
-										break;
-
-									case LOOKCURSOR_MODE:
-
-										// If we cannot actually do anything, return to movement mode
-										*puiNewEvent = A_CHANGE_TO_MOVE;
-										break;
-
 									}
 								}
 							}
@@ -1615,7 +1671,7 @@ void GetRTMousePositionInput( UINT32 *puiNewEvent )
 //		return;
 //	}
 //
-//	for(uiType = 0; uiType < NUMBEROFTILETYPES; uiType++)
+//	for(uiType = 0; uiType < giNumberOfTileTypes; uiType++)
 //	{
 //		if( !gTilesets[ giCurrentTilesetID].TileSurfaceFilenames[ uiType ][0] )
 //		{
@@ -1629,7 +1685,7 @@ void GetRTMousePositionInput( UINT32 *puiNewEvent )
 //		}
 //	}
 //
-//	if(uiType >= NUMBEROFTILETYPES)
+//	if(uiType >= giNumberOfTileTypes)
 //		return;*/
 //
 //	if( GetMouseMapPos( &sGridNo ) )
@@ -1701,28 +1757,11 @@ void	QueryRTMButton( UINT32 *puiNewEvent )
 		else if ( fMiddleButtonDown )
 		{
 
-			/////ddd{ test okop placement
-			//if ( _KeyDown( CTRL ) )
-			//{
-			//	
-			//	PlaceSandbag(1);
-			//	fMiddleButtonDown = FALSE;
-			//	return;
-			//}
-			/////ddd }
-
-			if ( _KeyDown( ALT ) )
-			{
-				//переключение режима огня
-				if ( ( gpItemPointer == NULL ) && ( gusSelectedSoldier != NOBODY ) &&
-					( ( gsCurInterfacePanel != SM_PANEL ) || ( ButtonList[ iSMPanelButtons[ BURSTMODE_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) )
-					ChangeWeaponMode( MercPtrs[ gusSelectedSoldier ] );
-			}
+			if(gGameExternalOptions.bAlternateMouseCommands)
+				HandleAltMouseRTMButton( puiNewEvent );
 			else
-				*puiNewEvent = LC_LOOK;
+				HandleMouseRTMButton( puiNewEvent );
 
-			
-	
 			fMiddleButtonDown = FALSE;
 			// Reset counter
 			//RESETCOUNTER( RMOUSECLICK_DELAY_COUNTER );
@@ -1734,8 +1773,8 @@ void	QueryRTMButton( UINT32 *puiNewEvent )
 void	QueryRTWheels( UINT32 *puiNewEvent )
 {
 	INT32		sMapPos=0;
-	UINT8		bID;
 
+	gViewportRegion.WheelState = gViewportRegion.WheelState * ( gGameSettings.fOptions[TOPTION_INVERT_WHEEL] ? -1 : 1 );
 	if ( gViewportRegion.uiFlags & MSYS_MOUSE_IN_AREA )
 	{
 		if (!GetMouseMapPos( &sMapPos ) )
@@ -1752,53 +1791,14 @@ void	QueryRTWheels( UINT32 *puiNewEvent )
 					{
 						case IDLE_MODE:
 						case MOVE_MODE:
-
-								// nothing in hand and either not in SM panel, or the matching button is enabled if we are in SM panel
-								if ( !( gTacticalStatus.uiFlags & ENGAGED_IN_CONV )	&&
-									( ( gsCurInterfacePanel != SM_PANEL ) || ( ButtonList[ iSMPanelButtons[ NEXTMERC_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) )
-								{
-										if ( gViewportRegion.WheelState > 0 ) //колесо от себя
-										{
-											//change stance ->DOWN
-											if ( _KeyDown( ALT ) )
-											{	if ( (gusSelectedSoldier != NOBODY) && ( gpItemPointer == NULL ) )
-												GotoLowerStance(MercPtrs[ gusSelectedSoldier ]);
-												break;
-											}
-
-											if ( gusSelectedSoldier != NOBODY )
-											{ //Select prev merc
-												bID = FindPrevActiveAndAliveMerc( MercPtrs[ gusSelectedSoldier ], TRUE, TRUE );
-												HandleLocateSelectMerc( bID, LOCATEANDSELECT_MERC );
-												// Center to guy....
-												LocateSoldier( gusSelectedSoldier, SETLOCATOR );
-											}
-										}
-										else
-										{
-
-											//change stance ->UP
-											if ( _KeyDown( ALT ) )
-											{	if ( (gusSelectedSoldier != NOBODY) && ( gpItemPointer == NULL ) )
-													GotoHeigherStance( MercPtrs[ gusSelectedSoldier ] );
-												break;
-											}
-
-											//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"wheel %d", gViewportRegion.WheelState);
-											if ( gusSelectedSoldier != NOBODY )
-											{ //Select next merc
-												bID = FindNextMercInTeamPanel( MercPtrs[ gusSelectedSoldier ], FALSE, FALSE );
-												HandleLocateSelectMerc( bID, LOCATEANDSELECT_MERC );
-												// Center to guy....
-												LocateSoldier( gusSelectedSoldier, SETLOCATOR );
-											}
-										}
-										//*puiNewEvent = M_ON_TERRAIN; ????????????????
-								}
+						case HANDCURSOR_MODE:
+							if(gGameExternalOptions.bAlternateMouseCommands)
+								HandleAltMouseRTWheel();
+							else
+								HandleMouseRTWheel();
 							break;
 						case ACTION_MODE:
-						case CONFIRM_MOVE_MODE:
-						case HANDCURSOR_MODE:
+						case CONFIRM_MOVE_MODE:						
 						case LOOKCURSOR_MODE:
 						case TALKCURSOR_MODE:
 						case MENU_MODE:
@@ -1833,6 +1833,246 @@ void QueryRTX1Button( UINT32 *puiNewEvent  )
 		else if ( fX1ButtonDown )
 		{
 			fX1ButtonDown = FALSE;
+
+			if(gGameExternalOptions.bAlternateMouseCommands)
+				HandleAltMouseRTX1Button( puiNewEvent );
+			else
+				HandleMouseRTX1Button( puiNewEvent );
+		}
+	}
+}
+void QueryRTX2Button( UINT32 *puiNewEvent )
+{
+	INT32	sMapPos;
+	if ( gViewportRegion.uiFlags & MSYS_MOUSE_IN_AREA )
+	{
+		if (!GetMouseMapPos( &sMapPos ) )
+			return;
+		
+		if (gViewportRegion.ButtonState & MSYS_X2_BUTTON) // MID MOUSE BUTTON
+		{
+			if ( !fX2ButtonDown )
+			{
+				fX2ButtonDown = TRUE;
+			}
+		}
+		else if ( fX2ButtonDown )
+		{
+			fX2ButtonDown = FALSE;
+			if(gGameExternalOptions.bAlternateMouseCommands)
+				HandleAltMouseRTX2Button( puiNewEvent );
+			else
+				HandleMouseRTX2Button( puiNewEvent );
+		}
+	}
+}
+
+// sevenfm: new mouse commands
+void HandleAltMouseRTWheel( void )
+{
+	if ( !( gTacticalStatus.uiFlags & ENGAGED_IN_CONV )	&&
+		( ( gsCurInterfacePanel != SM_PANEL ) || ( ButtonList[ iSMPanelButtons[ NEXTMERC_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) )
+	{
+		if ( gViewportRegion.WheelState > 0 )	// wheel up
+		{
+			if ( _KeyDown( ALT ) )				
+				if( _KeyDown( SHIFT ) )	
+				{
+					if( _KeyDown( CTRL ) )			// SHIFT+CTRL+ALT
+						HandleTBPickUpBackpacks();
+					else							// SHIFT+ALT
+						CycleThroughKnownEnemies(); 
+				}
+				else if ( _KeyDown( CTRL ) )		// CTRL+ALT
+					HandleTBSwapGoogles();
+				else								// ALT
+					HandleTBGotoHigherStance();
+			else if( _KeyDown( CTRL ) )
+			{
+				if( _KeyDown( SHIFT ) )				// SHIFT+CTRL
+					HandleTBSwapGunsling();
+				else								// CTRL
+					HandleTBSoldierRun();
+			}
+			else if( _KeyDown( SHIFT ) )			// SHIFT
+				HandleTBCycleThroughVisibleEnemies();
+			else									
+				HandleTBLocatePrevMerc();
+		}
+		else										// wheel down
+		{
+			if ( _KeyDown( ALT ) )				
+				if( _KeyDown( SHIFT ) )	
+				{
+					if( _KeyDown( CTRL ) )			// SHIFT+CTRL+ALT
+						HandleTBDropBackpacks();
+					else							// SHIFT+ALT
+						CycleThroughKnownEnemies( TRUE );
+				}
+				else if ( _KeyDown( CTRL ) )		// CTRL+ALT
+					HandleTBSwapSidearm();
+				else								// ALT
+					HandleTBGotoLowerStance();
+			else if( _KeyDown( CTRL ) )
+			{
+				if( _KeyDown( SHIFT ) )				// SHIFT+CTRL
+					HandleTBSwapKnife();
+				else								// CTRL
+					HandleTBSwapHands();
+			}
+			else if( _KeyDown( SHIFT ) )			// SHIFT
+				HandleTBCycleThroughVisibleEnemiesBackward();
+			else									
+				HandleTBLocateNextMerc();
+		}
+	}
+}
+void HandleAltMouseRTMButton( UINT32 *puiNewEvent )
+{
+	INT32 usMapPos;
+	GetMouseMapPos( &usMapPos );
+
+	if ( _KeyDown( ALT ) )				
+		if( _KeyDown( SHIFT ) )	
+		{
+			if( _KeyDown( CTRL ) )			// SHIFT+CTRL+ALT
+				HandleRTJumpThroughWindow();
+			else							// SHIFT+ALT
+				;// reserved
+		}
+		else if ( _KeyDown( CTRL ) )		// CTRL+ALT
+			HandleTBChangeLevel();
+		else								// ALT
+			HandleRTToggleFireMode();
+	else if( _KeyDown( CTRL ) )
+	{
+		if( _KeyDown( SHIFT ) )				// SHIFT+CTRL
+			HandleRTJump();
+		else								// CTRL
+			SetScopeMode( usMapPos );
+	}
+	else if( _KeyDown( SHIFT ) )			// SHIFT
+		HandleTBLocateSoldier();
+	else									// Button
+		HandleRTLook( puiNewEvent );
+	
+}
+void HandleAltMouseRTX1Button( UINT32 *puiNewEvent )
+{
+	if ( _KeyDown( ALT ) )				
+		if( _KeyDown( SHIFT ) )	
+		{
+			if( _KeyDown( CTRL ) )		// SHIFT+CTRL+ALT
+				HandleTBToggleSneak();
+			else						// SHIFT+ALT
+				HandleTBToggleFormation();
+		}
+		else if ( _KeyDown( CTRL ) )	// CTRL+ALT
+			HandleTBSwapGoogles();
+		else							// ALT
+			HandleTBSwapKnife();
+	else if( _KeyDown( CTRL ) )
+	{
+		if( _KeyDown( SHIFT ) )			// SHIFT+CTRL
+			HandleTBEnterTurnbased();
+		else							// CTRL
+			HandleTBSwapSidearm();
+	}
+	else if( _KeyDown( SHIFT ) )		// SHIFT
+		HandleTBSwapGunsling();
+	else								// Button
+		HandleTBSwapHands();
+	
+}
+void HandleAltMouseRTX2Button( UINT32 *puiNewEvent )
+{
+	if ( _KeyDown( ALT ) )				
+		if( _KeyDown( SHIFT ) )	
+		{
+			if( _KeyDown( CTRL ) )		// SHIFT+CTRL+ALT
+				HandleTBToggleTrapNetworkView();
+			else						// SHIFT+ALT
+				HandleTBReloadAll();
+		}
+		else if ( _KeyDown( CTRL ) )	// CTRL+ALT
+			HandleTBShowMines();
+		else							// ALT
+			HandleTBToggleStealthAll();
+	else if( _KeyDown( CTRL ) )
+	{
+		if( _KeyDown( SHIFT ) )			// SHIFT+CTRL
+			HandleTBShowLOS();
+		else							// CTRL
+			HandleTBShowCover();
+	}
+	else if( _KeyDown( SHIFT ) )		// SHIFT
+		HandleTBReload();
+	else								// Button
+		HandleTBToggleStealth();	
+}
+
+// sevenfm: original mouse commands functionality
+void HandleMouseRTWheel( void )
+{
+	UINT8		bID;
+								// nothing in hand and either not in SM panel, or the matching button is enabled if we are in SM panel
+								if ( !( gTacticalStatus.uiFlags & ENGAGED_IN_CONV )	&&
+									( ( gsCurInterfacePanel != SM_PANEL ) || ( ButtonList[ iSMPanelButtons[ NEXTMERC_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) )
+								{
+										if ( gViewportRegion.WheelState > 0 ) //колесо от себя
+										{
+											//change stance ->DOWN
+											if ( _KeyDown( ALT ) )
+			{	
+				if ( (gusSelectedSoldier != NOBODY) && ( gpItemPointer == NULL ) )
+												GotoLowerStance(MercPtrs[ gusSelectedSoldier ]);
+				return;
+											}
+
+											if ( gusSelectedSoldier != NOBODY )
+											{ //Select prev merc
+												bID = FindPrevActiveAndAliveMerc( MercPtrs[ gusSelectedSoldier ], TRUE, TRUE );
+												HandleLocateSelectMerc( bID, LOCATEANDSELECT_MERC );
+												// Center to guy....
+												LocateSoldier( gusSelectedSoldier, SETLOCATOR );
+											}
+										}
+										else
+										{
+											//change stance ->UP
+											if ( _KeyDown( ALT ) )
+			{	
+				if ( (gusSelectedSoldier != NOBODY) && ( gpItemPointer == NULL ) )
+													GotoHeigherStance( MercPtrs[ gusSelectedSoldier ] );
+				return;
+											}
+
+											//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"wheel %d", gViewportRegion.WheelState);
+											if ( gusSelectedSoldier != NOBODY )
+											{ //Select next merc
+												bID = FindNextMercInTeamPanel( MercPtrs[ gusSelectedSoldier ], FALSE, FALSE );
+												HandleLocateSelectMerc( bID, LOCATEANDSELECT_MERC );
+												// Center to guy....
+												LocateSoldier( gusSelectedSoldier, SETLOCATOR );
+											}
+										}
+										//*puiNewEvent = M_ON_TERRAIN; ????????????????
+								}
+}
+void HandleMouseRTMButton( UINT32 *puiNewEvent )
+{
+	if ( _KeyDown( ALT ) )
+	{
+		// toggle fire mode
+		if ( ( gpItemPointer == NULL ) && ( gusSelectedSoldier != NOBODY ) &&
+			( ( gsCurInterfacePanel != SM_PANEL ) || ( ButtonList[ iSMPanelButtons[ BURSTMODE_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) )
+			ChangeWeaponMode( MercPtrs[ gusSelectedSoldier ] );
+			}
+	else
+		*puiNewEvent = LC_LOOK;
+}
+void HandleMouseRTX1Button( UINT32 *puiNewEvent )
+{
 			if ( !_KeyDown( ALT ) && !_KeyDown( SHIFT ))
 			{
 					UIHandleChangeLevel( NULL );
@@ -1887,28 +2127,10 @@ void QueryRTX1Button( UINT32 *puiNewEvent  )
 						pjSoldier->BeginSoldierClimbFence(	);
 				}
 			}
-		}
-	}
 }
-void QueryRTX2Button( UINT32 *puiNewEvent  )
-{
-	INT32	sMapPos;
-	if ( gViewportRegion.uiFlags & MSYS_MOUSE_IN_AREA )
-	{
-		if (!GetMouseMapPos( &sMapPos ) )
-			return;
-		
-		if (gViewportRegion.ButtonState & MSYS_X2_BUTTON) // MID MOUSE BUTTON
-		{
-			if ( !fX2ButtonDown )
-			{
-				fX2ButtonDown = TRUE;
-			}
-		}
-		else if ( fX2ButtonDown )
-		{
-			fX2ButtonDown = FALSE;
 
+void HandleMouseRTX2Button( UINT32 *puiNewEvent )
+{
 			if ( _KeyDown( ALT ) )
 				AutoReload( MercPtrs[ gusSelectedSoldier ] );
 			else
@@ -1958,7 +2180,75 @@ void QueryRTX2Button( UINT32 *puiNewEvent  )
 					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_SQUAD_OFF_STEALTHMODE ] );
 				}
 			}
+}
+
+// sevenfm: common functionality
+void HandleRTLook( UINT32 *puiNewEvent )
+{
+	*puiNewEvent = LC_LOOK;
+}
+void HandleRTJump( void )
+{
+	// Climb on roofs
+	SOLDIERTYPE *pjSoldier;
+	if ( GetSoldier( &pjSoldier, gusSelectedSoldier ) )
+	{
+		BOOLEAN	fNearHeigherLevel;
+		BOOLEAN	fNearLowerLevel;
+		INT8	bDirection;
+		// CHRISL: Turn off manual jumping while wearing a backpack
+		if(UsingNewInventorySystem() == true && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+				return;
+
+		// Make sure the merc is not collapsed!
+		if (!IsValidStance(pjSoldier, ANIM_CROUCH) )
+		{
+			if ( pjSoldier->bCollapsed && pjSoldier->bBreath < OKBREATH )
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[ 4 ], pjSoldier->name );
+			return;
 		}
+
+		GetMercClimbDirection( pjSoldier->ubID, &fNearLowerLevel, &fNearHeigherLevel );
+
+		if ( fNearLowerLevel )
+			pjSoldier->BeginSoldierClimbDownRoof( );
 		
+		if ( fNearHeigherLevel )
+			pjSoldier->BeginSoldierClimbUpRoof(	);
+					
+		if ( FindFenceJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
+			pjSoldier->BeginSoldierClimbFence(	);
+	}
+}
+void HandleRTJumpThroughWindow( void )
+{
+	if (gGameExternalOptions.fCanJumpThroughWindows == TRUE )
+	{
+		INT8	bDirection;
+     	SOLDIERTYPE *lSoldier;
+
+        if ( GetSoldier( &lSoldier, gusSelectedSoldier ) )
+		{
+			if ( FindWindowJumpDirection( lSoldier, lSoldier->sGridNo, lSoldier->ubDirection, &bDirection ) )
+			{
+				lSoldier->BeginSoldierClimbWindow(	);
+            }
+		}
+	}
+}
+
+
+void HandleRTToggleFireMode( void )
+{
+	// toggle fire mode
+	if ( ( gpItemPointer == NULL ) && ( gusSelectedSoldier != NOBODY ) &&
+		( ( gsCurInterfacePanel != SM_PANEL ) || ( ButtonList[ iSMPanelButtons[ BURSTMODE_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) )
+		ChangeWeaponMode( MercPtrs[ gusSelectedSoldier ] );
+}
+void HandleRTLocateSoldier( void )
+{
+	if ( gusSelectedSoldier != NOBODY )
+	{
+		LocateSoldier( gusSelectedSoldier, 10 );
 	}
 }

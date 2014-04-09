@@ -21,12 +21,9 @@
 #include "Random.h"
 #include "worldman.h"
 #include "Isometric Utils.h"
-#include "Render Dirty.h"
 #include "renderworld.h"
-#include "sys globals.h"
 #include "video.h"
 #include "points.h"
-#include "Win util.h"
 #include "Sound Control.h"
 #include "weapons.h"
 #include "vobject_blitters.h"
@@ -40,7 +37,6 @@
 #include "faces.h"
 #include "Soldier Profile.h"
 #include "gap.h"
-#include "interface panels.h"
 #include "campaign.h"
 #include "soldier macros.h"
 #include "english.h"
@@ -62,7 +58,6 @@
 #include "soldier functions.h"
 #include "rt time defines.h"
 #include "Exit Grids.h"
-#include "gamescreen.h"
 #include "Quests.h"
 #include "message.h"
 #include "NPC.h"
@@ -73,7 +68,6 @@
 #include	"GameSettings.h"
 #include "tile animation.h"
 #include "ShopKeeper Interface.h"
-#include "Arms Dealer Init.h"
 #include "vehicles.h"
 #include "rotting corpses.h"
 #include "Interface Control.h"
@@ -97,16 +91,32 @@
 #include "Strategic Pathing.h"
 #include "Debug Control.h"
 #include "LOS.h" // added by SANDRO
+#include "CampaignStats.h"		// added by Flugente
+#include "Interface Panels.h"
+#endif
+
+#include "ub_config.h"
+#include "../ModularizedTacticalAI/include/Plan.h" // for plan destructor call
+
+#ifdef JA2UB
+#include "Ja25_Tactical.h"
+#include "Ja25 Strategic Ai.h"
 #endif
 
 #include "fresh_header.h"
 
 #include "Dialogue Control.h"
 
+#include "IMP Skill Trait.h"	// added by Flugente
+#include "Food.h"				// added by Flugente
+#include "Tactical Save.h"		// added by Flugente for AddItemsToUnLoadedSector()
+#include "LightEffects.h"		// added by Flugente for CreatePersonalLight()
+
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
 
+UINT16 usForceAnimState = INVALID_ANIMATION;//dnl ch70 170913
 
 //turnspeed
 //UINT8 gubPlayerTurnSpeedUpFactor = 1;
@@ -120,6 +130,9 @@ class SOLDIERTYPE;
 
 extern INT16 DirIncrementer[8];
 
+// sevenfm: used in auto taking concertina/sandbag items from inventory
+extern BOOLEAN gfShiftBombPlant;
+
 #define		PALETTEFILENAME							"BINARYDATA\\ja2pal.dat"
 
 #define		LOW_MORALE_BATTLE_SND_THREASHOLD	35
@@ -127,6 +140,14 @@ extern INT16 DirIncrementer[8];
 
 #define		MIN_SUBSEQUENT_SNDS_DELAY									2000
 #include "connect.h"
+
+#ifdef ENABLE_ZOMBIES
+	extern void TeleportSelectedSoldier( void );
+	extern BOOLEAN AddSoldierToSectorNoCalculateDirectionUseAnimation( UINT8 ubID, UINT16 usAnimState, UINT16 usAnimCode );
+#endif
+
+// Flugente: external sector data
+extern SECTOR_EXT_DATA	SectorExternalData[256][4];
 
 // Enumerate extended directions
 enum
@@ -375,7 +396,8 @@ void STRUCT_TimeCounters::ConvertFrom_101_To_102(const OLDSOLDIERTYPE_101& src)
 
 void STRUCT_Drugs::ConvertFrom_101_To_102(const OLDSOLDIERTYPE_101& src)
 {
-	for (int x = 0; x < 2; ++x)
+	int x = 0;
+	for (; x < 2; ++x)
 	{
 		this->bFutureDrugEffect[x] = src.bFutureDrugEffect[x];						// value to represent effect of a needle
 		this->bDrugEffectRate[x] = src.bDrugEffectRate[x];							// represents rate of increase and decrease of effect
@@ -383,6 +405,16 @@ void STRUCT_Drugs::ConvertFrom_101_To_102(const OLDSOLDIERTYPE_101& src)
 		this->bDrugSideEffectRate[x] = src.bDrugSideEffectRate[x];					// duration of negative AP and morale effect
 		this->bDrugSideEffect[x] = src.bDrugSideEffect[x];							// duration of negative AP and morale effect
 		this->bTimesDrugUsedSinceSleep[x] = src.bTimesDrugUsedSinceSleep[x];
+	}
+
+	for (; x < DRUG_TYPE_MAX; ++x)
+	{
+		this->bFutureDrugEffect[x] = 0;							// value to represent effect of a needle
+		this->bDrugEffectRate[x] = 0;							// represents rate of increase and decrease of effect
+		this->bDrugEffect[x] = 0;								// value that affects AP & morale calc ( -ve is poorly )
+		this->bDrugSideEffectRate[x] = 0;						// duration of negative AP and morale effect
+		this->bDrugSideEffect[x] = 0;							// duration of negative AP and morale effect
+		this->bTimesDrugUsedSinceSleep[x] = 0;
 	}
 }
 
@@ -447,7 +479,7 @@ void STRUCT_Flags::ConvertFrom_101_To_102(const OLDSOLDIERTYPE_101& src)
 	this->fBeginFade = src.fBeginFade;
 	this->fDontChargeReadyAPs = src.fDontChargeReadyAPs;
 	this->fPrevInWater = src.fPrevInWater;
-	this->fGoBackToAimAfterHit = src.fGoBackToAimAfterHit;
+	this->bGoBackToAimAfterHit = src.fGoBackToAimAfterHit;
 	this->fDisplayDamage = src.fDisplayDamage;
 	this->fUIMovementFast = src.fUIMovementFast;
 	this->fDeadSoundPlayed = src.fDeadSoundPlayed;
@@ -709,10 +741,14 @@ SOLDIERTYPE& SOLDIERTYPE::operator=(const OLDSOLDIERTYPE_101& src)
 		this->sLastTarget = src.sLastTarget;
 
 		// HEADROCK HAM 4: TODO: Added four new variables to soldiertype. MAke sure they don't screw it all up!
-		this->dPrevMuzzleOffsetX = 0.0;
-		this->dPrevMuzzleOffsetY = 0.0;
-		this->dPrevCounterForceX = 0.0;
-		this->dPrevCounterForceY = 0.0;
+		this->dPrevMuzzleOffsetX[0] = 0.0;
+		this->dPrevMuzzleOffsetX[1] = 0.0;
+		this->dPrevMuzzleOffsetY[0] = 0.0;
+		this->dPrevMuzzleOffsetY[1] = 0.0;
+		this->dPrevCounterForceX[0] = 0.0;
+		this->dPrevCounterForceX[1] = 0.0;
+		this->dPrevCounterForceY[0] = 0.0;
+		this->dPrevCounterForceY[1] = 0.0;
 
 		this->bTilesMoved = src.bTilesMoved;
 		this->dNextBleed = src.dNextBleed;
@@ -871,7 +907,6 @@ SOLDIERTYPE& SOLDIERTYPE::operator=(const OLDSOLDIERTYPE_101& src)
 		this->bAIScheduleProgress = src.bAIScheduleProgress;
 		this->sOffWorldGridNo = src.sOffWorldGridNo;
 		this->pAniTile = src.pAniTile;
-		this->bCamo = src.bCamo;
 		this->sAbsoluteFinalDestination = src.sAbsoluteFinalDestination;
 		this->ubHiResDirection = src.ubHiResDirection;
 		this->ubHiResDesiredDirection = src.ubHiResDesiredDirection;
@@ -968,21 +1003,60 @@ SOLDIERTYPE& SOLDIERTYPE::operator=(const OLDSOLDIERTYPE_101& src)
 		this->lastFlankSpot = src.lastFlankSpot;
 		this->sniper = src.sniper;
 		this->origDir = src.origDir;
-		this->wornCamo = src.wornCamo;
 
-		this->urbanCamo = src.urbanCamo;	// Madd: new camo types
-		this->wornUrbanCamo = src.wornUrbanCamo;
+		this->bCamo = __min( gGameExternalOptions.bCamoKitArea, src.bCamo);
+		this->wornCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornCamo );
 
-		this->desertCamo = src.desertCamo;
-		this->wornDesertCamo = src.wornDesertCamo;
+		this->urbanCamo = __min( gGameExternalOptions.bCamoKitArea, src.urbanCamo);	// Madd: new camo types
+		this->wornUrbanCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornUrbanCamo );
 
-		this->snowCamo = src.snowCamo;
-		this->wornSnowCamo = src.wornSnowCamo;
+		this->desertCamo = __min( gGameExternalOptions.bCamoKitArea, src.desertCamo);
+		this->wornDesertCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornDesertCamo );
+
+		this->snowCamo = __min( gGameExternalOptions.bCamoKitArea, src.snowCamo);
+		this->wornSnowCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornSnowCamo );
+
+		this->bScopeMode = USE_BEST_SCOPE;
+
+		this->bPoisonBleeding = 0;
+		this->bPoisonLife = 0;
+		this->bPoisonSum = 0;
+		this->bPoisonResistance = 0;
+		this->bPoisonAbsorption = 0;
+
+		this->bFoodLevel = 0;
+		this->bDrinkLevel = 0;
+		this->usStarveDamageHealth = 0;
+		this->usStarveDamageStrength = 0;
+		this->bAIIndex = 0;
+		this->usSoldierProfile = 0;
+
+		this->usAISkillUse = 0;
+		for (UINT8 i = 0; i < SOLDIER_COUNTER_MAX; ++i)		this->usSkillCounter[i]  = 0;
+		for (UINT8 i = 0; i < SOLDIER_COOLDOWN_MAX; ++i)	this->usSkillCooldown[i] = 0;
+
+		this->ubLastShock = 0;
+		this->ubLastSuppression = 0;
+		this->ubLastAP = 0;
+		this->ubLastMorale = 0;
+		this->ubLastShockFromHit = 0;
+		this->ubLastMoraleFromHit = 0;
+		this->ubLastAPFromHit = 0;
+		this->iLastBulletImpact = 0;
+		this->iLastArmourProtection = 0;
+
+		this->usQuickItemId = 0;
+		this->ubQuickItemSlot = 0;
+
     }
     return *this;
 }
 
-SOLDIERTYPE::~SOLDIERTYPE() {}
+SOLDIERTYPE::~SOLDIERTYPE()
+{
+    if(ai_masterplan_)
+        delete ai_masterplan_;
+}
 
 SOLDIERTYPE::SOLDIERTYPE() {
 	initialize();
@@ -1007,45 +1081,14 @@ UINT32 SOLDIERTYPE::GetChecksum( )
 	uiChecksum *= (this->stats.bExpLevel + 1);
 	uiChecksum += (this->ubProfile + 1);
 
-	for ( uiLoop = 0; uiLoop < this->inv.size(); uiLoop++ )
+	UINT32 invsize = this->inv.size();
+	for ( uiLoop = 0; uiLoop < invsize; ++uiLoop )
 	{
 		uiChecksum += this->inv[ uiLoop ].usItem;
 		uiChecksum += this->inv[ uiLoop ].ubNumberOfObjects;
 	}
 
 	return( uiChecksum );
-}
-
-
-// Copy Constructor
-SOLDIERTYPE::SOLDIERTYPE(const SOLDIERTYPE& src)
-{
-	memcpy(this, &src, SIZEOF_SOLDIERTYPE_POD);
-	inv = src.inv;
-	aiData = src.aiData;
-	flags = src.flags;
-	timeChanges = src.timeChanges;
-	timeCounters = src.timeCounters;
-	drugs = src.drugs;
-	stats = src.stats;
-	pathing = src.pathing;
-}
-
-// Assignment operator
-SOLDIERTYPE& SOLDIERTYPE::operator=(const SOLDIERTYPE& src)
-{
-	if (this != &src) {
-		memcpy(this, &src, SIZEOF_SOLDIERTYPE_POD);
-		aiData = src.aiData;
-		flags = src.flags;
-		timeChanges = src.timeChanges;
-		timeCounters = src.timeCounters;
-		drugs = src.drugs;
-		stats = src.stats;
-		pathing = src.pathing;
-		inv = src.inv;
-    }
-    return *this;
 }
 
 // Initialize the soldier.
@@ -1055,6 +1098,7 @@ void SOLDIERTYPE::initialize()
 {
 	memset( this, 0, SIZEOF_SOLDIERTYPE_POD);
 	inv.clear();
+    ai_masterplan_ = 0;
 
 	memset( &aiData, 0, sizeof(STRUCT_AIData) );
 	memset( &flags, 0, sizeof(STRUCT_Flags) );
@@ -1189,7 +1233,8 @@ UINT32 MERCPROFILESTRUCT::GetChecksum( )
 	// put in some multipliers too!
 	uiChecksum *= (this->bExpLevel + 1);
 
-	for ( uiLoop = 0; uiLoop < this->inv.size(); uiLoop++ )
+	UINT32 invsize = this->inv.size();
+	for ( uiLoop = 0; uiLoop < invsize; ++uiLoop )
 	{
 		uiChecksum += this->inv[ uiLoop ];
 		uiChecksum += this->bInvNumber[ uiLoop ];
@@ -1234,17 +1279,19 @@ MERCPROFILESTRUCT& MERCPROFILESTRUCT::operator=(const OLD_MERCPROFILESTRUCT_101&
 
 		memcpy( &(this->bBuddy), &(src.bBuddy), 5 * sizeof (UINT8));
 		memcpy( &(this->bHated), &(src.bHated), 5 * sizeof (UINT8));
-		memcpy( &(this->ubRoomRangeStart), &(src.ubRoomRangeStart), 2 * sizeof (UINT8));
+		memcpy( &(this->usRoomRangeStart), &(src.ubRoomRangeStart), 2 * sizeof (UINT8));
 		memcpy( &(this->bMercTownReputation), &(src.bMercTownReputation),  20  * sizeof (INT8));
 		memcpy( &(this->usApproachFactor), &(src.usApproachFactor), 4 * sizeof (UINT16));
 
 		memcpy( &(this->ubApproachVal), &(src.ubApproachVal), 4 * sizeof (UINT8));
 		memcpy( &(this->ubApproachMod), &(src.ubApproachMod), 3 * 4 * sizeof (UINT8));
-		memcpy( &(this->bMercOpinion), &(src.bMercOpinion), DontUseMeDirectly::MaxIDToCheckForMorale * sizeof (INT8));
+
+		// Flugente: opinion has 255 entries now, old had 75 - only copy over the old
+		memcpy( &(this->bMercOpinion), &(src.bMercOpinion), NUMBER_OF_OPINIONS_OLD * sizeof (INT8));
 
 		memcpy( &(this->usStatChangeChances), &(src.usStatChangeChances),  12  * sizeof (UINT16));// used strictly for balancing, never shown!
 		memcpy( &(this->usStatChangeSuccesses), &(src.usStatChangeSuccesses),  12  * sizeof (UINT16));// used strictly for balancing, never shown!
-		memcpy( &(this->ubRoomRangeEnd), &(src.ubRoomRangeEnd), 2 * sizeof (UINT8));
+		memcpy( &(this->usRoomRangeEnd), &(src.ubRoomRangeEnd), 2 * sizeof (UINT8));
 		memcpy( &(this->bHatedTime), &(src.bHatedTime), 5 * sizeof (INT8));
 		memcpy( &(this->bHatedCount), &(src.bHatedCount), 5 * sizeof (INT8));
 
@@ -1319,6 +1366,11 @@ MERCPROFILESTRUCT& MERCPROFILESTRUCT::operator=(const OLD_MERCPROFILESTRUCT_101&
 		this->records.usKillsAdmins = (src.usKills/4);
 		this->records.usKillsHostiles = 0;
 		this->records.usKillsCreatures = 0;
+
+#ifdef ENABLE_ZOMBIES
+		this->records.usKillsZombies = 0;
+#endif
+
 		this->records.usKillsTanks = 0;
 		this->records.usKillsOthers = 0;
 		this->records.usAssistsMercs = (src.usAssists*3/4);
@@ -1458,7 +1510,7 @@ MERCPROFILESTRUCT& MERCPROFILESTRUCT::operator=(const OLD_MERCPROFILESTRUCT_101&
 
 		this->iMercMercContractLength = src.iMercMercContractLength;//Used for MERC mercs, specifies how many days the merc has gone since last page
 
-		this->uiTotalCostToDate = src.uiTotalCostToDate;// The total amount of money that has been paid to the merc for their salary
+		this->uiTotalCostToDate = src.uiTotalCostToDate;// The total amount of money that has been paid to the merc for their salary				
 	}
 	return *this;
 }
@@ -1489,6 +1541,7 @@ void MERCPROFILESTRUCT::initialize()
 	clearInventory();
 	// SANDRO - added this
 	memset( &records, 0, sizeof(STRUCT_Records) );
+	memset( &usBackground, 0, sizeof(UINT16) );
 }
 
 // Initialize the soldier.
@@ -1629,7 +1682,7 @@ BOOLEAN	gfGetNewPathThroughPeople = FALSE;
 
 // LOCAL FUNCTIONS
 // DO NOT CALL UNLESS THROUGH EVENT_SetSoldierPosition
-UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady );
+UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fAltWeaponHolding );
 BOOLEAN CheckForFullStruct( INT32 sGridNo, UINT16 *pusIndex  );
 void SetSoldierLocatorOffsets( SOLDIERTYPE *pSoldier );
 void CheckForFullStructures( SOLDIERTYPE *pSoldier );
@@ -1651,7 +1704,7 @@ void HandleSystemNewAISituation( SOLDIERTYPE *pSoldier, BOOLEAN fResetABC );
 UINT16 *CreateEnemyGlow16BPPPalette( SGPPaletteEntry *pPalette, UINT32 rscale, UINT32 gscale, BOOLEAN fAdjustGreen );
 UINT16 *CreateEnemyGreyGlow16BPPPalette( SGPPaletteEntry *pPalette, UINT32 rscale, UINT32 gscale, BOOLEAN fAdjustGreen );
 
-void SoldierBleed( SOLDIERTYPE *pSoldier, BOOLEAN fBandagedBleed );
+void SoldierBleed( SOLDIERTYPE *pSoldier, BOOLEAN fBandagedBleed, BOOLEAN fAllowPoisoning );
 INT32 CheckBleeding( SOLDIERTYPE *pSoldier );
 
 void EVENT_InternalSetSoldierDesiredDirection( SOLDIERTYPE *pSoldier, UINT8	ubNewDirection, BOOLEAN fInitalMove, UINT16 usAnimState );
@@ -1883,9 +1936,9 @@ INT16 SOLDIERTYPE::CalcActionPoints( void )
 	//	2 * this->stats.bLifeMax   +
 	//	2 * EffectiveDexterity( this ) ) + 20) / 40);
 	ubPoints = 20 + (((10 * EffectiveExpLevel( this ) +
-		3 * EffectiveAgility( this )   +
+		3 * EffectiveAgility( this, FALSE )   +
 		2 * this->stats.bLifeMax   +
-		2 * EffectiveDexterity( this ) ) + 5) / 10);
+		2 * EffectiveDexterity( this, FALSE ) ) + 5) / 10);
 
 	//if (GameOption[INCREASEDAP] % 2 == 1)
 	//points += APBPConstants[AP_INCREASE];
@@ -1972,15 +2025,16 @@ INT16 SOLDIERTYPE::CalcActionPoints( void )
 	// adjust APs for phobia situations
 	if ( this->ubProfile != NO_PROFILE )
 	{
-		if ( (gMercProfiles[ this->ubProfile ].bDisability == CLAUSTROPHOBIC) && (gbWorldSectorZ > 0) )
+		// Flugente: drugs can temporarily cause a merc to be claustrophobic
+		if ( ( (gMercProfiles[ this->ubProfile ].bDisability == CLAUSTROPHOBIC) || MercUnderTheInfluence(this, DRUG_TYPE_CLAUSTROPHOBIC) ) && (gbWorldSectorZ > 0) )
 		{
 			ubPoints = (ubPoints * APBPConstants[AP_CLAUSTROPHOBE]) / 10;
 		}
-		else if ( (gMercProfiles[ this->ubProfile ].bDisability == FEAR_OF_INSECTS) && (MercSeesCreature( this ) ) )
+		else if ( ( (gMercProfiles[ this->ubProfile ].bDisability == FEAR_OF_INSECTS) || MercUnderTheInfluence(this, DRUG_TYPE_FEAROFINSECTS) ) && (MercSeesCreature( this ) ) )
 		{
 			ubPoints = (ubPoints * APBPConstants[AP_AFRAID_OF_INSECTS]) / 10;
 		}
-		else if ( (gMercProfiles[ this->ubProfile ].bDisability == FEAR_OF_INSECTS) && (MercIsInTropicalSector( this ) ) )
+		else if ( ( (gMercProfiles[ this->ubProfile ].bDisability == FEAR_OF_INSECTS) || MercUnderTheInfluence(this, DRUG_TYPE_FEAROFINSECTS) )&& (MercIsInTropicalSector( this ) ) )
 		{
 			ubPoints = (ubPoints * 9) / 10;
 		}
@@ -2049,6 +2103,9 @@ INT16 SOLDIERTYPE::CalcActionPoints( void )
 		//ubPoints += 0;
 	}
 	
+	// Flugente: personal AP adjustments
+	ubPoints = (INT16)( (ubPoints * (100 + this->GetAPBonus()) ) / 100);
+
 	// option to make special NPCs stronger - AP bonus
 	if ( this->ubProfile != NO_PROFILE && gGameExternalOptions.usSpecialNPCStronger > 0 )
 	{ 
@@ -2064,6 +2121,7 @@ INT16 SOLDIERTYPE::CalcActionPoints( void )
 			case T_REX:
 			case DRUGGIST:
 			case GENERAL:
+			case JIM:
 			case JACK:
 			case OLAF:
 			case RAY:
@@ -2112,7 +2170,7 @@ void SOLDIERTYPE::CalcNewActionPoints( void )
 		this->bActionPoints = APBPConstants[AP_MIN_LIMIT];
 
 	// Don't max out if we are drugged....
-	if ( !GetDrugEffect( this, DRUG_TYPE_ADRENALINE ) )
+	if ( !MercUnderTheInfluence( this, DRUG_TYPE_ADRENALINE ) && !MercUnderTheInfluence( this, DRUG_TYPE_AGILITY ) )
 	{
 		///////////////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - following code messed a bit
@@ -2167,6 +2225,9 @@ void SOLDIERTYPE::CalcNewActionPoints( void )
 			//MaxActionPnts += 0;
 		}
 
+		// Flugente: personal AP adjustments
+		usMaxActionPnts = (INT16)( (usMaxActionPnts * (100 + this->GetAPBonus()) ) / 100);
+
 		// option to make special NPCs stronger - AP bonus
 		if ( this->ubProfile != NO_PROFILE && gGameExternalOptions.usSpecialNPCStronger > 0 )
 		{ 
@@ -2182,6 +2243,7 @@ void SOLDIERTYPE::CalcNewActionPoints( void )
 				case T_REX:
 				case DRUGGIST:
 				case GENERAL:
+				case JIM:
 				case JACK:
 				case OLAF:
 				case RAY:
@@ -2203,6 +2265,15 @@ void SOLDIERTYPE::CalcNewActionPoints( void )
 	}
 
 	this->bInitialActionPoints	= this->bActionPoints;
+
+	// Flugente: due to changes and bugs with enemy reinforcements, we now set a flag if a soldier should start with no APs, and act here accordingly
+	if ( this->bSoldierFlagMask & SOLDIER_NO_AP )
+	{
+		this->bSoldierFlagMask &= ~SOLDIER_NO_AP;
+
+		this->bInitialActionPoints = 0;
+		this->bActionPoints = 0;
+	}
 }
 
 
@@ -2224,7 +2295,7 @@ void	SOLDIERTYPE::DoNinjaAttack( void )
 		ubTargetStance = gAnimControl[ pTSoldier->usAnimState ].ubEndHeight;
 
 		// Get his life...if < certain value, do finish!
-		// SANDRO - Enhanced Close Combat System - Spinning kick is performed on focuse attack
+		// SANDRO - Enhanced Close Combat System - Spinning kick is performed on focused attack
 		if (gGameExternalOptions.fEnhancedCloseCombatSystem && ( ( this->aiData.bAimTime > 0 ) && ubTargetStance != ANIM_PRONE ))
 		{
 			this->ChangeSoldierState( NINJA_SPINKICK, 0 , FALSE );
@@ -2599,8 +2670,10 @@ BOOLEAN SOLDIERTYPE::CreateSoldierLight( void )
 	// DO ONLY IF WE'RE AT A GOOD LEVEL
 	if ( this->iLight == -1 )
 	{
+		INT16 visionrangebonus = GetTotalVisionRangeBonus( this, NORMAL_LIGHTLEVEL_NIGHT );
+
 		// ATE: Check for goggles in headpos....
-		if ( GetTotalVisionRangeBonus( this, NORMAL_LIGHTLEVEL_NIGHT ) >= UVGOGGLES_BONUS )
+		if ( visionrangebonus >= UVGOGGLES_BONUS )
 		{
 			if( ( this->iLight=LightSpriteCreate("Light4", 0 ) )==(-1))
 			{
@@ -2612,7 +2685,7 @@ BOOLEAN SOLDIERTYPE::CreateSoldierLight( void )
 				LightSprites[ this->iLight ].uiFlags |= MERC_LIGHT;
 			}
 		}
-		else if ( GetTotalVisionRangeBonus( this, NORMAL_LIGHTLEVEL_NIGHT ) >= NIGHTSIGHTGOGGLES_BONUS )
+		else if ( visionrangebonus >= NIGHTSIGHTGOGGLES_BONUS )
 		{
 			if( ( this->iLight=LightSpriteCreate("Light3", 0 ) )==(-1))
 			{
@@ -2788,17 +2861,46 @@ BOOLEAN ReevaluateEnemyStance( SOLDIERTYPE *pSoldier, UINT16 usAnimState )
 						}
 					}
 
-					if (iClosestEnemy != NOBODY)
+					if (iClosestEnemy != NOBODY ) 
 					{
-						// Change to fire ready animation
-						ConvertGridNoToXY( MercPtrs[ iClosestEnemy ]->sGridNo, &sTargetXPos, &sTargetYPos );
+						
+						// SANDRO - do we want this to be happening at all? It is somehow unwelcomed in IIS and for alternative weapon holding, 
+						// besides it is rather illogical... well, I've made an ini setting for it			
+						if ( gGameExternalOptions.fNoEnemyAutoReadyWeapon == 0 )
+						{	
+							// Change to fire ready animation
+							ConvertGridNoToXY( MercPtrs[ iClosestEnemy ]->sGridNo, &sTargetXPos, &sTargetYPos );
 
-						pSoldier->flags.fDontChargeReadyAPs = TRUE;
+							pSoldier->flags.fDontChargeReadyAPs = TRUE;
 
-						// Ready weapon
-						fReturnVal = pSoldier->SoldierReadyWeapon( sTargetXPos, sTargetYPos, FALSE );
+							// Ready weapon
+							fReturnVal = pSoldier->SoldierReadyWeapon( sTargetXPos, sTargetYPos, FALSE, AIDecideHipOrShoulderStance( pSoldier, MercPtrs[ iClosestEnemy ]->sGridNo ) );
 
-						return( fReturnVal );
+							return( fReturnVal );
+						}
+						// this makes the soldier to only turn towards our direction, instead of raising his weapon
+						else if ( gGameExternalOptions.fNoEnemyAutoReadyWeapon == 2 )
+						{
+							//ConvertGridNoToXY( MercPtrs[ iClosestEnemy ]->sGridNo, &sTargetXPos, &sTargetYPos );
+							//sFacingDir = GetDirectionFromXY( sXPos, sYPos, pSoldier );
+							INT16 sFacingDir = GetDirectionToGridNoFromGridNo( pSoldier->sGridNo, MercPtrs[ iClosestEnemy ]->sGridNo );
+
+							if ( sFacingDir != pSoldier->ubDirection )
+							{
+								INT16 sAPCost = GetAPsToLook( pSoldier );
+
+								// Check AP cost...
+								if ( !EnoughPoints( pSoldier, sAPCost, 0, TRUE ) )
+								{
+									return( FALSE );
+								}
+
+								SendSoldierSetDesiredDirectionEvent( pSoldier, sFacingDir );
+								//fReturnVal = MakeSoldierTurn( pSoldier, sXPos, sYPos );
+								
+								return( TRUE );
+							}
+						}
 					}
 
 				}
@@ -2822,7 +2924,8 @@ void CheckForFreeupFromHit( SOLDIERTYPE *pSoldier, UINT32 uiOldAnimFlags, UINT32
 		return;
 	}
 
-	if ( usOldAniState != usNewState && ( uiOldAnimFlags & ANIM_HITSTART ) && !( uiNewAnimFlags & ANIM_HITFINISH ) && !( uiNewAnimFlags & ANIM_IGNOREHITFINISH ) && !(pSoldier->flags.uiStatusFlags & SOLDIER_TURNINGFROMHIT ) )
+	//if ( usOldAniState != usNewState && ( uiOldAnimFlags & ANIM_HITSTART ) && !( uiNewAnimFlags & ANIM_HITFINISH ) && !( uiNewAnimFlags & ANIM_IGNOREHITFINISH ) && !(pSoldier->flags.uiStatusFlags & SOLDIER_TURNINGFROMHIT ) )
+	if ( usOldAniState != usNewState && ( uiOldAnimFlags & ANIM_HITSTART ) && !( uiNewAnimFlags & ANIM_HITFINISH ) && !(pSoldier->flags.uiStatusFlags & SOLDIER_TURNINGFROMHIT ) )
 	{
 		// 0verhaul:  Yet again, this is handled by the state transition code.
 		// Release attacker
@@ -2870,7 +2973,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,"EVENT_InitNewSoldierAnim");
 	INT32  usNewGridNo = 0;
 	INT16		sAPCost = 0;
-	INT16		sBPCost = 0;
+	INT32		sBPCost = 0;
 	UINT32	uiOldAnimFlags;
 	UINT32  uiNewAnimFlags;
 	UINT16	usSubState;
@@ -2886,6 +2989,8 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 	// If we are NOT loading a game, continue normally
 	if( !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME ) )
 	{
+		usItem = this->inv[ HANDPOS ].usItem;
+
 		// CHECK IF WE ARE TRYING TO INTURRUPT A SCRIPT WHICH WE DO NOT WANT INTERRUPTED!
 		if ( this->flags.fInNonintAnim )
 		{
@@ -2957,6 +3062,23 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 					}
 				}
 			}
+
+			// Going from hip stance to shoulder stance, skip first 2 frames for smoother graphic look
+			if ( usNewState == READY_RIFLE_STAND && (gAnimControl[ this->usAnimState ].uiFlags & ( ANIM_ALT_WEAPON_HOLDING )) )
+			{
+				if ( this->ubBodyType == BIGMALE )
+					usStartingAniCode = 1; // this looks better for big mercs
+				else
+					usStartingAniCode = 2;
+			}
+			// Going from shoulder stance to hip stance
+			else if ( usNewState == READY_ALTERNATIVE_STAND && (gAnimControl[ this->usAnimState ].uiFlags & ( ANIM_FIREREADY | ANIM_FIRE )) )
+			{
+				if ( Item[this->inv[HANDPOS].usItem].twohanded )
+					usStartingAniCode = 1;
+				else
+					usStartingAniCode = 2;
+			} 
 		}
 
 		if ( usNewState == ADJACENT_GET_ITEM )
@@ -2972,6 +3094,18 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			}
 		}
 
+		if ( usNewState == ADJACENT_GET_ITEM_CROUCHED )
+		{
+			if ( this->ubPendingDirection != NO_PENDING_DIRECTION )
+			{
+				EVENT_InternalSetSoldierDesiredDirection( this, this->ubPendingDirection, FALSE, this->usAnimState );
+				this->ubPendingDirection = NO_PENDING_DIRECTION;
+				this->usPendingAnimation = ADJACENT_GET_ITEM_CROUCHED;
+				this->flags.fTurningUntilDone	 = TRUE;
+				this->SoldierGotoStationaryStance( );
+				return( TRUE );
+			}
+		}
 
 		if ( usNewState == CLIMBUPROOF )
 		{
@@ -3027,9 +3161,25 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			}
 		}
 
+		if ( usNewState == START_AID_PRN )
+		{
+			if ( this->ubPendingDirection != NO_PENDING_DIRECTION )
+			{
+				this->EVENT_SetSoldierDesiredDirection( this->ubPendingDirection );
+				this->ubPendingDirection = NO_PENDING_DIRECTION;
+				this->usPendingAnimation = START_AID_PRN;
+				this->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_ON;
+				this->flags.fTurningUntilDone	 = TRUE;
+				this->ubPendingStanceChange = ANIM_PRONE;
+				this->SoldierGotoStationaryStance( );
+				return( TRUE );
+			}
+		}
+
 		// ATE: Don't raise/lower automatically if we are low on health,
 		// as our gun looks lowered anyway....
 		//if ( this->stats.bLife > INJURED_CHANGE_THREASHOLD )
+		if (!this->MercInWater())
 		{
 			// Don't do some of this if we are a monster!
 			// ATE: LOWER AIMATION IS GOOD, RAISE ONE HOWEVER MAY CAUSE PROBLEMS FOR AI....
@@ -3041,7 +3191,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 					// We are told that we need to rasie weapon
 					// Do so only if
 					// 1) We have a rifle in hand...
-					usItem = this->inv[ HANDPOS ].usItem;
+					//usItem = this->inv[ HANDPOS ].usItem;
 
 					if ( this->inv[ HANDPOS ].exists() == true && (Item[ usItem ].twohanded ) && !Item[usItem].rocketlauncher )
 					{
@@ -3064,7 +3214,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 					// We are told that we need to rasie weapon
 					// Do so only if
 					// 1) We have a rifle in hand...
-					usItem = this->inv[ HANDPOS ].usItem;
+					//usItem = this->inv[ HANDPOS ].usItem;
 
 					if ( this->inv[ HANDPOS ].exists() == true && (Item[ usItem ].twohanded ) && !Item[usItem].rocketlauncher )
 					{
@@ -3084,11 +3234,30 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 		}
 
 		// Are we cowering and are tyring to move, getup first...
-		if ( gAnimControl[ usNewState ].uiFlags & ANIM_MOVING && this->usAnimState == COWERING && gAnimControl[ usNewState ].ubEndHeight == ANIM_STAND )
+		//if ( gAnimControl[ usNewState ].uiFlags & ANIM_MOVING && this->usAnimState == COWERING && gAnimControl[ usNewState ].ubEndHeight == ANIM_STAND )
+		if ( this->usAnimState == COWERING )
 		{
-			this->usPendingAnimation = usNewState;
-			// Set new state to be animation to move to new stance
-			usNewState = END_COWER;
+			if ( gAnimControl[ usNewState ].ubEndHeight == ANIM_STAND )
+			{
+				this->usPendingAnimation = usNewState;
+				this->ubDesiredHeight = ANIM_STAND;
+				usNewState = END_COWER;
+			}
+			else if ( gAnimControl[ usNewState ].ubEndHeight == ANIM_CROUCH )
+			{
+				this->usPendingAnimation = usNewState;
+				this->ubDesiredHeight = ANIM_CROUCH;
+				usNewState = END_COWER_CROUCHED;
+			}
+		}
+		else if( this->usAnimState == COWERING_PRONE )
+		{
+			if ( gAnimControl[ usNewState ].ubEndHeight == ANIM_PRONE )
+			{
+				this->usPendingAnimation = usNewState;
+				this->ubDesiredHeight = ANIM_PRONE;
+				usNewState = END_COWER_PRONE;
+			}
 		}
 
 		// If we want to start swatting, put a pending animation
@@ -3127,7 +3296,8 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 		}
 
 		// OK.......
-		if ( this->ubBodyType > REGFEMALE )
+		// SANDRO - removing unused code
+		/*if ( this->ubBodyType > REGFEMALE )
 		{
 			if ( this->stats.bLife < INJURED_CHANGE_THREASHOLD )
 			{
@@ -3137,10 +3307,10 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 					//	usNewState = FROM_INJURED_TRANSITION;
 				}
 			}
-		}
+		}*/
 
 		// Alrighty, check if we should free buddy up!
-		if ( usNewState == GIVING_AID )
+		if ( usNewState == GIVING_AID || usNewState == GIVING_AID_PRN )
 		{
 			UnSetUIBusy( this->ubID );
 		}
@@ -3159,43 +3329,48 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 		}
 
 		// OK, make guy transition if a big merc...
-		if ( this->uiAnimSubFlags & SUB_ANIM_BIGGUYTHREATENSTANCE )
+		//if ( ( this->uiAnimSubFlags & SUB_ANIM_BIGGUYTHREATENSTANCE ) && !( this->uiAnimSubFlags & SUB_ANIM_BIGGUYSHOOT2 ) )
+		if ( this->ubBodyType == BIGMALE )
 		{
-			if ( usNewState == KNEEL_DOWN && this->usAnimState != BIGMERC_CROUCH_TRANS_INTO )
+			// SANDRO - we are changing crouching animation here to the old vanilla one, don't do that if alt animations are used
+			if ( !DecideAltAnimForBigMerc( this ) )
 			{
-				UINT16 usItem;
-
-				// Do we have a rifle?
-				usItem = this->inv[ HANDPOS ].usItem;
-
-				if ( this->inv[ HANDPOS ].exists() == true )
+				if ( usNewState == KNEEL_DOWN && this->usAnimState != BIGMERC_CROUCH_TRANS_INTO )
 				{
-					if ( Item[ usItem ].usItemClass == IC_GUN && !Item[usItem].rocketlauncher )
+					//UINT16 usItem;
+
+					// Do we have a rifle?
+					//usItem = this->inv[ HANDPOS ].usItem;
+
+					if ( this->inv[ HANDPOS ].exists() == true )
 					{
-						//						if ( (Item[ usItem ].fFlags & ITEM_TWO_HANDED) )
-						if ( (Item[ usItem ].twohanded ) )
+						if ( Item[ usItem ].usItemClass == IC_GUN && !Item[usItem].rocketlauncher )
 						{
-							usNewState = BIGMERC_CROUCH_TRANS_INTO;
+							//						if ( (Item[ usItem ].fFlags & ITEM_TWO_HANDED) )
+							if ( (Item[ usItem ].twohanded ) )
+							{
+								usNewState = BIGMERC_CROUCH_TRANS_INTO;
+							}
 						}
 					}
 				}
-			}
 
-			if ( usNewState == KNEEL_UP && this->usAnimState != BIGMERC_CROUCH_TRANS_OUTOF )
-			{
-				UINT16 usItem;
-
-				// Do we have a rifle?
-				usItem = this->inv[ HANDPOS ].usItem;
-
-				if ( this->inv[ HANDPOS ].exists() == true )
+				if ( usNewState == KNEEL_UP && this->usAnimState != BIGMERC_CROUCH_TRANS_OUTOF )
 				{
-					if ( Item[ usItem ].usItemClass == IC_GUN && !Item[usItem].rocketlauncher )
+					//UINT16 usItem;
+
+					// Do we have a rifle?
+					//usItem = this->inv[ HANDPOS ].usItem;
+
+					if ( this->inv[ HANDPOS ].exists() == true )
 					{
-						//						if ( (Item[ usItem ].fFlags & ITEM_TWO_HANDED) )
-						if ( (Item[ usItem ].twohanded ) )
+						if ( Item[ usItem ].usItemClass == IC_GUN && !Item[usItem].rocketlauncher )
 						{
-							usNewState = BIGMERC_CROUCH_TRANS_OUTOF;
+							//						if ( (Item[ usItem ].fFlags & ITEM_TWO_HANDED) )
+							if ( (Item[ usItem ].twohanded ) )
+							{
+								usNewState = BIGMERC_CROUCH_TRANS_OUTOF;
+							}
 						}
 					}
 				}
@@ -3213,15 +3388,35 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 				if ( this->ubDirection == gPurpendicularDirection[ this->ubDirection ][ this->pathing.usPathingData[ this->pathing.usPathIndex ] ] )
 				{
 					// We are perpendicular!
-					usNewState = SIDE_STEP;
+					// SANDRO - wait wait wait!!! We need to determine if gonna sidestep with weapon raised
+					if (( (gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIREREADY ) ||
+						(gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIRE ) ) && gGameExternalOptions.fAllowWalkingWithWeaponRaised )
+					{
+						if ( this->inv[ HANDPOS ].exists() == true && Item[ usItem ].usItemClass == IC_GUN && !Item[usItem].rocketlauncher)
+						{
+							if ( this->IsValidSecondHandShot() )
+							{
+								usNewState = SIDE_STEP_DUAL_RDY;
+							}
+							else if ( gAnimControl[ this->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )
+							{
+								usNewState = SIDE_STEP_ALTERNATIVE_RDY;
+							}
+							else   
+							{
+								usNewState = SIDE_STEP_WEAPON_RDY;	
+							}
+						}
+					}
+					else
+					{
+						usNewState = SIDE_STEP;
+					}
 				}
 				else
 				{
 					if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_CROUCH )
-					{
-						//*** ddd 
-						UINT16 usItem = this->inv[ HANDPOS ].usItem;
-						
+					{	
 						if( this->inv[ HANDPOS ].exists() == true && Item[ usItem ].usItemClass == IC_GUN && Item[ usItem ].twohanded && !Item[usItem].rocketlauncher)   
 							usNewState = SWAT_BACKWARDS;
 						else
@@ -3288,6 +3483,26 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			if ( usNewState == RUNNING )
 			{
 				usNewState = WALKING;
+			}
+		}
+		// SANDRO - check if we are gonna move with weapon raised
+		else if (( (gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIREREADY ) ||
+				(gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIRE ) ) && ( usNewState == WALKING ) && gGameExternalOptions.fAllowWalkingWithWeaponRaised )
+		{
+			if ( this->inv[ HANDPOS ].exists() == true && Item[ usItem ].usItemClass == IC_GUN && !Item[usItem].rocketlauncher)
+			{
+				if ( this->IsValidSecondHandShot() )
+				{
+					usNewState = WALKING_DUAL_RDY;
+				}
+				else if ( gAnimControl[ this->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )
+				{
+					usNewState = WALKING_ALTERNATIVE_RDY;	
+				}
+				else
+				{
+					usNewState = WALKING_WEAPON_RDY;	
+				}
 			}
 		}
 
@@ -3479,7 +3694,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 	{
 		// ATE: Also check for the transition anims to not reset this
 		// this should have used a flag but we're out of them....
-		if ( usNewState != READY_RIFLE_STAND && usNewState != READY_RIFLE_PRONE && usNewState != READY_RIFLE_CROUCH && usNewState != ROBOT_SHOOT )
+		if ( usNewState != READY_ALTERNATIVE_STAND && usNewState != READY_RIFLE_STAND && usNewState != READY_RIFLE_PRONE && usNewState != READY_RIFLE_CROUCH && usNewState != ROBOT_SHOOT && usNewState != TANK_SHOOT && usNewState != TANK_BURST && usNewState != THROW_KNIFE && usNewState != THROW_KNIFE_SP_BM && this->usAnimState != THROW_KNIFE && this->usAnimState != THROW_KNIFE_SP_BM )//dnl ch64 300813 //dnl ch70 170913
 		{
 			this->sLastTarget = NOWHERE;
 		}
@@ -3537,12 +3752,18 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 		case READY_DUAL_STAND:
 		case READY_DUAL_CROUCH:
 		case READY_DUAL_PRONE:
+		case READY_ALTERNATIVE_STAND:
 
 			// OK, get points to ready weapon....
 			if ( !this->flags.fDontChargeReadyAPs )
 			{
 				sAPCost = GetAPsToReadyWeapon( this, usNewState );
-				DeductPoints( this, sAPCost, sBPCost );
+				// SANDRO - get BP cost for weapon manipulating
+				if ( gGameExternalOptions.ubEnergyCostForWeaponWeight )
+					sBPCost = sAPCost * GetBPCostPer10APsForGunHolding( this ) / 10;
+				else 
+					sBPCost = 0;
+				DeductPoints( this, sAPCost, sBPCost, BEFORESHOT_INTERRUPT );
 			}
 			else
 			{
@@ -3551,6 +3772,9 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			break;
 
 		case WALKING:
+		case WALKING_WEAPON_RDY:
+		case WALKING_DUAL_RDY:
+		case WALKING_ALTERNATIVE_RDY:
 
 			this->usPendingAnimation = NO_PENDING_ANIMATION;
 			this->aiData.ubPendingActionAnimCount = 0;
@@ -3583,7 +3807,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 				}
 				else
 					sAPCost = GetAPsStartRun( this ); // changed by SANDRO
-				DeductPoints( this, sAPCost, sBPCost );
+				DeductPoints( this, sAPCost, sBPCost, MOVEMENT_INTERRUPT );
 			}
 			// Set pending action count to 0
 			this->aiData.ubPendingActionAnimCount = 0;
@@ -3607,6 +3831,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			{
 				// CHRISL
 				// SANDRO - APBPConstants[AP_CROUCH] changed to GetAPsCrouch()
+#if 0//dnl ch70 160913 this is wrong we cannot just add constants to sAPCost this must be done in GetAPsCrouch and GetAPsProne because all preactions calculation will show incorrect values under cursor
 				if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( this ) != ITEM_NOT_FOUND && !this->flags.ZipperFlag)
 				{
 					if(usNewState == KNEEL_UP || usNewState == BIGMERC_CROUCH_TRANS_OUTOF)
@@ -3630,6 +3855,26 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 					sAPCost=GetAPsCrouch(this, FALSE);
 					sBPCost=APBPConstants[BP_CROUCH];
 				}
+#else
+				if(UsingNewInventorySystem())
+				{
+					if(usNewState == KNEEL_UP || usNewState == BIGMERC_CROUCH_TRANS_OUTOF)
+					{
+						sAPCost=GetAPsCrouch(this, TRUE*2);
+						sBPCost=APBPConstants[BP_CROUCH]+2;
+					}
+					else
+					{
+						sAPCost=GetAPsCrouch(this, TRUE);
+						sBPCost=APBPConstants[BP_CROUCH]+1;
+					}
+				}
+				else
+				{
+					sAPCost=GetAPsCrouch(this, FALSE);
+					sBPCost=APBPConstants[BP_CROUCH];
+				}
+#endif
 				DeductPoints( this, sAPCost, sBPCost );
 			}
 			this->flags.fDontChargeAPsForStanceChange = FALSE;
@@ -3646,6 +3891,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 				if ( this->sGridNo == this->pathing.sFinalDestination || this->pathing.usPathIndex == 0 )
 				{
 					// CHRISL
+#if 0//dnl ch70 160913 this is wrong we cannot just add constants to sAPCost this must be done in GetAPsCrouch and GetAPsProne because all preactions calculation will show incorrect values under cursor
 					if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( this ) != ITEM_NOT_FOUND && !this->flags.ZipperFlag)
 					{
 						if(usNewState == PRONE_UP)
@@ -3664,6 +3910,26 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 						sAPCost=GetAPsProne(this, FALSE);
 						sBPCost=APBPConstants[BP_PRONE];
 					}
+#else
+					if(UsingNewInventorySystem())
+					{
+						if(usNewState == PRONE_UP)
+						{
+							sAPCost=GetAPsProne(this, TRUE*2);
+							sBPCost=APBPConstants[BP_PRONE]+2;
+						}
+						else
+						{
+							sAPCost=GetAPsProne(this, TRUE);
+							sBPCost=APBPConstants[BP_PRONE]+1;
+						}
+					}
+					else
+					{
+						sAPCost=GetAPsProne(this, FALSE);
+						sBPCost=APBPConstants[BP_PRONE];
+					}
+#endif
 					DeductPoints( this, sAPCost, sBPCost );
 				}
 			}
@@ -3676,12 +3942,13 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			//break;
 
 		case START_AID:
+		case START_AID_PRN:
 
 			DeductPoints( this, APBPConstants[AP_START_FIRST_AID], APBPConstants[BP_START_FIRST_AID] );
 			break;
 
 		case CUTTING_FENCE:
-			DeductPoints( this, APBPConstants[AP_USEWIRECUTTERS], APBPConstants[BP_USEWIRECUTTERS] );
+			DeductPoints( this, APBPConstants[AP_USEWIRECUTTERS], APBPConstants[BP_USEWIRECUTTERS], AFTERACTION_INTERRUPT );
 			break;
 
 		case PLANT_BOMB:
@@ -3723,7 +3990,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 
 		case USE_REMOTE:
 
-			DeductPoints( this, APBPConstants[AP_USE_REMOTE], 0 );
+			DeductPoints( this, APBPConstants[AP_USE_REMOTE], 0, AFTERACTION_INTERRUPT );
 			break;
 
 			//case PUNCH:
@@ -3738,28 +4005,28 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			// CHRISL
 			// SANDRO - changed this a bit
 			if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( this ) != ITEM_NOT_FOUND )
-				DeductPoints( this, GetAPsToJumpFence( this, TRUE ), GetBPsToJumpFence( this, TRUE ) );
+				DeductPoints( this, GetAPsToJumpFence( this, TRUE ), GetBPsToJumpFence( this, TRUE ), SP_MOVEMENT_INTERRUPT );
 			else
-				DeductPoints( this, GetAPsToJumpFence( this, FALSE ), GetBPsToJumpFence( this, FALSE ) );
+				DeductPoints( this, GetAPsToJumpFence( this, FALSE ), GetBPsToJumpFence( this, FALSE ), SP_MOVEMENT_INTERRUPT );
 			break;
 			
 		case JUMPWINDOWS:
 			if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( this ) != ITEM_NOT_FOUND )
-				DeductPoints( this, GetAPsToJumpThroughWindows( this, TRUE ), GetBPsToJumpThroughWindows( this, TRUE ) );
+				DeductPoints( this, GetAPsToJumpThroughWindows( this, TRUE ), GetBPsToJumpThroughWindows( this, TRUE ), SP_MOVEMENT_INTERRUPT );
 			else
-				DeductPoints( this, GetAPsToJumpThroughWindows( this, FALSE ), GetBPsToJumpThroughWindows( this, FALSE ) );
+				DeductPoints( this, GetAPsToJumpThroughWindows( this, FALSE ), GetBPsToJumpThroughWindows( this, FALSE ), SP_MOVEMENT_INTERRUPT );
 			break;
 
 			// Deduct aps for falling down....
 		case FALLBACK_HIT_STAND:
 		case FALLFORWARD_FROMHIT_STAND:
 
-			DeductPoints( this, APBPConstants[AP_FALL_DOWN], APBPConstants[BP_FALL_DOWN] );
+			DeductPoints( this, APBPConstants[AP_FALL_DOWN], APBPConstants[BP_FALL_DOWN], DISABLED_INTERRUPT );
 			break;
 
 		case FALLFORWARD_FROMHIT_CROUCH:
 
-			DeductPoints( this, (APBPConstants[AP_FALL_DOWN]/2), (APBPConstants[BP_FALL_DOWN]/2) );
+			DeductPoints( this, (APBPConstants[AP_FALL_DOWN]/2), (APBPConstants[BP_FALL_DOWN]/2), DISABLED_INTERRUPT );
 			break;
 
 		case QUEEN_SWIPE:
@@ -3773,7 +4040,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			// disable sight
 			gTacticalStatus.uiFlags |= DISALLOW_SIGHT;
 
-			DeductPoints( this, GetAPsToClimbRoof( this, TRUE), GetBPsToClimbRoof( this, TRUE) ); // changed by SANDRO
+			DeductPoints( this, GetAPsToClimbRoof( this, TRUE), GetBPsToClimbRoof( this, TRUE), SP_MOVEMENT_INTERRUPT ); // changed by SANDRO
 			break;
 
 		case CLIMBUPROOF:
@@ -3781,7 +4048,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			// disable sight
 			gTacticalStatus.uiFlags |= DISALLOW_SIGHT;
 
-			DeductPoints( this, GetAPsToClimbRoof( this, FALSE), GetBPsToClimbRoof( this, FALSE) ); // changed by SANDRO
+			DeductPoints( this, GetAPsToClimbRoof( this, FALSE), GetBPsToClimbRoof( this, FALSE), SP_MOVEMENT_INTERRUPT ); // changed by SANDRO
 			break;
 			
 		case JUMPDOWNWALL:
@@ -3789,7 +4056,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			// disable sight
 			gTacticalStatus.uiFlags |= DISALLOW_SIGHT;
 
-			DeductPoints( this, GetAPsToJumpWall( this, TRUE), GetBPsToJumpWall( this, TRUE) ); 
+			DeductPoints( this, GetAPsToJumpWall( this, TRUE), GetBPsToJumpWall( this, TRUE), SP_MOVEMENT_INTERRUPT ); 
 			break;
 
 		case JUMPUPWALL:
@@ -3797,16 +4064,15 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			// disable sight
 			gTacticalStatus.uiFlags |= DISALLOW_SIGHT;
 
-			DeductPoints( this, GetAPsToJumpWall( this, FALSE), GetBPsToJumpWall( this, FALSE) ); 
+			DeductPoints( this, GetAPsToJumpWall( this, FALSE), GetBPsToJumpWall( this, FALSE), SP_MOVEMENT_INTERRUPT ); 
 			break;
 
 		case JUMP_OVER_BLOCKING_PERSON:
-
 			// Set path....
 			{
-					INT32 usNewGridNo;
+				INT32 usNewGridNo;
 
-				DeductPoints( this, GetAPsToJumpOver( this ), APBPConstants[BP_JUMP_OVER] ); // changed by SANDRO
+				DeductPoints( this, GetAPsToJumpOver( this ), APBPConstants[BP_JUMP_OVER], SP_MOVEMENT_INTERRUPT );
 
 				usNewGridNo = NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) );
 				usNewGridNo = NewGridNo( usNewGridNo, DirectionInc( this->ubDirection ) );
@@ -3823,6 +4089,34 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 				this->pathing.sFinalDestination = usNewGridNo;
 				// Set direction
 				this->EVENT_InternalSetSoldierDestination( (UINT8) this->pathing.usPathingData[ this->pathing.usPathIndex ], FALSE, JUMP_OVER_BLOCKING_PERSON );
+			}
+			break;
+
+		case LONG_JUMP:
+			// Set path....
+			{
+				INT32 usNewGridNo;
+
+				DeductPoints( this, GetAPsToJumpOver( this ), APBPConstants[BP_JUMP_OVER], SP_MOVEMENT_INTERRUPT );
+
+				usNewGridNo = NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) );
+				usNewGridNo = NewGridNo( usNewGridNo, DirectionInc( this->ubDirection ) );
+				usNewGridNo = NewGridNo( usNewGridNo, DirectionInc( this->ubDirection ) );
+
+				this->sPlotSrcGrid = this->sGridNo;
+				this->flags.fPastXDest = FALSE;
+				this->flags.fPastYDest = FALSE;
+				this->pathing.usPathDataSize = 0;
+				this->pathing.usPathIndex    = 0;
+				this->pathing.usPathingData[ this->pathing.usPathDataSize ] = this->ubDirection;
+				this->pathing.usPathDataSize++;
+				this->pathing.usPathingData[ this->pathing.usPathDataSize ] = this->ubDirection;
+				this->pathing.usPathDataSize++;
+				this->pathing.usPathingData[ this->pathing.usPathDataSize ] = this->ubDirection;
+				this->pathing.usPathDataSize++;
+				this->pathing.sFinalDestination = usNewGridNo;
+				// Set direction
+				this->EVENT_InternalSetSoldierDestination( (UINT8) this->pathing.usPathingData[ this->pathing.usPathIndex ], FALSE, LONG_JUMP );
 			}
 			break;
 
@@ -3988,7 +4282,8 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 	if ( ( gAnimControl[ this->usOldAniState ].uiFlags & ANIM_RAISE_WEAPON) && (gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIREREADY) )
 		//equivalent if ( (this->usAnimState == AIM_RIFLE_PRONE) || (this->usAnimState == AIM_RIFLE_CROUCH) || (this->usAnimState == AIM_RIFLE_STAND) )
 	{
-		if ( (this->usOldAniState == READY_RIFLE_STAND) || (this->usOldAniState == READY_RIFLE_CROUCH) || (this->usOldAniState == READY_RIFLE_PRONE) )
+		if ( (this->usOldAniState == READY_RIFLE_STAND) || (this->usOldAniState == READY_RIFLE_CROUCH) || (this->usOldAniState == READY_RIFLE_PRONE) || 
+			(this->usOldAniState == READY_DUAL_STAND) || (this->usOldAniState == READY_DUAL_CROUCH) || (this->usOldAniState == READY_DUAL_PRONE) )
 		{
 			HandleSight(this,SIGHT_LOOK);
 		}
@@ -4400,6 +4695,8 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 				}
 			}
 
+			this->HandleFlashLights();
+
 			///HandlePlacingRoofMarker( this, this->sGridNo, TRUE, FALSE );
 
 			this->HandleAnimationProfile( this->usAnimState, FALSE );
@@ -4459,17 +4756,17 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 				// Based on our current animation, change!
 				switch( this->usAnimState )
 				{
-				case WALKING:
-				case RUNNING:
-
-					// IN deep water, swim!
-
-					// Make transition from low to deep
-					this->EVENT_InitNewSoldierAnim( LOW_TO_DEEP_WATER, 0 , FALSE );
-					this->usPendingAnimation = DEEP_WATER_SWIM;
-					this->usDontUpdateNewGridNoOnMoveAnimChange = 1;
-					PlayJA2Sample( ENTER_DEEP_WATER_1, RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
-
+					case WALKING:
+					case WALKING_WEAPON_RDY:
+					case WALKING_DUAL_RDY:
+					case WALKING_ALTERNATIVE_RDY:
+					case RUNNING:
+						// IN deep water, swim!
+						// Make transition from low to deep
+						this->EVENT_InitNewSoldierAnim( LOW_TO_DEEP_WATER, 0 , FALSE );
+						this->usPendingAnimation = DEEP_WATER_SWIM;
+						this->usDontUpdateNewGridNoOnMoveAnimChange = 1;
+						PlayJA2Sample( ENTER_DEEP_WATER_1, RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
 				}
 			}
 
@@ -4478,7 +4775,7 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 			{
 				WaterDamage( this );
 			}
-
+			
 			// OK, If we were in deep water but we are NOT now, handle mid animations!
 			if ( !TERRAIN_IS_DEEP_WATER( this->bOverTerrainType) && TERRAIN_IS_DEEP_WATER( this->bOldOverTerrainType) )
 			{
@@ -4641,10 +4938,50 @@ void SOLDIERTYPE::EVENT_FireSoldierWeapon( INT32 sTargetGridNo )
 	// Convert our grid-not into an XY
 	ConvertGridNoToXY( sTargetGridNo, &sTargetXPos, &sTargetYPos );
 
+	//dnl ch72 2509134
+	UINT16 usItem;
+	if(this->bWeaponMode == WM_ATTACHED_GL || this->bWeaponMode == WM_ATTACHED_GL_BURST || this->bWeaponMode == WM_ATTACHED_GL_AUTO)
+		usItem = GetAttachedGrenadeLauncher(&this->inv[HANDPOS]);
+	else
+		usItem = this->inv[HANDPOS].usItem;
+	if(Item[usItem].rocketlauncher || Item[usItem].grenadelauncher || Item[usItem].mortar)
+	{
+		if(gAnimControl[this->usAnimState].ubEndHeight == ANIM_PRONE || Item[usItem].mortar && gAnimControl[this->usAnimState].ubEndHeight == ANIM_STAND)
+			SendChangeSoldierStanceEvent(this, ANIM_CROUCH);
+		fDoFireRightAway = TRUE;
+	}
 
 	// Change to fire animation
 	// Ready weapon
-	this->SoldierReadyWeapon( sTargetXPos, sTargetYPos, FALSE );
+	//if (this->bTeam == gbPlayerNum)
+	//{
+		this->SoldierReadyWeapon( sTargetXPos, sTargetYPos, FALSE, IsValidAlternativeFireMode( this->aiData.bAimTime, sTargetGridNo ) );
+	//}
+	//else
+	//{
+	//	this->SoldierReadyWeapon( sTargetXPos, sTargetYPos, FALSE, AIDecideHipOrShoulderStance( this, sTargetGridNo ) );
+	//}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// SANDRO - hack! - an interrupt pending before shot
+	if ( gGameOptions.fImprovedInterruptSystem )
+	{
+		if ( ResolvePendingInterrupt( this, BEFORESHOT_INTERRUPT ) )
+		{
+			this->usPendingAnimation = NO_PENDING_ANIMATION;
+			this->ubPendingDirection = NO_PENDING_DIRECTION;
+			// "artificially" set lock ui flag
+			if (this->bTeam == gbPlayerNum)
+			{
+				//AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, Message[STR_INTERRUPT] );
+				guiPendingOverrideEvent = LU_BEGINUILOCK;			
+				HandleTacticalUI( );
+			}
+			// return as we are not gonna shoot if interrupted
+			return;
+		}
+	}
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// IF WE ARE AN NPC, SLIDE VIEW TO SHOW WHO IS SHOOTING
 	{
@@ -4665,6 +5002,7 @@ void SOLDIERTYPE::EVENT_FireSoldierWeapon( INT32 sTargetGridNo )
 			}
 			else
 			{
+#if 0//dnl ch72 250913 move this above as need to be done before calling SoldierReadyWeapon
 				// IF WE ARE IN REAl-TIME, FIRE IMMEDIATELY!
 				if ( ( ( gTacticalStatus.uiFlags & REALTIME ) || !( gTacticalStatus.uiFlags & INCOMBAT ) ) )
 				{
@@ -4683,7 +5021,7 @@ void SOLDIERTYPE::EVENT_FireSoldierWeapon( INT32 sTargetGridNo )
 					fDoFireRightAway = TRUE;
 				//		break;
 				//}
-
+#endif
 				if ( fDoFireRightAway )
 				{
 					// Set to true so we don't get toasted twice for APs..
@@ -4805,12 +5143,12 @@ UINT16 SelectFireAnimation( SOLDIERTYPE *pSoldier, UINT8 ubHeight )
 		usItem = pSoldier->inv[ HANDPOS ].usItem;
 
 		// CHECK 2ND HAND!
-		if ( pSoldier->IsValidSecondHandShot( ) )
+		if ( pSoldier->IsValidSecondHandBurst() )
 		{
-			// Increment the number of people busy doing stuff because of an attack
-			//gTacticalStatus.ubAttackBusyCount++;
-			//DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("!!!!!!! Starting attack with 2 guns, attack count now %d", gTacticalStatus.ubAttackBusyCount) );
-
+			return( BURST_DUAL_STAND );
+		}
+		else if ( pSoldier->IsValidSecondHandShot() && !pSoldier->bDoBurst )
+		{
 			return( SHOOT_DUAL_STAND );
 		}
 		else
@@ -4828,12 +5166,6 @@ UINT16 SelectFireAnimation( SOLDIERTYPE *pSoldier, UINT8 ubHeight )
 				fDoLowShot = TRUE;
 			}
 
-			// ATE: Made distence away long for psitols such that they never use this....
-			//if ( !(Item[ usItem ].fFlags & ITEM_TWO_HANDED) )
-			//{
-			//	fDoLowShot = FALSE;
-			//}
-
 			// Don't do any low shots if in water
 			if ( pSoldier->MercInWater( ) )
 			{
@@ -4845,67 +5177,97 @@ UINT16 SelectFireAnimation( SOLDIERTYPE *pSoldier, UINT8 ubHeight )
 			{
 				if ( fDoLowShot )
 				{
-					return( FIRE_BURST_LOW_STAND );
+					if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, pSoldier->sTargetGridNo ) )
+					{
+						return( LOW_BURST_ALTERNATIVE_STAND );
+					}
+					else
+					{
+						return( FIRE_BURST_LOW_STAND );
+					}
 				}
 				else
 				{
-					return( STANDING_BURST );
+					if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, pSoldier->sTargetGridNo ) )
+					{
+						return( BURST_ALTERNATIVE_STAND );
+					}
+					else
+					{
+						return( STANDING_BURST );
+					}
 				}
 			}
 			else
 			{
 				if ( fDoLowShot )
 				{
-					return( FIRE_LOW_STAND );
+					if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, pSoldier->sTargetGridNo ) )
+					{
+						return( LOW_SHOT_ALTERNATIVE_STAND );
+					}
+					else
+					{
+						return( FIRE_LOW_STAND );
+					}
 				}
 				else
 				{
-					return( SHOOT_RIFLE_STAND );
+					if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, pSoldier->sTargetGridNo ) )
+					{
+						return( SHOOT_ALTERNATIVE_STAND );
+					}
+					else
+					{
+						return( SHOOT_RIFLE_STAND );
+					}
 				}
-			}
-		}
-		break;
-
-	case ANIM_PRONE:
-
-		if ( pSoldier->bDoBurst > 0 )
-		{
-			//				pSoldier->flags.fBurstCompleted = FALSE;
-			return( PRONE_BURST );
-		}
-		else
-		{
-			if ( pSoldier->IsValidSecondHandShot( ) )
-			{
-				return( SHOOT_DUAL_PRONE );
-			}
-			else
-			{
-				return( SHOOT_RIFLE_PRONE );
 			}
 		}
 		break;
 
 	case ANIM_CROUCH:
 
-		if ( pSoldier->IsValidSecondHandShot( ) )
+		if ( pSoldier->IsValidSecondHandShot() && pSoldier->bDoBurst > 0 && pSoldier->IsValidSecondHandBurst() )
 		{
-			// Increment the number of people busy doing stuff because of an attack
-			//gTacticalStatus.ubAttackBusyCount++;
-			//DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("!!!!!!! Starting attack with 2 guns, attack count now %d", gTacticalStatus.ubAttackBusyCount) );
-
+			return( BURST_DUAL_CROUCH );
+		}
+		else if ( pSoldier->IsValidSecondHandShot() && !pSoldier->bDoBurst )
+		{
 			return( SHOOT_DUAL_CROUCH );
 		}
 		else
 		{
 			if ( pSoldier->bDoBurst > 0 )
 			{
-				//				pSoldier->flags.fBurstCompleted = FALSE;
 				return( CROUCHED_BURST );
 			}
 			else
 			{
 				return( SHOOT_RIFLE_CROUCH );
+			}
+		}
+		break;
+
+	case ANIM_PRONE:
+		
+		if ( pSoldier->IsValidSecondHandShot() && pSoldier->bDoBurst > 0 && pSoldier->IsValidSecondHandBurst() )
+		{
+			return( BURST_DUAL_PRONE );
+		}
+		else if ( pSoldier->IsValidSecondHandShot() && !pSoldier->bDoBurst )
+		{
+			return( SHOOT_DUAL_PRONE );
+		}
+		else
+		{
+			if ( pSoldier->bDoBurst > 0 )
+			{
+				return( PRONE_BURST );
+			}
+			else
+			{
+				return( SHOOT_RIFLE_PRONE );
 			}
 		}
 		break;
@@ -5000,20 +5362,20 @@ void SelectFallAnimation( SOLDIERTYPE *pSoldier )
 
 BOOLEAN SOLDIERTYPE::SoldierReadyWeapon( void )
 {
-	return( this->InternalSoldierReadyWeapon( (INT8)this->ubDirection, FALSE ) );
+	return( this->InternalSoldierReadyWeapon( (INT8)this->ubDirection, FALSE, FALSE ) );
 }
 
-BOOLEAN SOLDIERTYPE::SoldierReadyWeapon( INT16 sTargetXPos, INT16 sTargetYPos, BOOLEAN fEndReady )
+BOOLEAN SOLDIERTYPE::SoldierReadyWeapon( INT16 sTargetXPos, INT16 sTargetYPos, BOOLEAN fEndReady, BOOLEAN fRaiseToHipOnly )
 {
 	INT16								sFacingDir;
 
 	sFacingDir = GetDirectionFromXY( sTargetXPos , sTargetYPos, this );
 
-	return( this->InternalSoldierReadyWeapon( (INT8)sFacingDir, fEndReady ) );
+	return( this->InternalSoldierReadyWeapon( (INT8)sFacingDir, fEndReady, fRaiseToHipOnly ) );
 }
 
 
-BOOLEAN SOLDIERTYPE::InternalSoldierReadyWeapon( UINT8 sFacingDir, BOOLEAN fEndReady )
+BOOLEAN SOLDIERTYPE::InternalSoldierReadyWeapon( UINT8 sFacingDir, BOOLEAN fEndReady, BOOLEAN fRaiseToHipOnly )
 {
 	UINT16 usAnimState;
 	BOOLEAN	fReturnVal = FALSE;
@@ -5029,8 +5391,28 @@ BOOLEAN SOLDIERTYPE::InternalSoldierReadyWeapon( UINT8 sFacingDir, BOOLEAN fEndR
 	}
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("InternalSoldierReadyWeapon: PickingAnimation"));
-	usAnimState = PickSoldierReadyAnimation( this, fEndReady );
-
+	usAnimState = PickSoldierReadyAnimation( this, fEndReady, fRaiseToHipOnly );
+	if(!fEndReady && this->ubDirection != sFacingDir)//dnl ch71 170913
+	{
+		UINT16 usTrueAnimState = this->usAnimState;
+		switch(gAnimControl[this->usAnimState].ubEndHeight)
+		{
+		case ANIM_STAND:
+			this->usAnimState = STANDING;
+			if(this->flags.fDontChargeTurningAPs && !this->flags.fDontChargeReadyAPs && usAnimState == INVALID_ANIMATION)
+				usAnimState = PickSoldierReadyAnimation(this, FALSE, fRaiseToHipOnly);// someone introduced new cost system for turning and this means we must force gun raise
+			break;
+		case ANIM_CROUCH:
+			this->usAnimState = CROUCHING;
+			if(this->flags.fDontChargeTurningAPs && !this->flags.fDontChargeReadyAPs && usAnimState == INVALID_ANIMATION)
+				usAnimState = PickSoldierReadyAnimation(this, FALSE, FALSE);// force gun raise for proper APs deduction
+			break;
+		case ANIM_PRONE:
+			usAnimState = INVALID_ANIMATION;// we are turning in prone so raise gun will be done after turning
+			break;
+		}
+		this->usAnimState = usTrueAnimState;
+	}
 	if ( usAnimState != INVALID_ANIMATION )
 	{
 		if(is_networked)
@@ -5052,21 +5434,23 @@ BOOLEAN SOLDIERTYPE::InternalSoldierReadyWeapon( UINT8 sFacingDir, BOOLEAN fEndR
 		{
 			usAnimState = this->usAnimState;
 		}
-
+		//dnl ch72 270913 ugly but fast fix for not charging turning APs as there is no fire ready animation for mortars and rocket launchers
+		UINT16 usItem = this->inv[HANDPOS].usItem;
+		if(Item[usItem].rocketlauncher || Item[usItem].mortar)
+			usForceAnimState = this->usAnimState;
 		EVENT_InternalSetSoldierDesiredDirection( this, sFacingDir, FALSE, usAnimState );
-
+		usForceAnimState = INVALID_ANIMATION;
 		// Check if facing dir is different from ours and change direction if so!
 		//if ( sFacingDir != this->ubDirection )
 		//{
 		//	DeductPoints( this, APBPConstants[AP_CHANGE_FACING], 0 );
 		//}//
-
 	}
 
 	return( fReturnVal );
 }
 
-UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady )
+UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fAltWeaponHolding )
 {
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("PickSoldierReadyAnimation"));
 
@@ -5119,7 +5503,18 @@ UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady )
 				}
 				else
 				{
-					return( END_RIFLE_STAND );
+					if ( gAnimControl[ pSoldier->usAnimState ].uiFlags & ( ANIM_ALT_WEAPON_HOLDING ) )//&& Item[ pSoldier->inv[HANDPOS].usItem ].twohanded)
+					{
+						return( UNREADY_ALTERNATIVE_STAND );
+					}
+					//else if (gAnimControl[ pSoldier->usAnimState ].uiFlags & ( ANIM_ALT_WEAPON_HOLDING ) && !Item[ pSoldier->inv[HANDPOS].usItem ].twohanded)
+					//{
+					//	return( PISTOL_FASTSHOT_UNREADY );
+					//}
+					else
+					{
+						return( END_RIFLE_STAND );
+					}
 				}
 				break;
 
@@ -5154,56 +5549,78 @@ UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady )
 	}
 	else
 	{
-
-		// IF our gun is already drawn, do not change animation, just direction
-		if ( !(gAnimControl[ pSoldier->usAnimState ].uiFlags & ( ANIM_FIREREADY | ANIM_FIRE ) ) )
+		// if our gun is in alternative holding (hip rifle/one-hand pistol) and we are going to shoulder
+		if ( (gAnimControl[ pSoldier->usAnimState ].uiFlags & ( ANIM_ALT_WEAPON_HOLDING )) && gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND && !fAltWeaponHolding && !Weapon[pSoldier->inv[pSoldier->ubAttackingHand].usItem].HeavyGun)
 		{
-
+			return( READY_RIFLE_STAND );
+		}
+		// this is a specific situation when we have a gun in standard holding (shouldered rifle/two-hand pistol) and was told to go to alternative holding
+		else if ((gAnimControl[ pSoldier->usAnimState ].uiFlags & ( ANIM_FIREREADY | ANIM_FIRE )) && !(gAnimControl[ pSoldier->usAnimState ].uiFlags & ( ANIM_ALT_WEAPON_HOLDING )) 
+			&& fAltWeaponHolding && gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 && pSoldier->bScopeMode == -1 && gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND 
+			&& ((!Item[ pSoldier->inv[HANDPOS].usItem ].twohanded && !pSoldier->IsValidSecondHandShot() && !pSoldier->MercInWater() ) || Item[ pSoldier->inv[HANDPOS].usItem ].twohanded ) )
+		{
+			return( READY_ALTERNATIVE_STAND );
+		}
+		// IF our gun is already drawn, do not change animation, just direction
+		else if ( !(gAnimControl[ pSoldier->usAnimState ].uiFlags & ( ANIM_FIREREADY | ANIM_FIRE ) ) )
+		{
+			switch ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
 			{
-				switch ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
-				{
-				case ANIM_STAND:
+			case ANIM_STAND:
 
-					// CHECK 2ND HAND!
-					if ( pSoldier->IsValidSecondHandShot( ) )
+				// CHECK 2ND HAND!
+				if ( pSoldier->IsValidSecondHandShot( ) )
+				{
+					return( READY_DUAL_STAND );
+				}
+				else
+				{
+					if ( gGameExternalOptions.ubAllowAlternativeWeaponHolding ) 
 					{
-						return( READY_DUAL_STAND );
+						if (fAltWeaponHolding || (Weapon[pSoldier->inv[pSoldier->ubAttackingHand].usItem].HeavyGun && Item[ pSoldier->inv[HANDPOS].usItem ].twohanded) )
+						{
+							return( READY_ALTERNATIVE_STAND );
+						}
+						else
+						{
+							return( READY_RIFLE_STAND );
+						}
 					}
 					else
 					{
 						return( READY_RIFLE_STAND );
 					}
-					break;
-
-				case ANIM_PRONE:
-					// Go into crouch, turn, then go into prone again
-					//pSoldier->ChangeSoldierStance( ANIM_CROUCH );
-					//pSoldier->ubDesiredHeight = ANIM_PRONE;
-					//pSoldier->ChangeSoldierState( PRONE_UP );
-					if ( pSoldier->IsValidSecondHandShot( ) )
-					{
-						return( READY_DUAL_PRONE );
-					}
-					else
-					{
-						return( READY_RIFLE_PRONE );
-					}
-					break;
-
-				case ANIM_CROUCH:
-
-					// CHECK 2ND HAND!
-					if ( pSoldier->IsValidSecondHandShot( ) )
-					{
-						return( READY_DUAL_CROUCH );
-					}
-					else
-					{
-						return( READY_RIFLE_CROUCH );
-					}
-					break;
-
 				}
+				break;
+
+			case ANIM_PRONE:
+				// Go into crouch, turn, then go into prone again
+				//pSoldier->ChangeSoldierStance( ANIM_CROUCH );
+				//pSoldier->ubDesiredHeight = ANIM_PRONE;
+				//pSoldier->ChangeSoldierState( PRONE_UP );
+				if ( pSoldier->IsValidSecondHandShot( ) )
+				{
+					return( READY_DUAL_PRONE );
+				}
+				else
+				{
+					return( READY_RIFLE_PRONE );
+				}
+				break;
+
+			case ANIM_CROUCH:
+
+				// CHECK 2ND HAND!
+				if ( pSoldier->IsValidSecondHandShot( ) )
+				{
+					return( READY_DUAL_CROUCH );
+				}
+				else
+				{
+					return( READY_RIFLE_CROUCH );
+				}
+				break;
+
 			}
 
 		}
@@ -5282,13 +5699,15 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 		if ( this->ubAttackerID != NOBODY && MercPtrs[ this->ubAttackerID ]->bTeam == gbPlayerNum )
 		{
 			HandleMoraleEvent( MercPtrs[ this->ubAttackerID ], MORALE_DID_LOTS_OF_DAMAGE, MercPtrs[ this->ubAttackerID ]->sSectorX, MercPtrs[ this->ubAttackerID ]->sSectorY, MercPtrs[ this->ubAttackerID ]->bSectorZ );
+			this->ubLastMoraleFromHit++;
 		}
 		if (this->bTeam == gbPlayerNum)
 		{
 			HandleMoraleEvent( this, MORALE_TOOK_LOTS_OF_DAMAGE, this->sSectorX, this->sSectorY, this->bSectorZ );
+			this->ubLastMoraleFromHit++;
 		}
 	}
-
+		
 	// SWITCH IN TYPE OF WEAPON
 	if ( ubSpecial == FIRE_WEAPON_TOSSED_OBJECT_SPECIAL )
 	{
@@ -5341,6 +5760,25 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 			}
 			// will always increase counter by at least 1
 			this->bBlindedCounter += (sDamage / 8) + 1;
+
+			// Dirty panel
+			fInterfacePanelDirty = DIRTYLEVEL2;
+		}
+		// Flugente: like FIRE_WEAPON_BLINDED_BY_SPIT_SPECIAL but without the damage dependency
+		else if ( ubSpecial == FIRE_WEAPON_BLINDED_SPECIAL )
+		{
+			// blinded!!
+			if ( (this->bBlindedCounter == 0)  )
+			{
+				// say quote
+				if (this->flags.uiStatusFlags & SOLDIER_PC)
+				{
+					TacticalCharacterDialogue( this, QUOTE_BLINDED );
+				}
+				DecayIndividualOpplist( this );
+			}
+
+			this->bBlindedCounter += 2* Random(3) + 2;
 
 			// Dirty panel
 			fInterfacePanelDirty = DIRTYLEVEL2;
@@ -5417,12 +5855,50 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 		}
 		////////////////////////////////////////////////////////////////////////////
 		sDamage = sDamage / PUNCH_REAL_DAMAGE_PORTION;
+#ifdef JA2UB
+//Ja25: No meanwhiles
+#else
 		if ( AreInMeanwhile() && gCurrentMeanwhileDef.ubMeanwhileID == INTERROGATION )
 		{
 			sBreathLoss = 0;
 			sDamage /= 2;
 		}
+#endif
 		ubReason = TAKE_DAMAGE_HANDTOHAND;
+
+		// Flugente: if the weapon is a taser and has enough batteries, the damage will be 0, but the breathdamage will knock out anyone
+		if ( HasItemFlag(usWeaponIndex, TASER) )
+		{
+			// tasers need batteries, because I say so
+			if ( Item[usWeaponIndex].needsbatteries )
+			{
+				// check for batteries
+				OBJECTTYPE* pBatteries = FindAttachedBatteries( &(MercPtrs[ubAttackerID]->inv[HANDPOS]) );
+				if ( pBatteries )
+				{
+					sDamage = 0;
+					sBreathLoss = 30000;
+					ubReason = TAKE_DAMAGE_ELECTRICITY;
+
+					// use up 8-12 percent of batteries
+					if ( Item[pBatteries->usItem].percentstatusdrainreduction > 0 )
+						(*pBatteries)[0]->data.objectStatus -= (INT8)( (8 + Random( 5 )) * (100 - Item[(*pBatteries)[0]->data.objectStatus].percentstatusdrainreduction)/100 );
+					else
+						(*pBatteries)[0]->data.objectStatus -= (INT8)( (8 + Random( 5 )) );
+					if ( (*pBatteries)[0]->data.objectStatus <= 0 )
+					{
+						// destroy batteries
+						pBatteries->RemoveObjectsFromStack(1);
+						if (pBatteries->exists() == false) {
+							MercPtrs[ubAttackerID]->inv[HANDPOS].RemoveAttachment(pBatteries);
+						}
+					}
+
+					// insert electrical sound effect here
+					PlayJA2Sample( DOOR_ELECTRICITY, RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
+				}
+			}
+		}
 	}
 	// marke added one 'or' for explosive ammo. variation of: AmmoTypes[this->inv[this->ubAttackingHand ][0]->data.gun.ubGunAmmoType].explosionSize > 1
 	//  extracting attacker´s ammo type
@@ -5466,24 +5942,30 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 				}
 			}
 			DecayIndividualOpplist( this );
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_BLINDED, MercPtrs[ubAttackerID]);
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_DEAFENED, MercPtrs[ubAttackerID]);
 			break;
 
 		case FIRE_WEAPON_BLINDED:
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_BLINDED, MercPtrs[ubAttackerID]);
 			break;
 
 		case FIRE_WEAPON_DEAFENED:
-			//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Soldier is deafened" );
+			//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Soldier is deafened" );		
 			this->bDeafenedCounter = bDeafValue;
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_DEAFENED, MercPtrs[ubAttackerID]);
 			break;
 		};
 
 		if ( usWeaponIndex == STRUCTURE_EXPLOSION )
 		{
 			ubReason = TAKE_DAMAGE_STRUCTURE_EXPLOSION;
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_STRUCTURE_EXPLOSION, MercPtrs[ubAttackerID]);
 		}
 		else
 		{
 			ubReason = TAKE_DAMAGE_EXPLOSION;
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_EXPLOSION, MercPtrs[ubAttackerID]);
 		}
 	}
 	else
@@ -5521,63 +6003,22 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 	}
 #endif
 
-	////////////////////////////////////////////////////////////////////////////////////
-	// SANDRO - Increased breath damage resistance of Militia (bonus counted twice)
-	if (this->ubSoldierClass == SOLDIER_CLASS_GREEN_MILITIA && gGameExternalOptions.bGreenMilitiaDamageResistance != 0)
-		sBreathLoss -= ((sBreathLoss * gGameExternalOptions.bGreenMilitiaDamageResistance) /75);
-	else if (this->ubSoldierClass == SOLDIER_CLASS_REG_MILITIA && gGameExternalOptions.bRegularMilitiaDamageResistance != 0)
-		sBreathLoss -= ((sBreathLoss * gGameExternalOptions.bRegularMilitiaDamageResistance) /75);
-	else if (this->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA && gGameExternalOptions.bVeteranMilitiaDamageResistance != 0)
-		sBreathLoss -= ((sBreathLoss * gGameExternalOptions.bVeteranMilitiaDamageResistance) /75);
-	// bonus for enemy too
-	else if (this->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR && gGameExternalOptions.sEnemyAdminDamageResistance != 0)
-		sBreathLoss -= ((sBreathLoss * gGameExternalOptions.sEnemyAdminDamageResistance) /100);
-	else if (this->ubSoldierClass == SOLDIER_CLASS_ARMY && gGameExternalOptions.sEnemyRegularDamageResistance != 0)
-		sBreathLoss -= ((sBreathLoss * gGameExternalOptions.sEnemyRegularDamageResistance) /100);
-	else if (this->ubSoldierClass == SOLDIER_CLASS_ELITE && gGameExternalOptions.sEnemyEliteDamageResistance != 0)
-		sBreathLoss -= ((sBreathLoss * gGameExternalOptions.sEnemyEliteDamageResistance) /100);
-	//////////////////////////////////////////////////////////////////////////////////////
-
-	////////////////////////////////////////////////////////////////////////////////////
-	// SANDRO - option to make special NPCs stronger - breath damage resistance
-	if (gGameExternalOptions.usSpecialNPCStronger > 0)
-	{
-		switch( this->ubProfile )
-		{
-			case CARMEN:
-			case QUEEN:
-			case JOE:
-			case ANNIE:
-			case CHRIS:
-			case KINGPIN:
-			case TIFFANY:
-			case T_REX:
-			case DRUGGIST:
-			case GENERAL:
-			case JACK:
-			case OLAF:
-			case RAY:
-			case OLGA:
-			case TYRONE:
-			case MIKE:
-				sBreathLoss -= (sBreathLoss * gGameExternalOptions.usSpecialNPCStronger / 100);
-				break;
-		}
-	}
-
-	if ( sBreathLoss < 0 )
-		sBreathLoss = 0;
-	////////////////////////////////////////////////////////////////////////////////////
-
+	// Flugente: moved the damage calculation into a separate function
+	sBreathLoss = max( 1, (INT16)(sBreathLoss * (100 - this->GetDamageResistance(FALSE, TRUE)) / 100 ) );
+	
 	// OK, If we are a vehicle.... damage vehicle...( people inside... )
 	if ( this->flags.uiStatusFlags & SOLDIER_VEHICLE )
 	{
-		this->SoldierTakeDamage( ANIM_CROUCH, sDamage, sBreathLoss, ubReason, this->ubAttackerID, NOWHERE, FALSE, TRUE );
+		this->SoldierTakeDamage( ANIM_CROUCH, sDamage, 0, sBreathLoss, ubReason, this->ubAttackerID, NOWHERE, FALSE, TRUE );
 		return;
 	}
 
+	INT16 poisondamage = 0;
+	if ( ubAttackerID != NOBODY )
+		poisondamage = (INT16) ( (sDamage * MercPtrs[ubAttackerID]->GetPoisonDamagePercentage()) / 100 );
+
 	// DEDUCT LIFE
-	ubCombinedLoss = this->SoldierTakeDamage( ANIM_CROUCH, sDamage, sBreathLoss, ubReason, this->ubAttackerID, NOWHERE, FALSE, TRUE );
+	ubCombinedLoss = this->SoldierTakeDamage( ANIM_CROUCH, sDamage, poisondamage, sBreathLoss, ubReason, this->ubAttackerID, NOWHERE, FALSE, TRUE );
 
 	// ATE: OK, Let's check our ASSIGNMENT state,
 	// If anything other than on a squad or guard, make them guard....
@@ -5708,10 +6149,32 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 	}
 
 	// Set goback to aim after hit flag!
-	// Only if we were aiming!
-	if ( gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIREREADY )
+	// SANDRO - added more cases, alternative weapon holding, go back to cowering, and go back to hth/blade stance 
+	// If we were in hth or blade stance, and we were hit by HtH or blade attack, go back to the fighting stance (if we can still keep up)
+	if (( Item[ usWeaponIndex ].usItemClass & (IC_BLADE | IC_PUNCH) ) && Item[ this->inv[HANDPOS].usItem ].usItemClass & (IC_NONE | IC_BLADE | IC_PUNCH) && 
+		(this->usAnimState == PUNCH_BREATH || this->usAnimState == KNIFE_BREATH || this->usAnimState == NINJA_BREATH) && (gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_STAND) )
 	{
-		this->flags.fGoBackToAimAfterHit = TRUE;
+		if ( this->stats.bLife > 30 && this->bBreath > 25 )
+		{
+			this->flags.bGoBackToAimAfterHit = GO_TO_HTH_BREATH_AFTER_HIT;
+		}
+	}
+	// If we were aiming
+	else if ( gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIREREADY )
+	{
+		if ( gAnimControl[ this->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING ) // alternative weapon holding stance
+			this->flags.bGoBackToAimAfterHit = GO_TO_ALTERNATIVE_AIM_AFTER_HIT;
+		else // standard
+			this->flags.bGoBackToAimAfterHit = GO_TO_AIM_AFTER_HIT;
+	}
+	// if we were cowering (this is different from the bellow, we don't use that status flag for this animation)
+	else if ( this->usAnimState == COWERING )
+	{
+		this->flags.bGoBackToAimAfterHit = GO_TO_COWERING_AFTER_HIT;
+	}
+	else 
+	{
+		this->flags.bGoBackToAimAfterHit = NO_SPEC_STANCE_AFTER_HIT;
 	}
 
 	// IF COWERING, PLAY SPECIFIC GENERIC HIT STAND...
@@ -5830,24 +6293,42 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 	if ( Item[ usWeaponIndex ].usItemClass & ( IC_GUN | IC_THROWING_KNIFE ) )
 	{
 		SoldierGotHitGunFire( this, usWeaponIndex, sDamage, bDirection, sRange, ubAttackerID, ubSpecial, ubHitLocation );
+		if( Item[ usWeaponIndex ].usItemClass & IC_GUN )
+		{
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_GUNFIRE, MercPtrs[ubAttackerID] );
+			PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_GUNFIRE, this );
+		}
+		else
+		{
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_THROWING_KNIFE, MercPtrs[ubAttackerID] );
+			PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_THROWING_KNIFE, this );
+		}
 	}
 	if ( Item[ usWeaponIndex ].usItemClass & IC_BLADE )
 	{
 		SoldierGotHitBlade( this, usWeaponIndex, sDamage, bDirection, sRange, ubAttackerID, ubSpecial, ubHitLocation );
+		// anv: taunts are called from UseBlade()
 	}
 	// marke setting ammo explosions included here with 3rd 'or' including ubReason
 	if ( Item[ usWeaponIndex ].usItemClass & IC_EXPLOSV || Item[ usWeaponIndex ].usItemClass & IC_TENTACLES || ubReason == TAKE_DAMAGE_EXPLOSION )
 	{
 		SoldierGotHitExplosion( this, usWeaponIndex, sDamage, bDirection, sRange, ubAttackerID, ubSpecial, ubHitLocation );
+		if( Item[ usWeaponIndex ].usItemClass & IC_EXPLOSV || ubReason == TAKE_DAMAGE_EXPLOSION )
+		{
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_EXPLOSION, MercPtrs[ubAttackerID] );
+			//PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_EXPLOSION, this );
+		}
+		else if(Item[ usWeaponIndex ].usItemClass & IC_TENTACLES)
+		{
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_TENTACLES, MercPtrs[ubAttackerID] );
+			//PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_TENTACLES, this );
+		}
 	}
 	if ( Item[ usWeaponIndex ].usItemClass & IC_PUNCH )
 	{
 		SoldierGotHitPunch( this, usWeaponIndex, sDamage, bDirection, sRange, ubAttackerID, ubSpecial, ubHitLocation );
+		// anv: taunts are called from UseHandToHand()
 	}
-
-	if( ( this->bTeam == ENEMY_TEAM ) || ( this->bTeam == MILITIA_TEAM ) )
-		PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT, MercPtrs[ubAttackerID]);
-
 }
 
 UINT8 CalcScreamVolume( SOLDIERTYPE * pSoldier, UINT8 ubCombinedLoss )
@@ -5950,7 +6431,13 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 				{
 					// HEADROCK HAM 3.6: Reattached "Max Distance For Messy Death" tag from the XML! God knows why it wasn't attached when they MADE THAT TAG.
 					//if (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= Weapon[usWeaponIndex].maxdistformessydeath || (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= MAX_BARRETT_DISTANCE_FOR_MESSY_DEATH && usWeaponIndex == BARRETT ))
-					if (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= Weapon[usWeaponIndex].maxdistformessydeath)
+
+					UINT8 ubDistMessy = Weapon[ usWeaponIndex ].maxdistformessydeath;
+					// modify by ini values
+					if ( Item[ usWeaponIndex ].usItemClass == IC_GUN )
+						ubDistMessy *= gItemSettings.fDistMessyModifierGun[ Weapon[ usWeaponIndex ].ubWeaponType ];
+
+					if (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= ubDistMessy)
 					{
 						usNewGridNo = NewGridNo( pSoldier->sGridNo, (INT8)( DirectionInc( pSoldier->ubDirection ) ) );
 
@@ -5973,7 +6460,13 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 				{
 					// HEADROCK HAM 3.6: Reattached "Max Distance For Messy Death" tag from the XML! God knows why it wasn't attached when they MADE THAT TAG.
 					//if (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= Weapon[usWeaponIndex].maxdistformessydeath || (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= MAX_BARRETT_DISTANCE_FOR_MESSY_DEATH && usWeaponIndex == BARRETT ))
-					if (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= Weapon[usWeaponIndex].maxdistformessydeath)
+
+					UINT8 ubDistMessy = Weapon[ usWeaponIndex ].maxdistformessydeath;
+					// modify by ini values
+					if ( Item[ usWeaponIndex ].usItemClass == IC_GUN )
+						ubDistMessy *= gItemSettings.fDistMessyModifierGun[ Weapon[ usWeaponIndex ].ubWeaponType ];
+
+					if (SpacesAway( pSoldier->sGridNo, Menptr[ubAttackerID].sGridNo ) <= ubDistMessy)
 					{
 
 						// possibly play torso explosion anim!
@@ -6004,12 +6497,18 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 					if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND && !pSoldier->MercInWater( ) )
 					{
 						fFallenOver = TRUE;
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzLateLocalizedString[ 20 ], pSoldier->name );
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzLateLocalizedString[ 20 ], pSoldier->GetName() );
 					}
 				}
 			}
 		}
 	}
+
+	// Flugente: if hit in legs or torso, blood will be on our uniform - parts of the clothes cannot be worn anymore
+	if ( ubHitLocation == AIM_SHOT_TORSO  )
+		pSoldier->bSoldierFlagMask |= SOLDIER_DAMAGED_VEST;
+	else if ( ubHitLocation == AIM_SHOT_LEGS )
+		pSoldier->bSoldierFlagMask |= SOLDIER_DAMAGED_PANTS;
 
 	// IF HERE AND GUY IS DEAD, RETURN!
 	if ( pSoldier->flags.uiStatusFlags & SOLDIER_DEAD )
@@ -6025,7 +6524,7 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 		// HEADROCK HAM 3.2: Critical legshots cost an extra number of APs, based on shot damage.
 		if (gGameExternalOptions.fCriticalLegshotCausesAPLoss)
 		{
-			DeductPoints( pSoldier, APBPConstants[AP_LOSS_PER_LEGSHOT_DAMAGE]*sDamage, 0);
+			DeductPoints( pSoldier, APBPConstants[AP_LOSS_PER_LEGSHOT_DAMAGE]*sDamage, 0, DISABLED_INTERRUPT);
 		}
 		SoldierCollapse( pSoldier );
 		return;
@@ -6057,6 +6556,12 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 
 void SoldierGotHitExplosion( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sDamage, UINT16 bDirection, UINT16 sRange, UINT8 ubAttackerID, UINT8 ubSpecial, UINT8 ubHitLocation )
 {
+	// Flugente: if hit in legs or torso, blood will be on our uniform - parts of the clothes cannot be worn anymore
+	if ( ubHitLocation == AIM_SHOT_TORSO  )
+		pSoldier->bSoldierFlagMask |= SOLDIER_DAMAGED_VEST;
+	else if ( ubHitLocation == AIM_SHOT_LEGS )
+		pSoldier->bSoldierFlagMask |= SOLDIER_DAMAGED_PANTS;
+
 	INT32 sNewGridNo;
 
 	// IF HERE AND GUY IS DEAD, RETURN!
@@ -6225,6 +6730,11 @@ void SoldierGotHitExplosion( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 
 
 void SoldierGotHitBlade( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sDamage, UINT16 bDirection, UINT16 sRange, UINT8 ubAttackerID, UINT8 ubSpecial, UINT8 ubHitLocation )
 {
+	// Flugente: if hit in legs or torso, blood will be on our uniform - parts of the clothes cannot be worn anymore
+	if ( ubHitLocation == AIM_SHOT_TORSO  )
+		pSoldier->bSoldierFlagMask |= SOLDIER_DAMAGED_VEST;
+	else if ( ubHitLocation == AIM_SHOT_LEGS )
+		pSoldier->bSoldierFlagMask |= SOLDIER_DAMAGED_PANTS;
 
 	// IF HERE AND GUY IS DEAD, RETURN!
 	if ( pSoldier->flags.uiStatusFlags & SOLDIER_DEAD )
@@ -6435,11 +6945,11 @@ BOOLEAN SOLDIERTYPE::EVENT_InternalGetNewSoldierPath( INT32 sDestGridNo, UINT16 
 		fContinue = TRUE;
 	}
 	else
-	{
 #endif
+	{
 		iDest = FindBestPath( this, sDestGridNo, this->pathing.bLevel, usMovementAnim, COPYROUTE, fFlags );
 		fContinue = (iDest != 0);
-//	}
+	}
 
 	// Only if we can get a path here
 	if ( fContinue )
@@ -6469,7 +6979,16 @@ BOOLEAN SOLDIERTYPE::EVENT_InternalGetNewSoldierPath( INT32 sDestGridNo, UINT16 
 		}
 
 		// If we were aiming, end aim!
-		usAnimState = PickSoldierReadyAnimation( this, TRUE );
+		// SANDRO - we may try to move with raised weapon, so don't end aim after
+		if ( (gAnimControl[ this->usAnimState ].uiFlags & ( ANIM_FIREREADY | ANIM_FIRE )) && 
+			(usMoveAnimState == WALKING || usMoveAnimState == SIDE_STEP ) && !( this->MercInWater( )) )
+		{
+			usAnimState = INVALID_ANIMATION;
+		}
+		else
+		{
+			usAnimState = PickSoldierReadyAnimation( this, TRUE, FALSE );
+		}
 
 		// Add a pending animation first!
 		// Only if we were standing!
@@ -6548,8 +7067,20 @@ void SOLDIERTYPE::SoldierGotoStationaryStance( void )
 	}
 	else if ( this->ubServicePartner != NOBODY && this->stats.bLife >= OKLIFE && this->bBreath > 0  )
 	{
-		if(!is_networked)this->EVENT_InitNewSoldierAnim( GIVING_AID, 0 , FALSE );
-		else this->ChangeSoldierState( GIVING_AID, 0, 0 );			
+		if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE )
+		{
+			if(!is_networked)
+				this->EVENT_InitNewSoldierAnim( GIVING_AID_PRN, 0 , FALSE );
+			else 
+				this->ChangeSoldierState( GIVING_AID_PRN, 0, 0 );
+		}
+		else
+		{
+			if(!is_networked)
+				this->EVENT_InitNewSoldierAnim( GIVING_AID, 0 , FALSE );
+			else 
+				this->ChangeSoldierState( GIVING_AID, 0, 0 );
+		}		
 		
 	}
 	else
@@ -6639,8 +7170,10 @@ void SOLDIERTYPE::ChangeSoldierStance( UINT8 ubDesiredStance )
 
 		// Now change to appropriate animation
 		this->EVENT_InitNewSoldierAnim( usNewState, 0 , FALSE );
-		}
 	}
+
+	this->bSoldierFlagMask |= SOLDIER_REDOFLASHLIGHT;
+}
 
 void SOLDIERTYPE::EVENT_InternalSetSoldierDestination( UINT16	usNewDirection, BOOLEAN fFromMove, UINT16 usAnimState )
 {
@@ -6661,7 +7194,8 @@ void SOLDIERTYPE::EVENT_InternalSetSoldierDestination( UINT16	usNewDirection, BO
 
 
 	// OK, ATE: If we are side_stepping, calculate a NEW desired direction....
-	if ( this->bReverse && (usAnimState == SIDE_STEP || usAnimState == ROLL_PRONE_R || usAnimState == ROLL_PRONE_L) )
+	if ( this->bReverse && (usAnimState == SIDE_STEP || usAnimState == ROLL_PRONE_R || usAnimState == ROLL_PRONE_L || usAnimState == SIDE_STEP_ALTERNATIVE_RDY 
+		|| usAnimState == SIDE_STEP_WEAPON_RDY || usAnimState == SIDE_STEP_DUAL_RDY ) )
 	{
 		UINT8 ubPerpDirection;
 
@@ -6768,8 +7302,12 @@ INT8 MultiTiledTurnDirection( SOLDIERTYPE * pSoldier, INT8 bStartDirection, INT8
 
 void EVENT_InternalSetSoldierDesiredDirection( SOLDIERTYPE *pSoldier, UINT8	ubNewDirection, BOOLEAN fInitalMove, UINT16 usAnimState )
 {
+	INT16 sAPCost = 0;
+	INT32 iBPCost = 0;
+
 	//if ( usAnimState == WALK_BACKWARDS )
-	if ( pSoldier->bReverse && (usAnimState != SIDE_STEP && usAnimState != ROLL_PRONE_R && usAnimState != ROLL_PRONE_L) )
+	if ( pSoldier->bReverse && (usAnimState != SIDE_STEP && usAnimState != ROLL_PRONE_R && usAnimState != ROLL_PRONE_L 
+		&& usAnimState != SIDE_STEP_WEAPON_RDY && usAnimState != SIDE_STEP_DUAL_RDY && usAnimState != SIDE_STEP_ALTERNATIVE_RDY ))
 	{
 		// OK, check if we are going to go in the exact opposite than our facing....
 		ubNewDirection = gOppositeDirection[ ubNewDirection ];
@@ -6793,39 +7331,42 @@ void EVENT_InternalSetSoldierDesiredDirection( SOLDIERTYPE *pSoldier, UINT8	ubNe
 
 	if ( pSoldier->pathing.bDesiredDirection != pSoldier->ubDirection )
 	{
-		if ( gAnimControl[ usAnimState ].uiFlags & ( ANIM_BREATH | ANIM_OK_CHARGE_AP_FOR_TURN | ANIM_FIREREADY ) && !fInitalMove && !pSoldier->flags.fDontChargeTurningAPs )
+		if ( (gAnimControl[ usAnimState ].uiFlags & ( ANIM_BREATH | ANIM_OK_CHARGE_AP_FOR_TURN | ANIM_FIREREADY/* | ANIM_TURNING*/ ) || usForceAnimState != INVALID_ANIMATION) && !fInitalMove && !pSoldier->flags.fDontChargeTurningAPs )//dnl ch70 160913 //dnl ch73 290913 in some bright future when UIPlotPath will calculate turning cost then ANIM_TURNING should be turn on as this solve many problems when APs was not deducted during turnoff
 		{
-			// SANDRO - hey, we have a function for this around, why not to use it, hm?
+			// SANDRO: hey, we have a function for this around, why not to use it, hm?
 			// silversurfer: we better don't do that. GetAPsToLook( ... ) will charge APs for getting to crouched/prone position
 			// which is already done by SOLDIERTYPE::EVENT_InitNewSoldierAnim( ... ), we would charge twice...
+			// SANDRO: I see. Thanks.
 			// DeductPoints( pSoldier, GetAPsToLook( pSoldier ), 0 );
 			// Deduct points for initial turn!
-			switch( gAnimControl[ usAnimState ].ubEndHeight )
+			switch( gAnimControl[ (usForceAnimState != INVALID_ANIMATION ? usForceAnimState : usAnimState) ].ubEndHeight )//dnl ch70 160913
 			{
 				// Now change to appropriate animation
 			case ANIM_STAND:
-				// martial artists can turn faster
-				if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-					DeductPoints( pSoldier, ( max( 1, (INT16)((APBPConstants[AP_LOOK_STANDING] * (100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 ))), 0 );
-				else
-					DeductPoints( pSoldier, APBPConstants[AP_LOOK_STANDING], 0 );
+				sAPCost = APBPConstants[AP_LOOK_STANDING];
 				break;
 
 			case ANIM_CROUCH:
-				if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-					DeductPoints( pSoldier, ( max( 1, (INT16)((APBPConstants[AP_LOOK_CROUCHED] * (100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 ))), 0 );
-				else
-					DeductPoints( pSoldier, APBPConstants[AP_LOOK_CROUCHED], 0 );
+				sAPCost = APBPConstants[AP_LOOK_CROUCHED];
 				break;
 
 			case ANIM_PRONE:
-				if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-					DeductPoints( pSoldier, (max( 1, (INT16)((APBPConstants[AP_LOOK_PRONE] * (100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5))), 0 );
-				else
-					DeductPoints( pSoldier, APBPConstants[AP_LOOK_PRONE], 0 );
+				sAPCost = APBPConstants[AP_LOOK_PRONE];
 				break;
 			}
+			// martial artists can turn faster
+			if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
+				sAPCost = max( 1, (INT16)((sAPCost * (100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 ));
 
+			// SANDRO: get BP cost for weapon manipulating
+			if ( gGameExternalOptions.ubEnergyCostForWeaponWeight )
+				iBPCost = sAPCost * GetBPCostPer10APsForGunHolding( pSoldier ) / 10;
+			else 
+				iBPCost = 0;
+
+			DeductPoints( pSoldier, sAPCost, iBPCost );
+			if(usForceAnimState != INVALID_ANIMATION)//dnl ch70 170913
+				pSoldier->flags.fDontUnsetLastTargetFromTurn = FALSE;
 		}
 
 		pSoldier->flags.fDontChargeTurningAPs = FALSE;
@@ -6902,6 +7443,9 @@ void SOLDIERTYPE::EVENT_SetSoldierDirection( UINT16	usNewDirection )
 	// Remove old location data
 	this->HandleAnimationProfile( this->usAnimState, TRUE );
 
+	// Flugente
+	BOOLEAN fNew = (this->ubDirection != (INT8)usNewDirection);
+
 	this->ubDirection = (INT8)usNewDirection;
 
 	// Updated extended direction.....
@@ -6932,6 +7476,9 @@ void SOLDIERTYPE::EVENT_SetSoldierDirection( UINT16	usNewDirection )
 	// Change values!
 	SetSoldierLocatorOffsets( this );
 
+	// Flugente: only update flashlights if we changed our direction
+	if ( fNew )
+		this->HandleFlashLights();
 }
 
 
@@ -6948,12 +7495,11 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		this->aiData.bUnderFire--;
 	}
 
+	// Flugente: reset extra stats. Currently they only depend on drug effects, and those are reset every turn
+	this->ResetExtraStats();
+
 	// ATE: Add decay effect sfor drugs...
-	if ( fFromRealTime  ) //&& iRealTimeCounter % 300 )
-	{
-		HandleEndTurnDrugAdjustments( this );
-	}
-	else
+	//if ( fFromRealTime  ) //&& iRealTimeCounter % 300 )
 	{
 		HandleEndTurnDrugAdjustments( this );
 	}
@@ -7040,6 +7586,9 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		// If an AI guy, and we have 0 life, and are still at higher hieght,
 		// Kill them.....
 
+		// Flugente: update for various personal properties
+		// this has to happen before CalculateCarriedWeight(), otherwise strength modfiers will not be detected correctly
+		this->SoldierPropertyUpkeep();
 
 		this->sWeightCarriedAtTurnStart = (INT16) CalculateCarriedWeight( this );
 
@@ -7067,6 +7616,9 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		}
 
 		this->CalcNewActionPoints( );
+		
+		// SANDRO - Improved Interrupt System - reset interrupt counter
+		memset(this->aiData.ubInterruptCounter,0,sizeof(this->aiData.ubInterruptCounter));
 
 		// HEADROCK HAM 3.6: If this soldier is in a "moving" animation, but has not moved any tiles
         // in the previous turn, then the player has apparently forgotten that he was moving.
@@ -7109,10 +7661,27 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 
 			if ( (this->bTeam == gbPlayerNum) && (this->ubProfile != NO_PROFILE) )
 			{
-				switch( gMercProfiles[ this->ubProfile ].bDisability )
+				// Flugente: drugs can temporarily cause a merc get a new disability
+				// therefore we change this routine
+				BOOLEAN isHeatIntolerant	= gMercProfiles[ this->ubProfile ].bDisability == HEAT_INTOLERANT ? TRUE : FALSE;
+				BOOLEAN isFearOfInsects		= gMercProfiles[ this->ubProfile ].bDisability == FEAR_OF_INSECTS ? TRUE : FALSE;
+				BOOLEAN isClaustrophobic	= gMercProfiles[ this->ubProfile ].bDisability == CLAUSTROPHOBIC ? TRUE : FALSE;
+				BOOLEAN isNervous			= gMercProfiles[ this->ubProfile ].bDisability == NERVOUS ? TRUE : FALSE;
+
+				if ( MercUnderTheInfluence(this, DRUG_TYPE_HEATINTOLERANT) )
+					isHeatIntolerant = TRUE;
+
+				if ( MercUnderTheInfluence(this, DRUG_TYPE_FEAROFINSECTS) )
+					isFearOfInsects = TRUE;
+
+				if ( MercUnderTheInfluence(this, DRUG_TYPE_CLAUSTROPHOBIC) )
+					isClaustrophobic = TRUE;
+
+				if ( MercUnderTheInfluence(this, DRUG_TYPE_NERVOUS) )
+					isNervous = TRUE;
+
+				if ( isHeatIntolerant )
 				{
-				// SANDRO - added heat intolerant
-				case HEAT_INTOLERANT:
 					if ( MercIsHot( this ) )
 					{
 						HandleMoraleEvent( this, MORALE_HEAT_INTOLERANT_IN_DESERT, this->sSectorX, this->sSectorY, this->bSectorZ );
@@ -7122,8 +7691,10 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 							this->usQuoteSaidFlags |= SOLDIER_QUOTE_SAID_PERSONALITY;
 						}
 					}
-					break;
-				case FEAR_OF_INSECTS:
+				}
+
+				if ( isFearOfInsects )
+				{
 					if ( MercSeesCreature( this ) )
 					{
 						HandleMoraleEvent( this, MORALE_INSECT_PHOBIC_SEES_CREATURE, this->sSectorX, this->sSectorY, this->bSectorZ );
@@ -7133,8 +7704,10 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 							this->usQuoteSaidFlags |= SOLDIER_QUOTE_SAID_PERSONALITY;
 						}
 					}
-					break;
-				case CLAUSTROPHOBIC:
+				}
+
+				if ( isClaustrophobic )
+				{
 					if ( gbWorldSectorZ > 0 && Random( 6 - gbWorldSectorZ ) == 0 )
 					{
 						// underground!
@@ -7146,8 +7719,10 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 						}
 
 					}
-					break;
-				case NERVOUS:
+				}
+
+				if ( isNervous )
+				{
 					if ( DistanceToClosestFriend( this ) > NERVOUS_RADIUS )
 					{
 						// augh!!
@@ -7169,7 +7744,6 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 							this->usQuoteSaidFlags &= ~SOLDIER_QUOTE_SAID_PERSONALITY;
 						}
 					}
-					break;
 				}
 			}
 		}
@@ -7183,6 +7757,15 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		// HEADROCK HAM 3.5: After considerable testing, suppression is now cleared after every attack. Total APs lost
 		// is cleared every turn (here) and only acts as reference now (no effect on AP loss).
 		this->ubAPsLostToSuppression = 0;
+		this->ubLastShock = 0;
+		this->ubLastSuppression = 0;
+		this->ubLastAP = 0;
+		this->ubLastMorale = 0;
+		this->ubLastAPFromHit = 0;
+		this->ubLastShockFromHit = 0;
+		this->ubLastMoraleFromHit = 0;
+		this->iLastBulletImpact = 0;
+		this->iLastArmourProtection = 0;
 
 		this->flags.fCloseCall = FALSE;
 
@@ -7204,6 +7787,8 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 	this->sOldXPos = sStartPosX;
 	this->sOldYPos = sStartPosY;
 
+	// Flugente: Cool down all weapons and decay food in inventory
+	this->SoldierInventoryCoolDown();
 }
 
 // UTILITY FUNCTIONS CALLED BY OVERHEAD.H
@@ -7359,6 +7944,20 @@ void SOLDIERTYPE::TurnSoldier( void )
 			// Else check if we are trying to shoot and once was prone, but am now crouched because we needed to turn...
 			else if ( this->flags.bTurningFromPronePosition )
 			{
+				//dnl ch71 170913
+				if(IsValidStance(this, ANIM_PRONE))
+				{
+					UINT16 usTrueAnimState = this->usAnimState;
+					this->usAnimState = PRONE;
+					this->usPendingAnimation = PickSoldierReadyAnimation(this, FALSE, FALSE);
+					this->usAnimState = usTrueAnimState;
+					SendChangeSoldierStanceEvent(this, ANIM_PRONE);
+				}
+				else
+					this->EVENT_InitNewSoldierAnim(PickSoldierReadyAnimation(this, FALSE, FALSE), 0, FALSE);
+				this->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_OFF;
+				return;
+/*
 				if ( IsValidStance( this, ANIM_PRONE ) )
 				{
 					SendChangeSoldierStanceEvent( this, ANIM_PRONE );
@@ -7370,6 +7969,8 @@ void SOLDIERTYPE::TurnSoldier( void )
 				}
 				this->flags.fTurningToShoot = FALSE;
 				this->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_OFF;
+				//}
+*/
 			}
 		}
 	}
@@ -7505,6 +8106,11 @@ void SOLDIERTYPE::TurnSoldier( void )
 				//FREEUP GETTING HIT FLAG
 				this->flags.fGettingHit = FALSE;
 			}
+		}
+
+		if(this->flags.bTurningFromPronePosition == TURNING_FROM_PRONE_FOR_PUNCH_OR_STAB)//dnl ch73 290913
+		{
+			this->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_OFF;
 		}
 
 		return;
@@ -7944,7 +8550,8 @@ void CalculateSoldierAniSpeed( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pStatsSoldier
 	UINT32 uiTerrainDelay;
 	UINT32 uiSpeed = 0;
 
-	INT8 bBreathDef, bLifeDef, bAgilDef;
+	INT8 bBreathDef, bLifeDef;
+	INT16 bAgilDef;
 	INT8 bAdditional = 0;
 
 	// for those animations which have a speed of zero, we have to calculate it
@@ -7959,10 +8566,17 @@ void CalculateSoldierAniSpeed( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pStatsSoldier
 	case TANK_BURST:
 	case CROUCHED_BURST:
 	case PRONE_BURST:
+	case BURST_ALTERNATIVE_STAND:
+	case LOW_BURST_ALTERNATIVE_STAND:
 		pSoldier->sAniDelay = Weapon[Item[pSoldier->inv[HANDPOS].usItem].ubClassIndex].sAniDelay;
 		AdjustAniSpeed( pSoldier );
 		return;
-		// Lesh: end
+	case BURST_DUAL_STAND:
+	case BURST_DUAL_CROUCH:
+	case BURST_DUAL_PRONE:
+		pSoldier->sAniDelay = (Weapon[Item[pSoldier->inv[HANDPOS].usItem].ubClassIndex].sAniDelay)/2;
+		AdjustAniSpeed( pSoldier );
+		return;
 
 	case PRONE:
 	case STANDING:
@@ -7990,6 +8604,9 @@ void CalculateSoldierAniSpeed( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pStatsSoldier
 		return;
 
 	case WALKING:
+	case WALKING_WEAPON_RDY:
+	case WALKING_DUAL_RDY:
+	case WALKING_ALTERNATIVE_RDY:
 
 		// Adjust based on body type
 		bAdditional = (UINT8)( gubAnimWalkSpeeds[ pStatsSoldier->ubBodyType ].sSpeed );
@@ -8036,11 +8653,11 @@ void CalculateSoldierAniSpeed( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pStatsSoldier
 		if ( pSoldier->aiData.bAimTime == 0 )
 		{
 			// Quick shot
-			pSoldier->sAniDelay = 70;
+			pSoldier->sAniDelay = 100;
 		}
 		else
 		{
-			pSoldier->sAniDelay = 150;
+			pSoldier->sAniDelay = 200;
 		}
 		AdjustAniSpeed( pSoldier );
 		return;
@@ -8064,17 +8681,36 @@ void CalculateSoldierAniSpeed( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pStatsSoldier
 	if ( bBreathDef > 30 )
 		bBreathDef = 30;
 
-	bAgilDef = 50 - ( EffectiveAgility( pStatsSoldier ) / 4 );
+	bAgilDef = 50 - ( EffectiveAgility( pStatsSoldier, FALSE ) / 4 );
 	bLifeDef = 50 - ( pStatsSoldier->stats.bLife / 2 );
 
 	uiTerrainDelay += ( bLifeDef + bBreathDef + bAgilDef + bAdditional );
+	
+	// Flugente: backgrounds
+	switch ( pSoldier->usAnimState )
+	{
+		case WALKING:
+		case WALKING_WEAPON_RDY:
+		case WALKING_DUAL_RDY:
+		case WALKING_ALTERNATIVE_RDY:
+		case RUNNING:
+		case SWATTING:
+		case SWATTING_WK:
+		case SWAT_BACKWARDS_WK:
+			// Flugente: background running speed reduces time needed: + is good, - is bad
+			uiTerrainDelay = (uiTerrainDelay * (100 - pSoldier->GetBackgroundValue(BG_PERC_SPEED_RUNNING) )) / 100;
+			break;
 
+		default:
+			break;
+	}
+	
 	pSoldier->sAniDelay = (INT16)uiTerrainDelay;
 
 	// If a moving animation and w/re on drugs, increase speed....
 	if ( gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_MOVING )
 	{
-		if ( GetDrugEffect( pSoldier, DRUG_TYPE_ADRENALINE ) )
+		if ( MercUnderTheInfluence( pSoldier, DRUG_TYPE_ADRENALINE ) )
 		{
 			pSoldier->sAniDelay = pSoldier->sAniDelay / 2;
 		}
@@ -8524,7 +9160,20 @@ void SOLDIERTYPE::BeginSoldierClimbUpRoof( void )
 
 			 this->ubPendingDirection = bNewDirection;
 			 //this->usPendingAnimation = CLIMBUPROOF;
+
+#ifdef ENABLE_ZOMBIES
+			 // Flugente: In case an animation is missing (zombies with bodytype of civilians), we TELEPORT instead
+			 if ( IsAnimationValidForBodyType( this, CLIMBUPROOF ) == FALSE )
+			 {
+				 SetSoldierHeight( 50.0 );
+				 TeleportSoldier( this, this->sTempNewGridNo, TRUE );
+				 EndAIGuysTurn( this);
+			 }
+			 else
+				this->EVENT_InitNewSoldierAnim( CLIMBUPROOF, 0 , FALSE );
+#else
 			 this->EVENT_InitNewSoldierAnim( CLIMBUPROOF, 0 , FALSE );
+#endif
 
 			 this->InternalReceivingSoldierCancelServices( FALSE );
 			 this->InternalGivingSoldierCancelServices( FALSE );
@@ -8590,8 +9239,44 @@ void SOLDIERTYPE::BeginSoldierClimbWindow( void )
 		EVENT_InternalSetSoldierDesiredDirection( this, bDirection, FALSE, this->usAnimState );
 		this->flags.fTurningUntilDone = TRUE;
 		// ATE: Reset flag to go back to prone...
+				
+		// Flugente: In case an animation is missing (civilian bodytypes), we TELEPORT instead
+		if ( IsAnimationValidForBodyType( this, JUMPWINDOWS ) == FALSE )
+		{
+			TeleportSoldier( this, this->sTempNewGridNo, TRUE );
+		}
+		else
+		{
 		this->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_OFF;
-		this->usPendingAnimation = JUMPWINDOWS; //HOPFENCE;
+			this->usPendingAnimation = JUMPWINDOWS;
+	}
+
+		// Flugente: should be fixed now, re-enable if not
+		// Flugente: if an AI guy, end turn (weird endless clock syndrome)
+		//if ( this->bTeam != OUR_TEAM )
+			//EndAIGuysTurn( this);
+
+		// Flugente: if we are jumping through an intact window, smash it during our animation
+		if ( gGameExternalOptions.fCanJumpThroughClosedWindows )
+		{
+			INT32 sNewGridNo = sGridNo;
+			if (this->ubDirection == NORTH || this->ubDirection == WEST)
+				sNewGridNo = NewGridNo( sGridNo, (UINT16)DirectionInc( (UINT8)this->ubDirection ) );
+			
+			// is there really an intact window that we jump through?
+			if ( IsJumpableWindowPresentAtGridNo( sNewGridNo, this->ubDirection, TRUE ) && !IsJumpableWindowPresentAtGridNo( sNewGridNo, this->ubDirection, FALSE ) )
+			{
+				STRUCTURE * pStructure = FindStructure( sNewGridNo, STRUCTURE_WALLNWINDOW );
+				if ( pStructure && !( pStructure->fFlags & STRUCTURE_OPEN ) )
+				{
+					// intact window found. Smash it!
+					WindowHit( sNewGridNo, pStructure->usStructureID, (this->ubDirection == SOUTH || this->ubDirection == EAST), TRUE );
+
+					// we get a bit of damage for jumping through a window
+					this->SoldierTakeDamage( 0, 1, 0, 1000, TAKE_DAMAGE_ELECTRICITY, NOBODY, sNewGridNo, 0, TRUE );
+				}
+			}
+		}
 	}
 }
 
@@ -8677,10 +9362,10 @@ void SOLDIERTYPE::BeginSoldierClimbWallUp( void )
 UINT32 SleepDartSuccumbChance( SOLDIERTYPE * pSoldier )
 {
 	UINT32		uiChance;
-	INT8			bEffectiveStrength;
+	INT16		bEffectiveStrength;
 
 	// figure out base chance of succumbing,
-	bEffectiveStrength = EffectiveStrength( pSoldier );
+	bEffectiveStrength = EffectiveStrength( pSoldier, TRUE );
 
 	if (bEffectiveStrength > 90)
 	{
@@ -8712,13 +9397,15 @@ void SOLDIERTYPE::BeginSoldierGetup( void )
 	{
 		return;
 	}
-
+#ifdef JA2UB
+//Ja25: No meanwhiles
+#else
 	// ATE: Don't getup if we are in a meanwhile
 	if ( AreInMeanwhile( ) )
 	{
 		return;
 	}
-
+#endif
 	if ( this->bCollapsed )
 	{
 		if ( this->stats.bLife >= OKLIFE && this->bBreath >= OKBREATH && (this->bSleepDrugCounter == 0) )
@@ -8858,7 +9545,7 @@ void HandleTakeDamageDeath( SOLDIERTYPE *pSoldier, UINT8 bOldLife, UINT8 ubReaso
 		}
 		break;
 	}
-
+	
 	// 0verhaul:  This is also already handled by the animation transitions
 	// if ( ubReason == TAKE_DAMAGE_ELECTRICITY )
 	// {
@@ -8871,12 +9558,12 @@ void HandleTakeDamageDeath( SOLDIERTYPE *pSoldier, UINT8 bOldLife, UINT8 ubReaso
 }
 
 
-UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBreathLoss, UINT8 ubReason, UINT8 ubAttacker, INT32 sSourceGrid, INT16 sSubsequent, BOOLEAN fShowDamage )
+UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sPoisonAdd, INT16 sBreathLoss, UINT8 ubReason, UINT8 ubAttacker, INT32 sSourceGrid, INT16 sSubsequent, BOOLEAN fShowDamage )
 {
 #ifdef JA2BETAVERSION
 	if (is_networked) {
 	CHAR tmpMPDbgString[512];
-	sprintf(tmpMPDbgString,"SoldierTakeDamage ( bHeight : %i , sLifeDeduct : %i , sBreathLoss : %i , ubReason : %i , ubAttacker : %i , sSourceGrid : %i , sSubsequent : %i , fShowDamage : %i )\n", bHeight , sLifeDeduct , sBreathLoss , ubReason , ubAttacker , sSourceGrid , sSubsequent , fShowDamage );
+	sprintf(tmpMPDbgString,"SoldierTakeDamage ( bHeight : %i , sLifeDeduct : %i , sPoisonAdd : %i , sBreathLoss : %i , ubReason : %i , ubAttacker : %i , sSourceGrid : %i , sSubsequent : %i , fShowDamage : %i )\n", bHeight , sLifeDeduct , sPoisonAdd, sBreathLoss , ubReason , ubAttacker , sSourceGrid , sSubsequent , fShowDamage );
 	MPDebugMsg(tmpMPDbgString);
 	}
 #endif
@@ -8890,6 +9577,11 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 
 	this->ubLastDamageReason = ubReason;
 
+	// check: poison damage cannot be higher than damage
+	sPoisonAdd = min(sPoisonAdd, sLifeDeduct);
+
+	// reduce poison damage by poison resistance
+	sPoisonAdd = (INT16)(sPoisonAdd * (100 - this->GetPoisonResistance())/100);
 
 	// CJC Jan 21 99: add check to see if we are hurting an enemy in an enemy-controlled
 	// sector; if so, this is a sign of player activity
@@ -8924,6 +9616,11 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 	// Deduct life!, Show damage if we want!
 	bOldLife = this->stats.bLife;
 
+	// we need this to relation to decide how to redistribute poison points
+	FLOAT dpoisonliferelation = 1.0;
+	if ( bOldLife > 0 )
+		dpoisonliferelation = (FLOAT)(this->bPoisonLife / bOldLife);
+
 	// OK, If we are a vehicle.... damage vehicle...( people inside... )
 	if ( this->flags.uiStatusFlags & SOLDIER_VEHICLE )
 	{
@@ -8957,13 +9654,15 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 		// Turn off
 		this->flags.uiStatusFlags &= ( ~SOLDIER_NPC_SHOOTING );
 	}
-
+#ifdef JA2UB
+//Ja25: No meanwhiles
+#else
 	// CJC: make sure Elliot doesn't bleed to death!
 	if ( ubReason == TAKE_DAMAGE_BLOODLOSS && AreInMeanwhile() )
 	{
 		return( 0 );
 	}
-
+#endif
 
 	// Calculate bandage
 	bBandage = this->stats.bLifeMax - this->stats.bLife - this->bBleeding;
@@ -9045,11 +9744,41 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 	if (sLifeDeduct > this->stats.bLife)
 	{
 		this->stats.bLife = 0;
+
+		this->bPoisonSum = 0;
+		this->bPoisonLife = 0;
+		this->bPoisonBleeding = 0;
 	}
 	else
 	{
+		// we might have poison absorption
+		INT16 sLifeGainAbsorption = (INT16) ((sPoisonAdd * this->GetPoisonAbsorption())/100);
+
+		// life reduction gets reduced itself by life gained through absorption
+		sLifeDeduct -= sLifeGainAbsorption;
+
+		// poison points however get increased by absorped life points (poison was absorbed, not resisted)
+		INT16 poisongained = sPoisonAdd + sLifeGainAbsorption;
+		
 		// Decrease Health
 		this->stats.bLife -= sLifeDeduct;
+
+		// life may increase by poison absorption, so make sure it doesn't rise too much
+		this->stats.bLife = min(this->stats.bLife, this->stats.bLifeMax);
+				
+		// increase poisoning
+		this->bPoisonSum = min(this->stats.bLifeMax, this->bPoisonSum + poisongained);
+
+		// increase poison life if we gained life through absorption
+		if ( sLifeGainAbsorption > 0 )
+			this->bPoisonLife = min(this->bPoisonSum, this->bPoisonLife + sLifeGainAbsorption);
+
+		// if no life was lost, also add sPoisonAdd to bPoisonLife
+		if ( sLifeDeduct <= 0 )
+			this->bPoisonLife = min(this->bPoisonSum, this->bPoisonLife + sPoisonAdd);
+		else
+			// we reduce bPoisonLife according to old percentage of poison life to life
+			this->bPoisonLife -= (INT8) (dpoisonliferelation * sLifeDeduct);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
@@ -9074,7 +9803,12 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 
 	// ATE: Put some logic in here to allow enemies to die quicker.....
 	// Are we an enemy?
-	if ( this->bSide != gbPlayerNum && !this->aiData.bNeutral && this->ubProfile == NO_PROFILE )
+	// zombies don't die suddenly, as they regenerate health by bloodloss and poison. You have to make sure they die!
+#ifdef ENABLE_ZOMBIES
+	if ( this->bSide != gbPlayerNum && !this->aiData.bNeutral && this->ubProfile == NO_PROFILE && !this->IsZombie() )
+#else
+	if ( this->bSide != gbPlayerNum && !this->aiData.bNeutral && this->ubProfile == NO_PROFILE)
+#endif
 	{
 		// ATE: Give them a chance to fall down...
 		if ( this->stats.bLife > 0 && this->stats.bLife < ( OKLIFE - 1 ) )
@@ -9082,11 +9816,15 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 			// Are we taking damage from bleeding?
 			if ( ubReason == TAKE_DAMAGE_BLOODLOSS )
 			{
-				// Fifty-fifty chance to die now!
+				// Fifty-fifty chance to die now!				
 				if ( Random( 3 ) == 0 || gTacticalStatus.Team[ this->bTeam ].bMenInSector == 1 )
 				{
 					// Kill!
 					this->stats.bLife = 0;
+
+					this->bPoisonSum = 0;
+					this->bPoisonLife = 0;
+					this->bPoisonBleeding = 0;
 				}
 			}
 			else
@@ -9096,10 +9834,23 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 				{
 					// Kill!
 					this->stats.bLife = 0;
+
+					this->bPoisonSum = 0;
+					this->bPoisonLife = 0;
+					this->bPoisonBleeding = 0;
 				}
 			}
 		}
 	}
+
+#ifdef ENABLE_ZOMBIES
+	else if ( this->IsZombie() && this->stats.bLife > 0 && this->stats.bLife < OKLIFE )
+	{
+		// a zombie doesn't automatically die, so he would normally stand up again after being hit. 
+		// We don't want that, because he is dying, so we manually skip that animation
+		this->usPendingAnimation = NO_PENDING_ANIMATION;
+	}
+#endif
 
 	if ( fShowDamage )
 	{
@@ -9110,8 +9861,15 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 	if ( this->stats.bLife < 0 )
 	{
 		this->stats.bLife = 0;
+
+		this->bPoisonSum = 0;
+		this->bPoisonLife = 0;
+		this->bPoisonBleeding = 0;
 	}
 
+	// Flugente: note we received a fresh wound
+	if ( sLifeDeduct > 0 )
+		this->bSoldierFlagMask |= SOLDIER_FRESHWOUND;
 
 	// Calculate damage to our items if from an explosion!
 	if ( ubReason == TAKE_DAMAGE_EXPLOSION || ubReason == TAKE_DAMAGE_STRUCTURE_EXPLOSION)
@@ -9130,11 +9888,29 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 			{
 				// HTH does 1 pt bleeding per hit
 				this->bBleeding = this->bBleeding + 1;
+
+				// add poison point according to poison/life relation
+				this->bPoisonBleeding += (INT8) (dpoisonliferelation );
 			}
 		}
 		else
 		{
-			this->bBleeding = this->stats.bLifeMax - ( this->stats.bLife + bBandage );
+			// if we would actually bleed _less_ after applying the damage received (poison absorption), we reduce bleeding only if the new bBandage would be zero
+			// by this, we can continue bleeding, and eventually bleeding
+			// the normal behaviour is unchanged, as this case can't happen without poison absorption
+			if ( sLifeDeduct < 0 )
+			{
+				INT8 oldBleeding = this->bBleeding;
+				this->bBleeding = min(this->bBleeding, this->stats.bLifeMax - this->stats.bLife );
+				this->bPoisonBleeding = max(0, this->bPoisonBleeding - (oldBleeding - this->bBleeding));
+			}
+			else
+			{
+				this->bBleeding = this->stats.bLifeMax - ( this->stats.bLife + bBandage );
+
+				// we increase bPoisonLife according to old percentage of poison life to life
+				this->bPoisonBleeding += (INT8) (dpoisonliferelation * sLifeDeduct);
+			}					
 		}
 
 	}
@@ -9148,7 +9924,8 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 	// ATE: if the robot, do not deduct
 	if ( !AM_A_ROBOT( this ) )
 	{
-		DeductPoints( this, sAPCost, sBreathLoss , FALSE);
+		DeductPoints( this, sAPCost, sBreathLoss, DISABLED_INTERRUPT );
+		this->ubLastAPFromHit += sAPCost;
 	}
 
 	ubCombinedLoss = (UINT8) sLifeDeduct / 10 + sBreathLoss / 2000;
@@ -9157,6 +9934,7 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 	if ( !AM_A_ROBOT( this ) )
 	{
 		this->aiData.bShock += ubCombinedLoss;
+		this->ubLastShockFromHit += ubCombinedLoss;
 	}
 
 	// start the stopwatch - the blood is gushing!
@@ -9167,13 +9945,13 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 		// If we are already dead, don't show damage!
 		if ( bOldLife != 0 && fShowDamage && sLifeDeduct != 0 && sLifeDeduct < 1000 )
 		{
+			/*
 			// Display damage
 			INT16 sOffsetX, sOffsetY;
 
 			// Set Damage display counter
 			this->flags.fDisplayDamage = TRUE;
 			this->bDisplayDamageCount = 0;
-
 			if ( this->ubBodyType == QUEENMONSTER )
 			{
 				this->sDamageX = 0;
@@ -9185,6 +9963,16 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 				this->sDamageX = sOffsetX;
 				this->sDamageY = sOffsetY;
 			}
+			*/
+			// sevenfm: moved code to function
+			SetDamageDisplayCounter(this);
+			// zero suppression values stored from last attack
+			this->ubLastShock = 0;
+			this->ubLastSuppression = 0;
+			this->ubLastMorale = 0;
+			this->ubLastAP = 0;
+			//this->iLastBulletImpact = 0;
+			//this->iLastArmourProtection = 0;
 		}
 	}
 
@@ -9194,7 +9982,7 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 		INT16 sTestOne, sTestTwo, sChanceToDrop;
 		INT8	bVisible = -1;
 
-		sTestOne = EffectiveStrength( this );
+		sTestOne = EffectiveStrength( this, FALSE );
 		sTestTwo = ( 2 * ( __max( sLifeDeduct, ( sBreathLoss / 100 ) ) ) );
 
 
@@ -9222,7 +10010,13 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 			// OK, drop item in main hand...
 			if ( this->inv[ HANDPOS ].exists() == true )
 			{
-				if ( !( this->inv[ HANDPOS ].fFlags & OBJECT_UNDROPPABLE ) )
+				// Flugente: If item has an attached rifle sling, place it the sling position instead
+				int bSlot = GUNSLINGPOCKPOS;
+				if ( HasAttachmentOfClass(&(this->inv[ HANDPOS ]), AC_SLING) && TryToPlaceInSlot(this, &(this->inv[ HANDPOS ]), FALSE, bSlot, GUNSLINGPOCKPOS) )
+				{
+					;
+				}
+				else if ( !( this->inv[ HANDPOS ].fFlags & OBJECT_UNDROPPABLE ) )
 				{
 					// ATE: if our guy, make visible....
 					if ( this->bTeam == gbPlayerNum )
@@ -9363,6 +10157,53 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sBr
 	if ( this->stats.bLife < OKLIFE )
 	{
 		DecayIndividualOpplist( this );
+	}
+	
+#ifdef JA2UB	
+	//if the attacker is MORRIS, AND he didnt kill the person
+	if( Menptr[ ubAttacker ].ubProfile == MORRIS_UB )	//MORRIS
+	{
+		//if the soldier is hurt, but not dead
+		if( this->stats.bLife < bOldLife && this->stats.bLife > 0 )
+		{
+			//if he hasnt said his quote #1 before
+			if( !( Menptr[ ubAttacker ].usQuoteSaidExtFlags & SOLDIER_QUOTE_SAID_THOUGHT_KILLED_YOU ) )
+			{
+				//said a flag so morris can say this quote next turn
+				gJa25SaveStruct.fMorrisToSayHurtPlayerQuoteNextTurn = TRUE;
+
+				//Remeber who Morris is saying the quote too
+				gJa25SaveStruct.ubPlayerMorrisHurt = this->ubProfile;
+			}
+		}
+
+		// else if morris is to say the quote, he hasnt said it yet and he just killed the person he WAS going to say it to
+		else if(	gJa25SaveStruct.fMorrisToSayHurtPlayerQuoteNextTurn && 
+							gJa25SaveStruct.ubPlayerMorrisHurt == this->ubProfile &&
+							this->stats.bLife <= 0 &&
+							!( Menptr[ ubAttacker ].usQuoteSaidExtFlags & SOLDIER_QUOTE_SAID_THOUGHT_KILLED_YOU ) )
+		{
+			//said a flag so morris can say this quote next turn
+			gJa25SaveStruct.fMorrisToSayHurtPlayerQuoteNextTurn = FALSE;
+
+			//Remeber who Morris is saying the quote too
+			gJa25SaveStruct.ubPlayerMorrisHurt = NO_PROFILE;
+		}
+	}
+#endif
+	switch(ubReason)
+	{
+		case TAKE_DAMAGE_FALLROOF:
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_FALLROOF );
+			break;
+		case TAKE_DAMAGE_BLOODLOSS:
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_BLOODLOSS );
+			break;
+		case TAKE_DAMAGE_GAS:
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_GAS );
+			break;
+		default:
+			break;
 	}
 
 
@@ -9740,6 +10581,27 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 				}
 			}
 		}
+#ifdef ENABLE_ZOMBIES
+		else if ( pSoldier->IsZombie() ) // Madd: add zombie sounds
+		{
+			if ( ubSoundID == BATTLE_SOUND_DIE1 )
+			{
+				sprintf( zFilename, "BATTLESNDS\\zombie_die.ogg" );
+				if ( !FileExists( zFilename ) )
+				{
+					sprintf( zFilename, "BATTLESNDS\\zombie_die.wav" );
+				}
+			}
+			else
+			{
+				sprintf( zFilename, "BATTLESNDS\\zombie_%s.ogg", gBattleSndsData[ ubSoundID ].zName );
+				if ( !FileExists( zFilename ) )
+				{
+					sprintf( zFilename, "BATTLESNDS\\zombie_%s.wav", gBattleSndsData[ ubSoundID ].zName );
+				}
+			}
+		}
+#endif
 		else
 		{
 			if ( ubSoundID == BATTLE_SOUND_DIE1 )
@@ -9942,7 +10804,7 @@ BOOLEAN SOLDIERTYPE::CheckSoldierHitRoof( void )
 				//this->EVENT_InitNewSoldierAnim( FALLFORWARD_ROOF, 0 , FALSE );
 
 				// Deduct hitpoints/breath for falling!
-				this->SoldierTakeDamage( ANIM_CROUCH, 100, 5000, TAKE_DAMAGE_FALLROOF, NOBODY, NOWHERE, 0, TRUE );
+				this->SoldierTakeDamage( ANIM_CROUCH, 100, 0, 5000, TAKE_DAMAGE_FALLROOF, NOBODY, NOWHERE, 0, TRUE );
 
 				fReturnVal = TRUE;
 
@@ -9957,10 +10819,14 @@ BOOLEAN SOLDIERTYPE::CheckSoldierHitRoof( void )
 				this->usPendingAnimation = FALLOFF;
 
 				// Deduct hitpoints/breath for falling!
-				this->SoldierTakeDamage( ANIM_CROUCH, 100, 5000, TAKE_DAMAGE_FALLROOF, NOBODY, NOWHERE, 0, TRUE );
+				this->SoldierTakeDamage( ANIM_CROUCH, 100, 0, 5000, TAKE_DAMAGE_FALLROOF, NOBODY, NOWHERE, 0, TRUE );
 
 				fReturnVal = TRUE;
 			}
+
+			// Flugente: some bodytypes can't do these animations, so skip this
+			if ( IsAnimationValidForBodyType( this, this->usPendingAnimation ) == FALSE )
+				fReturnVal = FALSE;
 		}
 	}
 
@@ -9992,15 +10858,25 @@ void SOLDIERTYPE::BeginSoldierClimbDownRoof( void )
 				 SetUIBusy( this->ubID );
 			 }
 
-
-
-
 			 this->sTempNewGridNo = NewGridNo( this->sGridNo, (UINT16)DirectionInc(bNewDirection ) );
 
 			 bNewDirection = gTwoCDirection[ bNewDirection ];
 
 			 this->ubPendingDirection = bNewDirection;
+
+#ifdef ENABLE_ZOMBIES
+			 // Flugente: In case an animation is missing (zombies with bodytype of civilians), we TELEPORT instead
+			 if ( IsAnimationValidForBodyType( this, JUMPDOWNWALL ) == FALSE )
+			 {
+				 SetSoldierHeight( 0.0 );
+				 TeleportSoldier( this, this->sTempNewGridNo, TRUE );
+				 EndAIGuysTurn( this);
+			 }
+			 else
+				this->EVENT_InitNewSoldierAnim( JUMPDOWNWALL, 0 , FALSE );
+#else
 			 this->EVENT_InitNewSoldierAnim( JUMPDOWNWALL, 0 , FALSE );
+#endif
 
 			 this->InternalReceivingSoldierCancelServices( FALSE );
 			 this->InternalGivingSoldierCancelServices( FALSE );
@@ -10437,7 +11313,7 @@ BOOLEAN CheckForFullStruct( INT32 sGridNo, UINT16 *pusIndex  )
 	while( pStruct != NULL )
 	{
 
-		if ( pStruct->usIndex != NO_TILE && pStruct->usIndex < NUMBEROFTILES )
+		if ( pStruct->usIndex != NO_TILE && pStruct->usIndex < giNumberOfTiles )
 		{
 
 			GetTileFlags( pStruct->usIndex, &fTileFlags );
@@ -10805,6 +11681,9 @@ void SOLDIERTYPE::ReviveSoldier( void )
 
 		this->stats.bLife = this->stats.bLifeMax;
 		this->bBleeding = 0;
+		this->bPoisonBleeding = 0;
+		this->bPoisonLife     = 0;
+		this->bPoisonSum	  = 0;
 		this->iHealableInjury = 0; // added by SANDRO
 		this->ubDesiredHeight = ANIM_STAND;
 
@@ -11019,12 +11898,17 @@ void SOLDIERTYPE::EVENT_SoldierBeginBladeAttack( INT32 sGridNo, UINT8 ubDirectio
 //	gTacticalStatus.ubAttackBusyCount++;
 	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Begin blade attack: ATB  %d", gTacticalStatus.ubAttackBusyCount) );
 	DebugAttackBusy( String( "Begin blade attack: ATB  %d\n", gTacticalStatus.ubAttackBusyCount) );
-
 	//}
 
 	// CHANGE DIRECTION AND GOTO ANIMATION NOW
-	this->EVENT_SetSoldierDesiredDirection( ubDirection );
-	this->EVENT_SetSoldierDirection( ubDirection );
+	//dnl ch73 290913
+	if(this->usAnimState != CRAWLING && gAnimControl[this->usAnimState].ubEndHeight == ANIM_PRONE)
+		usForceAnimState = CROUCHING;
+	this->EVENT_SetSoldierDesiredDirection(ubDirection);
+	this->EVENT_SetSoldierDirection(ubDirection);
+	if(this->flags.bTurningFromPronePosition)
+		this->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_FOR_PUNCH_OR_STAB;
+	usForceAnimState = INVALID_ANIMATION;
 	// CHANGE TO ANIMATION
 
 	// DETERMINE ANIMATION TO PLAY
@@ -11075,8 +11959,15 @@ void SOLDIERTYPE::EVENT_SoldierBeginBladeAttack( INT32 sGridNo, UINT8 ubDirectio
 		{
 			GetSoldier( &pTSoldier, usSoldierIndex );
 
+			// Flugente: if we attack with a bayonet, we don't need to change stance if even if we are stadning and the target is prone...
+			// so we simulate here that the target is still standing
+			UINT8 targetheight = gAnimControl[ pTSoldier->usAnimState ].ubEndHeight;
+#if 0//dnl ch73 031013 several reasons why disabling this; 1. no animation for bayonet, 2. if target is prone it look ridicules to swing through air instead stub target, 3. incorrect APs calculation
+			if ( this->bWeaponMode == WM_ATTACHED_BAYONET )
+				targetheight = ANIM_STAND;
+#endif
 			// Look at stance of target
-			switch( gAnimControl[ pTSoldier->usAnimState ].ubEndHeight	)
+			switch( targetheight )
 			{
 			case ANIM_STAND:
 			case ANIM_CROUCH:
@@ -11084,19 +11975,35 @@ void SOLDIERTYPE::EVENT_SoldierBeginBladeAttack( INT32 sGridNo, UINT8 ubDirectio
 				// CHECK IF HE CAN SEE US, IF SO RANDOMIZE
 				if ( pTSoldier->aiData.bOppList[ this->ubID ] == 0 && pTSoldier->bTeam != this->bTeam )
 				{
-					// WE ARE NOT SEEN
-					this->EVENT_InitNewSoldierAnim( STAB, 0 , FALSE );
-				}
-				else
-				{
-					// WE ARE SEEN
-					if ( Random( 50 ) > 25 )
+					// WE ARE NOT SEEN					
+					// SANDRO - use focused stab animation on aimed blade attacks
+					if ( gGameExternalOptions.fEnhancedCloseCombatSystem && ( this->aiData.bAimTime > 0 ) )
 					{
-						this->EVENT_InitNewSoldierAnim( STAB, 0 , FALSE );
+						this->EVENT_InitNewSoldierAnim( FOCUSED_STAB, 0 , FALSE );
 					}
 					else
 					{
-						this->EVENT_InitNewSoldierAnim( SLICE, 0 , FALSE );
+						this->EVENT_InitNewSoldierAnim( STAB, 0 , FALSE );
+					}
+				}
+				else
+				{
+					// WE ARE SEEN				
+					// SANDRO - use focused stab animation on aimed blade attacks
+					if ( gGameExternalOptions.fEnhancedCloseCombatSystem && ( this->aiData.bAimTime > 0 ) )
+					{
+						this->EVENT_InitNewSoldierAnim( FOCUSED_STAB, 0 , FALSE );
+					}
+					else
+					{
+						if ( Random( 50 ) > 25 )
+						{
+							this->EVENT_InitNewSoldierAnim( STAB, 0 , FALSE );
+						}
+						else
+						{
+							this->EVENT_InitNewSoldierAnim( SLICE, 0 , FALSE );
+						}
 					}
 
 					// IF WE ARE SEEN, MAKE SURE GUY TURNS!
@@ -11155,7 +12062,8 @@ void SOLDIERTYPE::EVENT_SoldierBeginBladeAttack( INT32 sGridNo, UINT8 ubDirectio
 				}
 				else
 				{
-					if ( IsValidDecapitationCorpse( pCorpse ) )
+					// Flugente: decapitation action now also performs gutting, stripping and taking corpses
+					if ( IsValidDecapitationCorpse( pCorpse ) || IsValidGutCorpse( pCorpse ) || IsValidStripCorpse( pCorpse ) || IsValidTakeCorpse( pCorpse ) )
 					{
 						this->EVENT_InitNewSoldierAnim( DECAPITATE, 0 , FALSE );
 					}
@@ -11214,8 +12122,14 @@ void SOLDIERTYPE::EVENT_SoldierBeginPunchAttack( INT32 sGridNo, UINT8 ubDirectio
 	if ( fChangeDirection )
 	{
 		// CHANGE DIRECTION AND GOTO ANIMATION NOW
-		this->EVENT_SetSoldierDesiredDirection( ubDirection );
-		this->EVENT_SetSoldierDirection( ubDirection );
+		//dnl ch73 290913
+		if(this->usAnimState != CRAWLING && gAnimControl[this->usAnimState].ubEndHeight == ANIM_PRONE)
+			usForceAnimState = CROUCHING;
+		this->EVENT_SetSoldierDesiredDirection(ubDirection);
+		this->EVENT_SetSoldierDirection(ubDirection);
+		if(this->flags.bTurningFromPronePosition)
+			this->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_FOR_PUNCH_OR_STAB;
+		usForceAnimState = INVALID_ANIMATION;
 	}
 
 	// Are we a martial artist? - SANDRO - added new/old traits check
@@ -11225,7 +12139,18 @@ void SOLDIERTYPE::EVENT_SoldierBeginPunchAttack( INT32 sGridNo, UINT8 ubDirectio
 		fMartialArtist = TRUE;
 	}
 
-	if ( fMartialArtist && !AreInMeanwhile( ) && !Item[usItem].crowbar && this->ubBodyType == REGMALE ) // SANDRO - added check for body type
+//Ja25 No meanwhiles
+#ifdef JA2UB
+	if ( fMartialArtist && !Item[usItem].crowbar && this->ubBodyType == REGMALE)
+#else
+
+	#ifdef ENABLE_ZOMBIES
+		if ( fMartialArtist && !AreInMeanwhile( ) && !Item[usItem].crowbar && this->ubBodyType == REGMALE && !IsZombie() ) // SANDRO - added check for body type
+	#else
+		if ( fMartialArtist && !AreInMeanwhile( ) && !Item[usItem].crowbar && this->ubBodyType == REGMALE ) // SANDRO - added check for body type
+	#endif
+
+#endif
 	{
 		// Are we in attack mode yet?
 		if ( this->usAnimState != NINJA_BREATH && gAnimControl[ this->usAnimState ].ubHeight == ANIM_STAND && gAnimControl[ pTSoldier->usAnimState ].ubHeight != ANIM_PRONE )
@@ -11239,73 +12164,236 @@ void SOLDIERTYPE::EVENT_SoldierBeginPunchAttack( INT32 sGridNo, UINT8 ubDirectio
 	}
 	else
 	{
-		// Look at stance of target
-		switch( gAnimControl[ pTSoldier->usAnimState ].ubEndHeight	)
+#ifdef ENABLE_ZOMBIES
+		// Flugente: civilians can be zombies too, but they do not have a 'punch' animation. Simple fix: They 'attack' without animation...
+		// CHECK IF WE CAN DO THIS ANIMATION!
+		if ( this->IsZombie() && IsAnimationValidForBodyType( this, PUNCH ) == FALSE )
 		{
-		case ANIM_STAND:
-		case ANIM_CROUCH:
-
-			if ( !Item[usItem].crowbar )
+			if ( gGameExternalOptions.fZombieExplodingCivs )
 			{
-				this->EVENT_InitNewSoldierAnim( PUNCH, 0 , FALSE );
+				// Solution 1: zombie explodes, killing himself and eventually also killing his target
+				// Lower hitpoints, to ensure we will die in explosion (otherwise there might be multiple explosions or zombies not dying correctly...)
+				if ( stats.bLife > 2 )
+					stats.bLife = 2;
+				// Explosion of a Jar of RDX Crystals
+				IgniteExplosion( this->ubID, this->sX, this->sY, (INT16) (gpWorldLevelData[this->sGridNo].sHeight), this->sGridNo, 136, this->pathing.bLevel );
 			}
 			else
 			{
-				this->EVENT_InitNewSoldierAnim( CROWBAR_ATTACK, 0 , FALSE );
-			}
-
-			// CHECK IF HE CAN SEE US, IF SO CHANGE DIR
-			if ( pTSoldier->aiData.bOppList[ this->ubID ] == 0 && pTSoldier->bTeam != this->bTeam )
-			{
-				// Get direction to target
-				// IF WE ARE AN ANIMAL, CAR, MONSTER, DONT'T TURN
-				if ( !( pTSoldier->flags.uiStatusFlags & ( SOLDIER_MONSTER | SOLDIER_ANIMAL | SOLDIER_VEHICLE ) ) )
+				// Solution 2: Crude simulation of a 'melee' attack (this is a rig-up, a better solution needs to be found).
+				// do we 'hit'?
+				if ( Random(100) > 30 )
 				{
-					// OK, stop merc....
-					pTSoldier->EVENT_StopMerc( pTSoldier->sGridNo, pTSoldier->ubDirection );
+					// Play sound
+					PlayJA2SampleFromFile( "Sounds\\zombie_swish1.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
 
-					if ( pTSoldier->bTeam != gbPlayerNum )
+					INT8 oldlife = pTSoldier->stats.bLife;
+
+					INT16 damage = (INT16)(5 + Random(20));
+					if ( pTSoldier->stats.bLife - damage < 0 )
+						damage = oldlife;
+
+					// We've got a problem if we kill someone outright without him collapsing properly...
+					// FIX: We'll adjust our damage, so if we'd kill someone without collapsing first, we lower our damage, to let him collapse
+					// After all, this whole thing's a rig up, so there shouldn't be a problem with that
+					if ( oldlife >= OKLIFE && oldlife <= damage )
+						damage -= (INT16)((5 + Random(5)));
+
+					INT16 breathdamage = (INT16)(500 + Random(1500));
+					if ( pTSoldier->bBreath - breathdamage < 0 )
+						breathdamage = pTSoldier->bBreath;
+
+					INT16 poisondamage = (INT16) ( (damage * this->GetPoisonDamagePercentage()) / 100 );
+					
+					// zombies do ~50% poison damage
+					pTSoldier->SoldierTakeDamage( 0, damage, poisondamage, breathdamage, TAKE_DAMAGE_HANDTOHAND, this->ubID, pTSoldier->sGridNo, 0, TRUE );
+
+					if ( pTSoldier->stats.bLife == 0 )
 					{
-						CancelAIAction( pTSoldier, TRUE );
+						// FINISH HIM!
+						HandleTakeDamageDeath( pTSoldier, oldlife, TAKE_DAMAGE_BLOODLOSS );
 					}
-
-					ubTDirection = (UINT8)GetDirectionFromGridNo( this->sGridNo, pTSoldier );
-					SendSoldierSetDesiredDirectionEvent( pTSoldier, ubTDirection );
-				}
-			}
-			break;
-
-		case ANIM_PRONE:
-
-			// CHECK OUR STANCE
-			// ATE: Added this for CIV body types 'cause of elliot
-			if ( !IS_MERC_BODY_TYPE( this ) )
-			{
-				this->EVENT_InitNewSoldierAnim( PUNCH, 0 , FALSE );
-			}
-			else
-			{
-				if ( gAnimControl[ this->usAnimState ].ubEndHeight != ANIM_CROUCH )
-				{
-					// SET DESIRED STANCE AND SET PENDING ANIMATION
-					SendChangeSoldierStanceEvent( this, ANIM_CROUCH );
-					this->usPendingAnimation = PUNCH_LOW;
+					else if ( pTSoldier->stats.bLife < OKLIFE && !pTSoldier->bCollapsed )
+					{
+						// let the target collapse...
+						SoldierCollapse(pTSoldier);
+					}
 				}
 				else
 				{
-					// USE crouched one
-					// NEED TO CHANGE STANCE IF NOT CROUCHD!
-					this->EVENT_InitNewSoldierAnim( PUNCH_LOW, 0 , FALSE );
+					// Play sound
+					PlayJA2SampleFromFile( "Sounds\\zombie_swish2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
 				}
+								
+				// zombie is done doing harm...
+				EndAIGuysTurn( this);
 			}
-			break;
+
+			// ensure that we are running on our way to the next enemy
+			this->EVENT_InitNewSoldierAnim( RUNNING, 0 , FALSE );
+		}
+		else
+		{
+#endif
+			// Flugente: zombies do not kick
+			BOOLEAN nokick = FALSE;
+#ifdef ENABLE_ZOMBIES
+			if ( this->IsZombie() )
+				nokick = TRUE;
+#endif
+
+			// Look at stance of target
+			switch( gAnimControl[ pTSoldier->usAnimState ].ubEndHeight	)
+			{
+			case ANIM_STAND:
+			case ANIM_CROUCH:
+
+				if ( !Item[usItem].crowbar )
+				{
+					BOOLEAN fCannotKick = ( ubDirection & 1 );
+					// SANDRO - we will determine here what type of punch we are gonna use
+					if ( gGameExternalOptions.fEnhancedCloseCombatSystem && ( this->aiData.bAimTime > 0 ) )
+					{
+						if ( gAnimControl[ pTSoldier->usAnimState ].ubEndHeight == ANIM_STAND )
+						{
+							// if we aim for legs, always use kick
+							if ( this->bAimShotLocation == AIM_SHOT_LEGS && !(ubDirection & 1) && !nokick )
+							{
+								this->EVENT_InitNewSoldierAnim( FOCUSED_HTH_KICK, 0 , FALSE );
+							}
+							// if we aim for head, always use punch animation
+							else if ( this->bAimShotLocation == AIM_SHOT_HEAD || (ubDirection & 1) )
+							{
+								this->EVENT_InitNewSoldierAnim( FOCUSED_PUNCH, 0 , FALSE );
+							}
+							// otherwise make it random, but favor the punch a bit
+							else
+							{
+								if ( nokick || Random(20) > 8 )
+									this->EVENT_InitNewSoldierAnim( FOCUSED_PUNCH, 0 , FALSE );
+								else
+									this->EVENT_InitNewSoldierAnim( FOCUSED_HTH_KICK, 0 , FALSE );
+							}
+						}
+						else // if crouching enemy
+						{			
+							// random if aiming on head, favor kick though
+							if ( this->bAimShotLocation == AIM_SHOT_HEAD || (ubDirection & 1) || nokick )
+							{
+								if ( nokick ||Random(20) > 12 || (ubDirection & 1))
+									this->EVENT_InitNewSoldierAnim( FOCUSED_PUNCH, 0 , FALSE );
+								else
+									this->EVENT_InitNewSoldierAnim( FOCUSED_HTH_KICK, 0 , FALSE );
+							}
+							// otherwise always use kick
+							else
+							{
+								this->EVENT_InitNewSoldierAnim( FOCUSED_HTH_KICK, 0 , FALSE );
+							}
+						}
+					}
+					else
+					{
+						if ( gAnimControl[ pTSoldier->usAnimState ].ubEndHeight == ANIM_STAND )
+						{
+							// if we aim for legs, always use kick
+							if ( this->bAimShotLocation == AIM_SHOT_LEGS && !(ubDirection & 1) && !nokick )
+							{
+								this->EVENT_InitNewSoldierAnim( HTH_KICK, 0 , FALSE );
+							}
+							// if we aim for head, always use punch animation
+							else if ( this->bAimShotLocation == AIM_SHOT_HEAD || (ubDirection & 1))
+							{
+								this->EVENT_InitNewSoldierAnim( PUNCH, 0 , FALSE );
+							}
+							// otherwise make it random, but favor the punch a bit
+							else
+							{
+								if ( nokick || Random(20) > 8 )
+									this->EVENT_InitNewSoldierAnim( PUNCH, 0 , FALSE );
+								else
+									this->EVENT_InitNewSoldierAnim( HTH_KICK, 0 , FALSE );
+							}
+						}
+						else // if crouching enemy
+						{			
+							// random if aiming on head, favor kick though
+							if ( this->bAimShotLocation == AIM_SHOT_HEAD || (ubDirection & 1) || nokick)
+							{
+								if ( nokick || Random(20) > 12 || (ubDirection & 1))
+									this->EVENT_InitNewSoldierAnim( PUNCH, 0 , FALSE );
+								else
+									this->EVENT_InitNewSoldierAnim( HTH_KICK, 0 , FALSE );
+							}
+							// otherwise always use kick
+							else
+							{
+								this->EVENT_InitNewSoldierAnim( HTH_KICK, 0 , FALSE );
+							}
+						}
+					}
+				}
+				else
+				{
+					this->EVENT_InitNewSoldierAnim( CROWBAR_ATTACK, 0 , FALSE );
+				}
+
+				// CHECK IF HE CAN SEE US, IF SO CHANGE DIR
+				if ( pTSoldier->aiData.bOppList[ this->ubID ] == 0 && pTSoldier->bTeam != this->bTeam )
+				{
+					// Get direction to target
+					// IF WE ARE AN ANIMAL, CAR, MONSTER, DONT'T TURN
+					if ( !( pTSoldier->flags.uiStatusFlags & ( SOLDIER_MONSTER | SOLDIER_ANIMAL | SOLDIER_VEHICLE ) ) )
+					{
+						// OK, stop merc....
+						pTSoldier->EVENT_StopMerc( pTSoldier->sGridNo, pTSoldier->ubDirection );
+
+						if ( pTSoldier->bTeam != gbPlayerNum )
+						{
+							CancelAIAction( pTSoldier, TRUE );
+						}
+
+						ubTDirection = (UINT8)GetDirectionFromGridNo( this->sGridNo, pTSoldier );
+						SendSoldierSetDesiredDirectionEvent( pTSoldier, ubTDirection );
+					}
+				}
+				break;
+
+			case ANIM_PRONE:
+
+				// CHECK OUR STANCE
+				// ATE: Added this for CIV body types 'cause of elliot
+				if ( !IS_MERC_BODY_TYPE( this ) )
+				{
+					this->EVENT_InitNewSoldierAnim( PUNCH, 0 , FALSE );
+				}
+				else
+				{
+					if ( gAnimControl[ this->usAnimState ].ubEndHeight != ANIM_CROUCH )
+					{
+						// SET DESIRED STANCE AND SET PENDING ANIMATION
+						SendChangeSoldierStanceEvent( this, ANIM_CROUCH );
+						this->usPendingAnimation = PUNCH_LOW;
+					}
+					else
+					{
+						// USE crouched one
+						// NEED TO CHANGE STANCE IF NOT CROUCHD!
+						this->EVENT_InitNewSoldierAnim( PUNCH_LOW, 0 , FALSE );
+					}
+				}
+				break;
+
+#ifdef ENABLE_ZOMBIES
+			}
+#endif
 		}
 	}
 
 	// SET TARGET GRIDNO
 	this->sTargetGridNo = sGridNo;
 	this->bTargetLevel = this->pathing.bLevel;
-	this->sLastTarget		= sGridNo;
+	//this->sLastTarget		= sGridNo;//dnl ch73 021013
 	this->ubTargetID = WhoIsThere2( sGridNo, this->bTargetLevel );
 }
 
@@ -11321,6 +12409,7 @@ void SOLDIERTYPE::EVENT_SoldierBeginKnifeThrowAttack( INT32 sGridNo, UINT8 ubDir
 	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("!!!!!!! Starting knifethrow attack, bullets left %d", this->bBulletsLeft) );
 	DebugAttackBusy( String( "Begin knife throwing attack: ATB  %d\n", gTacticalStatus.ubAttackBusyCount) );
 
+	// SANDRO - new animation for throwing for big mercs by PasHancock
 	if ( this->ubBodyType == BIGMALE && ((this->ubProfile != NO_PROFILE && gMercProfiles[ this->ubProfile ].bCharacterTrait == CHAR_TRAIT_SHOWOFF) || (HAS_SKILL_TRAIT( this, THROWING_NT ) && gGameOptions.fNewTraitSystem) || (HAS_SKILL_TRAIT( this, THROWING_OT ) && !gGameOptions.fNewTraitSystem) ) )
 	{
 		this->EVENT_InitNewSoldierAnim( THROW_KNIFE_SP_BM, 0 , FALSE );
@@ -11330,10 +12419,18 @@ void SOLDIERTYPE::EVENT_SoldierBeginKnifeThrowAttack( INT32 sGridNo, UINT8 ubDir
 		this->EVENT_InitNewSoldierAnim( THROW_KNIFE, 0 , FALSE );
 	}
 
+	//dnl ch70 160913 ugly but fast fix for not charging turning APs as there is no fire ready animation for throwing knives and I don't want to break SOLDIERTYPE just for that
+	if(this->usAnimState == THROW_KNIFE || this->usAnimState == THROW_KNIFE_SP_BM)
+		usForceAnimState = this->usAnimState;
+	else if(this->usPendingAnimation == THROW_KNIFE || this->usPendingAnimation == THROW_KNIFE_SP_BM)
+		usForceAnimState = this->usPendingAnimation;
+	else
+		usForceAnimState = INVALID_ANIMATION;
+	this->flags.fDontUnsetLastTargetFromTurn = TRUE;
 	// CHANGE DIRECTION AND GOTO ANIMATION NOW
 	this->EVENT_SetSoldierDesiredDirection( ubDirection );
 	this->EVENT_SetSoldierDirection( ubDirection );
-
+	usForceAnimState = INVALID_ANIMATION;
 
 	// SET TARGET GRIDNO
 	this->sTargetGridNo = sGridNo;
@@ -11349,7 +12446,7 @@ void SOLDIERTYPE::EVENT_SoldierBeginKnifeThrowAttack( INT32 sGridNo, UINT8 ubDir
 }
 
 
-void SOLDIERTYPE::EVENT_SoldierBeginDropBomb( void )
+void SOLDIERTYPE::EVENT_SoldierBeginDropBomb( )
 {
 	// Increment the number of people busy doing stuff because of an attack
 	switch( gAnimControl[ this->usAnimState ].ubHeight )
@@ -11367,6 +12464,29 @@ void SOLDIERTYPE::EVENT_SoldierBeginDropBomb( void )
 		break;
 	}
 
+}
+
+void SOLDIERTYPE::EVENT_SoldierDefuseTripwire( INT32 sGridNo, INT32 sItem )
+{
+	// Flugente: if item is tripwireactivated and is a planted bomb, call the defuse dialogue. We obviously know about the item's existence already...
+	if ( gWorldItems[ sItem ].object.exists() && gWorldItems[ sItem ].object.fFlags & OBJECT_ARMED_BOMB && Item[gWorldItems[ sItem ].object.usItem].tripwire == 1 )
+	{		
+		// Increment the number of people busy doing stuff because of an attack
+		switch( gAnimControl[ this->usAnimState ].ubHeight )
+		{
+		case ANIM_STAND:
+
+			this->EVENT_InitNewSoldierAnim( CROUCHING, 0 , FALSE );
+			break;
+
+		default:
+
+			// Call handler for planting bomb...
+			HandleSoldierDefuseTripwire(this, sGridNo, sItem );
+			this->SoldierGotoStationaryStance( );
+			break;
+		}
+	}
 }
 
 
@@ -11434,7 +12554,8 @@ void SOLDIERTYPE::EVENT_SoldierBeginFirstAid( INT32 sGridNo, UINT8 ubDirection )
 				}
 				else if ( !pTSoldier->aiData.bNeutral && pTSoldier->stats.bLife >= OKLIFE && pTSoldier->bSide != this->bSide )
 				*/
-				if ( !pTSoldier->aiData.bNeutral && pTSoldier->stats.bLife >= OKLIFE && pTSoldier->bSide != this->bSide )
+				// Flugente: people we captured don't refuse to be bandaged
+				if ( !pTSoldier->aiData.bNeutral && pTSoldier->stats.bLife >= OKLIFE && pTSoldier->bSide != this->bSide && !(pTSoldier->bSoldierFlagMask & SOLDIER_POW) )
 				{
 					fRefused = TRUE;
 					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, Message[ STR_REFUSE_FIRSTAID ] );
@@ -11455,25 +12576,38 @@ void SOLDIERTYPE::EVENT_SoldierBeginFirstAid( INT32 sGridNo, UINT8 ubDirection )
 		// any now...
 		this->InternalGivingSoldierCancelServices( FALSE );
 
+		BOOLEAN fInProne = FALSE;
+		if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE && gAnimControl[ pTSoldier->usAnimState ].ubEndHeight == ANIM_PRONE && this->fDoingSurgery == FALSE )
+		{
+			fInProne = TRUE;
+		}
 		// CHANGE DIRECTION AND GOTO ANIMATION NOW
 		this->EVENT_SetSoldierDesiredDirection( ubDirection );
 		this->EVENT_SetSoldierDirection( ubDirection );
 
-		// CHECK OUR STANCE AND GOTO CROUCH IF NEEDED
-		//if ( gAnimControl[ this->usAnimState ].ubEndHeight != ANIM_CROUCH )
-		//{
-		// SET DESIRED STANCE AND SET PENDING ANIMATION
-		//	SendChangeSoldierStanceEvent( this, ANIM_CROUCH );
-		//	this->usPendingAnimation = START_AID;
-		//}
-		//else
+		// CHANGE TO ANIMATION
+		if ( fInProne )
 		{
-			// CHANGE TO ANIMATION
+			// HACK! If we are not prone after the above stance change and we should be, send us down before start
+			if ( gAnimControl[ this->usAnimState ].ubEndHeight != ANIM_PRONE )
+			{
+				this->usPendingAnimation = START_AID_PRN;
+				SendChangeSoldierStanceEvent( this, ANIM_PRONE );
+			}
+			else
+			{
+				if(!is_networked)
+					this->EVENT_InitNewSoldierAnim( START_AID_PRN, 0 , FALSE );
+				else 
+					this->ChangeSoldierState( START_AID_PRN, 0, 0 );
+			}
+		}
+		else
+		{
 			if(!is_networked)
 				this->EVENT_InitNewSoldierAnim( START_AID, 0 , FALSE );
 			else 
 				this->ChangeSoldierState( START_AID, 0, 0 );
-
 		}
 
 		// SET TARGET GRIDNO
@@ -11516,7 +12650,7 @@ void SOLDIERTYPE::EVENT_SoldierEnterVehicle( INT32 sGridNo, UINT8 ubDirection )
 UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT16 sStatus )
 {
 	UINT32 uiDressSkill, uiPossible, uiActual, uiMedcost, uiDeficiency, uiAvailAPs, uiUsedAPs;
-	UINT8 ubBelowOKlife, ubPtsLeft = 0;
+	UINT8 ubBelowOKlife = 0, ubPtsLeft = 0;
 	BOOLEAN	fRanOut = FALSE;
 	BOOLEAN	fOnSurgery = FALSE;
 	INT8 bInitialBleeding;
@@ -11552,14 +12686,14 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 		uiDressSkill = ( ( 7 * EffectiveMedical( this ) ) +					// medical knowledge
 			( sStatus) + 																// state of medical kit
 			(10 * EffectiveExpLevel( this ) ) +					// battle injury experience
-			EffectiveDexterity( this ) )	/ 10;		// general "handiness"
+			EffectiveDexterity( this, FALSE ) )	/ 10;		// general "handiness"
 	}
 	else
 	{
 		uiDressSkill = ( ( 3 * EffectiveMedical( this ) ) +					// medical knowledge
 			( 2 * sStatus) + 																// state of medical kit
 			(10 * EffectiveExpLevel( this ) ) +					// battle injury experience
-			EffectiveDexterity( this ) )	/ 7;		// general "handiness"
+			EffectiveDexterity( this, FALSE ) )	/ 7;		// general "handiness"
 	}
 
 	// try to use every AP that the merc has left
@@ -11584,11 +12718,22 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 	{
 		uiPossible += ( uiPossible / 2);			// add extra 50 %
 	}
+
+	// when prone, bandaging is harder
+	if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE )
+	{
+		// if we bandage ourselves, make it rather had when prone
+		if ( this->ubID == pVictim->ubID )
+			uiPossible = uiPossible / 2; // -50% speed
+		else
+			uiPossible = uiPossible * 4 / 5; // -20% speed
+	}
+
 	// Doctor trait improves basic bandaging ability
 	if (!(fOnSurgery) && gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( this, DOCTOR_NT ))
 	{
 		uiPossible = uiPossible * (100 - gSkillTraitValues.bSpeedModifierBandaging) / 100;
-		uiPossible += ( uiPossible * gSkillTraitValues.ubDOBandagingSpeedPercent * NUM_SKILL_TRAITS( this, DOCTOR_NT ) / 100);
+		uiPossible += ( uiPossible * gSkillTraitValues.ubDOBandagingSpeedPercent * NUM_SKILL_TRAITS( this, DOCTOR_NT ) + this->GetBackgroundValue(BG_PERC_BANDAGING) ) / 100;
 	}
 
 	uiActual = uiPossible;		// start by assuming maximum possible
@@ -11683,6 +12828,10 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 
 			// use up appropriate # of actual healing points
 			ubPtsLeft -= (2 * ubBelowOKlife);
+
+			// raise bPoisonLife, reduce bPoisonBleeding
+			pVictim->bPoisonLife = min(pVictim->bPoisonLife + ubBelowOKlife, pVictim->bPoisonSum);
+			pVictim->bPoisonBleeding = max(0, pVictim->bPoisonBleeding - ubBelowOKlife);
 		}
 		else
 		{
@@ -11698,12 +12847,17 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 			pVictim->bBleeding -= ( ubPtsLeft / 2);
 
 			ubPtsLeft = ubPtsLeft % 2;	// if ptsLeft was odd, ptsLeft = 1
+
+			// raise bPoisonLife, reduce bPoisonBleeding
+			pVictim->bPoisonLife = min(pVictim->bPoisonLife + ( ubPtsLeft / 2), pVictim->bPoisonSum);
+			pVictim->bPoisonBleeding = max(0, pVictim->bPoisonBleeding - ( ubPtsLeft / 2));
 		}
 
 		// this should never happen any more, but make sure bleeding not negative
 		if (pVictim->bBleeding < 0)
 		{
 			pVictim->bBleeding = 0;
+			pVictim->bPoisonBleeding = 0;
 		}
 
 		// if this healing brought the patient out of the worst of it, cancel dying
@@ -11763,7 +12917,7 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 			gTacticalStatus.ubLastRequesterSurgeryTargetID = NOBODY; // reset last target
 
 			// throw message
-			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_SURGERY_FINISHED ], pVictim->name );
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_SURGERY_FINISHED ], pVictim->GetName() );
 
 			// add to record - another surgery undergoed
 			if ( pVictim->ubProfile != NO_PROFILE && usLifeReturned >= 100 )
@@ -11793,11 +12947,13 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 			if (pVictim->bBleeding >= (usLifeReturned/100))
 			{
 				pVictim->bBleeding -= (usLifeReturned/100);
+				pVictim->bPoisonBleeding = max(0, pVictim->bPoisonBleeding - (usLifeReturned/100) );
 				uiMedcost += (usLifeReturned / 200); // add medkit points cost for unbandaged part
 			}
 			else
 			{
 				pVictim->bBleeding = 0;
+				pVictim->bPoisonBleeding = 0;
 				uiMedcost += max( 0, (((usLifeReturned/100) - pVictim->bBleeding) / 2)); // add medkit points cost for unbandaged part 
 			}
 		}
@@ -11806,6 +12962,7 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 			pVictim->stats.bLife = pVictim->stats.bLifeMax;
 			pVictim->iHealableInjury = 0;
 			pVictim->bBleeding = 0;
+			pVictim->bPoisonBleeding = 0;
 		}
 		// Reduce max breath based on life returned
 		if ( (pVictim->bBreathMax - (((usLifeReturned/100) * gSkillTraitValues.usDOSurgeryMaxBreathLoss )/ 100)) <= BREATHMAX_ABSOLUTE_MINIMUM )
@@ -11821,6 +12978,9 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 			pVictim->iHealableInjury = ((pVictim->stats.bLifeMax - pVictim->stats.bLife)*100);
 		else if (pVictim->iHealableInjury < 0)
 			pVictim->iHealableInjury = 0;
+
+		// Flugente: campaign stats
+		gCurrentIncident.usIncidentFlags |= INCIDENT_SURGERY;
 	}
 
 	// if any healing points remain, apply that to any remaining bleeding (1/1)
@@ -11833,10 +12993,12 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 		{
 			ubPtsLeft -= pVictim->bBleeding;
 			pVictim->bBleeding = 0;
+			pVictim->bPoisonBleeding = 0;
 		}
 		else		// bandage what we can
 		{
 			pVictim->bBleeding -= ubPtsLeft;
+			pVictim->bPoisonBleeding = max(0, pVictim->bPoisonBleeding - ubPtsLeft);
 			ubPtsLeft = 0;
 		}
 
@@ -11938,8 +13100,20 @@ void SOLDIERTYPE::InternalReceivingSoldierCancelServices( BOOLEAN fPlayEndAnim )
 						// don't use end aid animation in autobandage
 						if ( pTSoldier->stats.bLife >= OKLIFE && pTSoldier->bBreath > 0 && fPlayEndAnim )
 						{
-							if(!is_networked)pTSoldier->EVENT_InitNewSoldierAnim( END_AID, 0 , FALSE );
-							else pTSoldier->ChangeSoldierState( END_AID, 0, 0 );
+							if ( gAnimControl[ pTSoldier->usAnimState ].ubEndHeight == ANIM_PRONE )
+							{
+								if(!is_networked)
+									pTSoldier->EVENT_InitNewSoldierAnim( END_AID_PRN, 0 , FALSE );
+								else 
+									pTSoldier->ChangeSoldierState( END_AID_PRN, 0, 0 );
+							}
+							else
+							{
+								if(!is_networked)
+									pTSoldier->EVENT_InitNewSoldierAnim( END_AID, 0 , FALSE );
+								else 
+									pTSoldier->ChangeSoldierState( END_AID, 0, 0 );
+							}
 						}
 					}
 
@@ -11988,8 +13162,20 @@ void SOLDIERTYPE::InternalGivingSoldierCancelServices( BOOLEAN fPlayEndAnim )
 			if ( this->stats.bLife >= OKLIFE && this->bBreath > 0 && fPlayEndAnim )
 			{
 				// don't use end aid animation in autobandage
-					if(!is_networked)this->EVENT_InitNewSoldierAnim( END_AID, 0 , FALSE );
-					else this->ChangeSoldierState( END_AID, 0, 0 );	
+				if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE )
+				{
+					if(!is_networked)
+						this->EVENT_InitNewSoldierAnim( END_AID_PRN, 0 , FALSE );
+					else 
+						this->ChangeSoldierState( END_AID_PRN, 0, 0 );
+				}
+				else
+				{
+					if(!is_networked)
+						this->EVENT_InitNewSoldierAnim( END_AID, 0 , FALSE );
+					else 
+						this->ChangeSoldierState( END_AID, 0, 0 );
+				}
 			}
 		}
 	}
@@ -12015,7 +13201,7 @@ void SOLDIERTYPE::HaultSoldierFromSighting( BOOLEAN fFromSightingEnemy )
 		SStopMerc.sXPos=this->sX;
 		SStopMerc.sYPos=this->sY;
 	//AddGameEvent( S_STOP_MERC, 0, &SStopMerc ); //hayden.
-	if(this->ubID>=120 || (!is_server && this->ubID >=20)) return;//hayden
+	if((is_networked) && (this->ubID>=120 || (!is_server && this->ubID >=20))) return;//hayden
 	if(is_client)send_stop(&SStopMerc);
 
 	// If we are a 'specialmove... ignore...
@@ -12224,6 +13410,20 @@ void SOLDIERTYPE::ReLoadSoldierAnimationDueToHandItemChange( UINT16 usOldItem, U
 		this->bWeaponMode = WM_AUTOFIRE;
 		this->bDoAutofire = 1;
 	}
+		
+	// Flugente: if using a rifle grenade device, and a grenade i equipped, only grenade launching is allowed
+	if ( HasAttachmentOfClass( &(this->inv[HANDPOS]), AC_RIFLEGRENADE) )
+	{
+		OBJECTTYPE* pRifleGrenadeDeviceObj = FindAttachment_GrenadeLauncher( &(this->inv[HANDPOS]) );
+
+		if ( pRifleGrenadeDeviceObj && FindLaunchableAttachment( &(this->inv[HANDPOS]), pRifleGrenadeDeviceObj->usItem) )
+			this->bWeaponMode = WM_ATTACHED_GL;
+	}
+
+	if ( Item[ usNewItem ].twohanded && Weapon[ usNewItem ].HeavyGun && gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 )
+		this->bScopeMode = USE_ALT_WEAPON_HOLD;
+	else
+		this->bScopeMode = USE_BEST_SCOPE;
 
 	if ( gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIREREADY )
 	{
@@ -12255,6 +13455,24 @@ void SOLDIERTYPE::ReLoadSoldierAnimationDueToHandItemChange( UINT16 usOldItem, U
 			if ( (Item[ usNewItem ].twohanded ) && !Item[usNewItem].rocketlauncher )
 			{
 				fNewRifle = TRUE;
+			}
+
+			// Flugente: if we are using dual weapons, only allow iron sights (we can't look through two scopes simultaneously, can we?)
+			if ( (Item[ inv[ HANDPOS ].usItem ].usItemClass & IC_WEAPON) && (Item[ inv[ SECONDHANDPOS ].usItem ].usItemClass & IC_WEAPON) )
+			{
+				std::map<INT8, OBJECTTYPE*> ObjList;
+				GetScopeLists(&inv[ HANDPOS ], ObjList);
+
+				std::map<INT8, OBJECTTYPE*>::iterator itend = ObjList.end();
+				for (std::map<INT8, OBJECTTYPE*>::iterator it = ObjList.begin(); it != itend; ++it)
+				{
+					if ( (*it).second != NULL )
+					{
+						bScopeMode = (*it).first;
+					}
+					else
+						break;
+				}
 			}
 		}
 	}
@@ -12763,9 +13981,4283 @@ BOOLEAN SOLDIERTYPE::SoldierCarriesTwoHandedWeapon( void )
 	}
 
 	return( FALSE );
-
 }
 
+extern void HandleItemCooldownFunctions( OBJECTTYPE* itemStack, INT32 deltaSeconds,  UINT16 naturalDirt = 100, BOOLEAN isUnderground = TRUE );
+// Flugente: Cool down/decay all items in inventory
+void SOLDIERTYPE::SoldierInventoryCoolDown(void)
+{
+	// if we have any active flashlights (in our hands for simplicity), drain their batteries
+	// do this check for both hands
+	// we do not lower a battery's status all the time - as an INT8, it would reach 0 way to fast. Instead we only have 5% chance of doing so, thereby increasing a battery's life
+	if ( Chance(5) )
+	{
+		UINT16 firstslot = HANDPOS;
+		UINT16 lastslot  = VESTPOCKPOS;
+		for (UINT16 invpos = firstslot; invpos < lastslot; ++invpos)
+		{
+			OBJECTTYPE* pObj = &(this->inv[invpos]);
+		
+			if ( !pObj || !(pObj->exists()) )
+				// can't use this, end
+				continue;
+
+			OBJECTTYPE* pBattery = FindAttachedBatteries(pObj);
+			if ( !pBattery )
+				continue;
+
+			BOOLEAN flashlightfound = FALSE;
+			if ( Item [ pObj->usItem ].usFlashLightRange )
+				flashlightfound = TRUE;
+
+			if ( !flashlightfound )
+			{
+				attachmentList::iterator iterend = (*pObj)[0]->attachments.end();
+				for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter)
+				{
+					if ( Item [ iter->usItem ].usFlashLightRange )
+						flashlightfound = TRUE;
+				}
+			}
+
+			if ( flashlightfound )
+			{
+				// lose 1 point
+				(*pBattery)[0]->data.objectStatus -= 1;
+
+				if ( (*pBattery)[0]->data.objectStatus <= 0 )
+				{
+					// destroy batteries
+					pBattery->RemoveObjectsFromStack(1);
+					if (pBattery->exists() == false)
+						this->inv[HANDPOS].RemoveAttachment(pBattery);
+				}
+			}
+		}
+	}
+
+	// handle flashlight. This is necessary in this location, as we need to do this at least once per turn
+	this->HandleFlashLights();
+
+	if ( !gGameExternalOptions.fWeaponOverheating && !gGameExternalOptions.fDirtSystem && !gGameOptions.fFoodSystem )
+		return;
+
+#if TRUE //start reusing existing code from HandleItemCooldownFunctions, set to FALSE if original code should be used
+	INT8 numStacks = (INT8)this->inv.size();											// remember inventorysize, so we don't call size() repeatedly
+	extern UINT32 guiLastTacticalRealTime, guiLastStrategicTime;
+	UINT32 secondsPassed = 5;//GetJA2Clock() > guiLastTacticalRealTime? (GetJA2Clock() - guiLastTacticalRealTime)/1000 : 0;
+	for ( INT8 bLoop = 0; bLoop < numStacks; ++bLoop)									// ... for all items in our inventory ...
+	{
+		HandleItemCooldownFunctions( &(this->inv[bLoop]), secondsPassed );
+	}
+
+#else //start using original redundant code
+	// one hour has 60 minutes, with 12 5-second-intervals (cooldown values are based on 5-second values)
+	FLOAT fooddecaymod = gGameExternalOptions.sFoodDecayModificator;
+
+	// food decays slower if underground
+	if ( gbWorldSectorZ > 0 )
+		fooddecaymod *= 0.8f;
+
+	// get sector-specific dirt threshold
+	UINT16 sectormod = 0;
+	UINT8 ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);	
+	if ( gbWorldSectorZ > 0 )
+		sectormod = 100;
+	else if ( ubSectorId >= 0 && ubSectorId < 256  )
+	{
+		sectormod = SectorExternalData[ubSectorId][gbWorldSectorZ].usNaturalDirt;
+	}
+
+	INT8 invsize = (INT8)this->inv.size();											// remember inventorysize, so we don't call size() repeatedly
+
+	for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
+	{
+		if ( this->inv[bLoop].exists() )
+		{
+			OBJECTTYPE * pObj = &(this->inv[bLoop]);								// ... get pointer for this item ...
+
+			if ( pObj != NULL )														// ... if pointer is not obviously useless ...
+			{
+				// ... if Item exists and is a gun, a launcher or a barrel ...
+				if ( gGameExternalOptions.fWeaponOverheating && ( Item[pObj->usItem].usItemClass & (IC_GUN|IC_LAUNCHER) || Item[pObj->usItem].barrel == TRUE ) )
+				{
+					for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)				// ... there might be multiple items here (item stack), so for each one ...
+					{
+						FLOAT temperature = (*pObj)[i]->data.bTemperature;			// ... get temperature of item ...
+
+						FLOAT cooldownfactor = GetItemCooldownFactor(pObj);			// ... get cooldown factor ...
+
+						FLOAT newtemperature = max(0.0f, temperature - cooldownfactor);	// ... calculate new temperature ...
+						(*pObj)[i]->data.bTemperature = newtemperature;				// ... set new temperature
+
+#if 0//def JA2TESTVERSION
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Item temperature lowered from %4.2f to %4.2f", temperature, newtemperature );
+#endif
+						// for every objects, we also have to check wether there are weapon attachments (eg. underbarrel grenade launchers), and cool them down too
+						attachmentList::iterator iterend = (*pObj)[i]->attachments.end();
+						for (attachmentList::iterator iter = (*pObj)[i]->attachments.begin(); iter != iterend; ++iter) 
+						{
+							if ( iter->exists() && Item[ iter->usItem ].usItemClass & (IC_GUN|IC_LAUNCHER) )
+							{
+								FLOAT temperature =  (*iter)[i]->data.bTemperature;			// ... get temperature of item ...
+
+								FLOAT cooldownfactor = GetItemCooldownFactor( &(*iter) );	// ... get cooldown factor ...
+
+								FLOAT newtemperature = max(0.0f, temperature - cooldownfactor);	// ... calculate new temperature ...
+								(*iter)[i]->data.bTemperature = newtemperature;				// ... set new temperature
+
+#if 0//def JA2TESTVERSION
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Item temperature lowered from %4.2f to %4.2f", temperature, newtemperature );
+#endif
+
+								// we assume that there can exist only 1 UGL per weapon
+								break;
+							}
+						}
+					}
+				}
+
+				if ( gGameExternalOptions.fDirtSystem && ( (Item[pObj->usItem].usItemClass & IC_WEAPON) || (Item[pObj->usItem].usItemClass & IC_ARMOUR) ) )
+				{
+					FLOAT dirtincreasefactor = GetItemDirtIncreaseFactor(pObj, FALSE);			// ... get dirt increase factor ...
+
+					// the current sector determines how much dirt increases
+					dirtincreasefactor *= (sectormod)/100;
+
+					dirtincreasefactor /= gGameExternalOptions.usSectorDirtDivider;
+
+					// items in pockets are a bit protected from dirt
+					if ( bLoop > KNIFEPOCKPOS )
+						dirtincreasefactor /= 3.0f;
+
+					if ( dirtincreasefactor > 0.0f )									// ... item can get dirtier ...
+					{
+						for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)				// ... there might be multiple items here (item stack), so for each one ...
+						{
+							(*pObj)[i]->data.bDirtLevel = max(0.0f, min( OVERHEATING_MAX_TEMPERATURE, (*pObj)[i]->data.bDirtLevel + dirtincreasefactor) );	// set new temperature														
+						}
+					}
+				}
+
+				if ( gGameOptions.fFoodSystem && Item[pObj->usItem].foodtype > 0 )
+				{
+					if ( Food[Item[pObj->usItem].foodtype].usDecayRate > 0.0f )		// ... if the food can decay...
+					{
+						for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)			// ... there might be multiple items here (item stack), so for each one ...
+						{							
+							(*pObj)[i]->data.bTemperature = max(0.0f, (*pObj)[i]->data.bTemperature - fooddecaymod * Food[Item[pObj->usItem].foodtype].usDecayRate);	// set new temperature														
+						}
+					}
+				}
+			}
+		}
+	}
+#endif //end using original code
+}
+
+// Flugente: determine if we can rest our weapon on something. This can only happen when STANDING/CROUCHED. As a result, we get superior handling modifiers (we apply the PRONE modfiers)
+BOOLEAN	SOLDIERTYPE::IsWeaponMounted( void )
+{
+	BOOLEAN applybipod = FALSE;
+
+	// we must be active
+	if ( !bActive)
+		return( FALSE );
+		
+	// we must be in a sector (not travelling)
+	if ( !bInSector )
+		return( FALSE );
+
+	// not possible if already prone
+	if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE )
+		return( FALSE );
+
+	// not possible to get this bonus on a roof, as there are no objects on the roof on which we could rest our gun
+	if ( this->pathing.bLevel == 1 )
+		return( FALSE );
+
+	// this is odd - invalid GridNo... well, not mounted then
+	if ( TileIsOutOfBounds(this->sGridNo) )
+		return( FALSE );
+
+	// we determine the height of the next tile in our direction. Because of the way structures are handled, we sometimes have to take the very tile we're occupying right now
+	INT32 nextGridNoinSight = this->sGridNo;
+	if ( this->ubDirection == NORTH ||  this->ubDirection == SOUTHWEST  ||  this->ubDirection == WEST ||  this->ubDirection == NORTHWEST )
+		nextGridNoinSight = NewGridNo( nextGridNoinSight, DirectionInc( this->ubDirection ) );
+
+	INT8 adjacenttileheight = GetTallestStructureHeight( nextGridNoinSight, FALSE );
+
+	// if the tile actually has a bit of height, we can rest our gun on it
+	if (( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_CROUCH && (adjacenttileheight == 1 ||  adjacenttileheight == 2 ) ) ||
+		( adjacenttileheight == 2 && (gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_STAND && (gAnimControl[ this->usAnimState ].uiFlags &(ANIM_ALT_WEAPON_HOLDING)))))
+	{
+		// now we really want to check the next tile
+		nextGridNoinSight = NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) );
+
+		// for some nefarious reason, trees also have height 2, so we have to check for that too...
+		STRUCTURE * pStructure = FindStructure( nextGridNoinSight, STRUCTURE_TREE );
+
+		if (!pStructure)
+		{
+			// for some reason I find EXTREMELY FRUSTRATING, we might get a heigth of 2 on a totally empty tile... so we check if we could occupy the tile
+			if ( !IsLocationSittable( nextGridNoinSight, 0 ) )
+				// resting our gun on people would be rude - only allow if nobody is there
+				if( WhoIsThere2( nextGridNoinSight, 0 ) == NOBODY )
+					applybipod = TRUE;	
+		}
+	}
+	else if ( adjacenttileheight == 4 && (gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_CROUCH || (gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_STAND && (gAnimControl[ this->usAnimState ].uiFlags &(ANIM_ALT_WEAPON_HOLDING))))) 
+	{
+		// tile is as high as a building, but there might be a window, we could look through that
+		// note that we also check for STRUCTURE_OPEN - the window has to be open (smashed)
+		STRUCTURE * pStructure = FindStructure( nextGridNoinSight, STRUCTURE_WALLNWINDOW );
+
+		if ( pStructure )
+		{
+			if ( ( this->ubDirection == SOUTH || this->ubDirection == NORTH ) 
+				&& (pStructure->ubWallOrientation == OUTSIDE_TOP_LEFT || pStructure->ubWallOrientation == INSIDE_TOP_LEFT ) 
+				&& pStructure->fFlags & STRUCTURE_WALLNWINDOW && pStructure->fFlags & STRUCTURE_OPEN )
+			{
+        		applybipod = TRUE;
+	      	}	                            	
+			else if ( ( this->ubDirection == EAST || this->ubDirection == WEST ) 
+				&& ( pStructure->ubWallOrientation == OUTSIDE_TOP_RIGHT || pStructure->ubWallOrientation == INSIDE_TOP_RIGHT ) 
+				&& pStructure->fFlags & STRUCTURE_WALLNWINDOW && pStructure->fFlags & STRUCTURE_OPEN )
+	      	{
+				applybipod = TRUE;
+	      	}
+			else if ( ( this->ubDirection == SOUTHWEST || this->ubDirection == NORTHWEST || this->ubDirection == SOUTHEAST || this->ubDirection == NORTHEAST) 
+				&& (pStructure->ubWallOrientation == OUTSIDE_TOP_LEFT || pStructure->ubWallOrientation == INSIDE_TOP_LEFT || pStructure->ubWallOrientation == OUTSIDE_TOP_RIGHT || pStructure->ubWallOrientation == INSIDE_TOP_RIGHT) 
+				&& pStructure->fFlags & STRUCTURE_WALLNWINDOW && pStructure->fFlags & STRUCTURE_OPEN )
+			{
+        		applybipod = TRUE;
+	      	}
+		}
+	}
+	else if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_STAND && adjacenttileheight == 3 && !(gAnimControl[ this->usAnimState ].uiFlags &(ANIM_ALT_WEAPON_HOLDING)) )
+	{
+		// now we really want to check the next tile
+		nextGridNoinSight = NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) );
+
+		// for some nefarious reason, trees also have height 2, so we have to check for that too...
+		STRUCTURE * pStructure = FindStructure( nextGridNoinSight, STRUCTURE_TREE );
+
+		if (!pStructure)
+		{
+			// for some reason I find EXTREMELY FRUSTRATING, we might get a heigth of 2 on a totally empty tile... so we check if we could occupy the tile
+			if ( !IsLocationSittable( nextGridNoinSight, 0 ) )
+				// resting our gun on people would be rude - only allow if nobody is there
+				if( WhoIsThere2( nextGridNoinSight, 0 ) == NOBODY )
+					applybipod = TRUE;	
+		}
+	}
+	
+	return( applybipod );
+}
+
+// Flugente: return weapon currently used
+OBJECTTYPE* SOLDIERTYPE::GetUsedWeapon( OBJECTTYPE * pObj )
+{
+	if ( bWeaponMode == WM_ATTACHED_UB || bWeaponMode == WM_ATTACHED_UB_BURST || bWeaponMode == WM_ATTACHED_UB_AUTO )
+	{
+		OBJECTTYPE* pObjUnderBarrel = FindAttachedWeapon(pObj, IC_GUN);
+
+		if ( pObjUnderBarrel )
+			return( pObjUnderBarrel );
+	}
+	else  if ( bWeaponMode == WM_ATTACHED_BAYONET )
+	{
+		OBJECTTYPE* pObjUnderBarrel = FindAttachedWeapon(pObj, IC_BLADE);
+
+		if ( pObjUnderBarrel )
+			return( pObjUnderBarrel );
+	}
+
+	return( pObj );
+}
+
+UINT16 SOLDIERTYPE::GetUsedWeaponNumber( OBJECTTYPE * pObj )
+{
+	if ( bWeaponMode == WM_ATTACHED_UB || bWeaponMode == WM_ATTACHED_UB_BURST || bWeaponMode == WM_ATTACHED_UB_AUTO )
+	{
+		UINT16 weaponnr = GetAttachedWeapon(pObj, IC_GUN);
+
+		if ( weaponnr != NONE )
+			return( weaponnr );
+	}
+	else if ( bWeaponMode == WM_ATTACHED_BAYONET )
+	{
+		UINT16 weaponnr = GetAttachedWeapon(pObj, IC_BLADE);
+
+		if ( weaponnr != NONE )
+			return( weaponnr );
+	}
+
+	return( pObj->usItem );
+}
+
+INT32 SOLDIERTYPE::GetDamageResistance(BOOLEAN fAutoResolve, BOOLEAN fCalcBreathLoss)
+{
+	INT32 resistance = 0;
+	FLOAT breathmodifiermilitia = 1.0;
+	FLOAT breathmodifierspecialNPC = 2.0;
+
+	if ( fCalcBreathLoss )
+	{
+		breathmodifiermilitia = 0.75;
+		breathmodifierspecialNPC = 1.0;
+	}
+
+	// SANDRO - Damage resistance for Militia
+	if (!fAutoResolve)
+	{
+		if (this->ubSoldierClass == SOLDIER_CLASS_GREEN_MILITIA && gGameExternalOptions.bGreenMilitiaDamageResistance != 0)
+			resistance += (INT32)(gGameExternalOptions.bGreenMilitiaDamageResistance / breathmodifiermilitia);
+		else if (this->ubSoldierClass == SOLDIER_CLASS_REG_MILITIA && gGameExternalOptions.bRegularMilitiaDamageResistance != 0)
+			resistance += (INT32)(gGameExternalOptions.bRegularMilitiaDamageResistance / breathmodifiermilitia);
+		else if (this->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA && gGameExternalOptions.bVeteranMilitiaDamageResistance != 0)
+			resistance += (INT32)(gGameExternalOptions.bVeteranMilitiaDamageResistance / breathmodifiermilitia);
+		// bonus for enemy too
+		else if (this->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR && gGameExternalOptions.sEnemyAdminDamageResistance != 0)
+			resistance += gGameExternalOptions.sEnemyAdminDamageResistance;
+		else if (this->ubSoldierClass == SOLDIER_CLASS_ARMY && gGameExternalOptions.sEnemyRegularDamageResistance != 0)
+			resistance += gGameExternalOptions.sEnemyRegularDamageResistance;
+		else if (this->ubSoldierClass == SOLDIER_CLASS_ELITE && gGameExternalOptions.sEnemyEliteDamageResistance != 0)
+			resistance += gGameExternalOptions.sEnemyEliteDamageResistance;
+		
+#ifdef ENABLE_ZOMBIES
+		else if (IsZombie())
+		{
+			if ( fCalcBreathLoss )
+				resistance += gGameExternalOptions.sEnemyZombieBreathDamageResistance;
+			else
+				resistance += gGameExternalOptions.sEnemyZombieDamageResistance;
+		}
+#endif
+	}
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////////
+	// SANDRO - option to make special NPCs stronger - damage resistance
+	if (gGameExternalOptions.usSpecialNPCStronger > 0)
+	{
+		switch( this->ubProfile )
+		{
+			case CARMEN:
+			case QUEEN:
+			case JOE:
+			case ANNIE:
+			case CHRIS:
+			case KINGPIN:
+			case TIFFANY:
+			case T_REX:
+			case DRUGGIST:
+			case GENERAL:
+			case JIM:
+			case JACK:
+			case OLAF:
+			case RAY:
+			case OLGA:
+			case TYRONE:
+			case MIKE:
+				resistance += (INT32)(gGameExternalOptions.usSpecialNPCStronger / breathmodifierspecialNPC);
+				break;
+		}
+	}
+	////////////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////////
+	// STOMP traits - Bodybuilding damage resistance
+	if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( this, BODYBUILDING_NT ) )
+		resistance += gSkillTraitValues.ubBBDamageResistance;
+	////////////////////////////////////////////////////////////////////////////////////
+
+	// Flugente: drugs can now have an effect on damage resistance
+	HandleDamageResistanceEffectDueToDrugs(this, &resistance);
+	
+	resistance += this->GetBackgroundValue(BG_RESI_PHYSICAL);
+
+	// resistance is between -100% and 95%
+	resistance = max(-100, resistance);
+	resistance = min(  95, resistance);
+
+	return( resistance );
+}
+
+INT8	SOLDIERTYPE::GetHearingBonus()
+{
+	INT8 bonus = 0;
+
+	INT8 bSlot = FindHearingAid(this);
+	if ( bSlot != -1 )
+	{
+		// at 81-100% adds +5, at 61-80% adds +4, at 41-60% adds +3, etc.
+		bonus += GetHearingRangeBonus(this);	// pSoldier->inv[bSlot][0]->data.objectStatus / 20 + 1;
+	}
+
+	if ( gMercProfiles[ this->ubProfile ].bDisability == DEAF )
+		bonus -= 5;
+
+	if ( NightTime() )
+		bonus += this->GetBackgroundValue(BG_PERC_HEARING_NIGHT);
+	else
+		bonus += this->GetBackgroundValue(BG_PERC_HEARING_DAY);
+	
+	if ( this->IsRadioListening() )
+		bonus += gSkillTraitValues.sVOListeningHearingBonus;
+
+	return bonus;
+}
+
+INT16	SOLDIERTYPE::GetSightRangeBonus()
+{
+	INT16 bonus = 0;
+
+	if ( gMercProfiles[ this->ubProfile ].bDisability == SHORTSIGHTED )
+		bonus -= 10;
+	
+	return bonus;
+}
+
+INT16 SOLDIERTYPE::GetSoldierCriticalDamageBonus( void )
+{
+	INT16 val = 0;
+
+	return val;
+}
+
+
+#ifdef ENABLE_ZOMBIES
+	BOOLEAN SOLDIERTYPE::IsZombie( void )
+	{
+		return( ubSoldierClass == SOLDIER_CLASS_ZOMBIE );
+	}
+#endif
+
+INT16	SOLDIERTYPE::GetPoisonResistance( void )
+{
+	// Flugente: resistance can per definition only be between -100 and 100 (at least that's my definition)
+	INT16 val = bPoisonResistance;
+	
+	val += this->GetBackgroundValue(BG_RESI_POISON);
+
+	val = max(-100, val);
+	val = min(100, val);
+
+	return( val );
+}
+
+INT16	SOLDIERTYPE::GetPoisonAbsorption( void )
+{
+	// Flugente: absorption can per definition only be >= 0 (at least that's my definition)
+	INT16 val = bPoisonAbsorption;
+
+#ifdef ENABLE_ZOMBIES
+	if ( IsZombie() )
+		val += 200;
+#endif
+		
+	val = max(0, val);
+
+	return( val );
+}
+
+
+INT16	SOLDIERTYPE::GetPoisonDamagePercentage( void )
+{
+	// Flugente: this percentage has to be between 0% and 100%
+	INT16 val = 0;
+
+#ifdef ENABLE_ZOMBIES
+	// zombies poison damage percentage is externalised
+	if ( IsZombie() )
+		val += gGameExternalOptions.sZombiePoisonDamagePercentage;
+#endif
+	
+	if ( this->usAttackingWeapon )
+	{
+		val += Item[this->usAttackingWeapon].bPoisonPercentage;
+
+		if ( Item[this->usAttackingWeapon].usItemClass == IC_GUN )
+		{
+			// check for modificators (attachments, poisoned ammunition)
+			// check for poisoned ammunition
+			UINT8 ammotype = this->inv[ this->ubAttackingHand ][0]->data.gun.ubGunAmmoType;
+			val += AmmoTypes[ammotype].poisonPercentage;
+
+			// check for attachments with a bonus to poison (currently, none exist)
+		}
+	}
+
+	val = max(0, val);
+	val = min(100, val);
+
+	return( val );
+}
+
+// add poison
+void	SOLDIERTYPE::AddPoison( INT8 sPoisonAmount )
+{
+	if ( sPoisonAmount < 1 )
+		return;
+
+	INT8 oldpoisonsum = this->bPoisonSum;
+	this->bPoisonSum = min(this->bPoisonSum + sPoisonAmount,  this->stats.bLifeMax);
+
+	// recalc really added poison
+	sPoisonAmount = max(0, this->bPoisonSum - oldpoisonsum);
+
+	INT8 oldpoisonlife = this->bPoisonLife;
+	this->bPoisonLife = min(this->bPoisonLife + sPoisonAmount,  this->bPoisonSum);
+
+	INT8 poisontolife = max(0, this->bPoisonLife - oldpoisonlife);
+
+	INT8 oldpoisonbleed = this->bPoisonBleeding;
+	this->bPoisonBleeding = min(this->bPoisonBleeding + (sPoisonAmount - poisontolife),  this->bPoisonSum);
+}
+
+// reset the extra stat variables
+void	SOLDIERTYPE::ResetExtraStats()
+{
+	bExtraStrength		= 0;
+	bExtraDexterity		= 0;
+	bExtraAgility		= 0;
+	bExtraWisdom		= 0;
+	bExtraExpLevel		= 0;	
+}
+
+// Flugente: inventory bombs can ignite while in mapscreen. Workaround: Damage items and health
+void	SOLDIERTYPE::InventoryExplosion( void )
+{
+	INT8 invsize = (INT8)this->inv.size();									// remember inventorysize, so we don't call size() repeatedly
+
+	for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)							// ... for all items in our inventory ...
+	{
+		if (this->inv[bLoop].exists() == true )
+		{
+			OBJECTTYPE * pObj = &(this->inv[bLoop]);							// ... get pointer for this item ...
+
+			if ( pObj != NULL )													// ... if pointer is not obviously useless ...
+			{
+				for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)				// ... there might be multiple items here (item stack), so for each one ...
+				{
+					INT16 status = (*pObj)[0]->data.objectStatus;
+					(*pObj)[0]->data.objectStatus = max(1, (INT16)(status/2));
+
+					// also damage every attachment
+					attachmentList::iterator iterend = (*pObj)[i]->attachments.end();
+					for (attachmentList::iterator iter = (*pObj)[i]->attachments.begin(); iter != iterend; ++iter) 
+					{
+						if ( iter->exists()  )
+						{
+							INT16 status = (*iter)[0]->data.objectStatus;
+							(*iter)[0]->data.objectStatus = max(1, (INT16)(status/2));
+
+							INT16 rtstatus = (*iter)[0]->data.sRepairThreshold;
+							(*iter)[0]->data.sRepairThreshold = max(1, (INT16)(rtstatus/2));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// now damage our health
+	INT8 oldlife = stats.bLife;
+	
+	INT16 damage = (INT16)(30 + Random(20));
+	if ( stats.bLife - damage < 0 )
+		damage = oldlife;
+
+	// We've got a problem if we kill someone outright without him collapsing properly...
+	// FIX: We'll adjust our damage, so if we'd kill someone without collapsing first, we lower our damage, to let him collapse
+	// After all, this whole thing's a rig up, so there shouldn't be a problem with that
+	if ( oldlife >= OKLIFE && oldlife <= damage )
+		damage -= (INT16)((5 + Random(5)));
+
+	INT16 breathdamage = (INT16)(500 + Random(1500));
+	if ( bBreath - breathdamage < 0 )
+		breathdamage = bBreath;
+
+	// Play sound
+	PlayJA2SampleFromFile( "Sounds\\Explode1.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
+						
+	SoldierTakeDamage( 0, damage, 0, breathdamage, TAKE_DAMAGE_EXPLOSION, this->ubID, sGridNo, 0, TRUE );
+	
+	if ( stats.bLife <= 0 )
+	{
+		// FINISH HIM!
+		HandleTakeDamageDeath( this, oldlife, TAKE_DAMAGE_BLOODLOSS );
+	}
+	else if ( stats.bLife < OKLIFE && !bCollapsed )
+	{
+		// let the target collapse...
+		SoldierCollapse(this);
+	}
+}
+
+// Flugente: do we currently provide ammo (pAmmoSlot) for someone else's (pubId) gun (pGunSlot)?
+BOOLEAN		SOLDIERTYPE::IsFeedingExternal(UINT8* pubId1, UINT16* pGunSlot1, UINT16* pAmmoSlot1, UINT8* pubId2, UINT16* pGunSlot2, UINT16* pAmmoSlot2)
+{
+	// make sure we have to check this...
+	if ( gGameExternalOptions.ubExternalFeeding == 0 )
+		return( FALSE );
+
+	//  basic check if we are up to this task
+	if ( !this->bActive || !this->bInSector || this->stats.bLife < OKLIFE )
+		return( FALSE );
+
+	// this is odd - invalid GridNo... well, no feeding then
+	if ( TileIsOutOfBounds(this->sGridNo) )
+		return( FALSE );
+
+	BOOLEAN	isFeeding = FALSE;
+
+	UINT16 usGunItem      = 0;
+	UINT8  usGunCalibre   = 0;
+	UINT8  usGunAmmoType  = 0;
+	
+	UINT16 usAmmoItem     = 0;
+	UINT8  usAmmoCalibre  = 0;
+	UINT8  usAmmoAmmoType = 0;
+	
+	UINT16 usMagIndex	  = 0;
+
+	BOOLEAN firstgunfound = FALSE;
+		
+	// do this check for both hands
+	UINT16 firstslot = HANDPOS;
+	UINT16 lastslot  = VESTPOCKPOS;
+	for (UINT16 invpos = firstslot; invpos < lastslot; ++invpos)
+	{
+		// do we have ammo in our hands?
+		OBJECTTYPE* pAmmoObj = &(this->inv[invpos]);
+
+		if ( !pAmmoObj || !(pAmmoObj->exists()) || Item [ pAmmoObj->usItem ].usItemClass != IC_AMMO || (*pAmmoObj)[0]->data.ubShotsLeft <= 0 )
+			// can't use this, end
+			continue;
+
+		usAmmoItem = pAmmoObj->usItem;
+		
+		if ( !HasItemFlag( usAmmoItem, AMMO_BELT ) )
+			continue;
+
+		usMagIndex = Item[usAmmoItem].ubClassIndex;
+
+		usAmmoCalibre  = Magazine[usMagIndex].ubCalibre;
+		usAmmoAmmoType = Magazine[usMagIndex].ubAmmoType;
+
+		// our current stance is important
+		UINT8 usOurStance = gAnimControl[ this->usAnimState ].ubEndHeight;
+
+		// we will check wether one of our teammates is on the gridno we face
+		INT32 nextGridNoinSight = NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) );
+
+		SOLDIERTYPE* pTeamSoldier = NULL;
+		INT32 cnt = gTacticalStatus.Team[ this->bTeam ].bFirstID;
+		INT32 lastid = gTacticalStatus.Team[ this->bTeam ].bLastID;
+		for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+		{
+			// check if teamsoldier exists in this sector
+			if ( !pTeamSoldier || !pTeamSoldier->bActive || !pTeamSoldier->bInSector || pTeamSoldier->sSectorX != this->sSectorX || pTeamSoldier->sSectorY != this->sSectorY || pTeamSoldier->bSectorZ != this->bSectorZ )
+				continue;
+
+			// check if both soldiers are on the same level
+			if ( this->pathing.bLevel != pTeamSoldier->pathing.bLevel )
+				continue;
+		
+			// determine wether we can physically provide ammo to our teammate.
+			// check the stance, prone on standing (both ways) doesn't work			
+			if ( usOurStance == ANIM_STAND )
+			{
+				if ( gAnimControl[ pTeamSoldier->usAnimState ].ubEndHeight != ANIM_STAND && gAnimControl[ pTeamSoldier->usAnimState ].ubEndHeight != ANIM_CROUCH )
+					continue;
+			}
+			else if ( usOurStance == ANIM_PRONE )
+			{
+				if ( gAnimControl[ pTeamSoldier->usAnimState ].ubEndHeight != ANIM_PRONE && gAnimControl[ pTeamSoldier->usAnimState ].ubEndHeight != ANIM_CROUCH )
+					continue;
+			}
+			
+			// check if we look at our teammate, or look the same way he does, or in the direction between
+			BOOLEAN fPositioningOkay = FALSE;
+			// the other person must be near
+			if ( SpacesAway(this->sGridNo, pTeamSoldier->sGridNo) == 0 )
+			{
+				// same tile -> its ourself -> ok
+				fPositioningOkay = TRUE;
+			}
+			else if ( SpacesAway(this->sGridNo, pTeamSoldier->sGridNo) == 1 )
+			{
+				// we look at him -> ok
+				if ( nextGridNoinSight == pTeamSoldier->sGridNo )
+					fPositioningOkay = TRUE;
+				else
+				{
+					// if we look at the same tile, then that's okay too
+					INT32 teamsoldiernextGridNoinSight = NewGridNo( pTeamSoldier->sGridNo, DirectionInc( pTeamSoldier->ubDirection ) );
+
+					if ( nextGridNoinSight == teamsoldiernextGridNoinSight )
+						fPositioningOkay = TRUE;
+					else
+					{
+						// if we both look in the same direction...
+						INT8 teammatedirection = pTeamSoldier->ubDirection;
+						INT8 ourdirection = this->ubDirection;
+
+						if ( teammatedirection == ourdirection )
+						{
+							// if the angle between our teammates sightline and the direct line from us to him is 90 degrees, then we are also able to supply 
+							INT8 ourrightdirection = (ourdirection + 2) % NUM_WORLD_DIRECTIONS;
+							INT8 ourleftdirection  = (ourdirection - 2) % NUM_WORLD_DIRECTIONS;
+
+							if ( NewGridNo( this->sGridNo, DirectionInc( ourrightdirection ) ) == pTeamSoldier->sGridNo || NewGridNo( this->sGridNo, DirectionInc( ourleftdirection ) ) == pTeamSoldier->sGridNo )
+								fPositioningOkay = TRUE;
+						}
+					}
+				}
+			}
+			
+			if ( !fPositioningOkay )
+				continue;
+		
+			// ok, we are facing a teammate. Check if he has a gun in any hand that still has ammo left
+			UINT16 pTeamSoldierfirstslot = HANDPOS;
+			UINT16 pTeamSoldierlastslot  = VESTPOCKPOS;
+			for (UINT16 teamsoldierinvpos = pTeamSoldierfirstslot; teamsoldierinvpos < pTeamSoldierlastslot; ++teamsoldierinvpos)
+			{
+				OBJECTTYPE* pObjInHands = &(pTeamSoldier->inv[teamsoldierinvpos]);
+				if ( pObjInHands && pObjInHands->exists() && Item [ pObjInHands->usItem ].usItemClass == IC_GUN && (HasItemFlag( pObjInHands->usItem, BELT_FED ) || HasAttachmentOfClass(pObjInHands, AC_FEEDER) ) && (*pObjInHands)[0]->data.gun.ubGunShotsLeft > 0 )
+				{
+					// remember the caliber and type of ammo. They all have to fit
+					usGunItem = pObjInHands->usItem;
+
+					usGunCalibre  = Weapon[usGunItem].ubCalibre;
+					usGunAmmoType = (*pObjInHands)[0]->data.gun.ubGunAmmoType;
+
+					if ( usGunCalibre == usAmmoCalibre && /*usGunMagSize == usAmmoMagSize &&*/ usGunAmmoType == usAmmoAmmoType )
+					{
+						// same calibre, same magsize, same ammotype. We can serve this guy
+						if ( !firstgunfound )
+						{
+							firstgunfound = TRUE;
+							(*pubId1) = cnt;
+							(*pGunSlot1) = teamsoldierinvpos;
+							(*pAmmoSlot1) = invpos;
+							isFeeding	 = TRUE;
+							break;
+						}
+						else
+						{
+							(*pubId2) = cnt;
+							(*pGunSlot2) = teamsoldierinvpos;
+							(*pAmmoSlot2) = invpos;
+							isFeeding	 = TRUE;
+
+							// we really found a second gun. we can only serve 2 guns maximum. lets end this
+							return( isFeeding );
+						}
+					}
+				}
+			}
+		}				
+	}
+
+	// if set to 1, we do not wether we feed ourself from our inventory
+	if ( gGameExternalOptions.ubExternalFeeding < 2 )
+		return( isFeeding );
+
+	// if we reach this point, we have checked all our teammates, and we do not provide external feeding for any of them
+	// it is possible that we provide external feeding for OURSELF (think of ammo belts in a dedicated LBE slot, or of a gun that requires a separate energy source)
+	// first, determine wether we need external feeding for our gun. We do this for both hands, as it is thinkable that someone has 2 one-handed guns with external feeding
+
+	// this determines which slots we'll search for ammo
+	UINT16 firstslotforammo = MEDPOCK1POS;
+	UINT16 lastslotforammo  = MEDPOCK3POS;
+
+	// for robots and AI-controlled soldiers (who don't have any LBE gear), we put a change in here so that ALL their slots are checked for ammo
+	if ( this->bTeam != gbPlayerNum || MercPtrs[ this->ubID ]->flags.uiStatusFlags & SOLDIER_ROBOT )
+	{
+		firstslotforammo = HANDPOS;
+		lastslotforammo  = NUM_INV_SLOTS;
+	}
+	else
+	{
+		// as a merc, the only slots that are valid for external feeding are the 2 medium-sized slots on a vest (because I say so). And that only if the vest is allowed to do that, which we will now check:
+		if ( !(this->inv[VESTPOCKPOS].exists()) || !HasItemFlag( this->inv[VESTPOCKPOS].usItem, AMMO_BELT_VEST ) )
+			return( isFeeding );
+	}
+
+	UINT16 searchgunfirstslot = HANDPOS;
+	UINT16 searchgunlastslot  = VESTPOCKPOS;
+	for (UINT16 invpos = searchgunfirstslot; invpos < searchgunlastslot; ++invpos)
+	{
+		// check our hands for guns
+		OBJECTTYPE* pObj = &(this->inv[invpos]);
+
+		UINT16 usGunItem = pObj->usItem;
+
+		if ( !pObj || !(pObj->exists()) || Item [usGunItem ].usItemClass != IC_GUN || !(HasItemFlag( usGunItem, BELT_FED ) || HasAttachmentOfClass(pObj, AC_FEEDER) ) || (*pObj)[0]->data.gun.ubGunShotsLeft <= 0 )
+			// can't use this, end
+			continue;
+				
+		// remember the caliber and type of ammo. They all have to fit
+		usGunCalibre  = Weapon[usGunItem].ubCalibre;
+		usGunAmmoType = (*pObj)[0]->data.gun.ubGunAmmoType;
+		
+		// now check the inventory for an ammo belt. If we are not from the player team or a robot, we will search the entire inventory
+		for ( UINT16 bLoop = firstslotforammo; bLoop < lastslotforammo; ++bLoop)
+		{
+			if (this->inv[bLoop].exists() == true )
+			{
+				OBJECTTYPE * pAmmoObj = &(this->inv[bLoop]);							// ... get pointer for this item ...
+
+				if ( pAmmoObj != NULL )													// ... if pointer is not obviously useless ...
+				{
+					//if ( pAmmoObj->ubNumberOfObjects == 1 )
+					{
+						usAmmoItem = pAmmoObj->usItem;
+
+						if ( Item [ usAmmoItem ].usItemClass == IC_AMMO && HasItemFlag( usAmmoItem, AMMO_BELT ) )
+						{
+							// remember the caliber and type of ammo. They all have to fit
+							usMagIndex     = Item[usAmmoItem].ubClassIndex;
+							usAmmoCalibre  = Magazine[usMagIndex].ubCalibre;
+							usAmmoAmmoType = Magazine[usMagIndex].ubAmmoType;
+
+							if ( usGunCalibre == usAmmoCalibre && usGunAmmoType == usAmmoAmmoType )
+							{
+								// same calibre, same ammotype. We can serve this guy
+								if ( !firstgunfound )
+								{
+									firstgunfound = TRUE;
+									(*pubId1)     = this->ubID;
+									(*pGunSlot1)  = invpos;
+									(*pAmmoSlot1) = bLoop;
+									isFeeding	  = TRUE;
+									break;
+								}
+								else
+								{
+									(*pubId2)     = this->ubID;
+									(*pGunSlot2)  = invpos;
+									(*pAmmoSlot2) = bLoop;
+									isFeeding	  = TRUE;
+
+									// we really found a second gun. we can only serve 2 guns maximum. lets end this
+									return( isFeeding );
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return( isFeeding );
+}
+
+// Flugente: return a cleaning kit from our inventory
+OBJECTTYPE* SOLDIERTYPE::GetCleaningKit()
+{
+	OBJECTTYPE* pObj = NULL;
+
+	INT8 invsize = (INT8)inv.size();									// remember inventorysize, so we don't call size() repeatedly
+
+	for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)						// ... for all items in our inventory ...
+	{
+		// ... if Item exists and is canteen (that can have drink points) ...
+		if (inv[bLoop].exists() == true && HasItemFlag(inv[bLoop].usItem, CLEANING_KIT) )
+		{
+			pObj = &(inv[bLoop]);							// ... get pointer for this item ...
+
+			return( pObj );
+		}
+	}
+
+	return( pObj );
+}
+
+// use cleaning kits to clean weapons in inventory. fCleanAll = TRUE: clean all weapons found, otherwise just the first one
+void SOLDIERTYPE::CleanWeapon( BOOLEAN fCleanAll )
+{
+	// in turnbased, this action costs APs. remove them if possible, otherwise, return
+	INT16 apcost = APBPConstants[AP_CLEANINGKIT];
+
+	if ( gTacticalStatus.uiFlags & TURNBASED )
+	{		
+		if ( !EnoughPoints( this, apcost, 0, TRUE ) )
+			return;
+	}
+
+	OBJECTTYPE* pCleaningKit = GetCleaningKit();
+
+	if ( pCleaningKit )
+	{
+		INT8 invsize = (INT8)inv.size();									// remember inventorysize, so we don't call size() repeatedly
+
+		for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)								// ... for all items in our inventory ...
+		{
+			if (inv[bLoop].exists() && (Item[inv[bLoop].usItem].usItemClass & IC_WEAPON) )
+			{
+				OBJECTTYPE* pObj = &(inv[bLoop]);							// ... get pointer for this item ...
+
+				if ( pObj != NULL )													// ... if pointer is not obviously useless ...
+				{
+					for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)				// ... there might be multiple items here (item stack), so for each one ...
+					{
+						if ( (*pObj)[i]->data.bDirtLevel > DIRT_MIN_TO_CLEAN )		// ... if weapon is at least a bit dirty ...
+						{
+							// have to recheck for a cleaning kit, as we might have used it up if cleaning a stack of weapons
+							pCleaningKit = GetCleaningKit();
+
+							if ( pCleaningKit )
+							{	
+								if ( (*pObj)[i]->data.bDirtLevel > 0 )
+								{
+									(*pObj)[i]->data.bDirtLevel = 0.0f;
+
+									ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, TacticalStr[WEAPON_CLEANING_STR], this->GetName(), Item[pObj->usItem].szItemName );
+
+									// always use up 1% of the cleaning kit (they last too long otherwise)
+									UseKitPoints( pCleaningKit, 1, this );
+
+									if ( gTacticalStatus.uiFlags & TURNBASED )
+									{
+										// use up APs
+										DeductPoints( this, apcost, 0, AFTERACTION_INTERRUPT );
+
+										// if fCleanAll is false, only clean first weapon
+										if (!fCleanAll )
+											return;
+
+										// get out of here if we dont have enough APs for another cleaning operation
+										if ( !EnoughPoints( this, apcost, 0, TRUE ) )
+											return;
+									}
+								}
+							}
+							else
+								return;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+extern INT16 uiNIVSlotType[NUM_INV_SLOTS];
+
+// do we look like a civilian?
+BOOLEAN		SOLDIERTYPE::LooksLikeACivilian( void )
+{
+	// if we have any camo: not covert
+	if ( GetWornCamo(this) > 0 || GetWornUrbanCamo(this) > 0 || GetWornDesertCamo(this) > 0 || GetWornSnowCamo(this) > 0 )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_CAMOFOUND], this->GetName() );
+		return FALSE;
+	}
+
+	if ( UsingNewInventorySystem() )
+	{
+		INT8 invsize = (INT8)this->inv.size();	
+		for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
+		{
+			if ( this->inv[bLoop].exists() )
+			{
+				// if we have a back pack: not covert
+				if ( bLoop == BPACKPOCKPOS )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_BACKPACKFOUND], this->GetName() );
+					return FALSE;
+				}
+
+				// do not check the LBE itself (we already checked for camo above)
+				if ( bLoop >= VESTPOCKPOS && bLoop <= CPACKPOCKPOS )
+					continue;
+
+				// seriously? a corpse? of course this is suspicious!
+				if ( HasItemFlag(this->inv[bLoop].usItem, CORPSE) )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_CARRYCORPSEFOUND], this->GetName() );
+					return FALSE;
+				}
+
+				BOOLEAN checkfurther = FALSE;
+				
+				// guns/launchers in our hands will always be noticed, even if covert
+				if ( (Item[this->inv[bLoop].usItem].usItemClass & (IC_GUN|IC_LAUNCHER)) && (bLoop == HANDPOS || bLoop == SECONDHANDPOS ) )
+					checkfurther = TRUE;
+				// visible slots are always checked if not covert
+				else if ( !HasItemFlag(this->inv[bLoop].usItem, COVERT) && (bLoop == HANDPOS || bLoop == SECONDHANDPOS || bLoop == GUNSLINGPOCKPOS || bLoop == HELMETPOS || bLoop == VESTPOS || bLoop == LEGPOS || bLoop == HEAD1POS || bLoop == HEAD2POS) )
+					checkfurther = TRUE;
+				// knife slot is checked if the knife is not covert
+				else if ( bLoop == KNIFEPOCKPOS && !HasItemFlag(this->inv[bLoop].usItem, COVERT) )
+					checkfurther = TRUE;
+				// further checks it item is not covert. This means that a gun that has that tag will not be detected if its inside a pocket!
+				else if ( !HasItemFlag(this->inv[bLoop].usItem, COVERT) )
+				{
+					checkfurther = TRUE;
+
+					// item will be detected if someone looks - check for the LBE item that gave us this slot. If that one is covert, this item is also covert
+					UINT8 checkslot = 0;
+					switch (uiNIVSlotType[bLoop])
+					{
+					case 2:
+						// this is worn LBE gear itself
+						break;
+					case 3:
+						checkslot = VESTPOCKPOS;
+						break;
+					case 4:
+						if ( bLoop == 23 ||  bLoop == 35 ||  bLoop == 36 ||  bLoop == 37 ||  bLoop == 38 )
+							checkslot = LTHIGHPOCKPOS;
+						else
+							checkslot = RTHIGHPOCKPOS;
+						break;
+					case 5:
+						checkslot = CPACKPOCKPOS;
+						break;
+					default:
+						{
+							//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEM_SUSPICIOUS], this->GetName(), Item[this->inv[bLoop].usItem].szItemName );
+							//return FALSE;
+						}
+						break;
+					}
+
+					// found a slot to check for LBE
+					if ( checkslot > 0 )
+					{
+						// if LBE is covert
+						if ( this->inv[checkslot].exists() && HasItemFlag(this->inv[checkslot].usItem, COVERT) )
+							// pass for this item
+							checkfurther = FALSE;
+					}
+				}
+
+				if ( checkfurther )
+				{
+					// if that item is a gun, explosives, military armour or facewear, we're screwed
+					if ( (Item[this->inv[bLoop].usItem].usItemClass & (IC_WEAPON|IC_GRENADE|IC_BOMB) ) || 
+						( (Item[this->inv[bLoop].usItem].usItemClass & (IC_ARMOUR) ) && !Item[this->inv[bLoop].usItem].leatherjacket && Armour[ Item[this->inv[bLoop].usItem].ubClassIndex ].ubProtection > 10  ) ||
+						( Item[this->inv[bLoop].usItem].nightvisionrangebonus > 0 || Item[this->inv[bLoop].usItem].hearingrangebonus > 0 ) 
+						)
+					{
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_MILITARYGEARFOUND], this->GetName(), Item[this->inv[bLoop].usItem].szItemName );
+						return FALSE;
+					}
+				}
+			}
+		}
+	}
+	else	// old inventory system. No LBE here, nothing fancy
+	{
+		INT8 invsize = (INT8)this->inv.size();	
+		for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
+		{
+			if ( this->inv[bLoop].exists() )
+			{
+				if ( !HasItemFlag(this->inv[bLoop].usItem, COVERT) )
+				{
+					// if that item is a gun, explosives, military armour or facewear, we're screwed
+					if ( (Item[this->inv[bLoop].usItem].usItemClass & (IC_WEAPON|IC_GRENADE|IC_BOMB) ) || 
+						( (Item[this->inv[bLoop].usItem].usItemClass & (IC_ARMOUR) ) && !Item[this->inv[bLoop].usItem].leatherjacket && Armour[ Item[this->inv[bLoop].usItem].ubClassIndex ].ubProtection > 10  ) ||
+						( Item[this->inv[bLoop].usItem].nightvisionrangebonus > 0 || Item[this->inv[bLoop].usItem].hearingrangebonus > 0 ) 
+						)
+					{
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_MILITARYGEARFOUND], this->GetName(), Item[this->inv[bLoop].usItem].szItemName );
+						return FALSE;
+					}
+				}
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+// do we look like a soldier?
+BOOLEAN		SOLDIERTYPE::LooksLikeASoldier( void )
+{
+	INT8 invsize = (INT8)this->inv.size();	
+	for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
+	{
+		if ( this->inv[bLoop].exists() )
+		{
+			// seriously? a corpse? of course this is suspicious!
+			if ( HasItemFlag(this->inv[bLoop].usItem, CORPSE) )
+			{
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_CARRYCORPSEFOUND], this->GetName() );
+				return FALSE;
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+INT8		SOLDIERTYPE::GetUniformType()
+{
+	// we determine wether we are currently wearing civilian or military clothes
+	for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= NUM_UNIFORMS; ++i )
+	{
+		// both parts have to fit. We cant mix different uniforms and get soldier disguise
+		if ( COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].pants) )
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+// is our equipment too good for a soldier?
+BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook )
+{
+	// if militia is equipped from sector inventory(and thu by the player itself), then its item selection is no longer bound to any progress calculation
+	// we thus canno check for equipment - the only way to find out is to look at this guy sharply, and to eventually realise that this gear did not come from the player
+	if ( gGameExternalOptions.fMilitiaUseSectorInventory && this->IsAssassin() )
+		return FALSE;
+
+	// check the guns in our hands and rifle sling
+	// alert if we have more than 2, any of them has too much attachments or they are way too cool
+	UINT8 numberofguns = 0;
+	UINT8 ubCurrentProgress = CurrentPlayerProgressPercentage();
+	UINT8 maxcoolnessallowed = 1 + ubCurrentProgress / 10;
+
+	INT8 uniformtype = GetUniformType();
+
+	// adjust max coolness depending on uniform
+	// enemy spies get a small bonus here
+	switch ( uniformtype )
+	{
+	case UNIFORM_ENEMY_ADMIN:
+		maxcoolnessallowed += 1;
+		break;
+	case UNIFORM_ENEMY_TROOP:
+	case UNIFORM_MILITIA_ROOKIE:	
+		maxcoolnessallowed += 2;
+		break;
+	case UNIFORM_ENEMY_ELITE:
+	case UNIFORM_MILITIA_REGULAR:	
+		maxcoolnessallowed += 3;
+		break;
+	case UNIFORM_MILITIA_ELITE:
+		maxcoolnessallowed += 4;
+		break;
+	default:
+		// we do not wear a proper army uniform, uncover us. Note: This should never happen - if this message shows, somewhere, something is wrong
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNIFORM_NOORDER], this->GetName() );
+		return TRUE;
+		break;
+	}
+
+	if ( UsingNewInventorySystem() )
+	{
+		INT8 invsize = (INT8)this->inv.size();	
+		for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
+		{
+			if ( this->inv[bLoop].exists() )
+			{
+				// if we have a back pack: not covert
+				if ( bLoop == BPACKPOCKPOS )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_BACKPACKFOUND], this->GetName() );
+					return TRUE;
+				}
+
+				// guns/launchers in our hands will always be noticed, even if covert, so we need to check them later
+				if ( bLoop == HANDPOS || bLoop == SECONDHANDPOS )
+					;
+				// other covert items are simply ignored
+				else if ( HasItemFlag(this->inv[bLoop].usItem, COVERT) )
+					continue;
+				// further checks it item is not covert. This means that an item that has that tag will not be detected if it is inside a pocket!
+				else if ( (bLoop == GUNSLINGPOCKPOS || bLoop == HELMETPOS || bLoop == VESTPOS || bLoop == LEGPOS || bLoop == HEAD1POS || bLoop == HEAD2POS || bLoop == KNIFEPOCKPOS) )
+					;
+				else
+				{
+					// item will be detected if someone looks - check for the LBE item that gave us this slot. If that one is covert, this item is also covert
+					UINT8 checkslot = 0;
+					switch (uiNIVSlotType[bLoop])
+					{
+					case 2:
+						// this is worn LBE gear itself
+						break;
+					case 3:
+						checkslot = VESTPOCKPOS;
+						break;
+					case 4:
+						if ( bLoop == 23 ||  bLoop == 35 ||  bLoop == 36 ||  bLoop == 37 ||  bLoop == 38 )
+							checkslot = LTHIGHPOCKPOS;
+						else
+							checkslot = RTHIGHPOCKPOS;
+						break;
+					case 5:
+						checkslot = CPACKPOCKPOS;
+						break;
+					default:
+						{
+							//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEM_SUSPICIOUS], this->GetName(), Item[this->inv[bLoop].usItem].szItemName );
+							//return FALSE;
+						}
+						break;
+					}
+
+					// found a slot to check for LBE
+					if ( checkslot > 0 )
+					{
+						// if LBE is covert
+						if ( this->inv[checkslot].exists() && HasItemFlag(this->inv[checkslot].usItem, COVERT) )
+							// pass for this item
+							continue;
+					}
+				}
+
+				// if that item is a gun, explosives, military armour or facewear, investigate further
+				if ( (Item[this->inv[bLoop].usItem].usItemClass & (IC_GUN|IC_LAUNCHER|IC_ARMOUR|IC_FACE) ) )
+				{
+					if ( Item[this->inv[bLoop].usItem].usItemClass & (IC_GUN|IC_LAUNCHER) && !HasItemFlag(this->inv[bLoop].usItem, COVERT) )
+					{
+						++numberofguns;
+
+						if ( numberofguns > 2 )
+						{
+							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYGUNS], this->GetName() );
+							return TRUE;
+						}
+					}
+
+					OBJECTTYPE * pObj = &(this->inv[bLoop]);								// ... get pointer for this item ...
+
+					if ( pObj != NULL )	
+					{
+						for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)				// ... there might be multiple items here (item stack), so for each one ...
+						{
+							// loop over every item and its attachments
+							if ( Item[pObj->usItem].ubCoolness > maxcoolnessallowed )
+							{
+								ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[pObj->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+								return TRUE;
+							}
+
+							UINT8 numberofattachments = 0;
+							// for every objects, we also have to check wether there are weapon attachments (eg. underbarrel grenade launchers), and cool them down too
+							attachmentList::iterator iterend = (*pObj)[i]->attachments.end();
+							for (attachmentList::iterator iter = (*pObj)[i]->attachments.begin(); iter != iterend; ++iter) 
+							{
+								if ( iter->exists()  )
+								{
+									// loop over every item and its attachments
+									if ( Item[iter->usItem].ubCoolness > maxcoolnessallowed )
+									{
+										ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[iter->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+										return TRUE;
+									}
+					
+									++numberofattachments;
+
+									// no ordinary soldier is allowed that many attachments -> not covert
+									if ( numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
+									{
+										ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName );
+										return TRUE;
+									}
+								}
+							}								
+						}
+					}
+				}
+			}
+		}
+	}
+	else	// old inventory system. No LBE here, nothing fancy
+	{
+		INT8 invsize = (INT8)this->inv.size();	
+		for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
+		{
+			if ( this->inv[bLoop].exists() )
+			{
+				// if that item is a gun, explosives, military armour or facewear, investigate further
+				if ( !HasItemFlag(this->inv[bLoop].usItem, COVERT) && (Item[this->inv[bLoop].usItem].usItemClass & (IC_GUN|IC_LAUNCHER|IC_ARMOUR|IC_FACE) ) )
+				{
+					if ( (Item[this->inv[bLoop].usItem].usItemClass & (IC_GUN|IC_LAUNCHER) ) )
+					{
+						++numberofguns;
+
+						if ( numberofguns > 2 )
+						{
+							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYGUNS], this->GetName() );
+							return TRUE;
+						}
+
+						OBJECTTYPE * pObj = &(this->inv[bLoop]);								// ... get pointer for this item ...
+
+						if ( pObj != NULL )	
+						{
+							for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)				// ... there might be multiple items here (item stack), so for each one ...
+							{
+								// loop over every item and its attachments
+								if ( Item[pObj->usItem].ubCoolness > maxcoolnessallowed )
+								{
+									ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[pObj->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+									return TRUE;
+								}
+
+								UINT8 numberofattachments = 0;
+								// for every objects, we also have to check wether there are weapon attachments (eg. underbarrel grenade launchers), and cool them down too
+								attachmentList::iterator iterend = (*pObj)[i]->attachments.end();
+								for (attachmentList::iterator iter = (*pObj)[i]->attachments.begin(); iter != iterend; ++iter) 
+								{
+									if ( iter->exists()  )
+									{
+										// loop over every item and its attachments
+										if ( Item[iter->usItem].ubCoolness > maxcoolnessallowed )
+										{
+											ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[iter->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+											return TRUE;
+										}
+					
+										++numberofattachments;
+									}
+								}
+
+								// no ordinary soldier is allowed that many attachments > not covert
+								if ( numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
+								{
+									ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName );
+									return TRUE;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return FALSE;
+}
+
+
+// are we in covert mode? we need to have the correct flag set, and not wear anything suspicious, or behave in a suspicious way
+BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
+{
+	SOLDIERTYPE* pSoldier = MercPtrs[ubObserverID];
+
+	if ( !pSoldier )
+		return TRUE;
+		
+	// if we don't have the Flag: not covert
+	// important: no messages up to this point. the function will get called a lot, up to this point there is nothing unusual
+	if ( !(this->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) ) )
+		return FALSE;
+		
+	// if we are in a suspicious activity: not covert
+	if ( this->usAnimState == NINJA_SPINKICK || 
+		this->usAnimState == NINJA_PUNCH ||
+		this->usAnimState == NINJA_LOWKICK ||
+		this->usAnimState == PUNCH_LOW ||
+		this->usAnimState == DECAPITATE ||
+		this->usAnimState == CROWBAR_ATTACK ||
+		this->usAnimState == THROW_GRENADE_STANCE ||
+		this->usAnimState == SHOOT_ROCKET_CROUCHED ||
+		this->usAnimState == LOB_GRENADE_STANCE ||
+		this->usAnimState == THROW_KNIFE ||
+		this->usAnimState == CUTTING_FENCE ||
+		this->usAnimState == HELIDROP ||
+		this->usAnimState == THROW_KNIFE_SP_BM ||
+		this->usAnimState == DODGE_ONE ||
+		this->usAnimState == SLICE ||
+		this->usAnimState == STAB ||
+		this->usAnimState == CROUCH_STAB ||
+		this->usAnimState == PUNCH ||
+		this->usAnimState == PUNCH_BREATH ||
+		this->usAnimState == KICK_DOOR ||
+		this->usAnimState == CUTTING_FENCE ||
+		this->usAnimState == THROW_KNIFE ||
+		this->usAnimState == PLANT_BOMB ||
+		this->usAnimState == USE_REMOTE ||
+		this->usAnimState == STEAL_ITEM ||
+		this->usAnimState == SHOOT_ROCKET ||
+		this->usAnimState == TAKE_BLOOD_FROM_CORPSE ||
+		this->usAnimState == PICK_LOCK ||
+		this->usAnimState == LOCKPICK_CROUCHED ||
+		this->usAnimState == STEAL_ITEM_CROUCHED ||
+		this->usAnimState == JUMPWINDOWS ||
+		this->usAnimState == FOCUSED_PUNCH ||
+		this->usAnimState == FOCUSED_STAB ||
+		this->usAnimState == HTH_KICK ||
+		this->usAnimState == FOCUSED_HTH_KICK ||
+		this->usAnimState == LONG_JUMP
+		)
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ACTIVITIES], this->GetName() );
+		return FALSE;
+	}
+	
+	// if we are trying to dress like a civilian, but aren't sucessful: not covert
+	if ( this->bSoldierFlagMask & SOLDIER_COVERT_CIV && !(this->LooksLikeACivilian()) )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CIV], this->GetName() );
+		return FALSE;
+	}
+	
+	// if we are trying to dress like a soldier, but aren't sucessful: not covert
+	if ( this->bSoldierFlagMask & SOLDIER_COVERT_SOLDIER && !(this->LooksLikeASoldier()) )
+	{
+		return FALSE;
+	}
+
+	UINT8 covertlevel = NUM_SKILL_TRAITS( this, COVERT_NT );	// our level in covert operations
+	INT32 distance = GetRangeFromGridNoDiff(this->sGridNo, pSoldier->sGridNo);
+
+	// if we are closer than this, our cover will always break if we do not have the skill
+	// if we have the skill, our cover will blow if we dress up as a soldier, but not if we are dressed like a civilian
+	INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange;
+	
+	if ( distance < discoverrange )
+	{
+		switch ( covertlevel )
+		{
+		case 2:
+			// a covert ops expert can get as close as he wants, even dressed up as a soldier, without arousing suspicion
+			// exceptions: we are discovered if we are close and bleeding, or if we are drunk while dressed as a soldier
+			{
+				// if we are openly bleeding: not covert
+				if ( this->bBleeding > 0 )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_BLEEDING], this->GetName() );
+					return FALSE;
+				}
+
+				if ( this->bSoldierFlagMask & SOLDIER_COVERT_SOLDIER && GetDrunkLevel( this ) != SOBER )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_DRUNKEN_SOLDIER], this->GetName() );
+					return FALSE;
+				}
+			}
+			break;
+		case 1:
+			// at lvl covert ops, we can be discovered if we are too close to the enemy and bleed or dressed up as a soldier
+			// however, if we are dressed up as a civilian, we can get as close as we like, we won't be discovered
+			{
+				// if we are openly bleeding: not covert
+				if ( this->bBleeding > 0 )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_BLEEDING], this->GetName() );
+					return FALSE;
+				}
+
+				if ( this->bSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOO_CLOSE], this->GetName() );
+					return FALSE;
+				}
+			}
+			break;
+		case 0:
+		default:
+			// without the covert ops skill, we can only dress up as civilians. We will be discovered if we get too close to the enemy
+			// exception: special NPCs and EPCs can still get close (the Kulbas, for example, ARE civilians, so they apply)
+			if ( (this->bSoldierFlagMask & SOLDIER_COVERT_NPC_SPECIAL) == 0 )
+			{
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOO_CLOSE], this->GetName() );
+				return FALSE;
+			}
+			break;	
+		}
+
+		// if we are a soldier, elites can uncover us if we are VERY close, and more experienced
+		if ( this->bSoldierFlagMask & SOLDIER_COVERT_SOLDIER && gSkillTraitValues.fCOElitesDetectNextTile && distance < 2 && EffectiveExpLevel(pSoldier) > EffectiveExpLevel(this) + covertlevel )
+		{
+			if ( pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE )
+			{
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOO_CLOSE_TO_ELITE], this->GetName() );
+				return FALSE;
+			}
+		}
+	}
+
+	if ( this->bSoldierFlagMask & SOLDIER_COVERT_CIV )
+	{
+		// civilians are suspicious if they are found in certain sectors. Especially at night
+		// sector specific value:
+		// 0 - civilians are always ok
+		// 1 - civilians are suspicious at night
+		// 2 - civilians are always suspicious
+
+		UINT8 sectordata = 0;
+		UINT8 ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);	
+		if ( gbWorldSectorZ > 0 )
+			// underground we are always suspicious
+			sectordata = 2;
+		else if ( ubSectorId >= 0 && ubSectorId < 256  )
+			sectordata = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
+
+		if ( sectordata > 1 )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_CURFEW_BROKEN], this->GetName() );
+			return FALSE;
+		}
+		// is it night?
+		else if ( sectordata == 1 && GetTimeOfDayAmbientLightLevel() < NORMAL_LIGHTLEVEL_DAY + 2 )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_CURFEW_BROKEN_NIGHT], this->GetName() );
+			return FALSE;
+		}
+		
+		// check wether we are around a fresh corpse - this will make us much more suspicious
+		INT32				cnt;
+		ROTTING_CORPSE *	pCorpse;
+		for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
+		{
+			pCorpse = &(gRottingCorpse[ cnt ] );
+			
+			if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 && PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) <= 5 )
+			{
+				// check: is this corpse that of an ally of the observing soldier?
+				BOOLEAN fCorpseOFAlly = FALSE;
+				if ( pSoldier->bTeam == ENEMY_TEAM )
+				{
+					// check wether corpse was one of soldier's allies
+					for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
+					{
+						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
+						{
+							fCorpseOFAlly = TRUE;
+							break;
+						}
+					}
+				}
+				else if ( pSoldier->bTeam == OUR_TEAM || pSoldier->bTeam == MILITIA_TEAM )
+				{
+					// check wether corpse was one of soldier's allies					
+					for ( UINT8 i = UNIFORM_MILITIA_ROOKIE; i <= UNIFORM_MILITIA_ELITE; ++i )
+					{
+						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
+						{
+							fCorpseOFAlly = TRUE;
+							break;
+						}
+					}
+				}
+
+				// a corpse was found near our position. If the soldier observing us can see it, he will be alarmed 
+				if ( fCorpseOFAlly && SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
+				{
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NEAR_CORPSE], this->GetName() );
+					return FALSE;
+				}
+			}
+		}
+	}
+
+	if ( this->bSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
+	{
+		// if our equipment is too good, that is suspicious... not covert!
+		if ( this->EquipmentTooGood( (distance < discoverrange) ) )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_SUSPICIOUS_EQUIPMENT], this->GetName() );
+			return FALSE;
+		}
+
+		// are we targeting a buddy of our observer?
+		if ( this->ubTargetID && MercPtrs[this->ubTargetID] && MercPtrs[this->ubTargetID]->bTeam == pSoldier->bTeam )
+		{
+			// if we are aiming at a soldier, others will notice our intent... not covert!
+			if ( WeaponReady(this) )
+			{
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TARGETTING_SOLDIER], this->GetName(), MercPtrs[this->ubTargetID]->GetName() );
+				return FALSE;
+			}
+		}
+
+		// even as a soldier, we will be caught around fresh corpses
+		// assassins will not be uncovered around corpses, as the AI cannot willingly evade them... one could 'ward' against assassins by surrounding yourself with fresh corpses
+		if (distance < gSkillTraitValues.sCOCloseDetectionRangeSoldierCorpse && !(this->bSoldierFlagMask & SOLDIER_ASSASSIN) )
+		{
+			// check wether we are around a fresh corpse - this will make us much more suspicious
+			// I deem this necessary, to avoid cheap exploits by nefarious players :-)
+			INT32				cnt;
+			ROTTING_CORPSE *	pCorpse;
+			for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
+			{
+				pCorpse = &(gRottingCorpse[ cnt ] );
+			
+				if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 && PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) <= 5 )
+				{
+					// check: is this corpse that of an ally of the observing soldier?
+					BOOLEAN fCorpseOFAlly = FALSE;
+					if ( pSoldier->bTeam == ENEMY_TEAM )
+					{
+						// check wether corpse was one of soldier's allies
+						for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
+						{
+							if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
+							{
+								fCorpseOFAlly = TRUE;
+								break;
+							}
+						}
+					}
+					else if ( pSoldier->bTeam == OUR_TEAM || pSoldier->bTeam == MILITIA_TEAM )
+					{
+						// check wether corpse was one of soldier's allies					
+						for ( UINT8 i = UNIFORM_MILITIA_ROOKIE; i <= UNIFORM_MILITIA_ELITE; ++i )
+						{
+							if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
+							{
+								fCorpseOFAlly = TRUE;
+								break;
+							}
+						}
+					}
+
+					// a corpse was found near our position. If the soldier observing us can see it, he will be alarmed 
+					if ( fCorpseOFAlly && SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
+					{
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NEAR_CORPSE], this->GetName() );
+						return FALSE;
+					}
+				}
+			}
+		}
+	}
+		
+	return TRUE;
+}
+
+// do we recognize someone else as a combatant?
+BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
+{
+	// this will only work with the new trait system
+	if (!gGameOptions.fNewTraitSystem)
+		return TRUE;
+
+	SOLDIERTYPE* pSoldier = MercPtrs[ubTargetID];
+
+	if ( !pSoldier )
+		return TRUE;
+
+#ifdef ENABLE_ZOMBIES
+	// zombies don't care about disguises
+	if ( IsZombie() )
+		return TRUE;
+#endif
+
+	// not in covert mode: we recognize him
+	if ( (pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) == 0 )
+		return TRUE;
+	
+	// neutral characters just dont care
+	if ( this->aiData.bNeutral )
+		return TRUE;
+
+	// check for for vehicles and creatures... weird things happen
+	if ( IsVehicle(pSoldier) || IsVehicle(this) || pSoldier->bTeam	== CREATURE_TEAM || this->bTeam	== CREATURE_TEAM )
+		return TRUE;
+		
+	// if from same team, do not uncover
+	if ( this->bTeam == pSoldier->bTeam || this->bSide == pSoldier->bSide )
+		return TRUE;
+
+	// hack: if this is attacking us at this very moment by punching, do not recognize him...
+	// this resolves the problem that we attack someone from behind and kill him instantly, but the game mechanic forces him to turn before
+	// only allow this if we are not yet alerted (we are suprised, so we don't recognize him in the moment of the attack)
+	// also: only allow if he's next to us
+	if ( this->aiData.bAlertStatus < STATUS_RED && pSoldier->ubTargetID == this->ubID )
+	{
+		INT32 nextGridNoinSight = NewGridNo( pSoldier->sGridNo, DirectionInc( pSoldier->ubDirection ) );
+		if ( nextGridNoinSight == this->sGridNo && this->pathing.bLevel == pSoldier->pathing.bLevel )
+		{
+			if ( pSoldier->usAnimState == PUNCH )
+				return FALSE;
+			else if ( pSoldier->usAnimState == PUNCH_BREATH )
+				return TRUE;
+		}
+	}
+
+	// campaign stats
+	if ( pSoldier->bTeam == ENEMY_TEAM )
+		gCurrentIncident.usIncidentFlags |= INCIDENT_SPYACTION_ENEMY;
+	else
+		gCurrentIncident.usIncidentFlags |= INCIDENT_SPYACTION_PLAYERSIDE;
+
+	// do we recognize this guy as an enemy?
+	if ( !pSoldier->SeemsLegit(this->ubID) )
+	{
+		// aha, he/she's a spy! Blow cover
+		if ( pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+		{
+			pSoldier->LooseDisguise();
+
+			pSoldier->Strip();
+
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNCOVERED], this->GetName(), pSoldier->GetName()  );
+
+			// we have uncovered a spy! Get alerted, if we aren't already
+			if ( this->aiData.bAlertStatus < STATUS_BLACK )
+				this->aiData.bAlertStatus = STATUS_BLACK;
+
+			// reset our sight of this guy
+			this->aiData.bOppList[pSoldier->ubID] = NOT_HEARD_OR_SEEN;
+
+			ManSeesMan(this, pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, 0, 0);
+
+			// campaign stats
+			gCurrentIncident.usIncidentFlags |= INCIDENT_SPYACTION_UNCOVERED;
+		}
+
+		return TRUE;
+	}
+		
+	return FALSE;
+}
+
+// loose covert property
+void	SOLDIERTYPE::LooseDisguise( void )
+{	
+	// loose any covert flags
+	this->bSoldierFlagMask &= ~(SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER);
+
+	// rehandle sight for everybody
+	SOLDIERTYPE*		pSoldier;
+	UINT8 iLoop = gTacticalStatus.Team[ OUR_TEAM ].bFirstID;
+	for (pSoldier = MercPtrs[iLoop]; iLoop <= gTacticalStatus.Team[ LAST_TEAM ].bLastID; ++iLoop, ++pSoldier )
+	{
+		if ( pSoldier->bActive && pSoldier->bInSector && pSoldier->stats.bLife > 0 )
+		{
+			RecalculateOppCntsDueToNoLongerNeutral( pSoldier );
+		}
+	}
+}
+
+// undisguise or take off any clothes item and switch back to original clothes
+// no - this function does not do what you think it does. Leave Fox alone, you perv.
+void	SOLDIERTYPE::Strip()
+{
+	// if covert, loose that ability
+	if ( this->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+	{
+		LooseDisguise();
+	}
+	// if already not covert, take off clothes
+	else if ( this->bSoldierFlagMask & (SOLDIER_NEW_VEST|SOLDIER_NEW_PANTS) )
+	{
+		// if we have undamaged clothes, spawn them, the graphci will be removed anyway
+		if ( (this->bSoldierFlagMask & SOLDIER_NEW_VEST) && !(this->bSoldierFlagMask & SOLDIER_DAMAGED_VEST) )
+		{
+			UINT16 vestitem = 0;
+			if ( GetFirstClothesItemWithSpecificData(&vestitem, this->VestPal, "blank")  )
+			{
+				CreateItem( vestitem, 100, &gTempObject );
+				if ( !AutoPlaceObject( this, &gTempObject, FALSE ) )
+					AddItemToPool( this->sGridNo, &gTempObject, 1, 0, 0, -1 );
+			}
+			else
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CLOTHES_ITEM] );
+		}
+
+		if ( (this->bSoldierFlagMask & SOLDIER_NEW_PANTS) && !(this->bSoldierFlagMask & SOLDIER_DAMAGED_PANTS) )
+		{
+			UINT16 pantsitem = 0;
+			if ( GetFirstClothesItemWithSpecificData(&pantsitem, "blank", this->PantsPal)  )
+			{
+				CreateItem( pantsitem, 100, &gTempObject );
+				if ( !AutoPlaceObject( this, &gTempObject, FALSE ) )
+					AddItemToPool( this->sGridNo, &gTempObject, 1, 0, 0, -1 );
+			}
+			else
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CLOTHES_ITEM] );
+		}
+
+		// loose any clothes flags
+		this->bSoldierFlagMask &= ~(SOLDIER_NEW_VEST|SOLDIER_NEW_PANTS);
+
+		// show our true colours
+		UINT16 usPaletteAnimSurface = LoadSoldierAnimationSurface( this, this->usAnimState );
+
+		if ( usPaletteAnimSurface != INVALID_ANIMATION_SURFACE )
+		{
+			if ( this->bTeam == OUR_TEAM )
+			{
+				UINT8				ubProfileIndex;
+				MERCPROFILESTRUCT * pProfile;
+
+				ubProfileIndex = this->ubProfile;
+				pProfile = &(gMercProfiles[ubProfileIndex]);
+
+				SET_PALETTEREP_ID ( this->VestPal,		pProfile->VEST );
+				SET_PALETTEREP_ID ( this->PantsPal,		pProfile->PANTS );
+			}
+			else if ( this->bSoldierFlagMask & SOLDIER_ASSASSIN )
+			{
+				SET_PALETTEREP_ID( this->VestPal, gUniformColors[ UNIFORM_ENEMY_ELITE ].vest );
+				SET_PALETTEREP_ID( this->PantsPal, gUniformColors[ UNIFORM_ENEMY_ELITE ].pants );
+			}
+
+			// Use palette from HVOBJECT, then use substitution for pants, etc
+			memcpy( this->p8BPPPalette, gAnimSurfaceDatabase[ usPaletteAnimSurface ].hVideoObject->pPaletteEntry, sizeof( this->p8BPPPalette ) * 256 );
+
+			SetPaletteReplacement( this->p8BPPPalette, this->HeadPal );
+			SetPaletteReplacement( this->p8BPPPalette, this->VestPal );
+			SetPaletteReplacement( this->p8BPPPalette, this->PantsPal );
+			SetPaletteReplacement( this->p8BPPPalette, this->SkinPal );
+
+			this->CreateSoldierPalettes();
+		}
+	}
+	else
+	{
+		// if the player is an annoying little perv, tell them so, girls!
+		if ( this->ubBodyType == REGFEMALE )
+		{
+			// sigh. We were hired by an idiot.
+			TacticalCharacterDialogue( this, QUOTE_IMPATIENT_QUOTE );
+			this->aiData.bMorale = max(0, this->aiData.bMorale - 1);
+		}
+	}
+}
+
+// check wether our disguise is any good
+void		SOLDIERTYPE::SpySelfTest()
+{
+	if ( SeemsLegit(this->ubID) )
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TEST_OK], this->GetName() );
+	else
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TEST_FAIL], this->GetName() );
+}
+
+// can we process prisoners in this sector?
+BOOLEAN		SOLDIERTYPE::CanProcessPrisoners()
+{
+	if ( stats.bLife < OKLIFE )
+		return FALSE;
+
+	// Is there a prison in this sector?
+	BOOLEAN prisonhere = FALSE;
+	for (UINT16 cnt = 0; cnt < NUM_FACILITY_TYPES; ++cnt)
+	{
+		// Is this facility here?
+		if (gFacilityLocations[SECTOR(this->sSectorX, this->sSectorY)][cnt].fFacilityHere)
+		{
+			// we determine wether this is a prison by checking for usPrisonBaseLimit
+			if (gFacilityTypes[cnt].AssignmentData[FAC_INTERROGATE_PRISONERS].usPrisonBaseLimit > 0)
+			{
+				prisonhere = TRUE;
+				break;
+			}
+		}
+	}
+
+	if ( !prisonhere )
+		return FALSE;
+
+	// Are there any prisoners in this prison? note that there are no underground prisons
+	if ( !this->bSectorZ )
+	{
+		SECTORINFO *pSectorInfo = &( SectorInfo[ SECTOR( this->sSectorX, this->sSectorY ) ] );
+		
+		UINT8 tmp1 = 0, tmp2 = 0, tmp3 = 0, tmp4 = 0;
+		if ( GetNumberOfPrisoners(pSectorInfo, &tmp1, &tmp2, &tmp3, &tmp4) > 0 )
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+UINT32		SOLDIERTYPE::GetSurrenderStrength()
+{
+	if( this->stats.bLife < OKLIFE || this->flags.fMercAsleep || this->bCollapsed  || (this->bSoldierFlagMask & SOLDIER_POW) )
+		return 0;
+
+	UINT32 value = 100 + 10 * EffectiveExpLevel( this ) + EffectiveStrength( this, FALSE ) + 3 * EffectiveMarksmanship( this) + EffectiveLeadership( this) / 4;
+
+	ReducePointsForFatigue( this, &value );
+
+	value = (value * this->stats.bLife / this->stats.bLifeMax);
+
+	value = value * (5 + sqrt((double) max(1, this->aiData.bMorale))) / 15;
+
+	// adjust for type of soldier
+	if ( this->ubSoldierClass == SOLDIER_CLASS_ELITE || this->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA )
+		value *= 1.5f;
+	else if ( this->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR || this->ubSoldierClass == SOLDIER_CLASS_GREEN_MILITIA )
+		value *= 0.75f;
+
+	// tanks won't surrender that easy
+	if ( TANK(this) )
+		value *= 10;
+
+	return value;
+}
+
+// used for an enemy liberating fellow prisoners 
+BOOLEAN		SOLDIERTYPE::FreePrisoner()
+{
+	// we can only free people we are facing
+	INT32 nextGridNoinSight = NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) );
+
+	UINT8 target = WhoIsThere2( nextGridNoinSight, this->pathing.bLevel );
+
+	// is there somebody?
+	if ( target != NOBODY )
+	{
+		SOLDIERTYPE* pSoldier = MercPtrs[target];
+
+		// if he is captured, free him!
+		// note that this would also work for prisoner civs that we spawn in our prisons. All needed would be commanding the AI to get there
+		if ( pSoldier->bSoldierFlagMask & (SOLDIER_POW|SOLDIER_POW_PRISON) )
+		{
+			pSoldier->bSoldierFlagMask &= ~(SOLDIER_POW|SOLDIER_POW_PRISON);
+
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szPrisonerTextStr[STR_PRISONER_X_FREES_Y], this->GetName(), pSoldier->GetName() );
+
+			// alert both soldiers
+			this->aiData.bAlertStatus	  = min(this->aiData.bAlertStatus,  STATUS_RED);
+			pSoldier->aiData.bAlertStatus = min(pSoldier->aiData.bAlertStatus,  STATUS_RED);
+
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+// Flugente: scuba gear
+BOOLEAN		SOLDIERTYPE::UsesScubaGear()
+{
+	if ( !this->MercInHighWater() )
+		return FALSE;
+
+	// do we wear a scuba mask?
+	if ( !( this->inv[ HEAD1POS ].exists() && HasItemFlag(this->inv[ HEAD1POS ].usItem, SCUBA_MASK) ) && !( this->inv[ HEAD2POS ].exists() && HasItemFlag(this->inv[ HEAD2POS ].usItem, SCUBA_MASK) ) )
+		return FALSE;
+
+	if ( !this->inv[ CPACKPOCKPOS ].exists() || !HasItemFlag( this->inv[CPACKPOCKPOS].usItem, SCUBA_BOTTLE ) )
+		return FALSE;
+
+	return TRUE;
+}
+
+// Flugente: are we an assassin?
+BOOLEAN		SOLDIERTYPE::IsAssassin()
+{
+	// kingpin's hitmen are assassins
+	if ( this->ubProfile >= JIM && this->ubProfile <= TYRONE )
+		return TRUE;
+
+	// there can be non-NPC assassins too
+	if ( this->bSoldierFlagMask & SOLDIER_ASSASSIN )
+		return TRUE;
+
+	return FALSE;
+}
+
+UINT8	SOLDIERTYPE::GetMultiTurnAction()
+{
+	return usMultiTurnAction;
+}
+
+void	SOLDIERTYPE::StartMultiTurnAction(UINT8 usActionType)
+{
+	// check wether we can perform any action at all
+	if ( !this->bActive || !this->bInSector || this->stats.bLife < OKLIFE || TileIsOutOfBounds(this->sGridNo) || this->bCollapsed )
+		return;
+
+	// wether an action is possible or not depends on action itself (there are actions without a gridno)
+	switch( usMultiTurnAction )
+	{
+	case MTA_FORTIFY:
+	case MTA_REMOVE_FORTIFY:
+	case MTA_FILL_SANDBAG:
+		if ( this->pathing.bLevel != 0 || gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE || gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_STAND )
+			return;
+		break;
+	}
+
+	// if we already perform a multi-turn action, overwrite it
+	if ( GetMultiTurnAction() > MTA_NONE )
+		CancelMultiTurnAction(FALSE);
+
+	// set up the action and costs
+	usMultiTurnAction = usActionType;
+
+	// the action shall be performed on the gridno directly in front of us
+	sMTActionGridNo = NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) );
+
+	// for now, adding and removing a structure has the same AP cost - that might change in the future
+	bOverTurnAPS = GetAPsForMultiTurnAction( this, usMultiTurnAction);
+
+	// immediately starting the action would leave us without APs, thus removing the benefit of multi-turn actions (ability to do something else while performing a longer action)
+	// for this reason, we only do this when we are not in combat
+	if ( !( gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT ) )
+		UpdateMultiTurnAction();
+}
+
+void	SOLDIERTYPE::CancelMultiTurnAction(BOOLEAN fFinished)
+{
+	// stop action
+	if ( !fFinished && this->usMultiTurnAction )
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szMTATextStr[STR_MTA_CANCEL], this->GetName(), szMTATextStr[this->usMultiTurnAction] );
+		
+	bOverTurnAPS		= 0;
+	sMTActionGridNo		= NOWHERE;
+	usMultiTurnAction	= MTA_NONE;
+}
+
+// if we are doing any multiturn-action, remove our current APs from it, and if possible, perform the action and finish the process
+BOOLEAN	SOLDIERTYPE::UpdateMultiTurnAction()
+{
+	// nothing to do here
+	if ( this->usMultiTurnAction == MTA_NONE )
+		return FALSE;
+
+	// check wether we can perform any action at all
+	if ( !this->bActive || !this->bInSector || this->stats.bLife < OKLIFE || TileIsOutOfBounds(this->sGridNo) || this->bCollapsed )
+	{
+		CancelMultiTurnAction(FALSE);
+		return FALSE;
+	}
+
+	// wether an action is possible or not depends on action itself (there are actions without a gridno)
+	switch( usMultiTurnAction )
+	{
+	case MTA_FORTIFY:
+	case MTA_REMOVE_FORTIFY:
+	case MTA_FILL_SANDBAG:
+		if ( this->pathing.bLevel != 0 || gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE || gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_STAND )
+		{
+			CancelMultiTurnAction(FALSE);
+			return FALSE;
+		}
+		break;
+	default:	// default: exit
+		{
+			CancelMultiTurnAction(FALSE);
+			return FALSE;
+		}
+		break;
+	}
+
+	// check wether our selected action can still be performed
+	BOOLEAN fActionStillValid = TRUE;
+
+	// determine the gridno before us and the item we have in our main hand, this is enough for the current actions
+	OBJECTTYPE* pObj = &(this->inv[HANDPOS]);
+	
+	// error if the gridno we started working on is not the gridno we are currently looking at
+	if ( usMultiTurnAction == MTA_FORTIFY || usMultiTurnAction == MTA_REMOVE_FORTIFY || usMultiTurnAction == MTA_FILL_SANDBAG )
+	{
+		if ( !pObj || !(pObj->exists()) )
+			fActionStillValid = FALSE;
+		else if ( this->sMTActionGridNo != NewGridNo( this->sGridNo, DirectionInc( this->ubDirection ) ) )
+			fActionStillValid = FALSE;
+	}
+
+	if ( !fActionStillValid )
+	{
+		CancelMultiTurnAction(FALSE);
+		return FALSE;
+	}
+
+	// a static variable that is the item number of sandbags. Hardcoding item numbers is bad, that's why we will search for it.
+	static UINT16 fullsandbagnr = 1541;
+
+	INT16 entireapcost = 0;
+	INT16 entirebpcost = 0;
+	switch( usMultiTurnAction )
+	{
+	case MTA_FORTIFY:
+		{
+			entireapcost = GetAPsForMultiTurnAction( this, MTA_FORTIFY );
+			entirebpcost = APBPConstants[BP_FORTIFICATION];
+
+			if ( !IsFortificationPossibleAtGridNo( this->sMTActionGridNo ) )
+				fActionStillValid = FALSE;
+			else if ( !HasItemFlag(this->inv[ HANDPOS ].usItem, (FULL_SANDBAG|CONCERTINA)) )
+				fActionStillValid = FALSE;
+		}
+		break;
+	case MTA_REMOVE_FORTIFY:
+		{
+			entireapcost = GetAPsForMultiTurnAction( this, MTA_REMOVE_FORTIFY );
+			entirebpcost = APBPConstants[BP_REMOVE_FORTIFICATION];
+
+			if ( !HasItemFlag(this->inv[ HANDPOS ].usItem, (SHOVEL)) )
+				fActionStillValid = FALSE;
+		}
+		break;
+
+	case MTA_FILL_SANDBAG:
+		{
+			entireapcost = GetAPsForMultiTurnAction( this, MTA_FILL_SANDBAG );
+			entirebpcost = APBPConstants[BP_FILL_SANDBAG];
+
+			if ( !HasItemFlag(this->inv[ HANDPOS ].usItem, EMPTY_SANDBAG) )
+				fActionStillValid = FALSE;
+			else
+			{
+				INT8 bOverTerrainType = GetTerrainType( sGridNo );
+				if( bOverTerrainType != FLAT_GROUND && bOverTerrainType != DIRT_ROAD && bOverTerrainType != LOW_GRASS )
+					fActionStillValid = FALSE;
+				else
+				{
+					// check if we have a shovel in our second hand
+					OBJECTTYPE* pShovelObj = &(this->inv[SECONDHANDPOS]);
+					if ( !pShovelObj || !(pShovelObj->exists()) || !HasItemFlag(this->inv[ SECONDHANDPOS ].usItem, SHOVEL) )
+						fActionStillValid = FALSE;
+				}
+			}
+		}
+		break;
+	}
+
+	if ( !fActionStillValid )
+	{
+		CancelMultiTurnAction(FALSE);
+		return FALSE;
+	}
+	
+	// refresh animations
+	switch( usMultiTurnAction )
+	{
+	case MTA_FORTIFY:
+	case MTA_REMOVE_FORTIFY:
+	case MTA_FILL_SANDBAG:
+		{
+			// if we are not in turnbased and no enemies are around, we reduce the number of necessary action points to 0. No need to keep waiting if there's nobody around anyway
+			if ( !( gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT ) )
+				bOverTurnAPS = 0;
+			// otherwise this might take longer, so we refresh our animation
+			else
+			{
+				if (!is_networked)
+					this->EVENT_InitNewSoldierAnim( CUTTING_FENCE, 0 , FALSE );
+				else
+					this->ChangeSoldierState( CUTTING_FENCE, 0, 0 );
+
+				// as setting the new animation costs APBPConstants[AP_USEWIRECUTTERS] APs every time, account for that
+				this->bActionPoints += APBPConstants[AP_USEWIRECUTTERS];
+			}
+		}
+		break;
+	}
+
+	// if we can afford it, do it now
+	if ( bOverTurnAPS <= this->bActionPoints )
+	{
+		switch( usMultiTurnAction )
+		{
+		case MTA_FORTIFY:
+			{
+				// Build the thing
+				if ( BuildFortification( this->sMTActionGridNo, Item[ pObj->usItem ].usItemFlag ) )
+				{
+                   UINT16 usItem = pObj->usItem;
+					// Erase 'material' item from our hand - we 'use' it to build the structure
+					DeleteObj( &(this->inv[HANDPOS]) );
+                   // sevenfm: auto-taking of items
+					if( !(gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT) && gfShiftBombPlant )
+					{
+						TakeNewItemFromInventory( usItem );
+					}
+
+					// we gain a bit of experience...
+					StatChange( this, STRAMT, 4, TRUE );
+					StatChange( this, HEALTHAMT, 2, TRUE );
+				}
+			}
+			break;
+
+		case MTA_REMOVE_FORTIFY:
+			{
+				if ( RemoveFortification( this->sMTActionGridNo ) )
+				{
+					// eventually search for the number of a sandbag item
+					if ( HasItemFlag(fullsandbagnr, FULL_SANDBAG) || GetFirstItemWithFlag(&fullsandbagnr, FULL_SANDBAG) )
+					{
+						CreateItem( fullsandbagnr, 100, &gTempObject );
+
+						AddItemToPool( this->sMTActionGridNo, &gTempObject, 1, 0, 0, -1 );
+
+						// we gain a bit of experience...
+						StatChange( this, STRAMT, 3, TRUE );
+						StatChange( this, HEALTHAMT, 2, TRUE );
+					}
+				}
+			}
+			break;
+
+		case MTA_FILL_SANDBAG:
+			{
+				// eventually search for the number of a sandbag item
+				if ( HasItemFlag(fullsandbagnr, FULL_SANDBAG) || GetFirstItemWithFlag(&fullsandbagnr, FULL_SANDBAG) )
+                                {                                       
+					INT8 bObjSlot = HANDPOS;
+                   UINT16 usItem = pObj->usItem;
+
+					CreateItem( fullsandbagnr, 100, &gTempObject );
+					if( !(gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT) && gfShiftBombPlant )
+					{	// sevenfm: drop filled sandbag to the ground and take new empty from inventory
+						AddItemToPool( this->sGridNo, &gTempObject, 1, 0, 0, -1 );
+						DeleteObj( &(this->inv[HANDPOS]) );
+						TakeNewItemFromInventory( usItem );
+					}
+					else
+					{
+					SwapObjs( this, bObjSlot, &gTempObject, TRUE );
+					}
+					// sevenfm: added this to correctly update interface
+					DirtyMercPanelInterface( this, DIRTYLEVEL2 );
+
+					// we gain a bit of experience...
+					StatChange( this, STRAMT, 1, TRUE );
+					StatChange( this, HEALTHAMT, 1, TRUE );
+				}
+			}
+			break;
+		}
+
+		if ( entireapcost > 0 )
+			DeductPoints( this, bOverTurnAPS, (INT32)(entirebpcost * this->bOverTurnAPS / entireapcost), 0);
+
+		// we're done here!
+		CancelMultiTurnAction(TRUE);		
+	}
+	// remove the costs as much as we can
+	else if ( this->bActionPoints > 0 )
+	{
+		INT16 oldAPs = this->bActionPoints;
+		if ( bOverTurnAPS > 0 )
+			DeductPoints( this, this->bActionPoints, (INT32)(entirebpcost * this->bActionPoints / entireapcost), 0);
+
+		bOverTurnAPS -= oldAPs;
+	}
+
+	return TRUE;
+}
+
+void	SOLDIERTYPE::DropSectorEquipment()
+{
+	// not if we already dropped the gear
+	if ( this->bSoldierFlagMask & SOLDIER_EQUIPMENT_DROPPED )
+		return;
+
+	// set marker: we are about to drop our gear
+	this->bSoldierFlagMask |= SOLDIER_EQUIPMENT_DROPPED;
+
+	OBJECTTYPE* pObj = NULL;
+	UINT8 size = this->inv.size();
+
+	INT32 sPutGridNo = this->sGridNo;
+	if ( sPutGridNo == NOWHERE )
+		sPutGridNo = RandomGridNo();
+
+	if ( Water( sPutGridNo) )
+		sPutGridNo = gMapInformation.sCenterGridNo;
+
+	if ( ( this->sSectorX == gWorldSectorX ) && ( this->sSectorY == gWorldSectorY ) && ( this->bSectorZ == gbWorldSectorZ) )
+	{
+		for ( UINT8 cnt = 0; cnt < size; ++cnt )
+		{
+			pObj = &( this->inv[ cnt ] );
+
+			if ( pObj->exists()  )
+			{			
+				// Check if it's supposed to be dropped
+				if ( !( (*pObj).fFlags & OBJECT_UNDROPPABLE ) && !(Item[ pObj->usItem ].defaultundroppable ) && (*pObj)[0]->data.sObjectFlag & TAKEN_BY_MILITIA )
+				{
+					(*pObj)[0]->data.sObjectFlag &= ~TAKEN_BY_MILITIA;
+
+					// if we are not replacing ammo, unload gun prior to dropping it
+					if ( !gGameExternalOptions.fMilitiaUseSectorInventory_Ammo && Item[ pObj->usItem ].usItemClass & IC_GUN )
+						(*pObj)[0]->data.gun.ubGunShotsLeft = 0;
+
+					AddItemToPool( sPutGridNo, pObj, 1 , this->pathing.bLevel, (WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO|WORLD_ITEM_REACHABLE), -1 );
+					DeleteObj( &(this->inv[cnt]) );
+				}
+			}
+		}
+	}
+	else
+	{
+		OBJECTTYPE pObject[NUM_INV_SLOTS];
+		UINT8 counter = 0;
+
+		for ( UINT8 cnt = 0; cnt < size; ++cnt )
+		{
+			pObj = &( this->inv[ cnt ] );
+
+			if ( pObj->exists()  )
+			{			
+				// Check if it's supposed to be dropped
+				if ( !( (*pObj).fFlags & OBJECT_UNDROPPABLE ) && !(Item[ pObj->usItem ].defaultundroppable ) && (*pObj)[0]->data.sObjectFlag & TAKEN_BY_MILITIA )
+				{
+					(*pObj)[0]->data.sObjectFlag &= ~TAKEN_BY_MILITIA;
+
+					// if we are not replacing ammo, unload gun prior to dropping it
+					if ( !gGameExternalOptions.fMilitiaUseSectorInventory_Ammo && Item[ pObj->usItem ].usItemClass & IC_GUN )
+						(*pObj)[0]->data.gun.ubGunShotsLeft = 0;
+
+					pObject[counter++] = *pObj;
+
+					DeleteObj( &(this->inv[cnt]) );
+				}
+			}
+		}
+
+		AddItemsToUnLoadedSector( this->sSectorX, this->sSectorY, this->bSectorZ, RandomGridNo(), counter, pObject, 0, WORLD_ITEM_REACHABLE, 0, 1, FALSE );
+	}
+}
+
+// sevenfm: take item from inventory to HANDPOS
+void SOLDIERTYPE::TakeNewItemFromInventory(UINT16 usItem)
+{
+	INT8 i;
+	OBJECTTYPE* pObj = NULL;
+	INT8 invsize = (INT8)this->inv.size();
+
+	if ( !UsingNewInventorySystem() )
+		return;
+
+        // this feature works now only in realtime
+        if( (gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT) )
+                return;
+	
+	if(this->inv[HANDPOS].exists())
+		return;
+	
+	// search for item with same id
+	for ( i = 0; i < invsize; i++)
+	{
+		if ( ( this->inv[i].exists() == true ) && ( this->inv[i].usItem == usItem ) )
+		{
+			this->inv[i].MoveThisObjectTo(this->inv[HANDPOS], 1, this);
+			return;
+		}
+	}
+}
+
+// sevenfm: take item from inventory to HANDPOS
+void SOLDIERTYPE::TakeNewBombFromInventory(UINT16 usItem)
+{
+        INT8 i;
+        OBJECTTYPE* pObj = NULL;
+        INT8 invsize = (INT8)this->inv.size();
+
+        if ( !UsingNewInventorySystem() )
+                return;
+        
+        if(this->inv[HANDPOS].exists())
+                return;
+        
+        // search for item with same id
+        for ( i = 0; i < invsize; i++)
+        {
+                if ( ( this->inv[i].exists() == true ) && ( this->inv[i].usItem == usItem ) )
+                {
+                        this->inv[i].MoveThisObjectTo(this->inv[HANDPOS], 1, this);
+                        return;
+                }
+        }
+
+	// search for any item with class IC_BOMB
+	// take tripwire-activated item only if used item is tripwire activated
+	for ( i = 0; i < invsize; i++)
+	{	
+		if ( this->inv[i].exists() == true &&
+			Item[ this->inv[i].usItem ].usItemClass == IC_BOMB &&
+			Item[ this->inv[i].usItem ].ubCursor == BOMBCURS &&
+			!Item[ this->inv[i].usItem ].tripwire &&
+			( ( Item[ this->inv[i].usItem ].tripwireactivation && Item[usItem].tripwireactivation ) ||
+				( !Item[ this->inv[i].usItem ].tripwireactivation && !Item[usItem].tripwireactivation ) ) )
+		{
+			this->inv[i].MoveThisObjectTo(this->inv[HANDPOS], 1, this);
+			return;
+		}
+	}
+}
+
+//  Flugente: switch hand item for gunsling weapon, or pistol, or knife
+void	SOLDIERTYPE::SwitchWeapons( BOOLEAN fKnife, BOOLEAN fSideArm )
+{
+	UINT8 pocketsearch, retrieveslot, handobjstorageslot;
+	BOOLEAN handCanMove, searchitemCanMove;
+
+	// The slot we move our hand object from and the new object to is obviously always HANDPOS
+	
+	// first pocket to search in OIV & NIV
+	if ( UsingNewInventorySystem() )
+		pocketsearch = GUNSLINGPOCKPOS;
+	else
+		pocketsearch = BIGPOCK1POS;
+	
+	// The second slot is the one from where we retrieve the object we search
+	if ( UsingNewInventorySystem() )
+		retrieveslot = GUNSLINGPOCKPOS;
+	else // search for gun in OIV
+	{
+		for(UINT8 i = pocketsearch; i < NUM_INV_SLOTS; ++i)
+		{
+			// we use the first gun we can find
+			if ( this->inv[i].exists() && Item[this->inv[i].usItem].usItemClass & IC_GUN && this->inv[i].ubNumberOfObjects == 1 )
+			{
+				retrieveslot = i;
+				break;
+			}
+		}
+	}
+	
+	// The third slot is where we put our hand item into
+	handobjstorageslot = HANDPOS;
+
+	// if we swap knifes or sidearms, we search for any such item if we do not already have it in our hands. If we do, we instead search for a gun to switch
+	if ( fKnife )
+	{
+		// if we already have a knife in hand, search for a gun instead
+		if ( this->inv[HANDPOS].exists() && Item[this->inv[HANDPOS].usItem].usItemClass & IC_BLADE )
+		{
+			for(UINT8 i = pocketsearch; i < NUM_INV_SLOTS; ++i)
+			{
+				// we use the first gun we can find
+				if ( this->inv[i].exists() && Item[this->inv[i].usItem].usItemClass & IC_GUN && this->inv[i].ubNumberOfObjects == 1 )
+				{
+					retrieveslot = i;
+					break;
+				}
+			}
+		}
+		// search for a knife
+		else
+		{
+			for(UINT8 i = pocketsearch; i < NUM_INV_SLOTS; ++i)
+			{
+				// take first blade
+				if ( this->inv[i].exists() && Item[this->inv[i].usItem].usItemClass & IC_BLADE && this->inv[i].ubNumberOfObjects == 1 )
+				{
+					retrieveslot = i;
+					break;
+				}
+			}
+		}
+	}
+	else if ( fSideArm )
+	{
+		// if we already have a sidearm in hand, search for a gun that isn't a sidearm instead
+		if ( this->inv[HANDPOS].exists() && Item[this->inv[HANDPOS].usItem].usItemClass & IC_GUN 
+			&& Weapon[ Item[ this->inv[HANDPOS].usItem ].ubClassIndex ].ubWeaponClass == HANDGUNCLASS )
+		{
+			for(UINT8 i = pocketsearch; i < NUM_INV_SLOTS; ++i)
+			{
+				// we use the first gun we can find
+				if ( this->inv[i].exists() && Item[this->inv[i].usItem].usItemClass & IC_GUN && Weapon[ Item[ this->inv[i].usItem ].ubClassIndex ].ubWeaponClass != HANDGUNCLASS && this->inv[i].ubNumberOfObjects == 1 )
+				{
+					retrieveslot = i;
+					break;
+				}
+			}
+		}
+		// search for a sidearm
+		else
+		{
+			for(UINT8 i = pocketsearch; i < NUM_INV_SLOTS; ++i)
+			{
+				// take first handgun
+				if ( this->inv[i].exists() && Item[this->inv[i].usItem].usItemClass & IC_GUN && Weapon[ Item[ this->inv[i].usItem ].ubClassIndex ].ubWeaponClass == HANDGUNCLASS && this->inv[i].ubNumberOfObjects == 1 )
+				{
+					retrieveslot = i;
+					break;
+				}
+			}
+		}
+	}
+
+	// search a slot to put our hand object into
+	for(UINT8 i = pocketsearch; i < NUM_INV_SLOTS; ++i)
+	{
+		// take first slot that hand item would fit
+		if ( CanItemFitInPosition(this, &this->inv[HANDPOS], i, FALSE) )
+		{
+			if ( i == retrieveslot || !this->inv[i].exists() )
+			{
+				handobjstorageslot = i;
+				break;
+			}
+		}
+	}
+	
+	// check both items can be moved
+	// check HANDPOS item that cannot be moved to inventory
+	if( handobjstorageslot == HANDPOS && this->inv[HANDPOS].exists() == true )
+		handCanMove = FALSE;
+	else
+		handCanMove = (CanItemFitInPosition(this, &this->inv[HANDPOS], handobjstorageslot, FALSE) || (this->inv[HANDPOS].exists() == false && this->inv[SECONDHANDPOS].exists() == false));
+
+	if( Item[this->inv[retrieveslot].usItem].twohanded && this->inv[SECONDHANDPOS].exists() == true )
+		searchitemCanMove = FALSE;
+	else
+		searchitemCanMove = (CanItemFitInPosition(this, &this->inv[retrieveslot], HANDPOS, FALSE) || this->inv[retrieveslot].exists() == false);
+
+	// execute swap 
+	if( handCanMove == TRUE && searchitemCanMove == TRUE)
+	{
+		if (gGameOptions.fInventoryCostsAP)
+		{
+			UINT16 APTotalCost = 0;
+			
+			if (this->inv[retrieveslot].exists())
+				APTotalCost += GetInvMovementCost(&this->inv[retrieveslot], retrieveslot, HANDPOS);
+
+			if (this->inv[HANDPOS].exists())
+				APTotalCost += GetInvMovementCost(&this->inv[HANDPOS], HANDPOS, handobjstorageslot);
+
+			if (this->bActionPoints >= APTotalCost)
+			{
+				// SANDRO - I dared to change this to use the appropriate function, as that function is actually important for IIS
+				//pSoldier->bActionPoints -= APTotalCost;
+				DeductPoints( this, APTotalCost, 0 );
+
+				SwapObjs(&this->inv[HANDPOS], &this->inv[retrieveslot]);
+
+				// if we store our hand item in a different position than the item we retrieve originally was, swap again
+				if ( handobjstorageslot != retrieveslot && handobjstorageslot != HANDPOS )
+					SwapObjs(&this->inv[retrieveslot], &this->inv[handobjstorageslot]);
+
+				HandleTacticalEffectsOfEquipmentChange(this, HANDPOS, this->inv[retrieveslot].usItem, this->inv[HANDPOS].usItem);
+			}
+			else
+			{
+				CHAR16	zOutputString[512];
+				swprintf( zOutputString, New113Message[MSG113_INVENTORY_APS_INSUFFICIENT], APTotalCost, this->bActionPoints);
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, zOutputString );
+			}
+		}
+		else
+		{
+			SwapObjs(&this->inv[HANDPOS], &this->inv[retrieveslot]);
+
+			// if we store our hand item in a different position than the item we retrieve originally was, swap again
+			if ( handobjstorageslot != retrieveslot && handobjstorageslot != HANDPOS )
+				SwapObjs(&this->inv[retrieveslot], &this->inv[handobjstorageslot]);
+
+			HandleTacticalEffectsOfEquipmentChange(this, HANDPOS, this->inv[retrieveslot].usItem, this->inv[HANDPOS].usItem);
+		}
+	}
+	fCharacterInfoPanelDirty = TRUE;
+	fInterfacePanelDirty = DIRTYLEVEL2;
+
+	// Flugente: we have to recheck our flashlights
+	this->HandleFlashLights();
+}
+
+UINT8 tmpuser = 0;
+static CHAR16	tmpname[2][ MAX_ENEMY_NAMES_CHARS ];	// we need 2 arrays, in case we need 2 name pointers in one string
+STR16 SOLDIERTYPE::GetName()
+{
+	++tmpuser;
+	if ( tmpuser > 1 )
+		tmpuser = 0;
+
+	tmpname[tmpuser][0] =  '\0' ;
+	wcscat( tmpname[tmpuser], this->name );
+
+	if ( this->usSoldierProfile )
+	{
+		INT8 type = this->GetSoldierProfileType(this->bTeam);
+		if ( type > -1 )
+		{
+			wcscpy( tmpname[tmpuser], zSoldierProfile[type][this->usSoldierProfile].szName );
+			tmpname[tmpuser][ MAX_ENEMY_NAMES_CHARS - 1 ] = '\0';
+		}
+	}
+
+	return tmpname[tmpuser];
+}
+
+INT8 SOLDIERTYPE::GetTraitCTHModifier( UINT16 usItem, INT16 ubAimTime, UINT8 ubTargetProfile )
+{
+	INT8 modifier = 0;
+
+	// Modify for traits
+	if( gGameOptions.fNewTraitSystem )
+	{
+		// Bonus for heavy weapons moved here from above to get instant CtH bonus and not marksmanship bonus, 
+		// which is supressed by weapon condition
+		if (Item[usItem].rocketlauncher || Item[usItem].singleshotrocketlauncher)
+		{
+			modifier += gSkillTraitValues.bCtHModifierRocketLaunchers; // -25% for untrained mercs !!!
+
+			if (HAS_SKILL_TRAIT( this, HEAVY_WEAPONS_NT ))
+				modifier += gSkillTraitValues.ubHWBonusCtHRocketLaunchers * NUM_SKILL_TRAITS( this, HEAVY_WEAPONS_NT ); // +25% per trait
+		}
+		// Added CtH bonus for Gunslinger trait on pistols and machine-pistols
+		else if ( Weapon[usItem].ubWeaponType == GUN_PISTOL )
+		{
+			modifier += gSkillTraitValues.bCtHModifierPistols; // -5% for untrained mercs.
+
+			// this bonus is applied only on single shots!
+			if ( HAS_SKILL_TRAIT( this, GUNSLINGER_NT ) && this->bDoBurst == 0 && this->bDoAutofire == 0 )
+				modifier += gSkillTraitValues.ubGSBonusCtHPistols * NUM_SKILL_TRAITS( this, GUNSLINGER_NT ); // +10% per trait
+		}
+		else if ( Weapon[usItem].ubWeaponType == GUN_M_PISTOL )
+		{
+			modifier += gSkillTraitValues.bCtHModifierMachinePistols; // -5% for untrained mercs.
+
+			// this bonus is applied only on single shots!
+			if ( HAS_SKILL_TRAIT( this, GUNSLINGER_NT ) && ((this->bDoBurst == 0 && this->bDoAutofire == 0) || !gSkillTraitValues.ubGSCtHMPExcludeAuto))
+				modifier += gSkillTraitValues.ubGSBonusCtHMachinePistols * NUM_SKILL_TRAITS( this, GUNSLINGER_NT ); // +5% per trait
+		}
+		// Added CtH bonus for Machinegunner skill on assault rifles, SMGs and LMGs
+		else if ( Weapon[usItem].ubWeaponType == GUN_AS_RIFLE )
+		{
+			modifier += gSkillTraitValues.bCtHModifierAssaultRifles; // -5% for untrained mercs.
+
+			if ( HAS_SKILL_TRAIT( this, AUTO_WEAPONS_NT ) )
+				modifier += gSkillTraitValues.ubAWBonusCtHAssaultRifles * NUM_SKILL_TRAITS( this, AUTO_WEAPONS_NT ); // +5% per trait
+		}
+		else if ( Weapon[usItem].ubWeaponType == GUN_SMG ) 
+		{
+			modifier += gSkillTraitValues.bCtHModifierSMGs; // -5% for untrained mercs.
+
+			if ( HAS_SKILL_TRAIT( this, AUTO_WEAPONS_NT ) )
+				modifier += gSkillTraitValues.ubAWBonusCtHSMGs * NUM_SKILL_TRAITS( this, AUTO_WEAPONS_NT ); // +5% per trait
+		}
+		else if ( Weapon[usItem].ubWeaponType == GUN_LMG )
+		{
+			modifier += gSkillTraitValues.bCtHModifierLMGs; // -10% for untrained mercs.
+
+			if ( HAS_SKILL_TRAIT( this, AUTO_WEAPONS_NT ) )
+				modifier += gSkillTraitValues.ubAWBonusCtHLMGs * NUM_SKILL_TRAITS( this, AUTO_WEAPONS_NT ); // +5% per trait
+		}
+		// Added CtH bonus for Gunslinger trait on pistols and machine-pistols
+		else if ( Weapon[usItem].ubWeaponType == GUN_SN_RIFLE )
+		{
+			modifier += gSkillTraitValues.bCtHModifierSniperRifles; // -5% for untrained mercs.
+
+			// this bonus is applied only on single shots!
+			if ( HAS_SKILL_TRAIT( this, SNIPER_NT ) && this->bDoBurst == 0 && this->bDoAutofire == 0 )
+				modifier += gSkillTraitValues.ubSNBonusCtHSniperRifles * NUM_SKILL_TRAITS( this, SNIPER_NT ); // +5% per trait
+		}
+		// Added CtH bonus for Ranger skill on rifles and shotguns
+		else if ( Weapon[usItem].ubWeaponType == GUN_RIFLE ) 
+		{
+			modifier += gSkillTraitValues.bCtHModifierRifles; // -5% for untrained mercs.
+
+			// this bonus is applied only on single shots!
+			if ( HAS_SKILL_TRAIT( this, RANGER_NT ) && this->bDoBurst == 0 && this->bDoAutofire == 0 )
+				modifier += gSkillTraitValues.ubRABonusCtHRifles * NUM_SKILL_TRAITS( this, RANGER_NT ); // +5% per trait
+			//CHRISL: Why wouldn't sniper training include standard rifles which are often used as "poor-man sniper rifles"
+			// this bonus is applied only on single shots!
+			if ( HAS_SKILL_TRAIT( this, SNIPER_NT ) && this->bDoBurst == 0 && this->bDoAutofire == 0 )
+				modifier += gSkillTraitValues.ubSNBonusCtHRifles * NUM_SKILL_TRAITS( this, SNIPER_NT ); // +5% per trait
+		}
+		else if ( Weapon[usItem].ubWeaponType == GUN_SHOTGUN )
+		{
+			modifier += gSkillTraitValues.bCtHModifierShotguns; // -5% for untrained mercs.
+
+			if ( HAS_SKILL_TRAIT( this, RANGER_NT ) )
+				modifier += gSkillTraitValues.ubRABonusCtHShotguns * NUM_SKILL_TRAITS( this, RANGER_NT ); // +10% per trait
+		}
+
+		// Added small CtH penalty for robot if controller hasn't the Technician trait
+		if( AM_A_ROBOT( this ) )
+		{
+			modifier += gSkillTraitValues.bCtHModifierRobot; // -10% 
+
+			if ( HAS_SKILL_TRAIT( this->GetRobotController(), TECHNICIAN_NT ) )
+				modifier += gSkillTraitValues.ubTECtHControlledRobotBonus * NUM_SKILL_TRAITS( this->GetRobotController(), TECHNICIAN_NT ); // +10% per trait
+		}
+
+		// Added character traits influence
+		if ( this->ubProfile != NO_PROFILE )
+		{		
+			// Sociable - better performance in groups
+			if ( gMercProfiles[ this->ubProfile ].bCharacterTrait == CHAR_TRAIT_SOCIABLE )
+			{	
+				INT8 bNumMercs = CheckMercsNearForCharTraits( this->ubProfile, CHAR_TRAIT_SOCIABLE );
+				if ( bNumMercs > 2 )
+					modifier += 5;
+				else if ( bNumMercs > 0 )
+					modifier += 2;
+			}
+			// Loner - better performance when alone
+			else if ( gMercProfiles[ this->ubProfile ].bCharacterTrait == CHAR_TRAIT_LONER )
+			{	
+				INT8 bNumMercs = CheckMercsNearForCharTraits( this->ubProfile, CHAR_TRAIT_LONER );
+				if ( bNumMercs == 0 )
+					modifier += 5;
+				else if ( bNumMercs <= 1 )
+					modifier += 2;
+			}
+			// Aggressive - bonus on bursts/autofire
+			else if ( gMercProfiles[ this->ubProfile ].bCharacterTrait == CHAR_TRAIT_AGGRESSIVE )
+			{	
+				if (( this->bDoBurst || this->bDoAutofire ) && !ubAimTime )
+					modifier += 10;
+			}
+			// Show-off - better performance if some babes around to impress
+			else if ( gMercProfiles[ this->ubProfile ].bCharacterTrait == CHAR_TRAIT_SHOWOFF )
+			{	
+				INT8 bNumMercs = CheckMercsNearForCharTraits( this->ubProfile, CHAR_TRAIT_SHOWOFF );
+				if ( bNumMercs > 1 )
+					modifier += 5;
+				else if ( bNumMercs > 0 )
+					modifier += 2;
+			}
+			// Added disabilities
+			if ( this->ubProfile != NO_PROFILE )
+			{
+				// Heat intolerant penalty
+				if ( MercIsHot( this ) )
+				{
+					modifier -= 15;
+				}
+				// Small penalty for fear of insects in tropical sectors
+				// Flugente: drugs can temporarily cause a merc get a new disability
+				else if ( ( (gMercProfiles[ this->ubProfile ].bDisability == FEAR_OF_INSECTS) || MercUnderTheInfluence(this, DRUG_TYPE_FEAROFINSECTS) )&& MercIsInTropicalSector( this ) )
+				{
+					// fear of insects, and we are in tropical sector
+					modifier -= 5;
+				}
+			}
+		}
+		// Dauntless - penalty for not taking proper cover
+		if ( ubTargetProfile != NOBODY )
+		{
+			if ( gMercProfiles[ ubTargetProfile ].bCharacterTrait == CHAR_TRAIT_DAUNTLESS )
+				modifier += 5;
+		}
+	}
+	else
+	{
+		// this rather unlogical bonus for psychotic characters applies only with old traits
+		if ( this->ubProfile != NO_PROFILE && gMercProfiles[ this->ubProfile ].bDisability == PSYCHO || MercUnderTheInfluence(this, DRUG_TYPE_PSYCHO))
+		{
+			modifier += AIM_BONUS_PSYCHO;
+		}
+	}
+
+	return modifier;
+}
+
+void SOLDIERTYPE::AddDrugValues(UINT8 uDrugType, UINT8 usEffect, UINT8 usTravelRate, UINT8 usSideEffect )
+{
+	// in case of wrong inout, stay safe
+	if ( uDrugType >= DRUG_TYPE_MAX )
+		return;
+
+	// Flugente: backgrounds
+	if ( this->ubProfile != NOBODY && uDrugType == DRUG_TYPE_ALCOHOL )
+	{
+		usEffect		= usEffect		* ((100 - this->GetBackgroundValue(BG_RESI_ALCOHOL)) / 100);
+		usSideEffect	= usSideEffect	* ((100 - this->GetBackgroundValue(BG_RESI_ALCOHOL)) / 100);
+	}
+
+	// Add effects
+	if ( ( this->drugs.bFutureDrugEffect[ uDrugType ] + usEffect ) < 127 )
+	{
+		this->drugs.bFutureDrugEffect[ uDrugType ] += usEffect;
+	}
+	this->drugs.bDrugEffectRate[ uDrugType ]		= usTravelRate;
+
+	// Reset once we sleep...
+	this->drugs.bTimesDrugUsedSinceSleep[ uDrugType ]++;
+
+	// Increment side effects..
+	if ( ( this->drugs.bDrugSideEffect[ uDrugType ] + usSideEffect ) < 127 )
+	{
+		this->drugs.bDrugSideEffect[ uDrugType ]	+= usSideEffect;
+	}
+	// Stop side effects until were done....
+	this->drugs.bDrugSideEffectRate[ uDrugType ]	= 0;
+
+	// set flag: we are on drugs
+	this->bSoldierFlagMask |= SOLDIER_DRUGGED;
+}
+
+void SOLDIERTYPE::HandleFlashLights()
+{
+	// no more need to redo this check
+	this->bSoldierFlagMask &= ~SOLDIER_REDOFLASHLIGHT;
+
+	// we must be active and in a sector (not travelling) in a valid position
+	if ( !bActive || !bInSector || TileIsOutOfBounds(this->sGridNo) )
+		return;
+
+	// no flashlight stuff if it isn't night, and we aren't underground
+	if ( !NightTime() && !gbWorldSectorZ )
+		return;
+
+	// take note of wether we changed light
+	BOOLEAN fLightChanged = FALSE;
+
+	// remove existing lights we 'own'
+	if ( this->bSoldierFlagMask & SOLDIER_LIGHT_OWNER )
+	{
+		RemovePersonalLights( this->ubID );
+
+		this->bSoldierFlagMask &= ~SOLDIER_LIGHT_OWNER;
+
+		fLightChanged = TRUE;
+	}
+			
+	// not possible to get this bonus on a roof, due to our lighting system
+	if ( !this->pathing.bLevel )
+	{
+		UINT8 flashlightrange = this->GetBestEquippedFlashLightRange();
+
+		// if no flashlight is found, this will be 0
+		if ( flashlightrange )
+		{
+			// the range at which we create additional light sources to the side
+			UINT8 firstexpand  = 8;
+			UINT8 secondexpand = 12;
+
+			// depending on our direction, alter range
+			if ( this->ubDirection == NORTHEAST || this->ubDirection == NORTHWEST || this->ubDirection == SOUTHEAST || this->ubDirection == SOUTHWEST )
+			{
+				flashlightrange = sqrt( (FLOAT)flashlightrange*(FLOAT)flashlightrange / 2.0f );
+				firstexpand		= sqrt( (FLOAT)firstexpand*(FLOAT)firstexpand / 2.0f );
+				secondexpand	= sqrt( (FLOAT)secondexpand*(FLOAT)secondexpand / 2.0f );
+			}
+
+			// we determine the height of the next tile in our direction. Because of the way structures are handled, we sometimes have to take the very tile we're occupying right now
+			INT32 nextGridNoinSight = this->sGridNo;
+
+			for(UINT8 i = 0; i < flashlightrange; ++i)
+			{
+				nextGridNoinSight = NewGridNo( nextGridNoinSight, DirectionInc( this->ubDirection ) );
+
+				if ( SoldierToVirtualSoldierLineOfSightTest( this, nextGridNoinSight, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE ) )
+					CreatePersonalLight( nextGridNoinSight, this->ubID );
+
+				// after a certain range, add new lights to the side to simulate a light cone
+				if ( i > firstexpand )
+				{
+					INT8 sidedir1 = (this->ubDirection + 2) % NUM_WORLD_DIRECTIONS;
+					INT8 sidedir2 = (this->ubDirection - 2) % NUM_WORLD_DIRECTIONS;
+
+					INT32 sideGridNo1 = NewGridNo( nextGridNoinSight, DirectionInc( sidedir1 ) );
+					sideGridNo1 = NewGridNo( sideGridNo1, DirectionInc( sidedir1 ) );
+
+					if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo1, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
+						CreatePersonalLight( sideGridNo1, this->ubID );
+
+					if ( i > secondexpand )
+					{
+						sideGridNo1 = NewGridNo( sideGridNo1, DirectionInc( sidedir1 ) );
+
+						if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo1, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
+							CreatePersonalLight( sideGridNo1, this->ubID );
+					}
+
+					INT32 sideGridNo2 = NewGridNo( nextGridNoinSight, DirectionInc( sidedir2 ) );
+					sideGridNo2 = NewGridNo( sideGridNo2, DirectionInc( sidedir2 ) );
+
+					if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo2, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
+						CreatePersonalLight( sideGridNo2, this->ubID );
+
+					if ( i > secondexpand )
+					{
+						sideGridNo2 = NewGridNo( sideGridNo2, DirectionInc( sidedir2 ) );
+
+						if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo2, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
+							CreatePersonalLight( sideGridNo2, this->ubID );
+					}
+				}
+			}
+
+			// take note: we own a light source
+			this->bSoldierFlagMask |= SOLDIER_LIGHT_OWNER;
+
+			fLightChanged = TRUE;
+		}
+	}	
+	
+	if ( fLightChanged )
+	{
+		// refresh sight for everybody
+		AllTeamsLookForAll( TRUE );
+		
+		SetRenderFlags(RENDER_FLAG_FULL);
+	}
+}
+
+UINT8 SOLDIERTYPE::GetBestEquippedFlashLightRange()
+{
+	UINT8 bestrange = 0;
+
+	// do this check for both hands
+	UINT16 firstslot = HANDPOS;
+	UINT16 lastslot  = VESTPOCKPOS;
+	for (UINT16 invpos = firstslot; invpos < lastslot; ++invpos)
+	{
+		OBJECTTYPE* pObj = &(this->inv[invpos]);
+
+		if ( !pObj || !(pObj->exists()) )
+			// can't use this, end
+			continue;
+
+		// due to our attachment system, flashlights on guns do not require the batteries to be attached to the flashlight itself - anywhere will do
+		if ( !FindAttachedBatteries(pObj) )
+			continue;
+
+		if ( Item [ pObj->usItem ].usFlashLightRange )
+		{
+			bestrange = max(bestrange, Item [ pObj->usItem ].usFlashLightRange);
+		}
+
+		attachmentList::iterator iterend = (*pObj)[0]->attachments.end();
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter) 
+		{
+			if(iter->exists() && Item [ iter->usItem ].usFlashLightRange )
+				bestrange = max(bestrange, Item [ iter->usItem ].usFlashLightRange);
+		}
+	}
+
+	return( bestrange );
+}
+
+// Flugente: soldier profiles
+// retrieves the correct sub-array
+INT8 SOLDIERTYPE::GetSoldierProfileType(UINT8 usTeam)
+{
+	INT8 type = -1;
+
+	if ( usTeam == ENEMY_TEAM && gGameExternalOptions.fSoldierProfiles_Enemy )
+	{
+		switch( this->ubSoldierClass )
+		{
+		case SOLDIER_CLASS_ELITE :
+			type = 2;
+			break;
+		case SOLDIER_CLASS_ARMY :
+			type = 1;
+			break;
+		case SOLDIER_CLASS_ADMINISTRATOR :
+			type = 0;
+			break;
+		}
+	}
+	else if ( usTeam == MILITIA_TEAM && gGameExternalOptions.fSoldierProfiles_Militia )
+	{
+		switch( this->ubSoldierClass )
+		{
+		case SOLDIER_CLASS_ELITE_MILITIA :
+			type = 5;
+			break;
+		case SOLDIER_CLASS_REG_MILITIA :
+			type = 4;
+			break;
+		case SOLDIER_CLASS_GREEN_MILITIA :
+			type = 3;
+			break;
+		}
+	}
+
+	return type;
+}
+
+// Flugente: do we have a specific background flag?
+BOOLEAN SOLDIERTYPE::HasBackgroundFlag( UINT64 aFlag)
+{
+	if ( gGameOptions.fBackGround && this->ubProfile != NO_PROFILE )
+	{
+		if ( zBackground[ gMercProfiles[this->ubProfile].usBackground ].uiFlags & aFlag )
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+INT16 SOLDIERTYPE::GetBackgroundValue( UINT16 aNr )
+{
+	if ( gGameOptions.fBackGround && this->ubProfile != NO_PROFILE )
+	{
+		return zBackground[ gMercProfiles[this->ubProfile].usBackground ].value[aNr];
+	}
+
+	return 0;
+}
+
+INT8 SOLDIERTYPE::GetSuppressionResistanceBonus()
+{
+	INT8 bonus = 0;
+	
+	bonus += this->GetBackgroundValue(BG_RESI_SUPPRESSION);
+
+	return min( 100, max( -100, bonus) );
+}
+
+INT16 SOLDIERTYPE::GetMeleeDamageBonus()
+{
+	INT8 bonus = 0;
+
+	bonus += this->GetBackgroundValue(BG_PERC_DAMAGE_MELEE);
+
+	return bonus;
+}
+
+INT16	SOLDIERTYPE::GetAPBonus()
+{
+	INT16 bonus = 0;
+	
+	if ( this->bSoldierFlagMask & SOLDIER_AIRDROP_TURN )
+		bonus += this->GetBackgroundValue(BG_AIRDROP);
+
+	if ( this->bSoldierFlagMask & SOLDIER_ASSAULT_BONUS )
+		bonus += this->GetBackgroundValue(BG_ASSAULT);
+	
+	UINT8 ubSector = (UINT8)SECTOR( this->sSectorX, this->sSectorY );
+	UINT8 ubTraverseType = SectorInfo[ ubSector ].ubTraversability[ ubDirection ];
+			
+	switch ( ubTraverseType )
+	{
+	case NS_RIVER:
+	case EW_RIVER:
+		bonus += this->GetBackgroundValue(BG_RIVER);
+		break;
+	case COASTAL:
+	case COASTAL_ROAD:
+		bonus += this->GetBackgroundValue(BG_COASTAL);
+		break;
+	case TROPICS_SAM_SITE:
+		bonus += this->GetBackgroundValue(BG_COASTAL);
+		bonus += this->GetBackgroundValue(BG_TROPICAL);
+		break;
+	case TROPICS:
+	case TROPICS_ROAD:
+		bonus += this->GetBackgroundValue(BG_TROPICAL);
+		break;
+	case HILLS:
+	case HILLS_ROAD:
+		bonus += this->GetBackgroundValue(BG_MOUNTAIN);
+		break;
+	case SWAMP:
+	case SWAMP_ROAD:
+		bonus += this->GetBackgroundValue(BG_SWAMP);
+		break;
+	case SAND:
+	case SAND_ROAD:
+	case SAND_SAM_SITE:
+		bonus += this->GetBackgroundValue(BG_DESERT);
+		break;
+	case TOWN:
+	case CAMBRIA_HOSPITAL_SITE:
+	case DRASSEN_AIRPORT_SITE:
+	case MEDUNA_AIRPORT_SITE:
+		bonus += this->GetBackgroundValue(BG_URBAN);
+		break;
+	default:
+		break;
+	}
+	
+	if ( this->pathing.bLevel )
+		bonus += this->GetBackgroundValue(BG_HEIGHT);
+				
+	return bonus;
+}
+
+INT8	SOLDIERTYPE::GetFearResistanceBonus()
+{
+	INT8 bonus = 0;
+	
+	bonus += this->GetBackgroundValue(BG_RESI_FEAR);
+	
+	return min(100, max(-100, bonus));
+}
+
+UINT8	SOLDIERTYPE::GetMoraleThreshold()
+{
+	UINT8 threshold		= 100;
+	UINT8 moraledamage	= 0;
+	
+	moraledamage = (moraledamage * (100 - GetFearResistanceBonus())) / 100;
+		
+	return min(threshold, max(0, threshold - moraledamage));
+}
+
+INT16	SOLDIERTYPE::GetInterruptModifier( UINT8 usDistance )
+{
+	INT16 bonus = 0;
+
+	// drugs can alter our perception
+	if ( this->drugs.bDrugEffect[ DRUG_TYPE_PERCEPTION ] )
+		bonus += 2;
+	else if ( this->drugs.bDrugSideEffect[ DRUG_TYPE_PERCEPTION ] )
+		bonus -= 2;
+
+	// if we are listening on our radio, our mind will be somewhere else... we will be less focused
+	if ( this->IsRadioListening() )
+		bonus -= 3;
+
+	// if we are airdropping and do not have the 'airdrop' background, we receive a substantial malus to our interrupt level. Roping down takes a lot of attention
+	if ( this->bSoldierFlagMask & SOLDIER_AIRDROP_TURN && (this->GetBackgroundValue(BG_AIRDROP) <= 0) )
+		bonus -= 8;
+					
+	return bonus;
+}
+
+void SOLDIERTYPE::SoldierPropertyUpkeep()
+{
+	// these effects last only one turn
+	this->bSoldierFlagMask &= ~(SOLDIER_AIRDROP_TURN|SOLDIER_ASSAULT_BONUS|SOLDIER_RAISED_REDALERT);
+
+	if ( HasBackgroundFlag( BACKGROUND_EXP_UNDERGROUND ) && this->bSectorZ )
+		++bExtraExpLevel;
+
+	// Flugente: as pows received faulty poison values, we apply a very simple fix:
+	// remove in a few revisions - the code has already been fixed, so this won't be necessary anymore soon^^
+	this->bPoisonLife = min(this->bPoisonLife, this->bPoisonSum );
+	this->bPoisonBleeding = min(this->bPoisonBleeding, this->bBleeding);
+
+	// if we are dead or dying, we cannot continue radio work
+	if ( this->stats.bLife < OKLIFE )
+		this->SwitchOffRadio();
+
+	// if we are an enemy radio operator, and we are jamming frequencies, there is a slight chance that we set off remote-controlled bombs/defuses!
+	if ( !gSkillTraitValues.fVOJammingBlocksRemoteBombs && gSkillTraitValues.fVOEnemyVOSetsOffRemoteBombs && this->bTeam == ENEMY_TEAM && IsJamming() && Chance(5) )
+		SetOffBombsByFrequency( this->ubID, 1 + Random(8) );
+
+	// effects eventually run out
+	for (UINT8 counter = 0; counter < SOLDIER_COUNTER_MAX; ++counter)
+	{
+		if ( counter == SOLDIER_COUNTER_SPOTTER && usSkillCounter[counter] > 0 )
+			usSkillCounter[counter]	= min(255, usSkillCounter[counter] + 1 );
+		else
+			usSkillCounter[counter]	= max(0, usSkillCounter[counter] - 1 );
+	}
+
+	// if there is a combat going and we are in sector, note that in the battle report
+	if ( this->bInSector && (gTacticalStatus.uiFlags & INCOMBAT || gTacticalStatus.fEnemyInSector) )
+	{
+		if ( !(this->bSoldierFlagMask & SOLDIER_BATTLE_PARTICIPATION) )
+		{
+			this->bSoldierFlagMask |= SOLDIER_BATTLE_PARTICIPATION;
+
+			// Flugente: campaign stats
+			gCurrentIncident.AddStat( this, CAMPAIGNHISTORY_TYPE_PARTICIPANT );
+		}
+	}
+	else
+	{
+		this->bSoldierFlagMask &= ~SOLDIER_BATTLE_PARTICIPATION;
+	}
+}
+
+// check if Soldier can use the spell skillwise, with fAPCheck = TRUE also check current APs
+BOOLEAN	SOLDIERTYPE::CanUseSkill( INT8 iSkill, BOOLEAN fAPCheck )
+{
+	if ( fAPCheck )
+	{
+		if ( this->bCollapsed )
+			return FALSE;
+	}
+
+	BOOLEAN canuse = FALSE;
+		
+	switch ( iSkill )
+	{
+		// radio operator
+	case SKILLS_RADIO_ARTILLERY:
+	case SKILLS_RADIO_JAM:
+	case SKILLS_RADIO_SCAN_FOR_JAM:
+	case SKILLS_RADIO_LISTEN:
+	case SKILLS_RADIO_CALLREINFORCEMENTS:
+		if ( (!fAPCheck || EnoughPoints( this, APBPConstants[AP_RADIO], APBPConstants[BP_RADIO], FALSE ) ) && CanUseRadio() )
+			canuse = TRUE;
+		break;
+		
+	case SKILLS_RADIO_TURNOFF:
+		if ( (!fAPCheck || EnoughPoints( this, APBPConstants[AP_RADIO], APBPConstants[BP_RADIO], FALSE ) ) && (IsJamming() || IsScanning() || IsRadioListening()) )
+			canuse = TRUE;
+		break;
+
+	case SKILLS_SPOTTER:
+		if ( (!fAPCheck || EnoughPoints( this, APBPConstants[AP_SPOTTER], 0, FALSE ) ) && CanSpot() )
+			canuse = TRUE;
+		break;
+		
+	default:
+		break;
+	}
+	
+	return( canuse );
+}
+
+// use a skill. For safety reasons, this calls CanUseSkill again
+BOOLEAN SOLDIERTYPE::UseSkill( UINT8 iSkill, INT32 usMapPos, UINT8 ID )
+{
+	if ( !CanUseSkill(iSkill, TRUE) )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Cannot use skill" );
+		return FALSE;
+	}
+
+	switch ( iSkill )
+	{
+		// radio operator
+	// the call for SKILLS_RADIO_ARTILLERY is only used by the AI
+	case SKILLS_RADIO_ARTILLERY:
+		{
+			UINT32 sector = 0;
+			if ( this->CanAnyArtilleryStrikeBeOrdered(&sector) )
+			{
+				return OrderArtilleryStrike(sector, usMapPos, this->bTeam );
+			}
+		}
+		break;
+
+	case SKILLS_RADIO_JAM:
+		return JamCommunications();
+		break;
+
+	case SKILLS_RADIO_SCAN_FOR_JAM:
+		return ScanForJam();
+		break;
+
+	case SKILLS_RADIO_LISTEN:
+		return RadioListen();
+		break;
+
+	case SKILLS_RADIO_CALLREINFORCEMENTS:
+		// called separately
+		//return RadioCallReinforcements();
+		break;
+
+	case SKILLS_RADIO_TURNOFF:
+		return SwitchOffRadio();
+		break;
+
+	case SKILLS_SPOTTER:
+		return BecomeSpotter(usMapPos);
+		break;
+
+	default:
+		break;
+	}
+
+	return FALSE;
+}
+
+// is the AI allowed to use a skill? we have to check how much breath and life using this skill would cost, as otherwise the AI might commit suicide by casting
+BOOLEAN SOLDIERTYPE::IsAIAllowedtoUseSkill( INT8 iSkill )
+{
+	if ( CanUseSkill(iSkill, TRUE) )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+static CHAR16 skilldescarray[500];
+
+// print a small description of the skill if we can use it, or its requirements if we cannot
+STR16	SOLDIERTYPE::PrintSkillDesc( INT8 iSkill )
+{
+	CHAR16	atStr[  200 ];
+	swprintf(skilldescarray, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_REQ] );
+		
+	if ( CanUseSkill(iSkill, TRUE) )
+	{
+		return pTraitSkillsMenuDescStrings[iSkill];
+	}
+	else
+	{
+		if ( iSkill >= SKILLS_RADIO_FIRST && iSkill <= SKILLS_RADIO_LAST )
+		{
+			swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_AP], APBPConstants[AP_RADIO] );
+			wcscat( skilldescarray, atStr );
+		}
+
+		switch ( iSkill )
+		{
+			// radio operator
+			case SKILLS_RADIO_ARTILLERY:
+			case SKILLS_RADIO_JAM:
+			case SKILLS_RADIO_SCAN_FOR_JAM:
+			case SKILLS_RADIO_LISTEN:
+			case SKILLS_RADIO_CALLREINFORCEMENTS:
+			case SKILLS_RADIO_TURNOFF:
+				
+				swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_TXT], gzMercSkillTextNew[RADIO_OPERATOR_NT] );
+				wcscat( skilldescarray, atStr );
+
+				swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_TXT], L"a working radio set" );
+				wcscat( skilldescarray, atStr );
+
+				break;
+				
+			case SKILLS_SPOTTER:
+				swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_AP], APBPConstants[AP_SPOTTER] );
+				wcscat( skilldescarray, atStr );
+
+				swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_TXT], L"a binocular" );
+				wcscat( skilldescarray, atStr );
+
+				swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_TXT], L"patience" );
+				wcscat( skilldescarray, atStr );
+				break;
+
+			default:
+				break;
+		}
+	}
+	
+	return skilldescarray;
+}
+
+BOOLEAN SOLDIERTYPE::CanUseRadio(BOOLEAN fCheckForAP)
+{
+	// new inventory system required, as the radio set has to be in a specific slot
+	if ( !UsingNewInventorySystem() )
+		return FALSE;
+
+	// only radio operators can use this equipment
+	if ( !NUM_SKILL_TRAITS( this, RADIO_OPERATOR_NT ) )
+		return FALSE;
+
+	// if we check wether we have enough AP, exit if we don't
+	if ( fCheckForAP && !EnoughPoints( this, APBPConstants[AP_RADIO], 0, FALSE ) )
+		return FALSE;
+
+	// only player mercs use new inventory system
+	if ( this->bTeam == OUR_TEAM )
+	{
+		OBJECTTYPE* pObj = &(inv[CPACKPOCKPOS]);
+
+		if ( pObj && HasItemFlag(pObj->usItem, RADIO_SET) )
+		{
+			//search power pack
+			attachmentList::iterator iterend = (*pObj)[0]->attachments.end();
+			for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter)
+			{
+				// do we have a power pack on our armor?
+				if ( iter->exists() && HasItemFlag(iter->usItem, POWER_PACK) )
+				{
+					// Hack (or clever use of unused memory, depending on your view):
+					// data.bTemperature has to exist on all items, as it is used on weapons and certain attachments (barrels)
+					// It isn't used on armor... that's why we can use it now. The idea is that the temperature of the power pack represents its available energy.
+					// The cooling down represents its energy depleting.
+					if ( (*iter)[0]->data.bTemperature > 0.0f )
+						return( TRUE );
+				}
+			}
+		}
+	}
+	else
+	{
+		INT8 invsize = (INT8)inv.size();									// remember inventorysize, so we don't call size() repeatedly
+		for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)
+		{
+			if (inv[bLoop].exists() )
+			{
+				OBJECTTYPE* pObj = &(inv[bLoop]);
+
+				if ( pObj && HasItemFlag(pObj->usItem, RADIO_SET) )
+				{
+					//search power pack
+					attachmentList::iterator iterend = (*pObj)[0]->attachments.end();
+					for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter)
+					{
+						// do we have a power pack on our armor?
+						if ( iter->exists() && HasItemFlag(iter->usItem, POWER_PACK) )
+						{
+							// Hack (or clever use of unused memory, depending on your view):
+							// data.bTemperature has to exist on all items, as it is used on weapons and certain attachments (barrels)
+							// It isn't used on armor... that's why we can use it now. The idea is that the temperature of the power pack represents its available energy.
+							// The cooling down represents its energy depleting.
+							if ( (*iter)[0]->data.bTemperature > 0.0f )
+								return( TRUE );
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::UseRadio()
+{
+	BOOLEAN success = FALSE;
+
+	// new inventory system required, as the radio set has to be in a specific slot
+	if ( UsingNewInventorySystem() )
+	{
+		// only player mercs use new inventory system
+		if ( this->bTeam == OUR_TEAM )
+		{
+			// check for fail depending on status of radio set
+			OBJECTTYPE* pObj = &(inv[CPACKPOCKPOS]);
+
+			if ( pObj && HasItemFlag(pObj->usItem, RADIO_SET) )
+			{
+				// status % chance of success
+				if ( Chance( (*pObj)[0]->data.objectStatus ) )
+					success = TRUE;
+			}
+		}
+		else
+		{
+			INT8 invsize = (INT8)inv.size();									// remember inventorysize, so we don't call size() repeatedly
+			for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)
+			{
+				if (inv[bLoop].exists() )
+				{
+					OBJECTTYPE* pObj = &(inv[bLoop]);
+
+					if ( pObj && HasItemFlag(pObj->usItem, RADIO_SET) )
+					{
+						// status % chance of success
+						if ( Chance( (*pObj)[0]->data.objectStatus ) )
+							success = TRUE;
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	// even if we fail, we still use up AP, use animation an use up batteries
+	DepleteActiveRadioSetEnergy(TRUE);
+
+	if ( this->bInSector && (this->ubBodyType == REGMALE || this->ubBodyType == BIGMALE) )
+	{
+		switch( gAnimControl[ this->usAnimState ].ubEndHeight )
+		{
+		case ANIM_STAND:
+			this->EVENT_InitNewSoldierAnim( AI_RADIO, 0 , FALSE );
+			break;
+
+		case ANIM_CROUCH:
+			this->EVENT_InitNewSoldierAnim( AI_CR_RADIO, 0 , FALSE );
+			break;
+		}
+	}
+
+	DeductPoints(this, APBPConstants[AP_RADIO], APBPConstants[BP_RADIO], 0);
+
+	// we gain a bit of experience... - even more if we are the one who began the communication
+	StatChange( this, EXPERAMT, this->bInSector ? 8 : 4, TRUE );
+	StatChange( this, MECHANAMT,	1, TRUE );
+	
+	if ( !success )
+	{
+		RadioFail();
+
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::HasMortar()
+{
+	INT8 invsize = (INT8)inv.size();									// remember inventorysize, so we don't call size() repeatedly
+	for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)
+	{
+		if (inv[bLoop].exists() == true && Item[inv[bLoop].usItem].mortar )
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::GetSlotOfSignalShellIfMortar(UINT8* pbLoop)
+{
+	UINT16 mortaritem = 0;
+
+	INT8 invsize = (INT8)inv.size();									// remember inventorysize, so we don't call size() repeatedly
+	for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)
+	{
+		if (inv[bLoop].exists() == true && Item[inv[bLoop].usItem].mortar )
+		{
+			mortaritem = inv[bLoop].usItem;
+			break;
+		}
+	}
+
+	if ( mortaritem )
+	{
+		for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)
+		{
+			if (inv[bLoop].exists() == true )
+			{
+				if ( Item[inv[bLoop].usItem].usItemClass == IC_BOMB && HasItemFlag(inv[bLoop].usItem, SIGNAL_SHELL) && ValidLaunchable( inv[bLoop].usItem, mortaritem ) )
+				{
+					(*pbLoop) = bLoop;
+					return TRUE;
+				}
+
+				if ( Item[inv[bLoop].usItem].mortar )
+				{
+					OBJECTTYPE* pAttObj =  FindAttachmentByClass( &(inv[bLoop]), IC_BOMB );
+
+					if ( pAttObj )
+					{
+						if ( HasItemFlag(inv[bLoop].usItem, SIGNAL_SHELL) )
+						{
+							(*pbLoop) = bLoop;
+							return TRUE;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::CanAnyArtilleryStrikeBeOrdered(UINT32* pSectorID)		// can any artillery strikes be ordered by this guy's team from the neighbouring sectors?
+{
+	if ( !gSkillTraitValues.fROAllowArtillery )
+		return FALSE;
+
+	if ( this->bSectorZ )
+		return FALSE;
+
+	// if we are AI-controlled, we have to wait for our timer to run out
+	if ( this->bTeam != gbPlayerNum && this->usSkillCounter[SOLDIER_COUNTER_RADIO_ARTILLERY] )
+		return FALSE;
+
+	// check wether we can call artillery from the 4 adjacent sectors
+	for (UINT8 i = 0; i < 4; ++i)
+	{
+		INT16 loopX = this->sSectorX;
+		INT16 loopY = this->sSectorY;
+
+		if ( i == 0 )		++loopY;
+		else if ( i == 1 )	++loopX;
+		else if ( i == 2 )	--loopY;
+		else if ( i == 3 )	--loopX;
+
+		if ( loopX < 1 || loopX >= MAP_WORLD_X - 1 || loopY < 1 || loopY >= MAP_WORLD_Y - 1 )
+			continue;
+		
+		if ( IsValidArtilleryOrderSector( loopX, loopY, this->bSectorZ, this->bTeam ) )
+		{
+			*pSectorID = (UINT32)SECTOR( loopX, loopY );
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::OrderArtilleryStrike( UINT32 usSectorNr, INT32 sTargetGridNo, UINT8 bTeam )
+{
+	if ( !CanUseSkill(SKILLS_RADIO_ARTILLERY, TRUE) )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Cannot use skill" );
+		return FALSE;
+	}
+
+	// check wether radio frequencies are jammed. Not possible to do this in CanUseSkill(), as CanUseRadio() only checks if we theoretically
+	if ( SectorJammed() )
+	{
+		// only display message and play sound on our team - no need to signify to player that AI is trying to call in artillery
+		if ( bTeam == OUR_TEAM ||  bTeam == MILITIA_TEAM )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Radio frequencies are jammed. No communication possible." );
+		
+			PlayJA2SampleFromFile( "Sounds\\radioerror.wav", RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
+		}
+		
+		return FALSE;
+	}
+
+	// sector number is in UINT32, even though INT16 would be normal
+	INT16 sSectorX = SECTORX( (UINT8)usSectorNr );
+	INT16 sSectorY = SECTORY( (UINT8)usSectorNr );
+
+	// just to make sure...
+	if ( !IsValidArtilleryOrderSector( sSectorX, sSectorY, this->bSectorZ, bTeam ) )
+		return FALSE;
+
+	// use the radio, this handles animation, batteries etc.
+	if ( !UseRadio() )
+		return FALSE;
+
+	// determine from where the shells will come
+	INT32 sStartingGridNo = gMapInformation.sNorthGridNo;
+	if ( sSectorX < this->sSectorX )
+		sStartingGridNo = gMapInformation.sWestGridNo;
+	else if ( sSectorX > this->sSectorX )
+		sStartingGridNo = gMapInformation.sEastGridNo;
+	else if ( sSectorY > this->sSectorY )
+		sStartingGridNo = gMapInformation.sSouthGridNo;
+
+	if (sStartingGridNo == -1)
+		sStartingGridNo = gMapInformation.sCenterGridNo;
+	
+	if ( TileIsOutOfBounds(sStartingGridNo) )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Incorrect GridNo for firing Artillery!");
+		return FALSE;
+	}
+
+	// if a strike is ordered from the ENEMY_TEAM or MILITIA_TEAM, the number of mortars depends on the number of enemies/militia in that sector
+	// number of waves depends on the number and quality of enemies/soldiers
+	// only HE shells will be fired this way
+	if ( bTeam == ENEMY_TEAM || bTeam == MILITIA_TEAM )
+	{
+		INT16 nummortars = 0;	// number of mortars determines size of wave (1 - 4)
+		INT16 numwaves	 = 0;	// number of waves
+		INT16 numshells  = 0;	// number of shells
+			
+		SECTORINFO *pSector = &SectorInfo[ SECTOR( sSectorX, sSectorY ) ];
+		
+		if ( bTeam == ENEMY_TEAM )
+		{
+			// we also have to account for mobile groups
+			GROUP *pGroup = gpGroupList;
+			while( pGroup )
+			{
+				if( !pGroup->fPlayer && !pGroup->fVehicle && pGroup->ubSectorX == sSectorX && pGroup->ubSectorY == sSectorY )
+				{
+					nummortars += pGroup->ubGroupSize;
+					numshells  += gSkillTraitValues.usVOMortarPointsTroop * pGroup->ubGroupSize;
+				}
+				pGroup = pGroup->next;
+			}
+
+			nummortars	+= pSector->ubNumAdmins + pSector->ubNumTroops + pSector->ubNumElites;
+			nummortars  /= gSkillTraitValues.usVOMortarCountDivisor;
+			numshells   +=  gSkillTraitValues.usVOMortarPointsAdmin * pSector->ubNumAdmins + gSkillTraitValues.usVOMortarPointsTroop * pSector->ubNumTroops + gSkillTraitValues.usVOMortarPointsElite * pSector->ubNumElites;
+		}
+		else if ( bTeam == MILITIA_TEAM )
+		{
+			nummortars	= (SectorInfo[usSectorNr].ubNumberOfCivsAtLevel[ GREEN_MILITIA ] + SectorInfo[usSectorNr].ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] + SectorInfo[usSectorNr].ubNumberOfCivsAtLevel[ ELITE_MILITIA ]) / gSkillTraitValues.usVOMortarCountDivisor;
+			numshells   = gSkillTraitValues.usVOMortarPointsAdmin * SectorInfo[usSectorNr].ubNumberOfCivsAtLevel[ GREEN_MILITIA ] + gSkillTraitValues.usVOMortarPointsTroop * SectorInfo[usSectorNr].ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] + gSkillTraitValues.usVOMortarPointsElite * SectorInfo[usSectorNr].ubNumberOfCivsAtLevel[ ELITE_MILITIA ];
+		}
+
+		if ( gSkillTraitValues.usVOMortarShellDivisor * nummortars < 1 )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Not enough mortar shells in sector to start a barrage!");
+			return FALSE;
+		}
+
+		numwaves = numshells / (gSkillTraitValues.usVOMortarShellDivisor * nummortars);
+
+		if ( !numwaves )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Not enough mortar shells in sector to start a barrage!");
+			return FALSE;
+		}
+
+		// send a signal shell at first. This marks the area that the shells will come in
+		static UINT16 usSignalShellIndex = 1700;
+		if ( HasItemFlag(usSignalShellIndex, SIGNAL_SHELL) || GetFirstItemWithFlag(&usSignalShellIndex, SIGNAL_SHELL) )
+			ArtilleryStrike(usSignalShellIndex, sStartingGridNo, sTargetGridNo);
+		else
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"No signal shell item found in Items.xml!");
+			return FALSE;
+		}
+
+		// we just 'plant' the mortar shells as bombs. We time them so that they will be fired at the beginning of the next turn
+		// for every 'wave' of shells, we just plant one and then clone them when firing
+		// create mortar shell item
+		OBJECTTYPE shellobj;
+		CreateItem( 140, 100, &shellobj );	// 140 is mortar HE shell
+
+		shellobj.fFlags |= OBJECT_ARMED_BOMB;
+		shellobj[0]->data.misc.bDetonatorType = BOMB_TIMED;
+		shellobj[0]->data.misc.usBombItem = shellobj.usItem;
+		shellobj[0]->data.misc.ubBombOwner = this->ubID + 2;
+		
+		// delay in RT is one turn. In TB we have to make that 2 turns, as otherwise the attack can happen instantly.
+		// Also use 2 if we are AI, otherwise the shells will fly immediately at the player's turn, giving him no chance to react (blame the way turns are handled)
+
+		shellobj[0]->data.misc.bDelay = 1;
+		if ( bTeam == ENEMY_TEAM || !(gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT) )
+			shellobj[0]->data.misc.bDelay += 1;
+
+		// now set special flags - we simply abuse the ubWireNetworkFlag
+		switch ( nummortars )
+		{
+		case 1: 
+			shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_1;
+			break;
+
+		case 2: 
+			shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_2;
+			break;
+
+		case 3: 
+			shellobj[0]->data.ubWireNetworkFlag = (ARTILLERY_STRIKE_COUNT_1|ARTILLERY_STRIKE_COUNT_2);
+			break;
+
+		case 4: 
+		default:
+			shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_4;
+			break;
+		}
+				
+		for (INT16 i = 0; i < numwaves; ++i)
+		{
+			AddItemToPool( sStartingGridNo, &shellobj, HIDDEN_ITEM, 1, WORLD_ITEM_ARMED_BOMB, 0 );
+
+			// if option is set, delay each wave by one turn
+			if ( gSkillTraitValues.fROArtilleryDistributedOverTurns )
+				shellobj[0]->data.misc.bDelay += 1;
+		}
+
+		// update the sector Artillery time
+		pSector->uiTimeAIArtillerywasOrdered = GetWorldTotalMin();
+
+		// extra xp for succesfully ordering an artillery strike
+		StatChange( this, EXPERAMT, 10, TRUE );
+		
+		// we add a bit to the counter, thus the AI has to wait a bit between ordering strikes (otherwise they'll instantly order all available strikes)
+		this->usSkillCounter[SOLDIER_COUNTER_RADIO_ARTILLERY] = 2;
+	}
+	else if ( bTeam == OUR_TEAM )
+	{
+		// if we call a strike from our mercs, everything gets more complicated. We don't calculate the number of mortars or shells as an estimate, we have to search the inventory 
+		// of every merc fit for shelling in that sector for mortars and shells. But thanks to this, we can also other shell-types, like mustard or phosphor
+		// we already know from IsValidArtilleryOrderSector(..) that someone in there must have a radio set and a mortar, no need to check that again
+		// sadly, we have to run over this 2 times. On the first run, we have to search for all mortar items and remember them (there can be different mortar systems, can't fire a 40mm shell with a 60mm mortar)
+
+		// as of 2013-09-25, I say it is no longer necessary to fire a signal shell first. The player can fire a signal shell (by mortar or hand) manually to mark one or more targets if he wants
+		// if he does not do so, active vox operators will be targetted. Who knows, the vox operator might be doing a heroic last stand for all we know...
+		UINT8	radiooperatorID = 0;
+		//BOOLEAN signalshellfired = FALSE;
+		UINT8 mortaritemcnt = 0;
+		UINT16 mortararray[5];
+		for (UINT8 i = 0; i < 5; ++i)
+			mortararray[i] = 0;
+				
+		SOLDIERTYPE* pSoldier = NULL;
+		INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
+		INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
+		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		{
+			// check if soldier exists in this sector
+			if ( !pSoldier || !pSoldier->bActive || pSoldier->sSectorX != sSectorX || pSoldier->sSectorY != sSectorY || pSoldier->bSectorZ != bSectorZ|| pSoldier->bAssignment > ON_DUTY )
+				continue;
+
+			if ( pSoldier->CanUseRadio() )
+				radiooperatorID = cnt;
+
+			/*if ( !signalshellfired )
+			{		
+				UINT8 bSlot = 0;
+				if ( pSoldier->GetSlotOfSignalShellIfMortar(&bSlot) )
+				{
+					OBJECTTYPE* pSlotObj = &(pSoldier->inv[bSlot]);
+
+					if ( Item[pSlotObj->usItem].mortar )
+					{
+						pSlotObj =  FindAttachmentByClass( &(pSoldier->inv[bSlot]), IC_BOMB );
+
+						if ( pSlotObj )
+						{
+							ArtilleryStrike(pSlotObj->usItem, sStartingGridNo, sTargetGridNo);
+
+							DeductAmmo( pSoldier, bSlot );
+
+							signalshellfired = TRUE;
+						}
+					}
+					else if ( HasItemFlag(pSoldier->inv[bSlot].usItem, SIGNAL_SHELL) )
+					{
+						ArtilleryStrike(pSlotObj->usItem, sStartingGridNo, sTargetGridNo);
+
+						pSlotObj->ubNumberOfObjects--;
+
+						if ( !pSlotObj->exists() )
+						{
+							// Delete object
+							DeleteObj( pSlotObj );
+						}
+
+						signalshellfired = TRUE;
+					}
+					else
+					{
+						// somethings wrong... we were promised either a signal shell or a mortar with one loaded, but there is none... betrayal!
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"No signal shell found even though there should be one, cannot commence barrage!");
+						return FALSE;
+					}
+				}
+			}*/
+
+			INT8 invsize = (INT8)pSoldier->inv.size();									// remember inventorysize, so we don't call size() repeatedly
+
+			for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)
+			{
+				if (pSoldier->inv[bLoop].exists() == true && Item[pSoldier->inv[bLoop].usItem].mortar )
+				{
+					// if not already in list, remember this mortar
+					if ( mortararray[0] != pSoldier->inv[bLoop].usItem &&
+						mortararray[1] != pSoldier->inv[bLoop].usItem &&
+						mortararray[2] != pSoldier->inv[bLoop].usItem &&
+						mortararray[3] != pSoldier->inv[bLoop].usItem &&
+						mortararray[4] != pSoldier->inv[bLoop].usItem )
+						mortararray[mortaritemcnt++] = pSoldier->inv[bLoop].usItem;
+				}
+
+				if ( mortaritemcnt >= 5)
+					break;
+			}
+
+			if ( mortaritemcnt >= 5)
+					break;
+		}
+
+		// safety check, this shouldn't be happening
+		if ( !mortaritemcnt )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"No mortars found, cannot commence barrage!");
+			return FALSE;
+		}
+
+		// no signal shell -> no barrage
+		/*if ( !signalshellfired )
+		{
+			if ( radiooperatorID )
+				DelayedTacticalCharacterDialogue( MercPtrs[ radiooperatorID ], QUOTE_OUT_OF_AMMO );
+
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"No signal shell object found, cannot commence barrage!");
+			return FALSE;
+		}*/
+
+		// depending on wether the mortars have ammunition, a radio operator will give a different dialogue
+		BOOLEAN shellsfired = FALSE;
+		
+		// second loop: check for all mortar shells and 'fire' them		
+		cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
+		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		{
+			// check if soldier exists in this sector
+			if ( !pSoldier || !pSoldier->bActive || pSoldier->sSectorX != sSectorX || pSoldier->sSectorY != sSectorY || pSoldier->bSectorZ != bSectorZ|| pSoldier->bAssignment > ON_DUTY )
+				continue;
+
+			INT8 shelldelay = 1;
+			// In realtime the player could choose to put down a bomb right before a turn expires, so add 1 to the setting in RT
+			if ( !(gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT) )
+				++shelldelay;
+									
+			INT8 invsize = (INT8)pSoldier->inv.size();									// remember inventorysize, so we don't call size() repeatedly
+			for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)
+			{
+				if (pSoldier->inv[bLoop].exists() == true )
+				{
+					if ( Item[pSoldier->inv[bLoop].usItem].mortar )
+					{
+						OBJECTTYPE* pAttObj =  FindAttachmentByClass( &(pSoldier->inv[bLoop]), IC_BOMB );
+
+						// as of 2013-09-25, also fire these, as they are no longer necessary for a barrage
+						// only fire if not signal shell, we already fired one, no need to do so again
+						if ( pAttObj )//&& !HasItemFlag(pAttObj->usItem, SIGNAL_SHELL) )
+						{
+							// if option is set, delay each wave by one turn
+							if ( gSkillTraitValues.fROArtilleryDistributedOverTurns )
+								++shelldelay;
+
+							// create mortar shell item
+							OBJECTTYPE shellobj;
+							CreateItem( pAttObj->usItem, 100, &shellobj );
+
+							// plant bomb data
+							shellobj.fFlags |= OBJECT_ARMED_BOMB;
+							shellobj[0]->data.misc.bDetonatorType = BOMB_TIMED;								
+							shellobj[0]->data.misc.usBombItem = shellobj.usItem;
+							shellobj[0]->data.misc.ubBombOwner = this->ubID + 2;
+
+							shellobj[0]->data.misc.bDelay = shelldelay;
+
+							shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_1;
+
+							AddItemToPool( sStartingGridNo, &shellobj, HIDDEN_ITEM, 1, WORLD_ITEM_ARMED_BOMB, 0 );
+
+							shellsfired = TRUE;
+
+							DeductAmmo( pSoldier, bLoop );
+						}
+					}
+
+					if ( Item[pSoldier->inv[bLoop].usItem].usItemClass == IC_BOMB )
+					{					
+						// found a bomb - if this fits any found mortar, fire it
+						for ( UINT8 i = 0; i < mortaritemcnt; ++i)
+						{
+							if ( ValidLaunchable( pSoldier->inv[bLoop].usItem, mortararray[i] ) )
+							{
+								OBJECTTYPE* pShellObj = &(pSoldier->inv[bLoop]);							// ... get pointer for this item ...
+
+								// only fire if not signal shell, we already fired one, no need to do so again
+								if ( pShellObj && !HasItemFlag(pShellObj->usItem, SIGNAL_SHELL) )
+								{
+									// if option is set, delay each wave by one turn
+									if ( gSkillTraitValues.fROArtilleryDistributedOverTurns )
+										++shelldelay;
+
+									// create mortar shell item
+									OBJECTTYPE shellobj;
+									CreateItem( pShellObj->usItem, 100, &shellobj );
+
+									// plant bomb data
+									shellobj.fFlags |= OBJECT_ARMED_BOMB;
+									shellobj[0]->data.misc.bDetonatorType = BOMB_TIMED;								
+									shellobj[0]->data.misc.usBombItem = shellobj.usItem;
+									shellobj[0]->data.misc.ubBombOwner = this->ubID + 2;
+
+									shellobj[0]->data.misc.bDelay = shelldelay;
+
+									shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_1;
+
+									for(INT16 j = 0; j < pShellObj->ubNumberOfObjects; ++j)	
+									{
+										AddItemToPool( sStartingGridNo, &shellobj, HIDDEN_ITEM, 1, WORLD_ITEM_ARMED_BOMB, 0 );
+
+										shellsfired = TRUE;
+									}
+
+									// remove the shells: Delete object
+									DeleteObj( pShellObj );
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if ( radiooperatorID )
+		{
+			pSoldier = MercPtrs[ radiooperatorID ];
+
+			// also drain the other guy's radio batteries
+			pSoldier->UseRadio();
+
+			if ( shellsfired )
+				TacticalCharacterDialogueWithSpecialEvent( pSoldier, 0, DIALOGUE_SPECIAL_EVENT_DO_BATTLE_SND, BATTLE_SOUND_OK2 , 500 );
+			else
+				DelayedTacticalCharacterDialogue( pSoldier, QUOTE_OUT_OF_AMMO );
+		}
+
+		if ( shellsfired )
+		{
+			// extra xp for succesfully ordering an artillery strike
+			StatChange( this, EXPERAMT, 10, TRUE );
+
+			// we add a bit to the counter, thus the AI has to wait a bit between ordering strikes (otherwise they'll instantly order all available strikes)
+			this->usSkillCounter[SOLDIER_COUNTER_RADIO_ARTILLERY] = 2;
+		}
+	}
+	else
+		// how did this even happen?
+		return FALSE;
+
+	if ( bTeam == ENEMY_TEAM )
+		gCurrentIncident.usIncidentFlags |= INCIDENT_ARTILLERY_ENEMY;
+	else
+		gCurrentIncident.usIncidentFlags |= INCIDENT_ARTILLERY_PLAYERSIDE;
+	
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::IsJamming()
+{
+	if ( bSoldierFlagMask & SOLDIER_RADIO_OPERATOR_JAMMING )
+	{
+		if ( CanUseRadio(FALSE) )
+			return TRUE;
+		// if we cannot use the radio, remove that flag hile we're at it
+		else
+			bSoldierFlagMask &= ~SOLDIER_RADIO_OPERATOR_JAMMING;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::JamCommunications()
+{
+	// not possible if already jamming
+	if ( bSoldierFlagMask & SOLDIER_RADIO_OPERATOR_JAMMING )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Already jamming signal, no need to do so again!");
+		return FALSE;
+	}
+	
+	// use the radio, this handles animation, batteries etc.
+	if ( !UseRadio() )
+		return FALSE;
+
+	// stop other radio activities
+	SwitchOffRadio();
+
+	// add flag
+	bSoldierFlagMask |= SOLDIER_RADIO_OPERATOR_JAMMING;
+
+	// play sound
+	PlayJA2SampleFromFile( "Sounds\\radioerror2.wav", RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
+
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::IsScanning()
+{
+	if ( bSoldierFlagMask & SOLDIER_RADIO_OPERATOR_SCANNING )
+	{
+		if ( CanUseRadio(FALSE) )
+			return TRUE;
+		// if we cannot use the radio, remove that flag hile we're at it
+		else
+			bSoldierFlagMask &= ~SOLDIER_RADIO_OPERATOR_SCANNING;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::ScanForJam()
+{
+	// not possible if already scanning
+	if ( bSoldierFlagMask & SOLDIER_RADIO_OPERATOR_SCANNING )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Already scanning for jam signals, no need to do so again!");
+		return FALSE;
+	}
+	
+	// use the radio, this handles animation, batteries etc.
+	if ( !UseRadio() )
+		return FALSE;
+
+	// stop other radio activities
+	SwitchOffRadio();
+
+	// add flag
+	bSoldierFlagMask |= SOLDIER_RADIO_OPERATOR_SCANNING;
+
+	// play sound
+	PlayJA2SampleFromFile( "Sounds\\scan1.wav", RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
+
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::IsRadioListening()
+{
+	return ( (bSoldierFlagMask & SOLDIER_RADIO_OPERATOR_LISTENING) && CanUseRadio(FALSE) );
+}
+
+BOOLEAN SOLDIERTYPE::RadioListen()
+{
+	// not possible if already scanning
+	if ( bSoldierFlagMask & SOLDIER_RADIO_OPERATOR_LISTENING )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Already listening for nearby sounds, no need to do so again!");
+		return FALSE;
+	}
+	
+	// use the radio, this handles animation, batteries etc.
+	if ( !UseRadio() )
+		return FALSE;
+
+	// stop other radio activities
+	SwitchOffRadio();
+
+	// add flag
+	bSoldierFlagMask |= SOLDIER_RADIO_OPERATOR_LISTENING;
+
+	// play sound
+	PlayJA2SampleFromFile( "Sounds\\scan1.wav", RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
+
+	return TRUE;
+}
+
+// Flugente: order reinforcements from src sector to target sector
+extern BOOLEAN CallMilitiaReinforcements( INT16 sTargetMapX, INT16 sTargetMapY, INT16 sSrcMapX, INT16 sSrcMapY, UINT16 sNumber );
+
+BOOLEAN SOLDIERTYPE::RadioCallReinforcements( UINT32 usSector, UINT16 sNumber )
+{
+	if( !gGameExternalOptions.gfAllowReinforcements )
+		return FALSE;
+
+	// use the radio, this handles animation, batteries etc.
+	if ( !UseRadio() )
+		return FALSE;
+
+	// check wether radio frequencies are jammed. Not possible to do this in CanUseSkill(), as CanUseRadio() only checks if we can theoretically order
+	if ( SectorJammed() )
+	{
+		// error message and sound is handled in UseRadio()
+		return FALSE;
+	}
+		
+	// Flugente: order reinforcements from src sector to target sector
+	if ( CallMilitiaReinforcements( this->sSectorX, this->sSectorY, SECTORX( usSector ), SECTORY( usSector ), sNumber ) )
+	{
+		CHAR16 pStr2[128];
+		GetSectorIDString( SECTORX( usSector ), SECTORY( usSector ), 0, pStr2, FALSE );
+
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"%s orders reinforcements from %s", this->name, pStr2 );
+
+		// play sound
+		PlayJA2SampleFromFile( "Sounds\\scan1.wav", RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::SwitchOffRadio()
+{
+	// erasing the flags is enough
+	bSoldierFlagMask &= ~(SOLDIER_RADIO_OPERATOR_JAMMING|SOLDIER_RADIO_OPERATOR_SCANNING|SOLDIER_RADIO_OPERATOR_LISTENING);
+
+	return TRUE;
+}
+
+// display and error sound used either when the radio set fails or the sector is jammed - the player knows of the error, but cannot be sure of the cause
+void
+SOLDIERTYPE::RadioFail()
+{
+	// only display message and play sound if on player team
+	if ( this->bTeam == gbPlayerNum && this->bInSector )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Radio action failed!" );
+		
+		PlayJA2SampleFromFile( "Sounds\\radioerror.wav", RATE_11025, SoundVolume( MIDVOLUME, this->sGridNo ), 1, SoundDir( this->sGridNo ) );
+	}
+}
+
+void SOLDIERTYPE::DepleteActiveRadioSetEnergy(BOOLEAN fActivation, BOOLEAN fAssignment)
+{
+	if ( !CanUseRadio(FALSE) )
+		return;
+	
+	FLOAT cost = 0;
+	if ( fActivation )
+		cost = gItemSettings.energy_cost_radioset_activate;
+	else if ( fAssignment )		
+		cost = gItemSettings.energy_cost_radioset_scan_assignment;
+	else if ( bSoldierFlagMask & SOLDIER_RADIO_OPERATOR_JAMMING )
+		cost = gItemSettings.energy_cost_radioset_jam;
+	else if ( bSoldierFlagMask & (SOLDIER_RADIO_OPERATOR_SCANNING|SOLDIER_RADIO_OPERATOR_LISTENING) )
+		cost = gItemSettings.energy_cost_radioset_scan;
+	else
+		// nothing to do here..
+		return;
+
+	OBJECTTYPE* pObj = &(inv[CPACKPOCKPOS]);
+
+	if ( pObj && HasItemFlag(pObj->usItem, RADIO_SET) )
+	{
+		//search power pack
+		attachmentList::iterator iterend = (*pObj)[0]->attachments.end();
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter)
+		{
+			// do we have a power pack on our armor?
+			if ( iter->exists() && HasItemFlag(iter->usItem, POWER_PACK) )
+			{
+				(*iter)[0]->data.bTemperature = max(0.0f, (*iter)[0]->data.bTemperature - cost);
+				
+				if ( (*iter)[0]->data.bTemperature <= 0.0f )
+				{
+					// destroy batteries
+					iter->RemoveObjectsFromStack(1);
+					if (iter->exists() == false)
+						pObj->RemoveAttachment( &(*iter) );
+
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"%s radio set is out of energy.", this->GetName() );
+				}
+
+				// there can only be one battery on a radio set
+				return;
+			}
+		}
+	}
+}
+
+// Flugente: spotter
+BOOLEAN SOLDIERTYPE::IsSpotting()
+{
+	if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0 )
+	{
+		// do we still fulfil the requirements?
+		if ( CanSpot() )
+		{
+			// we are only a spotter if we did this long enough
+			if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] >= gGameExternalOptions.usSpotterPreparationTurns )
+				return TRUE;
+			else
+				return FALSE;
+		}
+
+		// no item -> lose status
+		this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
+{
+	if ( this->stats.bLife < OKLIFE || this->flags.fMercAsleep || this->bCollapsed  || (this->bSoldierFlagMask & SOLDIER_POW) )
+		return FALSE;
+
+	// additional checks if we want to know wether we can target a specific location
+	if ( sTargetGridNo != NOWHERE && PythSpacesAway(this->sGridNo, sTargetGridNo) >= 2 * gGameExternalOptions.usSpotterRange )
+	{
+		UINT16 usSightLimit = this->GetMaxDistanceVisible(sTargetGridNo, this->pathing.bLevel, CALC_FROM_WANTED_DIR);
+		
+		INT32 val = SoldierToVirtualSoldierLineOfSightTest( this, sTargetGridNo, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, usSightLimit );
+
+		// error if we cannot see the target
+		if ( !val )
+			return FALSE;
+	}
+	
+	// no item -> no spotting
+	if (   !( this->inv[HANDPOS].exists()       && GetObjectModifier( this, &(this->inv[ HANDPOS ]),       gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) 
+		&& !( this->inv[SECONDHANDPOS].exists() && GetObjectModifier( this, &(this->inv[ SECONDHANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) )
+		return FALSE;
+	
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
+{
+	// not possible if already scanning
+	if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Already trying to spot, no need to do so again!");
+		return FALSE;
+	}
+
+	if ( !CanSpot( sTargetGridNo ) )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Cannot spot that location!");
+		return FALSE;
+	}
+
+	// deduct APs
+	DeductPoints(this, APBPConstants[AP_SPOTTER], 0, 0);
+
+	// add to counter
+	this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 1;
+
+	// stop any multi-turn action
+	CancelMultiTurnAction(FALSE);
+	
+	return TRUE;
+}
 
 
 INT32 CheckBleeding( SOLDIERTYPE *pSoldier )
@@ -12776,94 +18268,116 @@ INT32 CheckBleeding( SOLDIERTYPE *pSoldier )
 	if ( pSoldier->stats.bLife != 0 )
 	{
 		// if merc is hurt beyond the minimum required to bleed, or he's dying
-		if ( ( pSoldier->bBleeding > MIN_BLEEDING_THRESHOLD) || pSoldier->stats.bLife < OKLIFE )
+		// Flugente: also allow bleeding if we would regenerate health through it, which happens when we have enough absorption and are poisoned enough (only guaranteed if fully poisoned)
+		if ( ( ( pSoldier->bBleeding > MIN_BLEEDING_THRESHOLD) || pSoldier->stats.bLife < OKLIFE ) || ( pSoldier->bPoisonSum == pSoldier->stats.bLifeMax && pSoldier->GetPoisonAbsorption() >= 200 ) )
 		{
 			// if he's NOT in the process of being bandaged or DOCTORed
 			if ( ( pSoldier->ubServiceCount == 0 ) && ( AnyDoctorWhoCanHealThisPatient( pSoldier, HEALABLE_EVER ) == NULL ) )
 			{
 				// may drop blood whether or not any bleeding takes place this turn
 				if ( pSoldier->bTilesMoved < 1 )
-			 {
-				 iBlood = ( ( pSoldier->bBleeding - MIN_BLEEDING_THRESHOLD ) / BLOODDIVISOR ); // + pSoldier->dying;
-				 if ( iBlood > MAXBLOODQUANTITY )
-				 {
-					 iBlood = MAXBLOODQUANTITY;
-				 }
-			 }
+				{
+					 iBlood = ( ( pSoldier->bBleeding - MIN_BLEEDING_THRESHOLD ) / BLOODDIVISOR ); // + pSoldier->dying;
+					 if ( iBlood > MAXBLOODQUANTITY )
+					 {
+						 iBlood = MAXBLOODQUANTITY;
+					 }
+				}
 				else
-			 {
-				 iBlood = NOBLOOD;
-			 }
+				{
+					iBlood = NOBLOOD;
+				}
 
 				// Are we in a different mode?
 				if ( !(gTacticalStatus.uiFlags & TURNBASED ) || !(gTacticalStatus.uiFlags & INCOMBAT ) )
-			 {
-				 pSoldier->dNextBleed -= (FLOAT)RT_NEXT_BLEED_MODIFIER;
-			 }
+				{
+					pSoldier->dNextBleed -= (FLOAT)RT_NEXT_BLEED_MODIFIER;
+				}
 				else
-			 {
-				 // Do a single step descrease
-				 pSoldier->dNextBleed--;
-			 }
+				{
+					// Do a single step descrease
+					pSoldier->dNextBleed--;
+				}
 
 				// if it's time to lose some blood
 				if ( pSoldier->dNextBleed <= 0)
-			 {
-				 // first, calculate if soldier is bandaged
-				 bBandaged = pSoldier->stats.bLifeMax - pSoldier->bBleeding - pSoldier->stats.bLife;
+				{
+					 // first, calculate if soldier is bandaged
+					 bBandaged = pSoldier->stats.bLifeMax - pSoldier->bBleeding - pSoldier->stats.bLife;
 
-				 // as long as he's bandaged and not "dying"
-				 if ( bBandaged && pSoldier->stats.bLife >= OKLIFE )
-				 {
-					 // just bleeding through existing bandages
-					 pSoldier->bBleeding++;
-
-					 SoldierBleed( pSoldier, TRUE );
-				 }
-				 else	// soldier is either not bandaged at all or is dying
-				 {
-					 if ( pSoldier->stats.bLife < OKLIFE )		// if he's dying
+					 // as long as he's bandaged and not "dying"
+					 if ( bBandaged && pSoldier->stats.bLife >= OKLIFE )
 					 {
-						 // if he's conscious, and he hasn't already, say his "dying quote"
-						 if ( ( pSoldier->stats.bLife >= CONSCIOUSNESS ) && !pSoldier->flags.fDyingComment )
+						 // just bleeding through existing bandages
+						 pSoldier->bBleeding++;
+
+						 SoldierBleed( pSoldier, TRUE, TRUE );
+					 }
+					 else	// soldier is either not bandaged at all or is dying
+					 {
+						 if ( pSoldier->stats.bLife < OKLIFE )		// if he's dying
 						 {
-							 TacticalCharacterDialogue( pSoldier, QUOTE_SERIOUSLY_WOUNDED );
+							 // if he's conscious, and he hasn't already, say his "dying quote"
+							 if ( ( pSoldier->stats.bLife >= CONSCIOUSNESS ) && !pSoldier->flags.fDyingComment )
+							 {
+								 TacticalCharacterDialogue( pSoldier, QUOTE_SERIOUSLY_WOUNDED );
 
-							 pSoldier->flags.fDyingComment = TRUE;
-						 }
+								 pSoldier->flags.fDyingComment = TRUE;
+							 }
 
-						 // can't permit lifemax to ever bleed beneath OKLIFE, or that
-						 // soldier might as well be dead!
-						 if (pSoldier->stats.bLifeMax >= OKLIFE)
-							{
-								// bleeding while "dying" costs a PERMANENT point of life each time!
-								pSoldier->stats.bLifeMax--;
-								pSoldier->bBleeding--;
-								if ( pSoldier->iHealableInjury >= 100) // added check for insta-healable injury - SANDRO
-									pSoldier->iHealableInjury -= 100;
-							}
-						}
-					}
+							 // can't permit lifemax to ever bleed beneath OKLIFE, or that
+							 // soldier might as well be dead!
+							 if (pSoldier->stats.bLifeMax >= OKLIFE)
+							 {
+									// Flugente: reduce PERMANENT points of life only if through 'normal' bleeding, not by poisoning
+									// problem is that this function applies every bleeding cycle, while loosing points through natural restoration (too much poison in body) only happens every hour.
+									// so one might lose 1pt of life through poisoning at 8:00, and then lose 30 points of life PERMANTENLY in the following hour without dying
+									// We bypass this by only allowing PERMANTENT lifeloss if really bleeding
+									if ( pSoldier->bBleeding )
+									{
+										// bleeding while "dying" costs a PERMANENT point of life each time!
+										pSoldier->stats.bLifeMax--;
+										pSoldier->bBleeding = max(0, pSoldier->bBleeding - 1);
 
-				 // either way, a point of life (health) is lost because of bleeding
-				 // This will also update the life bar
+										// the lost point might be poisoned
+										pSoldier->bPoisonSum	  = max(0, pSoldier->bPoisonSum - 1);
 
-				 SoldierBleed( pSoldier, FALSE );
+										// also adjust poisoned bleeding
+										pSoldier->bPoisonBleeding = max(0, pSoldier->bPoisonBleeding - 1);
+
+										if ( pSoldier->iHealableInjury >= 100) // added check for insta-healable injury - SANDRO
+											pSoldier->iHealableInjury -= 100;
+									}
+							 }
+						  }
+					 }
+
+					 // either way, a point of life (health) is lost because of bleeding
+					 // Flugente: not true anymore! We might be fully bandaged, not bleeding, but still receive poison damage that will lower our life. So check if we're bleeding!
+					 if ( pSoldier->bBleeding )
+					 {
+						 // This will also update the life bar
+						 SoldierBleed( pSoldier, FALSE, TRUE );
+					 }
+					 else
+					 {
+						 // just to update everything, like going unconscious or dying
+						 pSoldier->SoldierTakeDamage( ANIM_CROUCH, 0, 0, 0, TAKE_DAMAGE_BLOODLOSS, NOBODY, NOWHERE, 0, TRUE );
+					 }
 
 
-				 // if he's not dying (which includes him saying the dying quote just
-				 // now), and he hasn't warned us that he's bleeding yet, he does so
-				 // Also, not if they are being bandaged....
-				 if ( ( pSoldier->stats.bLife >= OKLIFE ) && !pSoldier->flags.fDyingComment && !pSoldier->flags.fWarnedAboutBleeding && !gTacticalStatus.fAutoBandageMode && pSoldier->ubServiceCount == 0 )
-					{
+					 // if he's not dying (which includes him saying the dying quote just
+					 // now), and he hasn't warned us that he's bleeding yet, he does so
+					 // Also, not if they are being bandaged....
+					 if ( ( pSoldier->stats.bLife >= OKLIFE ) && !pSoldier->flags.fDyingComment && !pSoldier->flags.fWarnedAboutBleeding && !gTacticalStatus.fAutoBandageMode && pSoldier->ubServiceCount == 0 )
+					 {
 						TacticalCharacterDialogue( pSoldier, QUOTE_STARTING_TO_BLEED );
 
 						// "starting to bleed" quote
 						pSoldier->flags.fWarnedAboutBleeding = TRUE;
-					}
+					 }
 
-				 pSoldier->dNextBleed = CalcSoldierNextBleed( pSoldier );
-
+					 pSoldier->dNextBleed = CalcSoldierNextBleed( pSoldier );
 				}
 			}
 		}
@@ -12872,10 +18386,8 @@ INT32 CheckBleeding( SOLDIERTYPE *pSoldier )
 }
 
 
-void SoldierBleed( SOLDIERTYPE *pSoldier, BOOLEAN fBandagedBleed )
+void SoldierBleed( SOLDIERTYPE *pSoldier, BOOLEAN fBandagedBleed, BOOLEAN fAllowPoisoning )
 {
-	INT8 bOldLife;
-
 	// OK, here make some stuff happen for bleeding
 	// A banaged bleed does not show damage taken , just through existing bandages
 
@@ -12892,21 +18404,30 @@ void SoldierBleed( SOLDIERTYPE *pSoldier, BOOLEAN fBandagedBleed )
 			SetInfoChar( pSoldier->ubID );
 		}
 	}
+	
+	// if poisoning is allowed, if we are poisoned and we can be sure that we are really bleeding (safety reasons), there is a chance that the poisoning spreads
+	// this simply means that the new Bleeding point will also be a poisoned bleeding point
+	INT16 poisondamage = 0;
+	if ( fAllowPoisoning && pSoldier->bPoisonSum > 0 && pSoldier->bBleeding )
+	{
+		INT8 bleedingpercentagepoison = (INT8) (100 * pSoldier->bPoisonSum / pSoldier->stats.bLifeMax);
 
-	bOldLife = pSoldier->stats.bLife;
+		if ( (INT8) Random(100) < bleedingpercentagepoison )
+			poisondamage = 1;
+	}
 
 	// If we are already dead, don't show damage!
 	if ( !fBandagedBleed )
 	{
 		// SANDRO - if the soldier is bleeding out, consider this damage as done by the last attacker
 		if ( pSoldier->ubAttackerID != NOBODY )
-			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, 100, TAKE_DAMAGE_BLOODLOSS, pSoldier->ubAttackerID, NOWHERE, 0, TRUE );
+			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, poisondamage, 100, TAKE_DAMAGE_BLOODLOSS, pSoldier->ubAttackerID, NOWHERE, 0, TRUE );
 		else if ( pSoldier->ubPreviousAttackerID != NOBODY )
-			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, 100, TAKE_DAMAGE_BLOODLOSS, pSoldier->ubPreviousAttackerID, NOWHERE, 0, TRUE );
+			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, poisondamage, 100, TAKE_DAMAGE_BLOODLOSS, pSoldier->ubPreviousAttackerID, NOWHERE, 0, TRUE );
 		else if ( pSoldier->ubNextToPreviousAttackerID != NOBODY )
-			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, 100, TAKE_DAMAGE_BLOODLOSS, pSoldier->ubNextToPreviousAttackerID, NOWHERE, 0, TRUE );
+			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, poisondamage, 100, TAKE_DAMAGE_BLOODLOSS, pSoldier->ubNextToPreviousAttackerID, NOWHERE, 0, TRUE );
 		else 
-			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, 100, TAKE_DAMAGE_BLOODLOSS, NOBODY, NOWHERE, 0, TRUE );
+			pSoldier->SoldierTakeDamage( ANIM_CROUCH, 1, poisondamage, 100, TAKE_DAMAGE_BLOODLOSS, NOBODY, NOWHERE, 0, TRUE );
 	}
 
 }
@@ -13198,7 +18719,8 @@ void PickPickupAnimation( SOLDIERTYPE *pSoldier, INT32 iItemIndex, INT32 sGridNo
 	INT8				bDirection;
 	STRUCTURE		*pStructure;
 	BOOLEAN			fDoNormalPickup = TRUE;
-
+	//SOLDIERTYPE *pTarget;
+	//UINT16 usSoldierIndex;
 
 	// OK, Given the gridno, determine if it's the same one or different....
 	if ( sGridNo != pSoldier->sGridNo )
@@ -13208,7 +18730,25 @@ void PickPickupAnimation( SOLDIERTYPE *pSoldier, INT32 iItemIndex, INT32 sGridNo
 		pSoldier->ubPendingDirection = bDirection;
 
 		// Change to pickup animation
-		pSoldier->EVENT_InitNewSoldierAnim( ADJACENT_GET_ITEM, 0 , FALSE );
+		// SANDRO - determine which animation to choose, if we pickup item from struct, we can either stand or be crouched
+		// when picking items from lying soldier (collapsed maybe), we need to be crouched always
+		//usSoldierIndex = WhoIsThere2( sGridNo, this->pathing.bLevel );
+		//if ( usSoldierIndex != NOBODY )
+		/*{
+			pTarget = MercPtrs[ usSoldierIndex ];
+
+			if ( gAnimControl[ pTarget->usAnimState ].ubEndHeight == ANIM_PRONE || gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH || gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE )
+				pSoldier->EVENT_InitNewSoldierAnim( ADJACENT_GET_ITEM_CROUCHED, 0 , FALSE );
+			else 
+				pSoldier->EVENT_InitNewSoldierAnim( ADJACENT_GET_ITEM, 0 , FALSE );
+		}*/
+		//else 
+		{
+			if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH || gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE )
+				pSoldier->EVENT_InitNewSoldierAnim( ADJACENT_GET_ITEM_CROUCHED, 0 , FALSE );	
+			else
+				pSoldier->EVENT_InitNewSoldierAnim( ADJACENT_GET_ITEM, 0 , FALSE );
+		}
 
 		if (!(pSoldier->flags.uiStatusFlags & SOLDIER_PC))
 		{
@@ -13497,6 +19037,383 @@ void SOLDIERTYPE::EVENT_SoldierBeginAttachCan( INT32 sGridNo, UINT8 ubDirection 
 
 }
 
+extern UINT8 NumEnemiesInAnySector( INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ );
+
+void SOLDIERTYPE::EVENT_SoldierBuildStructure( INT32 sGridNo, UINT8 ubDirection )
+{
+	BOOLEAN fSuccess = FALSE;
+
+	// if specified by the ini, building/disassembling stuff is disabled while enemies are around
+	if ( !gGameExternalOptions.fFortificationAllowInHostileSector )
+	{				
+		if( gWorldSectorX != -1 && gWorldSectorY != -1 && gWorldSectorX != 0 && gWorldSectorY != 0 && 
+			NumEnemiesInAnySector( gWorldSectorX, gWorldSectorY, gbWorldSectorZ ) > 0 )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Cannot build while enemies are in this sector" );
+			return;
+		}
+	}
+
+	// do checks here...
+	OBJECTTYPE* pObj = &(this->inv[HANDPOS]);
+
+	if ( pObj && pObj->exists() && HasItemFlag(this->inv[ HANDPOS ].usItem, (EMPTY_SANDBAG|FULL_SANDBAG|SHOVEL|CONCERTINA)) )
+	{
+		if ( HasItemFlag(this->inv[ HANDPOS ].usItem, (FULL_SANDBAG|CONCERTINA)) )
+		{
+			// Build the thing
+			this->StartMultiTurnAction( MTA_FORTIFY );
+
+			fSuccess = TRUE;
+		}
+		else if ( HasItemFlag(this->inv[ HANDPOS ].usItem, (EMPTY_SANDBAG)) )
+		{
+			INT8 bOverTerrainType = GetTerrainType( sGridNo );
+			if( bOverTerrainType == FLAT_GROUND || bOverTerrainType == DIRT_ROAD || bOverTerrainType == LOW_GRASS )
+			{
+				// check if we have a shovel in our second hand
+				OBJECTTYPE* pShovelObj = &(this->inv[SECONDHANDPOS]);
+
+				if ( pShovelObj && pShovelObj->exists() && HasItemFlag(this->inv[ SECONDHANDPOS ].usItem, (SHOVEL)) )
+				{
+					this->StartMultiTurnAction( MTA_FILL_SANDBAG );
+
+					fSuccess = TRUE;
+				}
+			}
+		}
+		else if ( HasItemFlag(this->inv[ HANDPOS ].usItem, (SHOVEL)) )
+		{
+			this->StartMultiTurnAction( MTA_REMOVE_FORTIFY );
+
+			fSuccess = TRUE;
+		}
+	}
+
+	if ( !fSuccess )
+	{
+		// Say NOTHING quote...
+		this->DoMercBattleSound( BATTLE_SOUND_NOTHING );
+	}
+	else
+	{
+		// CHANGE DIRECTION AND GOTO ANIMATION NOW
+		this->EVENT_SetSoldierDesiredDirection( ubDirection );
+		this->EVENT_SetSoldierDirection( ubDirection );
+
+		if (!is_networked)
+			this->EVENT_InitNewSoldierAnim( CUTTING_FENCE, 0 , FALSE );
+		else
+			this->ChangeSoldierState( CUTTING_FENCE, 0, 0 );
+	}
+}
+
+void SOLDIERTYPE::EVENT_SoldierHandcuffPerson( INT32 sGridNo, UINT8 ubDirection )
+{
+	if ( !gGameExternalOptions.fAllowPrisonerSystem )
+		return;
+
+	UINT8 ubPerson = WhoIsThere2( sGridNo, this->pathing.bLevel );
+
+	if ( ubPerson != NOBODY && MercPtrs[ ubPerson ]->bTeam == ENEMY_TEAM && !(MercPtrs[ ubPerson ]->bSoldierFlagMask & SOLDIER_POW) )
+	{
+		// we found someone we can handcuff
+		SOLDIERTYPE* pSoldier =  MercPtrs[ ubPerson ];
+
+		// check wether we will be successful
+		BOOLEAN success = FALSE;
+		if ( pSoldier->flags.fMercAsleep || pSoldier->bCollapsed )
+			success = TRUE;
+		else
+		{
+			// check wether we can forcefully handcuff the other soldier, but this will be hard
+			UINT32 attackrating  = 10 * EffectiveExpLevel( this )     +     EffectiveStrength( this, FALSE )     + 2 * EffectiveDexterity( this, FALSE )     +     EffectiveAgility( this, FALSE );
+			UINT32 defenserating = 10 * EffectiveExpLevel( pSoldier ) + 2 * EffectiveStrength( pSoldier, FALSE ) + 2 * EffectiveDexterity( pSoldier, FALSE ) + 2 * EffectiveAgility( pSoldier, FALSE );
+
+			if (gGameOptions.fNewTraitSystem)
+			{
+				attackrating  += 25 * NUM_SKILL_TRAITS( this, MARTIAL_ARTS_NT )     + 10 * HAS_SKILL_TRAIT( this, MELEE_NT );
+				defenserating += 25 * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT ) + 10 * HAS_SKILL_TRAIT( pSoldier, MELEE_NT );
+			}
+			else
+			{
+				attackrating  += 25 * NUM_SKILL_TRAITS( this, MARTIALARTS_OT )     + 25 * NUM_SKILL_TRAITS( this, HANDTOHAND_OT )     + 10 * HAS_SKILL_TRAIT( this, KNIFING_OT );
+				defenserating += 25 * NUM_SKILL_TRAITS( pSoldier, MARTIALARTS_OT ) + 25 * NUM_SKILL_TRAITS( pSoldier, HANDTOHAND_OT ) + 10 * HAS_SKILL_TRAIT( pSoldier, KNIFING_OT );
+			}
+
+			ReducePointsForFatigue( this, &attackrating );
+			ReducePointsForFatigue( pSoldier, &defenserating );
+
+			if ( Random(attackrating) > Random(defenserating) + 100 )
+				success = TRUE;
+		}
+
+		if ( success )
+		{
+			// arrest this guy
+			pSoldier->bSoldierFlagMask |= SOLDIER_POW;
+
+			// Remove as target
+			RemoveManAsTarget( pSoldier );
+
+			// move the items in his hands to the floor and move our handcuff into his hands
+			if ( pSoldier->inv[ HANDPOS ].exists() == true && !( pSoldier->inv[ HANDPOS ].fFlags & OBJECT_UNDROPPABLE ))
+			{
+				// ATE: if our guy, make visible....
+				INT8 bVisible = (pSoldier->bTeam == gbPlayerNum) ? 1 : 0;
+				UINT16 itemflags = ( pSoldier->bTeam == ENEMY_TEAM ) ? 0 : WORLD_ITEM_DROPPED_FROM_ENEMY;
+
+				if(UsingNewAttachmentSystem()==true)
+					ReduceAttachmentsOnGunForNonPlayerChars(pSoldier, &(pSoldier->inv[ HANDPOS ]));
+
+				AddItemToPool( pSoldier->sGridNo, &(pSoldier->inv[ HANDPOS ]), bVisible, pSoldier->pathing.bLevel, itemflags, -1 ); //Madd: added usItemFlags to function arguments
+				DeleteObj( &(pSoldier->inv[HANDPOS]) );
+			}
+
+			if ( pSoldier->inv[ SECONDHANDPOS ].exists() == true && !( pSoldier->inv[ SECONDHANDPOS ].fFlags & OBJECT_UNDROPPABLE ))
+			{
+				// ATE: if our guy, make visible....
+				INT8 bVisible = (pSoldier->bTeam == gbPlayerNum) ? 1 : 0;
+				UINT16 itemflags = ( pSoldier->bTeam == ENEMY_TEAM ) ? 0 : WORLD_ITEM_DROPPED_FROM_ENEMY;
+
+				if(UsingNewAttachmentSystem()==true)
+					ReduceAttachmentsOnGunForNonPlayerChars(pSoldier, &(pSoldier->inv[ SECONDHANDPOS ]));
+
+				AddItemToPool( pSoldier->sGridNo, &(pSoldier->inv[ SECONDHANDPOS ]), bVisible, pSoldier->pathing.bLevel, itemflags, -1 ); //Madd: added usItemFlags to function arguments
+				DeleteObj( &(pSoldier->inv[SECONDHANDPOS]) );
+			}
+
+			// move handcuffs to his hands
+			if ( HasItemFlag(  (&(this->inv[HANDPOS]))->usItem, HANDCUFFS ) )
+			{
+				// stack handcuffs (like a stack of binders) simply gets used up a bit
+				if ( Item[(&(this->inv[HANDPOS]))->usItem].usItemClass == IC_KIT  )
+				{
+					UseKitPoints( &(this->inv[HANDPOS]), 10, pSoldier );
+				}
+				else
+				{
+					AutoPlaceObject( pSoldier, &(this->inv[HANDPOS]), FALSE );
+					DeleteObj( &(this->inv[HANDPOS]) );
+				}
+			}
+
+			// CHANGE DIRECTION AND GOTO ANIMATION NOW
+			this->EVENT_SetSoldierDesiredDirection( ubDirection );
+			this->EVENT_SetSoldierDirection( ubDirection );
+
+			// CHANGE TO ANIMATION
+			this->EVENT_InitNewSoldierAnim( RELOAD_ROBOT, 0 , FALSE );
+
+			// we gain a bit of experience...
+			StatChange( this, STRAMT, 2, TRUE );
+			StatChange( this, DEXTAMT, 3, TRUE );
+			StatChange( this, EXPERAMT, 2, TRUE );
+
+			DeductPoints( this, GetAPsToHandcuff( this, sGridNo ), APBPConstants[BP_HANDCUFF], AFTERACTION_INTERRUPT );
+
+			// this might have been the last guy...
+			CheckForEndOfBattle( FALSE );
+		}
+		else
+		{
+			// we gain a bit of experience...
+			StatChange( this, DEXTAMT, 2, TRUE );
+
+			DeductPoints( this, GetAPsToHandcuff( this, sGridNo ), APBPConstants[BP_HANDCUFF], AFTERACTION_INTERRUPT );
+
+			// curses!
+			this->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+
+			// if we are disguised, there is a chance that he'll uncover us
+			if ( this->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			{
+				this->LooseDisguise();
+				this->Strip();
+														
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ACTIVITIES], this->GetName() );
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNCOVERED], pSoldier->GetName(), this->GetName()  );
+
+				// alert the soldier
+				pSoldier->aiData.bAlertStatus = min(pSoldier->aiData.bAlertStatus,  STATUS_RED);
+
+				ProcessImplicationsOfPCAttack( this, &pSoldier, REASON_NORMAL_ATTACK );
+			}
+		}
+	}
+	else
+	{
+		// Say NOTHING quote...
+		this->DoMercBattleSound( BATTLE_SOUND_NOTHING );
+	}
+}
+
+void SOLDIERTYPE::EVENT_SoldierApplyItemToPerson( INT32 sGridNo, UINT8 ubDirection )
+{
+	UINT8 ubPerson = WhoIsThere2( sGridNo, this->pathing.bLevel );
+
+	if ( ubPerson != NOBODY )
+	{
+		// we found someone
+		SOLDIERTYPE* pSoldier =  MercPtrs[ ubPerson ];
+
+		OBJECTTYPE* pObj = &(this->inv[ HANDPOS ]);
+
+		if ( pSoldier && pObj->exists() )
+		{
+			UINT16 usItem = pObj->usItem;
+			
+			if ( ItemCanBeAppliedToOthers( usItem ) )
+			{
+				BOOLEAN success = TRUE;
+
+				// if the other guy is not on our side, and he is concious, he resists
+				if ( this->bSide != pSoldier->bSide && !pSoldier->bCollapsed )
+				{
+					// wether we are sucessful depends on dexterity, and his alert status (he gets a malus on green state)
+					UINT32 attackervalue = 30 + 4 * EffectiveExpLevel( this ) + EffectiveDexterity( this, FALSE ) + 20 * HAS_SKILL_TRAIT(this, STEALTHY_NT);
+					UINT32 defendervalue = 100 + 3 * EffectiveExpLevel( pSoldier ) + 100 * (pSoldier->aiData.bAlertStatus - 1);
+					
+					// we are penalized for the weight of the item
+					UINT16 weight = pObj->GetWeightOfObjectInStack(0);
+					attackervalue = attackervalue / weight;
+
+					if ( Random(attackervalue) > Random(defendervalue) )
+						success = TRUE;
+					else
+					{
+						success = FALSE;
+
+						// if we are disguised, there is a chance that he'll uncover us
+						if ( this->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+						{
+							this->LooseDisguise();
+							this->Strip();
+														
+							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_APPLYITEM_STEAL_FAIL], this->GetName(), pSoldier->GetName() );
+							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNCOVERED], pSoldier->GetName(), this->GetName()  );
+						}
+
+						// alert the soldier
+						pSoldier->aiData.bAlertStatus = min(pSoldier->aiData.bAlertStatus,  STATUS_RED);
+
+						ProcessImplicationsOfPCAttack( this, &pSoldier, REASON_NORMAL_ATTACK );
+					}
+				}
+
+				if ( success )
+				{
+					if ( Item[ usItem ].canteen )
+					{
+						if ( !gGameOptions.fFoodSystem )
+						{
+							BOOLEAN tmp = FALSE;
+							success = ApplyCanteen( pSoldier, pObj, &tmp, FALSE );
+						}
+						else
+						{
+							success = ApplyFood( pSoldier, pObj, TRUE, TRUE );
+						}
+					}
+					else if ( Item[ usItem ].drugtype )
+					{
+						// applying drugs also handles food items
+						success = ApplyDrugs( pSoldier, pObj );
+					}
+					else if ( Item[ usItem ].camouflagekit )
+					{
+						BOOLEAN tmp = FALSE;
+						success = ApplyCammo( pSoldier, pObj, &tmp, FALSE );
+
+						if ( success )
+						{
+							// WANNE: We should only delete the face, if there was a camo we applied.
+							// This should fix the bug and crashes with missing faces
+							if (gGameExternalOptions.fShowCamouflageFaces == TRUE )
+							{
+								// Flugente: refresh face regardless of result of SetCamoFace(), otherwise applying a rag will not clean the picture
+								SetCamoFace( pSoldier );
+								DeleteSoldierFace( pSoldier );// remove face
+								pSoldier->iFaceIndex = InitSoldierFace( pSoldier );// create new face
+							}
+
+							// Dirty
+							fInterfacePanelDirty = DIRTYLEVEL2;
+						}
+					}
+					else if ( Item[ usItem ].gasmask )
+					{
+						// put this item into a (at best empty) faceslot if no gasmask is been worn
+						INT8 bSlot = FindGasMask( pSoldier );
+						if ( bSlot == NO_SLOT || (bSlot != HEAD1POS && bSlot != HEAD2POS ) )
+						{
+							if ( !(pSoldier->inv[HEAD1POS]).exists() )
+							{
+								success = PlaceObject( pSoldier, HEAD1POS, pObj );
+							}
+							else if ( !(pSoldier->inv[HEAD2POS]).exists() )
+							{
+								success = PlaceObject( pSoldier, HEAD2POS, pObj );
+							}
+							else
+							{
+								// no gasmask is worn, and both faceslots are occupied - remove the item in slot 2 and put the gasmask there
+								AddItemToPool( pSoldier->sGridNo, &(pSoldier->inv[HEAD2POS]), 1, pSoldier->pathing.bLevel, 0, -1 );
+
+								success = PlaceObject( pSoldier, HEAD2POS, pObj );
+							}
+						}
+					}
+					else if (  Item[ usItem ].clothestype )
+					{
+						 ApplyClothes( pSoldier, pObj, FALSE );
+
+						// Dirty
+						fInterfacePanelDirty = DIRTYLEVEL2;
+					}
+					else if ( Item[ usItem ].usItemClass == IC_BOMB )
+					{
+						success = AutoPlaceObjectAnywhere( pSoldier, pObj, FALSE );
+					}
+
+					this->DoMercBattleSound( BATTLE_SOUND_COOL1 );
+				}
+
+				DeductPoints( this, GetAPsToApplyItem( this, sGridNo ), APBPConstants[BP_APPLYITEM], AFTERACTION_INTERRUPT );
+
+				if ( !success )
+					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s could not apply %s to %s.", this->GetName(), Item[usItem].szLongItemName, pSoldier->GetName() );
+			}
+			else
+			{
+				DeductPoints( this, GetAPsToApplyItem( this, sGridNo ), APBPConstants[BP_APPLYITEM], AFTERACTION_INTERRUPT );
+
+				// curses!
+				this->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+			}
+
+			return;
+		}
+
+		// Say NOTHING quote...
+		this->DoMercBattleSound( BATTLE_SOUND_NOTHING );
+	}
+	else
+	{
+		// if this is  bomb, but nobody is there, plant the bomb instead
+		OBJECTTYPE* pObj = &(this->inv[ HANDPOS ]);
+
+		if ( pObj->exists() )
+		{
+			UINT16 usItem = pObj->usItem;
+
+			if ( Item[ usItem ].usItemClass == IC_BOMB )
+			{
+				this->EVENT_SoldierBeginDropBomb( );
+			}
+		}
+	}
+}
 
 void SOLDIERTYPE::EVENT_SoldierBeginReloadRobot( INT32 sGridNo, UINT8 ubDirection, UINT8 ubMercSlot )
 {
@@ -13699,7 +19616,11 @@ void MercStealFromMerc( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pTarget )
 		else
 		{
 			pSoldier->EVENT_SetSoldierDesiredDirection( ubDirection );
-			pSoldier->EVENT_InitNewSoldierAnim( STEAL_ITEM, 0 , FALSE );
+
+			if ( gAnimControl[ pTarget->usAnimState ].ubEndHeight == ANIM_PRONE || gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE || gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH )
+				pSoldier->EVENT_InitNewSoldierAnim( STEAL_ITEM_CROUCHED, 0 , FALSE );
+			else
+				pSoldier->EVENT_InitNewSoldierAnim( STEAL_ITEM, 0 , FALSE );
 		}
 
 		// OK, set UI
@@ -13786,18 +19707,27 @@ BOOLEAN SOLDIERTYPE::PlayerSoldierStartTalking( UINT8 ubTargetID, BOOLEAN fValid
 		else
 		{
 			// Deduct points from our guy....
-			DeductPoints( this, sAPCost, 0 );
+			DeductPoints( this, sAPCost, 0, UNTRIGGERED_INTERRUPT );
 			apsDeducted = TRUE;
 
-			StartCivQuote( pTSoldier );
-			return( FALSE );
+			// Flugente: if we are talking to an enemy, we have the option to offer them surrendering... but not on y levels >= 16 (no surrendering in the palace, as we have to kill, not capture, the queen)
+			if ( pTSoldier->bTeam == ENEMY_TEAM && (gGameExternalOptions.fEnemyCanSurrender || gGameExternalOptions.fPlayerCanAsktoSurrender) && gWorldSectorY < WORLD_MAP_X - 2 )
+			{
+				HandleSurrenderOffer(pTSoldier);
+				return( FALSE );
+			}
+			else
+			{
+				StartCivQuote( pTSoldier );
+				return( FALSE );
+			}
 		}
 	}
 
 	// WANNE: This fixes the bug, that APs for talking are not always deducted.
 	if (!apsDeducted)
 	{
-		DeductPoints( this, sAPCost, 0 );
+		DeductPoints( this, sAPCost, 0, UNTRIGGERED_INTERRUPT );
 		apsDeducted = TRUE;
 	}
 
@@ -13809,23 +19739,17 @@ BOOLEAN SOLDIERTYPE::PlayerSoldierStartTalking( UINT8 ubTargetID, BOOLEAN fValid
 	}
 	else if (pTSoldier->aiData.bNeutral)
 	{
-		switch( pTSoldier->ubProfile )
+		if ( pTSoldier->IsAssassin() )
 		{
-		case JIM:
-		case JACK:
-		case OLAF:
-		case RAY:
-		case OLGA:
-		case TYRONE:
 			// Start combat etc
 			DeleteTalkingMenu();
 			CancelAIAction( pTSoldier, TRUE );
 			AddToShouldBecomeHostileOrSayQuoteList( pTSoldier->ubID );
-			break;
-		default:
+		}
+		else
+		{
 			// Start talking!
 			return( InitiateConversation( pTSoldier, this, NPC_INITIAL_QUOTE, 0 ) );
-			break;
 		}
 	}
 	else
@@ -13842,12 +19766,47 @@ BOOLEAN SOLDIERTYPE::IsValidSecondHandShot( void )
 {
 	if ( Item[ this->inv[ SECONDHANDPOS ].usItem ].usItemClass == IC_GUN &&
 		!(Item[ this->inv[SECONDHANDPOS ].usItem ].twohanded ) &&
-		!this->bDoBurst &&
+		(!this->bDoBurst || this->IsValidSecondHandBurst() )&&
 		!Item[this->inv[ HANDPOS ].usItem].grenadelauncher &&
 		Item[ this->inv[HANDPOS].usItem ].usItemClass == IC_GUN &&
+		!(Item[ this->inv[HANDPOS ].usItem ].twohanded ) &&
 		this->inv[SECONDHANDPOS][0]->data.gun.bGunStatus >= USABLE &&
 		this->inv[SECONDHANDPOS][0]->data.gun.ubGunShotsLeft > 0 )
 	{
+		return( TRUE );
+	}
+
+	return( FALSE );
+}
+
+BOOLEAN SOLDIERTYPE::IsValidSecondHandBurst( void )
+{
+	// SANDRO - a function to determine if we can autofire with both weapons
+	if ( Item[ this->inv[ SECONDHANDPOS ].usItem ].usItemClass == IC_GUN &&
+		!(Item[ this->inv[SECONDHANDPOS ].usItem ].twohanded ) &&
+		!Item[this->inv[ HANDPOS ].usItem].grenadelauncher &&
+		this->bDoBurst &&
+		Item[ this->inv[HANDPOS].usItem ].usItemClass == IC_GUN &&
+		!(Item[ this->inv[HANDPOS ].usItem ].twohanded ) &&
+		this->inv[SECONDHANDPOS][0]->data.gun.bGunStatus >= USABLE &&
+		this->inv[SECONDHANDPOS][0]->data.gun.ubGunShotsLeft > 0 )
+	{
+		if (this->bDoAutofire)
+		{
+			// if second gun cannot use atuofire mode
+			if (!IsGunAutofireCapable( &this->inv[SECONDHANDPOS] ))
+			{
+				return( FALSE );
+			}
+		}
+		else
+		{
+			// if second gun cannot use burst mode or the burst size is different
+			if (!(IsGunBurstCapable( &this->inv[SECONDHANDPOS], FALSE, NULL )) || (GetShotsPerBurst(&this->inv[HANDPOS]) != GetShotsPerBurst(&this->inv[SECONDHANDPOS])))
+			{
+				return( FALSE );
+			}
+		}
 		return( TRUE );
 	}
 
@@ -13859,7 +19818,7 @@ BOOLEAN SOLDIERTYPE::IsValidSecondHandShotForReloadingPurposes( void )
 	// should be maintained as same as function above with line
 	// about ammo taken out!
 	if ( Item[ this->inv[ SECONDHANDPOS ].usItem ].usItemClass == IC_GUN &&
-		!this->bDoBurst &&
+		//!this->bDoBurst &&
 		!Item[this->inv[ HANDPOS ].usItem].grenadelauncher &&
 		Item[ this->inv[HANDPOS].usItem ].usItemClass == IC_GUN &&
 		this->inv[SECONDHANDPOS][0]->data.gun.bGunStatus >= USABLE //&&
@@ -13873,8 +19832,124 @@ BOOLEAN SOLDIERTYPE::IsValidSecondHandShotForReloadingPurposes( void )
 	return( FALSE );
 }
 
+BOOLEAN SOLDIERTYPE::IsValidAlternativeFireMode( INT16 bAimTime, INT32 iTrgGridNo )
+{
+	if ( this->IsValidShotFromHip( bAimTime, iTrgGridNo ) || this->IsValidPistolFastShot( bAimTime, iTrgGridNo ) )
+	{
+		return( TRUE );
+	}
 
+	return( FALSE );
+}
 
+BOOLEAN SOLDIERTYPE::IsValidShotFromHip( INT16 bAimTime, INT32 iTrgGridNo )
+{
+	// not allowed, or not gun in hand, or not standing
+	if ( !gGameExternalOptions.ubAllowAlternativeWeaponHolding || Item[ this->inv[ HANDPOS ].usItem ].usItemClass != IC_GUN || gAnimControl[ this->usAnimState ].ubEndHeight != ANIM_STAND )
+	{
+		return( FALSE );
+	}
+	// robots and tanks cannot do this
+	if ( AM_A_ROBOT( this ) || TANK( this ) )//dnl ch64 300813
+	{
+		return( FALSE );
+	}
+	// must be two handed for this
+	if ( !Item[ this->inv[ HANDPOS ].usItem ].twohanded )
+	{
+		return( FALSE );
+	}
+	// with hybrid aiming behaviour, our stance is important, we don't go from shoulder to hip
+	if ( gGameExternalOptions.ubAllowAlternativeWeaponHolding == 2 )
+	{
+		// shouldered already?
+		if ( (gAnimControl[ this->usAnimState ].uiFlags & ( ANIM_FIREREADY | ANIM_FIRE )) && !(gAnimControl[ this->usAnimState ].uiFlags & ( ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			return( FALSE );
+		}
+		// aiming over hip (yellow) indicated levels (and not heavy gun - those are always fired from hip, if aiming from hip allowed)
+		if ( bAimTime > GetNumberAltFireAimLevels( this, iTrgGridNo ) && !Weapon[this->inv[ HANDPOS ].usItem].HeavyGun )
+		{
+			return( FALSE );
+		}
+	}
+	// "scope mode" behaviour lets us select firing from hip manually
+	else if ( gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 )
+	{
+		// we don't care about the stance here, as the player should know what he's doing, we just care about his fire mode selected
+		if ( this->bScopeMode != USE_ALT_WEAPON_HOLD )
+		{
+			return( FALSE );
+		}
+		// we go through, only if scope mode is set on "alternative fire mode"
+	}
+	else if ( bAimTime > 0 )
+	{
+		// no aiming allowed with this
+		return( FALSE );
+	}
+
+	// if we are here, assume we are going to fire from hip
+	return( TRUE );
+
+}
+
+BOOLEAN SOLDIERTYPE::IsValidPistolFastShot( INT16 bAimTime, INT32 iTrgGridNo )
+{
+	// not allowed, or not gun in hand, or not standing
+	if ( !gGameExternalOptions.ubAllowAlternativeWeaponHolding || Item[ this->inv[ HANDPOS ].usItem ].usItemClass != IC_GUN || gAnimControl[ this->usAnimState ].ubEndHeight != ANIM_STAND )
+	{
+		return( FALSE );
+	}
+	// robots and tanks cannot do this
+	if ( AM_A_ROBOT( this ) || TANK( this ) )//dnl ch64 300813
+	{
+		return( FALSE );
+	}
+	// don't do this in water (yet), and not if firing from 2 guns
+	if ( this->MercInWater() || this->IsValidSecondHandShot() )
+	{
+		return( FALSE );
+	}
+	// must be one handed for this
+	if ( Item[ this->inv[ HANDPOS ].usItem ].twohanded )
+	{
+		return( FALSE );
+	}
+	// with hybrid aiming behaviour, our stance is important, we don't go from two-handed to one-handed grip
+	if ( gGameExternalOptions.ubAllowAlternativeWeaponHolding == 2 )
+	{
+		// raised already?
+		if ( (gAnimControl[ this->usAnimState ].uiFlags & ( ANIM_FIREREADY | ANIM_FIRE )) && !(gAnimControl[ this->usAnimState ].uiFlags & ( ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			return( FALSE );
+		}
+		// aiming over alternative (yellow) indicated levels
+		if ( bAimTime > GetNumberAltFireAimLevels( this, iTrgGridNo ) )
+		{
+			return( FALSE );
+		}
+	}
+	// "scope mode" behaviour lets us select alternative firing manually
+	else if ( gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 )
+	{
+		// we don't care about the stance here, as the player should know what he's doing, we just care about his fire mode selected
+		if ( this->bScopeMode != USE_ALT_WEAPON_HOLD )
+		{
+			return( FALSE );
+		}
+		// we go through, only if scope mode is set on "alternative fire mode"
+	}
+	else if ( bAimTime > 0 )
+	{
+		// no aiming allowed with this
+		return( FALSE );
+	}
+
+	// if we are here, assume we are going to fire from alternative stance
+	return( TRUE );
+
+}
 BOOLEAN SOLDIERTYPE::CanRobotBeControlled( void )
 {
 	SOLDIERTYPE *pController;
@@ -14086,7 +20161,11 @@ void HandleSystemNewAISituation( SOLDIERTYPE *pSoldier, BOOLEAN fResetABC )
 		if ( pSoldier->aiData.bNewSituation == IS_NEW_SITUATION )
 		{
 			// Cancel what they were doing....
-			pSoldier->usPendingAnimation	= NO_PENDING_ANIMATION;
+			// silversurfer: bugfix for endless dying mercs on roof edges
+			// if we delete their pending animation here they will just turn into the proper direction for the fall (in TurnSoldier( void ) )
+			// and stand there forever afterwards in "dying" state, so let this guy fall off the roof first!
+			if ( pSoldier->usPendingAnimation != FALLOFF && pSoldier->usPendingAnimation != FALLFORWARD_ROOF )
+				pSoldier->usPendingAnimation	= NO_PENDING_ANIMATION;
 			pSoldier->usPendingAnimation2 = NO_PENDING_ANIMATION;
 			pSoldier->flags.bTurningFromPronePosition = FALSE;
 			pSoldier->ubPendingDirection = NO_PENDING_DIRECTION;
@@ -14368,9 +20447,15 @@ void HandlePlayerTogglingLightEffects( BOOLEAN fToggleValue )
 	{
 		//Toggle light status
 		if ( gGameSettings.fOptions[ TOPTION_MERC_CASTS_LIGHT ] )
+		{
 			gGameSettings.fOptions[ TOPTION_MERC_CASTS_LIGHT ] = FALSE;
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_MERC_CASTS_LIGHT_OFF ] );
+		}
 		else
+		{
 			gGameSettings.fOptions[ TOPTION_MERC_CASTS_LIGHT ] = TRUE;
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_MERC_CASTS_LIGHT_ON ] );
+		}
 	}
 
 	//Update all the mercs in the sector
@@ -14491,25 +20576,38 @@ BOOLEAN HAS_SKILL_TRAIT( SOLDIERTYPE * pSoldier, UINT8 uiSkillTraitNumber )
 	if ( pSoldier == NULL )
 		return( FALSE );
 
+	// Flugente: compatibility with skills
+	if ( uiSkillTraitNumber == VARIOUSSKILLS )
+		return TRUE;
+
 	INT8 bNumMajorTraitsCounted = 0;
+	INT8 bMaxTraits = gSkillTraitValues.ubMaxNumberOfTraits;
+	INT8 bMaxMajorTraits = gSkillTraitValues.ubNumberOfMajorTraitsAllowed;
 
 	// check old/new traits
 	if (gGameOptions.fNewTraitSystem)
 	{
-		for ( INT8 bCnt = 0; bCnt < gSkillTraitValues.ubMaxNumberOfTraits; bCnt++ )
+		// exception for special merc
+		//if ( gSkillTraitValues.fAllowSpecialMercTraitsException && pSoldier->ubProfile == gSkillTraitValues.ubSpecialMercID)
+		//{
+		//	bMaxTraits++;
+		//	bMaxMajorTraits++;
+		//}
+		
+		for ( INT8 bCnt = 0; bCnt < min(30,bMaxTraits); bCnt++ )
 		{
-			if ( uiSkillTraitNumber > 0 && uiSkillTraitNumber <= NUM_MAJOR_TRAITS )
+			if ( TwoStagedTrait( uiSkillTraitNumber ) )
 			{
 				if (pSoldier->stats.ubSkillTraits[ bCnt ] == uiSkillTraitNumber)
 				{
 					return( TRUE );
 				}
-				else if ( pSoldier->stats.ubSkillTraits[ bCnt ] > 0 && pSoldier->stats.ubSkillTraits[ bCnt ] <= NUM_MAJOR_TRAITS )
+				else if ( TwoStagedTrait(pSoldier->stats.ubSkillTraits[ bCnt ]) )
 				{
 					bNumMajorTraitsCounted++;
 				}
 				// if we exceeded the allowed number of major traits, ignore the rest of them
-				if ( bNumMajorTraitsCounted >= gSkillTraitValues.ubNumberOfMajorTraitsAllowed )
+				if ( bNumMajorTraitsCounted >= min(20,bMaxMajorTraits) )
 				{
 					break;
 				}
@@ -14546,7 +20644,13 @@ INT8 NUM_SKILL_TRAITS( SOLDIERTYPE * pSoldier, UINT8 uiSkillTraitNumber )
 	// check old/new traits
 	if (gGameOptions.fNewTraitSystem)
 	{
-	
+		// exception for special merc
+		//if ( gSkillTraitValues.fAllowSpecialMercTraitsException && pSoldier->ubProfile == gSkillTraitValues.ubSpecialMercID)
+		//{
+		//	bMaxTraits++;
+		//	bMaxMajorTraits++;
+		//}
+		
 		for ( INT8 bCnt = 0; bCnt < min(30,bMaxTraits); bCnt++ )
 		{
 			if ( TwoStagedTrait( uiSkillTraitNumber ) )
@@ -14612,11 +20716,13 @@ UINT8 GetSquadleadersCountInVicinity( SOLDIERTYPE * pSoldier, BOOLEAN fWithHighe
 			// check if within distance
 			// if both have extended ear, the distance is bigger and they don't need to sea each other 
 			// note that enemy always get the bonus if within distance, regardless of extended ears
-			if (((( HasExtendedEarOn( pSoldier ) && HasExtendedEarOn( MercPtrs[ cnt ] )) || ( pSoldier->bTeam == ENEMY_TEAM ) ) && (PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusExtendedEar) ) ||
+			// Flugente: moved around arguments for speed reason
+			if ( fDontCheckDistance ||
+				(PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusNormal) ||
 				//((SoldierToVirtualSoldierLineOfSightTest( MercPtrs[ cnt ], pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) || 
 				//SoldierToVirtualSoldierLineOfSightTest( pSoldier, MercPtrs[ cnt ]->sGridNo, MercPtrs[ cnt ]->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) ) && 
-				(PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusNormal) ||
-				fDontCheckDistance )
+				( ( pSoldier->bTeam == ENEMY_TEAM || (HasExtendedEarOn( pSoldier ) && HasExtendedEarOn( MercPtrs[ cnt ] ) ) ) && PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusExtendedEar )
+				)
 			{
 				// If checking for higher level SL
 				// also count in already aquired level increses from other SLs
@@ -14629,6 +20735,7 @@ UINT8 GetSquadleadersCountInVicinity( SOLDIERTYPE * pSoldier, BOOLEAN fWithHighe
 				{
 					ubNumberSL += NUM_SKILL_TRAITS( MercPtrs[ cnt ], SQUADLEADER_NT );
 				}
+
 				if (ubNumberSL >= gSkillTraitValues.ubSLMaxBonuses)
 					break;
 			}
@@ -14638,18 +20745,20 @@ UINT8 GetSquadleadersCountInVicinity( SOLDIERTYPE * pSoldier, BOOLEAN fWithHighe
 	// special loop for militia - they can get a bonus from our mercs
 	if ( pSoldier->bTeam == MILITIA_TEAM && ubNumberSL < gSkillTraitValues.ubSLMaxBonuses )
 	{
-		for ( cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID ; cnt <= gTacticalStatus.Team[ OUR_TEAM ].bLastID ; cnt++ )
+		for ( cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID ; cnt <= gTacticalStatus.Team[ OUR_TEAM ].bLastID ; ++cnt )
 		{
 			// Get active conscious soldier
 			if (MercPtrs[ cnt ] != pSoldier && MercPtrs[ cnt ]->bActive && //MercPtrs[ cnt ]->aiData.bShock < 20 &&
 				MercPtrs[ cnt ]->stats.bLife >= OKLIFE && HAS_SKILL_TRAIT( MercPtrs[ cnt ], SQUADLEADER_NT ))
 			{
 				// check if within distance
-				if (((HasExtendedEarOn( MercPtrs[ cnt ] ) && (PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusExtendedEar) ) ||
-				//((SoldierToVirtualSoldierLineOfSightTest( MercPtrs[ cnt ], pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) || 
-				//SoldierToVirtualSoldierLineOfSightTest( pSoldier, MercPtrs[ cnt ]->sGridNo, MercPtrs[ cnt ]->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) ) && 
-				(PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusNormal)) ||
-				fDontCheckDistance )
+				// Flugente: moved around arguments for speed reason
+				if ( fDontCheckDistance ||
+					(PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusNormal) ||
+					//((SoldierToVirtualSoldierLineOfSightTest( MercPtrs[ cnt ], pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) || 
+					//SoldierToVirtualSoldierLineOfSightTest( pSoldier, MercPtrs[ cnt ]->sGridNo, MercPtrs[ cnt ]->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) ) && 
+					((HasExtendedEarOn( MercPtrs[ cnt ] ) && PythSpacesAway( pSoldier->sGridNo, MercPtrs[ cnt ]->sGridNo ) <= gSkillTraitValues.usSLRadiusExtendedEar) ) 
+					)
 				{
 					// If checking for higher level SL
 					// also count in already aquired level increses from other SLs
@@ -14662,6 +20771,7 @@ UINT8 GetSquadleadersCountInVicinity( SOLDIERTYPE * pSoldier, BOOLEAN fWithHighe
 					{
 						ubNumberSL += NUM_SKILL_TRAITS( MercPtrs[ cnt ], SQUADLEADER_NT );
 					}
+
 					if (ubNumberSL >= gSkillTraitValues.ubSLMaxBonuses)
 						break;
 				}
@@ -14681,6 +20791,11 @@ UINT16 NumberOfDamagedStats( SOLDIERTYPE * pSoldier )
 		if (pSoldier->ubCriticalStatDamage[cnt] > 0 )
 			ubTotalStatsDamaged += pSoldier->ubCriticalStatDamage[cnt];
 	}
+
+	// Flugente: stats can also be damaged
+	ubTotalStatsDamaged += pSoldier->usStarveDamageHealth;
+	ubTotalStatsDamaged += pSoldier->usStarveDamageStrength;
+
 	return( ubTotalStatsDamaged );
 }
 
@@ -14802,9 +20917,9 @@ UINT8 RegainDamagedStats( SOLDIERTYPE * pSoldier, UINT16 usAmountRegainedHundred
 				if ( gSkillTraitValues.fDORepStShouldThrowMessage )
 				{
 					if ( usStatIncreasement == 1 )
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_ONE_POINTS_OF_STAT], pSoldier->name, sStat  );
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_ONE_POINTS_OF_STAT], pSoldier->GetName(), sStat  );
 					else
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_X_POINTS_OF_STATS], pSoldier->name, usStatIncreasement, sStat  );
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_X_POINTS_OF_STATS], pSoldier->GetName(), usStatIncreasement, sStat  );
 				}
 			}
 			//if( pSoldier->ubCriticalStatDamage[cnt] > 0 )
@@ -14813,11 +20928,725 @@ UINT8 RegainDamagedStats( SOLDIERTYPE * pSoldier, UINT16 usAmountRegainedHundred
 		}
 	}
 
+	// Flugente: Third, heal damage from starvation if possible
+	if ( !gGameOptions.fFoodSystem || ( gGameOptions.fFoodSystem && ubAmountRegained > 0 && pSoldier->bFoodLevel > FoodMoraleMods[FOOD_NORMAL].bThreshold && pSoldier->bDrinkLevel > FoodMoraleMods[FOOD_NORMAL].bThreshold ) )
+	{
+		// if we have a damaged stat here
+		if (pSoldier->usStarveDamageHealth > 0 )
+		{
+			if (ubAmountRegained >= pSoldier->usStarveDamageHealth)
+			{
+				// if the amount we can return is bigger than what we need, keep the rest, for other stats
+				usStatIncreasement = pSoldier->usStarveDamageHealth;
+				ubAmountRegained = max(0,(ubAmountRegained - usStatIncreasement));
+				pSoldier->usStarveDamageHealth = 0;
+			}
+			else
+			{
+				// if not having full amount, heal what we can
+				usStatIncreasement = ubAmountRegained;
+				ubAmountRegained = 0;
+				pSoldier->usStarveDamageHealth = max( 0, (pSoldier->usStarveDamageHealth - usStatIncreasement));
+			}
+
+			// so we can start regaining the stats
+			if ( usStatIncreasement > 0 )
+			{
+				bStatsReturned += usStatIncreasement; // keep value for feedback
+				
+				sStat = sStatGainStrings[0]; // set string
+				pSoldier->stats.bLifeMax += usStatIncreasement;
+				pSoldier->stats.bLife += usStatIncreasement;
+				pSoldier->iHealableInjury -= (usStatIncreasement * 100); // don't forget the healable injury
+				if (pSoldier->iHealableInjury < 0)
+					pSoldier->iHealableInjury = 0;
+				if (pSoldier->stats.bLifeMax >= 100 || pSoldier->stats.bLife >= 100 ) // repair if going too far
+				{
+					pSoldier->stats.bLifeMax = 100;
+					pSoldier->stats.bLife = 100;
+					pSoldier->iHealableInjury = 0;
+					pSoldier->usStarveDamageHealth = 0;
+				}
+				gMercProfiles[ pSoldier->ubProfile ].bLifeMax = pSoldier->stats.bLifeMax; // update profile
+
+				// Throw a message if healed anything
+				if ( gSkillTraitValues.fDORepStShouldThrowMessage )
+				{
+					if ( usStatIncreasement == 1 )
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_ONE_POINTS_OF_STAT], pSoldier->GetName(), sStat  );
+					else
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_X_POINTS_OF_STATS], pSoldier->GetName(), usStatIncreasement, sStat  );
+				}
+			}
+		}
+
+		// if we have a damaged stat here
+		if (pSoldier->usStarveDamageStrength > 0 )
+		{
+			if (ubAmountRegained >= pSoldier->usStarveDamageStrength)
+			{
+				// if the amount we can return is bigger than what we need, keep the rest, for other stats
+				usStatIncreasement = pSoldier->usStarveDamageStrength;
+				ubAmountRegained = max(0,(ubAmountRegained - usStatIncreasement));
+				pSoldier->usStarveDamageStrength = 0;
+			}
+			else
+			{
+				// if not having full amount, heal what we can
+				usStatIncreasement = ubAmountRegained;
+				ubAmountRegained = 0;
+				pSoldier->usStarveDamageStrength = max( 0, (pSoldier->usStarveDamageStrength - usStatIncreasement));
+			}
+
+			// so we can start regaining the stats
+			if ( usStatIncreasement > 0 )
+			{
+				bStatsReturned += usStatIncreasement; // keep value for feedback
+				
+				sStat = sStatGainStrings[9]; // set string
+				pSoldier->stats.bStrength += usStatIncreasement;
+				if (pSoldier->stats.bStrength >= 100 ) // repair if going too far
+				{
+					pSoldier->stats.bStrength = 100;
+					pSoldier->usStarveDamageStrength = 0;
+				}
+				gMercProfiles[ pSoldier->ubProfile ].bStrength = pSoldier->stats.bStrength; // update profile
+
+				// Throw a message if healed anything
+				if ( gSkillTraitValues.fDORepStShouldThrowMessage )
+				{
+					if ( usStatIncreasement == 1 )
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_ONE_POINTS_OF_STAT], pSoldier->GetName(), sStat  );
+					else
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_REGAINED_X_POINTS_OF_STATS], pSoldier->GetName(), usStatIncreasement, sStat  );
+				}
+			}
+		}
+	}
+
 	// Done, return what we healed
 	return( bStatsReturned );
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////
+// SANDRO - Improved Interrupt System
+/////////////////////////////////////////
+BOOLEAN ResolvePendingInterrupt( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType )
+{
+	// real time or not in combat? disable and clear
+	if (!(gTacticalStatus.uiFlags & TURNBASED) || 
+		!(gTacticalStatus.uiFlags & INCOMBAT) )
+	{
+		gTacticalStatus.ubInterruptPending = DISABLED_INTERRUPT;
+		ClearIntList();
+		return( FALSE );
+	}
+
+	// invalid guy
+	if ( pSoldier == NULL )
+	{
+		//ClearIntList();
+		return( FALSE );
+	}
+
+	// can't be interrupted if it's not our turn at all
+	if ( gTacticalStatus.ubCurrentTeam != pSoldier->bTeam )
+	{
+		return( FALSE );
+	}
+
+	// no interrupt called or not gonna trigger it now
+	if ( gTacticalStatus.ubInterruptPending == DISABLED_INTERRUPT ||
+		gTacticalStatus.ubInterruptPending == UNTRIGGERED_INTERRUPT )
+	{
+		return( FALSE );
+	}
+	
+	// if the interrupt called match the type we are trying to resolve..
+	if ( gTacticalStatus.ubInterruptPending == ubInterruptType || ubInterruptType == INSTANT_INTERRUPT )
+	{
+		/////////////////////////////
+		// Gather all interrupters //
+		/////////////////////////////
+		SOLDIERTYPE *pInterrupter;
+		UINT8 ubInterruptersFound = 0;
+		UINT8 ubaInterruptersList[64];
+		UINT16 uCnt = 0, uiReactionTime;
+		INT16 iInjuryPenalty;
+
+		for ( uCnt = 0; uCnt <= MAX_NUM_SOLDIERS; uCnt++ )
+		{
+			// first find all guys who can see us
+			pInterrupter = MercPtrs[ uCnt ];
+			if ( pInterrupter == NULL )
+				continue;			// not valid
+			if ( pInterrupter->stats.bLife < OKLIFE || pInterrupter->bCollapsed || !pInterrupter->bActive || !pInterrupter->bInSector || pInterrupter->bActionPoints < 4 )
+				continue;			// not active
+			if ( pSoldier->bTeam == pInterrupter->bTeam )
+				continue;			// same team
+			if ( pSoldier->bSide == pInterrupter->bSide )
+				continue;			// not enemy
+			if ( CONSIDERED_NEUTRAL( pSoldier, pInterrupter ) )
+				continue;			// neutral
+			if ( CONSIDERED_NEUTRAL( pInterrupter, pSoldier ) )
+				continue;			// neutral
+
+			/////////////////////////////////////////////////////////////
+			// Calculate Reaction Time (i.e. interrupt counter length) //
+			/////////////////////////////////////////////////////////////
+
+			// set base value ( interrupt per every X APs an enemy uses )
+			// if not seen but just heard... we interrupt only if they attack us (or if they are very close) in that case
+			if (( pInterrupter->aiData.bOppList[pSoldier->ubID] == SEEN_CURRENTLY ) || ( pInterrupter->aiData.bOppList[pSoldier->ubID] == HEARD_THIS_TURN && (ubInterruptType == AFTERSHOT_INTERRUPT || ubInterruptType == AFTERACTION_INTERRUPT || PythSpacesAway( pInterrupter->sGridNo, pSoldier->sGridNo) < 3) ))
+			{
+				uiReactionTime = gGameExternalOptions.ubBasicReactionTimeLengthIIS;
+			}
+			else
+			{
+				// not seen or not heard anything worth interrupting
+				continue;
+			}
+			uiReactionTime = uiReactionTime * 10; // x10 ... we will divide by 10 after all adjustments done
+			// adjust based on Agility
+			if ( pInterrupter->stats.bAgility >= 80 )
+			{
+				uiReactionTime = (uiReactionTime * (100 - (2 * (pInterrupter->stats.bAgility - 80)))/100);
+			}
+			else if ( pInterrupter->stats.bAgility < 80 && pInterrupter->stats.bAgility > 50 )
+			{
+				uiReactionTime = (uiReactionTime * (100 + (2 * (80 - pInterrupter->stats.bAgility)))/100);
+			}
+			else
+			{
+				uiReactionTime = (uiReactionTime * 8/5);
+			}
+			// adjust based on APs left
+			// at full possible APs no adjustement (100% applies), +1% length per every 2% of APs down from full
+			uiReactionTime = (uiReactionTime * (100 + (50 - (50 * pInterrupter->bActionPoints / pInterrupter->CalcActionPoints())) ) /100);
+			// adjust based on injuries
+			if (pInterrupter->stats.bLife < pInterrupter->stats.bLifeMax)
+			{
+				// OK, this looks a bit complicated..
+				// our HP lost minus half of the bandaged part gives us 2% longer reaction time per 1% of our health down from full health
+				// this penalty is however slightly reduced by our experience level
+				iInjuryPenalty = ( 200 * (pInterrupter->stats.bLifeMax - pInterrupter->stats.bLife + ((pInterrupter->stats.bLifeMax - pInterrupter->stats.bLife - pInterrupter->bBleeding) / 2))) / (pInterrupter->stats.bLifeMax);
+				uiReactionTime = (uiReactionTime * (100 + iInjuryPenalty * (100 - (3 * EffectiveExpLevel( pInterrupter ))) / 100) / 100);
+			}
+			// adjust by breath down
+			if (pSoldier->bBreath < 100)
+			{
+				// +1% per 2 points of breath down
+				uiReactionTime = (uiReactionTime * (100 + ((100 - pSoldier->bBreath)/2)) /100);
+			}
+			// adjust for getting aid, being in gas or being in shock
+			if ( pInterrupter->flags.uiStatusFlags & SOLDIER_GASSED )
+				uiReactionTime = (uiReactionTime * (100 + AIM_PENALTY_GASSED) /100);
+			if (pInterrupter->ubServiceCount > 0)
+				uiReactionTime = (uiReactionTime * (100 + AIM_PENALTY_GETTINGAID) /100);
+			if (pInterrupter->aiData.bShock)
+				uiReactionTime = (uiReactionTime * (100 + (pInterrupter->aiData.bShock * 20)) /100); // this is severe, 20% per point
+			// Phlegmatic characters has slightly longer reaction time
+			if ( pSoldier->ubProfile != NO_PROFILE )
+			{
+				if ( gMercProfiles[ pSoldier->ubProfile ].bCharacterTrait == CHAR_TRAIT_PHLEGMATIC )
+				{
+					uiReactionTime = ((uiReactionTime * 110) / 100); 
+				}
+			}
+			// finally divide back by 10 to get the needed result (round properly)
+			uiReactionTime = ((uiReactionTime + 5) / 10);
+
+			/////////////////////////////////////////////
+			// Check if we reached reaction time value //
+			/////////////////////////////////////////////
+
+			// if we have hit the needed amount, the actual interrupt occurs for the observer
+			if ( pInterrupter->aiData.ubInterruptCounter[pSoldier->ubID] >= uiReactionTime )
+			{
+				///////////////////////////
+				// Success! Add to list! //
+				///////////////////////////
+
+				// the soldier to be interrupted is added to the list (once only)
+				if ( ubInterruptersFound == 0)
+				{
+					AddToIntList( pSoldier->ubID, FALSE, TRUE);
+				}
+				ubaInterruptersList[ubInterruptersFound] = pInterrupter->ubID;
+				ubInterruptersFound++;
+			
+				// add the observer who got the interrupt
+				AddToIntList( pInterrupter->ubID, TRUE, TRUE);
+				// reset the counter
+				pInterrupter->aiData.ubInterruptCounter[pSoldier->ubID] = 0;
+			}	
+		}
+		if ( ubInterruptersFound > 0 )
+		{
+			////////////////////////////////////////////////
+			// Check for possible "Collective Interrupts" //
+			////////////////////////////////////////////////
+			if ( gGameExternalOptions.fAllowCollectiveInterrupts )
+			{
+				SOLDIERTYPE *pTeammate;
+				UINT16 uCnt2 = 0, usColIntChance = 0;
+				UINT8 ubOriginalInterruptersCount = ubInterruptersFound, uCnt3 = 0;
+				BOOLEAN fAlreadyIn;
+
+				for ( uCnt = 0; uCnt < ubOriginalInterruptersCount; uCnt++ )
+				{
+					pInterrupter = MercPtrs[ ubaInterruptersList[uCnt] ];
+					
+					uCnt2 = gTacticalStatus.Team[ pInterrupter->bTeam ].bFirstID;
+					for ( pTeammate = MercPtrs[ uCnt2 ]; uCnt2 <= gTacticalStatus.Team[ pInterrupter->bTeam ].bLastID; uCnt2++,pTeammate++)
+					{
+						if ( pTeammate == NULL )
+							continue;			// not valid
+						if ( pTeammate->bTeam != pInterrupter->bTeam )
+							continue;			// little paranoya check here
+						if ( pTeammate->stats.bLife < OKLIFE || pTeammate->bCollapsed || !pTeammate->bActive || !pTeammate->bInSector || pTeammate->bActionPoints < 4 )
+							continue;			// not active
+
+						// check if we haven't been added to the list already
+						fAlreadyIn = FALSE;
+						for ( uCnt3 = 0; uCnt3 < ubInterruptersFound; uCnt3++ )
+						{
+							if ( pTeammate->ubID == ubaInterruptersList[uCnt3] )
+							{
+								fAlreadyIn = TRUE;
+								break;
+							}
+						}
+						// if we are close enough
+						if ( !fAlreadyIn && PythSpacesAway( pInterrupter->sGridNo, pTeammate->sGridNo ) <= 5 )
+						{
+							// calculate the chance
+							// we would have base chance 100% (if both have maxed stats)
+							// 0-30% is determined by Leadership of the original interrupted - i.e. how well and if he can "inform" us
+							// 0-20% is determined by his Experience Level
+							// 0-20% is determined by our Experience Level - i.e how well can we realize that we must act
+							// 0-20% is determined by our Agility - can our body react so swiftly at all
+							// 0-10% is determined by our Wisdom - do we have enough mental agility as well?
+							usColIntChance = 10*( ( (pInterrupter->stats.bLeadership * 3) + 
+													(EffectiveExpLevel( pInterrupter ) * 20) + 
+													(EffectiveExpLevel( pTeammate ) * 20) + 
+													(pTeammate->stats.bAgility * 2) + 
+													(pTeammate->stats.bWisdom) ) / 100 );
+							// add bonus per Squadleader trait of the original interrupter
+							if ( HAS_SKILL_TRAIT( pInterrupter, SQUADLEADER_NT ) && gGameOptions.fNewTraitSystem )
+							{
+								usColIntChance += gSkillTraitValues.ubSLCollectiveInterruptsBonus * NUM_SKILL_TRAITS( pInterrupter, SQUADLEADER_NT );							
+							}
+							if ( PreChance(usColIntChance))
+							{
+								ubaInterruptersList[ubInterruptersFound] = pTeammate->ubID;
+								ubInterruptersFound++;
+								// if he can react on collective interrupt, give it to him
+								AddToIntList( pTeammate->ubID, TRUE, TRUE);
+								// reset the counter for him
+								pTeammate->aiData.ubInterruptCounter[pSoldier->ubID] = 0;						
+							}
+						}
+					}
+				}
+			}
+
+			/////////////////////////////////////////////
+			// OK, done, all interrupters added, SEND! //
+			/////////////////////////////////////////////
+
+			// remove AI control from the interrupted guy just in case may not be neccessary, but it's harmless anyway
+			if ( (gTacticalStatus.ubCurrentTeam != pSoldier->bTeam) && !(gTacticalStatus.Team[ gTacticalStatus.ubCurrentTeam ].bHuman) )
+			{
+				if ( pSoldier->flags.uiStatusFlags & SOLDIER_UNDERAICONTROL )
+				{
+					pSoldier->flags.uiStatusFlags &= (~SOLDIER_UNDERAICONTROL);
+				}
+			}
+			// reset 
+			gTacticalStatus.ubInterruptPending = DISABLED_INTERRUPT;
+			// start interrupt
+			DoneAddingToIntList( pSoldier, TRUE, 1 );
+
+			return( TRUE );
+		}
+		else // no interrupters found, reset until next occasion
+		{
+			// reset 
+			gTacticalStatus.ubInterruptPending = DISABLED_INTERRUPT;
+		}
+	}
+	return( FALSE );
+}
+
+BOOLEAN AIDecideHipOrShoulderStance( SOLDIERTYPE * pSoldier, INT32 iGridNo )
+{
+	// TO DO: this should be much more sophisticated
+
+	UINT16 usInHand = pSoldier->usAttackingWeapon;
+
+	// not 2-handed or not standing 
+	if (gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_STAND || !Item[ pSoldier->inv[HANDPOS].usItem ].twohanded)
+	{
+		return FALSE;
+	}
+	// heavy gun only from hip if standing
+	if (Weapon[usInHand].HeavyGun)
+	{
+		return TRUE;
+	}
+	// we want to make an aimed shot
+	if (pSoldier->aiData.bAimTime > GetNumberAltFireAimLevels( pSoldier, iGridNo))
+	{
+		return FALSE;
+	}
+
+	INT8 bChanceHip = 0;
+
+	if( pSoldier->bDoBurst > 0 )
+		bChanceHip += 25;
+	if( Weapon[usInHand].ubWeaponType == GUN_LMG )
+		bChanceHip += 30;
+	if( Weapon[usInHand].ubWeaponType == GUN_SHOTGUN )
+		bChanceHip += 15;
+
+	// chance to hit with no aiming, add it to the chance to fire from hip
+	if ( !TileIsOutOfBounds( iGridNo ) )
+	{
+		bChanceHip += CalcChanceToHitGun( pSoldier, iGridNo, 0, AIM_SHOT_TORSO );
+	}
+
+	if ( PreChance(bChanceHip))
+	{
+		return TRUE;
+	}
+	else
+	{
+		return FALSE;
+	}
+
+}
+
+BOOLEAN DecideAltAnimForBigMerc( SOLDIERTYPE * pSoldier )
+{
+	if ( pSoldier->ubBodyType != BIGMALE )
+	{
+		// WTF!
+		return FALSE;
+	}
+
+	//always use the other anim for badass mercs
+	if ( pSoldier->uiAnimSubFlags & SUB_ANIM_BIGGUYSHOOT2 )
+	{
+		return TRUE;
+	}
+
+	// if it is player controlled merc
+	if (pSoldier->flags.uiStatusFlags & SOLDIER_PC)
+	{
+		// are we in combat?
+		if ( gTacticalStatus.uiFlags & INCOMBAT )
+		{
+			// then only use it if morale is very high (we are definately winning)
+			if ( pSoldier->aiData.bMorale > 95 )
+			{
+				return TRUE;
+			}
+		}
+		else
+		{
+			// if not we use this with slightly above avarage morale
+			if ( pSoldier->aiData.bMorale > 65 )
+			{
+				return TRUE;
+			}
+		}
+	}
+	// enemy guy
+	else
+	{
+		//never use this for regular enemies, only elites with high morale and level can sometimes show this animation
+		if ( ( pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE || pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA ) && 
+			 ( pSoldier->aiData.bAIMorale >= MORALE_FEARLESS ) && ( pSoldier->stats.bExpLevel > 8 ) )
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 BOOLEAN TwoStagedTrait( UINT8 uiSkillTraitNumber )
 {
-	return( uiSkillTraitNumber > 0 && (uiSkillTraitNumber <= NUM_ORIGINAL_MAJOR_TRAITS || uiSkillTraitNumber == COVERT_NT || uiSkillTraitNumber == PILOT_NT ) );
-}				
+	//return( uiSkillTraitNumber > 0 && (uiSkillTraitNumber <= NUM_ORIGINAL_MAJOR_TRAITS || uiSkillTraitNumber == COVERT_NT) );
+	return( uiSkillTraitNumber > 0 && (uiSkillTraitNumber <= NUM_ORIGINAL_MAJOR_TRAITS || uiSkillTraitNumber == COVERT_NT || uiSkillTraitNumber == PILOT_NT) );
+}
+
+BOOLEAN GetRadioOperatorSignal(UINT8 usOwner, INT32* psTargetGridNo)
+{
+	// get the 'real owner'
+	if ( usOwner > 1 )
+	{
+		// a merc planted this - if he's a radio operator, use his gridno
+		SOLDIERTYPE* pSoldier = MercPtrs[usOwner - 2];
+
+		if ( pSoldier && pSoldier->CanUseRadio(FALSE) && pSoldier->bActive && pSoldier->bInSector && ( pSoldier->sSectorX == gWorldSectorX ) && ( pSoldier->sSectorY == gWorldSectorY ) && ( pSoldier->bSectorZ == gbWorldSectorZ) )
+		{
+			*psTargetGridNo = pSoldier->sGridNo;
+			pSoldier->bSide;
+			return TRUE;
+		}
+	}
+	// check for the side that ordered this
+	else
+	{
+		UINT8 bTeam = MILITIA_TEAM;
+		if ( usOwner )
+			bTeam = ENEMY_TEAM;
+
+		SOLDIERTYPE* pSoldier = NULL;
+		INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
+		INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
+		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		{
+			if ( pSoldier && pSoldier->CanUseRadio(FALSE) && pSoldier->bActive && pSoldier->bInSector && ( pSoldier->sSectorX == gWorldSectorX ) && ( pSoldier->sSectorY == gWorldSectorY ) && ( pSoldier->bSectorZ == gbWorldSectorZ) )
+			{
+				*psTargetGridNo = pSoldier->sGridNo;
+				pSoldier->bSide;
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN IsValidArtilleryOrderSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT8 bTeam )
+{
+	// is the sector valid?
+	if ( bSectorZ > 0 ||sSectorX < 1 || sSectorX >= MAP_WORLD_X - 1 || sSectorY < 1 || sSectorY >= MAP_WORLD_Y - 1 )
+		return FALSE;
+	
+	BOOLEAN fEnemies = (NumEnemiesInAnySector( sSectorX, sSectorY, bSectorZ )  > 0);
+	BOOLEAN fMilitia = (GetNumberOfMilitiaInSector( sSectorX, sSectorY, (INT16) bSectorZ ) > 0);
+	BOOLEAN fMercs   = (PlayerMercsInSector( (UINT8) sSectorX, (UINT8) sSectorY, (UINT8) bSectorZ ) > 0);
+	
+	SECTORINFO *pSectorInfo = &( SectorInfo[ SECTOR( sSectorX, sSectorY ) ] );
+
+	// sector must be free of members of an opposing team
+	if ( bTeam == ENEMY_TEAM )
+	{
+		if ( !fEnemies || fMilitia || fMercs )
+			return FALSE;
+
+		// cannot fire if artillery was used recently
+		if ( GetWorldTotalMin() < pSectorInfo->uiTimeAIArtillerywasOrdered + gSkillTraitValues.bVOArtillerySectorFrequency )
+			return FALSE;
+	}
+	else if ( bTeam == MILITIA_TEAM )
+	{
+		if ( fEnemies || !fMilitia )
+			return FALSE;
+
+		// cannot fire if artillery was used recently
+		if ( GetWorldTotalMin() < pSectorInfo->uiTimeAIArtillerywasOrdered + gSkillTraitValues.bVOArtillerySectorFrequency )
+			return FALSE;
+	}
+	else if ( bTeam == OUR_TEAM )
+	{
+		if ( fEnemies || !fMercs )
+			return FALSE;
+				
+		// we can relay orders only if someone in the sector has a working radio set and a mortar
+		BOOLEAN activeradio = FALSE;
+		BOOLEAN mortarfound = FALSE;
+		SOLDIERTYPE* pSoldier = NULL;
+		INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
+		INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
+		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		{
+			// check if soldier exists in this sector, and is on duty
+			if ( !pSoldier || !pSoldier->bActive || pSoldier->sSectorX != sSectorX || pSoldier->sSectorY != sSectorY || pSoldier->bSectorZ != bSectorZ || pSoldier->bAssignment > ON_DUTY )
+				continue;
+
+			if ( pSoldier->CanUseRadio(FALSE) )
+				activeradio = TRUE;
+
+			if ( pSoldier->HasMortar() )
+				mortarfound = TRUE;
+		}
+
+		if ( !activeradio || !mortarfound )
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+BOOLEAN SectorJammed()
+{
+	// check every soldier: are we jamming frequencies?
+	SOLDIERTYPE* pSoldier = NULL;
+	INT32 cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID;
+	INT32 lastid = MAX_NUM_SOLDIERS;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+	{
+		if ( pSoldier->sSectorX == gWorldSectorX && pSoldier->sSectorY == gWorldSectorY && pSoldier->bSectorZ == gbWorldSectorZ && pSoldier->stats.bLife > 0 && pSoldier->IsJamming() )
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN PlayerTeamIsScanning()
+{
+	// check every soldier: are we jamming frequencies?
+	SOLDIERTYPE* pSoldier = NULL;
+	INT32 cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID;
+	INT32 lastid = gTacticalStatus.Team[ OUR_TEAM ].bLastID;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+	{
+		if ( pSoldier->sSectorX == gWorldSectorX && pSoldier->sSectorY == gWorldSectorY && pSoldier->bSectorZ == gbWorldSectorZ && pSoldier->stats.bLife > 0 && pSoldier->IsScanning() )
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+// bonus for snipers firing at this location (we get this if there are spotters)
+UINT16	GridNoSpotterCTHBonus( SOLDIERTYPE* pSniper, INT32 sGridNo, UINT bTeam)
+{
+	INT16 bestvalue = 0;
+
+	SOLDIERTYPE* pSoldier = NULL;
+	INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
+	INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
+	for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+	{
+		if ( pSoldier != pSniper && pSoldier->sSectorX == gWorldSectorX && pSoldier->sSectorY == gWorldSectorY && pSoldier->bSectorZ == gbWorldSectorZ 
+			&& pSoldier->IsSpotting() 
+			&& PythSpacesAway(pSoldier->sGridNo, pSniper->sGridNo) <= gGameExternalOptions.usSpotterRange
+			&& PythSpacesAway(pSoldier->sGridNo, sGridNo) >= 2 * gGameExternalOptions.usSpotterRange )
+		{
+			BOOLEAN targetseen = FALSE;
+
+			UINT usID = WhoIsThere2( sGridNo, pSniper->bTargetLevel );
+
+			// is someone is at the sGridNo, check wether the spotter can see any part of him check wether head can be seen)
+			if ( usID != NOBODY && SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[usID], 0, NO_DISTANCE_LIMIT, AIM_SHOT_HEAD ) > 0 )
+				targetseen = TRUE;
+			// otherwise check wether we can see the ground floor
+			else if ( SoldierToVirtualSoldierLineOfSightTest( pSoldier, sGridNo, pSniper->pathing.bLevel, ANIM_PRONE, FALSE, NO_DISTANCE_LIMIT ) > 0 )
+				targetseen = TRUE;
+
+			if ( targetseen )
+			{
+				// spotter items are used to determine effectiveness. cap each hand item to a maximum of 100 pts (to keep players from using guns with tons of attachments that have been declared 'spotter items')
+				UINT16 itembonus = 0;
+				if ( pSoldier->inv[HANDPOS].exists() )
+					itembonus += min(100, GetObjectModifier( pSoldier, &(pSoldier->inv[ HANDPOS ]), gAnimControl[ pSoldier->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
+				
+				if ( pSoldier->inv[SECONDHANDPOS].exists() )
+					itembonus += min(100, GetObjectModifier( pSoldier, &(pSoldier->inv[ SECONDHANDPOS ]), gAnimControl[ pSoldier->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
+
+				// base spotter effectivity depends on 40% items, 30% experience, 20% marksmanship an 10% leadership 
+				// the nominal value is between 0 and 1000 (though the actual value can be raised higher, due to effective stat and level boni)
+				UINT32 value = 2 * itembonus + 30 * EffectiveExpLevel( pSoldier ) + 2 * EffectiveMarksmanship( pSoldier) + EffectiveLeadership( pSoldier);
+				
+				// lowered effectivity if we're fatigued
+				ReducePointsForFatigue( pSoldier, &value );
+
+				// lowered effectivity if we're wounded
+				value = (value * pSoldier->stats.bLife / pSoldier->stats.bLifeMax);
+				
+				// effectivity of spotter and sniper working together in percent
+				UINT16 effectivity = 100;
+
+				// sociable mercs get a bonus, loners get a malus
+				if ( OKToCheckOpinion(pSoldier->ubProfile) )
+				{
+					MERCPROFILESTRUCT*	pProfile = &(gMercProfiles[ pSoldier->ubProfile ]);
+
+					switch( pProfile->bCharacterTrait )
+					{
+					case CHAR_TRAIT_SOCIABLE:
+						effectivity += 10;
+						break;
+
+					case CHAR_TRAIT_LONER:
+						effectivity -= 10;
+						break;
+					}
+				}
+
+				if ( OKToCheckOpinion(pSniper->ubProfile) )
+				{
+					MERCPROFILESTRUCT*	pProfile_Sniper = &(gMercProfiles[ pSniper->ubProfile ]);
+
+					switch( pProfile_Sniper->bCharacterTrait )
+					{
+					case CHAR_TRAIT_SOCIABLE:
+						effectivity += 10;
+						break;
+
+					case CHAR_TRAIT_LONER:
+						effectivity -= 10;
+						break;
+					}
+				}
+
+				// relation between sniper and spotter is important - they need to trust each other (-50 to 50)
+				INT8 relation = min( 2*BUDDY_OPINION, max( 2*HATED_OPINION, SoldierRelation(pSoldier, pSniper) + SoldierRelation(pSniper, pSoldier) ) );
+
+				// relation counts twice. Also account for special background. Effectivity cannot be lower than 0%!
+				effectivity = max(0, effectivity + 2 * relation + pSoldier->GetBackgroundValue(BG_PERC_SPOTTER) );
+				
+				// a good relation boosts value tremendously - a bad relation makes spotting useless
+				// the spotter background also alters effectiveness
+				// -> value between 0 and 2000
+				value = (value * effectivity ) / 100;
+
+				// longer spotting gives a linear bonus - up to 100% -> value between 0 and 4600
+				value = (value * min(pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER], 2 * gGameExternalOptions.usSpotterPreparationTurns)) / gGameExternalOptions.usSpotterPreparationTurns;
+				
+				// reasonable values: 0 to gGameExternalOptions.usSpotterMaxCTHBoost
+				value = (value * gGameExternalOptions.usSpotterMaxCTHBoost) / 4000;
+								
+				if ( value > bestvalue )
+					bestvalue = value;
+			}
+		}
+	}
+
+	// limit value
+	bestvalue = min( gGameExternalOptions.usSpotterMaxCTHBoost, max(0, bestvalue ) );
+
+	return bestvalue;
+}
+
+void SetDamageDisplayCounter(SOLDIERTYPE* pSoldier)
+{
+	INT16 sOffsetX, sOffsetY;
+
+	if( pSoldier->flags.fDisplayDamage )
+	{
+		pSoldier->bDisplayDamageCount = 0;
+		return;
+	}
+
+	pSoldier->flags.fDisplayDamage = TRUE;
+	pSoldier->bDisplayDamageCount = 0;
+
+	if ( pSoldier->ubBodyType == QUEENMONSTER )
+	{
+		pSoldier->sDamageX = 0;
+		pSoldier->sDamageY = 0;
+	}
+	else
+	{
+		GetSoldierAnimOffsets( pSoldier, &sOffsetX, &sOffsetY );
+		pSoldier->sDamageX = sOffsetX;
+		pSoldier->sDamageY = sOffsetY;
+	}
+}
+

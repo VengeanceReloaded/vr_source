@@ -13,7 +13,6 @@
 	#include "time.h"
 	#include "video.h"
 	#include "debug.h"
-	#include "smooth.h"
 	#include "worldman.h"
 	#include "mousesystem.h"
 	#include "sys globals.h"
@@ -28,7 +27,6 @@
 	#include "Interactive Tiles.h"
 	#include "utilities.h"
 	#include "overhead.h"
-	#include "points.h"
 	#include "Event Pump.h"
 	#include "Handle UI.h"
 	#include "opplist.h"
@@ -50,7 +48,6 @@
 	#include "pathai.h"
 	#include "EditorBuildings.h"
 	#include "FileMan.h"
-	#include "music control.h"
 	#include "Map Edgepoints.h"
 	#include "environment.h"
 	#include "Shade Table Util.h"
@@ -149,6 +146,10 @@ void DestroyTileSurfaces( void );
 void ProcessTilesetNamesForBPP(void);
 BOOLEAN IsRoofVisibleForWireframe( INT32 sMapPos );
 
+#ifdef JA2UBMAPS
+INT32						giOldTilesetUsed;
+#endif
+
 
 INT8 IsHiddenTileMarkerThere( INT32 sGridNo );
 extern void SetInterfaceHeightLevel( );
@@ -164,11 +165,16 @@ INT32						*gpDirtyData;
 UINT32					gSurfaceMemUsage;
 //UINT8						gubWorldMovementCosts[ WORLD_MAX ][MAXDIR][2];
 UINT8 (*gubWorldMovementCosts)[MAXDIR][2] = NULL;//dnl ch43 260909
+
+// Flugente: this stuff is only ever used in AStar pathing and is a unnecessary waste of resources otherwise, so I'm putting an end to this
+#ifdef USE_ASTAR_PATHS
 //ddd для убыстрения поиска освещенных участков в патхаи.
 BOOLEAN						gubWorldTileInLight[ MAX_ALLOWED_WORLD_MAX ];
 BOOLEAN						gubIsCorpseThere[ MAX_ALLOWED_WORLD_MAX ];
 INT32						gubMerkCanSeeThisTile[ MAX_ALLOWED_WORLD_MAX ];
 //ddd
+#endif
+
 // set to nonzero (locs of base gridno of structure are good) to have it defined by structure code
 INT16		gsRecompileAreaTop = 0;
 INT16		gsRecompileAreaLeft = 0;
@@ -283,6 +289,12 @@ BOOLEAN InitializeWorld( )
 	gTileDatabaseSize = 0;
 	gSurfaceMemUsage = 0;
 	giCurrentTilesetID = -1;
+	
+	#ifdef JA2UBMAPS
+	giOldTilesetUsed = -1;
+	#endif
+
+	SetNumberOfTiles();
 
 	// DB Adds the _8 to the names if we're in 8 bit mode.
 	//ProcessTilesetNamesForBPP();
@@ -291,10 +303,10 @@ BOOLEAN InitializeWorld( )
 	memset( TileSurfaceFilenames, '\0', sizeof( TileSurfaceFilenames ) );
 
 	// ATE: MEMSET LOG HEIGHT VALUES
-	memset( gTileTypeLogicalHeight, 1, sizeof( gTileTypeLogicalHeight ) );
+	memset( gTileTypeLogicalHeight, 1, sizeof( gTileTypeLogicalHeight) );
 
 	// Memset tile database
-	memset( gTileDatabase, 0, sizeof( gTileDatabase ) );
+	memset( gTileDatabase, 0, sizeof(gTileDatabase) ); 
 
 	// Init surface list
 	memset( gTileSurfaceArray, 0, sizeof( gTileSurfaceArray ) );
@@ -336,8 +348,8 @@ void DeinitializeWorld()
 		MemFree(gsCoverValue);
 	if(gubBuildingInfo)
 		MemFree(gubBuildingInfo);
-	if(gubWorldRoomInfo)
-		MemFree(gubWorldRoomInfo);
+	if(gusWorldRoomInfo)
+		MemFree(gusWorldRoomInfo);
 	if(gubWorldMovementCosts)
 		MemFree(gubWorldMovementCosts);
 	if(gpWorldLevelData)
@@ -391,7 +403,7 @@ BOOLEAN LoadTileSurfaces( char ppTileSurfaceFilenames[][32], UINT8 ubTilesetID )
 	}
 	else
 	{
-	for (uiLoop = 0; uiLoop < NUMBEROFTILETYPES; uiLoop++)
+	for (uiLoop = 0; uiLoop < (UINT32)giNumberOfTileTypes; uiLoop++)
 			strcpy( TileSurfaceFilenames[uiLoop], ppTileSurfaceFilenames[uiLoop] );//(ppTileSurfaceFilenames + (65 * uiLoop)) );
 	}
 
@@ -405,10 +417,25 @@ BOOLEAN LoadTileSurfaces( char ppTileSurfaceFilenames[][32], UINT8 ubTilesetID )
 	//uiFillColor = Get16BPPColor(FROMRGB( 100, 0, 0 ));
 	// load the tile surfaces
 	SetRelativeStartAndEndPercentage( 0, 1, 35, L"Tile Surfaces" );
-	for (uiLoop = 0; uiLoop < NUMBEROFTILETYPES; uiLoop++)
+	for (uiLoop = 0; uiLoop < (UINT32)giNumberOfTileTypes; uiLoop++)
 	{
-
-		uiPercentage = (uiLoop * 100) / (NUMBEROFTILETYPES-1);
+	
+	
+		// ATE: Set flag indicating to use another default
+		// tileset
+	#ifdef JA2UBMAPS
+		// 1 ) If we are going from JA2 to JA25
+		if ( giOldTilesetUsed < DEFAULT_JA25_TILESET && ubTilesetID >= DEFAULT_JA25_TILESET )
+		{
+			gbDefaultSurfaceUsed[ uiLoop ] = FALSE;
+		}
+		// 2) From JA25 to JA2
+		if ( ( giOldTilesetUsed >= DEFAULT_JA25_TILESET || giOldTilesetUsed == -1 ) && ubTilesetID < DEFAULT_JA25_TILESET )
+		{
+			gbDefaultSurfaceUsed[ uiLoop ] = FALSE;
+		}
+	#endif
+		uiPercentage = (uiLoop * 100) / (giNumberOfTileTypes-1);
 		RenderProgressBar( 0, uiPercentage );
 
 		//uiFillColor = Get16BPPColor(FROMRGB( 100 + uiPercentage , 0, 0 ));
@@ -472,12 +499,74 @@ BOOLEAN LoadTileSurfaces( char ppTileSurfaceFilenames[][32], UINT8 ubTilesetID )
 					// ATE: If here, don't load default surface if already loaded...
 					if ( !gbDefaultSurfaceUsed[ uiLoop ] )
 					{
+					
+						#ifdef JA2UBMAPS
+						if( ubTilesetID < DEFAULT_JA25_TILESET && uiLoop != SPECIALTILES )
+						{
+							strcpy( TileSurfaceFilenames[uiLoop], gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[uiLoop] );//(char *)(ppTileSurfaceFilenames + (65 * uiLoop)) );
+							if (AddTileSurface( gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[uiLoop], uiLoop, TLS_GENERIC_1, FALSE ) == FALSE)
+							{
+								DestroyTileSurfaces(  );
+								return( FALSE );
+							}
+						}
+						else
+						{
+						  
+						  if (  uiLoop == 123  )
+							{					
+								strcpy( TileSurfaceFilenames[123], gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[123] );//(char *)(ppTileSurfaceFilenames + (65 * uiLoop)) );
+								if (AddTileSurface( gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[123], 123, TLS_GENERIC_1, FALSE ) == FALSE)
+								{
+									DestroyTileSurfaces(  );
+									return( FALSE );
+								}
+							}	
+							else if (  uiLoop == 124  )
+							{					
+								strcpy( TileSurfaceFilenames[124], gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[124] );//(char *)(ppTileSurfaceFilenames + (65 * uiLoop)) );
+								if (AddTileSurface( gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[124], 124, TLS_GENERIC_1, FALSE ) == FALSE)
+								{
+									DestroyTileSurfaces(  );
+									return( FALSE );
+								}
+							}
+							else if (  uiLoop == 125 )
+							{					
+								strcpy( TileSurfaceFilenames[125], gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[125] );//(char *)(ppTileSurfaceFilenames + (65 * uiLoop)) );
+								if (AddTileSurface( gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[125], 125, TLS_GENERIC_1, FALSE ) == FALSE)
+								{
+									DestroyTileSurfaces(  );
+									return( FALSE );
+								}
+							}
+							else if (  uiLoop == 127 )
+							{					
+								strcpy( TileSurfaceFilenames[127], gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[127] );//(char *)(ppTileSurfaceFilenames + (65 * uiLoop)) );
+								if (AddTileSurface( gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[127], 127, TLS_GENERIC_1, FALSE ) == FALSE)
+								{
+									DestroyTileSurfaces(  );
+									return( FALSE );
+								}
+							}
+							else
+							{
+							strcpy( TileSurfaceFilenames[uiLoop], gTilesets[ DEFAULT_JA25_TILESET ].TileSurfaceFilenames[uiLoop] );//(char *)(ppTileSurfaceFilenames + (65 * uiLoop)) );
+							if (AddTileSurface( gTilesets[ DEFAULT_JA25_TILESET ].TileSurfaceFilenames[uiLoop], uiLoop, DEFAULT_JA25_TILESET, FALSE ) == FALSE)
+							{
+								DestroyTileSurfaces(  );
+								return( FALSE );
+								}
+							}
+						}						
+						#else
 						strcpy( TileSurfaceFilenames[uiLoop], gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[uiLoop] );//(ppTileSurfaceFilenames + (65 * uiLoop)) );
 						if (AddTileSurface( gTilesets[ TLS_GENERIC_1 ].TileSurfaceFilenames[uiLoop], uiLoop, TLS_GENERIC_1, FALSE ) == FALSE)
 						{
 							DestroyTileSurfaces(	);
 							return( FALSE );
 						}
+						#endif
 					}
 					else
 					{
@@ -533,6 +622,18 @@ BOOLEAN AddTileSurface( STR8  cFilename, UINT32 ubType, UINT8 ubTilesetID, BOOLE
 	gTileSurfaceArray[ ubType ] = TileSurf;
 
 	// OK, if we were not the default tileset, set value indicating that!
+	
+	#ifdef JA2UBMAPS
+	// OK, if we were not the default tileset, set value indicating that!
+	if ( ubTilesetID != TLS_GENERIC_1 && ubTilesetID != 0 )
+	{
+		gbDefaultSurfaceUsed[ ubType ] = FALSE;
+	}
+	else
+	{
+		gbDefaultSurfaceUsed[ ubType ] = TRUE;
+	}
+	#else
 	if ( ubTilesetID != TLS_GENERIC_1 )
 	{
 		gbDefaultSurfaceUsed[ ubType ] = FALSE;
@@ -541,7 +642,8 @@ BOOLEAN AddTileSurface( STR8  cFilename, UINT32 ubType, UINT8 ubTilesetID, BOOLE
 	{
 		gbDefaultSurfaceUsed[ ubType ] = TRUE;
 	}
-
+	#endif
+	
 	gbNewTileSurfaceLoaded[ ubType ] = TRUE;
 
 	return( TRUE );
@@ -614,7 +716,7 @@ void BuildTileShadeTables(  )
 		memset( gbNewTileSurfaceLoaded, 1, sizeof( gbNewTileSurfaceLoaded ) );
 	}
 
-	for (uiLoop = 0; uiLoop < NUMBEROFTILETYPES; uiLoop++)
+	for (uiLoop = 0; uiLoop < (UINT32)giNumberOfTileTypes; uiLoop++)
 	{
 		if ( gTileSurfaceArray[ uiLoop ] != NULL )
 		{
@@ -637,7 +739,7 @@ void BuildTileShadeTables(  )
 					#ifdef JA2TESTVERSION
 						uiNumImagesReloaded++;
 					#endif
-					RenderProgressBar( 0, uiLoop * 100 / NUMBEROFTILETYPES );
+					RenderProgressBar( 0, uiLoop * 100 / giNumberOfTileTypes );
 					CreateTilePaletteTables( gTileSurfaceArray[ uiLoop ]->vo, uiLoop, fForceRebuildForSlot );
 				}
 		}
@@ -660,7 +762,7 @@ void DestroyTileShadeTables( )
 {
 	UINT32					uiLoop;
 
-	for (uiLoop = 0; uiLoop < NUMBEROFTILETYPES; uiLoop++)
+	for (uiLoop = 0; uiLoop < (UINT32)giNumberOfTileTypes; uiLoop++)
 	{
 		if ( gTileSurfaceArray[ uiLoop ] != NULL )
 		{
@@ -684,7 +786,7 @@ void DestroyTileSurfaces( )
 {
 	UINT32					uiLoop;
 
-	for (uiLoop = 0; uiLoop < NUMBEROFTILETYPES; uiLoop++)
+	for (uiLoop = 0; uiLoop < (UINT32)giNumberOfTileTypes; uiLoop++)
 	{
 		if ( gTileSurfaceArray[ uiLoop ] != NULL )
 		{
@@ -710,7 +812,12 @@ void CompileWorldTerrainIDs( void )
 			pNode = gpWorldLevelData[ sGridNo ].pObjectHead;
 
 			// ATE: CRAPOLA! Special case stuff here for the friggen pool since art was fu*ked up
+			
+			#ifdef JA2UBMAPS
+			if ( giCurrentTilesetID == TEMP_19 )
+			#else
 			if ( giCurrentTilesetID == TLS_BALIME_MUSEUM )
+			#endif
 			{
 				// Get ID
 				if ( pNode != NULL )
@@ -723,7 +830,7 @@ void CompileWorldTerrainIDs( void )
 				}
 			}
 
-			if (pNode == NULL || pNode->usIndex >= NUMBEROFTILES || gTileDatabase[ pNode->usIndex ].ubTerrainID == NO_TERRAIN)
+			if (pNode == NULL || pNode->usIndex >= giNumberOfTiles || gTileDatabase[ pNode->usIndex ].ubTerrainID == NO_TERRAIN)
 			{	// Try terrain instead!
 				pNode = gpWorldLevelData[ sGridNo ].pLandHead;
 			}
@@ -765,6 +872,7 @@ BOOLEAN IsNotRestrictedWindow(STRUCTURE *	pStructure)
 			GetTileType( pNode->usIndex, &uiTileType );
 
 		UINT16 RestrSubIndex;
+        Assert(pNode);
 		GetSubIndexFromTileIndex( pNode->usIndex, (UINT16 *)&RestrSubIndex );
 
 		//этот тип окон не содержится в 0 тайлсете, проверка нулевого тайлсета в этом случае не нужна
@@ -1726,7 +1834,7 @@ BOOLEAN SaveWorld(const STR8 puiFilename, FLOAT dMajorMapVersion, UINT8 ubMinorM
 	UINT8			ubType;
 	UINT8			ubTypeSubIndex;
 	UINT8			ubTest = 1;
-	CHAR8			aFilename[ 255 ];
+	CHAR8			aFilename[2*FILENAME_BUFLEN];//dnl ch81 021213
 	UINT8			ubCombine;
 //	UINT8			bCounts[ WORLD_MAX ][8];
 	UINT8**			bCounts = NULL;
@@ -2149,12 +2257,22 @@ BOOLEAN SaveWorld(const STR8 puiFilename, FLOAT dMajorMapVersion, UINT8 ubMinorM
 		}
 	}
 
-	for ( cnt = 0; cnt < WORLD_MAX; cnt++ )
-	{
+	
 		// Write out room information
-		FileWrite( hfile, &gubWorldRoomInfo[ cnt ], sizeof( INT8 ), &uiBytesWritten );
-
-	}
+		if(ubMinorMapVersion < 29){
+			UINT8 tmproom;
+			for ( cnt = 0; cnt < WORLD_MAX; cnt++ )
+			{
+				tmproom = (UINT8)gusWorldRoomInfo[ cnt ];
+				FileWrite( hfile, &tmproom, sizeof( UINT8 ), &uiBytesWritten );
+			}
+		}else{
+			for ( cnt = 0; cnt < WORLD_MAX; cnt++ )
+			{
+				FileWrite( hfile, &gusWorldRoomInfo[ cnt ], sizeof( UINT16 ), &uiBytesWritten );
+			}
+		}
+	
 
 	if ( uiFlags & MAP_WORLDITEMS_SAVED )
 	{
@@ -2171,10 +2289,9 @@ BOOLEAN SaveWorld(const STR8 puiFilename, FLOAT dMajorMapVersion, UINT8 ubMinorM
 
 	if( uiFlags & MAP_WORLDLIGHTS_SAVED )
 	{
-
 		SaveMapLights( hfile );
 	}
-
+#if 0//dnl ch74 191013 from 050611 Scheinworld reported problem with basement levels and similar maps which doesn't need entry points so decide to remove this check completely
 	if(gMapInformation.sCenterGridNo == -1 || gMapInformation.ubEditorSmoothingType == SMOOTHING_NORMAL && (gMapInformation.sNorthGridNo == -1 && gMapInformation.sEastGridNo == -1 && gMapInformation.sSouthGridNo == -1 && gMapInformation.sWestGridNo == -1))//dnl ch17 290909
 	{
 		swprintf(gzErrorCatchString, L"SAVE ABORTED! Center and at least one of (N,S,E,W) entry point should be set.");
@@ -2182,6 +2299,8 @@ BOOLEAN SaveWorld(const STR8 puiFilename, FLOAT dMajorMapVersion, UINT8 ubMinorM
 		FileClose(hfile);
 		return(FALSE);
 	}
+#endif
+	gMapInformation.ubMapVersion = ubMinorMapVersion;//dnl ch74 241013 all this years MapInfo saves incorrect version :-(
 	SaveMapInformation(hfile, dMajorMapVersion, ubMinorMapVersion);//dnl ch33 150909
 
 	if( uiFlags & MAP_FULLSOLDIER_SAVED )
@@ -2284,12 +2403,13 @@ void SetBlueFlagFlags( void )
 
 void InitLoadedWorld( )
 {
+#ifndef JA2EDITOR//dnl ch85 030214 editor allows to load any map so rather skip this check
 	//if the current sector is not valid, dont init the world
 	if( gWorldSectorX == 0 || gWorldSectorY == 0 )
 	{
 		return;
 	}
-
+#endif
 	// COMPILE MOVEMENT COSTS
 	CompileWorldMovementCosts( );
 
@@ -2329,7 +2449,7 @@ BOOLEAN EvaluateWorld(STR8 pSector, UINT8 ubLevel)
 	UINT32 uiFlags, uiFileSize, uiBytesRead;
 	INT32 i, cnt, iTilesetID;
 	CHAR16 str[2*FILENAME_BUFLEN];
-	CHAR8 szDirFilename[2*FILENAME_BUFLEN], szFilename[FILENAME_BUFLEN];
+	CHAR8 szDirFilename[2*FILENAME_BUFLEN], szFilename[2*FILENAME_BUFLEN];//dnl ch81 021213
 	UINT8 ubCombine, ubMinorMapVersion;
 	UINT8 (*bCounts)[8] = NULL;
 	// Make sure the file exists... if not, then return false
@@ -2339,12 +2459,19 @@ BOOLEAN EvaluateWorld(STR8 pSector, UINT8 ubLevel)
 	if(ubLevel >= 4)
 		strcat(szFilename, "_a");
 	strcat(szFilename, ".dat");
-	CHAR16 szFileName[40];
+	CHAR16 szFileName[FILENAME_BUFLEN];//dnl ch81 021213
 	swprintf(szFileName, L"%S", pSector);
 	if(ValidMapFileName(szFileName))
 		strcpy(szFilename, pSector);
 	sprintf(szDirFilename, "MAPS\\%s", szFilename);
+#ifdef USE_VFS//dnl ch81 021213
+	if(guiCurrentScreen == LOADSAVE_SCREEN)
+		hfile = FileOpen(szDirFilename, FILE_ACCESS_READ, FALSE, gzProfileName);
+	else
+		hfile = FileOpen(szDirFilename, FILE_ACCESS_READ);
+#else
 	hfile = FileOpen(szDirFilename, FILE_ACCESS_READ, FALSE);
+#endif
 	if(!hfile)
 		return(FALSE);
 	uiFileSize = FileGetSize(hfile);
@@ -2429,12 +2556,23 @@ BOOLEAN EvaluateWorld(STR8 pSector, UINT8 ubLevel)
 		pBuffer += bCounts[cnt][1];
 	}
 	// Extract highest room number
+	//DBrot: More Rooms
 	UINT8 ubRoomNum;
+	UINT16	usRoomNum;
+	if(ubMinorMapVersion < 29){
 	for(cnt=0; cnt<WORLD_MAX; cnt++)
 	{
 		LOADDATA(&ubRoomNum, pBuffer, sizeof(ubRoomNum));
 		if(ubRoomNum > pSummary->ubNumRooms)
 			pSummary->ubNumRooms = ubRoomNum;
+	}
+	}else{
+		for(cnt=0; cnt<WORLD_MAX; cnt++)
+		{
+			LOADDATA(&usRoomNum, pBuffer, sizeof(usRoomNum));
+			if(usRoomNum > pSummary->ubNumRooms)
+				pSummary->ubNumRooms = usRoomNum;
+		}
 	}
 
 	if(uiFlags & MAP_WORLDITEMS_SAVED)
@@ -2478,6 +2616,8 @@ BOOLEAN EvaluateWorld(STR8 pSector, UINT8 ubLevel)
 
 	// Read Map Information
 	pSummary->MapInfo.Load(&pBuffer, dMajorMapVersion);
+	if(pSummary->MapInfo.ubMapVersion != ubMinorMapVersion)//dnl ch74 241013 stupid fix because MapInfo is incorrectly saved in all previous mapeditor if you edit existing map
+		pSummary->MapInfo.ubMapVersion = ubMinorMapVersion;
 
 	if(uiFlags & MAP_FULLSOLDIER_SAVED)
 	{
@@ -2717,7 +2857,7 @@ BOOLEAN LoadWorld(const STR8 puiFilename, FLOAT* pMajorMapVersion, UINT8* pMinor
 	UINT16					usTypeSubIndex;
 	UINT8					ubType;
 	UINT8					ubSubIndex;
-	CHAR8					aFilename[50];
+	CHAR8					aFilename[2*FILENAME_BUFLEN];//dnl ch81 021213
 	UINT8					ubCombine;
 	UINT8					(*bCounts)[8] = NULL;
 	INT8					*pBuffer;
@@ -2738,7 +2878,18 @@ BOOLEAN LoadWorld(const STR8 puiFilename, FLOAT* pMajorMapVersion, UINT8* pMinor
 	else
 		sprintf(aFilename, "MAPS\\%s", puiFilename);
 	// Open file
+#ifdef USE_VFS//dnl ch81 021213
+#ifdef JA2EDITOR
+	if(guiCurrentScreen == LOADSAVE_SCREEN)
+		hfile = FileOpen(aFilename, FILE_ACCESS_READ, FALSE, gzProfileName);
+	else
+		hfile = FileOpen(aFilename, FILE_ACCESS_READ);
+#else
+	hfile = FileOpen(aFilename, FILE_ACCESS_READ);
+#endif
+#else
 	hfile = FileOpen(aFilename, FILE_ACCESS_READ, FALSE);
+#endif
 	if(!hfile)
 	{
 #ifndef JA2EDITOR
@@ -2757,6 +2908,10 @@ BOOLEAN LoadWorld(const STR8 puiFilename, FLOAT* pMajorMapVersion, UINT8* pMinor
 	gfBasement = FALSE;
 	gfCaves = FALSE;
 
+	// Flugente: select loadscreen hint
+	if(!gfEditMode)//dnl ch74 211013
+		SetNewLoadScreenHint();
+
 	SetRelativeStartAndEndPercentage(0, 0, 1, L"Trashing world...");
 #ifdef JA2TESTVERSION
 	uiStartTime = GetJA2Clock();
@@ -2770,7 +2925,11 @@ BOOLEAN LoadWorld(const STR8 puiFilename, FLOAT* pMajorMapVersion, UINT8* pMinor
 	// Read JA2 Version ID
 	LOADDATA(&dMajorMapVersion, pBuffer, sizeof(FLOAT));
 	LOADDATA(&ubMinorMapVersion, pBuffer, sizeof(UINT8));
-
+	if(pMajorMapVersion && pMinorMapVersion)//dnl ch79 291113
+	{
+		*pMajorMapVersion = dMajorMapVersion;
+		*pMinorMapVersion = ubMinorMapVersion;
+	}
 	INT32 iRowSize = OLD_WORLD_ROWS;
 	INT32 iColSize = OLD_WORLD_COLS;
 	if(dMajorMapVersion >= 7.00)
@@ -2793,7 +2952,11 @@ BOOLEAN LoadWorld(const STR8 puiFilename, FLOAT* pMajorMapVersion, UINT8* pMinor
 		SetWorldSize(iNewMapWorldRows, iNewMapWorldCols);
 
 		// Uncheck "vanilla map saving", because it is not allowed on maps > 160x160
+		gfVanillaMode = FALSE;//dnl ch74 191013
 		UnclickEditorButton(OPTIONS_VANILLA_MODE);
+
+		// Reset
+		gfResizeMapOnLoading = FALSE;
 	}
 	else
 	{
@@ -2803,12 +2966,14 @@ BOOLEAN LoadWorld(const STR8 puiFilename, FLOAT* pMajorMapVersion, UINT8* pMinor
 		// We still have the "normal" map size AND the map is saved in vanilla format
 		if ((iRowSize <= OLD_WORLD_ROWS && iRowSize <= OLD_WORLD_COLS) && (dMajorMapVersion == VANILLA_MAJOR_MAP_VERSION && ubMinorMapVersion == VANILLA_MINOR_MAP_VERSION))
 		{
-			 // Check "vanilla map saving"
+			// Check "vanilla map saving"
+			gfVanillaMode = TRUE;//dnl ch74 191013
 			ClickEditorButton(OPTIONS_VANILLA_MODE);
 		}
 		else
 		{
 			// Uncheck "vanilla map saving"
+			gfVanillaMode = FALSE;//dnl ch74 191013
 			UnclickEditorButton(OPTIONS_VANILLA_MODE);
 		}
 	}
@@ -3010,20 +3175,35 @@ BOOLEAN LoadWorld(const STR8 puiFilename, FLOAT* pMajorMapVersion, UINT8* pMinor
 	SetRelativeStartAndEndPercentage(0, 58, 59, L"Loading room information...");
 	RenderProgressBar(0, 100);
 #ifdef JA2EDITOR
-	gubMaxRoomNumber = 0;
+	gusMaxRoomNumber = 0;
+	//DBrot: More Rooms
 	for(i=0; i<iWorldSize; i++)
 	{
 		gMapTrn.GetTrnCnt(cnt=i);
-		// Read room information
-		LOADDATA(&gubWorldRoomInfo[cnt], pBuffer, sizeof(INT8));
+		// Read room information, 2 byte for new files
+		if(ubMinorMapVersion < 29){
+			LOADDATA(&gusWorldRoomInfo[cnt], pBuffer, sizeof(INT8));
+		}else{
+			LOADDATA(&gusWorldRoomInfo[cnt], pBuffer, sizeof(UINT16));
+		}
+		
 		// Got to set the max room number
-		if(gubWorldRoomInfo[cnt] > gubMaxRoomNumber)
-			gubMaxRoomNumber = gubWorldRoomInfo[cnt];
+		if(gusWorldRoomInfo[cnt] > gusMaxRoomNumber)
+			gusMaxRoomNumber = gusWorldRoomInfo[cnt];
 	}
-	if(gubMaxRoomNumber < 255)
-		gubMaxRoomNumber++;
+	if(gusMaxRoomNumber < 65535)
+		gusMaxRoomNumber++;
 #else
-	LOADDATA(gubWorldRoomInfo, pBuffer, sizeof(INT8)*WORLD_MAX);
+	for(i=0; i<iWorldSize; i++){
+		gMapTrn.GetTrnCnt(cnt=i);
+		// Read room information, 2 byte for new files
+		if(ubMinorMapVersion < 29){
+			LOADDATA(&gusWorldRoomInfo[cnt], pBuffer, sizeof(INT8));
+		}else{
+			LOADDATA(&gusWorldRoomInfo[cnt], pBuffer, sizeof(UINT16));
+		}
+	}
+	//LOADDATA(gubWorldRoomInfo, pBuffer, sizeof(INT8)*WORLD_MAX);
 #endif
 	memset(gubWorldRoomHidden, TRUE, sizeof(gubWorldRoomHidden));
 
@@ -3278,10 +3458,12 @@ void TrashWorld( void )
 
 	//Remove the schedules
 	DestroyAllSchedules();
-
+#ifdef JA2UB
+//Ja25 no meanwhiles
+#else
 	// on trash world sheck if we have to set up the first meanwhile
 	HandleFirstMeanWhileSetUpWithTrashWorld( );
-
+#endif
 	// Create world randomly from tiles
 	for ( cnt = 0; cnt < WORLD_MAX; cnt++ )
 	{
@@ -3375,6 +3557,7 @@ void TrashWorld( void )
 	TrashDoorTable();
 	TrashMapEdgepoints();
 	TrashDoorStatusArray();
+	TrashExitGridTable();//dnl ch86 170214
 
 	//gfBlitBattleSectorLocator = FALSE;
 	gfWorldLoaded = FALSE;
@@ -3482,6 +3665,10 @@ void TrashMapTile(INT16 MapTile)
 BOOLEAN LoadMapTileset( INT32 iTilesetID )
 {
 
+#ifdef JA2UBMAPS
+giOldTilesetUsed = giCurrentTilesetID;
+#endif
+
 	if ( iTilesetID >= gubNumSets )
 	{
 		return( FALSE );
@@ -3548,7 +3735,7 @@ BOOLEAN SaveMapTileset( INT32 iTilesetID )
 	}
 
 	// Save current tile set in map file.
-	for ( cnt = 0; cnt < NUMBEROFTILETYPES; cnt++ )
+	for ( cnt = 0; cnt < giNumberOfTileTypes; cnt++ )
 		FileWrite( hTSet, TileSurfaceFilenames[cnt], 65, &uiBytesWritten );
 	FileClose( hTSet );
 
@@ -3883,7 +4070,7 @@ void RemoveWireFrameTiles( INT32 sGridNo )
 	{
 		pNewTopmost = pTopmost->pNext;
 
-		if ( pTopmost->usIndex < NUMBEROFTILES )
+		if ( pTopmost->usIndex < giNumberOfTiles )
 		{
 			pTileElement = &(gTileDatabase[ pTopmost->usIndex ]);
 
@@ -4094,7 +4281,7 @@ void LoadMapLights( INT8 **hBuffer )
 		iLSprite = LightSpriteCreate( str, TmpLight.uiLightType );
 		//if this fails, then we will ignore the light.
 		// ATE: Don't add ANY lights of mapscreen util is on
-		if( iLSprite != -1 && guiCurrentScreen != MAPUTILITY_SCREEN )
+		if( iLSprite != -1/* && guiCurrentScreen != MAPUTILITY_SCREEN*/ )//dnl ch79 301113 lights will be reset in map utility screen
 		{
 			if( !gfCaves || gfEditMode )
 			{
@@ -4173,10 +4360,11 @@ void SetWorldSize(INT32 nWorldRows, INT32 nWorldCols)
 	memset(gubBuildingInfo, 0, sizeof(UINT8)*WORLD_MAX);
 
 	// Init room numbers
-	if(gubWorldRoomInfo)
-		MemFree(gubWorldRoomInfo);
-	gubWorldRoomInfo = (UINT8*)MemAlloc(WORLD_MAX);
-	memset(gubWorldRoomInfo, 0, sizeof(UINT8)*WORLD_MAX);
+	//DBrot: More Rooms
+	if(gusWorldRoomInfo)
+		MemFree(gusWorldRoomInfo);
+	gusWorldRoomInfo = (UINT16*)MemAlloc(sizeof(UINT16)*WORLD_MAX);
+	memset(gusWorldRoomInfo, 0, sizeof(UINT16)*WORLD_MAX);
 
 	if(gubWorldMovementCosts)
 		MemFree(gubWorldMovementCosts);

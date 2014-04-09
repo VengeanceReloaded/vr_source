@@ -3,6 +3,7 @@
 
 #include "Soldier Control.h"
 
+#define		DRAW_ITEM_TEMPERATURE				199		// Flugente: had to alter this value. Otherwise we might accidentally draw temeprature when we want to draw an attachments' status
 #define		DRAW_ITEM_STATUS_ATTACHMENT1		200
 #define		DRAW_ITEM_STATUS_ATTACHMENT2		201
 #define		DRAW_ITEM_STATUS_ATTACHMENT3		202
@@ -21,6 +22,9 @@ BOOLEAN LoadCarPortraitValues( void );
 
 // get rid of the loaded portraits for cars
 void UnLoadCarPortraits( void );
+
+// HEADROCK HAM 5: Helper for zoomed inventory
+void DrawItemOutlineZoomedInventory( INT16 sX, INT16 sY, INT16 sWidth, INT16 sHeight, INT16 sColor, UINT32 uiBuffer );
 
 
 #endif

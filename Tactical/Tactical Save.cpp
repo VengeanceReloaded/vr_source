@@ -47,7 +47,7 @@
 	#include "Queen Command.h"
 	#include "Map Screen Interface Map Inventory.h"
 #endif
-
+#include "Animation Control.h"
 #include <vfs/Core/vfs.h>
 BOOLEAN gfWasInMeanwhile = FALSE;
 
@@ -129,7 +129,9 @@ BOOLEAN InitTempNpcQuoteInfoForNPCFromTempFile();
 BOOLEAN SaveTempNpcQuoteInfoForNPCToTempFile( UINT8 ubNpcId );
 BOOLEAN LoadTempNpcQuoteInfoForNPCFromTempFile( UINT8 ubNpcId );
 UINT32	GetLastTimePlayerWasInSector();
+UINT32 GetLastTimePlayerWasInSector(INT16 sMapX, INT16 sMapY, INT8 sMapZ);	// Flugente: get time for another sector
 void		SetLastTimePlayerWasInSector();
+void		SetLastTimePlayerWasInSector(INT16 sMapX, INT16 sMapY, INT8 sMapZ);	// Flugente: set last time sector was visited
 
 
 extern void InitLoadedWorld( );
@@ -568,7 +570,7 @@ BOOLEAN	LoadMapTempFilesFromSavedGameFile( HWFILE hFile )
 BOOLEAN UpdateWorldItemsTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 {
 	UINT32	uiTotalNumberOfItems=0;
-	WORLDITEM* pTotalSectorList = NULL;
+	std::vector<WORLDITEM> pTotalSectorList;//dnl ch75 271013
 	BOOLEAN fReturn = GetNumberOfWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, &( uiTotalNumberOfItems ), FALSE );
 	if (fReturn == false)
 	{
@@ -579,22 +581,13 @@ BOOLEAN UpdateWorldItemsTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 	if( uiTotalNumberOfItems > 0 )
 	{
 		// allocate space for the list
-		pTotalSectorList = new WORLDITEM[ uiTotalNumberOfItems ];
+		pTotalSectorList.resize(uiTotalNumberOfItems);//dnl ch75 271013
 
 		LoadWorldItemsFromTempItemFile( sMapX,  sMapY, bMapZ, pTotalSectorList );
 		int backup = guiCurrentSaveGameVersion;
 		guiCurrentSaveGameVersion = SAVE_GAME_VERSION;
 		SaveWorldItemsToTempItemFile( sMapX, sMapY, bMapZ, uiTotalNumberOfItems, pTotalSectorList);
 		guiCurrentSaveGameVersion = backup;
-	}
-
-
-
-	// if anything was alloced, then get rid of it
-	if( pTotalSectorList != NULL )
-	{
-		delete[]( pTotalSectorList );
-		pTotalSectorList = NULL;
 	}
 
 	return TRUE;
@@ -624,7 +617,7 @@ BOOLEAN UpdateCIVTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 }
 */
 
-BOOLEAN SaveWorldItemsToTempItemFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ, UINT32 uiNumberOfItems, WORLDITEM *pData )
+BOOLEAN SaveWorldItemsToTempItemFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ, UINT32 uiNumberOfItems, std::vector<WORLDITEM>& pData, BOOLEAN fUpdateVisibleItems )//dnl ch75 271013
 {
 	HWFILE	hFile;
 	UINT32	uiNumBytesWritten=0;
@@ -666,14 +659,15 @@ BOOLEAN SaveWorldItemsToTempItemFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ, UINT
 
 	SetSectorFlag( sMapX, sMapY, bMapZ, SF_ITEM_TEMP_FILE_EXISTS );
 
-	SynchronizeItemTempFileVisbleItemsToSectorInfoVisbleItems( sMapX, sMapY, bMapZ, FALSE );
+	if( fUpdateVisibleItems )//dnl ch75 311013
+		SynchronizeItemTempFileVisbleItemsToSectorInfoVisbleItems( sMapX, sMapY, bMapZ, FALSE );
 
 	return( TRUE );
 }
 
 
 
-BOOLEAN LoadWorldItemsFromTempItemFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ, WORLDITEM *pData )
+BOOLEAN LoadWorldItemsFromTempItemFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ, std::vector<WORLDITEM>& pData )//dnl ch75 271013
 {
 	UINT32	uiNumBytesRead=0;
 	HWFILE	hFile;
@@ -815,10 +809,15 @@ BOOLEAN GetNumberOfWorldItemsFromTempItemFile( INT16 sMapX, INT16 sMapY, INT8 bM
 BOOLEAN AddItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT32 sGridNo, UINT32 uiNumberOfItemsToAdd, OBJECTTYPE *pObject, UINT8 ubLevel, UINT16 usFlags, INT8 bRenderZHeightAboveLevel, INT8 bVisible, BOOLEAN fReplaceEntireFile )
 {
 	UINT32	uiNumberOfItems=0;
-	WORLDITEM *pWorldItems;
+	std::vector<WORLDITEM> pWorldItems;//dnl ch75 271013
 	UINT32	cnt;
 	UINT32	uiLoop1=0;
-
+	
+	if ( uiNumberOfItemsToAdd == 0 && fReplaceEntireFile == FALSE )
+	{
+		//Moa: nothing to do, so get out of here!
+		return( TRUE );
+	}
 
 	if( !GetNumberOfWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, &uiNumberOfItems, TRUE ) )
 	{
@@ -827,18 +826,12 @@ BOOLEAN AddItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT32 sG
 	}
 
 	//Allocate memeory for the item
-	pWorldItems = new WORLDITEM[uiNumberOfItems];
-	if( pWorldItems == NULL )
-	{
-		//Error Allocating memory for the temp item array
-		return( FALSE );
-	}
+	pWorldItems.resize(uiNumberOfItems);
 
 	//Load in the sectors Item Info
 	if( !LoadWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, pWorldItems ) )
 	{
 		//error reading in the items from the Item mod file
-		delete[] pWorldItems;
 		return( FALSE );
 	}
 
@@ -854,21 +847,24 @@ BOOLEAN AddItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT32 sG
 		DeleteTempItemMapFile( sMapX, sMapY, bMapZ );
 	}
 
+	UINT16 uiLastFoundSpot = 0;
 	//loop through all the objects to add
 	for( uiLoop1=0; uiLoop1 < uiNumberOfItemsToAdd; uiLoop1++)
 	{
 		//Loop through the array to see if there is a free spot to add an item to it
-		for( cnt=0; cnt < uiNumberOfItems; cnt++)
+		for( cnt=uiLastFoundSpot; cnt < uiNumberOfItems; cnt++)
 		{
 			if( pWorldItems[ cnt ].fExists == FALSE )
 			{
+				// anv: remember first found free spot to not loop through entire inventory again for next added items
+				uiLastFoundSpot = cnt;
 				//We have found a free spot, break
 				break;
-			}
-		}
+			}		}
 
 		if( cnt == ( uiNumberOfItems ) )
 		{
+#if 0//dnl ch75 271013
 			//Error, there wasnt a free spot.  Reallocate memory for the array
 			WORLDITEM* pTemp = new WORLDITEM[uiNumberOfItems + 1];
 			if( pTemp == NULL )
@@ -887,6 +883,9 @@ BOOLEAN AddItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT32 sG
 
 			//set the spot were the item is to be added
 			cnt = uiNumberOfItems - 1;
+#else
+			pWorldItems.resize(++uiNumberOfItems);
+#endif
 		}
 
 		pWorldItems[ cnt ].fExists = TRUE;
@@ -908,14 +907,21 @@ BOOLEAN AddItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT32 sG
 
 
 		pWorldItems[ cnt ].object = pObject[uiLoop1];
+
+		if ( (*pObject)[uiLoop1]->data.sObjectFlag & TAKEN_BY_MILITIA_TABOO_GREEN )
+		{
+			(*pObject)[uiLoop1]->data.sObjectFlag &= ~TAKEN_BY_MILITIA_TABOO_GREEN;
+			pWorldItems[ cnt ].usFlags |= WORLD_ITEM_TABOO_FOR_MILITIA_EQ_GREEN;
+		}
+		if ( (*pObject)[uiLoop1]->data.sObjectFlag & TAKEN_BY_MILITIA_TABOO_BLUE )
+		{
+			(*pObject)[uiLoop1]->data.sObjectFlag &= ~TAKEN_BY_MILITIA_TABOO_BLUE;
+			pWorldItems[ cnt ].usFlags |= WORLD_ITEM_TABOO_FOR_MILITIA_EQ_BLUE;
+		}
 	}
 
 	//Save the Items to the the file
 	SaveWorldItemsToTempItemFile( sMapX, sMapY, bMapZ, uiNumberOfItems, pWorldItems );
-
-
-	//Free the memory used to load in the item array
-	delete[]( pWorldItems );
 
 	return( TRUE );
 }
@@ -931,12 +937,15 @@ BOOLEAN SaveCurrentSectorsInformationToTempItemFile( )
 		gfWasInMeanwhile = FALSE;
 		return TRUE;
 	}
+#ifdef JA2UB
+//Ja25v No meanwhiles
+#else
 	else if( AreInMeanwhile() )
 	{
 		gfInMeanwhile = FALSE;
 		fShouldBeInMeanwhile = TRUE;
 	}
-
+#endif
 	//If we havent been to tactical yet
 	if( ( gWorldSectorX == 0 ) && ( gWorldSectorY == 0 ) )
 	{
@@ -947,6 +956,9 @@ BOOLEAN SaveCurrentSectorsInformationToTempItemFile( )
 
 	//Save the Blood, smell and the revealed status for map elements
 	SaveBloodSmellAndRevealedStatesFromMapToTempFile();
+
+	// sevenfm
+	SaveMineFlagFromMapToTempFile();
 
 	// handle all reachable before save
 	HandleAllReachAbleItemsInTheSector( gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
@@ -1037,11 +1049,14 @@ BOOLEAN SaveCurrentSectorsInformationToTempItemFile( )
 
 	EnableModifiedFileSetCache(cacheResetValue);
 
+#ifdef JA2UB
+//Ja25 no meanwhile
+#else
 	if( fShouldBeInMeanwhile )
 	{
 		gfInMeanwhile = TRUE;
 	}
-
+#endif
 	return( TRUE );
 }
 
@@ -1196,7 +1211,9 @@ BOOLEAN LoadCurrentSectorsInformationFromTempItemsFile()
 	//
 	// Load in the sectors ITems
 	//
-
+#ifdef JA2UB
+//Ja25v no meanwhiles
+#else
 	if( AreInMeanwhile() )
 	{ //There will never be a temp file for the meanwhile scene, so return TRUE.  However,
 		//set a flag to not save it either!
@@ -1217,7 +1234,7 @@ BOOLEAN LoadCurrentSectorsInformationFromTempItemsFile()
 		}
 		return TRUE;
 	}
-
+#endif
 	//if we are in an above ground sector
 
 	//If there is a file, load in the Items array
@@ -1369,6 +1386,35 @@ void SetLastTimePlayerWasInSector()
 	}
 }
 
+// Flugente: set last time sector was visited
+void SetLastTimePlayerWasInSector(INT16 sMapX, INT16 sMapY, INT8 sMapZ)
+{
+	if( !sMapZ )
+		SectorInfo[ SECTOR( sMapX,sMapY) ].uiTimeCurrentSectorWasLastLoaded = GetWorldTotalMin();
+	else if( sMapZ > 0 )
+	{
+		UNDERGROUND_SECTORINFO *pTempNode = gpUndergroundSectorInfoHead;
+
+		pTempNode = gpUndergroundSectorInfoHead;
+
+		//loop through and look for the right underground sector
+		while( pTempNode )
+		{
+			if( ( pTempNode->ubSectorX == sMapX ) &&
+					( pTempNode->ubSectorY == sMapY ) &&
+					( pTempNode->ubSectorZ == sMapZ ) )
+			{
+				//set the flag indicating that ther is a temp item file exists for the sector
+				pTempNode->uiTimeCurrentSectorWasLastLoaded = GetWorldTotalMin();
+				return;	//break out
+			}
+			pTempNode = pTempNode->next;
+		}
+		#ifdef JA2TESTVERSION
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Failed to Set the 'uiTimeCurrentSectorWasLastLoaded' for an underground sector" );
+		#endif
+	}
+}
 
 
 UINT32 GetLastTimePlayerWasInSector()
@@ -1403,15 +1449,48 @@ UINT32 GetLastTimePlayerWasInSector()
 	return( 0 );
 }
 
+// Flugente: get time for another sector
+UINT32 GetLastTimePlayerWasInSector(INT16 sMapX, INT16 sMapY, INT8 sMapZ)
+{
+	if( !sMapZ )
+		return( SectorInfo[ SECTOR( sMapX,sMapY) ].uiTimeCurrentSectorWasLastLoaded );
+	else if( sMapZ > 0 )
+	{
+		UNDERGROUND_SECTORINFO *pTempNode = gpUndergroundSectorInfoHead;
+
+		pTempNode = gpUndergroundSectorInfoHead;
+
+		//loop through and look for the right underground sector
+		while( pTempNode )
+		{
+			if( ( pTempNode->ubSectorX == sMapX ) &&
+					( pTempNode->ubSectorY == sMapY ) &&
+					( pTempNode->ubSectorZ == sMapZ ) )
+			{
+				//set the flag indicating that ther is a temp item file exists for the sector
+				return( pTempNode->uiTimeCurrentSectorWasLastLoaded );
+			}
+			pTempNode = pTempNode->next;
+		}
+
+		#ifdef JA2TESTVERSION
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Failed to Get the 'uiTimeCurrentSectorWasLastLoaded' from an underground sector" );
+		#endif
+
+		return( 0 );
+	}
+	return( 0 );
+}
+
 
 
 
 BOOLEAN LoadAndAddWorldItemsFromTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 {
 	UINT32	uiNumberOfItems=0;
-	WORLDITEM *pWorldItems = NULL;
+	std::vector<WORLDITEM> pWorldItems;//dnl ch75 271013
 	UINT32	cnt;
-  INT32 sNewGridNo;
+	INT32 sNewGridNo;
 
 	//Get the number of items from the file
 	if( !GetNumberOfWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, &uiNumberOfItems, TRUE ) )
@@ -1422,12 +1501,7 @@ BOOLEAN LoadAndAddWorldItemsFromTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 
 	if( uiNumberOfItems )
 	{
-		pWorldItems = new WORLDITEM[ uiNumberOfItems ];
-		if( pWorldItems == NULL )
-		{
-			//Error Allocating memory for the temp item array
-			return( FALSE );
-		}
+		pWorldItems.resize(uiNumberOfItems);//dnl ch75 271013
 	}
 	else
 	{
@@ -1452,7 +1526,6 @@ BOOLEAN LoadAndAddWorldItemsFromTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 	//Load the World Items from the file
 	if( !LoadWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, pWorldItems ) )
 	{
-		delete[]( pWorldItems );
 		return( FALSE );
 	}
 
@@ -1504,8 +1577,6 @@ BOOLEAN LoadAndAddWorldItemsFromTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 			AddItemToPool( pWorldItems[cnt].sGridNo, &pWorldItems[cnt].object, pWorldItems[cnt].bVisible, pWorldItems[cnt].ubLevel, pWorldItems[cnt].usFlags, pWorldItems[cnt].bRenderZHeightAboveLevel, pWorldItems[cnt].soldierID );
 		}
 	}
-
-	delete[]( pWorldItems );
 
 	return( TRUE );
 }
@@ -1733,11 +1804,10 @@ BOOLEAN LoadRottingCorpsesFromTempCorpseFile( INT16 sMapX, INT16 sMapY, INT8 bMa
 		FileClose( hFile );
 		return( FALSE );
 	}
-
+	
 	// WANNE: If we get wrong data (very high value) from the temp file, we assume we have wrong value and therefore set corpses to 0 which will not crash the game!
 	if (uiNumberOfCorpses > 10000)
 		uiNumberOfCorpses = 0;
-
 
   // Get town ID for use later....
 	bTownId = GetTownIdForSector( gWorldSectorX, gWorldSectorY );
@@ -1838,12 +1908,12 @@ BOOLEAN LoadRottingCorpsesFromTempCorpseFile( INT16 sMapX, INT16 sMapY, INT8 bMa
 // Rewritten to load the temp file once, update with the list, and then write it.  This was getting insane as items piled up in sectors.
 // A few dozen read, update, writes was okay but a few hundred is pushing it.
 
-BOOLEAN AddWorldItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT32 sGridNo, UINT32 uiNumberOfItemsToAdd, WORLDITEM *pWorldItem, BOOLEAN fOverWrite )
+BOOLEAN AddWorldItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT32 sGridNo, UINT32 uiNumberOfItemsToAdd, std::vector<WORLDITEM>& pWorldItem, BOOLEAN fOverWrite )//dnl ch75 271013
 {
 	UINT32 uiLoop;
 	UINT32 uiLastItemPos;
 	UINT32 uiNumberOfItems;
-	WORLDITEM *pWorldItems;
+	std::vector<WORLDITEM> pWorldItems;//dnl ch75 271013
 
 	if( !GetNumberOfWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, &uiNumberOfItems, TRUE ) )
 	{
@@ -1852,21 +1922,14 @@ BOOLEAN AddWorldItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT
 	}
 
 	//Allocate memory for the item
-	pWorldItems = new WORLDITEM[ uiNumberOfItems ];
-	if( pWorldItems == NULL )
-	{
-		//Error Allocating memory for the temp item array
-		return( FALSE );
-	}
+	pWorldItems.resize(uiNumberOfItems);//dnl ch75 271013
 
 	//Load in the sectors Item Info
 	if( !LoadWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, pWorldItems ) )
 	{
 		//error reading in the items from the Item mod file
-		delete[] pWorldItems;
 		return( FALSE );
 	}
-
 
 	//if we are to replace the entire file
 	if( fOverWrite )
@@ -1896,6 +1959,7 @@ BOOLEAN AddWorldItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT
 
 		if( uiLastItemPos == ( uiNumberOfItems ) )
 		{
+#if 0//dnl ch75 271013
 			//Error, there wasnt a free spot.  Reallocate memory for the array
 			WORLDITEM* pTemp;
 			pTemp = new WORLDITEM [uiNumberOfItems + 1];
@@ -1912,6 +1976,9 @@ BOOLEAN AddWorldItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT
 
 			//Increment the total number of item in the array
 			uiNumberOfItems++;
+#else
+			pWorldItems.resize(++uiNumberOfItems);
+#endif
 		}
 
 		pWorldItems[ uiLastItemPos ].fExists = TRUE;
@@ -1937,10 +2004,6 @@ BOOLEAN AddWorldItemsToUnLoadedSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, INT
 
 	//Save the Items to the the file
 	SaveWorldItemsToTempItemFile( sMapX, sMapY, bMapZ, uiNumberOfItems, pWorldItems );
-
-
-	//Free the memory used to load in the item array
-	delete[]( pWorldItems );
 
 #if 0
 // The old excruciatingly inefficient code
@@ -2168,7 +2231,7 @@ void LoadNPCInformationFromProfileStruct()
 BOOLEAN GetNumberOfActiveWorldItemsFromTempFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ, UINT32 *pNumberOfData )
 {
 	UINT32	uiNumberOfItems=0;
-	WORLDITEM *pWorldItems;
+	std::vector<WORLDITEM> pWorldItems;//dnl ch75 271013
 	UINT32	cnt;
 	UINT32	uiNumberOfActive=0;
 	BOOLEAN	fFileLoaded = FALSE;
@@ -2213,12 +2276,7 @@ BOOLEAN GetNumberOfActiveWorldItemsFromTempFile( INT16 sMapX, INT16 sMapY, INT8 
 		//If there items in the data file
 		if( uiNumberOfItems != 0 )
 		{
-			pWorldItems = new WORLDITEM[ uiNumberOfItems ];
-			if( pWorldItems == NULL )
-			{
-				//Error Allocating memory for the temp item array
-				return( FALSE );
-			}
+			pWorldItems.resize(uiNumberOfItems);//dnl ch75 271013
 
 			//Load the World Items from the file
 			if( !LoadWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, pWorldItems ) )
@@ -2230,7 +2288,6 @@ BOOLEAN GetNumberOfActiveWorldItemsFromTempFile( INT16 sMapX, INT16 sMapY, INT8 
 				if( pWorldItems[cnt].fExists )
 					uiNumberOfActive++;
 			}
-			delete[]( pWorldItems );
 		}
 		*pNumberOfData = uiNumberOfActive;
 	}
@@ -2747,8 +2804,8 @@ BOOLEAN GetSectorFlagStatus( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, UINT32 uiFla
 BOOLEAN AddDeadSoldierToUnLoadedSector( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT32 uiFlags )
 {
 	UINT32			uiNumberOfItems;
-	WORLDITEM		*pWorldItems=NULL;
-	UINT				i;
+	std::vector<WORLDITEM> pWorldItems;//dnl ch75 271013
+	UINT8				i;
 	UINT8				bCount=0;
 	UINT16			uiFlagsForWorldItems=0;
 	UINT16			usFlagsForRottingCorpse=0;
@@ -2782,7 +2839,8 @@ BOOLEAN AddDeadSoldierToUnLoadedSector( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, S
 
 	//go through and and find out how many items there are
 	uiNumberOfItems = 0;
-	for ( i = 0; i < pSoldier->inv.size(); i++ )
+	UINT8 invsize = pSoldier->inv.size();
+	for ( i = 0; i < invsize; ++i )
 	{
 		if( pSoldier->inv[ i ].exists() == true )
 		{
@@ -2800,8 +2858,7 @@ BOOLEAN AddDeadSoldierToUnLoadedSector( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, S
 			//if the item can be dropped
 			if( !( pSoldier->inv[ i ].fFlags & OBJECT_UNDROPPABLE ) || pSoldier->bTeam == gbPlayerNum )
 			{
-
-        uiNumberOfItems++;
+				++uiNumberOfItems;
 			}
 		}
 	}
@@ -2816,16 +2873,11 @@ BOOLEAN AddDeadSoldierToUnLoadedSector( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, S
 	if( uiNumberOfItems )
 	{
 		//allocate memory for the world item array
-		pWorldItems = new WORLDITEM[ uiNumberOfItems ];
-		if( pWorldItems == NULL )
-		{
-			//Error Allocating memory for the temp item array
-			return( FALSE );
-		}
+		pWorldItems.resize(uiNumberOfItems);//dnl ch75 271013
 
 		//loop through all the soldiers items and add them to the world item array
 		bCount = 0;
-		for ( i = 0; i < pSoldier->inv.size(); i++ )
+		for ( i = 0; i < invsize; ++i )
 		{
 			if( pSoldier->inv[ i ].exists() == true )
 			{
@@ -2847,7 +2899,7 @@ BOOLEAN AddDeadSoldierToUnLoadedSector( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, S
 						pSoldier->inv[i][0]->data.objectStatus = max(pSoldier->inv[i][0]->data.objectStatus,1); // never below 1%
 					}
 					pWorldItems[ bCount ].object = pSoldier->inv[i];
-					bCount++;
+					++bCount;
 				}
 			}
 		}
@@ -2857,7 +2909,7 @@ BOOLEAN AddDeadSoldierToUnLoadedSector( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, S
 
 		//CHRISL: Now that we've copied the dead soldiers items to pWorldItems, we need to actually remove the items from the dead soldier.  Otherwise we have
 		//	actually duplicated the items and there's a chance that these duplicated items will again find their way to sector.
-		for ( i = 0; i < pSoldier->inv.size(); i++ )
+		for ( i = 0; i < invsize; ++i )
 		{
 			if( pSoldier->inv[ i ].exists() == true )
 			{
@@ -2912,10 +2964,6 @@ BOOLEAN AddDeadSoldierToUnLoadedSector( INT16 sMapX, INT16 sMapY, UINT8 bMapZ, S
 	//Add the rotting corpse info to the sectors unloaded rotting corpse file
 	AddRottingCorpseToUnloadedSectorsRottingCorpseFile( sMapX, sMapY, bMapZ, &Corpse);
 
-	//FRee the memory used for the pWorldItem array
-	delete[]( pWorldItems );
-	pWorldItems = NULL;
-
 	return( TRUE );
 }
 
@@ -2956,7 +3004,8 @@ UINT32 LBENODEChecksum( LBENODE * pNode )
 	uiChecksum *= (pNode->lbeIndex +1);
 	uiChecksum += (pNode->ubID +1);
 
-	for ( uiLoop = 0; uiLoop < pNode->inv.size(); uiLoop++ )
+	UINT32 invsize = pNode->inv.size();
+	for ( uiLoop = 0; uiLoop < invsize; ++uiLoop )
 	{
 		uiChecksum += pNode->inv[ uiLoop ].usItem;
 	}
@@ -3282,26 +3331,28 @@ void	SetNumberOfVisibleWorldItemsInSectorStructureForSector( INT16 sMapX, INT16 
 	}
 }
 
-
+//Moa 09/19/13: changed loop upperbound from uiTotalNumberOfRealItems to uiTotalNumberOfItems, 
+// this effectivly removes one entire loop in GetNumberOfActiveWorldItemsFromTempFile and 2 file reads.
+// also changed type of iCounter from INT32 to UINT32 and for in if-clauses from true to TRUE to get rid of unneccessary casts.
 void SynchronizeItemTempFileVisbleItemsToSectorInfoVisbleItems( INT16 sMapX, INT16 sMapY, INT8 bMapZ, BOOLEAN fLoadingGame )
 {
-	UINT32 uiTotalNumberOfItems = 0, uiTotalNumberOfRealItems = 0;
-	WORLDITEM * pTotalSectorList = NULL;
+	UINT32 uiTotalNumberOfItems = 0;//, uiTotalNumberOfRealItems = 0;
+	std::vector<WORLDITEM> pTotalSectorList;//dnl ch75 271013
 	UINT32 uiItemCount = 0;
-	INT32 iCounter = 0;
+	UINT32 iCounter = 0;
 	BOOLEAN	fReturn;
 
-
+	/*
 	// get total number, visable and invisible
 	fReturn = GetNumberOfActiveWorldItemsFromTempFile( sMapX, sMapY, bMapZ, &( uiTotalNumberOfRealItems ) );
-	if (fReturn == false)
+	if (fReturn == TRUE)
 	{
 		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("GetNumberOfActiveWorldItemsFromTempFile failed" ) );
 		Assert( fReturn );
-	}
+	}*/
 
 	fReturn = GetNumberOfWorldItemsFromTempItemFile( sMapX, sMapY, bMapZ, &( uiTotalNumberOfItems ), FALSE );
-	if (fReturn == false)
+	if (fReturn == TRUE)
 	{
 		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("GetNumberOfWorldItemsFromTempItemFile failed" ) );
 		Assert( fReturn );
@@ -3310,27 +3361,21 @@ void SynchronizeItemTempFileVisbleItemsToSectorInfoVisbleItems( INT16 sMapX, INT
 	if( uiTotalNumberOfItems > 0 )
 	{
 		// allocate space for the list
-		pTotalSectorList = new WORLDITEM[ uiTotalNumberOfItems ];
+		pTotalSectorList.resize(uiTotalNumberOfItems);//dnl ch75 271013
 
 		// now load into mem
 		LoadWorldItemsFromTempItemFile(  sMapX,  sMapY, bMapZ, pTotalSectorList );
 	}
 
 	// now run through list and
-	for( iCounter = 0; ( UINT32 )( iCounter )< uiTotalNumberOfRealItems; iCounter++ )
+	//for( iCounter = 0; ( UINT32 )( iCounter )< uiTotalNumberOfRealItems; iCounter++ )
+	for( iCounter = 0; iCounter < uiTotalNumberOfItems; iCounter++ )
 	{
 		// if visible to player, then state fact
 		if( IsMapScreenWorldItemVisibleInMapInventory( &pTotalSectorList[ iCounter ] ) )
 		{
 			uiItemCount += pTotalSectorList[ iCounter ].object.ubNumberOfObjects;
 		}
-	}
-
-	// if anything was alloced, then get rid of it
-	if( pTotalSectorList != NULL )
-	{
-		delete[]( pTotalSectorList );
-		pTotalSectorList = NULL;
 	}
 
 	#ifdef JA2BETAVERSION

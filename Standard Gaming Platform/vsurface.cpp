@@ -15,7 +15,6 @@
 #include "himage.h"
 #include "vsurface.h"
 #include "vsurface_private.h"
-#include "video_private.h"
 #include "wcheck.h"
 #include "vobject_blitters.h"
 #endif
@@ -454,9 +453,9 @@ BYTE *LockVideoSurface( UINT32 uiVSurface, UINT32 *puiPitch )
 {
 	VSURFACE_NODE *curr;
 
-#ifdef WINFONTS
-	CurrentSurface = uiVSurface;
-#endif
+    if ( iUseWinFonts ) {
+	    CurrentSurface = uiVSurface;
+    }
 	//
 	// Check if given backbuffer or primary buffer
 	//
@@ -1853,13 +1852,13 @@ BOOLEAN RemoveVSurfaceRegion( HVSURFACE hVSurface, UINT16 usIndex )
 
 BOOLEAN ClearAllVSurfaceRegions( HVSURFACE hVSurface )
 {
-	UINT32 uiListSize, cnt;
+	UINT32 uiListSize;
 
 	Assert( hVSurface != NULL );
 
 	uiListSize = ListSize( hVSurface->RegionList );
 
-	for ( cnt = uiListSize - 1; cnt >= 0; cnt-- )
+	for ( INT32 cnt = uiListSize - 1; cnt >= 0; cnt-- )
 	{
 		RemoveVSurfaceRegion( hVSurface, (UINT16)cnt );
 	}

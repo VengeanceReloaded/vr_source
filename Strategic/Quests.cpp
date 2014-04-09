@@ -36,9 +36,21 @@
 #include "BobbyRMailOrder.h"
 #include "connect.h"
 
-// anv: for MIA
-#include "files.h"
-#include "Soldier Profile.h"
+#ifdef JA2UB
+#include "email.h"
+#include "Strategic Merc Handler.h"
+#include "laptop.h"
+#include "Ja25 Strategic Ai.h"
+#include "ub_config.h"
+#include "Ja25_Tactical.h"
+#endif
+
+#include "LuaInitNPCs.h"
+
+#include "Luaglobal.h"
+
+// anv: Waldo The Mechanic - for fact checking with helicopter
+#include "Vehicles.h"
 
 #define TESTQUESTS
 
@@ -53,8 +65,11 @@ INT16	gsFoodQuestSectorY;
 
 extern void	GuaranteeAtLeastXItemsOfIndex( UINT8 ubArmsDealer, UINT16 usItemIndex, UINT8 ubHowMany );
 
+extern void GiveQuestRewardPoint( INT16 sQuestSectorX, INT16 sQuestsSectorY, INT8 bExpReward, UINT8 bException );
 
-
+// anv: VR - for MIA
+#include "files.h"
+#include "Soldier Profile.h"
 
 void SetFactTrue( UINT16 usFact )
 {
@@ -350,25 +365,25 @@ BOOLEAN CheckNPCIsRPC( UINT8 ubProfileID )
 	}
 	return( (pNPC->ubWhatKindOfMercAmI == MERC_TYPE__NPC ) );
 }
-
-BOOLEAN NPCInRoom( UINT8 ubProfileID, UINT8 ubRoomID )
+//DBrot: More Rooms
+BOOLEAN NPCInRoom( UINT8 ubProfileID, UINT16 usRoomID )
 {
 	SOLDIERTYPE *		pNPC;
 
 	pNPC = FindSoldierByProfileID( ubProfileID, FALSE );
-	if ( !pNPC || (gubWorldRoomInfo[ pNPC->sGridNo ] != ubRoomID) )
+	if ( !pNPC || (gusWorldRoomInfo[ pNPC->sGridNo ] != usRoomID) )
 	{
 		return( FALSE );
 	}
 	return( TRUE );
 }
-
-BOOLEAN NPCInRoomRange( UINT8 ubProfileID, UINT8 ubRoomID1, UINT8 ubRoomID2 )
+//DBrot: More Rooms
+BOOLEAN NPCInRoomRange( UINT8 ubProfileID, UINT16 usRoomID1, UINT16 usRoomID2 )
 {
 	SOLDIERTYPE *		pNPC;
 
 	pNPC = FindSoldierByProfileID( ubProfileID, FALSE );
-	if ( !pNPC || (gubWorldRoomInfo[ pNPC->sGridNo ] < ubRoomID1) || (gubWorldRoomInfo[ pNPC->sGridNo ] > ubRoomID2) )
+	if ( !pNPC || (gusWorldRoomInfo[ pNPC->sGridNo ] < usRoomID1) || (gusWorldRoomInfo[ pNPC->sGridNo ] > usRoomID2) )
 	{
 		return( FALSE );
 	}
@@ -378,7 +393,9 @@ BOOLEAN NPCInRoomRange( UINT8 ubProfileID, UINT8 ubRoomID1, UINT8 ubRoomID2 )
 BOOLEAN PCInSameRoom( UINT8 ubProfileID )
 {
 	SOLDIERTYPE *		pNPC;
-	UINT8						ubRoom;
+	//DBrot: More Rooms
+	//UINT8						ubRoom;
+	UINT16 usRoom;
 	INT8		bLoop;
 	SOLDIERTYPE * pSoldier;
 
@@ -387,14 +404,14 @@ BOOLEAN PCInSameRoom( UINT8 ubProfileID )
 	{
 		return( FALSE );
 	}
-	ubRoom = gubWorldRoomInfo[ pNPC->sGridNo ];
+	usRoom = gusWorldRoomInfo[ pNPC->sGridNo ];
 
 	for ( bLoop = gTacticalStatus.Team[ gbPlayerNum ].bFirstID; bLoop <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; bLoop++ )
 	{
 		pSoldier = MercPtrs[ bLoop ];
 		if ( pSoldier && pSoldier->bActive && pSoldier->bInSector )
 		{
-			if ( gubWorldRoomInfo[ pSoldier->sGridNo ] == ubRoom )
+			if ( gusWorldRoomInfo[ pSoldier->sGridNo ] == usRoom )
 			{
 				return( TRUE );
 			}
@@ -735,14 +752,23 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Quests");
 
 BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 {
+
+
+//	LuaCheckFact ( usFact, ubProfileID, 0 );
+
+//#if 0
 	INT8 bTown = -1;
 
 
 	switch( usFact )
 	{
+#ifdef JA2UB
+//Ja25 No dimitri
+#else
 		case FACT_DIMITRI_DEAD:
 			gubFact[ usFact ] = (gMercProfiles[ DIMITRI ].bMercStatus == MERC_IS_DEAD );
 			break;
+#endif
 		case FACT_CURRENT_SECTOR_IS_SAFE:
 			gubFact[FACT_CURRENT_SECTOR_IS_SAFE] = !( ( (gTacticalStatus.fEnemyInSector && NPCHeardShot( ubProfileID ) ) || gTacticalStatus.uiFlags & INCOMBAT ) );
 			break;
@@ -785,11 +811,14 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 		case FACT_NPC_WOUNDED_BY_PLAYER:
 			gubFact[FACT_NPC_WOUNDED_BY_PLAYER] = CheckNPCWounded( ubProfileID, TRUE );
 			break;
+#ifdef JA2UB
+// no ja25 UB
+#else
 		case FACT_IRA_NOT_PRESENT:
 			gubFact[FACT_IRA_NOT_PRESENT] = !CheckNPCWithin( ubProfileID, IRA, 10 );
 			break;
 		case FACT_IRA_TALKING:
-			gubFact[FACT_IRA_TALKING] = ( gubSrcSoldierProfile == 59 );
+			gubFact[FACT_IRA_TALKING] = ( gubSrcSoldierProfile == IRA );
 			break;
 		case FACT_IRA_UNHIRED_AND_ALIVE:
 			if ( gMercProfiles[ IRA ].bMercStatus != MERC_IS_DEAD && CheckNPCSector( IRA, 10, 1, 1) && !(gMercProfiles[IRA].ubMiscFlags & PROFILE_MISC_FLAG_RECRUITED) )
@@ -801,6 +830,7 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 				gubFact[FACT_IRA_UNHIRED_AND_ALIVE] = FALSE;
 			}
 			break;
+#endif
 		case FACT_NPC_BLEEDING:
 			gubFact[FACT_NPC_BLEEDING] = CheckNPCBleeding( ubProfileID );
 			break;
@@ -814,7 +844,9 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 				gubFact[FACT_NPC_BLEEDING_BUT_OKAY] = FALSE;
 			}
 			break;
-
+#ifdef JA2UB
+//Ja25: NO Carmen
+#else
 		case FACT_PLAYER_HAS_HEAD_AND_CARMEN_IN_SAN_MONA:
 			gubFact[usFact] = (CheckNPCSector( CARMEN, 5, MAP_ROW_C, 0 ) && CheckPlayerHasHead() );
 			break;
@@ -826,7 +858,7 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 		case FACT_PLAYER_HAS_HEAD_AND_CARMEN_IN_DRASSEN:
 			gubFact[usFact] = (CheckNPCSector( CARMEN, 13, MAP_ROW_C, 0 ) && CheckPlayerHasHead() );
 			break;
-
+#endif
 		case FACT_NPC_OWED_MONEY:
 			gubFact[FACT_NPC_OWED_MONEY] = (gMercProfiles[ubProfileID].iBalance < 0);
 			break;
@@ -841,33 +873,33 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 
 		case FACT_BRENDA_IN_STORE_AND_ALIVE:
 			// ensure alive
-			if ( gMercProfiles[ 85 ].bMercStatus == MERC_IS_DEAD)
+			if ( gMercProfiles[ BRENDA ].bMercStatus == MERC_IS_DEAD)
 			{
 				gubFact[FACT_BRENDA_IN_STORE_AND_ALIVE] = FALSE;
 			}
 			// ensure in a building and nearby
-			else if ( !(NPCInRoom( 85, 47 ) )	)
+			else if ( !(NPCInRoom( BRENDA, gModSettings.usPornShopRoomBrenda ) )	)
 			{
 				gubFact[FACT_BRENDA_IN_STORE_AND_ALIVE] = FALSE;
 			}
 			else
 			{
-				gubFact[FACT_BRENDA_IN_STORE_AND_ALIVE] = CheckNPCWithin( ubProfileID, 85, 12 );
+				gubFact[FACT_BRENDA_IN_STORE_AND_ALIVE] = CheckNPCWithin( ubProfileID, BRENDA, 12 );
 			}
 			break;
 		case FACT_BRENDA_DEAD:
-			gubFact[FACT_BRENDA_DEAD] = (gMercProfiles[ 85 ].bMercStatus == MERC_IS_DEAD);
+			gubFact[FACT_BRENDA_DEAD] = (gMercProfiles[ BRENDA ].bMercStatus == MERC_IS_DEAD);
 			break;
 		case FACT_NPC_IS_ENEMY:
 			gubFact[FACT_NPC_IS_ENEMY] = CheckNPCIsEnemy( ubProfileID ) || gMercProfiles[ ubProfileID ].ubMiscFlags2 & PROFILE_MISC_FLAG2_NEEDS_TO_SAY_HOSTILE_QUOTE;
 			break;
 			/*
 		case FACT_SKYRIDER_CLOSE_TO_CHOPPER:
-			SetUpHelicopterForPlayer( 13, MAP_ROW_B , SKYRIDER );
+			SetUpHelicopterForPlayer( 13, MAP_ROW_B, gNewVehicle[ HELICOPTER ].NewPilot, HELICOPTER );
 			break;
 			*/
 		case FACT_SPIKE_AT_DOOR:
-			gubFact[FACT_SPIKE_AT_DOOR] = CheckNPCAt( 93, 9817 );
+			gubFact[FACT_SPIKE_AT_DOOR] = CheckNPCAt( SPIKE, 9817 );
 			break;
 		case FACT_WOUNDED_MERCS_NEARBY:
 			gubFact[usFact] = (NumWoundedMercsNearby( ubProfileID ) > 0);
@@ -879,7 +911,7 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			gubFact[usFact] = (NumWoundedMercsNearby( ubProfileID ) > 1);
 			break;
 		case FACT_HANS_AT_SPOT:
-			gubFact[usFact] = CheckNPCAt( 117, 13523 );
+			gubFact[usFact] = CheckNPCAt( HANS, gModSettings.iHansGridNo );
 			break;
 		case FACT_MULTIPLE_MERCS_CLOSE:
 			gubFact[usFact] = ( NumMercsNear( ubProfileID, 3 ) > 1 );
@@ -890,13 +922,6 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 		case FACT_MARIA_ESCORTED:
 			gubFact[usFact] = CheckNPCIsEPC( MARIA );
 			break;
-		case FACT_CONMAN_ESCORTED:
-			gubFact[usFact] = CheckNPCIsEPC( CONMAN );
-			break;
-		case FACT_CONMAN_ESCORTED_TO_BUYER:
-			// G7, Barn -> room number = 1
-			gubFact[usFact] = ( CheckNPCIsEPC( CONMAN ) && (NPCInRoom( CONMAN, 1 )) && (NPCInRoom( ARULCAN_BUYER, 1 )) );
-			break;
 		case FACT_JOEY_ESCORTED:
 			gubFact[usFact] = CheckNPCIsEPC( JOEY );
 			break;
@@ -904,7 +929,7 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			gubFact[usFact] = CheckNPCIsEPC( SKYRIDER );
 			break;
 		case FACT_MARIA_ESCORTED_AT_LEATHER_SHOP:
-			gubFact[usFact] = ( CheckNPCIsEPC( MARIA ) && (NPCInRoom( MARIA, 2 )) );
+			gubFact[usFact] = ( CheckNPCIsEPC( MARIA ) && (NPCInRoom( MARIA, gModSettings.usLeatherShop )) );
 			break;
 		case FACT_PC_STRONG_AND_LESS_THAN_3_MALES_PRESENT:
 			gubFact[usFact] = ( CheckTalkerStrong() && (NumMalesPresent( ubProfileID ) < 3) );
@@ -916,13 +941,13 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			gubFact[usFact] = CheckTalkerFemale();
 			break;
 		case FACT_CARMEN_IN_C5:
-			gubFact[usFact] = CheckNPCSector( 78, 5, MAP_ROW_C, 0 );
+			gubFact[usFact] = CheckNPCSector( CARMEN, 5, MAP_ROW_C, 0 );
 			break;
 		case FACT_JOEY_IN_C5:
-			gubFact[usFact] = CheckNPCSector( 90, 5, MAP_ROW_C, 0 );
+			gubFact[usFact] = CheckNPCSector( JOEY, 5, MAP_ROW_C, 0 );
 			break;
 		case FACT_JOEY_NEAR_MARTHA:
-			gubFact[usFact] = CheckNPCWithin( 90, 109, 5 ) && ( CheckGuyVisible( MARTHA, JOEY ) || CheckGuyVisible( JOEY, MARTHA ) );
+			gubFact[usFact] = CheckNPCWithin( JOEY, MARTHA, 5 ) && ( CheckGuyVisible( MARTHA, JOEY ) || CheckGuyVisible( JOEY, MARTHA ) );
 			break;
 		case FACT_JOEY_DEAD:
 			gubFact[usFact] = gMercProfiles[ JOEY ].bMercStatus == MERC_IS_DEAD;
@@ -943,7 +968,7 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			gubFact[usFact] = ( gWorldSectorX == 13 && gWorldSectorY == MAP_ROW_C && gbWorldSectorZ == 0 );
 			break;
 		case FACT_CARMEN_HAS_TEN_THOUSAND:
-			gubFact[usFact] = ( gMercProfiles[ 78 ].uiMoney >= 10000 );
+			gubFact[usFact] = ( gMercProfiles[ CARMEN ].uiMoney >= 10000 );
 			break;
 		case FACT_SLAY_IN_SECTOR:
 			gubFact[usFact] = (gMercProfiles[ SLAY ].sSectorX == gWorldSectorX && gMercProfiles[ SLAY ].sSectorY == gWorldSectorY && gMercProfiles[ SLAY ].bSectorZ == gbWorldSectorZ );
@@ -957,9 +982,13 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 		case FACT_SHANK_NOT_IN_SECTOR:
 			gubFact[usFact] = ( FindSoldierByProfileID( SHANK, FALSE ) == NULL );
 			break;
+#ifdef JA2UB
+//Ja25 No queen
+#else
 		case FACT_QUEEN_DEAD:
 			gubFact[usFact] = (gMercProfiles[ QUEEN ].bMercStatus == MERC_IS_DEAD);
 			break;
+#endif
 		case FACT_MINE_EMPTY:
 			gubFact[usFact] = IsHisMineEmpty( ubProfileID );
 			break;
@@ -979,31 +1008,14 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			gubFact[usFact] = IsHisMineAtMaxProduction( ubProfileID );
 			break;
 		case FACT_DYNAMO_IN_J9:
-			gubFact[usFact] = CheckNPCSector( DYNAMO, 9, MAP_ROW_J, 0 ) && NumEnemiesInAnySector( 9, 10, 0 );
+			gubFact[usFact] = CheckNPCSector( DYNAMO, gModSettings.ubDyanmoCaptiveSectorX, gModSettings.ubDyanmoCaptiveSectorY, gModSettings.ubDyanmoCaptiveSectorZ ) &&
+				NumEnemiesInAnySector( gModSettings.ubDyanmoCaptiveSectorX, gModSettings.ubDyanmoCaptiveSectorY, gModSettings.ubDyanmoCaptiveSectorZ ); //( 9, 10, 0 )
 			break;
 		case FACT_DYNAMO_ALIVE:
 			gubFact[usFact] = ( gMercProfiles[ DYNAMO ].bMercStatus != MERC_IS_DEAD );
 			break;
 		case FACT_DYNAMO_SPEAKING_OR_NEARBY:
 			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == DYNAMO || ( CheckNPCWithin( gpSrcSoldier->ubProfile, DYNAMO, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, DYNAMO ) ) ) );
-			break;
-		case FACT_IVAN_SPEAKING_OR_NEARBY:
-			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == IVAN || ( CheckNPCWithin( gpSrcSoldier->ubProfile, IVAN, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, IVAN ) ) ) );
-			break;
-		case FACT_BUDDY_SPEAKING:			
-			gubFact[usFact] = CheckTalkerIsABuddy();			 
-			break;
-		case FACT_BUDDY_SPEAKING_OR_NEARBY:			
-			gubFact[usFact] = (CheckTalkerIsABuddy() && BuddyPresent( ubProfileID ));			 
-			break;
-		case FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY:			
-			gubFact[usFact] = (CheckTalkerIsABuddy() && SpecificBuddyPresent( ubProfileID, 0 ));			 
-			break;
-		case FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY:			
-			gubFact[usFact] = (CheckTalkerIsABuddy() && SpecificBuddyPresent( ubProfileID, 1 ));			 
-			break;
-		case FACT_IGGY_SPEAKING_OR_NEARBY:
-			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == 140 || ( CheckNPCWithin( gpSrcSoldier->ubProfile, 140, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, 140 ) ) ) );
 			break;
 		case FACT_JOHN_EPC:
 			gubFact[usFact] = CheckNPCIsEPC( JOHN );
@@ -1076,7 +1088,8 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			{
 				// if Skyrider, ignore low loyalty until he has monologues, and wait at least a day since the latest monologue to avoid a hot/cold attitude
 				if ( ( ubProfileID == SKYRIDER ) &&
-						( ( guiHelicopterSkyriderTalkState == 0 ) || ( ( GetWorldTotalMin() - guiTimeOfLastSkyriderMonologue ) < ( 24 * 60 ) ) ) )
+						( ( guiHelicopterSkyriderTalkState == 0 ) || ( ( GetWorldTotalMin() - guiTimeOfLastSkyriderMonologue ) < ( 24 * 60 ) ) || 
+						( gHelicopterSettings.fHelicopterTownLoyaltyCheck == FALSE ) ) )
 				{
 					gubFact[usFact] = FALSE;
 				}
@@ -1116,21 +1129,33 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			break;
 
 		case FACT_PLAYER_OWNS_2_TOWNS_INCLUDING_OMERTA:
+#ifdef JA2UB
+//UB
+#else
 			gubFact[usFact] = ( ( GetNumberOfWholeTownsUnderControl() == gGameExternalOptions.ubEarlyRebelsRecruitment[1] || gGameExternalOptions.ubEarlyRebelsRecruitment[0] == 1 
 								|| ( gubQuest[QUEST_FOOD_ROUTE] == QUESTDONE && gGameExternalOptions.ubEarlyRebelsRecruitment[0] == 4 ) ) && IsTownUnderCompleteControlByPlayer( OMERTA ) );
+#endif
 			break;
 
 		case FACT_PLAYER_OWNS_3_TOWNS_INCLUDING_OMERTA:
+#ifdef JA2UB
+//UB
+#else
 			gubFact[usFact] = ( ( GetNumberOfWholeTownsUnderControl() == gGameExternalOptions.ubEarlyRebelsRecruitment[2] || gGameExternalOptions.ubEarlyRebelsRecruitment[0] == 1 
 								|| ( gubQuest[QUEST_FOOD_ROUTE] == QUESTDONE && gGameExternalOptions.ubEarlyRebelsRecruitment[0] == 4 ) ) && IsTownUnderCompleteControlByPlayer( OMERTA ) );
+#endif
 			break;
 
 		case FACT_PLAYER_OWNS_4_TOWNS_INCLUDING_OMERTA:
+#ifdef JA2UB
+//UB
+#else
 			gubFact[usFact] = ( ( GetNumberOfWholeTownsUnderControl() >= gGameExternalOptions.ubEarlyRebelsRecruitment[3] || gGameExternalOptions.ubEarlyRebelsRecruitment[0] == 1 
 								|| ( gubQuest[QUEST_FOOD_ROUTE] == QUESTDONE && gGameExternalOptions.ubEarlyRebelsRecruitment[0] == 4 ) ) && IsTownUnderCompleteControlByPlayer( OMERTA ) );
 			// silversurfer: this is the highest requirement and therefore we will automatically enable recruitment of Miguel
 			if ( gubFact[usFact] )
-				SetFactTrue(40); // Miguel will now be willing to join and so will the other RPC
+				SetFactTrue(FACT_MIGUEL_AND_ALL_REBELS_CAN_BE_RECRUITED); // Miguel will now be willing to join and so will the other RPC
+#endif
 			break;
 
 		case FACT_PLAYER_FOUGHT_THREE_TIMES_TODAY:
@@ -1215,7 +1240,8 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			break;
 
 		case FACT_TONY_IN_BUILDING:
-			gubFact[usFact] = CheckNPCSector( TONY, 5, MAP_ROW_C, 0 ) && NPCInRoom( TONY, 50 );
+			gubFact[usFact] = CheckNPCSector( TONY, gModSettings.ubPornShopTonySectorX, gModSettings.ubPornShopTonySectorY, gModSettings.ubPornShopTonySectorZ ) && 
+				NPCInRoom( TONY, gModSettings.usPornShopRoomTony );
 			break;
 
 		case FACT_SHANK_SPEAKING:
@@ -1223,7 +1249,7 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			break;
 
 		case FACT_ROCKET_RIFLE_EXISTS:
-			gubFact[usFact] = ItemTypeExistsAtLocation( 10472, ROCKET_RIFLE, 0, NULL );
+			gubFact[usFact] = ItemTypeExistsAtLocation( gModSettings.sRocketRifleGridNo, ROCKET_RIFLE, 0, NULL );
 			break;
 
 		case FACT_PABLO_ALIVE:
@@ -1237,11 +1263,13 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 		case FACT_WALDO_ALIVE:
 			gubFact[usFact] = gMercProfiles[ WALDO ].bMercStatus != MERC_IS_DEAD;
 			break;
-
+#ifdef JA2UB
+//UB
+#else        
 		case FACT_PERKO_ALIVE:
 			gubFact[usFact] = gMercProfiles[ PERKO ].bMercStatus != MERC_IS_DEAD;
 			break;
-
+#endif
 		case FACT_TONY_ALIVE:
 			gubFact[usFact] = gMercProfiles[ TONY ].bMercStatus != MERC_IS_DEAD;
 			break;
@@ -1356,17 +1384,84 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			gubFact[usFact] = !BoxerExists();
 			break;
 
-		case 245: // Can dimitri be recruited? should be true if already true, OR if Miguel has been recruited already OR is available for recruitment
-			gubFact[usFact] = ( gubFact[usFact] || FindSoldierByProfileID( MIGUEL, TRUE ) || gubFact[40] );
-/*
+		case FACT_DIMITRI_CAN_BE_RECRUITED: // Can dimitri be recruited? should be true if already true, OR if Miguel has been recruited already OR is available for recruitment
+			gubFact[usFact] = ( gubFact[usFact] || FindSoldierByProfileID( MIGUEL, TRUE ) || gubFact[FACT_MIGUEL_AND_ALL_REBELS_CAN_BE_RECRUITED] );
+			break;
+/*			
 		case FACT_:
 			gubFact[usFact] = ;
 			break;
 */
+		// anv: facts for checking if Waldo can repair helicopter
+
+		case FACT_HELI_DAMAGED_CAN_START_REPAIR:
+			gubFact[usFact] = ( gGameExternalOptions.fWaldoCanRepairHelicopter && 
+				!fHelicopterDestroyed && !fHelicopterIsAirBorne && gubHelicopterHitsTaken == 1 &&
+				pVehicleList[ iHelicopterVehicleId ].sSectorX == gMercProfiles[ WALDO ].sSectorX && pVehicleList[ iHelicopterVehicleId ].sSectorY == gMercProfiles[ WALDO ].sSectorY &&
+				LaptopSaveInfo.iCurrentBalance >= CalculateHelicopterRepairCost( FALSE ) &&
+				gubHelicopterHoursToRepair == 0 && CheckFact( FACT_WALDO_MET, 0 ) );
+			break;
+
+		case FACT_HELI_SERIOUSLY_DAMAGED_CAN_START_REPAIR:
+			gubFact[usFact] = ( gGameExternalOptions.fWaldoCanRepairHelicopter && 
+				!fHelicopterDestroyed && !fHelicopterIsAirBorne && gubHelicopterHitsTaken == 2 &&
+				pVehicleList[ iHelicopterVehicleId ].sSectorX == gMercProfiles[ WALDO ].sSectorX && pVehicleList[ iHelicopterVehicleId ].sSectorY == gMercProfiles[ WALDO ].sSectorY && 
+				LaptopSaveInfo.iCurrentBalance >= CalculateHelicopterRepairCost( TRUE ) &&
+				gubHelicopterHoursToRepair == 0 && CheckFact( FACT_WALDO_MET, 0 ) );
+			break;
+
+		case FACT_HELI_GIVEN_MONEY_CAN_START_REPAIR:
+			gubFact[usFact] = ( ( gGameExternalOptions.fWaldoCanRepairHelicopter && 
+				!fHelicopterDestroyed && !fHelicopterIsAirBorne && gubHelicopterHitsTaken > 0 &&
+				pVehicleList[ iHelicopterVehicleId ].sSectorX == gMercProfiles[ WALDO ].sSectorX && pVehicleList[ iHelicopterVehicleId ].sSectorY == gMercProfiles[ WALDO ].sSectorY && 
+				gubHelicopterHoursToRepair == 0 ) &&
+				( CheckFact(FACT_GIVEN_ENOUGH_TO_REPAIR_HELI, 0) || CheckFact(FACT_GIVEN_ENOUGH_TO_SERIOUSLY_REPAIR_HELI, 0) ) && CheckFact( FACT_WALDO_MET, 0 ) );
+			break;
+
+		case FACT_HELI_CANT_START_REPAIR:
+			gubFact[usFact] = ( !CheckFact(FACT_HELI_GIVEN_MONEY_CAN_START_REPAIR, 0) && !CheckFact(FACT_HELICOPTER_IN_PERFECT_CONDITION, 0));
+			break;			
+
+		case FACT_HELICOPTER_IN_PERFECT_CONDITION:
+			gubFact[usFact] = ( gubHelicopterHitsTaken == 0 );
+			break;
+
+		case FACT_HELICOPTER_LOST:
+			gubFact[usFact] = fHelicopterDestroyed;
+			break;
+
+		// anv: VR - facts
+		case FACT_IVAN_SPEAKING_OR_NEARBY:
+			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == IVAN || ( CheckNPCWithin( gpSrcSoldier->ubProfile, IVAN, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, IVAN ) ) ) );
+			break;
+		case FACT_BUDDY_SPEAKING:			
+			gubFact[usFact] = CheckTalkerIsABuddy();			 
+			break;
+		case FACT_BUDDY_SPEAKING_OR_NEARBY:			
+			gubFact[usFact] = (CheckTalkerIsABuddy() && BuddyPresent( ubProfileID ));			 
+			break;
+		case FACT_FIRST_BUDDY_SPEAKING_OR_NEARBY:			
+			gubFact[usFact] = (CheckTalkerIsABuddy() && SpecificBuddyPresent( ubProfileID, 0 ));			 
+			break;
+		case FACT_SECOND_BUDDY_SPEAKING_OR_NEARBY:			
+			gubFact[usFact] = (CheckTalkerIsABuddy() && SpecificBuddyPresent( ubProfileID, 1 ));			 
+			break;
+		case FACT_IGGY_SPEAKING_OR_NEARBY:
+			gubFact[usFact] = ( gpSrcSoldier != NULL && (gpSrcSoldier->ubProfile == 140 || ( CheckNPCWithin( gpSrcSoldier->ubProfile, 140, 10 ) && CheckGuyVisible( gpSrcSoldier->ubProfile, 140 ) ) ) );
+			break;
+		case FACT_CONMAN_ESCORTED:
+			gubFact[usFact] = CheckNPCIsEPC( CONMAN );
+			break;
+		case FACT_CONMAN_ESCORTED_TO_BUYER:
+			// G7, Barn -> room number = 1
+			gubFact[usFact] = ( CheckNPCIsEPC( CONMAN ) && (NPCInRoom( CONMAN, 1 )) && (NPCInRoom( ARULCAN_BUYER, 1 )) );
+			break;
 
 		default:
 			break;
 	}
+	
+//#endif
 	return( gubFact[usFact] );
 }
 
@@ -1378,11 +1473,14 @@ void StartQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY )
 
 void InternalStartQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN fUpdateHistory )
 {
+#ifdef LUA_QUESTS
+		LuaInternalQuest( ubQuest, sSectorX, sSectorY, fUpdateHistory, 1);
+#else
 	if ( gubQuest[ubQuest ] == QUESTNOTSTARTED )
 	{
 		gubQuest[ubQuest] = QUESTINPROGRESS;
-		// VENGEANCE
-		// anv: for adding MIA files on quest start
+
+		// anv: VR - for adding MIA files on quest start
 		switch (ubQuest)
 		{
 			case QUEST_FOOD_ROUTE:
@@ -1397,7 +1495,6 @@ void InternalStartQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN 
 			default :
 				break;
 		}
-		// /VENGEANCE
 	if ( fUpdateHistory )
 	{
 			if (!is_networked)
@@ -1408,6 +1505,7 @@ void InternalStartQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN 
 	{
 		gubQuest[ubQuest] = QUESTINPROGRESS;
 	}
+#endif
 }
 
 void EndQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY )
@@ -1417,6 +1515,11 @@ void EndQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY )
 
 void InternalEndQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN fUpdateHistory )
 {
+
+#ifdef LUA_QUESTS
+		LuaInternalQuest( ubQuest, sSectorX, sSectorY, fUpdateHistory, 0);
+#else
+
 	// SANDRO merc records - quests handled counter
 	if ( gubQuest[ubQuest] != QUESTDONE && fUpdateHistory ) // only public quests
 	{
@@ -1467,16 +1570,13 @@ void InternalEndQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN fU
 				else
 					GiveQuestRewardPoint( sSectorX, sSectorY, 9, NO_PROFILE );
 				break;
+#ifdef JA2UB
+//off
+#else
 			case QUEST_KILL_DEIDRANNA :
 				GiveQuestRewardPoint( sSectorX, sSectorY, 25, NO_PROFILE );
 				break;
-			case QUEST_ESCORT_CONMAN :
-				GiveQuestRewardPoint( sSectorX, sSectorY, 5, NO_PROFILE );
-				break;
-			case QUEST_RETURN_BUYER_MONEY :
-			case QUEST_SELL_FAKE_SAMPLE :
-				GiveQuestRewardPoint( sSectorX, sSectorY, 5, NO_PROFILE );
-				break;
+#endif
 			default :
 				GiveQuestRewardPoint( sSectorX, sSectorY, 4, NO_PROFILE );
 				break;
@@ -1504,6 +1604,60 @@ void InternalEndQuest( UINT8 ubQuest, INT16 sSectorX, INT16 sSectorY, BOOLEAN fU
 		gMercProfiles[ MADAME ].bNPCData = 0;
 		gMercProfiles[ MADAME ].bNPCData2 = 0;
 	}
+	
+#endif
+	
+#ifdef JA2UB	
+	//if the quest is the FIX LAPTOP quest
+	if( ubQuest == QUEST_FIX_LAPTOP && gGameUBOptions.LaptopQuestEnabled == TRUE )
+	{
+		//Set the fact that AIM and MERC should start selling
+		gJa25SaveStruct.fHaveAimandMercOffferItems = TRUE;
+
+		//Remeber that we should send email in the next sector
+		gJa25SaveStruct.fSendEmail_10_NextSector = TRUE;
+
+		AddEmail( EMAIL_PILOTMISSING, EMAIL_PILOTMISSING_LENGTH, MAIL_ENRICO,  GetWorldTotalMin() ,-1,-1, TYPE_EMAIL_EMAIL_EDT);
+		AddEmail( EMAIL_MAKECONTACT, EMAIL_MAKECONTACT_LENGTH, MAIL_ENRICO,  GetWorldTotalMin() ,-1,-1, TYPE_EMAIL_EMAIL_EDT);
+
+		//Merc and Aim emails
+		AddEmail( EMAIL_AIM_PROMOTION_1, EMAIL_AIM_PROMOTION_1_LENGTH, AIM_SITE,  GetWorldTotalMin(),-1 ,-1, TYPE_EMAIL_EMAIL_EDT);
+		AddEmail( EMAIL_MERC_PROMOTION_1, EMAIL_MERC_PROMOTION_1_LENGTH, SPECK_FROM_MERC,  GetWorldTotalMin(),-1,-1, TYPE_EMAIL_EMAIL_EDT);
+		AddEmail( EMAIL_AIM_PROMOTION_2, EMAIL_AIM_PROMOTION_2_LENGTH, AIM_SITE,  GetWorldTotalMin(),-1 ,-1, TYPE_EMAIL_EMAIL_EDT);
+
+		//Manuel
+		{
+			SOLDIERTYPE *pSoldier=NULL;
+
+			pSoldier = FindSoldierByProfileID( MANUEL_UB , TRUE ); //MANUEL
+
+			if( pSoldier != NULL )
+			{
+				//Add the Manuel email
+				AddEmail( EMAIL_MANUEL, EMAIL_MANUEL_LENGTH, MAIL_ENRICO,  GetWorldTotalMin() ,-1, -1, TYPE_EMAIL_EMAIL_EDT);
+			}
+		}
+
+		//Miguel
+		{
+			//if miguel was dead, when importing the save
+			if( gubFact[ FACT_PLAYER_IMPORTED_SAVE_MIGUEL_DEAD ] == FALSE )
+			{
+				//Add the miguel email
+				AddEmail( EMAIL_MIGUELHELLO, EMAIL_MIGUELHELLO_LENGTH, MAIL_MIGUEL,  GetWorldTotalMin(),-1, -1, TYPE_EMAIL_EMAIL_EDT);
+			}
+		}
+
+		//If any aim mercs were asked to send emails when the get back from duty elsewhere
+		HandleAddingAnyAimAwayEmailsWhenLaptopGoesOnline();
+
+		//Should we send the IMP reminder email when we go back online
+		ShouldImpReminderEmailBeSentWhenLaptopBackOnline();
+
+		//Force which ever of these emails that needed to be sent, to be sent
+		HandleEmailBeingSentWhenEnteringSector( 0, 0, 0, TRUE );
+	}
+#endif
 };
 
 void InitQuestEngine()
@@ -1539,6 +1693,21 @@ void CheckForQuests( UINT32 uiDay )
 	ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Checking For Quests, Day %d", uiDay );
 #endif
 
+#ifdef JA2UB
+ // -------------------------------------------------------------------------------
+	// QUEST 23 : Detroy missles
+	// -------------------------------------------------------------------------------
+	// The game always starts with destrouy missles quest, so turn it on if it hasn't
+	// already started
+	if( gubQuest[ QUEST_DESTROY_MISSLES ] == QUESTNOTSTARTED )
+	{
+		StartQuest( QUEST_DESTROY_MISSLES, -1, -1 );
+#ifdef TESTQUESTS
+		ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Started DESTORY MISSLES quest");
+#endif
+	}
+//Ja25: No deliver letter quest, dont start it
+#else
 	// -------------------------------------------------------------------------------
 	// QUEST 0 : DELIVER LETTER
 	// -------------------------------------------------------------------------------
@@ -1553,7 +1722,7 @@ void CheckForQuests( UINT32 uiDay )
 		ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Started DELIVER LETTER quest");
 #endif
 	}
-
+#endif
 	// This quest gets turned OFF through conversation with Miguel - when user hands
 	// Miguel the letter
 }
@@ -1582,13 +1751,15 @@ BOOLEAN SaveQuestInfoToSavedGameFile( HWFILE hFile )
 }
 
 
-BOOLEAN LoadQuestInfoFromSavedGameFile( HWFILE hFile )
+BOOLEAN LoadQuestInfoFromSavedGameFile( HWFILE hFile, UINT8 MaxQuest )
 {
 	UINT32	uiNumBytesRead;
 
 	//Save all the states if the Quests
-	FileRead( hFile, gubQuest, MAX_QUESTS, &uiNumBytesRead );
-	if( uiNumBytesRead != MAX_QUESTS )
+	//FileRead( hFile, gubQuest, MAX_QUESTS, &uiNumBytesRead );
+	//if( uiNumBytesRead != MAX_QUESTS )
+	FileRead( hFile, gubQuest, MaxQuest, &uiNumBytesRead );
+	if( uiNumBytesRead != MaxQuest )
 	{
 		return(FALSE);
 	}

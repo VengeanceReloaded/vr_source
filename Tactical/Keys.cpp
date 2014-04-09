@@ -194,9 +194,8 @@ BOOLEAN KeyExistsInKeyRing( SOLDIERTYPE *pSoldier, UINT8 ubKeyID, UINT8 * pubPos
 
 BOOLEAN KeyExistsInInventory( SOLDIERTYPE *pSoldier, UINT8 ubKeyID )
 {
-	UINT8 ubLoop;
-
-	for (ubLoop = 0; ubLoop < pSoldier->inv.size(); ubLoop++)
+	UINT8 invsize = pSoldier->inv.size();
+	for (UINT8 ubLoop = 0; ubLoop < invsize; ++ubLoop)
 	{
 		if (Item[pSoldier->inv[ubLoop].usItem].usItemClass == IC_KEY)
 		{
@@ -306,7 +305,8 @@ BOOLEAN AttemptToLockDoor( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 BOOLEAN AttemptToCrowbarLock( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 {
 	INT32		iResult;
-	INT8		bStress, bSlot;
+	INT16		bStress;
+	INT8		bSlot;
 
 	bSlot = FindUsableCrowbar( pSoldier );
 	if ( bSlot == ITEM_NOT_FOUND )
@@ -339,7 +339,7 @@ BOOLEAN AttemptToCrowbarLock( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 	}
 
 	// possibly damage crowbar
-	bStress = __min( EffectiveStrength( pSoldier ), LockTable[pDoor->ubLockID].ubSmashDifficulty + 30 );
+	bStress = __min( EffectiveStrength( pSoldier, FALSE ), LockTable[pDoor->ubLockID].ubSmashDifficulty + 30 );
 	// reduce crowbar status by random % between 0 and 5%
 	DamageObj( &(pSoldier->inv[ bSlot ]), (INT8) PreRandom( bStress / 20 ) );
 
@@ -597,7 +597,7 @@ BOOLEAN AttemptToUntrapDoor( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 BOOLEAN ExamineDoorForTraps( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 {
 	// Check to see if there is a trap or not on this door
-	INT8 bDetectLevel;
+	INT16 bDetectLevel;
 
 	if (pDoor->ubTrapID == NO_TRAP)
 	{
@@ -632,7 +632,7 @@ BOOLEAN ExamineDoorForTraps( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 BOOLEAN HasDoorTrapGoneOff( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 {
 	// Check to see if the soldier causes the trap to go off
-	INT8 bDetectLevel;
+	INT16 bDetectLevel;
 
 	if (pDoor->ubTrapID != NO_TRAP)
 	{
@@ -702,7 +702,7 @@ void HandleDoorTrap( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("!!!!!!! Trap gone off %d", gTacticalStatus.ubAttackBusyCount) );
 		DebugAttackBusy( "!!!!!!! Trap gone off\n" );
 
-			pSoldier->SoldierTakeDamage( 0, (UINT16) (10 + PreRandom( 10 )), (UINT16) ((3 + PreRandom( 3 ) * 1000)), TAKE_DAMAGE_ELECTRICITY, NOBODY, pDoor->sGridNo, 0, TRUE );
+			pSoldier->SoldierTakeDamage( 0, (UINT16) (10 + PreRandom( 10 )), 0, (UINT16) ((3 + PreRandom( 3 ) * 1000)), TAKE_DAMAGE_ELECTRICITY, NOBODY, pDoor->sGridNo, 0, TRUE );
 			break;
 
 		case SUPER_ELECTRIC:
@@ -717,7 +717,7 @@ void HandleDoorTrap( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("!!!!!!! Trap gone off %d", gTacticalStatus.ubAttackBusyCount) );
 		DebugAttackBusy( "!!!!!!! Trap gone off\n" );
 
-			pSoldier->SoldierTakeDamage( 0, (UINT16) (20 + PreRandom( 20 )), (UINT16) ((6 + PreRandom( 6 ) * 1000)), TAKE_DAMAGE_ELECTRICITY, NOBODY, pDoor->sGridNo, 0, TRUE );
+			pSoldier->SoldierTakeDamage( 0, (UINT16) (20 + PreRandom( 20 )), 0, (UINT16) ((6 + PreRandom( 6 ) * 1000)), TAKE_DAMAGE_ELECTRICITY, NOBODY, pDoor->sGridNo, 0, TRUE );
 			break;
 
 
@@ -740,7 +740,8 @@ BOOLEAN AttemptToBlowUpLock( SOLDIERTYPE * pSoldier, DOOR * pDoor )
 		return( FALSE );
 	}
 
-	iResult = SkillCheck( pSoldier, PLANTING_BOMB_CHECK, 0 );
+	// Flugente: flat bonus to using door breaching charges
+	iResult = SkillCheck( pSoldier, PLANTING_BOMB_CHECK, (INT8)pSoldier->GetBackgroundValue(BG_BONUS_BREACHINGCHARGE) );
 	if (iResult >= -20)
 	{
 		// Do explosive graphic....

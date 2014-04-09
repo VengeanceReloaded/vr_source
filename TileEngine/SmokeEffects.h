@@ -11,6 +11,7 @@ enum
 	MUSTARDGAS_SMOKE_EFFECT,
 	CREATURE_SMOKE_EFFECT,
 	BURNABLEGAS_SMOKE_EFFECT,
+	SIGNAL_SMOKE_EFFECT,		// added by Flugente for artillery
 };
 
 #define SMOKE_EFFECT_INDOORS			0x01
@@ -44,6 +45,8 @@ extern UINT32					guiNumSmokeEffects;
 INT8 GetSmokeEffectOnTile( INT32 sGridNo, INT8 bLevel );
 
 // Decays all smoke effects...
+// HEADROCK HAM 5: New argument here tells the decay function to only process clouds belonging to one team.
+// -1 = all teams.
 void DecaySmokeEffects( UINT32 uiTime );
 
 // Add smoke to gridno
@@ -66,5 +69,7 @@ void ResetSmokeEffects();
 
 void UpdateSmokeEffectGraphics( );
 
+// Flugente: get the gridno and blevel of a random smoke signal, if one exists
+BOOL GetRandomSignalSmokeGridNo(INT32* psGridNo);
 
 #endif

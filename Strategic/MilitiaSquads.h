@@ -25,7 +25,8 @@ BOOLEAN MoveOneBestMilitiaMan(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMa
 void MilitiaFollowPlayer( INT16 sMapX, INT16 sMapY, INT16 sDMapX, INT16 sDMapY );
 
 // HEADROCK HAM B1: Changes the allowed militia sectors
-extern void AdjustRoamingRestrictions();
+// HEADROCK HAM 5: New flag tells us to also recheck restriced sectors.
+extern void AdjustRoamingRestrictions( BOOLEAN fRecheck );
 // HEADROCK HAM 4: Yet ANOTHER array, this one holds player-set restrictions. It interacts with the dynamic one below.
 extern UINT8 gubManualRestrictMilitia[ 256 ];
 // HEADROCK HAM B1: Alternate array keeps track of dynamically unrestricted sectors
@@ -63,5 +64,9 @@ UINT8 ManualMobileMovementAllowed( UINT8 ubSector );
 
 // HEADROCK HAM 4: Initialize all manual restrictions;
 void InitManualMobileRestrictions();
+
+//Moa: for mobile militia: militia deserters and maximum allowed
+extern void MobileMilitiaDeserters( INT16 sMapX, INT16 sMapY, BOOLEAN fDeleteEquip, BOOLEAN fPrintMessage );
+extern UINT8 GetMobileMilitiaQuota( BOOLEAN printMessage );
 
 #endif

@@ -17,8 +17,6 @@
 	#include "_Ja25EnglishText.h"
 	#include "wordwrap.h"
 	#include "CharProfile.h"
-	#include "soldier profile type.h"
-	#include "IMP Compile Character.h"
 	#include "GameSettings.h"
 #endif
 
@@ -46,10 +44,6 @@
 
 #define	IMP_CHARACTER_TRAIT__TEXT_OFFSET_X											65
 #define	IMP_CHARACTER_TRAIT__TEXT_OFFSET_Y											12
-
-#define	IMP_CHARACTER_TRAIT__TITLE_X											LAPTOP_SCREEN_UL_X - 111
-#define	IMP_CHARACTER_TRAIT__TITLE_Y											iScreenHeightOffset + 53
-#define	IMP_CHARACTER_TRAIT__TITLE_WIDTH												( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X )
 
 #define	IMP_CHARACTER_TRAIT__GREY_BOX_OFFSET_X									5
 #define	IMP_CHARACTER_TRAIT__GREY_BOX_OFFSET_Y									7
@@ -175,15 +169,15 @@ void EnterIMPCharacterTrait( void )
 
 
 void RenderIMPCharacterTrait( void )
-{
+{	
 	//render the metal background graphic
 	RenderProfileBackGround();
 
 	//Display the title
 	if ( gGameOptions.fNewTraitSystem )
-		DrawTextToScreen( gzIMPCharacterTraitText[IMP_NUMBER_CHARACTER_TRAITS], LAPTOP_SCREEN_UL_X - 111, iScreenHeightOffset + 53, ( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X ), FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+		DrawTextToScreen( gzIMPCharacterTraitText[IMP_NUMBER_CHARACTER_TRAITS], LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	else
-		DrawTextToScreen( gzIMPAttitudesText[IMP_NUMBER_ATTITUDES], LAPTOP_SCREEN_UL_X - 111, iScreenHeightOffset + 53, ( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X ), FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+		DrawTextToScreen( gzIMPAttitudesText[IMP_NUMBER_ATTITUDES], LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 
 	IMPCharacterTraitDisplayCharacterTraits();
 }
@@ -485,7 +479,6 @@ void AssignCharacterTraitHelpText( UINT8 ubNumber )
 {
 	CHAR16	apStr[ 2000 ];
 
-	swprintf( apStr, L"" );
 	swprintf( apStr, gzIMPNewCharacterTraitsHelpTexts[ubNumber] );
 
 	// Set region help text

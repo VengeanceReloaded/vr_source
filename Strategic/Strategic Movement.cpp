@@ -47,10 +47,19 @@
 	#include "Auto Resolve.h"
 	#include "GameSettings.h"
 	#include "Quests.h"
+	#include "Interface.h"		// added by Flugente for zBackground
 #endif
 
 #include "MilitiaSquads.h"
 #include "Vehicles.h"
+
+#ifdef JA2UB
+#include "Ja25Update.h"
+#include "Ja25 Strategic Ai.h"
+//#include "Map Screen Interface Map.h"
+
+//extern JA25_SECTOR_AI	*gJa25AiSectorStruct;
+#endif
 
 #include "connect.h"
 //forward declarations of common classes to eliminate includes
@@ -61,7 +70,8 @@ class SOLDIERTYPE;
 extern UINT32		guiLastTacticalRealTime;
 
 // the delay for a group about to arrive
-#define ABOUT_TO_ARRIVE_DELAY 5
+// HEADROCK HAM 5: 5 minutes? Make it 30. 5 minutes tend to pass in an instant while unpaused...
+#define ABOUT_TO_ARRIVE_DELAY 30
 
 GROUP *gpGroupList;
 
@@ -950,6 +960,15 @@ void PrepareForPreBattleInterface( GROUP *pPlayerDialogGroup, GROUP *pInitiating
 	}
 
 	//Set music
+#ifdef ENABLE_ZOMBIES
+	UseCreatureMusic(HostileZombiesPresent());
+#endif
+	#ifdef NEWMUSIC
+	GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
+	if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] != -1 )
+		SetMusicModeID( MUSIC_TACTICAL_ENEMYPRESENT, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] );
+	else
+	#endif
 	SetMusicMode( MUSIC_TACTICAL_ENEMYPRESENT );
 
 	if( gfTacticalTraversal && pInitiatingBattleGroup == gpTacticalTraversalGroup ||
@@ -1642,6 +1661,12 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 		return;
 	}
 
+	// group arrival already processed?
+	if ( !pGroup->fBetweenSectors && pGroup->ubNextX == 0 && pGroup->ubNextY == 0 )
+	{
+		return;
+	}
+
 	if( pGroup->fPlayer )
 	{
 		//Set the fact we have visited the	sector
@@ -1700,7 +1725,11 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 	if( fExceptionQueue || fCheckForBattle && gTacticalStatus.fEnemyInSector &&
 			FindMovementGroupInSector( (UINT8)gWorldSectorX, (UINT8)gWorldSectorY, TRUE ) &&
 		(pGroup->ubNextX != gWorldSectorX || pGroup->ubNextY != gWorldSectorY || gbWorldSectorZ > 0 ) ||
+		#ifdef JA2UB
+			//Ja25: NO meanwhiles		
+		#else
 			AreInMeanwhile() ||
+		#endif
 			//KM : Aug 11, 1999 -- Patch fix:	Added additional checks to prevent a 2nd battle in the case
 			//	 where the player is involved in a potential battle with bloodcats/civilians
 			fCheckForBattle && HostileCiviliansPresent() ||
@@ -1710,12 +1739,16 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 		//QUEUE BATTLE!
 		//Delay arrival by a random value ranging from 3-5 minutes, so it doesn't get the player
 		//too suspicious after it happens to him a few times, which, by the way, is a rare occurrence.
+#ifdef JA2UB
+/*Ja25: No meanwhiles*/
+#else
 		if( AreInMeanwhile() )
 		{
 			pGroup->uiArrivalTime ++; //tack on only 1 minute if we are in a meanwhile scene.	This effectively
 									//prevents any battle from occurring while inside a meanwhile scene.
 		}
 		else
+#endif
 		{
 			pGroup->uiArrivalTime += Random(3) + 3;
 		}
@@ -1755,10 +1788,14 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 		// award life 'experience' for travelling, based on travel time!
 		if ( !pGroup->fVehicle )
 		{
-			// gotta be walking to get tougher
-			AwardExperienceForTravelling( pGroup );
+			// Flugente: do not award experience gain if we never left
+			if ( !fNeverLeft )
+			{
+				// gotta be walking to get tougher
+				AwardExperienceForTravelling( pGroup );
+			}
 		}
-			else if( !IsGroupTheHelicopterGroup( pGroup ) )
+		else if( !IsGroupTheHelicopterGroup( pGroup ) )
 		{
 			SOLDIERTYPE *pSoldier;
 			INT32 iVehicleID;
@@ -1824,6 +1861,7 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 		{
 			// check for discovering secret locations
 			INT8 bTownId = GetTownIdForSector( pGroup->ubSectorX, pGroup->ubSectorY );
+			
 			if ( gfHiddenTown[ bTownId ] == FALSE )
 				{
 					gfHiddenTown[ bTownId ] = TRUE;
@@ -1831,15 +1869,19 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 					if ( gfIconTown[ bTownId ] == TRUE )
 						gfDrawHiddenTown[ bTownId ] = TRUE;
 				}
-/*
+		#ifdef JA2UB
+		//Ja25:	No tixa, orta or sam site
+		#else
+			/*
 			if( bTownId == TIXA )
 				SetTixaAsFound();
 			else if( bTownId == ORTA )
 				SetOrtaAsFound();
 			else 
-*/
+			*/
 			if( IsThisSectorASAMSector( pGroup->ubSectorX, pGroup->ubSectorY, 0 ) )
 				SetSAMSiteAsFound( GetSAMIdFromSector( pGroup->ubSectorX, pGroup->ubSectorY, 0 ) );
+		#endif
 		}
 
 
@@ -1917,7 +1959,10 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 					{
 						// squad
 						// HEADROCK HAM 3.6: Messages are no longer yellow by default.
-						ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, pMessageStrings[ MSG_ARRIVE ], pAssignmentStrings[ pGroup->pPlayerList->pSoldier->bAssignment ], pMapVertIndex[ pGroup->pPlayerList->pSoldier->sSectorY ], pMapHortIndex[ pGroup->pPlayerList->pSoldier->sSectorX ]);
+						if ( gGameExternalOptions.fUseXMLSquadNames )
+							ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, pMessageStrings[ MSG_ARRIVE ], SquadNames[ pGroup->pPlayerList->pSoldier->bAssignment ].squadname, pMapVertIndex[ pGroup->pPlayerList->pSoldier->sSectorY ], pMapHortIndex[ pGroup->pPlayerList->pSoldier->sSectorX ]);
+						else
+							ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, pMessageStrings[ MSG_ARRIVE ], pAssignmentStrings[ pGroup->pPlayerList->pSoldier->bAssignment ], pMapVertIndex[ pGroup->pPlayerList->pSoldier->sSectorY ], pMapHortIndex[ pGroup->pPlayerList->pSoldier->sSectorX ]);
 					}
 					else
 					{
@@ -2013,7 +2058,8 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 				if ( GroupAtFinalDestination( pGroup ) && ( pGroup->ubSectorZ == 0 ) && !fNeverLeft )
 				{
 					// HEADROCK HAM 3.6: Messages are no longer yellow by default.
-					ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, pMessageStrings[ MSG_ARRIVE ], pVehicleStrings[ pVehicleList[ iVehId ].ubVehicleType ], pMapVertIndex[ pGroup->ubSectorY ], pMapHortIndex[ pGroup->ubSectorX ] );
+				//	ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, pMessageStrings[ MSG_ARRIVE ], pVehicleStrings[ pVehicleList[ iVehId ].ubVehicleType ], pMapVertIndex[ pGroup->ubSectorY ], pMapHortIndex[ pGroup->ubSectorX ] );
+					ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, pMessageStrings[ MSG_ARRIVE ], gNewVehicle[ pVehicleList[ iVehId ].ubVehicleType ].NewVehicleStrings, pMapVertIndex[ pGroup->ubSectorY ], pMapHortIndex[ pGroup->ubSectorX ] );
 				}
 			}
 		}
@@ -2084,6 +2130,41 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 			}
 		}
 	}
+	
+#ifdef JA2UB
+/*
+//if the enemy group is at its final destination
+	if( !pGroup->fPlayer && GroupAtFinalDestination( pGroup ) )
+	{
+		// Check to see if this is an AI sector
+		INT16 sJa25SaiSectorValue = GetJA25SectorID( pGroup->ubSectorX, pGroup->ubSectorY, pGroup->ubSectorZ );
+
+		if ( sJa25SaiSectorValue != -1 )
+		{
+			// If we were told to attack, reset flag
+			if ( gJa25AiSectorStruct[ sJa25SaiSectorValue ].fEnemyEnrouteToAttack )
+			{
+				gJa25AiSectorStruct[ sJa25SaiSectorValue ].fEnemyEnrouteToAttack = FALSE;
+			}
+		}
+
+*/
+		//add the enemies to the sector
+/*
+		SectorInfo[ SECTOR( pGroup->ubSectorX, pGroup->ubSectorY ) ].ubNumAdmins += pGroup->pEnemyGroup->ubNumAdmins;
+		SectorInfo[ SECTOR( pGroup->ubSectorX, pGroup->ubSectorY ) ].ubNumTroops += pGroup->pEnemyGroup->ubNumTroops;
+		SectorInfo[ SECTOR( pGroup->ubSectorX, pGroup->ubSectorY ) ].ubNumElites += pGroup->pEnemyGroup->ubNumElites;
+		if( fBattleGoingToStart )
+		{
+			SectorInfo[ SECTOR( pGroup->ubSectorX, pGroup->ubSectorY ) ].ubAdminsInBattle = pGroup->pEnemyGroup->ubNumAdmins;
+			SectorInfo[ SECTOR( pGroup->ubSectorX, pGroup->ubSectorY ) ].ubTroopsInBattle = pGroup->pEnemyGroup->ubNumTroops;
+			SectorInfo[ SECTOR( pGroup->ubSectorX, pGroup->ubSectorY ) ].ubElitesInBattle = pGroup->pEnemyGroup->ubNumElites;
+		}
+*/
+	//}
+	
+#endif
+	
 	gfWaitingForInput = FALSE;
 }
 
@@ -2094,10 +2175,15 @@ void HandleNonCombatGroupArrival( GROUP *pGroup, BOOLEAN fMainGroup, BOOLEAN fNe
 {
 	// if any mercs are actually in the group
 
+	
+	#ifdef JA2UB
+	//Ja25 No strategic ai
+	#else
 	if( StrategicAILookForAdjacentGroups( pGroup ) )
 	{ //The routine actually just deleted the enemy group (player's don't get deleted), so we are done!
 		return;
 	}
+	#endif
 
 	if( pGroup->fPlayer )
 	{
@@ -2710,7 +2796,11 @@ void RemovePGroup( GROUP *pGroup )
 	}
 	else
 	{
+		#ifdef JA2UB
+		//Ja25 No strategic ai
+		#else
 		RemoveGroupFromStrategicAILists( pGroup->ubGroupID );
+		#endif
 		MemFree( pGroup->pEnemyGroup );
 	}
 
@@ -3014,6 +3104,7 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 
 	//Determine the group's method(s) of tranportation.	If more than one,
 	//we will always use the highest time.
+	// WANNE: If we have an old savegame (from the dev. trunk, where the skyrider can only move on roads), just change the "pGroup->ubTransportationMask" to 16 for the heli to fix it in the savegame
 	fFoot = (UINT8)(pGroup->ubTransportationMask & FOOT);
 	fCar = (UINT8)(pGroup->ubTransportationMask & CAR);
 	fTruck = (UINT8)(pGroup->ubTransportationMask & TRUCK);
@@ -3144,41 +3235,70 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 		UINT8 ubRangerHere = 0;
 		// or driver
 		UINT8 ubDriverHere = 0;
+		UINT8 ustravelbackground_foot = 0;
+		UINT8 ustravelbackground_car = 0;
+		UINT8 ustravelbackground_air = 0;
+
 		curr = pGroup->pPlayerList;
 		while( curr )
 		{
 			pSoldier = curr->pSoldier;
+			//if( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
+			//	ubRangerHere += NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
+			
 			// merc has to be awake for bonus to count - remember, while travelling by vehicle they can be asleep!
-			if( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
+			if(!(pSoldier->flags.fMercAsleep))
 			{
-				if(!(pSoldier->flags.fMercAsleep)||!gSkillTraitValues.fRAAsleepInCarAndStillGetsTravellingReduction)
+				if( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
 				{
-					ubRangerHere += NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
+					if( !(pSoldier->flags.fMercAsleep) || !gSkillTraitValues.fRAAsleepInCarAndStillGetsTravellingReduction )
+						ubRangerHere += NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
+				}
+				if( HAS_SKILL_TRAIT( pSoldier, DRIVER_NT ))
+				{
+					if( !(pSoldier->flags.fMercAsleep) )
+					{
+						if(pSoldier->flags.uiStatusFlags & ( SOLDIER_DRIVER ))
+							ubDriverHere += NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
+					}
 				}
 			}
-			if( HAS_SKILL_TRAIT( pSoldier, DRIVER_NT ))
-			{
-				ubDriverHere += NUM_SKILL_TRAITS( pSoldier, DRIVER_NT );
-			}
+			// Flugente: backgrounds
+			ustravelbackground_foot = max(ustravelbackground_foot, pSoldier->GetBackgroundValue(BG_TRAVEL_FOOT));
+			ustravelbackground_car  = max(ustravelbackground_car,  pSoldier->GetBackgroundValue(BG_TRAVEL_CAR));
+			ustravelbackground_air  = max(ustravelbackground_air,  pSoldier->GetBackgroundValue(BG_TRAVEL_AIR));
+
 			curr = curr->next;
 		}
 		// yes, we have...
-		if( ubRangerHere > 0 || ubDriverHere > 0)
+		//if( ubRangerHere || ustravelbackground_foot || ustravelbackground_car || ustravelbackground_air )
+		if( ubRangerHere || ubDriverHere || ustravelbackground_foot || ustravelbackground_car || ustravelbackground_air )
 		{
 			// no more than certain number of simultaneous bonuses
 			ubRangerHere = min( gSkillTraitValues.ubRAMaxBonusesToTravelSpeed, ubRangerHere );
 			ubDriverHere = min( gSkillTraitValues.ubDRMaxBonusesToTravelSpeed, ubDriverHere );
+
 			// on foot, the bonus should be higher
 			if( fFoot )
 			{
 				// however, we cannot be quicker than the helicopter
 				iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingFoot )) / 100));
+
+				iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ustravelbackground_foot) / 100));
 			}
 			// all other types (except air)
+			else if ( fAir )
+			{
+				// however, we cannot be quicker than the helicopter
+				iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingFoot )) / 100));
+
+				// yes, this background allows us to fly faster :-)
+				iBestTraverseTime = max( 9,  (iBestTraverseTime * (100 - ustravelbackground_air) / 100));
+			}
 			else
 			{
-				
 				// however, we cannot be quicker than the helicopter
+				//iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle )) / 100));
 				switch( gSkillTraitValues.ubDRStackableDriverAndRanger )
 				{
 					// additive
@@ -3188,7 +3308,6 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 													(	100	- ( ubRangerHere * gSkillTraitValues.ubRAGroupTimeSpentForTravellingVehicle ) 
 															- ( ubDriverHere * gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle )
 													) / 100
-	
 											);
 					break;
 					// multiply
@@ -3199,7 +3318,7 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 													* (	100 - ( ubDriverHere * gSkillTraitValues.ubDRGroupTimeSpentForTravellingVehicle ) ) / 100
 											);
 					break;
-					// no stacking
+				// no stacking
 					default:
 					iBestTraverseTime = max( 
 											10, min(
@@ -3209,6 +3328,7 @@ INT32 GetSectorMvtTimeForGroup( UINT8 ubSector, UINT8 ubDirection, GROUP *pGroup
 											);
 					break;
 				}
+				iBestTraverseTime = max( 10, (iBestTraverseTime * (100 - ustravelbackground_car) / 100));
 			}
 		}
 	}
@@ -4423,7 +4543,12 @@ void ResetMovementForEnemyGroup( GROUP *pGroup )
 	}
 	if( !pGroup->fBetweenSectors || !pGroup->ubNextX || !pGroup->ubNextY )
 	{ //Reset the group's assignment by moving it to the group's original sector as it's pending group.
+	
+		#ifdef JA2UB
+		//Ja25 No strategic ai
+		#else
 		RepollSAIGroup( pGroup );
+		#endif
 		return;
 	}
 
@@ -4690,7 +4815,7 @@ void ReportVehicleOutOfGas( INT32 iVehicleID, UINT8 ubSectorX, UINT8 ubSectorY )
 	CHAR16 str[255];
 	//Report that the vehicle that just arrived is out of gas.
 	swprintf( str, gzLateLocalizedString[ 5 ],
-		pVehicleStrings[ pVehicleList[ iVehicleID ].ubVehicleType ],
+		gNewVehicle[ pVehicleList[ iVehicleID ].ubVehicleType ].NewVehicleStrings,
 		ubSectorY + 'A' - 1, ubSectorX );
 	DoScreenIndependantMessageBox( str, MSG_BOX_FLAG_OK, NULL );
 }
@@ -4825,6 +4950,11 @@ void RandomizePatrolGroupLocation( GROUP *pGroup )
 //roll the dice to see if this will become an ambush random encounter.
 BOOLEAN TestForBloodcatAmbush( GROUP *pGroup )
 {
+
+#ifdef JA2UB
+	//Ja25: No BLoodcat ambushes
+	return( FALSE );
+#else
 	SECTORINFO *pSector;
 	INT32 iHoursElapsed;
 	UINT8 ubSectorID;
@@ -5003,6 +5133,7 @@ BOOLEAN TestForBloodcatAmbush( GROUP *pGroup )
 		gubEnemyEncounterCode = NO_ENCOUNTER_CODE;
 		return FALSE;
 	}
+#endif
 }
 
 void NotifyPlayerOfBloodcatBattle( UINT8 ubSectorX, UINT8 ubSectorY )
@@ -5206,7 +5337,13 @@ BOOLEAN HandlePlayerGroupEnteringSectorToCheckForNPCsOfNote( GROUP *pGroup )
 
 	// get the strategic sector value
 	sStrategicSector = sSectorX + MAP_WORLD_X * sSectorY;
-
+#ifdef JA2UB	
+	// ATE: if this is a custom map, return Ja25 UB
+	if ( SectorInfo[ SECTOR( sSectorY, sSectorX ) ].fCustomSector )
+	{
+		return( FALSE );
+	}
+#endif
 	// skip towns/pseudo-towns (anything that shows up on the map as being special)
 	if( StrategicMap[ sStrategicSector ].bNameId != BLANK_SECTOR )
 	{
@@ -5232,7 +5369,11 @@ BOOLEAN HandlePlayerGroupEnteringSectorToCheckForNPCsOfNote( GROUP *pGroup )
 
 	// build string for squad
 	GetSectorIDString( sSectorX, sSectorY, bSectorZ, wSectorName, FALSE );
-	swprintf( sString, pLandMarkInSectorString[ 0 ], pGroup->pPlayerList->pSoldier->bAssignment + 1, wSectorName );
+
+	if ( gGameExternalOptions.fUseXMLSquadNames && pGroup->pPlayerList->pSoldier->bAssignment < ON_DUTY )
+		swprintf( sString, pLandMarkInSectorString[ 1 ], SquadNames[ pGroup->pPlayerList->pSoldier->bAssignment ].squadname, wSectorName );
+	else
+		swprintf( sString, pLandMarkInSectorString[ 0 ], pGroup->pPlayerList->pSoldier->bAssignment + 1, wSectorName );
 
 	if ( GroupAtFinalDestination( pGroup ) )
 	{
@@ -5472,3 +5613,64 @@ BOOLEAN ScoutIsPresentInSquad( INT16 ubSectorNumX, INT16 ubSectorNumY )
 
 	return ( fScoutPresent );
 }
+
+#ifdef JA2UB
+GROUP* CreateNewEnemyGroupDepartingFromSectorUsingZLevel( UINT32 uiSector, UINT8 ubSectorZ, UINT8 ubNumAdmins, UINT8 ubNumTroops, UINT8 ubNumElites )
+{
+	GROUP *pNew;
+	AssertMsg( uiSector >= 0 && uiSector <= 255, String( "CreateNewEnemyGroup with out of range value of %d", uiSector ) );
+	pNew = (GROUP*)MemAlloc( sizeof( GROUP ) );
+	AssertMsg( pNew, "MemAlloc failure during CreateNewEnemyGroup." );
+	memset( pNew, 0, sizeof( GROUP ) );
+	pNew->pEnemyGroup = (ENEMYGROUP*)MemAlloc( sizeof( ENEMYGROUP ) );
+	AssertMsg( pNew->pEnemyGroup, "MemAlloc failure during enemy group creation." );
+	memset( pNew->pEnemyGroup, 0, sizeof( ENEMYGROUP ) );
+	pNew->pWaypoints = NULL;
+	pNew->ubSectorX = (UINT8)SECTORX( uiSector );
+	pNew->ubSectorY = (UINT8)SECTORY( uiSector );
+	pNew->ubSectorZ = ubSectorZ;
+	pNew->ubOriginalSector = (UINT8)uiSector;
+	pNew->fPlayer = FALSE;
+	pNew->ubMoveType = CIRCULAR;
+	pNew->ubNextWaypointID = 0;
+	pNew->ubFatigueLevel = 100;
+	pNew->ubRestAtFatigueLevel = 0;
+	pNew->pEnemyGroup->ubNumAdmins = ubNumAdmins;
+	pNew->pEnemyGroup->ubNumTroops = ubNumTroops;
+	pNew->pEnemyGroup->ubNumElites = ubNumElites;
+	pNew->ubGroupSize = (UINT8)(ubNumAdmins + ubNumTroops + ubNumElites);
+	pNew->ubTransportationMask = FOOT;
+	pNew->fVehicle = FALSE;
+	pNew->ubCreatedSectorID = pNew->ubOriginalSector;
+	pNew->ubSectorIDOfLastReassignment = 255;
+/*
+#ifdef JA2BETAVERSION
+	{
+		UINT16 str[ 512 ];
+		//if( PlayerMercsInSector( pNew->ubSectorX, pNew->ubSectorY, pNew->ubSectorZ ) || CountAllMilitiaInSector( pNew->ubSectorX, pNew->ubSectorY ) )
+		//{
+		//	swprintf( str, L"Attempting to send enemy troops from player occupied location.  "
+		//								 L"Please ALT+TAB out of the game before doing anything else and send 'Strategic Decisions.txt' "
+		//								 L"and this message.  You'll likely need to revert to a previous save.  If you can reproduce this "
+		//								 L"with a save close to this event, that would really help me! -- KM:0" );
+		//	DoScreenIndependantMessageBox( str, MSG_BOX_FLAG_OK, NULL );
+		//}
+		if( pNew->ubGroupSize > 25 )
+		{
+			swprintf( str, L"Strategic AI warning:  Creating an enemy group containing %d soldiers "
+										 L"(%d admins, %d troops, %d elites) in sector %c%d.  This message is a temporary test message "
+										 L"to evaluate a potential problems with very large enemy groups.",
+										 pNew->ubGroupSize, ubNumAdmins, ubNumTroops, ubNumElites,
+										 pNew->ubSectorY + 'A' - 1, pNew->ubSectorX );
+			DoScreenIndependantMessageBox( str, MSG_BOX_FLAG_OK, NULL );
+		}
+	}
+#endif
+*/
+	if( AddGroupToList( pNew ) )
+		return pNew;
+	return NULL;
+}
+
+
+#endif

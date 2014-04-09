@@ -39,9 +39,14 @@ class OBJECTTYPE;
 class SOLDIERTYPE;
 
 // SB: new map version, with map dimensions added
-#define MAJOR_MAP_VERSION		7.0
+#define MAJOR_MAP_VERSION		7.0		
 //Current minor map version updater.
-#define MINOR_MAP_VERSION		27
+#define MINOR_MAP_OVERHEATING		28		// 27 -> 28: Flugente:: increased to 28 because of included weapon overheated and tripwire feature. See ObjectClass for the new Tags!
+//#define MINOR_MAP_VERSION		29		// 28 -> 29: increased range of roomnumbers to full UINT16 by DBrot
+#define MINOR_MAP_REPAIR_SYSTEM		30		// 30 -> 29: Flugente:: necessary change due to repair system
+#define MINOR_MAP_ITEMFLAG64		31		// 30 -> 31: Flugente: changed sObjectFlag from INT32 to UINT64
+
+#define MINOR_MAP_VERSION		MINOR_MAP_ITEMFLAG64
 
 //dnl ch33 230909
 #define VANILLA_MAJOR_MAP_VERSION 5.00
@@ -57,7 +62,7 @@ class SOLDIERTYPE;
 //SB: fix macro syntax flaw
 //#define  LOADDATA( dst, src, size ) memcpy( dst, src, size ); src += size
 #define  LOADDATA( dst, src, size ) { memcpy( dst, src, size ); src += size; }
-
+#define  SKIPDATA( dst, src, size ) { dst = src + size; }//dnl ch81 051213
 
 #define LANDHEAD							0
 #define MAXDIR								8
@@ -129,12 +134,13 @@ class SOLDIERTYPE;
 #define MAPELEMENT_EXT_CREATUREGAS	 				0x0080 //0x80
 #define MAPELEMENT_EXT_BURNABLEGAS					0x0100 //0x100
 #define MAPELEMENT_EXT_CLIMBPOINT					0x0200 //0x200
+#define MAPELEMENT_EXT_SIGNAL_SMOKE					0x0400 //0x400	// added by Flugente
 
 #define FIRST_LEVEL 0
 #define SECOND_LEVEL 1
 
 //#define ANY_SMOKE_EFFECT		( MAPELEMENT_EXT_CREATUREGAS | MAPELEMENT_EXT_SMOKE | MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS )
-#define ANY_SMOKE_EFFECT		( MAPELEMENT_EXT_CREATUREGAS | MAPELEMENT_EXT_SMOKE | MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS | MAPELEMENT_EXT_BURNABLEGAS )
+#define ANY_SMOKE_EFFECT		( MAPELEMENT_EXT_CREATUREGAS | MAPELEMENT_EXT_SMOKE | MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS | MAPELEMENT_EXT_BURNABLEGAS | MAPELEMENT_EXT_SIGNAL_SMOKE )
 
 
 // WDS - Clean up inventory handling
@@ -154,7 +160,7 @@ struct LEVELNODE
 		INT32												uiAPCost;						// FOR AP DISPLAY
 //SB: change packed exitgrid for EXITGRID *
 //		INT32												iExitGridInfo;
-		void *											pExitGridInfo;
+//		void *											pExitGridInfo;//dnl ch86 190214
 	}; // ( 4 byte union )
 
 	union 
@@ -277,13 +283,16 @@ typedef struct
 // World Data
 extern MAP_ELEMENT			*gpWorldLevelData;
 
+// Flugente: this stuff is only ever used in AStar pathing and is a unnecessary waste of resources otherwise, so I'm putting an end to this
+#ifdef USE_ASTAR_PATHS
 // World Movement Costs
 //UINT8						gubWorldMovementCosts[ WORLD_MAX ][MAXDIR][2];
-//ddd для убыстрения поиска освещенных участков в патхаи.
+//ddd Tables to track tactical value of grid tiles
 extern BOOLEAN						gubWorldTileInLight[ MAX_ALLOWED_WORLD_MAX ];
-extern BOOLEAN						gubIsCorpseThere[ MAX_ALLOWED_WORLD_MAX ]; //надо бы учитывать крыша\земля ;)
-extern INT32						gubMerkCanSeeThisTile[ MAX_ALLOWED_WORLD_MAX ]; //положение драника не учитываем, крыша\земля тож?
+extern BOOLEAN						gubIsCorpseThere[ MAX_ALLOWED_WORLD_MAX ]; //Tracks position of corpses for AI avoidance
+extern INT32						gubMerkCanSeeThisTile[ MAX_ALLOWED_WORLD_MAX ]; //Tracks visibility my mercs
 //ddd
+#endif
 
 extern UINT8 (*gubWorldMovementCosts)[MAXDIR][2];//dnl ch43 260909
 

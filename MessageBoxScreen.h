@@ -5,26 +5,30 @@
 
 // Message box flags
 #define		MSG_BOX_FLAG_USE_CENTERING_RECT			0x0001			// Pass in a rect to center in
-#define	MSG_BOX_FLAG_OK											0x0002			// Displays OK button
-#define	MSG_BOX_FLAG_YESNO									0x0004			// Displays YES NO buttons
-#define	MSG_BOX_FLAG_CANCEL									0x0008			// Displays YES NO buttons
-#define		MSG_BOX_FLAG_FOUR_NUMBERED_BUTTONS	0x0010			// Displays four numbered buttons, 1-4
-#define	MSG_BOX_FLAG_YESNOCONTRACT					0x0020		// yes no and contract buttons
-#define		MSG_BOX_FLAG_OKCONTRACT							0x0040			// ok and contract buttons
-#define		MSG_BOX_FLAG_YESNOLIE								0x0080			// ok and contract buttons
-#define		MSG_BOX_FLAG_CONTINUESTOP						0x0100			// continue stop box
-#define		MSG_BOX_FLAG_OKSKIP									0x0200			// Displays ok or skip (meanwhile) buttons
-#define		MSG_BOX_FLAG_GENERICCONTRACT				0x0400			// displays contract buttoin + 2 user-defined text buttons
-#define		MSG_BOX_FLAG_GENERIC								0x0800			// 2 user-defined text buttons
+#define		MSG_BOX_FLAG_OK							0x0002			// Displays OK button
+#define		MSG_BOX_FLAG_YESNO						0x0004			// Displays YES NO buttons
+#define		MSG_BOX_FLAG_CANCEL						0x0008			// Displays YES NO buttons
+#define		MSG_BOX_FLAG_FOUR_NUMBERED_BUTTONS		0x0010			// Displays four numbered buttons, 1-4
+#define		MSG_BOX_FLAG_YESNOCONTRACT				0x0020			// yes no and contract buttons
+#define		MSG_BOX_FLAG_OKCONTRACT					0x0040			// ok and contract buttons
+#define		MSG_BOX_FLAG_YESNOLIE					0x0080			// ok and contract buttons
+#define		MSG_BOX_FLAG_CONTINUESTOP				0x0100			// continue stop box
+#define		MSG_BOX_FLAG_OKSKIP						0x0200			// Displays ok or skip (meanwhile) buttons
+#define		MSG_BOX_FLAG_GENERICCONTRACT			0x0400			// displays contract buttoin + 2 user-defined text buttons
+#define		MSG_BOX_FLAG_GENERIC_TWO_BUTTONS		0x0800			// 2 user-defined text buttons
 // OJW - Adding text chatbox 
-#define		MSG_BOX_FLAG_INPUTBOX					0x1000 // has a text input field
+#define		MSG_BOX_FLAG_INPUTBOX					0x1000			// has a text input field
+// Flugente - added boxes with multiple buttons that can be renamed easily
+#define		MSG_BOX_FLAG_GENERIC_FOUR_BUTTONS		0x2000			// Displays four numbered buttons with definable labels
+#define		MSG_BOX_FLAG_GENERIC_EIGHT_BUTTONS		0x4000			// Displays eight numbered buttons with definable labels
+#define		MSG_BOX_FLAG_GENERIC_SIXTEEN_BUTTONS	0x8000			// Displays sixteen numbered buttons with definable labels
 
 // message box return codes
-#define		MSG_BOX_RETURN_OK									1					// ENTER or on OK button
-#define		MSG_BOX_RETURN_YES								2					// ENTER or YES button
-#define		MSG_BOX_RETURN_NO									3					// ESC, Right Click or NO button
-#define		MSG_BOX_RETURN_CONTRACT						4					// contract button
-#define		MSG_BOX_RETURN_LIE								5					// LIE BUTTON
+#define		MSG_BOX_RETURN_OK						1				// ENTER or on OK button
+#define		MSG_BOX_RETURN_YES						2				// ENTER or YES button
+#define		MSG_BOX_RETURN_NO						3				// ESC, Right Click or NO button
+#define		MSG_BOX_RETURN_CONTRACT					4				// contract button
+#define		MSG_BOX_RETURN_LIE						5				// LIE BUTTON
 
 // message box style flags
 enum
@@ -36,12 +40,18 @@ enum
 	MSG_BOX_BASIC_SMALL_BUTTONS,
 	MSG_BOX_IMP_STYLE,
 	MSG_BOX_LAPTOP_DEFAULT,
+	MSG_BOX_BASIC_MEDIUM_BUTTONS,
 };
 
 
 typedef void (*MSGBOX_CALLBACK)( UINT8 bExitValue );	
 
+// Flugente: made an array for user-defined buttons
+#define		NUM_CUSTOM_BUTTONS	16
 
+extern		CHAR16		gzUserDefinedButton[ NUM_CUSTOM_BUTTONS ][ 128 ];
+// sevenfm: color for buttons
+extern UINT16	gzUserDefinedButtonColor[ NUM_CUSTOM_BUTTONS ];
 
 typedef struct
 {
@@ -66,7 +76,7 @@ typedef struct
 		};
 		struct
 		{
-			UINT32						uiButton[4];
+			UINT32						uiButton[16];
 		};
 	};
 	BOOLEAN						fRenderBox;

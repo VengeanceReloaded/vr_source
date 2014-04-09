@@ -17,8 +17,6 @@
 	#include "_Ja25EnglishText.h"
 	#include "wordwrap.h"
 	#include "CharProfile.h"
-	#include "soldier profile type.h"
-	#include "IMP Compile Character.h"
 	#include "GameSettings.h"
 #endif
 
@@ -41,17 +39,19 @@ enum
 
 
 
-#define	IMP_DISABILITY_COLUMN_START_X								( LAPTOP_SCREEN_UL_X + 136 )
+//#define	IMP_DISABILITY_COLUMN_START_X								( LAPTOP_SCREEN_UL_X + 136 )
+#define	IMP_DISABILITY_COLUMN_START_X								( LAPTOP_SCREEN_UL_X + 15 )
+#define	IMP_DISABILITY_2ND_COLUMN_START_X							( IMP_DISABILITY_COLUMN_START_X + 241 )
+
 #define	IMP_DISABILITY_COLUMN_START_Y								( LAPTOP_SCREEN_WEB_UL_Y + 40 )
+#define IMP_DISABILITY_2ND_COLUMN_START_Y							IMP_DISABILITY_COLUMN_START_Y
+
+#define IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN				6
 
 #define	IMP_DISABILITY_TRAIT__SPACE_BTN_BUTTONS									38
 
 #define	IMP_DISABILITY_TRAIT__TEXT_OFFSET_X											65
 #define	IMP_DISABILITY_TRAIT__TEXT_OFFSET_Y											12
-
-#define	IMP_DISABILITY_TRAIT__TITLE_X											LAPTOP_SCREEN_UL_X - 111
-#define	IMP_DISABILITY_TRAIT__TITLE_Y											iScreenHeightOffset + 53
-#define	IMP_DISABILITY_TRAIT__TITLE_WIDTH												( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X )
 
 #define	IMP_DISABILITY_TRAIT__GREY_BOX_OFFSET_X									5
 #define	IMP_DISABILITY_TRAIT__GREY_BOX_OFFSET_Y									7
@@ -146,26 +146,37 @@ void EnterIMPDisabilityTrait( void )
 	HandleDisabilityTraitButtonStates( );
 	
 	// add regions for help texts
+	UINT16 usPosX = IMP_DISABILITY_COLUMN_START_X + 62;
 	UINT16 usPosY = IMP_DISABILITY_COLUMN_START_Y + 8;
 	for( UINT8 ubCnt=0; ubCnt<IMP_DISABILITIES_NUMBER; ubCnt++ )
 	{
-		MSYS_DefineRegion( &gMR_DisabilityHelpTextRegions[ubCnt], ( IMP_DISABILITY_COLUMN_START_X + 62 ), ( usPosY ),
-						(IMP_DISABILITY_COLUMN_START_X + 218), ( usPosY + 17), MSYS_PRIORITY_HIGH,
+		MSYS_DefineRegion( &gMR_DisabilityHelpTextRegions[ubCnt], usPosX, ( usPosY ),
+						(usPosX + 156), ( usPosY + 17), MSYS_PRIORITY_HIGH,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, NULL );
 		MSYS_AddRegion( &gMR_DisabilityHelpTextRegions[ubCnt] );
 		
-		usPosY += IMP_DISABILITY_TRAIT__SPACE_BTN_BUTTONS;
+		//Determine the next x location
+		if( ubCnt < IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
+			usPosX = IMP_DISABILITY_COLUMN_START_X + 62;
+		else
+			usPosX = IMP_DISABILITY_2ND_COLUMN_START_X + 62;
+
+		//Determine the next Y location
+		if( ubCnt == IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
+			usPosY = IMP_DISABILITY_COLUMN_START_Y + 8;
+		else
+			usPosY += IMP_DISABILITY_TRAIT__SPACE_BTN_BUTTONS;
 	}
 }
 
 
 void RenderIMPDisabilityTrait( void )
-{
+{	
 	//render the metal background graphic
 	RenderProfileBackGround();
 
 	// Display title
-	DrawTextToScreen( gzIMPDisabilityTraitText[IMP_DISABILITIES_NUMBER], LAPTOP_SCREEN_UL_X - 111, iScreenHeightOffset + 53, ( LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X ), FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+	DrawTextToScreen( gzIMPDisabilityTraitText[IMP_DISABILITIES_NUMBER], LAPTOP_SCREEN_UL_X - 111, LAPTOP_TITLE_Y, LAPTOP_TEXT_WIDTH, FONT14ARIAL, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 
 	IMPDisabilityTraitDisplayDisabilityTraits();
 }
@@ -242,15 +253,15 @@ void AddImpDisabilityTraitButtons()
 		//ButtonList[ giIMPDisabilityTraitAnswerButton[ ubCnt ] ]->ubSoundSchemeID = 0;
 
 		//Determine the next x location
-		//if( ubCnt < IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
+		if( ubCnt < IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
 			usPosX = IMP_DISABILITY_COLUMN_START_X;
-		//else
-		//	usPosX = IMP_DISABILITY_2ND_COLUMN_START_X;
+		else
+			usPosX = IMP_DISABILITY_2ND_COLUMN_START_X;
 
 		//Determine the next Y location
-		//if( ubCnt == IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
-		//	usPosY = IMP_DISABILITY_2ND_COLUMN_START_Y;
-		//else
+		if( ubCnt == IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
+			usPosY = IMP_DISABILITY_2ND_COLUMN_START_Y;
+		else
 			usPosY += IMP_DISABILITY_TRAIT__SPACE_BTN_BUTTONS;
 	}
 }
@@ -289,7 +300,7 @@ void HandleIMPDisabilityTraitAnswers( UINT32 uiSkillPressed )
 	}
 
 	//make sure its a valid disability trait
-	if( uiSkillPressed > IMP_DISABILITIES_NUMBER )
+	if( uiSkillPressed >= IMP_DISABILITIES_NUMBER )
 	{
 		Assert( 0 );
 		return;
@@ -347,10 +358,6 @@ void IMPDisabilityTraitDisplayDisabilityTraits()
 	UINT16 usBoxPosX, usBoxPosY;
 	HVOBJECT	hImageHandle;
 
-
-	//Display the title
-	//DrawTextToScreen( gzIMPSkillTraitsText[ IMP_DISABILITY_TRAIT__TITLE_TEXT ], IMP_DISABILITY_TRAIT__TITLE_X, IMP_DISABILITY_TRAIT__TITLE_Y, IMP_DISABILITY_TRAIT__TITLE_WIDTH, IMP_DISABILITY_TRAIT__TITLE_FONT, IMP_DISABILITY_TRAIT__COLOR, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
-
 	// Stats
 	GetVideoObject(&hImageHandle, guiIST_GreyGoldBox3 );
 
@@ -380,15 +387,15 @@ void IMPDisabilityTraitDisplayDisabilityTraits()
 		AssignDisabilityHelpText( ubCnt );
 
 		//Determine the next x location
-	//	if( ubCnt < IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
+		if( ubCnt < IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
 			usPosX = IMP_DISABILITY_COLUMN_START_X + IMP_DISABILITY_TRAIT__TEXT_OFFSET_X;
-		//else
-		//	usPosX = IMP_DISABILITY_2ND_COLUMN_START_X + IMP_DISABILITY_TRAIT__TEXT_OFFSET_X;
+		else
+			usPosX = IMP_DISABILITY_2ND_COLUMN_START_X + IMP_DISABILITY_TRAIT__TEXT_OFFSET_X;
 
 		//Determine the next Y location
-		//if( ubCnt == IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
-		//	usPosY = IMP_DISABILITY_2ND_COLUMN_START_Y + IMP_DISABILITY_TRAIT__TEXT_OFFSET_Y;
-		//else
+		if( ubCnt == IMP_DISABILITY_TRAIT_NUMBER_TO_START_2ND_COLUMN )
+			usPosY = IMP_DISABILITY_2ND_COLUMN_START_Y + IMP_DISABILITY_TRAIT__TEXT_OFFSET_Y;
+		else
 			usPosY += IMP_DISABILITY_TRAIT__SPACE_BTN_BUTTONS;
 	}
 }
@@ -399,20 +406,21 @@ void BtnIMPDisabilityTraitFinishCallback(GUI_BUTTON *btn,INT32 reason)
 
 	if (!(btn->uiFlags & BUTTON_ENABLED))
 		return;
-
+		
 	if( reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
 	{
 		btn->uiFlags|=(BUTTON_CLICKED_ON);
 
 		//if we are just reviewing the page
-		if( iCurrentProfileMode == IMP__FINISH )
+		//if( iCurrentProfileMode == IMP__FINISH )
+		//{
+			//go back to the done screen
+		iCurrentImpPage = IMP_PREJUDICE;
+		fButtonPendingFlag = TRUE;
+		//}
+		/*else
 		{
-			//go back tot he done screen
-			iCurrentImpPage = IMP_FINISH;
-		}
-		else
-		{
-			iCurrentImpPage = IMP_MAIN_PAGE;
+			iCurrentImpPage = IMP_PREJUDICE;
 
 			if( CameBackToDisabilityTraitPageButNotFinished() )
 			{
@@ -424,7 +432,7 @@ void BtnIMPDisabilityTraitFinishCallback(GUI_BUTTON *btn,INT32 reason)
 				else
 					iCurrentProfileMode = IMP__FINISH;
 			}
-		}
+		}*/
 	}
 }
 

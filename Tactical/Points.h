@@ -275,7 +275,7 @@
 //Just so the compiler will be able to use it in init.cpp, I'm a careful person.  Gotthard 1/18/07
 extern INT16 APBPConstants[TOTAL_APBP_VALUES];
 
-INT16 BaseAPsToShootOrStab( INT16 bAPs, INT16 bAimSkill, OBJECTTYPE * pObj );
+INT16 BaseAPsToShootOrStab( INT16 bAPs, INT16 bAimSkill, OBJECTTYPE * pObj, SOLDIERTYPE *pSoldier );
 // HEADROCK HAM 4: Same function as above, except no modifier.
 INT16 BaseAPsToShootOrStabNoModifier( INT16 bAPs, INT16 bAimSkill, OBJECTTYPE * pObj );
 // HEADROCK HAM 4: Same function as above, except no modifier.
@@ -287,17 +287,17 @@ INT16 EstimateActionPointCost( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, 
 BOOLEAN SelectedMercCanAffordMove(	);
 
 BOOLEAN EnoughPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, BOOLEAN fDisplayMsg );
-void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, BOOLEAN fProactive = TRUE );
-INT32 AdjustBreathPts(SOLDIERTYPE *pSold, INT32 iBPCost);
-void UnusedAPsToBreath(SOLDIERTYPE *pSold);
+void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ubInterruptType = 2 ); // SANDRO - change for improved interrupt system (ubInterruptType = 2 = UNDEFINED_INTERRUPT)
+INT32 AdjustBreathPts( SOLDIERTYPE * pSoldier , INT32 iBPCost );
+void UnusedAPsToBreath( SOLDIERTYPE * pSoldier );
 INT16 TerrainBreathPoints(SOLDIERTYPE * pSoldier, INT32 sGridNo,INT8 bDir, UINT16 usMovementMode);
-INT16 MinAPsToAttack(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost, UINT8 ubForceRaiseGunCost = 0);
+INT16 MinAPsToAttack(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost, INT16 bAimTime, UINT8 ubForceRaiseGunCost = 0 );
 INT16  MinPtsToMove(SOLDIERTYPE *pSoldier);
 INT8 MinAPsToStartMovement( SOLDIERTYPE * pSoldier, UINT16 usMovementMode );
 INT8	PtsToMoveDirection(SOLDIERTYPE *pSoldier, INT8 bDirection );
-UINT16 CalculateTurningCost(SOLDIERTYPE *pSoldier, UINT16 usItem, BOOLEAN fAddingTurningCost);
-UINT16 CalculateRaiseGunCost(SOLDIERTYPE *pSoldier, BOOLEAN fAddingRaiseGunCost);
-INT16 MinAPsToShootOrStab(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost, UINT8 ubForceRaiseGunCost = 0 );
+UINT16 CalculateTurningCost(SOLDIERTYPE *pSoldier, UINT16 usItem, BOOLEAN fAddingTurningCost, INT8 bDesiredHeight=0);//dnl ch72 190913
+UINT16 CalculateRaiseGunCost(SOLDIERTYPE *pSoldier, BOOLEAN fAddingRaiseGunCost, INT32 iTargetGridNum, INT16 bAimTime );
+INT16 MinAPsToShootOrStab(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 bAimTime, UINT8 ubAddTurningCost, UINT8 ubForceRaiseGunCost = 0 );
 BOOLEAN EnoughAmmo( SOLDIERTYPE *pSoldier, BOOLEAN fDisplay, INT8 bInvPos );
 void DeductAmmo( SOLDIERTYPE *pSoldier, INT8 bInvPos );
 
@@ -306,14 +306,10 @@ UINT16 GetAPsToPickupItem( SOLDIERTYPE *pSoldier, INT32 usMapPos );
 INT16 MinAPsToPunch(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost );
 INT16 ApsToPunch( SOLDIERTYPE *pSoldier ); // SANDRO added this
 INT16 CalcTotalAPsToAttack( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost, INT16 bAimTime );
-INT16 CalcAPsToBurst( INT16 bBaseActionPoints, OBJECTTYPE * pObj );
+INT16 CalcAPsToBurst( INT16 bBaseActionPoints, OBJECTTYPE * pObj, SOLDIERTYPE* pSoldier );
 // HEADROCK HAM 4: Same as above, without percent modifiers.
 INT16 CalcAPsToBurstNoModifier( INT16 bBaseActionPoints, OBJECTTYPE * pObj );
-// HEADROCK HAM 4: Same as above, without percent modifiers.
-INT16 CalcAPsToBurstNoModifier( INT16 bBaseActionPoints, OBJECTTYPE * pObj );
-INT16 CalcAPsToAutofire( INT16 bBaseActionPoints, OBJECTTYPE * pObj, UINT8 bDoAutofire );
-// HEADROCK HAM 4: Same as above, without modifiers
-INT16 CalcAPsToAutofireNoModifier( INT16 bBaseActionPoints, OBJECTTYPE * pObj, UINT8 bDoAutofire );
+INT16 CalcAPsToAutofire( INT16 bBaseActionPoints, OBJECTTYPE * pObj, UINT8 bDoAutofire, SOLDIERTYPE* pSoldier );
 // HEADROCK HAM 4: Same as above, without modifiers
 INT16 CalcAPsToAutofireNoModifier( INT16 bBaseActionPoints, OBJECTTYPE * pObj, UINT8 bDoAutofire );
 INT16 GetAPsToChangeStance( SOLDIERTYPE *pSoldier, INT8 bDesiredHeight );
@@ -356,9 +352,13 @@ INT16 GetAPsToUseJar( SOLDIERTYPE *pSoldier, INT32 usMapPos );
 INT16 GetAPsToUseCan( SOLDIERTYPE *pSoldier, INT32 usMapPos );
 INT16 GetBPsTouseJar( SOLDIERTYPE *pSoldier );
 
+INT16 GetAPsToHandcuff( SOLDIERTYPE *pSoldier, INT32 usMapPos );	// added by Flugente
+INT16 GetAPsToApplyItem( SOLDIERTYPE *pSoldier, INT32 usMapPos );	// added by Flugente
+INT16 GetAPsForMultiTurnAction( SOLDIERTYPE *pSoldier, UINT8 usActionType );	// added by Flugente
+
 INT16 GetAPsToJumpOver( SOLDIERTYPE *pSoldier );
 
-void GetAPChargeForShootOrStabWRTGunRaises( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost, BOOLEAN *pfChargeTurning, BOOLEAN *pfChargeRaise );
+void GetAPChargeForShootOrStabWRTGunRaises( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost, BOOLEAN *pfChargeTurning, BOOLEAN *pfChargeRaise, INT16 bAimTime );
 
 UINT16 GetAPsToReloadRobot( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pRobot );
 INT16 GetAPsToReloadGunWithAmmo( SOLDIERTYPE *pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo, BOOLEAN usAllAPs = TRUE );
@@ -380,5 +380,8 @@ INT16 GetAPsToDisarmMine( SOLDIERTYPE *pSoldier );
 
 INT16 GetAPsToJumpWall( SOLDIERTYPE *pSoldier, BOOLEAN fClimbDown );
 INT16 GetBPsToJumpWall( SOLDIERTYPE *pSoldier, BOOLEAN fClimbDown );
+
+INT32 GetBPCostPer10APsForGunHolding( SOLDIERTYPE * pSoldier, BOOLEAN fEstimate = FALSE );
+INT32 GetBPCostForRecoilkick( SOLDIERTYPE * pSoldier );
 
 #endif

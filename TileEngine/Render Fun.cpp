@@ -10,11 +10,9 @@
 	#include "input.h"
 	#include "sysutil.h"
 	#include "debug.h"
-	#include "wcheck.h"
 	#include "worldman.h"
 	#include "jascreens.h"
 	#include "Isometric Utils.h"
-	#include "Timer Control.h"
 	#include "renderworld.h"
 	#include "fov.h"
 	#include "Fog Of War.h"
@@ -26,7 +24,9 @@
 
 // Room Information
 //UINT8						gubWorldRoomInfo[ WORLD_MAX ];
-UINT8*						gubWorldRoomInfo = NULL;
+//DBrot: More Rooms
+//UINT8*						gubWorldRoomInfo = NULL;
+UINT16*						gusWorldRoomInfo = NULL;
 UINT8						gubWorldRoomHidden[ MAX_ROOMS ];
 
 
@@ -41,14 +41,14 @@ void ShutdownRoomDatabase( )
 {
 
 }
-
-void SetTileRoomNum( INT32 sGridNo, UINT8 ubRoomNum )
+//DBrot: More Rooms
+void SetTileRoomNum( INT32 sGridNo, UINT16 usRoomNum )
 {
 	// Add to global room list
-	gubWorldRoomInfo[ sGridNo ] = ubRoomNum;
+	gusWorldRoomInfo[ sGridNo ] = usRoomNum;
 }
-
-void SetTileRangeRoomNum( SGPRect *pSelectRegion, UINT8 ubRoomNum )
+//DBrot: More Rooms
+void SetTileRangeRoomNum( SGPRect *pSelectRegion, UINT8 usRoomNum )
 {
 	INT32 cnt1, cnt2;
 
@@ -56,20 +56,20 @@ void SetTileRangeRoomNum( SGPRect *pSelectRegion, UINT8 ubRoomNum )
 	{
 		for ( cnt2 = pSelectRegion->iLeft; cnt2 <= pSelectRegion->iRight; cnt2++ )
 		{
-			gubWorldRoomInfo[ MAPROWCOLTOPOS( cnt1, cnt2 ) ] = ubRoomNum;
+			gusWorldRoomInfo[ MAPROWCOLTOPOS( cnt1, cnt2 ) ] = usRoomNum;
 		}
 	}
 
 }
-
-BOOLEAN InARoom( INT32 sGridNo, UINT8 *pubRoomNo )
+//DBrot: More Rooms
+BOOLEAN InARoom( INT32 sGridNo, UINT16 *pusRoomNo )
 {
 	// WANNE: Bugzilla #360: Crash when moving via helicopter from museum sector
-	if ( sGridNo >= 0 && gubWorldRoomInfo[ sGridNo ] != NO_ROOM )
+	if ( sGridNo >= 0 && gusWorldRoomInfo[ sGridNo ] != NO_ROOM )
     {
-		if ( pubRoomNo )
+		if ( pusRoomNo )
 		{
-			*pubRoomNo = gubWorldRoomInfo[ sGridNo ];
+			*pusRoomNo = gusWorldRoomInfo[ sGridNo ];
 		}
 		return( TRUE );
 	}
@@ -77,14 +77,14 @@ BOOLEAN InARoom( INT32 sGridNo, UINT8 *pubRoomNo )
 	return( FALSE );
 }
 
-
-BOOLEAN InAHiddenRoom( INT32 sGridNo, UINT8 *pubRoomNo )
+//DBrot: More Rooms
+BOOLEAN InAHiddenRoom( INT32 sGridNo, UINT16 *pusRoomNo )
 {
-	if ( sGridNo >= 0 && gubWorldRoomInfo[ sGridNo ] != NO_ROOM )
+	if ( sGridNo >= 0 && gusWorldRoomInfo[ sGridNo ] != NO_ROOM )
 	{
-		if ( (gubWorldRoomHidden[ gubWorldRoomInfo[ sGridNo ] ] ) )
+		if ( (gubWorldRoomHidden[ gusWorldRoomInfo[ sGridNo ] ] ) )
 		{
-			*pubRoomNo = gubWorldRoomInfo[ sGridNo ];
+			*pusRoomNo = gusWorldRoomInfo[ sGridNo ];
 			return( TRUE );
 		}
 	}
@@ -124,7 +124,7 @@ void SetGridNoRevealedFlag( INT32 sGridNo )
 	SetRoofIndexFlagsFromTypeRange( sGridNo, FIRSTROOF, FOURTHROOF, LEVELNODE_HIDDEN	);
 
 	// ATE: Do this only if we are in a room...
-	if ( gubWorldRoomInfo[ sGridNo ] != NO_ROOM )
+	if ( gusWorldRoomInfo[ sGridNo ] != NO_ROOM )
 	{
 		SetStructAframeFlags(	sGridNo, LEVELNODE_HIDDEN );
 		// Find gridno one east as well...
@@ -186,7 +186,7 @@ void SetGridNoRevealedFlag( INT32 sGridNo )
 		pStructure = pStructure->pNext;
 	}
 
-	gubWorldRoomHidden[ gubWorldRoomInfo[ sGridNo ] ] = FALSE;
+	gubWorldRoomHidden[ gusWorldRoomInfo[ sGridNo ] ] = FALSE;
 
 }
 
@@ -216,8 +216,11 @@ void ExamineGridNoForSlantRoofExtraGraphic( INT32 sCheckGridNo )
 		for ( ubLoop = 0; ubLoop < pBase->pDBStructureRef->pDBStructure->ubNumberOfTiles; ubLoop++ )
 		{
 			ppTile = pBase->pDBStructureRef->ppTile;
+#if 0//dnl ch83 080114
 			sGridNo = pBase->sGridNo + ppTile[ ubLoop ]->sPosRelToBase;
-
+#else
+			sGridNo = AddPosRelToBase(pBase->sGridNo, ppTile[ubLoop]);
+#endif
 			if (sGridNo < 0 || sGridNo > WORLD_MAX)
 			{
 				continue;
@@ -259,8 +262,8 @@ void ExamineGridNoForSlantRoofExtraGraphic( INT32 sCheckGridNo )
 
 }
 
-
-void RemoveRoomRoof( INT32 sGridNo, UINT8 bRoomNum, SOLDIERTYPE *pSoldier )
+//DBrot: More Rooms
+void RemoveRoomRoof( INT32 sGridNo, UINT16 usRoomNum, SOLDIERTYPE *pSoldier )
 {
 	INT32			cnt;
 	ITEM_POOL					*pItemPool;
@@ -272,7 +275,7 @@ void RemoveRoomRoof( INT32 sGridNo, UINT8 bRoomNum, SOLDIERTYPE *pSoldier )
 	// LOOP THORUGH WORLD AND CHECK ROOM INFO
 	for ( cnt = 0; cnt < WORLD_MAX; cnt++ )
 	{
-		if ( gubWorldRoomInfo[ cnt ] == bRoomNum )
+		if ( gusWorldRoomInfo[ cnt ] == usRoomNum )
 		{
 
 			SetGridNoRevealedFlag( cnt );//dnl ch56 141009

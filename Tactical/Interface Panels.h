@@ -4,11 +4,11 @@
 struct EXTENDED_PANEL_STRING
 {
 	UINT8 uiFontColorLeft;
-    UINT8 uiFontColorRight;
+	UINT8 uiFontColorRight;
 	CHAR16 sPanelStringLeft[32];
-    CHAR16 sPanelStringRight[32];
-    UINT8 uiFontR;
-    UINT8 uiFontL;
+	CHAR16 sPanelStringRight[32];
+	UINT8 uiFontR;
+	UINT8 uiFontL;
 };
 
 typedef enum
@@ -43,7 +43,7 @@ typedef enum
 
 #define NEW_ITEM_CYCLE_COUNT				19
 #define NEW_ITEM_CYCLES						4
-#define	NUM_TEAM_SLOTS						6
+#define	NUM_TEAM_SLOTS						10
 
 
 #define	PASSING_ITEM_DISTANCE_OKLIFE		3
@@ -52,8 +52,8 @@ typedef enum
 #define	SHOW_LOCATOR_NORMAL					1
 #define SHOW_LOCATOR_FAST					2
 
-extern int	INTERFACE_CLOCK_X;
-extern int	INTERFACE_CLOCK_Y;
+//extern INT16 INTERFACE_CLOCK_X;
+//extern INT16 INTERFACE_CLOCK_Y;
 extern int	LOCATION_NAME_X;
 extern int	LOCATION_NAME_Y;
 
@@ -170,24 +170,29 @@ BOOLEAN ChangeDropPackStatus(SOLDIERTYPE *pSoldier, BOOLEAN newStatus);
 // By saving this in memory, we tell the DescBox which background and values to draw, and make sure that we end up
 // on the same page every time we open the description box. UDB buttons allow switching between pages.
 extern UINT8 gubDescBoxPage;
+// silversurfer: Now we also have a secondary page on the general tab for weapons so we can look at their secondary attributes.
+extern UINT8 gubDescGenPage;
 // Record which line we're looking at. This only applied to the Advanced tab in description boxes.
 extern UINT8 gubDescBoxLine;
 // Record how many lines there are for the current item in the Advanced tab.
 extern UINT8 gubDescBoxTotalAdvLines;
 
+// Jenilee: determine the cost of moving this item around in our inventory
+UINT16 GetInvMovementCost(OBJECTTYPE* pObj, INT16 old_pos, INT16 new_pos);
+
 // anv - extended panel functions
 typedef enum
 {
-    EXTENDED_PANEL_AGILITY,
-    EXTENDED_PANEL_DEXTERITY,
-    EXTENDED_PANEL_EXP_LVL,
-    EXTENDED_PANEL_STRENGTH,
-    EXTENDED_PANEL_EXPLOSIVES,
-    EXTENDED_PANEL_MARKSMANSHIP,
-    EXTENDED_PANEL_LEADERSHIP,
-    EXTENDED_PANEL_WISDOM,
-    EXTENDED_PANEL_MECHANICAL,
-    EXTENDED_PANEL_MEDICAL
+	EXTENDED_PANEL_AGILITY,
+	EXTENDED_PANEL_DEXTERITY,
+	EXTENDED_PANEL_EXP_LVL,
+	EXTENDED_PANEL_STRENGTH,
+	EXTENDED_PANEL_EXPLOSIVES,
+	EXTENDED_PANEL_MARKSMANSHIP,
+	EXTENDED_PANEL_LEADERSHIP,
+	EXTENDED_PANEL_WISDOM,
+	EXTENDED_PANEL_MECHANICAL,
+	EXTENDED_PANEL_MEDICAL
 };
 
 BOOLEAN DrawExtendedPanel(SOLDIERTYPE *pSoldier, UINT16 screenWidth );

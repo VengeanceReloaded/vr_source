@@ -4,6 +4,7 @@
 #include "Overhead Types.h"
 #include "Weapons.h"
 
+#include <map>		// added by Flugente
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -14,6 +15,10 @@ class SOLDIERTYPE;
 // but for lack of anything better, they are still used in other places
 #define NIGHTSIGHTGOGGLES_BONUS 2 * STRAIGHT_RATIO
 #define UVGOGGLES_BONUS 4 * STRAIGHT_RATIO
+
+
+
+
 
 extern UINT8 SlotToPocket[7];
 
@@ -60,8 +65,8 @@ BOOLEAN CreateAmmo( UINT16 usItem, OBJECTTYPE * pObj, UINT16 ubShotsLeft = 0);
 BOOLEAN CreateItems( UINT16 usItem, INT16 bStatus, UINT8 ubNumber, OBJECTTYPE * pObj );
 BOOLEAN CreateMoney( UINT32 uiMoney, OBJECTTYPE * pObj );
 extern UINT16 DefaultMagazine( UINT16 usItem );
-UINT16 RandomMagazine( UINT16 usItem, UINT8 ubPercentStandard, UINT8 maxCoolness );
-UINT16 RandomMagazine( OBJECTTYPE * pGun, UINT8 ubPercentStandard, UINT8 maxCoolness );
+UINT16 RandomMagazine( UINT16 usItem, UINT8 ubPercentStandard, UINT8 maxCoolness, INT8 bSoldierClass );
+UINT16 RandomMagazine( OBJECTTYPE * pGun, UINT8 ubPercentStandard, UINT8 maxCoolness, INT8 bSoldierClass );
 extern BOOLEAN ReloadGun( SOLDIERTYPE * pSoldier, OBJECTTYPE * pGun, OBJECTTYPE * pAmmo, UINT32 subObject = 0 );
 
 bool IsBackpackSlot(INT8 bSlot);
@@ -107,7 +112,8 @@ void RemoveInvObject( SOLDIERTYPE *pSoldier, UINT16 usItem );
 void InitItemAttachments(OBJECTTYPE* pObj);
 std::vector<UINT16> GetItemSlots(OBJECTTYPE* pObj, UINT8 subObject = 0, BOOLEAN fAttachment = FALSE);
 void RemoveProhibitedAttachments(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, UINT16 usItem, BOOLEAN fOnlyRemoveWhenSlotsChange = 1);
-void ReInitMergedItem(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, UINT16 usOldItem);
+// HEADROCK HAM 5: Added argument for statusindex.
+attachmentList ReInitMergedItem(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, UINT16 usOldItem, UINT8 ubStatusIndex); //Madd: return a list of attachments we couldn't reattach or drop, so the calling function can decide what to do with them
 void EjectAmmoAndPlace(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, UINT8 subObject = 0);
 
 BOOLEAN CanItemFitInVehicle( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, INT8 bPos, BOOLEAN fDoingPlacement );
@@ -148,7 +154,7 @@ BOOLEAN ValidItemAttachment( OBJECTTYPE * pObj, UINT16 usAttachment, BOOLEAN fAt
 //Return true if usAttachment would fit on an item with usItem, without considering possible other attachments on this gun. This may be inaccurate for NAS, because slots can change.
 BOOLEAN ValidAttachment( UINT16 usAttachment, UINT16 usItem, UINT8* ubAPCost = NULL );
 //This function does the same as the above, but is more accurate.
-BOOLEAN ValidAttachment( UINT16 usAttachment, OBJECTTYPE * pObj, UINT8* ubAPCost = NULL, UINT8 subObject = 0, std::vector<UINT16> usAttachmentSlotIndexVector = std::vector<UINT16>() );
+BOOLEAN ValidAttachment( UINT16 usAttachment, OBJECTTYPE * pObj, UINT8* ubAPCost = NULL, UINT8 subObject = 0, std::vector<UINT16> usAttachmentSlotIndexVector = std::vector<UINT16>());
 BOOLEAN ValidItemAttachmentSlot( OBJECTTYPE * pObj, UINT16 usAttachment, BOOLEAN fAttemptingAttachment, BOOLEAN fDisplayMessage = TRUE, UINT8 subObject = 0, INT16 slotCount = -1, BOOLEAN fIgnoreAttachmentInSlot = FALSE, OBJECTTYPE ** ppAttachInSlot = NULL, std::vector<UINT16> usAttachmentSlotIndexVector = std::vector<UINT16>());
 
 // Determines if it is possible to merge an item with any item whose class 
@@ -185,11 +191,13 @@ void SwapOutHandItem( SOLDIERTYPE * pSoldier );
 void SwapHandItems( SOLDIERTYPE * pSoldier );
 
 OBJECTTYPE* FindAttachmentByClass( OBJECTTYPE * pObj, UINT32 uiItemClass, UINT8 subObject = 0 );
+OBJECTTYPE* FindAttachmentByAttachmentClass( OBJECTTYPE * pObj, UINT32 uiAttachmentClass, UINT8 subObject = 0 );
 void WaterDamage( SOLDIERTYPE *pSoldier );
 
 INT8 FindObj( SOLDIERTYPE * pSoldier, UINT16 usItem, INT8 bLower = 0, INT8 bUpper = NUM_INV_SLOTS );
 
-BOOLEAN ApplyCammo( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGoodAPs );
+BOOLEAN ApplyCammo( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGoodAPs, BOOLEAN fUseAPs = TRUE );
+BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs = TRUE );	// Flugente: apply clothes, and eventually disguise
 
 UINT32 ConvertProfileMoneyValueToObjectTypeMoneyValue( UINT8 ubStatus );
 UINT8 ConvertObjectTypeMoneyValueToProfileMoneyValue( UINT32 uiMoneyAmount );
@@ -204,7 +212,7 @@ UINT16 FindReplacementMagazineIfNecessary( UINT16 usOldGun, UINT16 usOldAmmo, UI
 
 BOOLEAN DamageItemOnGround( OBJECTTYPE * pObject, INT32 sGridNo, INT8 bLevel, INT32 iDamage, UINT8 ubOwner );
 
-BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGoodAPs );
+BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGoodAPs, BOOLEAN fUseAPs = TRUE );
 BOOLEAN ApplyElixir( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGoodAPs );
 
 BOOLEAN CompatibleFaceItem( UINT16 usItem1, UINT16 usItem2 );
@@ -219,6 +227,7 @@ void CheckEquipmentForFragileItemDamage( SOLDIERTYPE *pSoldier, INT32 iDamage );
 #define XRAY_TIME 5
 
 extern void ActivateXRayDevice( SOLDIERTYPE * pSoldier );
+extern void TurnOnXRayEffects( SOLDIERTYPE * pSoldier );
 extern void TurnOffXRayEffects( SOLDIERTYPE * pSoldier );
 OBJECTTYPE* FindLaunchableAttachment( OBJECTTYPE * pObj, UINT16 usWeapon );
 UINT16 FindLegalGrenade(UINT16 usItem);
@@ -232,7 +241,7 @@ UINT16 MagazineClassIndexToItemType(UINT16 usMagIndex);
 BOOLEAN IsScoped( OBJECTTYPE * pObj );
 BOOLEAN NCTHIsScoped( OBJECTTYPE * pObj );
 INT16 GetReliability( OBJECTTYPE * pObj );
-INT16 GetAimBonus( OBJECTTYPE * pObj, INT32 iRange, INT16 ubAimTime );
+INT16 GetAimBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT32 iRange, INT16 ubAimTime );
 //WarmSteel - Used to determine the base aim bonus of the most powerful scope.
 INT16 GetBaseScopeAimBonus( OBJECTTYPE * pObj, INT32 iRange );
 // HEADROCK: Function to get the natural aimbonus of the weapon and its attachments
@@ -245,13 +254,15 @@ INT16 GetToHitBonus( OBJECTTYPE * pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN
 INT16 GetFlatToHitBonus( OBJECTTYPE * pObj );
 // HEADROCK: Function to get average of best laser ranges from weapon and attachments
 INT16 GetAverageBestLaserRange( OBJECTTYPE * pObj );
+// get the best laser range from the weapon and attachments
+INT16 GetBestLaserRange( OBJECTTYPE * pObj );
 // HEADROCK: Function to get bipod bonus from weapon and its attachments
 INT16 GetBipodBonus( OBJECTTYPE * pObj );
 INT16 GetBurstToHitBonus( OBJECTTYPE * pObj, BOOLEAN fProneStance = FALSE );
 INT16 GetAutoToHitBonus( OBJECTTYPE * pObj, BOOLEAN fProneStance = FALSE	);
 INT16 GetGearAimBonus( SOLDIERTYPE * pSoldier, INT32 iRange, INT16 ubAimTime);
 INT16 GetGearToHitBonus( SOLDIERTYPE * pSoldier );
-INT16 GetMinRangeForAimBonus( OBJECTTYPE * pObj );
+INT16 GetMinRangeForAimBonus( SOLDIERTYPE* pSoldier, OBJECTTYPE * pObj );
 
 // HEADROCK: Function to get the final loudness value of a weapon, after reduction from its own characteristics, ammo and attachments
 INT16 GetFinalLoudness( OBJECTTYPE * pObj );
@@ -264,27 +275,39 @@ INT16 GetRangeBonus( OBJECTTYPE * pObj );
 // For a "default" value, feed the function a value of ubStance=ANIM_STAND.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-INT32 GetFlatBaseModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetPercentBaseModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetFlatAimModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetPercentAimModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetPercentCapModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetPercentHandlingModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetDropCompensationModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetCounterForceMaxModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetCounterForceAccuracyModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetCounterForceFrequencyModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetTargetTrackingModifier( OBJECTTYPE *pObj, UINT8 ubStance );
-INT32 GetAimLevelsModifier( OBJECTTYPE *pObj, UINT8 ubStance );
+// Flugente: unified function (no need to have 12 functions that all do the same thing and clutter the code)
+enum {
+	ITEMMODIFIER_FLATBASE = 0,
+	ITEMMODIFIER_PERCENTBASE,
+	ITEMMODIFIER_FLATAIM,
+	ITEMMODIFIER_PERCENTAIM,
+	ITEMMODIFIER_PERCENTCAP,
+	ITEMMODIFIER_PERCENTHANDLING,
+	ITEMMODIFIER_DROPCOMPENSATION,
+	ITEMMODIFIER_COUNTERFORCEMAX,
+	ITEMMODIFIER_COUNTERFORCEACCURACY,
+	ITEMMODIFIER_COUNTERFORCEFREQUENCY,
+	ITEMMODIFIER_TRACKING,
+	ITEMMODIFIER_AIMLEVELS,
+
+	// not NCTH, but works the same way...
+	ITEMMODIFIER_SPOTTER,
+
+	ITEMMODIFIER_MAX,
+};
+
+INT32 GetItemModifier(OBJECTTYPE* pObj, UINT8 ubRef, UINT8 usType);
+INT32 GetObjectModifier( SOLDIERTYPE* pSoldier, OBJECTTYPE *pObj, UINT8 ubStance, UINT8 type );
+
 INT32 GetAimLevelsTraitModifier( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj );
 
 // Returns the character's stance as 0/1/2.
-INT8 GetStanceModifierRef( INT8 ubStance );
+UINT8 GetStanceModifierRef( INT8 ubStance );
 
 INT16 GetDamageBonus( OBJECTTYPE * pObj );
 INT16 GetMeleeDamageBonus( OBJECTTYPE * pObj );
 
-INT16 GetPercentAPReduction( OBJECTTYPE * pObj );
+INT16 GetPercentAPReduction( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj );
 INT16 GetPercentAutofireAPReduction( OBJECTTYPE * pObj );
 INT16 GetPercentBurstFireAPReduction( OBJECTTYPE * pObj );
 INT16 GetPercentReadyTimeAPReduction( OBJECTTYPE * pObj );
@@ -295,8 +318,12 @@ BOOLEAN HasFastBurst( OBJECTTYPE * pObj );
 INT16 GetMagSizeBonus( OBJECTTYPE * pObj, UINT8 subObject = 0 );
 
 // HEADROCK HAM 4: This function now calculates and returns the weapon's recoil as X/Y offsets.
-void GetRecoil( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, INT8 *bRecoilX, INT8 *bRecoilY, UINT8 ubNumBullet );
-void GetFlatRecoilModifier( OBJECTTYPE *pObj, INT8 *bRecoilModifierX, INT8 *bRecoilModifierY );
+void GetRecoil( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, FLOAT *bRecoilX, FLOAT *bRecoilY, UINT8 ubNumBullet );
+void GetBaseFlatRecoilModifier( OBJECTTYPE *pObj, FLOAT *bRecoilModifierX, FLOAT *bRecoilModifierY);
+void GetAttachmentFlatRecoilModifier( OBJECTTYPE *pObj, FLOAT *bRecoilModifierX, FLOAT *bRecoilModifierY);
+void GetFlatRecoilModifier( OBJECTTYPE *pObj, FLOAT *bRecoilModifierX, FLOAT *bRecoilModifierY );
+INT16 GetBasePercentRecoilModifier( OBJECTTYPE *pObj );
+INT16 GetAttachmentPercentRecoilModifier( OBJECTTYPE *pObj);
 INT16 GetPercentRecoilModifier( OBJECTTYPE *pObj );
 // HEADROCK HAM 4: This function returns whether the last bullet in a burst/autofire volley was a tracer.
 BOOLEAN WasPrevBulletATracer( SOLDIERTYPE *pSoldier, OBJECTTYPE *pWeapon );
@@ -333,6 +360,14 @@ INT16 GetGrenadeLauncherStatus( OBJECTTYPE * pObj );
 BOOLEAN IsGrenadeLauncherAttached( OBJECTTYPE * pObj, UINT8 subObject = 0 );
 OBJECTTYPE* FindAttachment_GrenadeLauncher( OBJECTTYPE * pObj );
 UINT16 GetAttachedGrenadeLauncher( OBJECTTYPE * pObj );
+
+// JMich & Flugente: functions for underbarrel weapons and bayonets
+// As we can have both underbarrel gun and a bayonet, use usFlag to specify (IC_GUN or IC_BLADE are used here, or both)
+INT16 GetUnderBarrelStatus( OBJECTTYPE * pObj, UINT32 usFlag );
+BOOLEAN IsWeaponAttached( OBJECTTYPE * pObj, UINT32 usFlag, UINT8 subObject = 0 );
+OBJECTTYPE* FindAttachedWeapon( OBJECTTYPE * pObj, UINT32 usFlag );
+UINT16 GetAttachedWeapon( OBJECTTYPE * pObj, UINT32 usFlag );
+
 INT8 FindRocketLauncher( SOLDIERTYPE * pSoldier );
 INT8 FindRocketLauncherOrCannon( SOLDIERTYPE * pSoldier );
 INT8 FindNonSmokeLaunchable( SOLDIERTYPE * pSoldier, UINT16 usWeapon );
@@ -356,15 +391,16 @@ INT16 GetAttachedArmourBonus( OBJECTTYPE * pObj );
 INT16 GetBulletSpeedBonus( OBJECTTYPE * pObj );
 INT8 FindGasMask( SOLDIERTYPE * pSoldier );
 INT8 FindLockBomb( SOLDIERTYPE * pSoldier );
-INT8 FindMetalDetector( SOLDIERTYPE * pSoldier );
+INT8 FindMetalDetectorInHand( SOLDIERTYPE * pSoldier );		// Flugente: changed, now only works if detector is in hands
 INT8 FindCannon( SOLDIERTYPE * pSoldier );
 INT8 FindUsableCrowbar( SOLDIERTYPE * pSoldier );
 INT8 FindToolkit( SOLDIERTYPE * pSoldier );
-BOOLEAN IsDetonatorAttached( OBJECTTYPE * pObj );
-BOOLEAN IsRemoteDetonatorAttached( OBJECTTYPE * pObj );
+BOOLEAN IsDetonatorAttached( OBJECTTYPE * pObj );			// Flugente: no more needed, use HasAttachmentOfClass( pObj, AC_DETONATOR ) instead
+BOOLEAN IsRemoteDetonatorAttached( OBJECTTYPE * pObj );		// Flugente: no more needed, use HasAttachmentOfClass( pObj, AC_REMOTEDET ) instead
 OBJECTTYPE* FindAttachedBatteries( OBJECTTYPE * pObj );
 INT8 FindMedKit( SOLDIERTYPE * pSoldier );
 INT8 FindFirstAidKit( SOLDIERTYPE * pSoldier );
+INT8 FindDisarmKit( SOLDIERTYPE * pSoldier );	//JMich_SkillsModifiers: Added function to check for disarm bonus
 INT8 FindLocksmithKit( SOLDIERTYPE * pSoldier );
 INT8 FindCamoKit( SOLDIERTYPE * pSoldier );
 INT8 FindWalkman( SOLDIERTYPE * pSoldier );
@@ -393,9 +429,12 @@ OBJECTTYPE* FindNightGogglesInInv( SOLDIERTYPE * pSoldier, INT8 * bSlot, BOOLEAN
 UINT8 AllowedAimingLevels(SOLDIERTYPE * pSoldier, INT32 sGridNo);
 // HEADROCK HAM 4: New functions to determine Scope and Laser factors on a weapon.
 FLOAT GetHighestScopeMagnificationFactor( OBJECTTYPE *pObj );
-FLOAT GetScopeMagnificationFactor( OBJECTTYPE *pObj, FLOAT uiRange );
+FLOAT GetScopeMagnificationFactor( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, FLOAT uiRange );
 FLOAT GetBestScopeMagnificationFactor( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, FLOAT uiRange );
 FLOAT GetProjectionFactor( OBJECTTYPE *pObj );
+// Flugente: projection factor while using scope modes excludes those factors coming from not-used scopes and sights
+FLOAT GetScopeModeProjectionFactor( SOLDIERTYPE *pSoldier, OBJECTTYPE * pObj );
+
 FLOAT GetScopeRangeMultiplier( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, FLOAT d2DDistance );
 INT32 GetGunAccuracy( OBJECTTYPE *pObj );
 INT32 GetAccuracyModifier( OBJECTTYPE *pObj );
@@ -414,7 +453,7 @@ INT16 GetSnowCamoBonus( OBJECTTYPE * pObj );
 INT8 FindBackpackOnSoldier( SOLDIERTYPE * pSoldier );
 
 // HEADROCK HAM 3.6: Handler functions to get modified damage with INI parameter.
-UINT8 GetModifiedExplosiveDamage( UINT16 ubDamage );
+UINT8 GetModifiedExplosiveDamage( UINT16 ubDamage, UINT8 ubType );
 UINT8 GetModifiedMeleeDamage( UINT16 ubDamage );
 UINT8 GetModifiedGunDamage( UINT16 ubDamage );
 
@@ -425,6 +464,79 @@ UINT16 GetModifiedGunRange( UINT16 usWeaponIndex );
 INT16 ReduceCamoFromSoldier( SOLDIERTYPE * pSoldier, INT16 iCamoToRemove, INT16 iCamoToSkip );
 BOOLEAN HasExtendedEarOn( SOLDIERTYPE * pSoldier );
 BOOLEAN UseTotalMedicalKitPoints( SOLDIERTYPE * pSoldier, UINT16 usPointsToConsume );
+
+// Flugente
+FLOAT GetItemCooldownModificator( OBJECTTYPE * pObj );
+FLOAT GetItemCooldownFactor( OBJECTTYPE * pObj );
+void  GetScopeLists( OBJECTTYPE * pObj, std::map<INT8, OBJECTTYPE*>& arScopeMap );
+
+// check if item belongs to a specific attachment class
+BOOLEAN IsAttachmentClass( UINT16 usItem, UINT32 aFlag );
+BOOLEAN HasAttachmentOfClass( OBJECTTYPE * pObj, UINT32 aFlag );
+
+//Madd: Common Attachment Framework
+bool IsAttachmentPointAvailable( OBJECTTYPE * pObject, UINT8 subObject, UINT32 attachmentID );
+bool IsAttachmentPointAvailable( UINT32 itemID, UINT32 attachmentID );
+bool IsAttachmentPointAvailable( UINT64 point, UINT32 attachmentID, BOOLEAN onlyCheckAttachments );
+UINT64 GetAvailableAttachmentPoint ( OBJECTTYPE * pObject, UINT8 subObject );
+
+// Flugente: check if and how a bomb has been set up
+void CheckBombSpecifics( OBJECTTYPE * pObj, INT8* detonatortype, INT8* setting, INT8* defusefrequency );
+
+// Flugente: check for specific flags
+BOOLEAN HasItemFlag( UINT16 usItem, UINT32 aFlag );
+
+// Flugente: get first item number that has this flag. Use with caution, as we search in all items
+BOOLEAN GetFirstItemWithFlag( UINT16* pusItem, UINT32 aFlag );
+
+// Flugente: check if this object is currently fed from an external source (belts in inventory, other mercs)
+BOOLEAN ObjectIsBeingFedExternal(SOLDIERTYPE* pSoldier, OBJECTTYPE * pObject);
+
+// is this object currently used to feed an externally fed object? This can be in our or someone else's inventory
+BOOLEAN ObjectIsExternalFeeder(SOLDIERTYPE* pSoldier, OBJECTTYPE * pObject);
+
+OBJECTTYPE* GetExternalFeedingObject(SOLDIERTYPE* pSoldier, OBJECTTYPE * pObject);
+
+BOOLEAN DeductBulletViaExternalFeeding(SOLDIERTYPE* pSoldier, OBJECTTYPE * pObject);
+
+#define MAX_PRISON_ROOMS 16
+// Flugente: additional xml data for sectors
+typedef struct
+{
+	UINT8		usWaterType;			// type of water source in this sector
+	UINT16		usNaturalDirt;			// extra dirt percentage when firing in this sector
+	UINT8		usCurfewValue;			// determines wether mercs disguising as civilian are automatically discovered (certain sectors are 'restricted' to civilians)
+	INT8		sRadioScanModifier;		// modifies the scan range of the radio scan assignment in this sector
+	UINT16		usPrisonRoomNumber[MAX_PRISON_ROOMS];		// room numbers of prisons
+
+} SECTOR_EXT_DATA;
+
+// get dirt increase for object with attachments, fConsiderAmmo: with ammo
+FLOAT GetItemDirtIncreaseFactor( OBJECTTYPE * pObj, BOOLEAN fConsiderAmmo = TRUE );
+
+//DBrot: get the volume of all attached pouches
+UINT8 GetVolumeAlreadyTaken(OBJECTTYPE * pObj, INT16 exceptSlot);
+INT16 GetPocketFromAttachment(OBJECTTYPE * pObj, UINT8 pMap);
+UINT8 GetFirstPocketOnItem(UINT16 usIndex);
+
+INT8 GetNumberAltFireAimLevels( SOLDIERTYPE * pSoldier, INT32 iGridNo );
+
+// Flugente: retrieve a specific clothes item, if such a thing exists
+BOOLEAN	GetFirstClothesItemWithSpecificData( UINT16* pusItem, PaletteRepID aPalVest, PaletteRepID aPalPants );
+
+// Flugente: function to determine what item a random item spawns
+BOOLEAN GetItemFromRandomItem( UINT16 usRandomItem, UINT16* pusNewItem );
+
+// Flugente: can item be applied to other people?
+BOOLEAN ItemCanBeAppliedToOthers( UINT16 usItem );
+
+//zwwooooo - IoV: change RangeBonus to ratable (Orange by kenkenkenken in IoV921)
+INT32 GetPercentRangeBonus( OBJECTTYPE * pObj );
+
+// silversurfer: returns the SleepModifier from the characters inventory
+UINT8 GetInventorySleepModifier( SOLDIERTYPE *pSoldier );
+
+void AttachDefaultAttachments(OBJECTTYPE *pObj, BOOLEAN fAllDefaultAttachments=TRUE);//dnl ch75 261013
 
 #endif
 

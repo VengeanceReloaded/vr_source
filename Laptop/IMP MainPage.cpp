@@ -8,23 +8,21 @@
 	#include "WCheck.h"
 	#include "Debug.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 	#include "Encrypted File.h"
 	#include "cursors.h"
 	#include "laptop.h"
-	#include "finances.h"
 	#include "IMP Attribute Selection.h"
 	#include "IMP Text System.h"
 	#include "IMP Finish.h"
 	#include "mousesystem.h"
 	#include "Merc Hiring.h"
 	#include "LaptopSave.h"
-	#include "IMP Compile Character.h"
 	#include "IMP Portraits.h"
 	#include "soldier profile type.h"
 	#include "GameSettings.h"
 	#include "Soldier Profile.h"
 	#include "Squads.h"
+	#include "Overhead.h"		// added by Flugente for OUR_TEAM_SIZE_NO_VEHICLE
 #endif
 
 #include "IMP Confirm.h"
@@ -606,7 +604,7 @@ void BtnIMPMainPageBeginCallback(GUI_BUTTON *btn,INT32 reason)
 					DoLapTopMessageBox( MSG_BOX_IMP_STYLE, pImpPopUpStrings[ 3 ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, BeginMessageBoxCallBack);
 
 				}
-				else if( NumberOfMercsOnPlayerTeam() >= gGameExternalOptions.ubGameMaximumNumberOfPlayerMercs )
+				else if( NumberOfMercsOnPlayerTeam() >= OUR_TEAM_SIZE_NO_VEHICLE )
 				{
 					DoLapTopMessageBox( MSG_BOX_IMP_STYLE, pImpPopUpStrings[ 5 ], LAPTOP_SCREEN, MSG_BOX_FLAG_OK, BeginMessageBoxCallBack);
 				}
@@ -1122,6 +1120,7 @@ BOOLEAN LoadCharacterPortraitForMainPage( void )
 		
 		if( fCharacterIsMale )
 		{
+			if (  gIMPMaleValues[ iPortraitNumber ].Enabled == 1 )
 			{
 			//	sprintf( VObjectDesc.ImageFile, "Faces\\%02d.sti", gIMPMaleValues[ iPortraitNumber ].PortraitId );
 				sprintf( VObjectDesc.ImageFile, "IMPFaces\\%02d.sti", gIMPMaleValues[ iPortraitNumber ].PortraitId );

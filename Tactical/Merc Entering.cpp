@@ -4,7 +4,6 @@
 	#include "builddefines.h"
 	#include <stdio.h>
 	#include <string.h>
-	#include "wcheck.h"
 	#include "stdlib.h"
 	#include "debug.h"
 	//#include "soldier control.h"
@@ -13,7 +12,6 @@
 	#include "weapons.h"
 	#include "handle items.h"
 	#include "worlddef.h"
-	#include "worldman.h"
 	#include "rotting corpses.h"
 	#include "tile cache.h"
 	#include "isometric utils.h"
@@ -30,7 +28,6 @@
 	#include "Handle UI.h"
 	#include "squads.h"
 	#include "english.h"
-	#include "cursors.h"
 	#include "cursor control.h"
 	#include "Merc Hiring.h"
 	#include "Font Control.h"
@@ -45,6 +42,11 @@
 	#include "Overhead.h"
 #endif
 
+#ifdef JA2UB
+#include "ub_config.h"
+#endif
+
+#include "Music Control.h"
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -384,10 +386,6 @@ BOOLEAN		gfFirstHeliRun;
 
 void HandleFirstHeliDropOfGame( );
 
-
-
-
-
 void ResetHeliSeats( )
 {
 	gbNumHeliSeatsOccupied = 0;
@@ -413,13 +411,16 @@ void AddMercToHeli( UINT8 ubID )
 	}
 }
 
+// Flugente: we might want to set the helicopter dropoff point without starting it at the same time
+void SetHelicopterDroppoint( INT32 sGridNo )
+{
+	gsGridNoSweetSpot = sGridNo;
+}
 
-void StartHelicopterRun( INT32 sGridNoSweetSpot )
+void StartHelicopterRun()
 {
 	INT16 sX, sY;
-
-	gsGridNoSweetSpot = sGridNoSweetSpot;
-
+	
 	if ( gbNumHeliSeatsOccupied == 0 )
 	{
 		return;
@@ -429,7 +430,7 @@ void StartHelicopterRun( INT32 sGridNoSweetSpot )
 	PauseGame();
 	LockPauseState( 20 );
 
-	ConvertGridNoToCenterCellXY( sGridNoSweetSpot, &sX, &sY );
+	ConvertGridNoToCenterCellXY( gsGridNoSweetSpot, &sX, &sY );
 
 	gsHeliXPos					= sX - ( 2 * CELL_X_SIZE );
 	gsHeliYPos					= sY - ( 10 * CELL_Y_SIZE );
@@ -442,15 +443,14 @@ void StartHelicopterRun( INT32 sGridNoSweetSpot )
 	gbHeliRound					= 1;
 
 	gubHeliState				= HELI_APPROACH;
-	guiHeliLastUpdate		= GetJA2Clock( );
+	guiHeliLastUpdate			= GetJA2Clock( );
 
 	// Start sound
 	uiSoundSample = PlayJA2Sample( HELI_1, RATE_11025, 0, 10000, MIDDLEPAN );
 	fFadingHeliIn				= TRUE;
 
-	gfHandleHeli			= TRUE;
-
-	gfFirstGuyDown		= TRUE;
+	gfHandleHeli				= TRUE;
+	gfFirstGuyDown				= TRUE;
 
 	guiPendingOverrideEvent = LU_BEGINUILOCK;
 }
@@ -460,42 +460,102 @@ void HandleHeliDrop( )
 {
 	UINT8 ubScriptCode;
 	UINT32	uiClock;
-	//INT16 sWorldX, sWorldY;
 	INT32 iVol;
 	INT32 cnt;
 	ANITILE_PARAMS	AniParams;
-
-
+	
 	if ( gfHandleHeli )
 	{
 		if ( gCurrentUIMode != LOCKUI_MODE )
 		{
 			guiPendingOverrideEvent = LU_BEGINUILOCK;
 		}
-
-		if ( _KeyDown( ESC ) )
-		{
+#ifdef JA113DEMO
+		//if ( _KeyDown( ESC ) )
+		//{
 			// Loop through all mercs not yet placed
 			for ( cnt = gbCurDrop; cnt < gbNumHeliSeatsOccupied; cnt++ )
 			{
 				// Add merc to sector
+				#ifdef JA2UB
+				//MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_NORTH;
+				MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+				MercPtrs[ gusHeliSeats[ cnt ] ]->usStrategicInsertionData = gGameUBOptions.LOCATEGRIDNO;
+				#else
 				//MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_NORTH;
 				MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
 				MercPtrs[ gusHeliSeats[ cnt ] ]->usStrategicInsertionData = gGameExternalOptions.iInitialMercArrivalLocation;
+				#endif
 				// HEADROCK HAM 3.5: Externalized!
 				UpdateMercInSector( MercPtrs[ gusHeliSeats[ cnt ] ], gGameExternalOptions.ubDefaultArrivalSectorX, gGameExternalOptions.ubDefaultArrivalSectorY, startingZ );
 
 				// Check for merc arrives quotes...
 				HandleMercArrivesQuotes( MercPtrs[ gusHeliSeats[ cnt ] ] );
 
-				ScreenMsg( FONT_MCOLOR_WHITE, MSG_INTERFACE, TacticalStr[ MERC_HAS_ARRIVED_STR ], MercPtrs[ gusHeliSeats[ cnt ] ]->name );
+				ScreenMsg( FONT_MCOLOR_WHITE, MSG_INTERFACE, TacticalStr[ MERC_HAS_ARRIVED_STR ], MercPtrs[ gusHeliSeats[ cnt ] ]->GetName() );
 
 			}
 
 			// Remove heli
 			DeleteAniTile( gpHeli );
 
-		RebuildCurrentSquad( );
+			RebuildCurrentSquad( );
+
+			// Remove sound
+			if( uiSoundSample!=NO_SAMPLE )
+			{
+				SoundStop( uiSoundSample );
+			}
+
+			gfHandleHeli = FALSE;
+			gfIgnoreScrolling = FALSE;
+			gbNumHeliSeatsOccupied = 0;
+			UnLockPauseState();
+			UnPauseGame();
+
+
+			// Select our first guy
+			SelectSoldier( gusHeliSeats[ 0 ], FALSE, TRUE );
+
+			//guiCurrentEvent = LU_ENDUILOCK;
+			//gCurrentUIMode	= LOCKUI_MODE;
+			guiPendingOverrideEvent = LU_ENDUILOCK;
+			//UIHandleLUIEndLock( NULL );
+
+			HandleFirstHeliDropOfGame( );
+			return;
+
+		//}
+#else
+		if ( _KeyDown( ESC ) )
+		{
+			// Loop through all mercs not yet placed
+			for ( cnt = gbCurDrop; cnt < gbNumHeliSeatsOccupied; cnt++ )
+			{
+				// Add merc to sector
+				#ifdef JA2UB
+				//MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_NORTH;
+				MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+				MercPtrs[ gusHeliSeats[ cnt ] ]->usStrategicInsertionData = gGameUBOptions.LOCATEGRIDNO;
+				#else
+				//MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_NORTH;
+				MercPtrs[ gusHeliSeats[ cnt ] ]->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+				MercPtrs[ gusHeliSeats[ cnt ] ]->usStrategicInsertionData = gGameExternalOptions.iInitialMercArrivalLocation;
+				#endif
+				// HEADROCK HAM 3.5: Externalized!
+				UpdateMercInSector( MercPtrs[ gusHeliSeats[ cnt ] ], gGameExternalOptions.ubDefaultArrivalSectorX, gGameExternalOptions.ubDefaultArrivalSectorY, startingZ );
+
+				// Check for merc arrives quotes...
+				HandleMercArrivesQuotes( MercPtrs[ gusHeliSeats[ cnt ] ] );
+
+				ScreenMsg( FONT_MCOLOR_WHITE, MSG_INTERFACE, TacticalStr[ MERC_HAS_ARRIVED_STR ], MercPtrs[ gusHeliSeats[ cnt ] ]->GetName() );
+
+			}
+
+			// Remove heli
+			DeleteAniTile( gpHeli );
+
+			RebuildCurrentSquad( );
 
 			// Remove sound
 			if( uiSoundSample!=NO_SAMPLE )
@@ -522,7 +582,7 @@ void HandleHeliDrop( )
 			return;
 
 		}
-
+#endif
 		gfIgnoreScrolling = TRUE;
 
 		uiClock = GetJA2Clock( );
@@ -539,7 +599,7 @@ void HandleHeliDrop( )
 					iVol=__min( HIGHVOLUME, iVol+5);
 					SoundSetVolume(uiSoundSample, iVol);
 					if(iVol==HIGHVOLUME)
-							fFadingHeliIn=FALSE;
+						fFadingHeliIn=FALSE;
 				}
 				else
 				{
@@ -567,7 +627,7 @@ void HandleHeliDrop( )
 						UnLockPauseState();
 						UnPauseGame();
 
-			RebuildCurrentSquad( );
+						RebuildCurrentSquad( );
 
 						HandleFirstHeliDropOfGame( );
 					}
@@ -582,7 +642,7 @@ void HandleHeliDrop( )
 					UnLockPauseState();
 					UnPauseGame();
 
-			RebuildCurrentSquad( );
+					RebuildCurrentSquad( );
 
 					HandleFirstHeliDropOfGame( );
 				}
@@ -612,14 +672,17 @@ void HandleHeliDrop( )
 					// OK, Check if we have anybody left to send!
 					if ( gbCurDrop < bEndVal )
 					{
+						// Flugente: it is now possible to use airdrops with soldiers after they have arrived in Arulco. In that case, they might have an animation that breaks EVENT_InitNewSoldierAnim prematurely.
+						// In the worst case, this can cause the game to be unable to finsih the airdrop. For that reason, we set all those soldier to the STANDING aniamtion. 
+						MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->usAnimState = STANDING;
+
 						//sWorldX = CenterX( gsGridNoSweetSpot );
 						//sWorldY = CenterY( gsGridNoSweetSpot );
 						MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->EVENT_InitNewSoldierAnim( HELIDROP, 0 , FALSE );
 
 						// Change insertion code
-						//MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->ubStrategicInsertionCode = INSERTION_CODE_NORTH;
 						MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
-						MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->usStrategicInsertionData = gGameExternalOptions.iInitialMercArrivalLocation;
+						MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->usStrategicInsertionData = gsGridNoSweetSpot;
 
 						// HEADROCK HAM 3.5: Externalized!
 						UpdateMercInSector( MercPtrs[ gusHeliSeats[ gbCurDrop ] ], gGameExternalOptions.ubDefaultArrivalSectorX, gGameExternalOptions.ubDefaultArrivalSectorY, startingZ );
@@ -631,7 +694,7 @@ void HandleHeliDrop( )
 							gfFirstGuyDown = FALSE;
 							SetCurrentSquad( MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->bAssignment, TRUE );
 						}
-						ScreenMsg( FONT_MCOLOR_WHITE, MSG_INTERFACE, TacticalStr[ MERC_HAS_ARRIVED_STR ], MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->name );
+						ScreenMsg( FONT_MCOLOR_WHITE, MSG_INTERFACE, TacticalStr[ MERC_HAS_ARRIVED_STR ], MercPtrs[ gusHeliSeats[ gbCurDrop ] ]->GetName() );
 
 						gbCurDrop++;
 
@@ -807,9 +870,8 @@ void BeginMercEntering( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 	ResetHeliSeats( );
 
 	AddMercToHeli( pSoldier->ubID );
-
-
-	StartHelicopterRun( sGridNo );
+	
+	StartHelicopterRun();
 
 	// Make sure AI does nothing.....
 	PauseAIUntilManuallyUnpaused();
@@ -818,17 +880,17 @@ void BeginMercEntering( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 
 void HandleFirstHeliDropOfGame( )
 {
+	// Flugente: always call people to area
+	CallAvailableEnemiesTo( gsGridNoSweetSpot );
+
 	// Are we in the first heli drop?
 	if ( gfFirstHeliRun )
 	{
 		SyncStrategicTurnTimes();
 
-		// Call people to area
-		CallAvailableEnemiesTo( gsGridNoSweetSpot );
-
 		// Move to header file...
 		// HEADROCK HAM 3.5: Externalized!
-		AddExtraItems( gGameExternalOptions.ubDefaultArrivalSectorX, gGameExternalOptions.ubDefaultArrivalSectorY, startingZ, true );
+		AddExtraItems( (UINT8)gGameExternalOptions.ubDefaultArrivalSectorX, (UINT8)gGameExternalOptions.ubDefaultArrivalSectorY, startingZ, true );
 
 		// HEADROCK HAM 3.5: Starting sector externalized - might not contain enemies at all!
 		if (NumEnemyInSector( ) > 0)
@@ -836,24 +898,40 @@ void HandleFirstHeliDropOfGame( )
 		{
 			// Say quote.....
 			SayQuoteFromAnyBodyInSector( QUOTE_ENEMY_PRESENCE );
+			
 			// Start music
-			SetMusicMode( MUSIC_TACTICAL_ENEMYPRESENT );
+#ifdef ENABLE_ZOMBIES
+			UseCreatureMusic(HostileZombiesPresent());
+#endif
+			#ifdef NEWMUSIC
+			GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
+			if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] != -1 )
+				SetMusicModeID( MUSIC_TACTICAL_ENEMYPRESENT, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] );
+			else
+			#endif
+				SetMusicMode( MUSIC_TACTICAL_ENEMYPRESENT );
+
 		}
 		else
 		{
 			// Say quote.....
 			SayQuoteFromAnyBodyInSector( QUOTE_MERC_REACHED_DESTINATION );
 			// Start music
+			#ifdef NEWMUSIC
+			GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ];
+			if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] != -1 )
+				//SetMusicMode( MUSIC_TACTICAL_VICTORY );
+				SetMusicModeID( MUSIC_TACTICAL_NOTHING, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalNothing[gbWorldSectorZ] );
+			else
+			#endif
 			SetMusicMode( MUSIC_TACTICAL_NOTHING );
 		}
 
 		gfFirstHeliRun = FALSE;
-
 	}
 
 	// Send message to turn on ai again....
 	CharacterDialogueWithSpecialEvent( 0, 0, 0, DIALOGUE_TACTICAL_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_ENABLE_AI ,0, 0 );
-
 }
 
 

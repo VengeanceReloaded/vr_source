@@ -12,7 +12,6 @@
 
 
 #include <dbghelp.h>
-#include <iostream>
 
 #include <vfs/Tools/vfs_log.h>
 
@@ -163,28 +162,36 @@ namespace {
 } // namespace
 
 #define ENABLE_STACK_TRACE 0
+
 StackTrace::StackTrace() {
 	// From http://msdn.microsoft.com/en-us/library/bb204633(VS.85).aspx,
 	// the sum of FramesToSkip and FramesToCapture must be less than 63,
 	// so set it to 62.
-	const int kMaxCallers = 62;
-
-	void* callers[kMaxCallers];
+	const int kMaxCallers = 62;	
 	// TODO(ajwong): Migrate this to StackWalk64.
 	
-	// WANNE: VS 2005 compilation error
-	// WANNE: I disabled the method call "CaptureStackBackTrace()" because it gives a compilation error in VS 2005
 #if ENABLE_STACK_TRACE
+
+	// WANNE: This only works with Visual Studio version >= 2008
+	#if _MSC_VER >= 1500
+
+	void* callers[kMaxCallers];
 	int count = CaptureStackBackTrace(0, kMaxCallers, callers, NULL);
 	
-	// WANNE: This also does not work in VS 2005
+	// Not used, because we use CaptureStackBackTrace()
 	//int count = RtlCaptureStackBackTrace(0, kMaxCallers, callers, NULL);
+	
 	if (count > 0) {
 		trace_.resize(count);
 		memcpy(&trace_[0], callers, sizeof(callers[0]) * count);
-	} else {
+	} 
+	else 
+	{
 		trace_.resize(0);
 	}
+
+	#endif
+
 #endif
 }
 

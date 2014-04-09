@@ -78,7 +78,11 @@ ammotypeStartElementHandle(void *userData, const XML_Char *name, const XML_Char 
 				strcmp(name, "lockBustingPower") == 0 ||
 				strcmp(name, "acidic") == 0 ||
 				strcmp(name, "tracerEffect") == 0 ||
-				strcmp(name, "monsterSpit") == 0 ))
+				strcmp(name, "monsterSpit") == 0 ||
+				strcmp(name, "temperatureModificator") == 0 ||
+				strcmp(name, "PoisonPercentage") == 0 ||
+				strcmp(name, "dirtModificator") == 0 ||
+				strcmp(name, "ammoflag") == 0 ))
 		{
 			pData->curElement = ELEMENT_PROPERTY;
 
@@ -128,7 +132,7 @@ ammotypeEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "uiIndex") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curAmmoType.uiIndex	= (UINT32) atol(pData->szCharData);
+			pData->curAmmoType.uiIndex	= (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "fontColour") == 0)
 		{
@@ -234,7 +238,7 @@ ammotypeEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "highExplosive") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curAmmoType.highExplosive	= (BOOLEAN) atol(pData->szCharData);
+			pData->curAmmoType.highExplosive	= (UINT16) atol(pData->szCharData);
 		}
 		else if(strcmp(name, "explosionSize") == 0)
 		{
@@ -275,6 +279,30 @@ ammotypeEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curAmmoType.tracerEffect	= (BOOLEAN) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "temperatureModificator") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curAmmoType.temperatureModificator	= (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "PoisonPercentage") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curAmmoType.poisonPercentage	= (INT16) atol(pData->szCharData);
+
+			// check: poisonPercentage must be between 0 and 100, fit bad values
+			pData->curAmmoType.poisonPercentage = max(0, pData->curAmmoType.poisonPercentage);
+			pData->curAmmoType.poisonPercentage = min(100, pData->curAmmoType.poisonPercentage);
+		}
+		else if(strcmp(name, "dirtModificator") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curAmmoType.dirtModificator	= (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "ammoflag") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curAmmoType.ammoflag	= (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 
 		pData->maxReadDepth--;
@@ -368,36 +396,39 @@ BOOLEAN WriteAmmoTypeStats()
 
 			FilePrintf(hFile,"\t<AMMOTYPE>\r\n");
 
-			FilePrintf(hFile,"\t\t<uiIndex>%d</uiIndex>\r\n",								cnt );
-			FilePrintf(hFile,"\t\t<fontColour>%d</fontColour>\r\n",								AmmoTypes[cnt].fontColour	);
-			FilePrintf(hFile,"\t\t<grayed>%d</grayed>\r\n",								AmmoTypes[cnt].grayed	);
-			FilePrintf(hFile,"\t\t<offNormal>%d</offNormal>\r\n",								AmmoTypes[cnt].offNormal	);
-			FilePrintf(hFile,"\t\t<onNormal>%d</onNormal>\r\n",								AmmoTypes[cnt].onNormal	);
-			FilePrintf(hFile,"\t\t<structureImpactReductionMultiplier>%d</structureImpactReductionMultiplier>\r\n",								AmmoTypes[cnt].structureImpactReductionMultiplier	);
-			FilePrintf(hFile,"\t\t<structureImpactReductionDivisor>%d</structureImpactReductionDivisor>\r\n",								AmmoTypes[cnt].structureImpactReductionDivisor	);
-			FilePrintf(hFile,"\t\t<armourImpactReductionMultiplier>%d</armourImpactReductionMultiplier>\r\n",								AmmoTypes[cnt].armourImpactReductionMultiplier	);
-			FilePrintf(hFile,"\t\t<armourImpactReductionDivisor>%d</armourImpactReductionDivisor>\r\n",								AmmoTypes[cnt].armourImpactReductionDivisor	);
-			FilePrintf(hFile,"\t\t<beforeArmourDamageMultiplier>%d</beforeArmourDamageMultiplier>\r\n",								AmmoTypes[cnt].beforeArmourDamageMultiplier	);
-			FilePrintf(hFile,"\t\t<beforeArmourDamageDivisor>%d</beforeArmourDamageDivisor>\r\n",								AmmoTypes[cnt].beforeArmourDamageDivisor	);
-			FilePrintf(hFile,"\t\t<afterArmourDamageMultiplier>%d</afterArmourDamageMultiplier>\r\n",								AmmoTypes[cnt].afterArmourDamageMultiplier	);
-			FilePrintf(hFile,"\t\t<afterArmourDamageDivisor>%d</afterArmourDamageDivisor>\r\n",								AmmoTypes[cnt].afterArmourDamageDivisor	);
-			FilePrintf(hFile,"\t\t<zeroMinimumDamage>%d</zeroMinimumDamage>\r\n",								AmmoTypes[cnt].zeroMinimumDamage	);
-			FilePrintf(hFile,"\t\t<canGoThrough>%d</canGoThrough>\r\n",								AmmoTypes[cnt].canGoThrough	);
-			FilePrintf(hFile,"\t\t<standardIssue>%d</standardIssue>\r\n",								AmmoTypes[cnt].standardIssue	);
-			FilePrintf(hFile,"\t\t<numberOfBullets>%d</numberOfBullets>\r\n",								AmmoTypes[cnt].numberOfBullets	);
-			FilePrintf(hFile,"\t\t<multipleBulletDamageMultiplier>%d</multipleBulletDamageMultiplier>\r\n",								AmmoTypes[cnt].multipleBulletDamageMultiplier	);
-			FilePrintf(hFile,"\t\t<multipleBulletDamageDivisor>%d</multipleBulletDamageDivisor>\r\n",								AmmoTypes[cnt].multipleBulletDamageDivisor	);
-			FilePrintf(hFile,"\t\t<highExplosive>%d</highExplosive>\r\n",								AmmoTypes[cnt].highExplosive	);
-			FilePrintf(hFile,"\t\t<explosionSize>%d</explosionSize>\r\n",								AmmoTypes[cnt].explosionSize	);
-			FilePrintf(hFile,"\t\t<antiTank>%d</antiTank>\r\n",								AmmoTypes[cnt].antiTank	);
-			FilePrintf(hFile,"\t\t<dart>%d</dart>\r\n",								AmmoTypes[cnt].dart	);
-			FilePrintf(hFile,"\t\t<knife>%d</knife>\r\n",								AmmoTypes[cnt].knife	);
-			FilePrintf(hFile,"\t\t<monsterSpit>%d</monsterSpit>\r\n",								AmmoTypes[cnt].monsterSpit	);
-			FilePrintf(hFile,"\t\t<acidic>%d</acidic>\r\n",								AmmoTypes[cnt].acidic	);
-			FilePrintf(hFile,"\t\t<ignoreArmour>%d</ignoreArmour>\r\n",								AmmoTypes[cnt].ignoreArmour	);
-			FilePrintf(hFile,"\t\t<lockBustingPower>%d</lockBustingPower>\r\n",								AmmoTypes[cnt].lockBustingPower	);
-			FilePrintf(hFile,"\t\t<tracerEffect>%d</tracerEffect>\r\n",								AmmoTypes[cnt].tracerEffect	);
-
+			FilePrintf(hFile,"\t\t<uiIndex>%d</uiIndex>\r\n",															cnt );
+			FilePrintf(hFile,"\t\t<fontColour>%d</fontColour>\r\n",														AmmoTypes[cnt].fontColour	);
+			FilePrintf(hFile,"\t\t<grayed>%d</grayed>\r\n",																AmmoTypes[cnt].grayed	);
+			FilePrintf(hFile,"\t\t<offNormal>%d</offNormal>\r\n",														AmmoTypes[cnt].offNormal	);
+			FilePrintf(hFile,"\t\t<onNormal>%d</onNormal>\r\n",															AmmoTypes[cnt].onNormal	);
+			FilePrintf(hFile,"\t\t<structureImpactReductionMultiplier>%d</structureImpactReductionMultiplier>\r\n",		AmmoTypes[cnt].structureImpactReductionMultiplier	);
+			FilePrintf(hFile,"\t\t<structureImpactReductionDivisor>%d</structureImpactReductionDivisor>\r\n",			AmmoTypes[cnt].structureImpactReductionDivisor	);
+			FilePrintf(hFile,"\t\t<armourImpactReductionMultiplier>%d</armourImpactReductionMultiplier>\r\n",			AmmoTypes[cnt].armourImpactReductionMultiplier	);
+			FilePrintf(hFile,"\t\t<armourImpactReductionDivisor>%d</armourImpactReductionDivisor>\r\n",					AmmoTypes[cnt].armourImpactReductionDivisor	);
+			FilePrintf(hFile,"\t\t<beforeArmourDamageMultiplier>%d</beforeArmourDamageMultiplier>\r\n",					AmmoTypes[cnt].beforeArmourDamageMultiplier	);
+			FilePrintf(hFile,"\t\t<beforeArmourDamageDivisor>%d</beforeArmourDamageDivisor>\r\n",						AmmoTypes[cnt].beforeArmourDamageDivisor	);
+			FilePrintf(hFile,"\t\t<afterArmourDamageMultiplier>%d</afterArmourDamageMultiplier>\r\n",					AmmoTypes[cnt].afterArmourDamageMultiplier	);
+			FilePrintf(hFile,"\t\t<afterArmourDamageDivisor>%d</afterArmourDamageDivisor>\r\n",							AmmoTypes[cnt].afterArmourDamageDivisor	);
+			FilePrintf(hFile,"\t\t<zeroMinimumDamage>%d</zeroMinimumDamage>\r\n",										AmmoTypes[cnt].zeroMinimumDamage	);
+			FilePrintf(hFile,"\t\t<canGoThrough>%d</canGoThrough>\r\n",													AmmoTypes[cnt].canGoThrough	);
+			FilePrintf(hFile,"\t\t<standardIssue>%d</standardIssue>\r\n",												AmmoTypes[cnt].standardIssue	);
+			FilePrintf(hFile,"\t\t<numberOfBullets>%d</numberOfBullets>\r\n",											AmmoTypes[cnt].numberOfBullets	);
+			FilePrintf(hFile,"\t\t<multipleBulletDamageMultiplier>%d</multipleBulletDamageMultiplier>\r\n",				AmmoTypes[cnt].multipleBulletDamageMultiplier	);
+			FilePrintf(hFile,"\t\t<multipleBulletDamageDivisor>%d</multipleBulletDamageDivisor>\r\n",					AmmoTypes[cnt].multipleBulletDamageDivisor	);
+			FilePrintf(hFile,"\t\t<highExplosive>%d</highExplosive>\r\n",												AmmoTypes[cnt].highExplosive	);
+			FilePrintf(hFile,"\t\t<explosionSize>%d</explosionSize>\r\n",												AmmoTypes[cnt].explosionSize	);
+			FilePrintf(hFile,"\t\t<antiTank>%d</antiTank>\r\n",															AmmoTypes[cnt].antiTank	);
+			FilePrintf(hFile,"\t\t<dart>%d</dart>\r\n",																	AmmoTypes[cnt].dart	);
+			FilePrintf(hFile,"\t\t<knife>%d</knife>\r\n",																AmmoTypes[cnt].knife	);
+			FilePrintf(hFile,"\t\t<monsterSpit>%d</monsterSpit>\r\n",													AmmoTypes[cnt].monsterSpit	);
+			FilePrintf(hFile,"\t\t<acidic>%d</acidic>\r\n",																AmmoTypes[cnt].acidic	);
+			FilePrintf(hFile,"\t\t<ignoreArmour>%d</ignoreArmour>\r\n",													AmmoTypes[cnt].ignoreArmour	);
+			FilePrintf(hFile,"\t\t<lockBustingPower>%d</lockBustingPower>\r\n",											AmmoTypes[cnt].lockBustingPower	);
+			FilePrintf(hFile,"\t\t<tracerEffect>%d</tracerEffect>\r\n",													AmmoTypes[cnt].tracerEffect	);
+			FilePrintf(hFile,"\t\t<temperatureModificator>%4.2f</temperatureModificator>\r\n",							AmmoTypes[cnt].temperatureModificator	);
+			FilePrintf(hFile,"\t\t<PoisonPercentage>%d</PoisonPercentage>\r\n",											AmmoTypes[cnt].poisonPercentage	);
+			FilePrintf(hFile,"\t\t<dirtModificator>%4.2f</dirtModificator>\r\n",							AmmoTypes[cnt].dirtModificator	);
+			FilePrintf(hFile,"\t\t<ammoflag>%d</ammoflag>\r\n",															AmmoTypes[cnt].ammoflag	);
 
 			FilePrintf(hFile,"\t</AMMOTYPE>\r\n");
 		}

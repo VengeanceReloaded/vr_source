@@ -7,33 +7,26 @@
 	#include "Event Pump.h"
 	#include "weapons.h"
 	#include "Animation Control.h"
-	#include "sys globals.h"
 	#include "Handle UI.h"
 	#include "Isometric Utils.h"
-	#include "worldman.h"
 	#include "math.h"
-	#include "points.h"
 	#include "ai.h"
 	#include "los.h"
 	#include "renderworld.h"
-	#include "opplist.h"
 	#include "interface.h"
 	#include "message.h"
 	#include "campaign.h"
 	#include "items.h"
 	#include "text.h"
 	#include "Soldier Profile.h"
-	#include "tile animation.h"
 	#include "Dialogue Control.h"
 	#include "SkillCheck.h"
-	#include "explosion control.h"
 	#include "Quests.h"
 	#include "Physics.h"
 	#include "Random.h"
 	#include "Vehicles.h"
 	#include "bullets.h"
 	#include "morale.h"
-	#include "meanwhile.h"
 	#include "SkillCheck.h"
 	#include "gamesettings.h"
 	#include "SaveLoadMap.h"
@@ -135,7 +128,7 @@ weaponDropEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "uiIndex") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curWeaponDrop.uiIndex	= (UINT32) atol(pData->szCharData);
+			pData->curWeaponDrop.uiIndex	= (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "ubWeaponType") == 0)
 		{

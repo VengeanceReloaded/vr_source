@@ -4,21 +4,17 @@
 	#include "sgp.h"
 	#include "screenids.h"
 	#include "Timer Control.h"
-	#include "sys globals.h"
 	#include "fade screen.h"
 	#include "sysutil.h"
 	#include "vobject_blitters.h"
 	#include "MercTextBox.h"
-	#include "wcheck.h"
 	#include "cursors.h"
 	#include "font control.h"
-	#include "Game Clock.h"
 	#include "Map Screen Interface.h"
 	#include "renderworld.h"
 	#include "gameloop.h"
 	#include "english.h"
 	#include "GameSettings.h"
-	#include "Interface Control.h"
 	#include "cursor control.h"
 	#include "laptop.h"
 	#include "text.h"
@@ -26,7 +22,6 @@
 	#include "overhead map.h"
 	#include "MPChatScreen.h"
 	#include "WordWrap.h"
-	#include "Render Dirty.h"
 #include "message.h"
 #include "utilities.h"
 #include "connect.h"
@@ -327,7 +322,7 @@ INT32 DoChatBox( bool bIncludeChatLog, const STR16 zString, UINT32 uiExitScreen,
 	{
 		fCursorLockedToArea = TRUE;
 		GetRestrictedClipCursor( &ChatBoxRestrictedCursorRegion );
-		FreeMouseCursor( );
+		FreeMouseCursor( FALSE );
 	}
 
 	// vars for positioning controls on the chatbox
@@ -506,7 +501,7 @@ INT32 DoChatBox( bool bIncludeChatLog, const STR16 zString, UINT32 uiExitScreen,
 
 	// Save mouse restriction region...
 	GetRestrictedClipCursor( &gOldCursorLimitRectangle );
-	FreeMouseCursor( );
+	FreeMouseCursor( FALSE );
 
 	gfNewChatBox = TRUE;
 
@@ -757,7 +752,8 @@ UINT32	MPChatScreenHandle( )
 	// carter, need key shortcuts for clearing up message boxes
 	// Check for esc
 	bool bHandled;
-	while (DequeueEvent(&InputEvent) == TRUE)
+
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 		bHandled = false;
 		if(InputEvent.usEvent == KEY_DOWN )

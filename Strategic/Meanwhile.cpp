@@ -147,7 +147,6 @@ UINT32 uiMeanWhileFlags = 0;
 
 extern void InternalLocateGridNo( INT32 sGridNo, BOOLEAN fForce );
 
-
 void ProcessImplicationsOfMeanwhile( void );
 
 // set flag for this event
@@ -337,14 +336,14 @@ void ScheduleMeanwhileEvent( MEANWHILE_DEFINITION *pMeanwhileDef, UINT32 uiTime 
 	gMercProfiles[ ELLIOT ].bNPCData++;
 	}
 
-	// this prevents "meanwhile..." from playing
-	// nope
-	//AddStrategicEvent( EVENT_MEANWHILE, uiTime, pMeanwhileDef->ubMeanwhileID );
-
-	// instead simulate that we saw cutscene
-	memcpy( &gCurrentMeanwhileDef, &(gMeanwhileDef[pMeanwhileDef->ubMeanwhileID]), sizeof( MEANWHILE_DEFINITION ) );
-	// and handle implications right away
-	ProcessImplicationsOfMeanwhile();
+	// enable/disable meanwhile cutscene
+	if( gModSettings.AllMeanwhileCutscene )
+		AddStrategicEvent( EVENT_MEANWHILE, uiTime, pMeanwhileDef->ubMeanwhileID );
+	else
+	{// simulate that we saw cutscene and handle implications right away
+		memcpy( &gCurrentMeanwhileDef, &(gMeanwhileDef[pMeanwhileDef->ubMeanwhileID]), sizeof( MEANWHILE_DEFINITION ) );
+		ProcessImplicationsOfMeanwhile();
+	}
 }
 
 
@@ -494,7 +493,7 @@ void StartMeanwhile( )
 					// Force reload of NPC files...
 					ReloadQuoteFile( QUEEN );
 
-					ChangeNpcToDifferentSector( QUEEN, 3, 16, 0 );
+					ChangeNpcToDifferentSector( QUEEN, gModSettings.ubMeanwhilePalaceSectorX, gModSettings.ubMeanwhilePalaceSectorY, 0 ); //3, 16
 				}
 
 				// SAVE MESSANGER!
@@ -510,7 +509,7 @@ void StartMeanwhile( )
 					// Force reload of NPC files...
 					ReloadQuoteFile( ELLIOT );
 
-					ChangeNpcToDifferentSector( ELLIOT, 3, 16, 0 );
+					ChangeNpcToDifferentSector( ELLIOT, gModSettings.ubMeanwhilePalaceSectorX, gModSettings.ubMeanwhilePalaceSectorY, 0 );
 				}
 
 				if ( gCurrentMeanwhileDef.ubMeanwhileID == OUTSKIRTS_MEDUNA )
@@ -528,7 +527,7 @@ void StartMeanwhile( )
 						// Force reload of NPC files...
 						ReloadQuoteFile( JOE );
 
-						ChangeNpcToDifferentSector( JOE, 3, 16, 0 );
+						ChangeNpcToDifferentSector( JOE, gModSettings.ubMeanwhilePalaceSectorX, gModSettings.ubMeanwhilePalaceSectorY, 0 );
 					}
 				}
 
@@ -550,7 +549,7 @@ void StartMeanwhile( )
 					// Force reload of NPC files...
 					ReloadQuoteFile( QUEEN );
 
-					ChangeNpcToDifferentSector( QUEEN, 7, 14, 0 );
+					ChangeNpcToDifferentSector( QUEEN, gModSettings.ubMeanwhileInterrogatePOWSectorX, gModSettings.ubMeanwhileInterrogatePOWSectorY, 0 ); // 7, 14
 				}
 
 				// SAVE MESSANGER!
@@ -566,7 +565,7 @@ void StartMeanwhile( )
 					// Force reload of NPC files...
 					ReloadQuoteFile( ELLIOT );
 
-					ChangeNpcToDifferentSector( ELLIOT, 7, 14, 0 );
+					ChangeNpcToDifferentSector( ELLIOT, gModSettings.ubMeanwhileInterrogatePOWSectorX, gModSettings.ubMeanwhileInterrogatePOWSectorY, 0 );
 				}
 
 				// SAVE JOE!
@@ -582,7 +581,7 @@ void StartMeanwhile( )
 					// Force reload of NPC files...
 					ReloadQuoteFile( JOE );
 
-					ChangeNpcToDifferentSector( JOE, 7, 14, 0 );
+					ChangeNpcToDifferentSector( JOE, gModSettings.ubMeanwhileInterrogatePOWSectorX, gModSettings.ubMeanwhileInterrogatePOWSectorY, 0 );
 				}
 
 			break;
@@ -707,24 +706,38 @@ void ProcessImplicationsOfMeanwhile( void )
 			break;
 
 		case CAMBRIA_LIBERATED:
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 8, 7 ); //lalien: The queen should try to get the city back
+			//ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 8, 7 ); //lalien: The queen should try to get the city back
+
+			ExecuteStrategicAIAction( STRATEGIC_AI_ACTION_WAKE_QUEEN, 0, 0 );
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_SOLDIERS_TO_CAMBRIA, 8, 8 );
 			break;
 
 		case ALMA_LIBERATED:
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 14, 9 );//lalien: The queen should try to get the city back
+			//ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 14, 9 );//lalien: The queen should try to get the city back
+
+			ExecuteStrategicAIAction( STRATEGIC_AI_ACTION_WAKE_QUEEN, 0, 0 );
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_SOLDIERS_TO_ALMA, 14, 9 );
 			break;
 
 		case GRUMM_LIBERATED:
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 3, 8 );//lalien: The queen should try to get the city back
+			//ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 3, 8 );//lalien: The queen should try to get the city back
+
+			ExecuteStrategicAIAction( STRATEGIC_AI_ACTION_WAKE_QUEEN, 0, 0 );
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_SOLDIERS_TO_GRUMM, 3, 8 );
 			break;
 
 		case CHITZENA_LIBERATED:
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 2, 2 );//lalien: The queen should try to get the city back
+			//ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 2, 2 );//lalien: The queen should try to get the city back
+
+			ExecuteStrategicAIAction( STRATEGIC_AI_ACTION_WAKE_QUEEN, 0, 0 );
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_SOLDIERS_TO_CHITZENA, 2, 2 );
 			break;
 
 		case BALIME_LIBERATED:
 			ExecuteStrategicAIAction( STRATEGIC_AI_ACTION_WAKE_QUEEN, 0, 0 );
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 11, 12 );//lalien: The queen should try to get the city back
+			//ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, 11, 12 );//lalien: The queen should try to get the city back
+
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_SOLDIERS_TO_BALIME, 12, 12 );
 			break;
 
 		case DRASSEN_LIBERATED:
@@ -733,59 +746,59 @@ void ProcessImplicationsOfMeanwhile( void )
 			ExecuteStrategicAIAction( NPC_ACTION_SEND_SOLDIERS_TO_DRASSEN, 13, 4 );
 			break;
 
-		//case CREATURES:
-		//	// add Rat
-		//	HandleNPCDoAction( QUEEN, NPC_ACTION_ADD_RAT, 0 );
-		//	break;
+		case CREATURES:
+			// add Rat
+			HandleNPCDoAction( QUEEN, NPC_ACTION_ADD_RAT, 0 );
+			break;
 
-		//case AWOL_SCIENTIST:
-		//	{
-		//		INT16	sSectorX, sSectorY;
+		case AWOL_SCIENTIST:
+			{
+				INT16	sSectorX, sSectorY;
 
-		//		StartQuest( QUEST_FIND_SCIENTIST, -1, -1 );
-		//		// place Madlab and robot!
-		//		if ( SectorInfo[ SECTOR( 7, MAP_ROW_H ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-		//		{
-		//			sSectorX = 7;
-		//			sSectorY = MAP_ROW_H;
-		//		}
-		//		else if ( SectorInfo[ SECTOR( 16, MAP_ROW_H ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-		//		{
-		//			sSectorX = 16;
-		//			sSectorY = MAP_ROW_H;
-		//		}
-		//		else if ( SectorInfo[ SECTOR( 11, MAP_ROW_I ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-		//		{
-		//			sSectorX = 11;
-		//			sSectorY = MAP_ROW_I;
-		//		}
-		//		else if ( SectorInfo[ SECTOR( 4, MAP_ROW_E ) ].uiFlags & SF_USE_ALTERNATE_MAP )
-		//		{
-		//			sSectorX = 4;
-		//			sSectorY = MAP_ROW_E;
-		//		}
-		//		else
-		//		{
-		//			Assert( 0 );
-		//			return;
-		//		}
-		//		gMercProfiles[ MADLAB ].sSectorX = sSectorX;
-		//		gMercProfiles[ MADLAB ].sSectorY = sSectorY;
-		//		gMercProfiles[ MADLAB ].bSectorZ = 0;
+				StartQuest( QUEST_FIND_SCIENTIST, -1, -1 );
+				// place Madlab and robot!
+				if ( SectorInfo[ SECTOR( gModSettings.ubMeanwhileAddMadlabSector1X, gModSettings.ubMeanwhileAddMadlabSector1Y ) ].uiFlags & SF_USE_ALTERNATE_MAP ) //(7, 8)
+				{
+					sSectorX = gModSettings.ubMeanwhileAddMadlabSector1X;
+					sSectorY = gModSettings.ubMeanwhileAddMadlabSector1Y;
+				}
+				else if ( SectorInfo[ SECTOR( gModSettings.ubMeanwhileAddMadlabSector2X, gModSettings.ubMeanwhileAddMadlabSector2Y ) ].uiFlags & SF_USE_ALTERNATE_MAP ) //(16, 8)
+				{
+					sSectorX = gModSettings.ubMeanwhileAddMadlabSector2X;
+					sSectorY = gModSettings.ubMeanwhileAddMadlabSector2Y;
+				}
+				else if ( SectorInfo[ SECTOR( gModSettings.ubMeanwhileAddMadlabSector3X, gModSettings.ubMeanwhileAddMadlabSector3Y ) ].uiFlags & SF_USE_ALTERNATE_MAP ) //(11, 9)
+				{
+					sSectorX = gModSettings.ubMeanwhileAddMadlabSector3X;
+					sSectorY = gModSettings.ubMeanwhileAddMadlabSector3Y;
+				}
+				else if ( SectorInfo[ SECTOR( gModSettings.ubMeanwhileAddMadlabSector4X, gModSettings.ubMeanwhileAddMadlabSector4Y ) ].uiFlags & SF_USE_ALTERNATE_MAP ) //(4, 5)
+				{
+					sSectorX = gModSettings.ubMeanwhileAddMadlabSector4X;
+					sSectorY = gModSettings.ubMeanwhileAddMadlabSector4Y;
+				}
+				else
+				{
+					Assert( 0 );
+					return;
+				}
+				gMercProfiles[ MADLAB ].sSectorX = sSectorX;
+				gMercProfiles[ MADLAB ].sSectorY = sSectorY;
+				gMercProfiles[ MADLAB ].bSectorZ = 0;
 
-		//		gMercProfiles[ ROBOT ].sSectorX = sSectorX;
-		//		gMercProfiles[ ROBOT ].sSectorY = sSectorY;
-		//		gMercProfiles[ ROBOT ].bSectorZ = 0;
-		//	}
-		//	break;
+				gMercProfiles[ ROBOT ].sSectorX = sSectorX;
+				gMercProfiles[ ROBOT ].sSectorY = sSectorY;
+				gMercProfiles[ ROBOT ].bSectorZ = 0;
+			}
+			break;
 		case NW_SAM:
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, SAM_1_X, SAM_1_Y );
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, gpSamSectorX[0], gpSamSectorY[0] );
 			break;
 		case NE_SAM:
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, SAM_2_X, SAM_2_Y );
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, gpSamSectorX[1], gpSamSectorY[1] );
 			break;
 		case CENTRAL_SAM:
-			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, SAM_3_X, SAM_3_X );
+			ExecuteStrategicAIAction( NPC_ACTION_SEND_TROOPS_TO_SAM, gpSamSectorX[2], gpSamSectorY[2] );
 			break;
 
 		default:
@@ -827,6 +840,10 @@ void EndMeanwhile( )
 	{
 		// We leave this sector open for our POWs to escape!
 		// Set music mode to enemy present!
+#ifdef ENABLE_ZOMBIES
+		UseCreatureMusic(HostileZombiesPresent());
+#endif
+
 		SetMusicMode( MUSIC_TACTICAL_ENEMYPRESENT );
 
 	// ATE: Restore people to saved positions...
@@ -840,7 +857,7 @@ void EndMeanwhile( )
 			gMercProfiles[ ubProfile ].sSectorX = gNPCSaveData[ cnt ].sX;
 			gMercProfiles[ ubProfile ].sSectorY = gNPCSaveData[ cnt ].sY;
 			gMercProfiles[ ubProfile ].bSectorZ = (INT8)gNPCSaveData[ cnt ].sZ;
-			gMercProfiles[ ubProfile ].sGridNo	= (INT8)gNPCSaveData[ cnt ].sGridNo;
+			gMercProfiles[ ubProfile ].sGridNo	= (INT32)gNPCSaveData[ cnt ].sGridNo;
 
 			// Ensure NPC files loaded...
 			ReloadQuoteFile( ubProfile );
@@ -889,7 +906,7 @@ void DoneFadeOutMeanwhileOnceDone( )
 			gMercProfiles[ ubProfile ].sSectorX = gNPCSaveData[ cnt ].sX;
 			gMercProfiles[ ubProfile ].sSectorY = gNPCSaveData[ cnt ].sY;
 			gMercProfiles[ ubProfile ].bSectorZ = (INT8)gNPCSaveData[ cnt ].sZ;
-			gMercProfiles[ ubProfile ].sGridNo	= (INT8)gNPCSaveData[ cnt ].sGridNo;
+			gMercProfiles[ ubProfile ].sGridNo	= (INT32)gNPCSaveData[ cnt ].sGridNo;
 
 			// Ensure NPC files loaded...
 			ReloadQuoteFile( ubProfile );
@@ -965,8 +982,8 @@ void HandleCreatureRelease( void )
 	UINT32 uiTime = 0;
 	MEANWHILE_DEFINITION MeanwhileDef;
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -987,8 +1004,8 @@ void HandleMeanWhileEventPostingForTownLiberation( UINT8 bTownId )
 	UINT8 ubId = 0;
 	BOOLEAN fHandled = FALSE;
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1043,8 +1060,8 @@ void HandleMeanWhileEventPostingForTownLoss( UINT8 bTownId )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1074,8 +1091,8 @@ void HandleMeanWhileEventPostingForSAMLiberation( INT8 bSamId )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1122,8 +1139,8 @@ void HandleFlowersMeanwhileScene( INT8 bTimeCode )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1155,8 +1172,8 @@ void HandleOutskirtsOfMedunaMeanwhileScene( void )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1178,8 +1195,8 @@ void HandleKillChopperMeanwhileScene( void )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1201,8 +1218,8 @@ void HandleScientistAWOLMeanwhileScene( void )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1224,8 +1241,8 @@ void HandleInterrogationMeanwhileScene( void )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 7; // what sector?
-	MeanwhileDef.sSectorY = MAP_ROW_N;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhileInterrogatePOWSectorX; // interrogate sector
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhileInterrogatePOWSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1248,8 +1265,8 @@ void HandleFirstBattleVictory( void )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 
@@ -1276,8 +1293,8 @@ void HandleDelayedFirstBattleVictory( void )
 		return;
 	}
 
-	MeanwhileDef.sSectorX = 3;
-	MeanwhileDef.sSectorY = 16;
+	MeanwhileDef.sSectorX = gModSettings.ubMeanwhilePalaceSectorX;
+	MeanwhileDef.sSectorY = gModSettings.ubMeanwhilePalaceSectorY;
 	MeanwhileDef.ubNPCNumber = QUEEN;
 	MeanwhileDef.usTriggerEvent = 0;
 

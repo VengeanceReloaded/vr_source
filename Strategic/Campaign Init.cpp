@@ -11,7 +11,6 @@
 	#include "Strategic Movement.h"
 	#include "Strategic Status.h"
 	#include "GameSettings.h"
-	#include "Creature Spreading.h"
 	#include "Strategic AI.h"
 	#include "XML.h"
 	#include "expat.h"
@@ -642,11 +641,14 @@ void InitNewCampaign()
 	//InitKnowFacilitiesFlags( );
 
 	BuildUndergroundSectorInfoList();
-
+#ifdef JA2UB
+// no UB
+#else
 	if (!is_networked)
 		// allow overhead view of omerta A9 on game onset
 		// HEADROCK HAM 3.5: Externalized.
 		SetSectorFlag( gGameExternalOptions.ubDefaultArrivalSectorX, gGameExternalOptions.ubDefaultArrivalSectorY, startingZ, SF_ALREADY_VISITED ); //hayden
+#endif
 
 	//Generates the initial forces in a new campaign.	The idea is to randomize numbers and sectors
 	//so that no two games are the same.

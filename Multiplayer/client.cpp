@@ -557,6 +557,9 @@ typedef struct
 bullets_table bTable[11][50];
 
 char client_names[4][30];
+
+char team_names[][30];//hayden need client_names with AI
+
 // OJW - 20081204
 int	 client_ready[4];
 int	 client_edges[5];
@@ -1005,7 +1008,7 @@ void recieveHIT(RPCParameters *rpcParameters)
 	{
 		INT8 bTeam=pSoldier->bTeam;
 		INT32 iBullet = bTable[bTeam][SWeaponHit->iBullet].local_id;
-		
+				
 		StopBullet( iBullet );
 		RemoveBullet(iBullet);
 
@@ -1112,7 +1115,11 @@ void recieveHIRE(RPCParameters *rpcParameters)
 	pSoldier->bSide=0; //default coop only
 	gTacticalStatus.Team[MercCreateStruct.bTeam	].bSide=0;
 
-	if(MercCreateStruct.ubProfile==64)//slay
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+	pSoldier->bVisible = 1;
+#endif
+
+	if(MercCreateStruct.ubProfile==SLAY)//slay
 	{
 		pSoldier->ubBodyType = REGMALE;
 		gMercProfiles[ pSoldier->ubProfile ].ubBodyType = REGMALE;
@@ -1121,14 +1128,23 @@ void recieveHIRE(RPCParameters *rpcParameters)
 	if(cGameType==MP_TYPE_DEATHMATCH)//all vs all only
 	{
 		pSoldier->bSide=1;
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+		pSoldier->bVisible = 0;
+#endif
+
 		gTacticalStatus.Team[MercCreateStruct.bTeam	].bSide=1;
-		
 	}
 	if(cGameType==MP_TYPE_TEAMDEATMATCH) //allow teams
 	{
 		if(sHireMerc->team != TEAM)
 		{
 			pSoldier->bSide=1;
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+			pSoldier->bVisible = 0;
+#endif
+
 			gTacticalStatus.Team[MercCreateStruct.bTeam	].bSide=1;
 		}
 	}
@@ -1502,7 +1518,7 @@ void send_donegui ( UINT8 ubResult )
 		info.ready_stage = 3;//done placing mercs
 		info.status=1;
 		
-		SGPRect CenterRect = { 100, 100, SCREEN_WIDTH - 100, 300 };
+		SGPRect CenterRect = { 100 + xResOffset, 100, SCREEN_WIDTH - 100 - xResOffset, 300 };
 		DoMessageBox( MSG_BOX_BASIC_STYLE, MPClientMessage[12],  guiCurrentScreen, MSG_BOX_FLAG_OK | MSG_BOX_FLAG_USE_CENTERING_RECT, send_donegui,  &CenterRect );
 
 		if(numready==cMaxClients && is_server)//all done
@@ -1686,7 +1702,7 @@ void start_battle ( void )
 		// Go to "ready" state!
 		if (numPlayersValid && clientsFinishedDownloading && teamsValid)
 		{
-			SGPRect CenterRect = { 100, 100, SCREEN_WIDTH - 100, 300 };
+			SGPRect CenterRect = { 100 + xResOffset, 100, SCREEN_WIDTH - 100 - xResOffset, 300 };
 			DoMessageBox( MSG_BOX_BASIC_STYLE, MPClientMessage[35],  guiCurrentScreen, MSG_BOX_FLAG_YESNO | MSG_BOX_FLAG_USE_CENTERING_RECT, allowlaptop_callback,  &CenterRect );
 		}
 	}
@@ -1720,6 +1736,7 @@ void start_battle ( void )
 			}
 
 			//SOLDIERTYPE *pSoldier = MercPtrs[ 0 ];
+            Assert(pSoldier);
 			UINT8 ubGroupID = pSoldier->ubGroupID;
 
 			GROUP *pGroup;
@@ -1747,6 +1764,9 @@ void start_battle ( void )
 					swprintf(full, MPClientMessage[57],i+1,name);
 
 					memcpy( TeamTurnString[ (i+6) ] , full, sizeof( CHAR16) * 255 );
+
+					memcpy( TeamNameStrings[ (i+6) ] , name, sizeof( CHAR16) * 30 );
+					//give me a copy too ;) - hayden
 				}
 			}
 
@@ -1927,69 +1947,134 @@ void send_interrupt (SOLDIERTYPE *pSoldier)
 }
 
 // WANNE - MP: Here we have to add AddTopMessage() on the clients
-void recieveINTERRUPT (RPCParameters *rpcParameters)
-{
-	INT_STRUCT* INT = (INT_STRUCT*)rpcParameters->input;
-	SOLDIERTYPE* pOpponent = MercPtrs[ INT->Interrupted];
-
-	if(INT->bTeam == netbTeam || (is_server && INT->bTeam == 1))//its for us or we are server and its for AI which we control
+#ifdef INTERRUPT_MP_DEADLOCK_FIX
+	
+	void recieveINTERRUPT (RPCParameters *rpcParameters)
 	{
+		INT_STRUCT* INT = (INT_STRUCT*)rpcParameters->input;
+		SOLDIERTYPE* pOpponent = MercPtrs[ INT->Interrupted];
+
+		if(INT->bTeam == netbTeam || (is_server && INT->bTeam == 1))//its for us or we are server and its for AI which we control
+		{
+			
+			if(INT->bTeam == netbTeam){//for me
+				INT->bTeam=0;
+				INT->ubID=INT->ubID - ubID_prefix;
+				AddTopMessage( PLAYER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+			}else{//for ai
+				//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"starting ai" );
+				AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+			}
+
+
+			for(int i=0; i <= INT->gubOutOfTurnPersons; i++)//this loop translates soldier id's from what they are in someone else's game to what they are locally
+			{
+				if((INT->gubOutOfTurnOrder[i] >= ubID_prefix) && (INT->gubOutOfTurnOrder[i] < (ubID_prefix+6)))
+				{
+					INT->gubOutOfTurnOrder[i]=INT->gubOutOfTurnOrder[i]-ubID_prefix;
+				}
+			}
+			memcpy(gubOutOfTurnOrder,INT->gubOutOfTurnOrder, sizeof(UINT8) * MAXMERCS);
+			gubOutOfTurnPersons = INT->gubOutOfTurnPersons;
+
+
+			//AddTopMessage( PLAYER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Recieved interrupt between %s and %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );
+
+
 		
-		if(INT->bTeam == netbTeam){//for me
+			 //start interrupt turn //real interrupt code
+				SOLDIERTYPE* pSoldier = MercPtrs[ INT->ubID ];
+				ManSeesMan(pSoldier,pOpponent,pOpponent->sGridNo,pOpponent->pathing.bLevel,2,1);
+				StartInterrupt();
+		
+
+		}
+		else//its not for us, make faux interrupt look while it happens
+		{
+		//this following section starts the interrupt, either with faux interrupt look, or real interrupt code, or nothing if already there
+
+		//if(	INT->bTeam != 0)//not for our team - hayden
+		//{
+			
+			//stop moving merc who was interrupted and init UI bar
+			SOLDIERTYPE* pMerc = MercPtrs[ INT->ubID ];	
+			pMerc->HaultSoldierFromSighting(TRUE);
+			FreezeInterfaceForEnemyTurn();
+			InitEnemyUIBar( 0, 0 );
+			fInterfacePanelDirty = DIRTYLEVEL2;
+			gTacticalStatus.fInterruptOccurred = TRUE;
+
+			AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+			//this needed to add details of who's interrupt it is - hayden
+			
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Recieved interrupt with %s and %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );//was MPClientMessage[17], can be reconnected if text updated and translated
+		}
+
+	}
+
+#else
+
+	void recieveINTERRUPT (RPCParameters *rpcParameters)
+	{
+		INT_STRUCT* INT = (INT_STRUCT*)rpcParameters->input;
+		SOLDIERTYPE* pOpponent = MercPtrs[ INT->Interrupted];
+
+		if(INT->bTeam==netbTeam)//for us
+		{
 			INT->bTeam=0;
 			INT->ubID=INT->ubID - ubID_prefix;
+
+			for(int i=0; i <= INT->gubOutOfTurnPersons; i++)//this loop translates soldier id's from what they are in someone else's game to what they are locally
+			{
+				if((INT->gubOutOfTurnOrder[i] >= ubID_prefix) && (INT->gubOutOfTurnOrder[i] < (ubID_prefix+6)))
+				{
+					INT->gubOutOfTurnOrder[i]=INT->gubOutOfTurnOrder[i]-ubID_prefix;
+				}
+			}
+			memcpy(gubOutOfTurnOrder,INT->gubOutOfTurnOrder, sizeof(UINT8) * MAXMERCS);
+			gubOutOfTurnPersons = INT->gubOutOfTurnPersons;
+
+
 			AddTopMessage( PLAYER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
-		}else{//for ai
-			//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"starting ai" );
-			AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Interrupt of %s awarded to %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );
+
 		}
 
-
-		for(int i=0; i <= INT->gubOutOfTurnPersons; i++)//this loop translates soldier id's from what they are in someone else's game to what they are locally
+		// WANNE - MP: This seems to cause the HANG on AI interrupt where we have to press ALT + E on the server!
+		if(	INT->bTeam != 0)//not for our team - hayden
 		{
-			if((INT->gubOutOfTurnOrder[i] >= ubID_prefix) && (INT->gubOutOfTurnOrder[i] < (ubID_prefix+6)))
+			
+			//stop moving merc who was interrupted and init UI bar
+			SOLDIERTYPE* pMerc = MercPtrs[ INT->ubID ];	
+			pMerc->HaultSoldierFromSighting(TRUE);
+			FreezeInterfaceForEnemyTurn();
+			InitEnemyUIBar( 0, 0 );
+			fInterfacePanelDirty = DIRTYLEVEL2;
+			gTacticalStatus.fInterruptOccurred = TRUE;
+
+			//this needed to add details of who's interrupt it is - hayden
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Interrupt with %s awarded to %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );//was MPClientMessage[17], can be reconnected if text updated and translated
+		}
+		else
+		{
+			//it for us ! :)
+			if(INT->gubOutOfTurnPersons==0)//indicates finished interrupt maybe can just call end interrupt
 			{
-				INT->gubOutOfTurnOrder[i]=INT->gubOutOfTurnOrder[i]-ubID_prefix;
+				//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"old int finish" );
+			}
+			else //start our interrupt turn
+			{
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Interrupt of %s awarded to you.", TeamNameStrings[pOpponent->bTeam] );//was MPClientMessage[37], can be reconnected if text updated and translated
+
+				SOLDIERTYPE* pSoldier = MercPtrs[ INT->ubID ];
+				ManSeesMan(pSoldier,pOpponent,pOpponent->sGridNo,pOpponent->pathing.bLevel,2,1);
+				StartInterrupt();
 			}
 		}
-		memcpy(gubOutOfTurnOrder,INT->gubOutOfTurnOrder, sizeof(UINT8) * MAXMERCS);
-		gubOutOfTurnPersons = INT->gubOutOfTurnPersons;
-
-
-		//AddTopMessage( PLAYER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
-//		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Recieved interrupt between %s and %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );
-
-
-	
-		 //start interrupt turn //real interrupt code
-			SOLDIERTYPE* pSoldier = MercPtrs[ INT->ubID ];
-			ManSeesMan(pSoldier,pOpponent,pOpponent->sGridNo,pOpponent->pathing.bLevel,2,1);
-			StartInterrupt();
-	
-
-	}
-	else//its not for us, make faux interrupt look while it happens
-	{
-	//this following section starts the interrupt, either with faux interrupt look, or real interrupt code, or nothing if already there
-
-	//if(	INT->bTeam != 0)//not for our team - hayden
-	//{
-		
-		//stop moving merc who was interrupted and init UI bar
-		SOLDIERTYPE* pMerc = MercPtrs[ INT->ubID ];	
-		pMerc->HaultSoldierFromSighting(TRUE);
-		FreezeInterfaceForEnemyTurn();
-		InitEnemyUIBar( 0, 0 );
-		fInterfacePanelDirty = DIRTYLEVEL2;
-		gTacticalStatus.fInterruptOccurred = TRUE;
-
-		AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, TeamTurnString[ INT->bTeam ] );
-		//this needed to add details of who's interrupt it is - hayden
-		
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Recieved interrupt with %s and %s.", TeamNameStrings[pOpponent->bTeam], TeamNameStrings[INT->bTeam] );//was MPClientMessage[17], can be reconnected if text updated and translated
 	}
 
-}
+#endif
 
 void intAI (SOLDIERTYPE *pSoldier )
 {
@@ -2034,9 +2119,9 @@ void resume_turn(RPCParameters *rpcParameters)
 	if(is_server)
 		Sawarded=false;
 	
-	if(INT->bTeam==netbTeam || (INT->bTeam==1 && is_server))//may need working
+	if(INT->bTeam==netbTeam || (INT->bTeam==1 && is_server))//may need working //its for us or we are the server and its for the AI
 	{
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, MPClientMessage[18] );
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Resumed turn after interrupt of %s", TeamNameStrings[INT->bTeam] );//was MPClientMessage[18], can be reconnected if text updated and translated
 
 		for(int i=0; i <= INT->gubOutOfTurnPersons; i++)
 		{
@@ -2189,7 +2274,7 @@ void requestSETID(RPCParameters *rpcParameters)
 			{
 				serverAddr = rpcParameters->sender;
 				
-				SGPRect CenteringRect= {0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
+				SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, SCREEN_HEIGHT };
 				DoMessageBox( MSG_BOX_BASIC_STYLE , MPClientMessage[64] , guiCurrentScreen, MSG_BOX_FLAG_YESNO | MSG_BOX_FLAG_USE_CENTERING_RECT, allowDownloadCallback, &CenteringRect );
 			}
 		}
@@ -2354,8 +2439,10 @@ void recieveSETTINGS (RPCParameters *rpcParameters) //recive settings from serve
 		cDamageMultiplier=cl_lan->damageMultiplier;
 		cSameMercAllowed=cl_lan->sameMercAllowed;
 		
+
 		gsMercArriveSectorX = gGameExternalOptions.ubDefaultArrivalSectorX = cl_lan->gsMercArriveSectorX;
 		gsMercArriveSectorY = gGameExternalOptions.ubDefaultArrivalSectorY = cl_lan->gsMercArriveSectorY;
+
 
 		// WANNE - BMP: We have to initialize the map size here!!
 		InitializeWorldSize(gsMercArriveSectorX, gsMercArriveSectorY, 0);
@@ -2397,7 +2484,8 @@ void recieveSETTINGS (RPCParameters *rpcParameters) //recive settings from serve
 		gGameOptions.ubDifficultyLevel=cl_lan->soubDifficultyLevel;
 		gGameOptions.fNewTraitSystem = cl_lan->soubSkillTraits;
 		gGameOptions.fIronManMode=cl_lan->sofIronManMode;
-		gGameOptions.ubBobbyRay=cl_lan->soubBobbyRay;
+		gGameOptions.ubBobbyRayQuality=cl_lan->soubBobbyRayQuality;
+		gGameOptions.ubBobbyRayQuantity=cl_lan->soubBobbyRayQuantity;
 
 		// Set Bobby Ray "Under Construction"?
 		if(!cl_lan->disableBobbyRay)
@@ -2433,7 +2521,10 @@ void recieveSETTINGS (RPCParameters *rpcParameters) //recive settings from serve
 		// Disable Reinforcements
 		gGameExternalOptions.gfAllowReinforcements				= false;
 		gGameExternalOptions.gfAllowReinforcementsOnlyInCity	= false;
-		
+
+		// WANNE: The new improved interrupt system (IIS) does not work with multiplayer, so disable it
+		//gGameOptions.fImprovedInterruptSystem			= false;
+
 		// Disable Real-Time Mode
 		// SANDRO - huh? real-time sneak is in preferences
 		//gGameExternalOptions.fAllowRealTimeSneak = false;
@@ -2446,7 +2537,6 @@ void recieveSETTINGS (RPCParameters *rpcParameters) //recive settings from serve
 		/*gGameExternalOptions.fDisableLaptopTransition = true;
 		gGameExternalOptions.fFastWWWSitesLoading = true;
 		gGameExternalOptions.fDisableStrategicTransition = true;*/
-
 
 		// WANNE: fix HOT DAY in night at arrival by night.
 		// Explanation: If game starting time + first arrival delay < 07:00 (111600) -> we arrive before the sun rises or
@@ -2488,11 +2578,22 @@ void recieveSETTINGS (RPCParameters *rpcParameters) //recive settings from serve
 				break;
 		}
 
+		gGameOptions.ubSquadSize = 6;
+		
+		//gGameOptions.fBobbyRayFastShipments = FALSE;
+		gGameOptions.fInventoryCostsAP = FALSE;
+
+		gGameOptions.fUseNCTH = FALSE;
+		gGameOptions.fImprovedInterruptSystem = FALSE;
+		gGameOptions.fBackGround = FALSE;
+		gGameOptions.fFoodSystem = FALSE;
+
+
 		// Server forces us to play with new Inventory, but NIV is not allowed on the client,
 		// because of wrong resolution or other stuff
 		if ( UsingNewInventorySystem() == true && !IsNIVModeValid(true) )
 		{
-			SGPRect CenteringRect= {0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
+			SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH-1 - 2  * xResOffset, SCREEN_HEIGHT-1 };
 			DoMessageBox( MSG_BOX_BASIC_STYLE , MPClientMessage[69] , guiCurrentScreen, MSG_BOX_FLAG_OK | MSG_BOX_FLAG_USE_CENTERING_RECT, InvalidClientSettingsOkBoxCallback, &CenteringRect );
 		}
 		else
@@ -2526,7 +2627,7 @@ void recieveSETTINGS (RPCParameters *rpcParameters) //recive settings from serve
 
 			// OJW - 20091024 - extract random table
 			if (!is_server)
-				memcpy(guiPreRandomNums,cl_lan->random_table,sizeof(UINT32)*MAX_PREGENERATED_NUMS);
+				memcpy(guiPreRandomNums,cl_lan->random_table,sizeof(UINT32)*MAX_PREGENERATED_NUMS);			
 
 			// WANNE: Turn on airspace mode (to switch maps) for the server!
 			if (is_server)			
@@ -2611,7 +2712,8 @@ void reapplySETTINGS()
 	gGameOptions.ubDifficultyLevel=gMPServerSettings.soubDifficultyLevel;
 	gGameOptions.fNewTraitSystem = gMPServerSettings.soubSkillTraits;
 	gGameOptions.fIronManMode=gMPServerSettings.sofIronManMode;
-	gGameOptions.ubBobbyRay=gMPServerSettings.soubBobbyRay;
+	gGameOptions.ubBobbyRayQuality=gMPServerSettings.soubBobbyRayQuality;
+	gGameOptions.ubBobbyRayQuantity=gMPServerSettings.soubBobbyRayQuantity;
 
 	// Set Bobby Ray "Under Construction"?
 	if(!gMPServerSettings.disableBobbyRay)
@@ -2643,6 +2745,9 @@ void reapplySETTINGS()
 	// Disable Reinforcements
 	gGameExternalOptions.gfAllowReinforcements				= false;
 	gGameExternalOptions.gfAllowReinforcementsOnlyInCity	= false;
+
+	// WANNE: The new improved interrupt system (IIS) does not work with multiplayer, so disable it
+	//gGameOptions.fImprovedInterruptSystem			= false;
 
 	// Disable Real-Time Mode
 	// SANDRO - real-time sneak is in preferences
@@ -2695,6 +2800,16 @@ void reapplySETTINGS()
 			gGameOptions.ubAttachmentSystem = ATTACHMENT_NEW;
 			break;
 	}
+
+	gGameOptions.ubSquadSize = 6;
+
+	//gGameOptions.fBobbyRayFastShipments = FALSE;
+	gGameOptions.fInventoryCostsAP = FALSE;
+
+	gGameOptions.fUseNCTH = FALSE;
+	gGameOptions.fImprovedInterruptSystem = FALSE;
+	gGameOptions.fBackGround = FALSE;
+	gGameOptions.fFoodSystem = FALSE;
 
 	// WANNE - MP: We have to re-initialize the correct interface
 	if((UsingNewInventorySystem() == true) && IsNIVModeValid(true))
@@ -2779,6 +2894,7 @@ void recieveMAPCHANGE( RPCParameters *rpcParameters )
 		// copy new map settings locally
 		gsMercArriveSectorX = gGameExternalOptions.ubDefaultArrivalSectorX = cl_lan->gsMercArriveSectorX;
 		gsMercArriveSectorY = gGameExternalOptions.ubDefaultArrivalSectorY = cl_lan->gsMercArriveSectorY;
+
 
 		ChangeSelectedMapSector( gsMercArriveSectorX, gsMercArriveSectorY, 0 );
 
@@ -3061,6 +3177,10 @@ void recievePLANTEXPLOSIVE (RPCParameters *rpcParameters)
 			else
 				(*pObj)[0]->data.misc.bDelay = exp->bDelayFreq;
 
+			(*pObj)[0]->data.ubDirection = DIRECTION_IRRELEVANT;
+			(*pObj)[0]->data.ubWireNetworkFlag = (TRIPWIRE_NETWORK_OWNER_ENEMY|TRIPWIRE_NETWORK_NET_1|TRIPWIRE_NETWORK_LVL_1);
+			(*pObj)[0]->data.bDefuseFrequency = 0;
+			
 			// save old clients WorldID if we can
 			// loop through world bombs and find the one linked to the item we just created
 			UINT32 uiCount;
@@ -3257,7 +3377,7 @@ void send_disarm_explosive(UINT32 sGridNo, UINT32 uiWorldItem, UINT8 ubID)
 
 	#ifdef JA2BETAVERSION
 				CHAR tmpMPDbgString[512];
-				sprintf(tmpMPDbgString,"MP - send_disarm_explosive ( MPTeam : %i , uiWorldIndex : %i , uiPreRandomIndex : %i , sGridNo : %i )\n",disarm.ubMPTeamIndex, disarm.uiWorldItemIndex , disarm.uiPreRandomIndex );
+				sprintf(tmpMPDbgString,"MP - send_disarm_explosive ( MPTeam : %i , uiWorldIndex : %i , uiPreRandomIndex : %i , sGridNo : %i )\n", disarm.ubMPTeamIndex, disarm.uiWorldItemIndex , disarm.uiPreRandomIndex, disarm.sGridNo);
 				MPDebugMsg(tmpMPDbgString);
 				gfMPDebugOutputRandoms = true;
 	#endif
@@ -3558,7 +3678,7 @@ void recieveEXPLOSIONDAMAGE (RPCParameters *rpcParameters)
 
 				// can use DishOutGasDamage() as it is dependant on the local state of the gas cloud which is not always in sync
 				// but we have the definite results of damage on a merc, so :
-				pSoldier->SoldierTakeDamage( ANIM_STAND, exp->sWoundAmt, exp->sBreathAmt, TAKE_DAMAGE_GAS, NOBODY, NOWHERE, 0, TRUE );
+				pSoldier->SoldierTakeDamage( ANIM_STAND, exp->sWoundAmt, 0, exp->sBreathAmt, TAKE_DAMAGE_GAS, NOBODY, NOWHERE, 0, TRUE );
 			}
 			else if (exp->ubDamageFunc == 2)
 			{
@@ -3596,55 +3716,56 @@ void send_bullet(  BULLET * pBullet,UINT16 usHandItem )
 
 void recieveBULLET(RPCParameters *rpcParameters)
 {
-		netb_struct* netb = (netb_struct*)rpcParameters->input;
+	netb_struct* netb = (netb_struct*)rpcParameters->input;
 
-		INT32 net_iBullet=netb->net_bullet.iBullet;
+	INT32 net_iBullet=netb->net_bullet.iBullet;
 
-		SOLDIERTYPE * pFirer=MercPtrs[ netb->net_bullet.ubFirerID ];
+	SOLDIERTYPE * pFirer = NULL;
+	INT8 bTeam = OUR_TEAM;
+	if ( netb->net_bullet.ubFirerID != NOBODY )
+	{
+		pFirer = MercPtrs[ netb->net_bullet.ubFirerID ];
+		bTeam=pFirer->bTeam;
+	}
 
-		INT8 bTeam=pFirer->bTeam;
+	BULLET * pBullet;
 
-		INT32 iBullet;
-		BULLET * pBullet;
-
-		iBullet = CreateBullet( netb->net_bullet.ubFirerID, 0, netb->net_bullet.usFlags,netb->usHandItem );
-		
-		if (iBullet == -1)
-		{
-
+	INT32 iBullet = CreateBullet( netb->net_bullet.ubFirerID, 0, netb->net_bullet.usFlags,netb->usHandItem );
+			
 #ifdef BETAVERSION
-			ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"Failed to create bullet");		
+	if (iBullet == -1)
+	{
+		ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"Failed to create bullet");
+	}
 #endif
 
-		}
-
-		//add bullet to bullet table for translation
-		bTable[bTeam][net_iBullet].remote_id = net_iBullet;
-		bTable[bTeam][net_iBullet].local_id = iBullet;
+	//add bullet to bullet table for translation
+	bTable[bTeam][net_iBullet].remote_id = net_iBullet;
+	bTable[bTeam][net_iBullet].local_id = iBullet;
 		
-		pBullet = GetBulletPtr( iBullet );
+	pBullet = GetBulletPtr( iBullet );
 
-		//ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"Created Bullet Id: %d",iBullet);		
+	//ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"Created Bullet Id: %d",iBullet);		
 
-		pBullet->fCheckForRoof=netb->net_bullet.fCheckForRoof;
-		pBullet->qIncrX=netb->net_bullet.qIncrX;
-		pBullet->qIncrY=netb->net_bullet.qIncrY;
-		pBullet->qIncrZ=netb->net_bullet.qIncrZ;
-		pBullet->sHitBy=netb->net_bullet.sHitBy;
-		pBullet->ddHorizAngle=netb->net_bullet.ddHorizAngle;
-		pBullet->fAimed=netb->net_bullet.fAimed;
-		pBullet->ubItemStatus=netb->net_bullet.ubItemStatus;
-		pBullet->qCurrX=netb->net_bullet.qCurrX;
-		pBullet->qCurrY=netb->net_bullet.qCurrY;
-		pBullet->qCurrZ=netb->net_bullet.qCurrZ;
-		pBullet->iImpact=netb->net_bullet.iImpact;
-		pBullet->iRange=netb->net_bullet.iRange;
-		pBullet->sTargetGridNo=netb->net_bullet.sTargetGridNo;
-		pBullet->bStartCubesAboveLevelZ=netb->net_bullet.bStartCubesAboveLevelZ;
-		pBullet->bEndCubesAboveLevelZ=netb->net_bullet.bEndCubesAboveLevelZ;
-		pBullet->iDistanceLimit=netb->net_bullet.iDistanceLimit;
+	pBullet->fCheckForRoof=netb->net_bullet.fCheckForRoof;
+	pBullet->qIncrX=netb->net_bullet.qIncrX;
+	pBullet->qIncrY=netb->net_bullet.qIncrY;
+	pBullet->qIncrZ=netb->net_bullet.qIncrZ;
+	pBullet->sHitBy=netb->net_bullet.sHitBy;
+	pBullet->ddHorizAngle=netb->net_bullet.ddHorizAngle;
+	pBullet->fAimed=netb->net_bullet.fAimed;
+	pBullet->ubItemStatus=netb->net_bullet.ubItemStatus;
+	pBullet->qCurrX=netb->net_bullet.qCurrX;
+	pBullet->qCurrY=netb->net_bullet.qCurrY;
+	pBullet->qCurrZ=netb->net_bullet.qCurrZ;
+	pBullet->iImpact=netb->net_bullet.iImpact;
+	pBullet->iRange=netb->net_bullet.iRange;
+	pBullet->sTargetGridNo=netb->net_bullet.sTargetGridNo;
+	pBullet->bStartCubesAboveLevelZ=netb->net_bullet.bStartCubesAboveLevelZ;
+	pBullet->bEndCubesAboveLevelZ=netb->net_bullet.bEndCubesAboveLevelZ;
+	pBullet->iDistanceLimit=netb->net_bullet.iDistanceLimit;
 
-		FireBullet( pFirer, pBullet, FALSE );
+	FireBullet( pFirer->ubID, pBullet, FALSE );
 }
 
 void send_changestate (EV_S_CHANGESTATE * SChangeState)
@@ -3671,9 +3792,23 @@ void recieveSTATE(RPCParameters *rpcParameters)
 		if(new_state->usNewState==START_AID)
 		{
 			pSoldier->EVENT_InternalSetSoldierPosition( new_state->sXPos, new_state->sYPos ,FALSE, FALSE, FALSE );
-			pSoldier->ChangeSoldierStance( ANIM_CROUCH );
 			pSoldier->EVENT_SetSoldierDirection(	new_state->usNewDirection );
+			// SANDRO - we can now bandage mercs when prone, so change stance only if standing
+			if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND )
+			{
+				pSoldier->ChangeSoldierStance( ANIM_CROUCH );
+			}
 
+		}
+		// SANDRO - if ordered to bandage in prone position...
+		else if (new_state->usNewState==START_AID_PRN)
+		{
+			pSoldier->EVENT_InternalSetSoldierPosition( new_state->sXPos, new_state->sYPos ,FALSE, FALSE, FALSE );
+			pSoldier->EVENT_SetSoldierDirection(	new_state->usNewDirection );
+			if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_PRONE )
+			{
+				pSoldier->ChangeSoldierStance( ANIM_PRONE );
+			}
 		}
 		// Start cutting fence
 		else if (new_state->usNewState==CUTTING_FENCE)
@@ -3709,9 +3844,9 @@ void send_death( SOLDIERTYPE *pSoldier )
 	}
 
 	SOLDIERTYPE * pAttacker=MercPtrs[ nDeath.attacker_id ];
-	INT8 pA_bTeam;
+	INT8 pA_bTeam=CLIENT_NUM;
 	CHAR16	pA_name[ 10 ];
-	INT8 pS_bTeam;
+	INT8 pS_bTeam=CLIENT_NUM;
 	CHAR16	pS_name[ 10 ];
 
 	// OJW - 20081222
@@ -3782,23 +3917,25 @@ void send_death( SOLDIERTYPE *pSoldier )
 	client->RPC("sendDEATH",(const char*)&nDeath, (int)sizeof(death_struct)*8, HIGH_PRIORITY, RELIABLE, 0, UNASSIGNED_SYSTEM_ADDRESS, true, 0, UNASSIGNED_NETWORK_ID,0);
 	
 	// print kill notice to screen	
-	if (pSoldier->bTeam==1)  
+	if (pSoldier && pSoldier->bTeam==1)  
 		ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, MPClientMessage[67]);	
 	else  
 		ScreenMsg( FONT_LTGREEN, MSG_MPSYSTEM, MPClientMessage[28],pS_name,(pS_bTeam),client_names[(pS_bTeam-1)],pA_name,(pA_bTeam),client_names[(pA_bTeam-1)] );
 
 #ifdef JA2BETAVERSION
-	char s_name[10];
-	char a_name[10];
-	WideCharToMultiByte(CP_UTF8,0,pS_name,-1, s_name,10,NULL,NULL);
-	WideCharToMultiByte(CP_UTF8,0,pA_name,-1, a_name,10,NULL,NULL);
+    if (pSoldier)  {
+	    char s_name[10];
+	    char a_name[10];
+	    WideCharToMultiByte(CP_UTF8,0,pS_name,-1, s_name,10,NULL,NULL);
+	    WideCharToMultiByte(CP_UTF8,0,pA_name,-1, a_name,10,NULL,NULL);
 	
-	if (pSoldier->bTeam==1) 
-		MPDebugMsg( String ( "MPDEBUG SEND - Enemy AI #%d was killed by ('%s' - %d) (client %d - '%s')\n",nDeath.soldier_id,a_name,nDeath.attacker_id,pA_bTeam,client_names[pA_bTeam-1]) );
-	else if (pAttacker->bTeam==1) 
-		MPDebugMsg( String ( "MPDEBUG SEND - '%s' (client %d - '%S') was killed by '%s' (client %d - '%s')\n",s_name,pS_bTeam,client_names[(pS_bTeam-1)],a_name,pA_bTeam,"Queens Army") );
-	else 
-		MPDebugMsg( String ( "MPDEBUG SEND - '%s' (client %d - '%S') was killed by '%s' (client %d - '%s')\n",s_name,pS_bTeam,client_names[(pS_bTeam-1)],a_name,pA_bTeam,client_names[(pA_bTeam-1)]) );
+	    if (pSoldier->bTeam==1) 
+		    MPDebugMsg( String ( "MPDEBUG SEND - Enemy AI #%d was killed by ('%s' - %d) (client %d - '%s')\n",nDeath.soldier_id,a_name,nDeath.attacker_id,pA_bTeam,client_names[pA_bTeam-1]) );
+	    else if (pAttacker->bTeam==1) 
+		    MPDebugMsg( String ( "MPDEBUG SEND - '%s' (client %d - '%S') was killed by '%s' (client %d - '%s')\n",s_name,pS_bTeam,client_names[(pS_bTeam-1)],a_name,pA_bTeam,"Queens Army") );
+	    else 
+		    MPDebugMsg( String ( "MPDEBUG SEND - '%s' (client %d - '%S') was killed by '%s' (client %d - '%s')\n",s_name,pS_bTeam,client_names[(pS_bTeam-1)],a_name,pA_bTeam,client_names[(pA_bTeam-1)]) );
+    }
 #endif
 }
 
@@ -4142,7 +4279,8 @@ void kick_player (void)
 		else 
 			swprintf(Cmsg, MPClientMessage[74], client_names[1],client_names[2],client_names[3]);
 		
-		SGPRect CenterRect = { 100, 100, SCREEN_WIDTH - 100, 300 };
+		SGPRect CenterRect = { 100 + xResOffset, 100, SCREEN_WIDTH - xResOffset, 300 };
+
 		DoMessageBox( MSG_BOX_BASIC_STYLE, Cmsg,  guiCurrentScreen, MSG_BOX_FLAG_FOUR_NUMBERED_BUTTONS | MSG_BOX_FLAG_USE_CENTERING_RECT, kick_callback,  &CenterRect );
 	}
 	else	
@@ -4219,7 +4357,7 @@ void overide_turn (void)
 		else 
 			swprintf(Cmsg, MPClientMessage[30], client_names[1],client_names[2],client_names[3]);
 			
-		SGPRect CenterRect = { 100, 100, SCREEN_WIDTH - 100, 300 };
+		SGPRect CenterRect = { 100 + xResOffset, 100, SCREEN_WIDTH - 100 - xResOffset, 300 };
 		
 		DoMessageBox( MSG_BOX_BASIC_STYLE, Cmsg,  guiCurrentScreen, MSG_BOX_FLAG_FOUR_NUMBERED_BUTTONS | MSG_BOX_FLAG_USE_CENTERING_RECT | MSG_BOX_FLAG_OK, turn_callback,  &CenterRect );
 	}
@@ -4378,7 +4516,7 @@ void recieveDISCONNECT(RPCParameters* rpcParameters)
 				if ( !pTeamSoldier->aiData.bNeutral && (pTeamSoldier->bTeam == iNetbTeam ) )
 				{
 					// KIll......
-					pTeamSoldier->SoldierTakeDamage( ANIM_CROUCH, pTeamSoldier->stats.bLife, 100, TAKE_DAMAGE_BLOODLOSS, NOBODY, NOWHERE, 0, TRUE );
+					pTeamSoldier->SoldierTakeDamage( ANIM_CROUCH, pTeamSoldier->stats.bLife, 0, 100, TAKE_DAMAGE_BLOODLOSS, NOBODY, NOWHERE, 0, TRUE );
 				}
 			}
 		}
@@ -4459,7 +4597,7 @@ void HandleClientConnectionLost()
 
 		// connection lost, let user know via popup then quit to main menu
 		iDisconnectedScreen = guiCurrentScreen;
-		SGPRect CenteringRect= {0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
+		SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, SCREEN_HEIGHT };
 
 		if (wcscmp(gszDisconnectReason,L"")==0)
 		{

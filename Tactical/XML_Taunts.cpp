@@ -21,29 +21,43 @@ struct
 	UINT32			currentDepth;
 	UINT32			maxReadDepth;
 }
-typedef enemyRankParseData;
+typedef tauntParseData;
+
+BOOLEAN localizedTextOnly_Taunts;
 
 UINT16 num_found_taunt = 0;	// the correct number is set on reading the xml
+UINT16 offset_index = 0;
 
 static void XMLCALL
 tauntStartElementHandle(void *userData, const XML_Char *name, const XML_Char **atts)
 {
-	enemyRankParseData * pData = (enemyRankParseData *)userData;
+	tauntParseData * pData = (tauntParseData *)userData;
 
 	if(pData->currentDepth <= pData->maxReadDepth) //are we reading this element?
 	{
 		if(strcmp(name, "TAUNTS") == 0 && pData->curElement == ELEMENT_NONE)
 		{
 			pData->curElement = ELEMENT_LIST;
+
+			if ( !localizedTextOnly_Taunts )
+				memset(pData->curArray,0,sizeof(TAUNT_VALUES)*pData->maxArraySize);
+
 			pData->maxReadDepth++; //we are not skipping this element
 		}
 		else if(strcmp(name, "TAUNT") == 0 && pData->curElement == ELEMENT_LIST)
 		{
 			pData->curElement = ELEMENT;
+
+			if ( !localizedTextOnly_Taunts )
+				memset(&pData->curTaunt,0,sizeof(TAUNT_VALUES));
+
 			pData->maxReadDepth++; //we are not skipping this element
 		}
 		else if(pData->curElement == ELEMENT &&
-			   (strcmp(name, "szText") == 0 ||
+			   (strcmp(name, "uiIndex") == 0 ||
+				strcmp(name, "szText") == 0 ||
+				strcmp(name, "szCensoredText") == 0 ||
+
 				strcmp(name, "aggressive") == 0 ||
 				strcmp(name, "defensive") == 0 ||
 				strcmp(name, "cunning") == 0 ||
@@ -52,33 +66,96 @@ tauntStartElementHandle(void *userData, const XML_Char *name, const XML_Char **a
 				strcmp(name, "brave") == 0 ||
 				strcmp(name, "brave_aid") == 0 ||
 				strcmp(name, "brave_solo") == 0 ||
+
+				strcmp(name, "attack") == 0 ||
 				strcmp(name, "fire_gun") == 0 ||
 				strcmp(name, "fire_launcher") == 0 ||
-				strcmp(name, "charge_knife") == 0 ||
-				strcmp(name, "charge_fists") == 0 ||
-				strcmp(name, "steal") == 0 ||
+				strcmp(name, "attack_blade") == 0 ||
+				strcmp(name, "attack_hth") == 0 ||
+
 				strcmp(name, "throw_knife") == 0 ||
 				strcmp(name, "throw_grenade") == 0 ||
-				strcmp(name, "alert") == 0 ||
-				strcmp(name, "seek_noise") == 0 ||
-				strcmp(name, "noticed_unseen") == 0 ||
+
+				strcmp(name, "out_of_ammo") == 0 ||
+				strcmp(name, "reload") == 0 ||
+
+				strcmp(name, "steal") == 0 ||
+
+				strcmp(name, "charge_blade") == 0 ||
+				strcmp(name, "charge_hth") == 0 ||		
 				strcmp(name, "run_away") == 0 ||
+				strcmp(name, "seek_noise") == 0 ||
+				strcmp(name, "alert") == 0 ||
+				strcmp(name, "suspicious") == 0 ||
+				strcmp(name, "noticed_unseen") == 0 ||
+				strcmp(name, "say_hi") == 0 ||
+				strcmp(name, "inform_about") == 0 ||
+
 				strcmp(name, "got_hit") == 0 ||
+				strcmp(name, "got_hit_gunfire") == 0 ||
+				strcmp(name, "got_hit_blade") == 0 ||
+				strcmp(name, "got_hit_hth") == 0 ||
+				strcmp(name, "got_hit_fallroof") == 0 ||
+				strcmp(name, "got_hit_bloodloss") == 0 ||
+				strcmp(name, "got_hit_explosion") == 0 ||
+				strcmp(name, "got_hit_gas") == 0 ||
+				strcmp(name, "got_hit_tentacle") == 0 ||
+				strcmp(name, "got_hit_structure_explosion") == 0 ||
+				strcmp(name, "got_hit_object") == 0 ||
+				strcmp(name, "got_hit_throwing_knife") == 0 ||
+
+				strcmp(name, "got_deafened") == 0 ||
+				strcmp(name, "got_blinded") == 0 ||
+
+				strcmp(name, "got_robbed") == 0 ||
+
 				strcmp(name, "got_missed") == 0 ||
+				strcmp(name, "got_missed_gunfire") == 0 ||
+				strcmp(name, "got_missed_blade") == 0 ||
+				strcmp(name, "got_missed_hth") == 0 ||
+				strcmp(name, "got_missed_throwing_knife") == 0 ||
+
+				strcmp(name, "hit") == 0 ||
+				strcmp(name, "hit_gunfire") == 0 ||
+				strcmp(name, "hit_blade") == 0 ||
+				strcmp(name, "hit_hth") == 0 ||
+				strcmp(name, "hit_throwing_knife") == 0 ||
+
+				strcmp(name, "kill") == 0 ||
+				strcmp(name, "kill_gunfire") == 0 ||
+				strcmp(name, "kill_blade") == 0 ||
+				strcmp(name, "kill_hth") == 0 ||
+				strcmp(name, "kill_throwing_knife") == 0 ||
+
+				strcmp(name, "head_pop") == 0 ||
+
+				strcmp(name, "miss") == 0 ||
+				strcmp(name, "miss_gunfire") == 0 ||
+				strcmp(name, "miss_blade") == 0 ||
+				strcmp(name, "miss_hth") == 0 ||
+				strcmp(name, "miss_throwing_knife") == 0 ||
+
+				strcmp(name, "riposte_quote") == 0 ||
+
+				strcmp(name, "enemy") == 0 ||
 				strcmp(name, "admin") == 0 ||
 				strcmp(name, "army") == 0 ||
 				strcmp(name, "elite") == 0 ||
+				strcmp(name, "militia") == 0 ||
 				strcmp(name, "green") == 0 ||
 				strcmp(name, "regular") == 0 ||
 				strcmp(name, "veteran") == 0 ||
+
 				strcmp(name, "admin_profile") == 0 ||
 				strcmp(name, "army_profile") == 0 ||
 				strcmp(name, "elite_profile") == 0 ||
 				strcmp(name, "green_profile") == 0 ||
 				strcmp(name, "regular_profile") == 0 ||
 				strcmp(name, "veteran_profile") == 0 ||
+
 				strcmp(name, "male") == 0 ||
 				strcmp(name, "female") == 0 ||
+
 				strcmp(name, "exp_level_gt") == 0 ||
 				strcmp(name, "exp_level_lt") == 0 ||
 				strcmp(name, "health_gt") == 0 ||
@@ -89,8 +166,11 @@ tauntStartElementHandle(void *userData, const XML_Char *name, const XML_Char **a
 				strcmp(name, "energy_lt") == 0 ||
 				strcmp(name, "energy_max_gt") == 0 ||
 				strcmp(name, "energy_max_lt") == 0 ||
+				strcmp(name, "morale_gt") == 0 ||
+				strcmp(name, "morale_lt") == 0 ||
 				strcmp(name, "progress_gt") == 0 ||
 				strcmp(name, "progress_lt") == 0 ||
+
 				strcmp(name, "target_type") == 0 ||
 				strcmp(name, "target_male") == 0 ||
 				strcmp(name, "target_female") == 0 ||
@@ -104,8 +184,11 @@ tauntStartElementHandle(void *userData, const XML_Char *name, const XML_Char **a
 				strcmp(name, "target_energy_lt") == 0 ||
 				strcmp(name, "target_energy_max_gt") == 0 ||
 				strcmp(name, "target_energy_max_lt") == 0 ||
+				strcmp(name, "target_morale_gt") == 0 ||
+				strcmp(name, "target_morale_lt") == 0 ||
 				strcmp(name, "target_appearance") == 0 ||
-				strcmp(name, "target_merc_profile") == 0 ))
+				strcmp(name, "target_merc_profile") == 0 ) ||
+				strcmp(name, "target_zombie") == 0 )
 		{
 			pData->curElement = ELEMENT_PROPERTY;
 
@@ -121,7 +204,7 @@ tauntStartElementHandle(void *userData, const XML_Char *name, const XML_Char **a
 static void XMLCALL
 tauntCharacterDataHandle(void *userData, const XML_Char *str, int len)
 {
-	enemyRankParseData * pData = (enemyRankParseData *)userData;
+	tauntParseData * pData = (tauntParseData *)userData;
 
 	if( (pData->currentDepth <= pData->maxReadDepth) &&
 		(strlen(pData->szCharData) < MAX_CHAR_DATA_LENGTH)
@@ -133,7 +216,7 @@ tauntCharacterDataHandle(void *userData, const XML_Char *str, int len)
 static void XMLCALL
 tauntEndElementHandle(void *userData, const XML_Char *name)
 {
-	enemyRankParseData * pData = (enemyRankParseData *)userData;
+	tauntParseData * pData = (tauntParseData *)userData;
 
 	if(pData->currentDepth <= pData->maxReadDepth) 
 	{
@@ -148,61 +231,77 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 			//if(pData->curTaunt.uiIndex < pData->maxArraySize)
 			if(num_found_taunt < pData->maxArraySize)
 			{
-				// no attitude specified -> set all
-				if( !(pData->curTaunt.uiFlags & TAUNT_A_AGGRESSIVE) &&
-					!(pData->curTaunt.uiFlags & TAUNT_A_DEFENSIVE) &&
-					!(pData->curTaunt.uiFlags & TAUNT_A_BRAVE_AID) &&
-					!(pData->curTaunt.uiFlags & TAUNT_A_BRAVE_SOLO) &&
-					!(pData->curTaunt.uiFlags & TAUNT_A_CUNNING_AID) &&
-					!(pData->curTaunt.uiFlags & TAUNT_A_CUNNING_SOLO) )
-				{
-					pData->curTaunt.uiFlags |= TAUNT_A_AGGRESSIVE;
-					pData->curTaunt.uiFlags |= TAUNT_A_DEFENSIVE;
-					pData->curTaunt.uiFlags |= TAUNT_A_BRAVE_AID;
-					pData->curTaunt.uiFlags |= TAUNT_A_BRAVE_SOLO;
-					pData->curTaunt.uiFlags |= TAUNT_A_CUNNING_AID;
-					pData->curTaunt.uiFlags |= TAUNT_A_CUNNING_SOLO;
-				}
-				// no gender specified -> set all
-				if( !(pData->curTaunt.uiFlags & TAUNT_G_FEMALE) &&
-					!(pData->curTaunt.uiFlags & TAUNT_G_MALE) )
-				{
-					pData->curTaunt.uiFlags |= TAUNT_G_FEMALE;
-					pData->curTaunt.uiFlags |= TAUNT_G_MALE;
-				}
-				if( !(pData->curTaunt.uiFlags & TAUNT_T_FEMALE) &&
-					!(pData->curTaunt.uiFlags & TAUNT_T_MALE) )
-				{
-					pData->curTaunt.uiFlags |= TAUNT_T_FEMALE;
-					pData->curTaunt.uiFlags |= TAUNT_T_MALE;
-				}
+				if ( localizedTextOnly_Taunts )
+				{			
+					// WANNE: Not working
+					/*
+					MultiByteToWideChar( CP_UTF8, 0, pData->szCharData, -1, pData->curArray[pData->curTaunt.uiIndex].szText, sizeof(pData->curTaunt.szText)/sizeof(pData->curTaunt.szText[0]) );
+					pData->curTaunt.szText[sizeof(pData->curTaunt.szText)/sizeof(pData->curTaunt.szText[0]) - 1] = '\0';
+					MultiByteToWideChar( CP_UTF8, 0, pData->szCharData, -1, pData->curArray[pData->curTaunt.uiIndex].szCensoredText, sizeof(pData->curTaunt.szCensoredText)/sizeof(pData->curTaunt.szCensoredText[0]) );
+					pData->curTaunt.szCensoredText[sizeof(pData->curTaunt.szCensoredText)/sizeof(pData->curTaunt.szCensoredText[0]) - 1] = '\0';
+					*/
 
-				// no class specified -> set all enemies
-				if( !(pData->curTaunt.uiFlags & TAUNT_C_ADMIN) &&
-					!(pData->curTaunt.uiFlags & TAUNT_C_ARMY) &&
-					!(pData->curTaunt.uiFlags & TAUNT_C_ELITE) &&
-					!(pData->curTaunt.uiFlags & TAUNT_C_GREEN) &&
-					!(pData->curTaunt.uiFlags & TAUNT_C_REGULAR) &&
-					!(pData->curTaunt.uiFlags & TAUNT_C_VETERAN) )
-				{
-					pData->curTaunt.uiFlags |= TAUNT_C_ADMIN;
-					pData->curTaunt.uiFlags |= TAUNT_C_ARMY;
-					pData->curTaunt.uiFlags |= TAUNT_C_ELITE;
-					pData->curTaunt.uiFlags |= TAUNT_C_GREEN;
-					pData->curTaunt.uiFlags |= TAUNT_C_REGULAR;
-					pData->curTaunt.uiFlags |= TAUNT_C_VETERAN;
+					// WANNE: Working
+					wcscpy(zTaunt[offset_index + pData->curTaunt.uiIndex].szText,pData->curTaunt.szText);
+					wcscpy(zTaunt[offset_index + pData->curTaunt.uiIndex].szCensoredText,pData->curTaunt.szCensoredText);
 				}
-				//pData->curArray[pData->curTaunt.uiIndex] = pData->curTaunt;
-				pData->curArray[num_found_taunt-1] = pData->curTaunt;
-				pData->curTaunt.uiFlags = 0;
-				for(UINT16 i = 0; i < TAUNT_MAX; i++)
+				else
 				{
-					pData->curTaunt.value[i] = (-1);
+					// no attitude specified -> set all
+					if( !(pData->curTaunt.uiFlags & ( TAUNT_A_AGGRESSIVE | TAUNT_A_DEFENSIVE | TAUNT_A_BRAVE_AID | TAUNT_A_BRAVE_SOLO |
+						TAUNT_A_CUNNING_AID | TAUNT_A_CUNNING_SOLO) ) )
+					{
+						pData->curTaunt.uiFlags |= TAUNT_A_AGGRESSIVE;
+						pData->curTaunt.uiFlags |= TAUNT_A_DEFENSIVE;
+						pData->curTaunt.uiFlags |= TAUNT_A_BRAVE_AID;
+						pData->curTaunt.uiFlags |= TAUNT_A_BRAVE_SOLO;
+						pData->curTaunt.uiFlags |= TAUNT_A_CUNNING_AID;
+						pData->curTaunt.uiFlags |= TAUNT_A_CUNNING_SOLO;
+					}
+					// no gender specified -> set all
+					if( !(pData->curTaunt.uiFlags2 & ( TAUNT_G_FEMALE | TAUNT_G_MALE ) ) )
+					{
+						pData->curTaunt.uiFlags2 |= TAUNT_G_FEMALE;
+						pData->curTaunt.uiFlags2 |= TAUNT_G_MALE;
+					}
+					if( !(pData->curTaunt.uiFlags2 & TAUNT_T_FEMALE) &&
+						!(pData->curTaunt.uiFlags2 & TAUNT_T_MALE) )
+					{
+						pData->curTaunt.uiFlags2 |= TAUNT_T_FEMALE;
+						pData->curTaunt.uiFlags2 |= TAUNT_T_MALE;
+					}
+
+					// no class specified -> set all enemies
+					if( !(pData->curTaunt.uiFlags2 & ( TAUNT_C_ADMIN | TAUNT_C_ARMY | TAUNT_C_ELITE | TAUNT_C_GREEN | 
+						TAUNT_C_REGULAR | TAUNT_C_VETERAN ) ) )
+					{
+						pData->curTaunt.uiFlags2 |= TAUNT_C_ADMIN;
+						pData->curTaunt.uiFlags2 |= TAUNT_C_ARMY;
+						pData->curTaunt.uiFlags2 |= TAUNT_C_ELITE;
+						pData->curTaunt.uiFlags2 |= TAUNT_C_GREEN;
+						pData->curTaunt.uiFlags2 |= TAUNT_C_REGULAR;
+						pData->curTaunt.uiFlags2 |= TAUNT_C_VETERAN;
+					}
+
+					pData->curArray[pData->curTaunt.uiIndex] = pData->curTaunt;
+					//pData->curArray[num_found_taunt-1] = pData->curTaunt;
+
+					num_found_taunt++;
 				}
-			}
-		
-			num_found_taunt++;
-			//num_found_taunt = pData->curTaunt.uiIndex;	
+			}	
+			//num_found_taunt++;
+			//num_found_taunt = pData->curTaunt.uiIndex;
+		}
+		else if(strcmp(name, "uiIndex") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiIndex	= (UINT16) atol(pData->szCharData);
+			for(UINT16 i = 0; i < TAUNT_MAX; i++)
+			{
+				pData->curTaunt.value[i] = (-1);
+			}	
+			pData->curTaunt.uiFlags = 0;
+			pData->curTaunt.uiFlags2 = 0;
 		}
 		else if(strcmp(name, "szText") == 0 )
 		{
@@ -210,6 +309,13 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 			
 			MultiByteToWideChar( CP_UTF8, 0, pData->szCharData, -1, pData->curTaunt.szText, sizeof(pData->curTaunt.szText)/sizeof(pData->curTaunt.szText[0]) );
 			pData->curTaunt.szText[sizeof(pData->curTaunt.szText)/sizeof(pData->curTaunt.szText[0]) - 1] = '\0';
+		}
+		else if(strcmp(name, "szCensoredText") == 0 )
+		{
+			pData->curElement = ELEMENT;
+			
+			MultiByteToWideChar( CP_UTF8, 0, pData->szCharData, -1, pData->curTaunt.szCensoredText, sizeof(pData->curTaunt.szCensoredText)/sizeof(pData->curTaunt.szCensoredText[0]) );
+			pData->curTaunt.szCensoredText[sizeof(pData->curTaunt.szCensoredText)/sizeof(pData->curTaunt.szCensoredText[0]) - 1] = '\0';
 		}
 		else if(strcmp(name, "aggressive") == 0)
 		{
@@ -253,6 +359,14 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_A_CUNNING_AID : 0;
 			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_A_CUNNING_SOLO : 0;
 		}
+		else if(strcmp(name, "attack") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_FIRE_GUN : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_FIRE_LAUNCHER : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_ATTACK_BLADE : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_ATTACK_HTH : 0;
+		}
 		else if(strcmp(name, "fire_gun") == 0)
 		{
 			pData->curElement = ELEMENT;
@@ -263,21 +377,17 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = ELEMENT;
 			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_FIRE_LAUNCHER : 0;
 		}
-		else if(strcmp(name, "charge_knife") == 0)
+		else if(strcmp(name, "attack_blade") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_CHARGE_KNIFE : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_ATTACK_BLADE : 0;
 		}
-		else if(strcmp(name, "charge_fists") == 0)
+		else if(strcmp(name, "attack_hth") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_CHARGE_FISTS : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_ATTACK_HTH : 0;
 		}
-		else if(strcmp(name, "steal") == 0)
-		{
-			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_STEAL : 0;
-		}
+
 		else if(strcmp(name, "throw_knife") == 0)
 		{
 			pData->curElement = ELEMENT;
@@ -288,50 +398,310 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = ELEMENT;
 			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_THROW_GRENADE: 0;
 		}
-		else if(strcmp(name, "alert") == 0)
+
+		else if(strcmp(name, "out_of_ammo") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_ALERT : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_OUT_OF_AMMO : 0;
 		}
-		else if(strcmp(name, "seek_noise") == 0)
+		else if(strcmp(name, "reload") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_SEEK_NOISE : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_RELOAD: 0;
 		}
-		else if(strcmp(name, "noticed_unseen") == 0)
+
+		else if(strcmp(name, "charge_blade") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_NOTICED_UNSEEN : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_CHARGE_BLADE : 0;
+		}
+		else if(strcmp(name, "charge_hth") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_CHARGE_HTH : 0;
+		}
+		else if(strcmp(name, "steal") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_STEAL : 0;
 		}
 		else if(strcmp(name, "run_away") == 0)
 		{
 			pData->curElement = ELEMENT;
 			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_RUN_AWAY : 0;
 		}
+		else if(strcmp(name, "seek_noise") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_SEEK_NOISE : 0;
+		}
+		else if(strcmp(name, "alert") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_ALERT : 0;
+		}
+		else if(strcmp(name, "suspicious") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_SUSPICIOUS : 0;
+		}
+		else if(strcmp(name, "noticed_unseen") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_NOTICED_UNSEEN : 0;
+		}
+		else if(strcmp(name, "say_hi") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_SAY_HI : 0;
+		}
+		else if(strcmp(name, "inform_about") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_INFORM_ABOUT : 0;
+		}
+
 		else if(strcmp(name, "got_hit") == 0)
 		{
 			pData->curElement = ELEMENT;
 			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_GUNFIRE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_BLADE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_HTH: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_FALLROOF: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_BLOODLOSS: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_EXPLOSION: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_GAS: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_TENTACLES: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_STRUCTURE_EXPLOSION: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_THROWING_KNIFE: 0;
 		}
+		else if(strcmp(name, "got_hit_gunfire") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_GUNFIRE: 0;
+		}
+		else if(strcmp(name, "got_hit_blade") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_BLADE: 0;
+		}
+		else if(strcmp(name, "got_hit_hth") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_HTH: 0;
+		}
+		else if(strcmp(name, "got_hit_fallroof") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_FALLROOF: 0;
+		}
+		else if(strcmp(name, "got_hit_bloodloss") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_BLOODLOSS: 0;
+		}
+		else if(strcmp(name, "got_hit_explosion") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_EXPLOSION: 0;
+		}
+		else if(strcmp(name, "got_hit_gas") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_GAS: 0;
+		}
+		else if(strcmp(name, "got_hit_tentacle") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_TENTACLES: 0;
+		}
+		else if(strcmp(name, "got_hit_structure_explosion") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_STRUCTURE_EXPLOSION: 0;
+		}
+		else if(strcmp(name, "got_hit_object") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_OBJECT: 0;
+		}
+		else if(strcmp(name, "got_hit_throwing_knife") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_HIT_THROWING_KNIFE: 0;
+		}
+
+		else if(strcmp(name, "got_deafened") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_DEAFENED: 0;
+		}
+		else if(strcmp(name, "got_blinded") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_BLINDED: 0;
+		}
+		else if(strcmp(name, "got_robbed") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_ROBBED: 0;
+		}
+
 		else if(strcmp(name, "got_missed") == 0)
 		{
 			pData->curElement = ELEMENT;
 			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_GUNFIRE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_BLADE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_HTH: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_THROWING_KNIFE: 0;
+		}
+		else if(strcmp(name, "got_missed_gunfire") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_GUNFIRE: 0;
+		}
+		else if(strcmp(name, "got_missed_blade") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_BLADE: 0;
+		}
+		else if(strcmp(name, "got_missed_hth") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_HTH: 0;
+		}
+		else if(strcmp(name, "got_missed_throwing_knife") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_GOT_MISSED_THROWING_KNIFE: 0;
+		}
+
+		else if(strcmp(name, "hit") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_GUNFIRE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_BLADE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_HTH: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_THROWING_KNIFE: 0;
+		}
+		else if(strcmp(name, "hit_gunfire") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_GUNFIRE: 0;
+		}
+		else if(strcmp(name, "hit_blade") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_BLADE: 0;
+		}
+		else if(strcmp(name, "hit_hth") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_HTH: 0;
+		}
+		else if(strcmp(name, "hit_throwing_knife") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HIT_THROWING_KNIFE: 0;
+		}
+
+		else if(strcmp(name, "kill") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL : 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL_GUNFIRE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL_BLADE: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL_HTH: 0;
+		}
+		else if(strcmp(name, "kill_gunfire") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL_GUNFIRE: 0;
+		}
+		else if(strcmp(name, "kill_blade") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL_BLADE: 0;
+		}
+		else if(strcmp(name, "kill_hth") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL_HTH: 0;
+		}
+		else if(strcmp(name, "kill_throwing_knife") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_KILL_THROWING_KNIFE: 0;
+		}
+		else if(strcmp(name, "head_pop") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_HEAD_POP : 0;
+		}
+
+		else if(strcmp(name, "miss") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_MISS: 0;
+		}
+		else if(strcmp(name, "miss_gunfire") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_MISS_GUNFIRE: 0;
+		}
+		else if(strcmp(name, "miss_blade") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_MISS_BLADE: 0;
+		}
+		else if(strcmp(name, "miss_hth") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_MISS_HTH: 0;
+		}
+		else if(strcmp(name, "miss_throwing_knife") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_S_MISS_THROWING_KNIFE: 0;
+		}
+
+		if(strcmp(name, "riposte_quote") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.value[TAUNT_RIPOSTE_QUOTE] = (INT16) atol(pData->szCharData);
+		}
+
+		if(strcmp(name, "enemy") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ADMIN: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ARMY: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ELITE: 0;
 		}
 		else if(strcmp(name, "admin") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ADMIN: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ADMIN: 0;
 		}
 		else if(strcmp(name, "army") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ARMY: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ARMY: 0;
 		}
 		else if(strcmp(name, "elite") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ELITE: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_ELITE: 0;
+		}
+		else if(strcmp(name, "militia") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_GREEN: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_REGULAR: 0;
+			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_VETERAN: 0;
 		}
 		else if(strcmp(name, "green") == 0)
 		{
@@ -341,12 +711,12 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "regular") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_REGULAR: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_REGULAR: 0;
 		}
 		else if(strcmp(name, "veteran") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_VETERAN: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_C_VETERAN: 0;
 		}
 		else if(strcmp(name, "admin_profile") == 0)
 		{
@@ -381,12 +751,12 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "male") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_G_MALE: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_G_MALE: 0;
 		}
 		else if(strcmp(name, "female") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_G_FEMALE: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_G_FEMALE: 0;
 		}
 		else if(strcmp(name, "exp_level_gt") == 0)
 		{
@@ -486,12 +856,12 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "target_male") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_T_MALE: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_T_MALE: 0;
 		}
 		else if(strcmp(name, "target_female") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curTaunt.uiFlags	|= (UINT16) atol(pData->szCharData) ? TAUNT_T_FEMALE: 0;
+			pData->curTaunt.uiFlags2	|= (UINT16) atol(pData->szCharData) ? TAUNT_T_FEMALE: 0;
 		}
 		else if(strcmp(name, "target_exp_level_gt") == 0)
 		{
@@ -563,6 +933,11 @@ tauntEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = ELEMENT;
 			pData->curTaunt.value[TAUNT_TARGET_MERC_PROFILE] = (INT16) atol(pData->szCharData);
 		}
+		else if(strcmp(name, "target_zombie") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curTaunt.uiFlags2 |= (UINT16) atol(pData->szCharData) ? TAUNT_T_ZOMBIE: 0;
+		}
 		pData->maxReadDepth--;
 	}
 	pData->currentDepth--;
@@ -576,9 +951,14 @@ BOOLEAN ReadInTaunts(STR fileName, BOOLEAN localizedVersion)
 	CHAR8 *		lpcBuffer;
 	XML_Parser	parser = XML_ParserCreate(NULL);
 
-	enemyRankParseData pData;
+	tauntParseData pData;
 
 	DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "Loading EnemyTaunts.xml" );
+
+	localizedTextOnly_Taunts = localizedVersion;
+
+	if (!localizedTextOnly_Taunts)
+		offset_index = num_found_taunt;
 		
 	// Open file
 	hFile = FileOpen( fileName, FILE_ACCESS_READ, FALSE );
@@ -605,11 +985,10 @@ BOOLEAN ReadInTaunts(STR fileName, BOOLEAN localizedVersion)
 
 
 	memset(&pData,0,sizeof(pData));
-	pData.curArray = zTaunt;
-	pData.maxArraySize = NUM_TAUNT;
+	pData.curArray = &(zTaunt[num_found_taunt]);
+	pData.maxArraySize = NUM_TAUNT - num_found_taunt;//dnl ch86 180214
 
 	XML_SetUserData(parser, &pData);
-
 	if(!XML_Parse(parser, lpcBuffer, uiFSize, TRUE))
 	{
 		CHAR8 errorBuf[511];

@@ -3,13 +3,11 @@
 #else
 	#include <stdio.h>
 	#include <string.h>
-	#include "wcheck.h"
 	#include "stdlib.h"
 	#include "debug.h"
 	//#include "soldier control.h"
 	#include "weapons.h"
 	#include "cursor control.h"
-	#include "cursors.h"
 	#include "soldier find.h"
 	#include "isometric utils.h"
 	#include "renderworld.h"
@@ -216,6 +214,9 @@ void AIPickBurstLocations( SOLDIERTYPE *pSoldier, INT8 bTargets, SOLDIERTYPE *pT
 		ubShotsPerBurst = __min(pSoldier->bDoAutofire,MAX_BURST_SPREAD_TARGETS);
 	else
 		ubShotsPerBurst = __min(GetShotsPerBurst (&pSoldier->inv[ HANDPOS ]),MAX_BURST_SPREAD_TARGETS);
+
+	if ( pSoldier->IsValidSecondHandBurst() )
+		ubShotsPerBurst = ubShotsPerBurst*2;
 
 	if ( ubShotsPerBurst <= 0 )
 		ubShotsPerBurst = 1;

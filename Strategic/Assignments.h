@@ -56,34 +56,72 @@ enum
 	VEHICLE,
 	IN_TRANSIT,
 	REPAIR,
+	RADIO_SCAN,						// added by Flugente
 	TRAIN_SELF,
 	TRAIN_TOWN,
-	TRAIN_MOBILE,			// HEADROCK HAM 3.6: Training mobile militia.
+	TRAIN_MOBILE,					// HEADROCK HAM 3.6: Training mobile militia.
 	TRAIN_TEAMMATE,
 	TRAIN_BY_OTHER,
-	FACILITY_STAFF,		// HEADROCK HAM 3.6: Operating a facility for strategic gain.
-	FACILITY_REST,			// HEADROCK HAM 3.6: Facility equivalent of resting (no assignment)
+	MOVE_EQUIPMENT,					// added by Flugente: move items from one city sector to another
+	FACILITY_STAFF,					// HEADROCK HAM 3.6: Operating a facility for strategic gain.
+	FACILITY_EAT,					// added by Flugente
+	FACILITY_REST,					// HEADROCK HAM 3.6: Facility equivalent of resting (no assignment)
+	FACILITY_INTERROGATE_PRISONERS,	// added by Flugente
 	ASSIGNMENT_DEAD,
 	ASSIGNMENT_UNCONCIOUS,			// unused
 	ASSIGNMENT_POW,
 	ASSIGNMENT_HOSPITAL,
 	ASSIGNMENT_EMPTY,
+	FACILITY_PRISON_SNITCH,
+	FACILITY_SPREAD_PROPAGANDA,
+	FACILITY_SPREAD_PROPAGANDA_GLOBAL,
+	FACILITY_GATHER_RUMOURS,
+	SNITCH_SPREAD_PROPAGANDA,
+	SNITCH_GATHER_RUMOURS,
 	NUM_ASSIGNMENTS,
+};
+
+// strings for snitch exposition
+enum
+{
+	SNITCH_PRISON_EXPOSED_FINE_WISDOM,
+	SNITCH_PRISON_EXPOSED_FINE_LEADERSHIP,
+	SNITCH_PRISON_EXPOSED_FINE_EXPLEVEL,
+	SNITCH_PRISON_EXPOSED_FINE_GUARDS,
+
+	SNITCH_PRISON_EXPOSED_WOUNDED_DROWN,	
+	SNITCH_PRISON_EXPOSED_WOUNDED_BEATEN,
+	SNITCH_PRISON_EXPOSED_WOUNDED_KNIFED,
+	SNITCH_PRISON_EXPOSED_WOUNDED_STRANGLED,
+
+	SNITCH_PRISON_EXPOSED_DEAD_DROWN,	
+	SNITCH_PRISON_EXPOSED_DEAD_BEATEN,
+	SNITCH_PRISON_EXPOSED_DEAD_KNIFED,
+	SNITCH_PRISON_EXPOSED_DEAD_STRANGLED,
+
+	NUM_SNITCH_PRISON_EXPOSED,
+};
+
+// strings for snitch gathering rumours
+enum
+{
+	SNITCH_GATHERING_RUMOURS_RESULT,
+	NUM_SNITCH_GATHERING_RUMOURS_RESULT,
 };
 
 #define NO_ASSIGNMENT		127 //used when no pSoldier->ubDesiredSquad
 
 // Train stats defines (must match ATTRIB_MENU_ defines, and pAttributeMenuStrings )
 enum{
-	STRENGTH = 0,
-	DEXTERITY,
+	HEALTH = 0,
 	AGILITY,
-	HEALTH,
-	MARKSMANSHIP,
-	MEDICAL,
-	MECHANICAL,
+	DEXTERITY,
+	STRENGTH,
 	LEADERSHIP,
+	MARKSMANSHIP,
+	MECHANICAL,
 	EXPLOSIVE_ASSIGN,
+	MEDICAL,
 	NUM_TRAINABLE_STATS
 	// NOTE: Wisdom isn't trainable!
 };
@@ -146,6 +184,9 @@ BOOLEAN CanCharacterVehicle( SOLDIERTYPE *pCharacter );
 // can character be added to squad
 INT8 CanCharacterSquad( SOLDIERTYPE *pCharacter, INT8 bSquadValue );
 
+// can character snitch
+BOOLEAN CanCharacterSnitch( SOLDIERTYPE *pCharacter );
+
 // if merc could train militia here, do they have sufficient loyalty?
 BOOLEAN DoesSectorMercIsInHaveSufficientLoyaltyToTrainMilitia( SOLDIERTYPE *pSoldier );
 BOOLEAN DoesTownHaveRatingToTrainMilitia( INT8 bTownId );
@@ -188,6 +229,13 @@ UINT16 CalculateHealingPointsForDoctor(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts,
 // find number of repair pts repairman has available
 UINT8 CalculateRepairPointsForRepairman(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts, BOOLEAN fMakeSureKitIsInHand );
 
+// Flugente: calculate interrogation and prison guard values
+UINT32 CalculateInterrogationValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts );
+UINT32 CalculatePrisonGuardValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts );
+
+UINT32 CalculateSnitchInterrogationValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts );
+
+// Flugente: determine max items we can move, and the sector distance
 
 // get bonus tarining pts due to an instructor for this student
 // HEADROCK HAM 3.5: Three functions below have lost an argument which is no longer required ("uiAtGunRange", which was "uiAtFacility" in HAM 3.4)
@@ -212,6 +260,7 @@ extern INT32 ghSquadBox;
 extern INT32 ghVehicleBox;
 extern INT32 ghRepairBox;
 extern INT32 ghTrainingBox;
+extern INT32 ghMoveItemBox;
 extern INT32 ghAttributeBox;
 extern INT32 ghRemoveMercAssignBox;
 extern INT32 ghContractBox;
@@ -220,6 +269,10 @@ extern INT32 ghMoveBox;
 extern INT32 ghFacilityBox;
 extern INT32 ghFacilityAssignmentBox;
 //extern INT32 ghUpdateBox;
+// anv: snitch menus
+extern INT32 ghSnitchBox;
+extern INT32 ghSnitchToggleBox;
+extern INT32 ghSnitchSectorBox;
 
 
 extern MOUSE_REGION	gAssignmentScreenMaskRegion;
@@ -238,6 +291,7 @@ extern MOUSE_REGION gFacilityMenuRegion[];
 extern BOOLEAN fShownContractMenu;
 extern BOOLEAN fShownAssignmentMenu;
 extern BOOLEAN fShowRepairMenu;
+extern BOOLEAN fShowMoveItemMenu;
 
 extern BOOLEAN fFirstClickInAssignmentScreenMask;
 
@@ -274,6 +328,12 @@ void VehicleMenuBtnCallback(MOUSE_REGION * pRegion, INT32 iReason );
 void CreateDestroyMouseRegionForRepairMenu( void );
 void RepairMenuMvtCallback(MOUSE_REGION * pRegion, INT32 iReason );
 void RepairMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason );
+
+// Flugente: move item menu
+void CreateDestroyMouseRegionForMoveItemMenu( void );
+void MoveItemMenuMvtCallback(MOUSE_REGION * pRegion, INT32 iReason );
+void MoveItemMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason );
+
 // HEADROCK HAM 3.6: Facility Menu
 void CreateDestroyMouseRegionForFacilityMenu( void );
 void FacilityMenuMvtCallback(MOUSE_REGION * pRegion, INT32 iReason );
@@ -283,6 +343,17 @@ void FacilityMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason );
 void CreateDestroyMouseRegionsForFacilityAssignmentMenu( void );
 void FacilityAssignmentMenuMvtCallBack( MOUSE_REGION * pRegion, INT32 iReason );
 void FacilityAssignmentMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason );
+
+// anv: snitch menus
+void CreateDestroyMouseRegionsForSnitchMenu( void );
+void SnitchMenuMvtCallBack(MOUSE_REGION * pRegion, INT32 iReason );
+void SnitchMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason );
+void CreateDestroyMouseRegionsForSnitchToggleMenu( void );
+void SnitchToggleMenuMvtCallBack(MOUSE_REGION * pRegion, INT32 iReason );
+void SnitchToggleMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason );
+void CreateDestroyMouseRegionsForSnitchSectorMenu( void );
+void SnitchSectorMenuMvtCallBack(MOUSE_REGION * pRegion, INT32 iReason );
+void SnitchSectorMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason );
 
 // contract menu
 void CreateDestroyMouseRegionsForContractMenu( void );
@@ -374,6 +445,11 @@ extern SOLDIERTYPE *gpFacilityStaffer;
 
 // SANDRO - function to award record points for militia training
 void RecordNumMilitiaTrainedForMercs( INT16 sX, INT16 sY, INT8 sZ, UINT8 ubMilitiaTrained, BOOLEAN fMobile );
+
+// anv: decrease town loyalty hits
+UINT32 HandlePropagandaBlockingBadNewsInTown( INT8 bTownId, UINT32 uiLoyaltyDecrease );
+
+void HandleGatheringInformationBySoldier( SOLDIERTYPE* pSoldier );
 
 #endif
 

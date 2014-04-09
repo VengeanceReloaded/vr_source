@@ -8,7 +8,6 @@
 	#include "Utilities.h"
 	#include "WCheck.h"
 	#include "WordWrap.h"
-	#include "Cursors.h"
 	#include "Text.h"
 #endif
 
@@ -41,8 +40,10 @@ BOOLEAN EnterBobbyRMisc()
 
 	guiPrevMiscFilterMode = -1;
 	guiCurrentMiscFilterMode = -1;
+	guiCurrentMiscSubFilterMode = -1;
+	guiPrevMiscSubFilterMode = -1;
 
-	SetFirstLastPagesForNew( IC_BOBBY_MISC, guiCurrentMiscFilterMode );
+	SetFirstLastPagesForNew( IC_BOBBY_MISC, guiCurrentMiscFilterMode, guiCurrentMiscSubFilterMode );
 
 	//Draw menu bar
 	InitBobbyMenuBar( );
@@ -89,15 +90,16 @@ void RenderBobbyRMisc()
 	GetVideoObject(&hPixHandle, guiMiscGrid);
 	BltVideoObject(FRAME_BUFFER, hPixHandle, 0, BOBBYR_GRIDLOC_X, BOBBYR_GRIDLOC_Y, VO_BLT_SRCTRANSPARENCY,NULL);
 
-	DisplayItemInfo(IC_BOBBY_MISC, guiCurrentMiscFilterMode);
+	DisplayItemInfo(IC_BOBBY_MISC, guiCurrentMiscFilterMode, guiCurrentMiscSubFilterMode);
 	UpdateButtonText(guiCurrentLaptopMode);
 	UpdateMiscFilterButtons();
 
 	MarkButtonsDirty( );
 	RenderWWWProgramTitleBar( );
 	InvalidateRegion(LAPTOP_SCREEN_UL_X,LAPTOP_SCREEN_WEB_UL_Y,LAPTOP_SCREEN_LR_X,LAPTOP_SCREEN_WEB_LR_Y);
-		fReDrawScreenFlag = TRUE;
-	fPausedReDrawScreenFlag = TRUE;
+	//Moa removed below. See comment above LAPTOP_SCREEN_UL_X in laptop.h
+	//	fReDrawScreenFlag = TRUE;
+	//fPausedReDrawScreenFlag = TRUE;
 }
 
 

@@ -21,6 +21,14 @@ typedef struct FASTHELPREGION {
 
 } FASTHELPREGION;
 
+// Flugente: externalised squad names
+typedef struct
+{
+	UINT32 uiIndex;
+	CHAR16	squadname[10];
+} SQUAD_NAMES;
+
+extern SQUAD_NAMES	SquadNames[20];
 
 extern UINT8 FIRSTmercTOdisplay ;
 extern UINT8 maxNumberOfMercVisibleInStrategyList;
@@ -60,6 +68,7 @@ enum{
 	MILCON_MENU_RETREAT,
 	MILCON_MENU_COMETOME,
 	MILCON_MENU_GETDOWN,
+	MILCON_MENU_CROUCH,
 	MILCON_MENU_TAKE_COVER,
 	MILCON_MENU_ALL_ATTACK,
 	MILCON_MENU_ALL_HOLD,
@@ -67,6 +76,7 @@ enum{
 	MILCON_MENU_ALL_COMETOME,
 	MILCON_MENU_ALL_SPREAD,
 	MILCON_MENU_ALL_GETDOWN,
+	MILCON_MENU_ALL_CROUCH,
 	MILCON_MENU_ALL_TAKE_COVER,
 	//MILCON_MENU_ALL_TAKE_ITEMS,
 	MILCON_MENU_CANCEL,
@@ -85,15 +95,15 @@ enum{
 
 // attribute menu defines (must match NUM_TRAINABLE_STATS defines, and pAttributeMenuStrings )
 enum {
-	ATTRIB_MENU_STR=0,
-	ATTRIB_MENU_DEX,
+	ATTRIB_MENU_HEA=0,
 	ATTRIB_MENU_AGI,
-	ATTRIB_MENU_HEA,
-	ATTRIB_MENU_MARK,
-	ATTRIB_MENU_MED,
-	ATTRIB_MENU_MECH,
+	ATTRIB_MENU_DEX,
+	ATTRIB_MENU_STR,
 	ATTRIB_MENU_LEAD,
+	ATTRIB_MENU_MARK,
+	ATTRIB_MENU_MECH,
 	ATTRIB_MENU_EXPLOS,
+	ATTRIB_MENU_MED,
 	ATTRIB_MENU_CANCEL,
 	MAX_ATTRIBUTE_STRING_COUNT,
 };
@@ -115,12 +125,38 @@ enum {
 	ASSIGN_MENU_PATIENT,
 	ASSIGN_MENU_VEHICLE,
 	ASSIGN_MENU_REPAIR,
+	ASSIGN_MENU_RADIO_SCAN,	// added by Flugente
+	ASSIGN_MENU_SNITCH,
 	ASSIGN_MENU_TRAIN,
+	ASSIGN_MENU_MOVE_ITEMS, // added by Flugente
 	ASSIGN_MENU_FACILITY, // HEAROCK HAM 3.6: Facility List menu
 	ASSIGN_MENU_CANCEL,
 	MAX_ASSIGN_STRING_COUNT,
 };
 
+// snitch menu defines
+enum{
+	SNITCH_MENU_TOGGLE = 0,
+	SNITCH_MENU_SECTOR,	
+	SNITCH_MENU_CANCEL,
+	MAX_SNITCH_MENU_STRING_COUNT,
+};
+
+enum {
+	SNITCH_MENU_TOGGLE_ON = 0,
+	SNITCH_MENU_TOGGLE_OFF,
+	SNITCH_MENU_MISBEHAVIOUR_ON,
+	SNITCH_MENU_MISBEHAVIOUR_OFF,
+	SNITCH_MENU_TOGGLE_CANCEL,
+	MAX_SNITCH_TOGGLE_MENU_STRING_COUNT,
+};
+
+enum {
+	SNITCH_MENU_SECTOR_PROPAGANDA = 0,
+	SNITCH_MENU_SECTOR_GATHER_RUMOURS,
+	SNITCH_MENU_SECTOR_CANCEL,
+	MAX_SNITCH_SECTOR_MENU_STRING_COUNT,
+};
 
 // training assignment menu defines
 enum {
@@ -142,7 +178,7 @@ enum{
 };
 
 
-// squad menu defines
+/*// squad menu defines
 enum{
 	SQUAD_MENU_1,
 	SQUAD_MENU_2,
@@ -166,8 +202,10 @@ enum{
 	SQUAD_MENU_20,
 	SQUAD_MENU_CANCEL,
 	MAX_SQUAD_MENU_STRING_COUNT,
-};
+};*/
 
+#define SQUAD_MENU_CANCEL			ON_DUTY
+#define MAX_SQUAD_MENU_STRING_COUNT SQUAD_MENU_CANCEL + 1
 
 // contract menu defines
 enum{
@@ -262,6 +300,10 @@ extern BOOLEAN fShowMilitiaControlMenu ; //lal
 //extern BOOLEAN fShowTalkToAllMenu ;
 extern BOOLEAN fShowFacilityMenu; // HEADROCK HAM 3.6
 extern BOOLEAN fShowFacilityAssignmentMenu; // HEADROCK HAM 3.6
+// anv: snitch menus
+extern BOOLEAN fShowSnitchMenu;
+extern BOOLEAN fShowSnitchToggleMenu;
+extern BOOLEAN fShowSnitchSectorMenu;
 
 extern BOOLEAN fFirstTimeInMapScreen;
 extern BOOLEAN fLockOutMapScreenInterface;
@@ -316,6 +358,13 @@ extern SGPRect FacilityAssignmentDimensions;
 extern SGPPoint RepairPosition;
 extern SGPRect RepairDimensions;
 
+extern SGPPoint SnitchPosition;
+extern SGPRect SnitchDimensions;
+extern SGPPoint SnitchTogglePosition;
+extern SGPRect SnitchToggleDimensions;
+extern SGPPoint SnitchSectorPosition;
+extern SGPRect SnitchSectorDimensions;
+
 extern SGPPoint MilitiaControlPosition; //lal
 extern SGPRect MilitiaControlDimensions;
 
@@ -332,6 +381,9 @@ extern SGPPoint OrigMilitiaControlPosition ; //lal
 extern SGPPoint OrigFacilityPosition; // HEADROCK HAM 3.6: Facility Menu
 extern SGPPoint OrigFacilityAssignmentPosition; // HEADROCK HAM 3.6
 //extern SGPPoint OrigTalkToAllPosition ;
+extern SGPPoint OrigSnitchPosition;
+extern SGPPoint OrigSnitchTogglePosition;
+extern SGPPoint OrigSnitchSectorPosition;
 
 // disble team info panel due to showing of battle roster
 extern BOOLEAN fDisableDueToBattleRoster;

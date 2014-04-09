@@ -12,20 +12,20 @@ typedef struct{
 	UINT16 *pusItemIndex;		//a dynamic array of Item indices
 	UINT32	uiBuffer;		//index of buffer
 	UINT32	uiItemType; //Weapons, ammo, armour, explosives, equipment
-	INT16		sWidth, sHeight;	//width and height of buffer
-	//Kaiden: was previously INT16 - Fix for number of items capped by class
+	//Kaiden/Buggler: was previously INT16 - Fix for number of items capped by class in editor
+	INT32		sWidth, sHeight;	//width and height of buffer
 	INT16	sNumItems;	//total number of items in the current class of item.
 	INT16		sSelItemIndex;	//currently selected item index.
 	INT16	sHilitedItemIndex;
 	INT16	sScrollIndex;	//current scroll index (0 is far left, 1 is next tile to the right, ...)
 	INT16	sSaveSelWeaponsIndex, sSaveSelAmmoIndex, sSaveSelArmourIndex, sSaveSelLBEIndex, sSaveSelExplosivesIndex,
 					sSaveSelEquipment1Index, sSaveSelEquipment2Index, sSaveSelEquipment3Index,
-					sSaveSelTriggersIndex, sSaveSelKeysIndex;
+					sSaveSelTriggersIndex, sSaveSelKeysIndex, sSaveSelRandomItemIndex;
 	INT16	sSaveWeaponsScrollIndex, sSaveAmmoScrollIndex, sSaveArmourScrollIndex, sSaveLBEScrollIndex,
 					sSaveExplosivesScrollIndex, sSaveEquipment1ScrollIndex, sSaveEquipment2ScrollIndex,
-					sSaveEquipment3ScrollIndex, sSaveTriggersScrollIndex, sSaveKeysScrollIndex;
+					sSaveEquipment3ScrollIndex, sSaveTriggersScrollIndex, sSaveKeysScrollIndex, sSaveRandomItemScrollIndex;
 	INT16	sNumWeapons, sNumAmmo, sNumArmour, sLBEGear, sNumExplosives, sNumEquipment1, sNumEquipment2, sNumEquipment3, 
-					sNumTriggers, sNumKeys;
+					sNumTriggers, sNumKeys, sNumRandomItems;
 }EditorItemsInfo;
 
 extern EditorItemsInfo eInfo;
@@ -37,6 +37,7 @@ void RenderEditorItemsInfo();
 void ClearEditorItemsInfo();
 void DisplayItemStatistics();
 void DetermineItemsScrolling();
+void ScrollEditorItemsInfo(BOOLEAN fForward);//dnl ch80 011213
 
 //User actions
 void AddSelectedItemToWorld( INT32 sGridNo );
@@ -60,13 +61,10 @@ void HandleItemsPanel( UINT16 usScreenX, UINT16 usScreenY, INT8 bEvent );
 
 extern INT32 giDefaultExistChance;
 
+//dnl ch86 120214
+typedef struct TAG_ITEM_POOL ITEM_POOL;
+BOOLEAN ItemPoolListMove(INT32 iOldGridNo, INT32 iNewGridNo, ITEM_POOL *pItemPool);
+BOOLEAN DeleteItemNode(INT32 iMapIndex);
+
 #endif
 #endif
-
-
-
- 
-
-
-
-

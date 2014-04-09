@@ -7,7 +7,7 @@
 	#include "XML.h"
 	#include "Interface.h"
 	#include "IMP Confirm.h"
-	#include "IMP Portraits.h"
+	#include "Soldier Profile.h"
 #endif
 
 struct
@@ -268,7 +268,7 @@ UINT32  cnt;
 UINT32 cnt2 = 0;
 UINT32 cnt3 = 0;
 
-	for ( cnt = 0; cnt < 200; cnt++ )
+	for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
 		{
 			if (gIMPFaceValues[cnt].bSex == 1 && gIMPFaceValues[cnt].PortraitId !=0)
 				{
@@ -291,7 +291,7 @@ UINT32 cnt3 = 0;
 				}
 		}		
 		
-	for ( cnt = 0; cnt < 200; cnt++ )
+	for ( cnt = 0; cnt < NUM_PROFILES; cnt++ )
 		{
 			if (gIMPFaceValues[cnt].bSex == 0 && gIMPFaceValues[cnt].PortraitId !=0)
 				{

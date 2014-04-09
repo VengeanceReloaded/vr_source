@@ -18,7 +18,6 @@
 	#include "Render Fun.h"
 	#include "Boxing.h"
 	#include "Text.h"
-	#include "Structure Wrap.h"
 	#ifdef _DEBUG
 		#include "renderworld.h"
 		#include "video.h"
@@ -29,9 +28,9 @@
 	#include "lighting.h"
 	#include "Buildings.h"
 	#include "GameSettings.h"
+	#include "Soldier Profile.h"
 #endif
 
-#include "PathAIDebug.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SANDRO - all "APBPConstants[AP_CROUCH]" and "APBPConstants[AP_PRONE]" here    
@@ -589,7 +588,8 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 		else
 		{
 			fNight = TRUE;
-			ubBackgroundLightPercent = gbLightSighting[ 0 ][ ubBackgroundLightLevel ];
+			ubBackgroundLightPercent = gGameExternalOptions.ubBrightnessVisionMod[ ubBackgroundLightLevel ];
+			//ubBackgroundLightPercent = gbLightSighting[ 0 ][ ubBackgroundLightLevel ];
 		}
 	}
 
@@ -651,7 +651,8 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 		// HEADROCK HAM 3.6: This doesn't take into account the 100AP system. Adjusting.
 		// Please note, I used a calculation that may have a better representation in some global variable.
 		//iMaxMoveTilesLeft = __max( 0, pSoldier->bActionPoints - MinAPsToStartMovement( pSoldier, usMovementMode ) );
-		iMaxMoveTilesLeft = __max( 0, (pSoldier->bActionPoints - MinAPsToStartMovement( pSoldier, usMovementMode ) / (APBPConstants[AP_MAXIMUM]/25)) );
+		// WarmSteel - Bugfix:  wrong parentheses
+		iMaxMoveTilesLeft = __max( 0, (pSoldier->bActionPoints - MinAPsToStartMovement( pSoldier, usMovementMode )) / (APBPConstants[AP_MAXIMUM] / 25) );
 
 		//NumMessage("In BLACK, maximum tiles to move left = ",maxMoveTilesLeft);
 
@@ -702,7 +703,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 		}
 
 		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != 64)
+		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
 		{
 			continue;	// next opponent
 		}
@@ -799,7 +800,17 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 		//PopMessage(tempstr);
 	}
 
-	iCurrentCoverValue -= (iCurrentCoverValue / 10) * NumberOfTeamMatesAdjacent( pSoldier, pSoldier->sGridNo );
+	// reduce cover for each person adjacent to this gridno who is on our team,
+	// by 10% (so locations next to several people will be very much frowned upon
+	if ( iCurrentCoverValue >= 0 )
+	{
+		iCurrentCoverValue -= (iCurrentCoverValue / 10) * NumberOfTeamMatesAdjacent( pSoldier, pSoldier->sGridNo );
+	}
+	else
+	{
+		// when negative, must add a negative to decrease the total
+		iCurrentCoverValue += (iCurrentCoverValue / 10) * NumberOfTeamMatesAdjacent( pSoldier, pSoldier->sGridNo );
+	}
 
 #ifdef DEBUGCOVER
 //	AINumMessage("Search Range = ",iSearchRange);
@@ -999,7 +1010,9 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 				// reduce cover at nighttime based on how bright the light is at that location
 				// using the difference in sighting distance between the background and the
 				// light for this tile
-				ubLightPercentDifference = (gbLightSighting[ 0 ][ LightTrueLevel( sGridNo, pSoldier->pathing.bLevel ) ] - ubBackgroundLightPercent );
+				//ubLightPercentDifference = (gbLightSighting[ 0 ][ LightTrueLevel( sGridNo, pSoldier->pathing.bLevel ) ] - ubBackgroundLightPercent );
+				ubLightPercentDifference = (gGameExternalOptions.ubBrightnessVisionMod[ LightTrueLevel( sGridNo, pSoldier->pathing.bLevel ) ] - ubBackgroundLightPercent );
+				
 				if ( iCoverValue >= 0 )
 				{
 					iCoverValue -= (iCoverValue / 100) * ubLightPercentDifference;
@@ -1157,7 +1170,7 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 		}
 
 		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != 64)
+		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
 		{
 			continue;	// next opponent
 		}
@@ -1298,6 +1311,11 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 	// Turn off the "reachable" flag for his current location
 	// so we don't consider it
 	gpWorldLevelData[pSoldier->sGridNo].uiFlags &= ~(MAPELEMENT_REACHABLE);
+	//dnl ch58 170813 also don't use last two locations to avoid looping same decisions per turn
+	if(!TileIsOutOfBounds(pSoldier->sLastTwoLocations[0]))
+		gpWorldLevelData[pSoldier->sLastTwoLocations[0]].uiFlags &= ~(MAPELEMENT_REACHABLE);
+	else if(!TileIsOutOfBounds(pSoldier->sLastTwoLocations[1]))
+		gpWorldLevelData[pSoldier->sLastTwoLocations[1]].uiFlags &= ~(MAPELEMENT_REACHABLE);
 
 	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
 	{
@@ -1600,8 +1618,8 @@ INT16 FindNearbyDarkerSpot( SOLDIERTYPE *pSoldier )
 				// screen out anything brighter than our current best spot
 				bLightLevel = LightTrueLevel( sGridNo, pSoldier->pathing.bLevel );
 
-				bLightDiff = gbLightSighting[0][ bCurrLightLevel ] - gbLightSighting[0][ bLightLevel ];
-
+				//bLightDiff = gbLightSighting[0][ bCurrLightLevel ] - gbLightSighting[0][ bLightLevel ];
+				bLightDiff = gGameExternalOptions.ubBrightnessVisionMod[ bCurrLightLevel ] - gGameExternalOptions.ubBrightnessVisionMod[ bLightLevel ];
 				// if the spot is darker than our current location, then bLightDiff > 0
 				// plus ignore differences of just 1 light level
 				if ( bLightDiff <= 1 )
@@ -1654,10 +1672,11 @@ INT8 SearchForItems( SOLDIERTYPE * pSoldier, INT8 bReason, UINT16 usItem )
 	INT32 sGridNo;
 	INT32					sBestSpot = NOWHERE;
 	INT32					iTempValue, iValue, iBestValue = 0;
-	ITEM_POOL *		pItemPool;
-	OBJECTTYPE *	pObj;
-	INVTYPE *			pItem;
+	ITEM_POOL *				pItemPool;
+	OBJECTTYPE *			pObj;
+	INVTYPE *				pItem;
 	INT32					iItemIndex, iBestItemIndex;
+	BOOLEAN					fDumbEnoughtoPickup = FALSE;
 
 	iTempValue = -1;
 	iItemIndex = iBestItemIndex = -1;
@@ -1743,6 +1762,10 @@ INT8 SearchForItems( SOLDIERTYPE * pSoldier, INT8 bReason, UINT16 usItem )
 	}
 
 	FindBestPath( pSoldier, GRIDSIZE, pSoldier->pathing.bLevel, DetermineMovementMode( pSoldier, AI_ACTION_PICKUP_ITEM ), COPYREACHABLE, 0 );//dnl ch50 071009
+
+	// Flugente: if the soldier is 'dumb enough', he may pick up certain items... which can be used to lure the AI into traps
+	if ( pSoldier->stats.bWisdom < 70 )
+		fDumbEnoughtoPickup = TRUE;
 
 	// SET UP DOUBLE-LOOP TO STEP THROUGH POTENTIAL GRID #s
 	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
@@ -1943,6 +1966,12 @@ INT8 SearchForItems( SOLDIERTYPE * pSoldier, INT8 bReason, UINT16 usItem )
 										}
 								}
 							}
+							// Flugente: if the soldier is 'dumb enough', he may pick up 'interesting items'. This can be used to lure him into traps (a certain scene in FMJ comes to mind)
+							else if ( fDumbEnoughtoPickup && pItem->usItemClass == IC_MISC && HasItemFlag(pObj->usItem, ATTENTION_ITEM) )
+							{
+								// oooh... shiny!
+								iTempValue = 1000;
+							}
 							else
 							{
 								iTempValue = 0;
@@ -1986,7 +2015,7 @@ INT8 SearchForItems( SOLDIERTYPE * pSoldier, INT8 bReason, UINT16 usItem )
 					// destroy this item!
 					DebugAI( String( "%d decides he must drop %S first so destroys it", pSoldier->ubID, ItemNames[ pSoldier->inv[HANDPOS].usItem ] ) );
 					DeleteObj( &(pSoldier->inv[HANDPOS]) );
-					DeductPoints( pSoldier, GetBasicAPsToPickupItem( pSoldier ), 0 );
+					DeductPoints( pSoldier, GetBasicAPsToPickupItem( pSoldier ), 0, AFTERACTION_INTERRUPT );
 				}
 				else
 				{
@@ -2284,7 +2313,9 @@ INT32 FindClosestBoxingRingSpot( SOLDIERTYPE * pSoldier, BOOLEAN fInRing )
 
 	INT32 sGridNo, sClosestSpot = NOWHERE;
 	INT32 iDistance, iClosestDistance = 9999;
-	UINT8	ubRoom;
+	//DBrot: More Rooms
+	//UINT8	ubRoom;
+	UINT16 usRoom;
 
 	// set the distance limit of the square region
 	iSearchRange = 7;
@@ -2312,9 +2343,9 @@ INT32 FindClosestBoxingRingSpot( SOLDIERTYPE * pSoldier, BOOLEAN fInRing )
 		{
 			// calculate the next potential gridno
 			sGridNo = pSoldier->sGridNo + sXOffset + (MAXCOL * sYOffset);
-			if ( InARoom( sGridNo, &ubRoom ))
+			if ( InARoom( sGridNo, &usRoom ))
 			{
-				if ( (fInRing && ubRoom == BOXING_RING) || (!fInRing && ubRoom != BOXING_RING ) && LegalNPCDestination(pSoldier,sGridNo,IGNORE_PATH,NOWATER,0) )
+				if ( (fInRing && usRoom == BOXING_RING) || (!fInRing && usRoom != BOXING_RING ) && LegalNPCDestination(pSoldier,sGridNo,IGNORE_PATH,NOWATER,0) )
 				{
 					iDistance = abs( sXOffset ) + abs( sYOffset );
 					if ( iDistance < iClosestDistance && WhoIsThere2( sGridNo, 0 ) == NOBODY )

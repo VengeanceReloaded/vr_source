@@ -12,7 +12,6 @@
 	#include "vsurface.h"
 	#include "Button System.h"
 	#include "Font Control.h"
-	#include "Simple Render Utils.h"
 	#include "Editor Taskbar Utils.h"
 	#include "line.h"
 	#include "input.h"
@@ -26,7 +25,6 @@
 	#include "Game Clock.h"
 	#include "Campaign Types.h"
 	#include "Queen Command.h"
-	#include "Campaign Init.h"
 	#include "overhead.h"
 	#include "Strategic Movement.h"
 	#include "GameSettings.h"
@@ -932,7 +930,8 @@ void HandleViewerInput()
 {
 	SECTORINFO *pSector;
 	InputAtom Event;
-	while( DequeueEvent( &Event ) )
+
+	while( DequeueSpecificEvent(&Event, KEY_DOWN|KEY_UP) )
 	{
 		if( !HandleTextInput( &Event ) && Event.usEvent == KEY_DOWN )
 		{
@@ -1346,7 +1345,7 @@ void CreatureAttackCallback( GUI_BUTTON *btn, INT32 reason )
 {
 	if( reason & MSYS_CALLBACK_REASON_LBUTTON_UP )
 	{
-		if( ( gsSelSectorX != 0 ) && ( gsSelSectorX != 0 ) )
+		if( ( gsSelSectorX != 0 ) && ( gsSelSectorY != 0 ) )
 		{
 			if( _KeyDown( ALT ) )
 			{
@@ -1965,7 +1964,7 @@ void PrintDetailedEnemiesInSectorInfo( INT32 iScreenX, INT32 iScreenY, UINT8 ubS
 							pFinalWaypoint = GetFinalWaypoint( pGroup );
 							if( pFinalWaypoint )
 							{
-								if( pFinalWaypoint->x == 3 && pFinalWaypoint->y == 16 )
+								if( pFinalWaypoint->x == gModSettings.ubSAISpawnSectorX && pFinalWaypoint->y == gModSettings.ubSAISpawnSectorY )
 								{
 									swprintf( wSubString, L" - group returning to pool.");
 								}
@@ -2007,7 +2006,7 @@ void PrintDetailedEnemiesInSectorInfo( INT32 iScreenX, INT32 iScreenY, UINT8 ubS
 								pFinalWaypoint = GetFinalWaypoint( pGroup );
 								if( pFinalWaypoint )
 								{
-									if( pFinalWaypoint->x == 3 && pFinalWaypoint->y == 16 )
+									if( pFinalWaypoint->x == gModSettings.ubSAISpawnSectorX && pFinalWaypoint->y == gModSettings.ubSAISpawnSectorY )
 									{
 										swprintf( wSubString, L" - group returning to pool.");
 									}

@@ -19,7 +19,6 @@
 #include "items.h"
 #include "GameSettings.h"
 
-#include "cursors.h"
 
 #include "Map Information.h"
 #include "soldier profile.h"
@@ -54,6 +53,9 @@
 #include "Queen Command.h"
 
 #include "Map Edgepoints.h"
+#include "Campaign.h"			// added by Flugente for HighestPlayerProgressPercentage()
+#include "CampaignStats.h"		// added by Flugente
+
 BOOLEAN gfOriginalList = TRUE;
 
 SOLDIERINITNODE *gSoldierInitHead = NULL;
@@ -644,12 +646,12 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 			}
 		}
 		CreateDetailedPlacementGivenStaticDetailedPlacementAndBasicPlacementInfo(
-			&tempDetailedPlacement, curr->pDetailedPlacement, curr->pBasicPlacement );
+			&tempDetailedPlacement, curr->pDetailedPlacement, curr->pBasicPlacement, gWorldSectorX, gWorldSectorY );
 	}
 	else
 	{
 		DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("AddPlacementToWorld: create detailed placement"));
-		CreateDetailedPlacementGivenBasicPlacementInfo( &tempDetailedPlacement, curr->pBasicPlacement );
+		CreateDetailedPlacementGivenBasicPlacementInfo( &tempDetailedPlacement, curr->pBasicPlacement, gWorldSectorX, gWorldSectorY );
 	}
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("AddPlacementToWorld: if not edit mode"));
@@ -661,7 +663,9 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 			// quest-related overrides
 			if ( gWorldSectorX == 5 && gWorldSectorY == MAP_ROW_C )
 			{
-				UINT8	ubRoom;
+				//DBrot: More rooms
+				//UINT8	ubRoom;
+				UINT16 usRoom;
 
 				// Kinpin guys might be guarding Tony
 				if ( tempDetailedPlacement.ubCivilianGroup == KINGPIN_CIV_GROUP && ( gTacticalStatus.fCivGroupHostile[ KINGPIN_CIV_GROUP ] == CIV_GROUP_WILL_BECOME_HOSTILE || ( (gubQuest[ QUEST_KINGPIN_MONEY ] == QUESTINPROGRESS) && (CheckFact( FACT_KINGPIN_CAN_SEND_ASSASSINS, KINGPIN )) ) ) )
@@ -700,13 +704,16 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 						// she shouldn't be here!
 						return( TRUE );
 					}
-					else if ( tempDetailedPlacement.ubProfile == NO_PROFILE && InARoom( tempDetailedPlacement.sInsertionGridNo, &ubRoom ) && IN_BROTHEL( ubRoom ) )
+					else if ( tempDetailedPlacement.ubProfile == NO_PROFILE && InARoom( tempDetailedPlacement.sInsertionGridNo, &usRoom ) && IN_BROTHEL( usRoom ) )
 					{
 						// must be a hooker, shouldn't be there
 						return( TRUE );
 					}
 				}
 			}
+#ifdef JA2UB
+//Ja25: no queen
+#else
 			else if ( !gfInMeanwhile && gWorldSectorX == 3 && gWorldSectorY == 16 && !gbWorldSectorZ )
 			{ //Special civilian setup for queen's palace.
 				if( gubFact[ FACT_QUEEN_DEAD ] )
@@ -728,6 +735,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 					}
 				}
 			}
+#endif
 			else if ( gWorldSectorX == TIXA_SECTOR_X && gWorldSectorY == TIXA_SECTOR_Y	&& gbWorldSectorZ == 0 )
 			{
 				// Tixa prison, once liberated, should not have any civs without profiles unless
@@ -788,6 +796,20 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 		}
 		DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("AddPlacementToWorld: return true"));
 
+		/*
+		#ifdef JA2UB
+		INT32 iCnt;
+		for( iCnt=0; iCnt< NUM_ORIGINAL_INV_SLOTS; iCnt++)
+		{
+				if ( gGameOptions.ubInventorySystem == INVENTORY_OLD && gGameOptions.ubAttachmentSystem == ATTACHMENT_OLD )
+				{
+					if( pSoldier->inv[ iCnt ].usItem == 97 || pSoldier->inv[ iCnt ].usItem == 1346 || pSoldier->inv[ iCnt ].usItem == 99 
+						|| pSoldier->inv[ iCnt ].usItem == 1347 || pSoldier->inv[ iCnt ].usItem == 584 || pSoldier->inv[ iCnt ].usItem == 551 ) //43
+						pSoldier->inv[ iCnt ].usItem = 129; //335		
+				}
+		}	
+		#endif	
+		*/
 		return TRUE;
 	}
 	else
@@ -891,7 +913,16 @@ UINT8 AddSoldierInitListTeamToWorld( INT8 bTeam, UINT8 ubMaxNum )
 	//we now have the number, so compared it to the num we can add, and determine how we will
 	//randomly determine which nodes to add.
 	if( !ubSlotsAvailable )
-	{	//There aren't any basic placements of desired team, so exit.
+	{
+		// Flugente: decide wether to spawn enemy assassins in this sector (not kingpin's hitmen, they are handled elsewhere)
+		if ( bTeam == MILITIA_TEAM )
+			SectorAddAssassins(gWorldSectorX, gWorldSectorY, gbWorldSectorZ);
+
+		// Flugente: spawn prisoners of war in prison sectors
+		if ( bTeam == CIV_TEAM )
+			SectorAddPrisonersofWar(gWorldSectorX, gWorldSectorY, gbWorldSectorZ);
+
+		//There aren't any basic placements of desired team, so exit.
 		return ubNumAdded;
 	}
 	curr = mark;
@@ -933,6 +964,15 @@ UINT8 AddSoldierInitListTeamToWorld( INT8 bTeam, UINT8 ubMaxNum )
 		}
 		curr = curr->next;
 	}
+
+	// Flugente: decide wether to spawn enemy assassins in this sector (not kingpin's hitmen, they are handled elsewhere)
+	if ( bTeam == MILITIA_TEAM )
+		SectorAddAssassins(gWorldSectorX, gWorldSectorY, gbWorldSectorZ);
+
+	// Flugente: spawn prisoners of war in prison sectors
+	if ( bTeam == CIV_TEAM )
+		SectorAddPrisonersofWar(gWorldSectorX, gWorldSectorY, gbWorldSectorZ);
+
 	return ubNumAdded;
 }
 
@@ -1365,7 +1405,6 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 	UINT8 ubFreeSlots;
 	UINT8 *pCurrSlots=NULL;
 	UINT8 *pCurrTotal=NULL;
-	UINT8 ubCurrClass;
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("AddSoldierInitListMilitia"));
 
@@ -1450,10 +1489,16 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 
 	//we now have the numbers of available slots for each soldier class, so loop through three times
 	//and randomly choose some (or all) of the matching slots to fill.	This is done randomly.
-	for( ubCurrClass = SOLDIER_CLASS_ADMINISTRATOR; ubCurrClass <= SOLDIER_CLASS_ARMY; ubCurrClass++ )
+	// Flugente: changed the order of the classes, as we want to ahve elites first (relevant if militia takes equipment from the sector)
+	UINT8 reorder[3];
+	reorder[0] = SOLDIER_CLASS_ELITE;
+	reorder[1] = SOLDIER_CLASS_ARMY;
+	reorder[2] = SOLDIER_CLASS_ADMINISTRATOR;
+
+	for( UINT8 i = 0; i < 3; ++i )
 	{
 		//First, prepare the counters.
-		switch( ubCurrClass )
+		switch( reorder[i] )
 		{
 		case SOLDIER_CLASS_ADMINISTRATOR:
 			pCurrSlots = &ubGreenSlots;
@@ -1474,13 +1519,13 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 		{
 			if( curr->pBasicPlacement->bTeam == ENEMY_TEAM || curr->pBasicPlacement->bTeam == MILITIA_TEAM )
 			{
-				if( curr->pBasicPlacement->ubSoldierClass == ubCurrClass )
+				if( curr->pBasicPlacement->ubSoldierClass == reorder[i] )
 				{
 					if( *pCurrSlots <= *pCurrTotal || Random( *pCurrSlots ) < *pCurrTotal )
 					{
 						curr->pBasicPlacement->bTeam = MILITIA_TEAM;
 						curr->pBasicPlacement->bOrders = STATIONARY;
-						switch( ubCurrClass )
+						switch( reorder[i] )
 						{
 						case SOLDIER_CLASS_ADMINISTRATOR:
 							curr->pBasicPlacement->ubSoldierClass = SOLDIER_CLASS_GREEN_MILITIA;
@@ -2505,17 +2550,37 @@ void AddSoldierInitListMilitiaOnEdge( UINT8 ubStrategicInsertionCode, UINT8 ubNu
 	if (ubTotalSoldiers == 0)
 		return;
 
+	// Flugente: if militia picks up equipment from sectors, it is necessary to know from where it comes
+	INT16 sX = gWorldSectorX;
+	INT16 sY = gWorldSectorY;
+	
 	switch( ubStrategicInsertionCode )
 	{
-	case INSERTION_CODE_NORTH:	bDesiredDirection = SOUTHEAST;										break;
-	case INSERTION_CODE_EAST:		bDesiredDirection = SOUTHWEST;										break;
-	case INSERTION_CODE_SOUTH:	bDesiredDirection = NORTHWEST;										break;
-	case INSERTION_CODE_WEST:		bDesiredDirection = NORTHEAST;										break;
-	default:	AssertMsg( 0, "Illegal direction passed to AddSoldierInitListMilitiaOnEdge()" );	break;
+	case INSERTION_CODE_NORTH:	
+		bDesiredDirection = SOUTHEAST;
+		--sY;
+		break;
+	case INSERTION_CODE_EAST:
+		bDesiredDirection = SOUTHWEST;
+		++sX;
+		break;
+	case INSERTION_CODE_SOUTH:
+		bDesiredDirection = NORTHWEST;
+		++sY;
+		break;
+	case INSERTION_CODE_WEST:
+		bDesiredDirection = NORTHEAST;
+		--sX;
+		break;
+	default:	
+		AssertMsg( 0, "Illegal direction passed to AddSoldierInitListMilitiaOnEdge()" );
+		break;
 	}
 #ifdef JA2TESTVERSION
 	ScreenMsg( FONT_RED, MSG_INTERFACE, L"Militia reinforcements have arrived!	(%d admins, %d troops, %d elite)", ubNumGreen, ubNumReg, ubNumElites );
 #endif
+
+	// Flugente: if militia takes items from sector inventories, then militia coming from neighbouring sectors will have to take it from there
 
 	ChooseMapEdgepoints( &MapEdgepointInfo, ubStrategicInsertionCode, (UINT8)(ubNumGreen + ubNumReg + ubNumElites) );
 	ubCurrSlot = 0;
@@ -2525,7 +2590,7 @@ void AddSoldierInitListMilitiaOnEdge( UINT8 ubStrategicInsertionCode, UINT8 ubNu
 		{
 			ubNumElites--;
 			ubTotalSoldiers--;
-			pSoldier = TacticalCreateMilitia(SOLDIER_CLASS_ELITE_MILITIA);
+			pSoldier = TacticalCreateMilitia(SOLDIER_CLASS_ELITE_MILITIA, sX, sY);
 
 			// Lesh: if pSoldier is NULL then no slot for a new men or other problems
 			//		it better to leave this function is such case
@@ -2565,7 +2630,7 @@ void AddSoldierInitListMilitiaOnEdge( UINT8 ubStrategicInsertionCode, UINT8 ubNu
 		{
 			ubNumReg--;
 			ubTotalSoldiers--;
-			pSoldier = TacticalCreateMilitia(SOLDIER_CLASS_REG_MILITIA);
+			pSoldier = TacticalCreateMilitia(SOLDIER_CLASS_REG_MILITIA, sX, sY);
 
 			// Lesh: if pSoldier is NULL then no slot for a new men or other problems
 			//		it better to leave this function is such case
@@ -2605,7 +2670,7 @@ void AddSoldierInitListMilitiaOnEdge( UINT8 ubStrategicInsertionCode, UINT8 ubNu
 		{
 			ubNumGreen--;
 			ubTotalSoldiers--;
-			pSoldier = TacticalCreateMilitia(SOLDIER_CLASS_GREEN_MILITIA);
+			pSoldier = TacticalCreateMilitia(SOLDIER_CLASS_GREEN_MILITIA, sX, sY);
 
 			// Lesh: if pSoldier is NULL then no slot for a new men or other problems
 			//		it better to leave this function is such case
@@ -2650,6 +2715,148 @@ void AddSoldierInitListMilitiaOnEdge( UINT8 ubStrategicInsertionCode, UINT8 ubNu
 		if (gGameExternalOptions.ubReinforcementsFirstTurnFreeze == 1 || gGameExternalOptions.ubReinforcementsFirstTurnFreeze == 3)
 		{
 			pSoldier->bActionPoints = 0;
+
+			// Flugente: due to a fix, also note here that the reinforcements get no APs.
+			pSoldier->bSoldierFlagMask |= SOLDIER_NO_AP;
+
+			// Flugente: campaign stats
+			if ( IsOurSoldier(pSoldier) )
+				gCurrentIncident.usIncidentFlags |= INCIDENT_REINFORCEMENTS_PLAYERSIDE;
+			else
+				gCurrentIncident.usIncidentFlags |= INCIDENT_REINFORCEMENTS_ENEMY;
 		}
+	}
+}
+
+extern UINT32 GetWorldTotalMin( );
+
+// Flugente: decide wether to spawn enemy assassins in this sector (not kingpin's hitmen, they are handled elsewhere)
+void SectorAddAssassins( INT16 sMapX, INT16 sMapY, INT16 sMapZ )
+{
+	// this needs to be turned on on, and new trait system needs to be active
+	if ( !gGameExternalOptions.fEnemyAssassins || !gGameOptions.fNewTraitSystem )
+		return;
+
+	// only possible if a certain progress has been reached - the queen only sends out assassins after a while
+	if ( HighestPlayerProgressPercentage() < gGameExternalOptions.usAssassinMinimumProgress )
+		return;
+
+	// not in underground sectors
+	if ( sMapZ > 0 )
+		return;
+
+	SECTORINFO *pSector = &SectorInfo[ SECTOR( sMapX, sMapY ) ];
+	if ( !pSector )
+		return;
+
+	// does not work atm, time gets reset too early
+	// not if we have recently been in this sector
+	//if ( pSector->uiTimeCurrentSectorWasLastLoaded + 10 > GetWorldTotalMin() )
+		//return;
+
+	// do not spawn if militia size is very small (we will be spotted much easier by the player)
+	UINT32 totalmilitia = pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ] + pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] + pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ];
+	if ( totalmilitia < gGameExternalOptions.usAssassinMinimumMilitia )
+		return;
+
+	// count current number of civilians
+	UINT16 numberofcivs = 0;
+	SOLDIERTYPE* pTeamSoldier = NULL;
+	INT32 cnt = gTacticalStatus.Team[ CIV_TEAM ].bFirstID;
+	INT32 lastid = gTacticalStatus.Team[ CIV_TEAM ].bLastID;
+	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+	{
+		// check if teamsoldier exists in this sector
+		if ( pTeamSoldier && pTeamSoldier->bActive && pTeamSoldier->bInSector && pTeamSoldier->sSectorX == sMapX && pTeamSoldier->sSectorY == sMapY && pTeamSoldier->bSectorZ == sMapZ )
+			++numberofcivs;
+	}
+
+	// we can't spawn if all civilian slots are already taken
+	if ( numberofcivs >= gGameExternalOptions.ubGameMaximumNumberOfCivilians )
+		return;
+
+	// now count militia, and which type (green, regular, elite) is most numerous - that will be the best type to blend in	
+	UINT8 militiacnt = pSector->ubNumberOfCivsAtLevel[ GREEN_MILITIA ];
+	UINT8 militiadisguise = GREEN_MILITIA;
+	if ( pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] > militiacnt )
+	{
+		militiacnt = pSector->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ];
+		militiadisguise = REGULAR_MILITIA;
+	}
+	if ( pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ] > militiacnt )
+	{
+		militiacnt = pSector->ubNumberOfCivsAtLevel[ ELITE_MILITIA ];
+		militiadisguise = ELITE_MILITIA;
+	}
+		
+	// the bigger the militia, the more likely infiltration
+	// if militia is at maximum, there is a 10% chance of infiltration
+	UINT32 resultrange = gGameExternalOptions.ubGameMaximumNumberOfRebels * 10;
+	UINT32 modifiedmilitianumber = totalmilitia * gGameExternalOptions.usAssassinPropabilityModifier / 100;
+	if ( Random(resultrange) >= modifiedmilitianumber )
+		return;
+
+	CreateAssassin( militiadisguise );
+	++numberofcivs;
+
+	// if there is still room for a second assassin, and we are feeling very lucky again, add a second one
+	if ( numberofcivs < gGameExternalOptions.ubGameMaximumNumberOfCivilians && Random(resultrange) < modifiedmilitianumber )
+	{
+		CreateAssassin( militiadisguise );
+		++numberofcivs;
+	}
+}
+
+// Flugente: decide wether to create prisoners of war in a sector. Not to be confused with player POWs
+void SectorAddPrisonersofWar( INT16 sMapX, INT16 sMapY, INT16 sMapZ )
+{
+	// this needs to be turned on on
+	if ( !gGameExternalOptions.fAllowPrisonerSystem )
+		return;
+	
+	// not in underground sectors
+	if ( sMapZ > 0 )
+		return;
+
+	// get sector
+	SECTORINFO *pSector = &SectorInfo[ SECTOR( sMapX, sMapY ) ];
+	if ( !pSector )
+		return;
+
+	// only continue if there are prisoners in this sector that need to be placed
+	UINT8 tmp1 = 0, tmp2 = 0, tmp3 = 0, tmp4 = 0;
+	UINT16 numprisoners = GetNumberOfPrisoners(pSector, &tmp1, &tmp2, &tmp3, &tmp4);
+	if ( !numprisoners )
+		return;
+		
+	// count current number of civilians and already placed pows
+	UINT16 numberofcivs = 0;
+	UINT16 numberofpows = 0;
+	SOLDIERTYPE* pTeamSoldier = NULL;
+	INT32 cnt = gTacticalStatus.Team[ CIV_TEAM ].bFirstID;
+	INT32 lastid = gTacticalStatus.Team[ CIV_TEAM ].bLastID;
+	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+	{
+		// check if teamsoldier exists in this sector
+		if ( pTeamSoldier && pTeamSoldier->bActive && pTeamSoldier->bInSector && pTeamSoldier->sSectorX == sMapX && pTeamSoldier->sSectorY == sMapY && pTeamSoldier->bSectorZ == sMapZ )
+			++numberofcivs;
+
+		// count how many pows are already placed
+		if ( pTeamSoldier->bSoldierFlagMask & SOLDIER_POW_PRISON )
+			++numberofpows;
+	}
+
+	// we can't spawn if all civilian slots are already taken (we leave a bit of reserve for more important civs)
+	UINT8 maxcivs = max(0, gGameExternalOptions.ubGameMaximumNumberOfCivilians - 3);
+
+	for (UINT16 i = numberofpows; i < numprisoners; ++i)
+	{
+		if ( numberofcivs < maxcivs )
+		{
+			CreatePrisonerOfWar();
+			++numberofcivs;
+		}
+		else
+			break;
 	}
 }

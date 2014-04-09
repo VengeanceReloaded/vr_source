@@ -152,6 +152,11 @@ UINT16 GetWidthOfButtonPic( UINT16 usButtonPicID, INT32 iSlot )
 	return ButtonPictures[ usButtonPicID ].vobj->pETRLEObject[ iSlot ].usWidth;
 }
 
+UINT16 GetHeightOfButtonPic( UINT16 usButtonPicID, INT32 iSlot )
+{
+	return ButtonPictures[ usButtonPicID ].vobj->pETRLEObject[ iSlot ].usHeight;
+}
+
 HVOBJECT GenericButtonGrayed[MAX_GENERIC_PICS];
 HVOBJECT GenericButtonOffNormal[MAX_GENERIC_PICS];
 HVOBJECT GenericButtonOffHilite[MAX_GENERIC_PICS];
@@ -2773,7 +2778,7 @@ void QuickButtonCallbackMButn( MOUSE_REGION *reg, INT32 reason )
 			b->uiFlags &= (~BUTTON_CLICKED_ON);
 		}
 	}
-	else if( b->uiFlags & BUTTON_CHECKBOX )
+	else if( b->uiFlags & BUTTON_CHECKBOX && b->uiFlags & BUTTON_ENABLED )//dnl ch77 131113
 	{
 		if( reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
 		{	//the check box button gets anchored, though it doesn't actually use the anchoring move callback.

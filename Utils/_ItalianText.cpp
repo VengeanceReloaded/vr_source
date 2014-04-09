@@ -115,11 +115,384 @@ FAST HELP TEXT -- Explains how the syntax of fast help text works.
 
 */
 
+CHAR16	XMLTacticalMessages[1000][MAX_MESSAGE_NAMES_CHARS] = 
+{
+	L"",
+};
+//Encyclopedia
+
+STR16 pMenuStrings[] =
+{
+	//Encyclopedia
+	L"Locations", // 0
+	L"Characters",
+	L"Items",
+	L"Quests",
+	L"Menu 5",
+	L"Menu 6", //5
+	L"Menu 7", 
+	L"Menu 8",
+	L"Menu 9",
+	L"Menu 10",
+	L"Menu 11", //10
+	L"Menu 12",
+	L"Menu 13",
+	L"Menu 14",
+	L"Menu 15",
+	L"Menu 15", // 15
+	
+	//Briefing Room
+	L"Enter",		// TODO.Translate
+};
+
+STR16	pOtherButtonsText[] =
+{
+	L"Briefing", 
+	L"Accept",
+};
+
+STR16	pOtherButtonsHelpText[] =
+{
+	L"Briefing",
+	L"Accept missions",
+};
+
+
+STR16	pLocationPageText[] =
+{
+	L"Prev page",
+	L"Photo", 
+	L"Next page",
+};
+
+STR16	pSectorPageText[] =
+{
+	L"<<",
+	L"Main page",
+	L">>",
+	L"Type: ",
+	L"Empty data",
+	L"Missing of defined missions. Add missions to the file TableData\\BriefingRoom\\BriefingRoom.xml. First mission has to be visible. Put value Hidden = 0.",
+	L"Briefing Room. Please click the 'Enter' button.",		// TODO.Translate
+};
+
+STR16	pEncyclopediaTypeText[] = 
+{
+	L"Unknown",// 0 - unknown
+	L"City", //1 - cities
+	L"SAM Site", //2 - SAM Site
+	L"Other location", //3 - other location
+	L"Mines", //4 - mines 
+	L"Military complex", //5 - military complex 
+	L"Laboratory complex",  //6 - laboratory complex 
+	L"Factory complex", //7 - factory complex 
+	L"Hospital", //8 - hospital 
+	L"Prison", //9 - prison
+    L"Airport", //10 - air port 
+};
+
+STR16	pEncyclopediaHelpCharacterText[] = 
+{
+	L"Show all",
+	L"Show AIM",
+	L"Show MERC",
+	L"Show RPC",
+	L"Show NPC",
+	L"Show Pojazd",
+	L"Show IMP",
+	L"Show EPC",
+	L"Filter",
+};
+
+STR16	pEncyclopediaShortCharacterText[] = 
+{
+	L"All",
+	L"AIM",
+	L"MERC",
+	L"RPC",
+	L"NPC",
+	L"Veh.",
+	L"IMP",
+	L"EPC",
+	L"Filter",
+};
+
+STR16	pEncyclopediaHelpText[] = 
+{
+	L"Show all",
+	L"Show cities",
+	L"Show SAM Sites",
+	L"Show other location",
+	L"Show mines",
+	L"Show military complex",
+	L"Show laboratory complex",
+	L"Show Factory complex",
+	L"Show hospital",
+	L"Show prison",
+	L"Show air port",
+};
+
+STR16	pEncyclopediaSkrotyText[] = 
+{
+	L"All",
+	L"City",
+	L"SAM",
+	L"Other",
+	L"Mine",
+	L"Mil.",
+	L"Lab.",
+	L"Fact.",
+	L"Hosp.",
+	L"Prison",
+	L"Air.",
+};
+
+// TODO.Translate
+STR16	pEncyclopediaFilterLocationText[] =
+{//major location filter button text max 7 chars
+//..L"------v"
+	L"All",//0
+	L"City",
+	L"SAM",
+	L"Mine",
+	L"Airport",
+	L"Wilder.",
+	L"Underg.",
+	L"Facil.",
+	L"Other",
+//filter button tooltip
+//..L"---------------------------------------------------------------------v"
+	L"Show All",//facility index + 1
+	L"Show Cities",
+	L"Show SAM sites",
+	L"Show mines",
+	L"Show airports",
+	L"Show sectors in wilderness",
+	L"Show underground sectors",
+	L"Show sectors with facilities\n[|L|B]toggle filter\n[|R|B]reset filter",
+	L"Show Other sectors",
+};
+
+STR16 pEncyclopediaSubFilterLocationText[] =
+{//item subfilter button text max 7 chars
+//..L"------v"
+	L"",//reserved. Insert new city filters above!
+	L"",//reserved. Insert new SAM filters above!
+	L"",//reserved. Insert new mine filters above!
+	L"",//reserved. Insert new airport filters above!
+	L"",//reserved. Insert new wilderness filters above!
+	L"",//reserved. Insert new underground sector filters above!
+	L"",//reserved. facility filter texts are dynamicly loaded, leave this marker empty!
+	L"",//reserved. Insert new other filters above!
+};
+// TODO.Translate
+STR16	pEncyclopediaFilterCharText[] =
+{//major char filter button text
+//..L"------v"
+	L"All",//0
+	L"A.I.M.",
+	L"MERC",
+	L"RPC",
+	L"NPC",
+	L"IMP",
+	L"Other",//add new filter buttons before other
+//filter button tooltip
+//..L"---------------------------------------------------------------------v"
+	L"Show All",//Other index + 1
+	L"Show A.I.M. members",
+	L"Show M.E.R.C staff",
+	L"Show Rebels",
+	L"Show Non-hirable Characters",
+	L"Show Player created Characters",
+	L"Show Other\n[|L|B] toggle filter\n[|R|B] reset filter",
+};
+// TODO.Translate
+STR16	pEncyclopediaSubFilterCharText[] =
+{//item subfilter button text
+//..L"------v"
+	L"",//reserved. Insert new AIM filters above!
+	L"",//reserved. Insert new MERC filters above!
+	L"",//reserved. Insert new RPC filters above!
+	L"",//reserved. Insert new NPC filters above!
+	L"",//reserved. Insert new IMP filters above!
+//Other-----v"
+	L"Vehic.",
+	L"EPC",
+	L"",//reserved. Insert new Other filters above!
+};
+// TODO.Translate
+STR16	pEncyclopediaFilterItemText[] = 
+{//major item filter button text max 7 chars
+//..L"------v"
+	L"All",//0
+	L"Gun",
+	L"Ammo",
+	L"Armor",
+	L"LBE",
+	L"Attach.",
+	L"Misc",//add new filter buttons before misc
+//filter button tooltip
+//..L"---------------------------------------------------------------------v"
+	L"Show All",//misc index + 1
+	L"Show Guns\n[|L|B] toggle filter\n[|R|B] reset filter",
+	L"Show Amunition\n[|L|B] toggle filter\n[|R|B] reset filter",
+	L"Show Armor Gear\n[|L|B] toggle filter\n[|R|B] reset filter",
+	L"Show LBE Gear\n[|L|B] toggle filter\n[|R|B] reset filter",
+	L"Show Attachments\n[|L|B] toggle filter\n[|R|B] reset filter",
+	L"Show Misc Items\n[|L|B] toggle filter\n[|R|B] reset filter",
+};
+// TODO.Translate
+STR16 pEncyclopediaSubFilterItemText[] =
+{//item subfilter button text max 7 chars
+//..L"------v"
+//Guns......v"
+	L"Pistol",
+	L"M.Pist.",
+	L"SMG",
+	L"Rifle",
+	L"SN Rif.",
+	L"AS Rif.",
+	L"MG",
+	L"Shotgun",
+	L"H.Weap.",
+	L"",//reserved. insert new gun filters above!
+//Amunition.v"
+	L"Pistol",
+	L"M.Pist.",
+	L"SMG",
+	L"Rifle",
+	L"SN Rif.",
+	L"AS Rif.",
+	L"MG",
+	L"Shotgun",
+	L"H.Weap.",
+	L"",//reserved. insert new ammo filters above!
+//Armor.....v"
+	L"Helmet",
+	L"Vest",
+	L"Pant",
+	L"Plate",
+	L"",//reserved. insert new armor filters above!
+//LBE.......v"
+	L"Tight",
+	L"Vest",
+	L"Combat",
+	L"Backp.",
+	L"Pocket",
+	L"Other",
+	L"",//reserved. insert new LBE filters above!
+//Attachments"
+	L"Optic",
+	L"Side",
+	L"Muzzle",
+	L"Extern.",
+	L"Intern.",
+	L"Other",
+	L"",//reserved. insert new attachment filters above!
+//Misc......v"
+	L"Blade",
+	L"T.Knife",
+	L"Punch",
+	L"Grenade",
+	L"Bomb",
+	L"Medikit",
+	L"Kit",
+	L"Face",
+	L"Other",
+	L"",//reserved. insert new misc filters above!
+//add filters for a new button here
+};
+// TODO.Translate
+STR16 pEncyclopediaFilterQuestText[] =
+{//major quest filter button text max 7 chars
+//..L"------v"
+	L"All",
+	L"Active",
+	L"Compl.",
+//filter button tooltip
+//..L"---------------------------------------------------------------------v"
+	L"Show All",//misc index + 1
+	L"Show Active Quests",
+	L"Show Completed Quests",
+};
+
+STR16 pEncyclopediaSubFilterQuestText[] =
+{//Quest subfilter button text max 7 chars, not used, but needed if any subfilters are added
+//..L"------v"
+	L"",//reserved. insert new active quest subfilters above!
+	L"",//reserved. insert new completed quest subfilters above!
+};
+
+STR16	pEncyclopediaShortInventoryText[] = 
+{
+	L"All", //0
+	L"Gun",
+	L"Ammo",
+	L"LBE",
+	L"Misc",
+	
+	L"All", //5
+	L"Gun",
+	L"Ammo",
+	L"LBE Gear",
+	L"Misc",
+};
+
+STR16			BoxFilter[] =
+{
+	// Guns
+	L"Heavy",
+	L"Pistol",
+	L"M. Pist.",
+	L"SMG",
+	L"Rifle",
+	L"S. Rifle",
+	L"A. Rifle",
+	L"MG",
+	L"Shotgun",
+
+	// Ammo
+	L"Pistol",
+	L"M. Pist.", //10
+	L"SMG",
+	L"Rifle",
+	L"S. Rifle",
+	L"A. Rifle",
+	L"MG",
+	L"Shotgun",
+
+	// Used
+	L"Guns",
+	L"Armor",
+	L"LBE Gear",
+	L"Misc", //20
+
+	// Armour
+	L"Helmets",
+	L"Vests",
+	L"Leggings",
+	L"Plates",
+
+	// Misc
+	L"Blades",
+	L"Th. Knife",
+	L"Melee",
+	L"Grenades",
+	L"Bombs",
+	L"Med.", //30
+	L"Kits",
+	L"Face",
+	L"LBE",
+	L"Misc.", //34
+};
+//-----------
+
 // Editor
 //Editor Taskbar Creation.cpp
 STR16 iEditorItemStatsButtonsText[] =
 {
 	L"Delete",
+	L"Delete item (|D|e|l)",
 };
 
 STR16 FaceDirs[8] = 
@@ -157,11 +530,11 @@ STR16 iEditorMercsToolbarText[] =
  L"Schedule mode",
  L"Schedule mode",
  L"DELETE",
- L"Delete currently selected merc (DEL).",
+ L"Delete currently selected merc (|D|e|l)",
  L"NEXT", //20
- L"Find next merc (SPACE).",
+ L"Find next merc (|S|p|a|c|e)\nFind previous merc (|S|h|i|f|t+|S|p|a|c|e)",
  L"Toggle priority existance",
- L"Toggle whether or not placement has/naccess to all doors.",
+ L"Toggle whether or not placement\nhas access to all doors",
  
  //Orders
  L"STATIONARY",
@@ -245,18 +618,20 @@ STR16 iEditorBuildingsToolbarText[] =
 	L"Add/replace building's roof with new flat roof.",
 	L"Copy a building",
 	L"Move a building",
-	L"Draw room number",
+	L"Draw room number\n(Hold |S|h|i|f|t to reuse room number)",
 	L"Erase room numbers",
 
-	L"Toggle erase mode",
-	L"Undo last change",
-	L"Cycle brush size",
-
+	L"Toggle |Erase mode",
+	L"Undo last change (|B|a|c|k|s|p|a|c|e)",
+	L"Cycle brush size (|A/|Z)",
+	L"Roofs (|H)",
+	L"|Walls", //30
+	L"Room Info (|N)",
 };
 
 STR16 iEditorItemsToolbarText[] =
 {
-	L"Weapons", //0
+	L"Wpns", //0
 	L"Ammo",
 	L"Armour",
 	L"LBE",
@@ -266,6 +641,9 @@ STR16 iEditorItemsToolbarText[] =
 	L"E3",
 	L"Triggers",
 	L"Keys",
+	L"Rnd", //10
+	L"Previous (|,)",		// previous page
+	L"Next (|.)",		// next page
 };
 
 STR16 iEditorMapInfoToolbarText[] =
@@ -273,9 +651,9 @@ STR16 iEditorMapInfoToolbarText[] =
 	L"Add ambient light source", //0
 	L"Toggle fake ambient lights.",
 	L"Add exit grids (r-clk to query existing).",
-	L"Cycle brush size",
-	L"Undo last change",
-	L"Toggle erase mode",
+	L"Cycle brush size (|A/|Z)",
+	L"Undo last change (|B|a|c|k|s|p|a|c|e)",
+	L"Toggle |Erase mode",
 	L"Specify north point for validation purposes.",
 	L"Specify west point for validation purposes.",
 	L"Specify east point for validation purposes.",
@@ -286,14 +664,14 @@ STR16 iEditorMapInfoToolbarText[] =
 
 STR16 iEditorOptionsToolbarText[]=
 {
-	L"New map",  //0
+	L"New outdoor level",  //0
 	L"New basement",
 	L"New cave level",
-	L"Save map",
-	L"Load map",
+	L"Save map (|C|t|r|l+|S)",
+	L"Load map (|C|t|r|l+|L)",
 	L"Select tileset",
 	L"Leave Editor mode",
-	L"Exit game.",
+	L"Exit game (|A|l|t+|X)",
 	L"Create radar map",
 	L"When checked, the map will be saved in original JA2 map format.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",
 	L"When checked and you load a map, the map will be enlarged automatically depending on the selected Rows and Cols.",
@@ -301,20 +679,20 @@ STR16 iEditorOptionsToolbarText[]=
 
 STR16 iEditorTerrainToolbarText[] =
 {
-	L"Draw ground textures", //0
+	L"Draw |Ground textures", //0
 	L"Set map ground textures",
-	L"Place banks and cliffs",
-	L"Draw roads",
-	L"Draw debris",
-	L"Place trees & bushes",
-	L"Place rocks",
-	L"Place barrels & other junk",
+	L"Place banks and |Cliffs",
+	L"Draw roads (|P)",
+	L"Draw |Debris",
+	L"Place |Trees & bushes",
+	L"Place |Rocks",
+	L"Place barrels & |Other junk",
 	L"Fill area",
-	L"Undo last change",
-	L"Toggle erase mode", //10
-	L"Cycle brush size",
-	L"Raise brush density",
-	L"Lower brush density",
+	L"Undo last change (|B|a|c|k|s|p|a|c|e)",
+	L"Toggle |Erase mode", //10
+	L"Cycle brush size (|A/|Z)",
+	L"Raise brush density (|])",
+	L"Lower brush density (|[)",
 };
 
 STR16 iEditorTaskbarInternalText[]=
@@ -325,6 +703,12 @@ STR16 iEditorTaskbarInternalText[]=
 	L"Mercs",
 	L"Map Info",
 	L"Options",
+	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Terrain fasthelp text
+	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Buildings fasthelp text
+	L"|S|p|a|c|e: Select next item\n \n|C|t|r|l+|/: Place new item under mouse cursor\n|/: Place same item under mouse cursor", //Items fasthelp text
+	L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc", //Mercs fasthelp text
+	L"|C|t|r|l+|G: Go to grid no\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions", //Map Info fasthelp text
+	L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)", //Options fasthelp text
 };
 
 //Editor Taskbar Utils.cpp
@@ -551,9 +935,9 @@ STR16 pDisplayBodyTypeInfoText[] =
 	L"Miniskirt",
 	L"F Civilian", //10
 	L"Kid w/ Hat",
-	L"Pickup",
+	L"Humvee",
 	L"Eldorado",
-	L"Military Jeep",
+	L"Icecream Truck",
 	L"Jeep", //15
 	L"Kid Civilian",
 	L"Domestic Cow",
@@ -673,7 +1057,7 @@ STR16 pPasteMercPlacementText[] =
 {
 	L"Placement not pasted as no placement is saved in buffer.",
 	L"Placement pasted.",
-	L"Placement not pasted as the maximum number of placements for this team is already used.",
+	L"Placement not pasted as the maximum number of placements for this team has been reached.",
 };
 
 //editscreen.cpp
@@ -798,6 +1182,7 @@ STR16 pShowHighGroundText[] =
 };
 
 //Item Statistics.cpp
+/*
 CHAR16 gszActionItemDesc[ 34 ][ 30 ] =	// NUM_ACTIONITEMS = 34
 {
 	L"Klaxon Mine",
@@ -835,7 +1220,7 @@ CHAR16 gszActionItemDesc[ 34 ][ 30 ] =	// NUM_ACTIONITEMS = 34
 	L"Bloodcat alarm",
 	L"Big teargas",
 };
-
+*/
 STR16 pUpdateItemStatsPanelText[] =
 {
 	L"Toggle hide flag", //0
@@ -870,9 +1255,9 @@ STR16 pUpdateItemStatsPanelText[] =
 
 STR16 pSetupGameTypeFlagsText[] =
 {
-	L"Item appears in both Sci-Fi and Realistic modes. (|B)", //0
-	L"Item appears in |Realistic mode only.",
-	L"Item appears in |Sci-Fi mode only.",
+	L"Item appears in both Sci-Fi and Realistic modes", //0
+	L"Item appears in Realistic mode only",
+	L"Item appears in Sci-Fi mode only",
 };
 
 STR16 pSetupGunGUIText[] =
@@ -1107,9 +1492,17 @@ STR16 pApologizeOverrideAndForceUpdateEverythingText[] =
 //selectwin.cpp
 STR16 pDisplaySelectionWindowGraphicalInformationText[] =
 {
-	L"%S[%d] is from default tileset %s (%S)",
-	L"File:  %S, subindex:  %d (%S)",
-	L"Current Tileset:  %s",
+	L"%S[%d] from default tileset %s (%d, %S)",
+	L"File: %S, subindex: %d (%d, %S)",
+	L"Tileset:  %s",
+};
+
+STR16 pDisplaySelectionWindowButtonText[] =
+{
+	L"Accept selections (|E|n|t|e|r)",
+	L"Cancel selections (|E|s|c)\nClear selections (|S|p|a|c|e)",
+	L"Scroll window up (|U|p)",
+	L"Scroll window down (|D|o|w|n)",
 };
 
 //Cursor Modes.cpp
@@ -1360,11 +1753,25 @@ CHAR16 Message[][STRING_LENGTH] =
 
 	L"You cannot attach %s to this slot.",
 	L"The %s will not fit in any open slots.",
+	L"There's not enough space for this pocket.", //TODO:Translate
+
+	L"%s has repaired the %s as much as possible.", // TODO.Translate
+	L"%s has repaired %s's %s as much as possible.",
 };
 
+// the country and its noun in the game
+CHAR16 pCountryNames[][MAX_TOWN_NAME_LENGHT] =
+{
+#ifdef JA2UB
+	L"Tracona",
+	L"Traconian",
+#else
+	L"Arulco",
+	L"Arulcan",
+#endif
+};
 
 // the names of the towns in the game
-
 CHAR16 pTownNames[MAX_TOWNS][MAX_TOWN_NAME_LENGHT] =
 {
 	L"",
@@ -1427,13 +1834,17 @@ STR16 pAssignmentStrings[] =
 	L"Veicolo", // in a vehicle
 	L"Transito", // in transit - abbreviated form
 	L"Riparare", // repairing
+	L"Radio Scan",	// scanning for nearby patrols	// TODO.Translate
 	L"Esercit.", // training themselves  
-  L"Esercit.", // training a town to revolt 
+	L"Esercit.", // training a town to revolt 
 	L"M.Militia", //training moving militia units		// TODO.Translate
 	L"Istrutt.", // training a teammate
-	L"Studente", // being trained by someone else 
+	L"Studente", // being trained by someone else
+	L"Move Item",	// move items // TODO.Translate
 	L"Staff", // operating a strategic facility			// TODO.Translate
+	L"Eat",		// eating at a facility (cantina etc.)	// TODO.Translate
 	L"Rest", // Resting at a facility					// TODO.Translate
+	L"Prison",		// Flugente: interrogate prisoners
 	L"Morto", // dead
 	L"Incap.", // abbreviation for incapacitated
 	L"PDG", // Prisoner of war - captured
@@ -1512,18 +1923,28 @@ STR16 pPersonnelAssignmentStrings[] =
 	L"veicolo",
 	L"In transito",
 	L"Riparare",
+	L"Radio Scan",	// radio scan	// TODO.Translate
 	L"Esercitarsi", 
 	L"Allenamento Esercito",
 	L"Training Mobile Militia",	// TODO.Translate
 	L"Allenatore",
 	L"Studente",
+	L"Move item",	// move items // TODO.Translate
 	L"Facility Staff",			// TODO.Translate
+	L"Eat",		// eating at a facility (cantina etc.) // TODO.Translate
 	L"Resting at Facility",		// TODO.Translate
+	L"Interrogate prisoners",		// Flugente: interrogate prisoners	TODO.Translate
 	L"Morto",
 	L"Incap.",
 	L"PDG",
 	L"Ospedale", 
 	L"Vuoto",	// Vehicle is empty
+	L"Undercover Snitch",	// TODO.Translate	// facility: undercover prisoner (snitch)
+	L"Spreading Propaganda",// TODO.Translate	// facility: spread propaganda
+	L"Spreading Propaganda",// TODO.Translate	// facility: spread propaganda (globally)
+	L"Gathering Rumours",// TODO.Translate			// facility: gather rumours	
+	L"Spreading Propaganda",// TODO.Translate	// spread propaganda
+	L"Gathering Rumours",// TODO.Translate			// gather information
 };
 
 
@@ -1557,18 +1978,27 @@ STR16 pLongAssignmentStrings[] =
 	L"Veicolo",
 	L"In transito",
 	L"Ripara",
+	L"Radio Scan",	// radio scan	// TODO.Translate
 	L"Esercitarsi", 
 	L"Allenatore esercito",
 	L"Train Mobiles",		// TODO.Translate
 	L"Allena squadra",
 	L"Studente",
+	L"Move Item",	// move items // TODO.Translate
 	L"Staff Facility",		// TODO.Translate
 	L"Rest at Facility",	// TODO.Translate
+	L"Interrogate prisoners",		// Flugente: interrogate prisoners TODO.Translate
 	L"Morto",
 	L"Incap.",
 	L"PDG",
 	L"Ospedale", // patient in a hospital 
 	L"Vuoto",	// Vehicle is empty
+	L"Undercover Snitch",	// TODO.Translate	// facility: undercover prisoner (snitch)
+	L"Spread Propaganda",// TODO.Translate	// facility: spread propaganda
+	L"Spread Propaganda",// TODO.Translate	// facility: spread propaganda (globally)
+	L"Gather Rumours",// TODO.Translate			// facility: gather rumours	
+	L"Spread Propaganda",// TODO.Translate	// spread propaganda
+	L"Gather Rumours",// TODO.Translate			// gather information
 };
 
 
@@ -1623,8 +2053,8 @@ STR16 pShortAttributeStrings[] =
 	L"Sag", // wisdom
 	L"Liv", // experience level
 	L"Tir", // marksmanship skill
-	L"Esp", // explosive skill
 	L"Mec", // mechanical skill
+	L"Esp", // explosive skill
 	L"PS", // medical skill
 };
 
@@ -1684,7 +2114,10 @@ STR16 pAssignMenuStrings[] =
 	L"Paziente", // the merc is receiving medical attention
 	L"Veicolo", // the merc is in a vehicle
 	L"Ripara", // the merc is repairing items 
+	L"Radio Scan", // Flugente: the merc is scanning for patrols in neighbouring sectors
+	L"Snitch", // TODO.Translate // anv: snitch actions
 	L"Si esercita", // the merc is training
+	L"Move Item",	// move items	// TODO.Translate
 	L"Facility", // the merc is using/staffing a facility	// TODO.Translate
 	L"Annulla", // cancel this menu
 };
@@ -1696,7 +2129,8 @@ STR16 pMilitiaControlMenuStrings[] =
 	L"Hold Position", // set militia to stationary
 	L"Retreat", // retreat militia
 	L"Come to me", // retreat militia
-	L"Get down", // retreat militia	
+	L"Get down", // retreat militia
+	L"Crouch",	// TODO.Translate
 	L"Take cover",
 	L"All: Attack", 
 	L"All: Hold Position",
@@ -1704,20 +2138,130 @@ STR16 pMilitiaControlMenuStrings[] =
 	L"All: Come to me",
 	L"All: Spread out",
 	L"All: Get down",
+	L"All: Crouch",	// TODO.Translate
 	L"All: Take cover",
 	//L"All: Find items",
 	L"Cancel", // cancel this menu
 };
 
-//STR16 pTalkToAllMenuStrings[] =
-//{
-//	L"Attack", // set militia to aggresive
-//	L"Hold Position", // set militia to stationary
-//	L"Retreat", // retreat militia
-//	L"Come to me", // retreat militia
-//	L"Get down", // retreat militia		 
-//	L"Cancel", // cancel this menu
-//};
+//Flugente
+STR16 pTraitSkillsMenuStrings[] =	// TODO.Translate
+{
+	// radio operator
+	L"Artillery Strike",
+	L"Jam communications",
+	L"Scan frequencies",
+	L"Eavesdrop",
+	L"Call reinforcements",
+	L"Switch off radio set",
+
+	// various
+	L"Spotter",		// TODO.Translate
+};
+
+//Flugente: short description of the above skills for the skill selection menu
+STR16 pTraitSkillsMenuDescStrings[] =
+{
+	// radio operator
+	L"Order an artillery strike from sector...",
+	L"Fill all radio frequencies with white noise, making communications impossible.",
+	L"Scan for jamming signals.",
+	L"Use your radio equipment to continously listen for enemy movement.",
+	L"Call in reinforcements from neighbouring sectors.",
+	L"Turn off radio set to save batteries.",
+
+	// various
+	L"Observe an area, granting allied snipers a bonus to cth on anything you see.",	// TODO.Translate
+};
+
+STR16 pTraitSkillsDenialStrings[] =
+{
+	L"Requires:\n",
+	L" - %d AP\n",
+	L" - %s\n",
+	L" - %s or higher\n",
+	L" - %s or higher or\n",
+	L" - %d minutes to be ready\n",
+	L" - mortar positions in neighbouring sectors\n",
+	L" - %s |o|r %s |a|n|d %s or %s or higher\n"
+	L" - possession by a demon",
+};
+
+// TODO.Translate
+STR16 pSnitchMenuStrings[] =
+{
+	// snitch
+	L"Team Informant",
+	L"Town Assignment",	
+	L"Cancel",
+};
+
+STR16 pSnitchMenuDescStrings[] =
+{
+	// snitch
+	L"Discuss snitch's behaviour towards his teammates.",
+	L"Take an assignment in this sector.",
+	L"Cancel",
+};
+
+STR16 pSnitchToggleMenuStrings[] =
+{
+	// toggle snitching
+	L"Report complaints",
+	L"Don't report",
+	L"Prevent misbehaviour",
+	L"Ignore misbehaviour",
+	L"Cancel",
+};
+
+STR16 pSnitchToggleMenuDescStrings[] =
+{
+	L"Report any complaints you hear from other mercs to your commander.",
+	L"Don't report anything.",
+	L"Try to stop other mercs from getting wasted and scrounging.",
+	L"Don't care what other mercs do.",
+	L"Cancel",
+};
+
+STR16 pSnitchSectorMenuStrings[] =
+{
+	// sector assignments
+	L"Spread propaganda",
+	L"Gather rumours",
+	L"Cancel",
+};
+
+STR16 pSnitchSectorMenuDescStrings[] =
+{
+	L"Glorify mercs' actions to increase town loyalty and suppress any bad news. ",
+	L"Keep an ear to the ground on any rumours about enemy forces activity.",
+	L"",
+};
+
+STR16 pSnitchPrisonExposedStrings[] =
+{
+	L"%s was exposed as a snitch but managed to notice it and get out alive.",
+	L"%s was exposed as a snitch but managed to defuse situation and get out alive.",
+	L"%s was exposed as a snitch but managed to avoid assassination attempt.",
+	L"%s was exposed as a snitch but guards managed to prevent any violence outbursts.",
+
+	L"%s was exposed as a snitch and almost drowned by other inmates before guards saved him.",
+	L"%s was exposed as a snitch and almost beaten to death before guards saved him.",
+	L"%s was exposed as a snitch and almost stabbed to death before guards saved him.",
+	L"%s was exposed as a snitch and strangled to death before guards saved him.",
+
+	L"%s was exposed as a snitch and drowned in toilet by other inmates.",
+	L"%s was exposed as a snitch and beaten to death by other inmates.",
+	L"%s was exposed as a snitch and shanked to death by other inmates.",
+	L"%s was exposed as a snitch and strangled to death by other inmates.",
+};
+
+STR16 pSnitchGatheringRumoursResultStrings[] =
+{
+	L"%s heard rumours about enemy activity in %d sectors.",
+
+};
+// /TODO.Translate
 
 STR16 pRemoveMercStrings[] =
 {
@@ -1727,15 +2271,15 @@ STR16 pRemoveMercStrings[] =
 
 STR16 pAttributeMenuStrings[] =
 {
-	L"Forza",
-	L"Destrezza",
-	L"Agilità",
 	L"Salute",
-	L"Mira",
-	L"Pronto socc.",
-	L"Meccanica",
+	L"Agilità",
+	L"Destrezza",
+	L"Forza",
 	L"Comando",
+	L"Mira",
+	L"Meccanica",
 	L"Esplosivi",
+	L"Pronto socc.",
 	L"Annulla",
 };
 
@@ -1866,6 +2410,11 @@ STR16 pPersonnelRecordsHelpTexts[] =
 	L"Weakness:",
 
 	L"Attitudes:",	// WANNE: For old traits display instead of "Character:"!
+
+	L"Zombies: %d\n", // TODO.Translate
+
+	L"Background:", // TODO.Translate
+	L"Personality:", // TODO.Translate
 };
 
 
@@ -1919,30 +2468,41 @@ STR16 gzMercSkillTextNew[] =
 	L"Scouting",		// 19
 	// covert ops is a major trait that was added later
 	L"Covert Ops",		// 20
-	L"Driver",
+	// new minor traits
+	L"Radio Operator",	// 21
+	L"Snitch",	// 22	// TODO.Translate
+	// new VR minor traits
+	L"Driver",	// 23 // TODO.Translate
+	L"Flyboy",	// 24 // TODO.Translate
+
 	// second names for major skills
-	L"Machinegunner",
+	L"Machinegunner",	// 23
 	L"Bombardier",
 	L"Sniper",
 	L"Ranger",
-	L"Gunfighter",
+	L"Gunfighter",		// 27
 	L"Martial Arts",
 	L"Squadleader",
 	L"Engineer",
-	L"Doctor",
+	L"Doctor",			// 31	
 	// placeholders for minor traits
+	L"Placeholder",		// 32
 	L"Placeholder",
 	L"Placeholder",
 	L"Placeholder",
 	L"Placeholder",
+	L"Placeholder",		// 37
 	L"Placeholder",
 	L"Placeholder",
 	L"Placeholder",
-	L"Placeholder",
-	L"Placeholder",
-	L"Placeholder",
-	L"Spy",
+	L"Placeholder",		// 41
+	L"Spy",				// 42
+	L"Placeholder",		// for radio operator (minor trait)
+	L"Placeholder",		// for snitch(minor trait)
+	L"Placeholder",		// for VR driver(minor trait) // TODO.Translate
+	L"Ace Pilot",		// TODO.Translate
 	L"More...",
+	L"various",			// for VARIOUSSKILLS	// TODO.Translate
 };
 //////////////////////////////////////////////////////////
 
@@ -2087,6 +2647,7 @@ STR16 pLandTypeStrings[] =
 	L"Aeroporto di Drassen",
 	L"Aeroporto di Meduna",
 	L"Postazione SAM",
+	L"Refuel site", // TODO.Translate
 	L"Nascondiglio ribelli", //The rebel base underground in sector A10
 	L"Prigione sotterranea di Tixa",	//The basement of the Tixa Prison (J9)
 	L"Tana della creatura",	//Any mine sector with creatures in it
@@ -2251,7 +2812,7 @@ STR16 sKeyDescriptionStrings[2] =
 
 //The headers used to describe various weapon statistics.
 
-CHAR16		gWeaponStatsDesc[][ 17 ] =
+CHAR16		gWeaponStatsDesc[][ 19 ] =
 {
 	// HEADROCK: Changed this for Extended Description project
 	L"Stato:",
@@ -2276,62 +2837,27 @@ CHAR16		gWeaponStatsDesc[][ 17 ] =
 
 	// TODO.Translate
 	L"Default:",	//17 //WarmSteel - So we can also display default attachments
+	L"Dirt:",	// 18	//added by Flugente	// TODO.Translate
+	L"Space:", // 19 //space left on Molle items // TODO.Translate
 
 };
 
 // HEADROCK: Several arrays of tooltip text for new Extended Description Box
-// Please note, several of these are artificially inflated to 19 entries to help fix a complication with
-// changing item type while watching its description box
-STR16		gzWeaponStatsFasthelp[ 32 ] =
+STR16		gzWeaponStatsFasthelpTactical[ 33 ] =
 {
-	L"Accuracy",
-	L"Damage",
-	L"Range",
-	L"Aiming Levels",
-	L"Aiming Modifier",
-	L"Average Best Laser Range",
-	L"Flash Suppression",
-	L"Loudness (Lower is better)",
-	L"Reliability",
-	L"Repair Ease",
-	L"Min. Range for Aiming Bonus",
-	L"To-Hit Modifier",
-	L"",	//12
-	L"APs to ready",
-	L"APs to fire Single",
-	L"APs to fire Burst",
-	L"APs to fire Auto",
-	L"APs to Reload",
-	L"APs to Reload Manually",
-	L"",	//19
-	L"Bipod Modifier",
-	L"Autofire shots per 5 AP",
-	L"Burst/Auto Penalty (Lower is better)",	//22
-	L"APs to Throw",
-	L"APs to Launch",
-	L"APs to Stab",
-	L"No Single Shot!",
-	L"No Burst Mode!",
-	L"No Auto Mode!",
-	L"APs to Bash",
-	L"Autofire Penalty (Lower is better)",
-    L"Burst Penalty (Lower is better)",
-};
-
-STR16		gzWeaponStatsFasthelpTactical[ 32 ] =
-{
-	L"Accuracy",
-	L"Damage",
-	L"Range",
-	L"Aiming Levels",
-	L"Aiming Modifier",
-	L"Average Best Laser Range",
-	L"Flash Suppression",
-	L"Loudness (Lower is better)",
-	L"Reliability",
-	L"Repair Ease",
-	L"Min. Range for Aiming Bonus",
-	L"To-Hit Modifier",
+	// TODO.Translate
+	L"|R|a|n|g|e\n \nThe effective range of this weapon. Attacking from\nbeyond this range will lead to massive penalties.\n \nHigher is better.",
+	L"|D|a|m|a|g|e\n \nThis is the damage potential of the weapon.\nIt will usually deliver this much damage\n(or close to it) to any unprotected target.\n \nHigher is better.",
+	L"|A|c|c|u|r|a|c|y\n \nThis is an innate Chance-to-Hit Bonus (or\npenalty!) given by this gun due to its\nparticular good (or bad) design.\n \nHigher is better.",
+	L"|A|i|m|i|n|g |L|e|v|e|l|s\n \nThis is the maximum number of aiming clicks allowed\nwhen using this gun.\n \nEach aiming-click will make an attack more\naccurate.\n \nHigher is better.",
+	L"|A|i|m|i|n|g |M|o|d|i|f|i|e|r\n \nA flat modifier, which alters the effectiveness\nof each aiming click you make while using this\nweapon.\n \nHigher is better.",
+	L"|M|i|n|. |R|a|n|g|e |f|o|r |A|i|m|i|n|g |B|o|n|u|s\n \nThe minimum range-to-target required before this\nweapon can make use of its Aiming Modifier.\n \nIf the target is closer than this many tiles,\naiming clicks will stay at their default\neffectiveness.\n \nLower is better.",
+	L"|T|o|-|H|i|t |M|o|d|i|f|i|e|r\n \nA flat modifier to Chance-to-Hit with any\nattack made using this weapon.\n \nHigher is better.",
+	L"|B|e|s|t |L|a|s|e|r |R|a|n|g|e\n \nThe range (in tiles) at which the laser installed\non this weapon will be at its full effectiveness.\n \nWhen attacking a target beyond this range, the\nlaser will provide a smaller bonus or none at all.\n \nHigher is better.",
+	L"|F|l|a|s|h |S|u|p|p|r|e|s|s|i|o|n\n \nWhen this icon appears, it means that the gun\ndoes not make a flash when it fires. This helps the\nshooter remain concealed.",
+	L"|L|o|u|d|n|e|s|s\n \nAttacks made with this weapon can be heard up to\nthe listed distance (in tiles).\n \nLower is better.\n(unless deliberately trying to draw in enemies...)",
+	L"|R|e|l|i|a|b|i|l|i|t|y\n \nThis value indicates (in general) how quickly\nthis weapon will degrade when used in combat.\n \nHigher is better.",
+	L"|R|e|p|a|i|r |E|a|s|e\n \nDetermines how difficult it is to repair\nthis weapon and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only Technicians and special\nNPCs can repair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
 	L"",	//12
 	L"APs to ready",
 	L"APs to fire Single",
@@ -2352,6 +2878,7 @@ STR16		gzWeaponStatsFasthelpTactical[ 32 ] =
 	L"No Auto Mode!",
 	L"APs to Bash",
     L"",
+	L"|R|e|p|a|i|r |E|a|s|e\n \nDetermines how difficult it is to repair\nthis weapon and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only special NPCs can\nrepair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
 };
 
 STR16		gzMiscItemStatsFasthelp[ 34 ] =
@@ -2410,7 +2937,7 @@ STR16 gConditionDesc[] =
 
 //The headers used for the merc's money.
 
-CHAR16 gMoneyStatsDesc[][ 13 ] =
+CHAR16 gMoneyStatsDesc[][ 14 ] =
 {
 	L"Ammontare",
 	L"Rimanenti:", //this is the overall balance
@@ -2434,7 +2961,13 @@ CHAR16 zHealthStr[][13] =
 	L"FERITO",    	//	>= 45
 	L"SANO",    	//	>= 60
 	L"FORTE",     	// 	>= 75
-  L"ECCELLENTE",		// 	>= 90
+	L"ECCELLENTE",		// 	>= 90
+	L"CAPTURED",	// added by Flugente TODO.Translate
+};
+
+STR16 gzHiddenHitCountStr[1] =
+{
+	L"?",	
 };
 
 STR16	gzMoneyAmounts[6] = 
@@ -2489,8 +3022,8 @@ CHAR16 zDialogActions[1][ SMALL_STRING_LENGTH ] =
 STR16 pVehicleStrings[] =
 {
  L"Eldorado",
- L"Pickup", // a hummer jeep/truck -- military vehicle
- L"Military Jeep",
+ L"Hummer", // a hummer jeep/truck -- military vehicle
+ L"Icecream Truck",
  L"Jeep",
  L"Carro armato",
  L"Elicottero",
@@ -2499,8 +3032,8 @@ STR16 pVehicleStrings[] =
 STR16 pShortVehicleStrings[] =
 {
 	L"Eldor.",
-	L"Pickup",			// the HMVV
-	L"Jeep",
+	L"Hummer",			// the HMVV
+	L"Truck",
 	L"Jeep",
 	L"Carro",
 	L"Eli", 				// the helicopter
@@ -2509,8 +3042,8 @@ STR16 pShortVehicleStrings[] =
 STR16	zVehicleName[] =
 {
 	L"Eldorado",
-	L"Pickup",		//a military jeep. This is a brand name.
-	L"Jeep",			// Ice cream truck
+	L"Hummer",		//a military jeep. This is a brand name.
+	L"Truck",			// Ice cream truck
 	L"Jeep",
 	L"Carro",
 	L"Eli", 		//an abbreviation for Helicopter
@@ -2670,6 +3203,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"CREPITUS",
 	L"ESERCITO",
 	L"CIVILE",
+	L"ZOMBIE",		// TODO.Translate
 	L"Settore di uscita",
 	L"OK",
 	L"Annulla",
@@ -2678,6 +3212,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"Vai nel settore",
 	L"Vai alla mappa",
 	L"Non puoi uscire dal settore da questa parte.",
+	L"You can't leave in turn based mode.",		// TODO.Translate
 	L"%s è troppo lontano.",
 	L"Rimuovi le fronde degli alberi",
 	L"Mostra le fronde degli alberi",
@@ -2700,17 +3235,16 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Sei d'accordo a pagare %s?",
 	L"Accetti il trattamento medico gratuito?",
-	L"Agree to assist Dick?", // TODO.Translate
+	L"Vuoi sposare %s?", //Daryl
 	L"Quadro delle chiavi",
 	L"Non puoi farlo con un EPC.",
-	L"Risparmi Krott?",
+	L"Risparmi %s?", //Krott
 	L"Fuori dalla gittata dell'arma",
 	L"Minatore",
 	L"Il veicolo può viaggiare solo tra i settori",
 	L"Non è in grado di fasciarsi da solo ora",
 	L"Sentiero bloccato per %s",
-//	L"I tuoi mercenari, che erano stati catturati dall'esercito di Deidranna, sono stati imprigionati qui!",
-	L"I mercenari catturati dall'esercito di Deidranna, sono stati imprigionati qui!",
+	L"I mercenari catturati dall'esercito di %s, sono stati imprigionati qui!", //Deidranna
 	L"Serratura manomessa",
 	L"Serratura distrutta",
 	L"Qualcun altro sta provando a utilizzare questa porta.",
@@ -2718,6 +3252,80 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"%s non riesce a vedere %s.",  // Cannot see person trying to talk to
 	L"Attachment removed",
 	L"Non può guadagnare un altro veicolo poichè già avete 2",
+
+	// added by Flugente for defusing/setting up trap networks	// TODO.Translate
+	L"Choose detonation frequency (1 - 4) or defuse frequency (A - D):",
+	L"Set defusing frequency:",
+	L"Set detonation frequency (1 - 4) and defusing frequency (A - D):",
+	L"Set detonation time in turns (1 - 4) and defusing frequency (A - D):",
+	L"Select tripwire hierarchy (1 - 4) and network (A - D):",
+
+	// added by Flugente to display health and poisoning		// TODO.Translate
+	L"Health: %d/%d\nPoison: %d/%d\nEnergy: %d/%d\nMorale: %s",
+
+	// added by Flugente to display food status
+	L"Health: %d/%d\nEnergy: %d/%d\nMorale: %s\nWater: %d%s\nFood: %d%s",
+	L"Health: %d/%d\nPoison: %d/%d\nEnergy: %d/%d\nMorale: %s\nWater: %d%s\nFood: %d%s",
+
+	// added by Flugente: selection of a function to call in tactical
+	L"What do you want to do?",
+	L"Fill canteens",
+	L"Clean guns (Merc)",
+	L"Clean guns (Team)",
+	L"Take off clothes",
+	L"Lose disguise",
+	L"Militia inspection",
+	L"Militia restock",
+	L"Test disguise",
+	L"unused",
+
+	// added by Flugente: decide what to do with the corpses
+	L"What do you want to do with the body?",
+	L"Decapitate",
+	L"Gut",
+	L"Take Clothes",
+	L"Take Body",
+
+	// Flugente: weapon cleaning
+	L"%s cleaned %s",
+
+	// added by Flugente: decide what to do with prisoners
+	L"You have no prison for these prisoners, you have to let them go",
+	L"Where do you want to send the prisoners?",
+	L"Let them go",
+	L"What do you want to do?",
+	L"Demand surrender",
+	L"Offer surrender",
+	L"Talk",
+
+	// TODO.Translate
+    // added by sevenfm: disarm messagebox options, messages when arming wrong bomb
+    L"Disarm trap",
+    L"Inspect trap",
+    L"Remove blue flag",
+    L"Blow up!",
+    L"Activate tripwire",
+    L"Deactivate tripwire",
+    L"Reveal tripwire",
+    L"No detonator or remote detonator found!",
+    L"This bomb is already armed!",
+    L"Safe",
+    L"Mostly safe",
+    L"Risky",
+    L"Dangerous",
+    L"High danger!",
+
+    L"Mask",			// TODO.Translate
+    L"NVG",
+    L"Item",
+        
+    L"This feature works only with New Inventory System",
+    L"No item in your main hand",
+    L"Nowhere to place item from main hand",
+    L"No defined item for this quick slot",
+    L"No free hand for new item",
+    L"Item not found",
+    L"Cannot take item to main hand",
 };
 STR16 pSpareMendax[] =
 {
@@ -2816,10 +3424,23 @@ STR16 pHelicopterEtaStrings[] =
 	L"Costo totale: ", 		// total cost of trip by helicopter
 	L"TPA: ", 			// ETA is an acronym for "estimated time of arrival" 
 	L"L'elicottero ha poco carburante e deve atterrare in territorio nemico!",	// warning that the sector the helicopter is going to use for refueling is under enemy control -> 
-  L"Passeggeri: ",
-  L"Seleziona Skyrider o gli Arrivi Drop-off?",
-  L"Skyrider",
-  L"Arrivi",
+	L"Passeggeri: ",
+	L"Seleziona Skyrider o gli Arrivi Drop-off?",
+	L"Skyrider",
+	L"Arrivi",
+	L"Helicopter is seriously damaged and must land in hostile territory!",	// warning that the sector the helicopter is going to use for refueling is under enemy control ->	// TODO.Translate
+	L"Helicopter will now return straight to base, do you want to drop down passengers before?"	// TODO.Translate
+	L"Remaining Fuel:",	// TODO.Translate
+	L"Dist. To Refuel Site:",	// TODO.Translate
+};
+
+STR16 pHelicopterRepairRefuelStrings[]=
+{
+	// anv: Waldo The Mechanic - prompt and notifications
+	L"Do you want %s to start repairs? It will cost $%d, and helicopter will be unavailable for around %d hour(s).",
+	L"Helicopter is currently disassembled. Wait until repairs are finished.",
+	L"Repairs completed. Helicopter is available again.",
+	L"Helicopter is fully refueled.",
 };
 
 STR16 sMapLevelString[] =
@@ -2903,11 +3524,9 @@ STR16 pwMineStrings[] =
 	L"Produci",
 	L"Stato",
 	L"Ammontare produzione",
-	L"Tipo di minerale",				// 10
+	L"Resource",				// 10	L"Tipo di minerale",	// TODO.Translate
 	L"Controllo della città",
 	L"Lealtà della città",
-	L"Oil Rig", // TODO.Translate
-//	L"Minatori",				// 15
 };
 
 // blank sector strings
@@ -2998,6 +3617,26 @@ STR16 pMapScreenInvenButtonHelpText[] =
 	L"Next (|.)",		// next page // TODO.Translate
 	L"Previous (|,)",		// previous page // TODO.Translate
 	L"Exit Sector Inventory (|E|s|c)",	// exit sector inventory // TODO.Translate
+
+	// TODO.Translate
+	L"Zoom Inventory", // HEAROCK HAM 5: Inventory Zoom Button
+	L"Stack and merge items", // HEADROCK HAM 5: Stack and Merge
+	L"|L|e|f|t |C|l|i|c|k: Sort ammo into crates\n|R|i|g|h|t |C|l|i|c|k: Sort ammo into boxes", // HEADROCK HAM 5: Sort ammo
+	// 6 - 10
+	L"Remove all item attachments", // HEADROCK HAM 5: Separate Attachments
+	L"Eject ammo from all weapons", //HEADROCK HAM 5: Eject Ammo
+	L"|L|e|f|t |C|l|i|c|k: Show all items\n|R|i|g|h|t |C|l|i|c|k: Hide all items", // HEADROCK HAM 5: Filter Button
+	L"|L|e|f|t |C|l|i|c|k: Toggle Guns\n|R|i|g|h|t |C|l|i|c|k|: Show only Guns", // HEADROCK HAM 5: Filter Button
+	L"|L|e|f|t |C|l|i|c|k: Toggle Ammunition\n|R|i|g|h|t |C|l|i|c|k: Show only Ammunition", // HEADROCK HAM 5: Filter Button
+	// 11 - 15
+	L"|L|e|f|t |C|l|i|c|k: Toggle Explosives\n|R|i|g|h|t |C|l|i|c|k: Show only Explosives", // HEADROCK HAM 5: Filter Button
+	L"|L|e|f|t |C|l|i|c|k: Toggle Melee Weapons\n|R|i|g|h|t |C|l|i|c|k: Show only Melee Weapons", // HEADROCK HAM 5: Filter Button
+	L"|L|e|f|t |C|l|i|c|k: Toggle Armor\n|R|i|g|h|t |C|l|i|c|k: Show only Armor", // HEADROCK HAM 5: Filter Button
+	L"|L|e|f|t |C|l|i|c|k: Toggle LBEs\n|R|i|g|h|t |C|l|i|c|k: Show only LBEs", // HEADROCK HAM 5: Filter Button
+	L"|L|e|f|t |C|l|i|c|k: Toggle Kits\n|R|i|g|h|t |C|l|i|c|k: Show only Kits", // HEADROCK HAM 5: Filter Button
+	// 16 - 20
+	L"|L|e|f|t |C|l|i|c|k: Toggle Misc. Items\n|R|i|g|h|t |C|l|i|c|k: Show only Misc. Items", // HEADROCK HAM 5: Filter Button
+	L"|L|e|f|t |C|l|i|c|k: Toggle Move Item Display", // Flugente: move item display	// TODO.Translate
 };
 
 STR16 pMapScreenBottomFastHelp[] =
@@ -3202,6 +3841,7 @@ STR16 pTransactionText[] =
 	L"%s soldi depositati.",
 	L"Facility Use", // HEADROCK HAM 3.6		// TODO.Translate
 	L"Militia upkeep", // HEADROCK HAM 3.6		// TODO.Translate
+	L"Ransom for released prisoners",	// Flugente: prisoner system TODO.Translate
 };
 
 STR16 pTransactionAlternateText[] =
@@ -3216,13 +3856,13 @@ STR16 pTransactionAlternateText[] =
 
 STR16 pSkyriderText[] =
 {
-	L"Skyrider è stato pagato $%d", 			// skyrider was paid an amount of money
-	L"A Skyrider bisogna ancora dare $%d", 		// skyrider is still owed an amount of money
-	L"Skyrider ha finito il carburante",	// skyrider has finished refueling
+	L"%s è stato pagato $%d", 			// skyrider was paid an amount of money
+	L"A %s bisogna ancora dare $%d", 		// skyrider is still owed an amount of money
+	L"Helicopter ha finito il carburante",	// skyrider has finished refueling
 	L"Helicopter ain't gonna fly itself. Assign pilot to Vehicle/Helicopter first.",
 	L"Yeah, sure, and chopper will just float by itself. You can't reassign pilot while helicopter is in the air!",
-	L"Skyrider è di nuovo pronto a volare.", // Skyrider was grounded but has been freed
-	L"Skyrider non ha passeggeri. Se avete intenzione di trasportare mercenari in questo settore, assegnateli prima al Veicolo/Elicottero.",
+	L"Helicopter è di nuovo pronto a volare.", // Skyrider was grounded but has been freed
+	L"Helicopter non ha passeggeri. Se avete intenzione di trasportare mercenari in questo settore, assegnateli prima al Veicolo/Elicottero.",
 	L"Exhausted %s passed out and lost control of the chopper! Who could expect that to happen?",
 	L"Drunken %s lost control of the helicopter and crashed! Who could expect that to happen?",
 	L"Putting pilot to sleep while in the air? Not the best idea.",
@@ -3234,6 +3874,7 @@ STR16 pSkyriderText[] =
 	L"Strong wind shear caught the helicopter, and %s nearly lost control.", // 15
 	L"%s was flying over SAM launcher and caught the end of a missile with helicopter skid!",
 	L"Chopper got damaged because of %s's reckless flying.",
+
 };
 
 
@@ -3266,6 +3907,9 @@ STR16 pMapScreenStatusStrings[] =
 	L"Morale",
 	L"Condizione",	// the condition of the current vehicle (its "health")
 	L"Carburante",	// the fuel level of the current vehicle (its "energy")
+	L"Poison",	// TODO.Translate
+	L"Water",		// drink level
+	L"Food",		// food level
 };
 
 
@@ -3301,7 +3945,7 @@ STR16 pMapErrorString[] =
 //6-10
 	L"ha bisogno di una scorta per muoversi. Inseritelo in una squadra che ne è provvista.", // merc can't move unescorted .. for a male
 	L"ha bisogno di una scorta per muoversi. Inseritela in una squadra che ne è provvista.", // for a female
-	L"Il mercenario non è ancora arrivato ad Arulco!",
+	L"Il mercenario non è ancora arrivato ad %s!",
 	L"Sembra che ci siano negoziazioni di contratto da stabilire.",
 	L"",
 //11-15
@@ -3390,10 +4034,7 @@ STR16 pMiscMapScreenMouseRegionHelpText[] =
 // male version of where equipment is left
 STR16 pMercHeLeaveString[] =
 {
-	L"Volete che %s lasci il suo equipaggiamento dove si trova ora (%s) o in seguito a Drassen (B13) dopo aver preso il volo da Arulco?",
-	L"Volete che %s lasci il suo equipaggiamento dove si trova ora (%s) o in seguito a Omerta (A9) dopo aver preso il volo da Arulco?",
-	L"sta per partire e spedirà il suo equipaggiamento a Omerta (A9).",
-	L"sta per partire e spedirà il suo equipaggiamento a Drassen (B13).",
+	L"Volete che %s lasci il suo equipaggiamento dove si trova ora (%s) o in seguito a (%s) dopo aver preso il volo?",
 	L"%s sta per partire e spedirà il suo equipaggiamento a %s.",
 };
 
@@ -3401,10 +4042,7 @@ STR16 pMercHeLeaveString[] =
 // female version
 STR16 pMercSheLeaveString[] =
 {
-	L"Volete che %s lasci il suo equipaggiamento dove si trova ora (%s) o in seguito a Drassen (B13) dopo aver preso il volo da Arulco?",
-	L"Volete che %s lasci il suo equipaggiamento dove si trova ora (%s) o in seguito a Omerta (A9) dopo aver preso il volo da Arulco?",
-	L"sta per partire e spedirà il suo equipaggiamento a Omerta (A9).",
-	L"sta per partire e spedirà il suo equipaggiamento a Drassen (B13).",
+	L"Volete che %s lasci il suo equipaggiamento dove si trova ora (%s) o in seguito a (%s) dopo aver preso il volo?",
 	L"%s sta per partire e spedirà il suo equipaggiamento a %s.",
 };
 
@@ -3432,8 +4070,9 @@ STR16 pImpPopUpStrings[] =
 	L"Cannot load I.M.P. character from disk.",
 	L"You have already reached the maximum number of I.M.P. characters.",
 	L"You have already three I.M.P characters with the same gender on your team.",
-	L"You cannot afford the I.M.P character.",
+	L"You cannot afford the I.M.P character.",	// 10
 	L"The new I.M.P character has joined your team.",
+	L"You have already selected the maximum number of traits.",	// TODO.Translate
 };
 
 
@@ -3467,6 +4106,7 @@ STR16 pImpButtonText[] =
 	L"Analisi", 			// analyzing your profile results
 	L"OK",
 	L"Character", // Change from "Voice"
+	L"Nessuna",
 };
 
 STR16 pExtraIMPStrings[] =
@@ -3552,7 +4192,7 @@ STR16 pHistoryStrings[] =
 	L"Inganno utilizzato",
 	L"Il cibo dovrebbe arrivare a Omerta domani",
 	//21-25
-	L"%s non-platonically assisted Babyface", // TODO.Translate
+	L"%s ha lasciato la squadra per diventare la moglie di Daryl Hick",
 	L"contratto di %s scaduto.",
 	L"%s è stato arruolato.",
 	L"Enrico si è lamentato della mancanza di progresso",
@@ -3592,7 +4232,7 @@ STR16 pHistoryStrings[] =
 	L"Donazione ricevuta da un ricco ragazzo a Malino.",
 	L"Incontrato un rivenditore di un deposito di robivecchi di nome Jake.",
 	L"Alcuni vagabondi ci hanno dato una scheda elettronica.",
-	L"Bribed Guard to unlock the door to the prisoners.", // TODO.Translate
+	L"Corrotto Walter per aprire la porta del seminterrato.",
 	//56-60
 	L"Se Dave ha benzina, potrà fare il pieno gratis.",
 	L"Corrotto Pablo.",
@@ -3620,6 +4260,9 @@ STR16 pHistoryStrings[] =
 	//76-80
 	L"Massacro sinistro",
 	L"Ucciso %s",
+	L"Met Waldo - aircraft mechanic.",
+	L"Helicopter repairs started. Estimated time: %d hour(s).",
+	// anv: VR history logs
 	L"Saved Enrico Chivaldori in Melino Palace.",
 	L"Gained access to Tracona territory.",
 };
@@ -3656,6 +4299,7 @@ STR16 pBookMarkStrings[] =
 	L"Fiorista",
 	L"Assicurazione",
 	L"Annulla",
+	L"Campaign History",	// TODO.Translate
 };
 
 STR16 pBookmarkTitle[] =
@@ -3764,9 +4408,15 @@ STR16 pWebPagesTitles[] =
 	L"Servizio di pompe funebri di McGillicutty",
 	L"",
 	L"URL non ritrovato.",
+	L"%s Press Council - Conflict Summary",	// TODO.Translate
+	L"%s Press Council - Battle Reports",
+	L"%s Press Council - Latest News",
+	L"%s Press Council - About us",
 	L"Bobby Ray - Spedizioni recenti",
-	L"",
-	L"",
+	L"Encyclopedia",
+	L"Encyclopedia - Data",
+	L"Briefing Room",
+	L"Briefing Room - Data",
 };
 
 STR16 pShowBookmarkString[] =
@@ -3986,13 +4636,17 @@ STR16			MercInfo[] =
 	L"Assoldato",
 	L"Salario:",
 	L"Al giorno",
+	L"Gear:", // TODO.Translate
+	L"Totale:",
 	L"Deceduto",
 
-	L"Sembra che state arruolando troppi mercenari. Il vostro limite è di 18.",
-	L"Non disponibile",	
-	// VENEGANCE
-	L"Missed In Action",
-	// /VENGEANCE
+	L"Avete già una squadra di mercenari.",
+	L"Compra equip.?",
+	L"Non disponibile",
+	L"Unsettled Bills", // TODO.Translate
+	L"Bio", // TODO.Translate
+	L"Inv",
+	L"Missed In Action", // anv: VR - MIA
 };
 
 
@@ -4217,6 +4871,12 @@ STR16			BobbyRFilter[] =
 	L"Kits",
 	L"Face Items",
 	L"LBE Gear",
+	L"Optics", // Madd: new BR filters		// TODO.Translate
+	L"Grip/LAM",
+	L"Muzzle",
+	L"Stock",
+	L"Mag/Trig.",
+	L"Other Att.",
 	L"Misc.",
 };
 
@@ -4255,6 +4915,10 @@ STR16			BobbyRText[] =
 	L"Git.:",			// The range of the gun
 	L"Dan.:",			// Damage of the weapon	
 	L"FFA:",			// Weapon's Rate Of Fire, acronym ROF
+	L"PA:",				// Weapon's Action Points, acronym AP
+	L"Stun:",			// Weapon's Stun Damage
+	L"Protect:",		// Armour's Protection
+	L"Trav.:",			// Armour's Camouflage
 	L"Costo:",			// Cost of the item
 	L"Inventario:",			// The number of items still in the store's inventory
 	L"Num. ordine:",		// The number of items on order
@@ -4265,7 +4929,8 @@ STR16			BobbyRText[] =
 
 	//Popup that tells the player that they can only order 10 items at a time
 	
-	L"Darn! Quest'ordine qui accetterà solo 10 oggetti. Se avete intenzione di ordinare più merce (ed è quello che speriamo), fate un ordine a parte e accettate le nostre scuse.",
+	L"Darn! Quest'ordine qui accetterà solo " ,//First part
+	L" oggetti. Se avete intenzione di ordinare più merce (ed è quello che speriamo), fate un ordine a parte e accettate le nostre scuse.",
 
 	// A popup that tells the user that they are trying to order more items then the store has in stock
 
@@ -4378,9 +5043,9 @@ STR16			CharacterInfo[] =
 {
 	// The various attributes of the merc
 
-	L"Salute",										
-	L"Agilità",										
-	L"Destrezza",									
+	L"Salute",
+	L"Agilità",
+	L"Destrezza",
 	L"Forza",
 	L"Comando",
 	L"Saggezza",
@@ -4408,7 +5073,7 @@ STR16			CharacterInfo[] =
 	L"Ulteriori informazioni",				// Title for the additional info for the merc's bio
 	L"Membri attivi",		//20		// Title of the page
 	L"Dispositivo opzionale:",				// Displays the optional gear cost
-	L"gear",			//"gear",	//tais: Displays the optional gear cost in nsgi, this moved and can have only a small room, so just make it "gear" without extra's
+	L"gear",			//"gear",	//tais: Displays the optional gear cost in nsgi, this moved and can have only a small room, so just make it "gear" without extra's // TODO.Translate
 	L"Deposito MEDICO richiesto",			// If the merc required a medical deposit, this is displayed
 	L"Kit 1",				// Text on Starting Gear Selection Button 1  // TODO.Translate
 	L"Kit 2",				// Text on Starting Gear Selection Button 2
@@ -4480,10 +5145,7 @@ STR16			AimPopUpText[] =
 
 	L"Messaggio già registrato",
 	L"Messaggio registrato",
-
-	// VENGEANCE
-	L"Missed In Action",
-	// /VENGEANCE
+	L"Missed In Action", // anv: VR - MIA
 };
 
 
@@ -4552,10 +5214,7 @@ STR16			AimFiText[] =
 	L"Via",
 	L"Deceduto",						//14
 	L"In missione",
-
-	// VENGEANCE
-	L"MIA",
-	// /VENGEANCE
+	L"MIA", // anv: VR - MIA
 };
 
 
@@ -4573,7 +5232,8 @@ STR16			AimAlumniText[] =
 
 	L"Membri dell'A.I.M.",	// Title of the page
 
-	L"FINE"			// Stops displaying information on selected merc
+	L"FINE",			// Stops displaying information on selected merc
+	L"Next page",	// TODO.Translate
 };
 
 
@@ -4746,7 +5406,6 @@ STR16			zSaveLoadText[] =
 #else
 	L"Tentativo di caricare una vecchia versione salvata. Aggiornate e caricate automaticamente quella salvata?",
 #endif
-
 	L"Siete sicuri di volere sovrascrivere la partita salvata nello slot #%d?",
 	L"Volete caricare la partita dallo slot #",
 
@@ -4755,7 +5414,7 @@ STR16			zSaveLoadText[] =
 	//the second is the recommended amount of free space.
 	L"Lo spazio su disco si sta esaurendo. Sono disponibili solo %d MB, mentre per giocare a Jagged dovrebbero esserci almeno %d MB liberi .",	
 
-	L"Salvataggio in corso...",			//When saving a game, a message box with this string appears on the screen
+	L"Salvataggio in corso",			//When saving a game, a message box with this string appears on the screen
 
 	L"Armi normali",
 	L"Tonn. di armi",
@@ -4764,14 +5423,17 @@ STR16			zSaveLoadText[] =
 
 	L"Difficoltà",
 	L"Platinum Mode", //Placeholder English
-	L"Bobby Ray's",
-	L"Good Selection",
-	L"Great Selection",
-	L"Excellent Selection",
-	L"Awesome Selection",
+	L"Bobby Ray Quality",
+	L"Good",
+	L"Great",
+	L"Excellent",
+	L"Awesome",
 
-	L"New Inventory does not work in 640x480 screen size.  Please resize and try again.",
+	L"New Inventory does not work in 640x480 screen resolution. Please increase the screen resolution and try again.",
 	L"New Inventory does not work from the default 'Data' folder.",
+
+	L"The squad size from the savegame is not supported by the current screen resolution. Please increase the screen resolution and try again.",
+	L"Bobby Ray Quantity", // TODO.Translate
 };
 
 
@@ -4816,6 +5478,7 @@ STR16		zMarksMapScreenText[] =
 STR16 pLandMarkInSectorString[] =
 {
 	L"La squadra %d ha notato qualcuno nel settore %s",
+	L"La squadra %s ha notato qualcuno nel settore %s",
 };
 
 // confirm the player wants to pay X dollars to build a militia force in town
@@ -4836,6 +5499,14 @@ STR16 pMilitiaConfirmStrings[] =
 	L"Continue training mobile militia in %s (%s %d)?", // HEADROCK HAM 3.6: Mobile Militia				// TODO.Translate
 	L"Training mobile militia in %d sectors will cost $ %d. %s", // HEADROCK HAM 3.6: Mobile Militia	// TODO.Translate
 	L"Training a squad of mobile militia will cost $", // HEADROCK HAM 3.6: Mobile Militia				// TODO.Translate
+	L"You cannot train more mobile militia because the maximum is reached (%d/%d). You have to %s first in order to train more.", // TODO.Translate
+	L"liberate more town sectors", // TODO.Translate
+	L"liberate new town sectors", // TODO.Translate
+	L"liberate more towns", // TODO.Translate
+	L"regain your lost progress", // TODO.Translate
+	L"progress further", // TODO.Translate
+	L"recruit more rebels", // TODO.Translate
+	L"The militia team leader has to inform you that %d fellow have deserted facing enemy in sector %s.", // TODO.Translate
 };
 
 //Strings used in the popup box when withdrawing, or depositing money from the $ sign at the bottom of the single merc panel
@@ -4887,16 +5558,27 @@ STR16		zOptionsToggleText[] =
 	L"Show Soldier Tooltips",
 	L"Auto save",
 	L"Silent Skyrider",
-	//L"Low CPU usage",
 	L"Enhanced Description Box",
 	L"Forced Turn Mode",					// add forced turn mode
 	L"Stat Progress Bars",					// Show progress towards stat increase		// TODO.Translate
 	L"Alternate Strategy-Map Colors",		// Change color scheme of Strategic Map
 	L"Alternate bullet graphics",			// Show alternate bullet graphics (tracers) // TODO.Translate
-	L"Activate New CTH system",				// use NCTH
+	L"Show Merc Ranks",						// shows mercs ranks	// TODO.Translate
 	L"Show Face gear graphics",				// TODO.Translate
 	L"Show Face gear icons",
-	L"Disable Cursor Swap",		            // Disable Cursor Swap		// TODO.Translate
+	L"Disabilita Swap Cursore",	            // Disable Cursor Swap
+	L"Quiet Training",						// Madd: mercs don't say quotes while training // TODO.Translate
+	L"Quiet Repairing",						// Madd: mercs don't say quotes while repairing // TODO.Translate
+	L"Quiet Doctoring",						// Madd: mercs don't say quotes while doctoring // TODO.Translate
+	L"Auto Fast Forward AI Turns",			// Automatic fast forward through AI turns	// TODO.Translate
+#ifdef ENABLE_ZOMBIES
+	L"Allow Zombies",						// Flugente Zombies 1.0
+#endif
+	L"Enable inventory popups",				// the_bob : enable popups for picking items from sector inv	// TODO.Translate
+	L"Mark Remaining Hostiles",				// TODO.Translate
+	L"Show LBE Content",					// TODO.Translate
+	L"Invert mouse wheel",			// TODO.Translate
+	L"Formation Movement",					// when multiple mercs are selected, they will try to keep their relative distances	// TODO.Translate
 	L"--Cheat Mode Options--",				// TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	L"Force Bobby Ray shipments",			// force all pending Bobby Ray shipments
 	L"-----------------",					// TOPTION_CHEAT_MODE_OPTIONS_END
@@ -4943,7 +5625,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Attivate questa opzione per selezionare i personaggi e muoverli come nel vecchio JA (dato che la funzione è stata invertita).",
 
 	//Show movement path
-	L"Attivate questa opzione per visualizzare i sentieri di movimento in tempo reale (oppure disattivatela utilizzando il tasto |M|A|I|U|S|C).",
+	L"Attivate questa opzione per visualizzare i sentieri di movimento in tempo reale (oppure disattivatela utilizzando il tasto |M|a|i|u|s|c).",
 
 	//show misses
 	L"Attivate per far sì che la partita vi mostri dove finiscono i proiettili quando \"sbagliate\".",
@@ -4952,7 +5634,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Se attivata, sarà richiesto un altro clic su \"salva\" per il movimento in tempo reale.",
 
 	//Sleep/Wake notification
-  L"Se attivata, verrete avvisati quando i mercenari in \"servizio\" vanno a riposare e quando rientrano in servizio.",
+	L"Se attivata, verrete avvisati quando i mercenari in \"servizio\" vanno a riposare e quando rientrano in servizio.",
 
 	//Use the metric system
 	L"Se attivata, utilizza il sistema metrico di misurazione; altrimenti ricorre al sistema britannico.",
@@ -4975,14 +5657,14 @@ STR16	zOptionsScreenHelpText[] =
 	//toggle wireframe
 	L"Se attivata, visualizza le |Strutture dei muri nascosti.",
 
-	L"Se attivata, il cursore di movimento verrà mostrato in 3D (|Home).",
+	L"Se attivata, il cursore di movimento verrà mostrato in 3D. (|H|o|m|e)",
 
 	// Options for 1.13
 	L"When ON, the chance to hit is shown on the cursor.",
 	L"When ON, GL burst uses burst cursor.",
 	L"When ON, enemies will occasionally comment certain actions.", // Changed from Enemies Drop All Items - SANDRO
-	L"When ON, grenade launchers fire grenades at higher angles (|Q).",
-	L"When ON, the turn based mode will not be entered when sneaking unnoticed and seeing an enemy unless pressing |C|t|r+|X.", // Changed from Restrict Extra Aim Levels - SANDRO
+	L"When ON, grenade launchers fire grenades at higher angles. (|Q)",
+	L"When ON, the turn based mode will not be entered when sneaking unnoticed and seeing an enemy unless pressing |C|t|r|l+|X. (|C|t|r|l+|S|h|i|f|t+|X)", // Changed from Restrict Extra Aim Levels - SANDRO
 	L"When ON, |S|p|a|c|e selects next squad automatically.",
 	L"When ON, item shadows will be shown.",
 	L"When ON, weapon ranges will be shown in tiles.",
@@ -4990,18 +5672,30 @@ STR16	zOptionsScreenHelpText[] =
 	L"When ON, you will hear rain noises when it is raining.",
 	L"When ON, the crows are present in game.",
 	L"When ON, a tooltip window is shown when pressing |A|l|t and hovering cursor over an enemy.", 
-	L"When ON, game will be saved after each players turn.",
+	L"When ON, game will be saved in 2 alternate save slots after each players turn.",
 	L"When ON, Skyrider will not talk anymore.",
-	//L"When ON, game will run with much lower CPU usage.",
 	L"When ON, enhanced descriptions will be shown for items and weapons.",
-	L"When ON and enemy present, Turn Base mode persists untill sector is free (|C|T|R|L+|S|H|I|F|T+|A|L|T+|T).",	// add forced turn mode
+	L"When ON and enemy present, Turn Base mode persists untill sector is free (|C|t|r|l+|S|h|i|f|t+|A|l|t+|T).",	// add forced turn mode
 	L"When ON, shows character progress towards gaining levels.",	// TODO.Translate
 	L"When ON, the Strategic Map will be colored differently based on exploration.",
 	L"When ON, alternate bullet graphics will be shown when you shoot.", // TODO.Translate
-	L"When ON, New CTH system and cursor is used.",
+	L"When ON, ranks will be displayed before merc names in the strategic view.",		// TODO.Translate
 	L"When ON, you will see the equipped face gear on the merc portraits.",	// TODO.Translate
 	L"When ON, you will see icons for the equipped face gear on the merc portraits in the lower right corner.",
-	L"When ON, the cursor will not toggle between exchange position and other actions. Press |x to initiate quick exchange.",	// TODO.Translate
+	L"Se attivato, il cursore non si alternerà tra la posizione di scambio e altre azioni. Premere |x per avviare lo scambio rapido.",
+	L"When ON, mercs will not report progress during training.",
+	L"When ON, mercs will not report progress during repairing.",	// TODO.Translate
+	L"When ON, mercs will not report progress during doctoring.",	// TODO.Translate
+	L"When ON, AI turns will be much faster.",		// TODO.Translate
+
+#ifdef ENABLE_ZOMBIES
+	L"When ON, zombies will spawn. Beware!",							// allow zombies	// TODO.Translate
+#endif
+	L"When ON, enables popup boxes that appear when you left click on empty merc inventory slots while viewing sector inventory in mapscreen.",	// TODO.Translate
+	L"When ON, approximate locations of the last enemies in the sector are highlighted.",  // TODO.Translate
+	L"When ON, show the contents of an LBE item, otherwise show the regular NAS interface.", // TODO.Translate
+	L"When ON, inverts mouse wheel directions.",		// TODO.Translate
+	L"When multiple mercs are selected, they will try to keep their relative distances while moving. (|C|t|r|l+|S|h|i|f|t+|G)",	// TODO.Translate
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Force all pending Bobby Ray shipments",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",
@@ -5023,9 +5717,15 @@ STR16	zOptionsScreenHelpText[] =
 STR16	gzGIOScreenText[] =
 {
 	L"INSTALLAZIONE INIZIALE DEL GIOCO",
+#ifdef JA2UB
+	L"Random Manuel texts",
+	L"Off",
+	L"On",
+#else
 	L"Versione del gioco",
 	L"Realistica",
 	L"Fantascientifica",
+#endif	
 	L"Platinum", //Placeholder English
 	L"Opzioni delle armi",
 	L"Available Arsenal", // changed by SANDRO
@@ -5041,7 +5741,7 @@ STR16	gzGIOScreenText[] =
 	L"Tempo illimitato",
 	L"Turni a tempo",
 	L"Disabilitato per Demo",
-	L"Bobby Ray's Selection",
+	L"Bobby Ray Quality",
 	L"Good",
 	L"Great",
 	L"Excellent",
@@ -5066,9 +5766,15 @@ STR16	gzGIOScreenText[] =
 	L"Enemies Drop All Items",
 	L"Off",
 	L"On",
+#ifdef JA2UB
+	L"Tex and John",
+	L"Random",
+	L"All",
+#else
 	L"Number of Terrorists",
 	L"Random",
 	L"All",
+#endif	
 	L"Secret Weapon Caches",
 	L"Random",
 	L"All",
@@ -5083,6 +5789,21 @@ STR16	gzGIOScreenText[] =
 	L"Old / Old",
 	L"New / Old",
 	L"New / New",
+
+	// TODO.Translate
+	// Squad Size
+	L"Max. Squad Size",
+	L"6",
+	L"8",
+	L"10",
+	//L"Faster Bobby Ray Shipments",
+	L"Inventory Manipulation Costs AP",
+
+	L"New Chance to Hit System",
+	L"Improved Interrupt System",
+	L"Merc Story Backgrounds", // TODO.Translate
+	L"Food System",// TODO.Translate
+	L"Bobby Ray Quantity", // TODO.Translate
 };
 
 STR16	gzMPJScreenText[] =
@@ -5367,7 +6088,7 @@ STR16 pMessageStrings[] =
 	L"Non potete permettervi di pagare a %s un salario giornaliero di %s",	//first %s is the mercs name, the seconds is a string containing the salary
 	L"Salta",
 	L"%s non può andarsene da solo.",
-	L"Un salvataggio è stato chiamato SaveGame99.sav. Se necessario, rinominatelo da SaveGame01 a SaveGame10 e così potrete accedervi nella schermata di caricamento.",
+	L"Un salvataggio è stato chiamato SaveGame249.sav. Se necessario, rinominatelo da SaveGame01 a SaveGame10 e così potrete accedervi nella schermata di caricamento.",
 	L"%s ha bevuto del %s",
 	L"Un pacco è arivato a Drassen.",
  	L"%s dovrebbe arrivare al punto designato di partenza (settore %s) nel giorno %d, approssimativamente alle ore %s.",		//first %s is mercs name, next is the sector location and name where they will be arriving in, lastely is the day an the time of arrival
@@ -5375,7 +6096,7 @@ STR16 pMessageStrings[] =
 	L"Grenade Bursts use Targeting Cursor (Spread fire enabled)",
 	L"Grenade Bursts use Trajectory Cursor (Spread fire disabled)",
 	L"Enabled Soldier Tooltips", // Changed from Drop All On - SANDRO
-	L"Disabled Soldier Tooltips", // Changed from Drop All Off - SANDRO
+	L"Disabled Soldier Tooltips", 	// 80	// Changed from Drop All Off - SANDRO
 	L"Grenade Launchers fire at standard angles",
 	L"Grenade Launchers fire at higher angles",
 	// forced turn mode strings
@@ -5383,14 +6104,35 @@ STR16 pMessageStrings[] =
 	L"Normal turn mode",
 	L"Exit combat mode",
 	L"Forced Turn Mode Active, Entering Combat",
-#ifdef JA2BETAVERSION
 	L"Salvataggio riuscito della partita nello slot End Turn Auto Save.",
-#endif
 	L"..\\SavedGames\\MP_SavedGames", //The name of the directory where games are saved.
 	L"Client",
 
 	// TODO.Translate
 	L"You cannot use the Old Inventory and the New Attachment System at the same time.",
+	
+	// TODO.Translate
+	L"Auto Save #", //91		// Text des Auto Saves im Load Screen mit ID
+	L"This Slot is reserved for Auto Saves, which can be enabled/disabled (AUTO_SAVE_EVERY_N_HOURS) in the ja2_options.ini.", //92	// The text, when the user clicks on the save screen on an auto save
+	L"Empty Auto Save Slot #", //93	// The text, when the auto save slot (1 - 5) is empty (not saved yet)
+	L"AutoSaveGame",		// 94	// The filename of the auto save, such as AutoSaveGame01 - AutoSaveGame05
+	L"End-Turn Save #",	// 95	// The text for the tactical end turn auto save
+	L"Saving Auto Save #",	// 96	// The message box, when doing auto save
+	L"Saving",	// 97	// The message box, when doing end turn auto save
+	L"Empty End-Turn Save Slot #",	// 98	// The message box, when doing auto save
+	L"This Slot is reserved for Tactical End-Turn Saves, which can be enabled/disabled in the Option Screen.", //99	// The text, when the user clicks on the save screen on an auto save
+	// Mouse tooltips
+	L"QuickSave.sav",	// 100
+	L"AutoSaveGame%02d.sav",	// 101
+	L"Auto%02d.sav",	// 102
+	L"SaveGame%02d.sav", //103
+	// Lock / release mouse in windowed mode (window boundary)			// TODO.Translate
+	L"Lock mouse cursor within game window boundary.",			// 104
+	L"Release mouse cursor from game window boundary.",			// 105
+	L"Move in Formation ON",	// TODO.Translate
+	L"Move in Formation OFF",
+	L"Artificial Merc Light ON",	// TODO.Translate
+	L"Artificial Merc Light OFF",
 };
 
 
@@ -5409,18 +6151,23 @@ STR16 pDoctorWarningString[] =
 	L"I vostri medici non sono riusciti a bendare completamente tutti.",
 };
 
+// TODO.Translate
 STR16 pMilitiaButtonsHelpText[] =
 {
-	L"Raccogli (Clicca di destro)/lascia (Clicca di sinistro) le truppe verdi", // button help text informing player they can pick up or drop militia with this button
-	L"Raccogli (Clicca di destro)/lascia (Clicca di sinistro) le truppe regolari",
-	L"Raccogli (Clicca di destro)/lascia (Clicca di sinistro) le truppe veterane",
-	L"Distribuisci equamente i soldati disponibili tra i vari settori",
+	L"Unassign (|R|i|g|h|t |C|l|i|c|k)\nAssign (|L|e|f|t |C|l|i|c|k)\nGreen Troops", // button help text informing player they can pick up or drop militia with this button
+	L"Unassign (|R|i|g|h|t |C|l|i|c|k)\nAssign (|L|e|f|t |C|l|i|c|k)\nRegular Troops",
+	L"Unassign (|R|i|g|h|t |C|l|i|c|k)\nAssign (|L|e|f|t |C|l|i|c|k)\nVeteran Troops",
+	L"Distribute available militia equally among all sectors",
 };
 
 STR16 pMapScreenJustStartedHelpText[] =
 {
 	L"Andate all'A.I.M. e arruolate alcuni mercenari (*Hint* è nel Laptop)", // to inform the player to hired some mercs to get things going
+#ifdef JA2UB
+	L"Quando sarete pronti per partire per Tracona, cliccate sul pulsante nella parte in basso a destra dello schermo.", // to inform the player to hit time compression to get the game underway
+#else
 	L"Quando sarete pronti per partire per Arulco, cliccate sul pulsante nella parte in basso a destra dello schermo.", // to inform the player to hit time compression to get the game underway
+#endif
 };
 
 STR16 pAntiHackerString[] = 
@@ -5452,10 +6199,15 @@ STR16 gzLaptopHelpText[] =
 	L"Impresa di pompe funebri McGillicutty",
 	L"Servizio Fioristi Riuniti",
 	L"Contratti assicurativi per agenti A.I.M.",
+	//New Bookmarks
+	L"",
+	L"Encyclopedia",
+	L"Briefing Room",
+	L"Campaign History",	// TODO.Translate
 };
 
 
-STR16	gzHelpScreenText[] =
+STR16 gzHelpScreenText[] =
 {
 	L"Esci dalla schermata di aiuto",	
 };
@@ -5499,12 +6251,21 @@ STR16 pNewNoiseStr[] =
 	L"%s sente uno %s SCRICCHIOLIO proveniente da %s.",
 	L"%s sente un %s TONFO NELL'ACQUA proveniente da %s.",
 	L"%s sente un %s URTO proveniente da %s.",
+	L"%s hears a %s GUNFIRE coming from %s.", // anv: without this, all further noise notifications were off by 1!		// TODO.Translate
 	L"%s sente una %s ESPLOSIONE verso %s.",
 	L"%s sente un %s URLO verso %s.",
 	L"%s sente un %s IMPATTO verso %s.",
 	L"%s sente un %s IMPATTO a %s.",
 	L"%s sente un %s SCHIANTO proveniente da %s.",
 	L"%s sente un %s FRASTUONO proveniente da %s.",
+	L"",											 // anv: placeholder for silent alarm		// TODO.Translate
+	L"%s hears someone's %s VOICE coming from %s.", // anv: report enemy taunt to player		// TODO.Translate
+};
+
+// TODO.Translate
+STR16 pTauntUnknownVoice[] =
+{
+	L"Unknown Voice",
 };
 
 STR16 wMapScreenSortButtonHelpText[] =
@@ -5593,24 +6354,6 @@ STR16	gzCreditNameFunny[]=
 	L"",	// Joey \"Joeker\" Whelan",
 };
 
-// VENGEANCE
-STR16	gzVengeanceCreditNames[]=
-{
-	L"",
-
-};
-
-STR16	gzVengeanceCreditNameTitle[]=
-{
-	L"",
-};
-
-STR16	gzVengeanceCreditNameFunny[]=
-{
-	L"",
-};
-// /VENGEANCE
-
 STR16 sRepairsDoneString[] =
 {
 	L"%s ha finito di riparare gli oggetti",
@@ -5671,8 +6414,11 @@ STR16 gzLateLocalizedString[] =
 	L"Tutti i vostri mercenari sono stati bendati.",
 
 	//14
+#ifdef JA2UB
+	L"Tracona",
+#else
 	L"Arulco",
-
+#endif
   L"(tetto)",
 
 	L"Salute: %d/%d",
@@ -5781,6 +6527,8 @@ STR16 gzLateLocalizedString[] =
 	L"%s fires one more round than intended!",
 
 	L"You need to close the item description box first!",	// TODO.Translate
+
+	L"Cannot compress time - hostile civilians and/or bloodcats are in this sector.", // 65	// TODO.Translate
 };
 
 STR16 gzCWStrings[] = 
@@ -5800,14 +6548,18 @@ STR16 gzTooltipStrings[] =
 	L"%s|Attitude: %d\n",
 	L"%s|Current |A|Ps: %d\n",
 	L"%s|Current |Health: %d\n",
+	L"%s|Current |Breath: %d\n",	// TODO.Translate
+	L"%s|Current |Morale: %d\n",
+	L"%s|Current |S|hock: %d\n",// TODO.Translate
+	L"%s|Current |S|uppression Points: %d\n",// TODO.Translate
 	// Full info
 	L"%s|Helmet: %s\n",
 	L"%s|Vest: %s\n",
 	L"%s|Leggings: %s\n",
 	// Limited, Basic
 	L"|Armor: ",
-	L"Helmet ",
-	L"Vest ",
+	L"Helmet",
+	L"Vest",
 	L"Leggings",
 	L"worn",
 	L"no Armor",
@@ -5835,6 +6587,11 @@ STR16 gzTooltipStrings[] =
 	L"%s|Skill 1: %s\n",
 	L"%s|Skill 2: %s\n", 
 	L"%s|Skill 3: %s\n",
+    // Additional suppression effects - sevenfm	//  TODO.Translate
+    L"%s|A|Ps lost due to |S|uppression: %d\n",
+    L"%s|Suppression |Tolerance: %d\n",
+    L"%s|Effective |S|hock |Level: %d\n",
+    L"%s|A|I |Morale: %d\n",
 };
 
 STR16 New113Message[] =
@@ -5850,6 +6607,10 @@ STR16 New113Message[] =
 	L"GL",
 	L"GL BRST",
 	L"GL AUTO",
+	L"UB",
+	L"UBRST",
+	L"UAUTO",
+	L"BAYONET",
 	L"Sniper!",
 	L"Unable to split money due to having an item on your cursor.",
 	L"Arrival of new recruits is being rerouted to sector %s, as scheduled drop-off point of sector %s is enemy occupied.",
@@ -5877,6 +6638,7 @@ STR16 New113Message[] =
 	L"Surgery on %s finished.",
 	L"%s is hit in the chest and loses a point of maximum health!",
 	L"%s is hit in the chest and loses %d points of maximum health!",
+	L"%s is blinded by the blast!",
 	L"%s has regained one point of lost %s",
 	L"%s has regained %d points of lost %s",
 	L"Your scouting skills prevented you to be ambushed by the enemy!",
@@ -5885,7 +6647,9 @@ STR16 New113Message[] =
 	//////////////////////////////////////////////////////////////////////////////////////
 	L"Warning: enemy corpse found!!!",
 	L"%s [%d rnds]\n%s %1.1f %s",
-
+	L"Insufficient AP Points! Cost %d, you have %d.",	// TODO.Translate
+	L"Hint: %s",	// TODO.Translate
+	L"Player strength: %d - Enemy strength: %6.0f",		// TODO.Translate Surrender values to be printed, if DISPLAY_SURRENDER_VALUES = TRUE
 };
 
 // TODO.Translate
@@ -5918,6 +6682,27 @@ STR16 New113HAMMessage[] =
 	L"Daily Expenses",
 	// 21 - 25
 	L"Insufficient funds to pay all enlisted militia! %d militia have disbanded and returned home.",
+	L"To examine an item's stats during combat, you must pick it up manually first.", // HAM 5
+	L"To attach an item to another item during combat, you must pick them both up first.", // HAM 5
+	L"To merge two items during combat, you must pick them both up first.", // HAM 5
+};
+
+// TODO.Translate
+// HEADROCK HAM 5: Text dealing exclusively with Item Transformations.
+STR16 gzTransformationMessage[] = 
+{
+	L"No available adjustments",
+	L"%s was split into several parts.",
+	L"%s was split into several parts. Check %s's inventory for the resulting items.",
+	L"Due to lack of inventory space after transformation, some of %s's items have been dropped to the ground.",
+	L"%s was split into several parts. Due to a lack of inventory space, %s has had to drop a few items to the ground.",
+	L"Do you wish to adjust all %d items in this stack? (To transform only one item, remove it from the stack first)",
+	// 6 - 10
+	L"Split Crate into Inventory",
+	L"Split into %d-rd Mags",
+	L"%s was split into %d Magazines containing %d rounds each.",
+	L"%s was split into %s's inventory.",
+	L"There is insufficient room in %s's inventory to fit any magazines of this caliber!",
 };
 
 // WANNE: This are the email texts, when one of the 4 new 1.13 MERC mercs have levelled up, that Speck sends
@@ -6002,6 +6787,10 @@ STR16 MissingIMPSkillsDescriptions[] =
 	L"Demolitions: You can blow up a whole city just by common home stuff! ± ",
 	// Scouting
 	L"Scouting: Nothing can escape your notice! ± ",
+	// Covert ops
+	L"Covert Operations: You make 007 look like an amateur! ± ",		// TODO.Translate
+	// Radio Operator
+	L"Radio Operator: Your usage of communication devices broaden your team's tactical and strategic skills. ± ",	// TOO.Translate
 };
 
 STR16 NewInvMessage[] = 
@@ -6218,8 +7007,8 @@ STR16 pSkillTraitBeginIMPStrings[] =
 	L"On the next page, you are going to choose your skill traits according to your proffessional specialization as a mercenary. No more than two different traits or one expert trait can be selected.",
 	L"You can also choose only one or even no traits, which will give you a bonus to your attribute points as a compensation. Note that Electronics, Ambidextrous and Camouflage traits cannot be achieved at expert levels.",
 	// For new major/minor traits
-	L"Next stage is about choosing your skill traits according to your proffessional specialization as a mercenary. On first page you can select up to two potential major traits, which mostly represent your main role in a team. While on second page is list of possible minor traits, which represent personal feats.",
-	L"No more then three choices altogeher are possible. Which means if you choose no major traits, you can then choose three minor traits. If you choose both major traits (or one enhanced), you can then choose only one minor trait...",
+	L"Next stage is about choosing your skill traits according to your professional specialization as a mercenary. On first page you can select up to %d potential major traits, which mostly represent your main role in a team. While on second page is list of possible minor traits, which represent personal feats.",
+	L"No more then %d choices altogether are possible. This means that if you choose no major traits, you can choose %d minor traits. If you choose two major traits (or one enhanced), you can then choose only %d minor trait(s)...",
 };
 STR16 sgAttributeSelectionText[] = 
 {
@@ -6303,7 +7092,21 @@ STR16 gzIMPDisabilityTraitText[]=
 	L"Fear of Insects",
 	L"Forgetful",
 	L"Psychotic",
+	L"Deaf",
+	L"Shortsighted",
 	L"I.M.P. Disabilities",
+};
+
+STR16 gzIMPDisabilityTraitEmailTextDeaf[] =// TODO.Translate
+{
+	L"We bet you're glad this isn't voicemail.",
+	L"You've either visited to many discos in your teens, or were to close a massive artillery bombardment. Or just old. Either way, your team better learn sign language.",
+};
+
+STR16 gzIMPDisabilityTraitEmailTextShortSighted[] =
+{
+	L"You'll be screwed if you ever lose your glasses.",
+	L"That happens when you spend your days in front of glowing rectangles. You should have eaten more carrots. Ever seen a rabbit with glasses? Figures.",
 };
 
 // TODO.Translate
@@ -6348,6 +7151,8 @@ STR16 gzFacilityErrorMessage[]=
 	L"%s was injured in sector %s.", // <--- This is a log message string.
 	// 31 - 35
 	L"%s was severely injured in sector %s.", //<--- This is a log message string.
+	L"There are currently prisoners here who are aware of %s's identity.", // TODO.Translate
+	L"%s is currently well known as a mercenary snitch. Wait at least %d more hours.", // TODO.Translate
 
 
 };
@@ -6373,6 +7178,7 @@ STR16 gzFacilityAssignmentStrings[]=
 {
 	L"AMBIENT",
 	L"Staff",
+	L"Eat",// TODO.Translate
 	L"Rest",
 	L"Repair Items",
 	L"Repair %s", // Vehicle name inserted here
@@ -6412,6 +7218,7 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"Trainer Mechanical",
 	L"Trainer Leadership",
 	L"Trainer Explosives",
+	L"Interrogate Prisoners",	// added by Flugente	TODO.Translate
 };
 
 STR16 Additional113Text[]=
@@ -6518,6 +7325,19 @@ STR16 sEnemyTauntsGotHit[]=
 
 };
 
+// TODO.Translate
+STR16 sEnemyTauntsNoticedMerc[]=
+{
+	L"Da'ffff...!",
+	L"Oh my God!",
+	L"Holy crap!",
+	L"Enemy!!!",
+	L"Alert! Alert!",
+	L"There is one!",
+	L"Attack!",
+
+};
+
 //////////////////////////////////////////////////////
 // HEADROCK HAM 4: Begin new UDB texts and tooltips
 //////////////////////////////////////////////////////
@@ -6554,7 +7374,7 @@ STR16 gzItemDescGenIndexes[] =
 STR16 gzUDBButtonTooltipText[]=
 {
 	L"|D|e|s|c|r|i|p|t|i|o|n |P|a|g|e:\n \nShows basic textual information about this item.",
-	L"|G|e|n|e|r|a|l |P|r|o|p|e|r|t|i|e|s |P|a|g|e:\n \nShows specific data about this item.",
+	L"|G|e|n|e|r|a|l |P|r|o|p|e|r|t|i|e|s |P|a|g|e:\n \nShows specific data about this item.\n \nWeapons: Click again to see second page.",
 	L"|A|d|v|a|n|c|e|d| |P|r|o|p|e|r|t|i|e|s |P|a|g|e:\n \nShows bonuses given by this item.",
 };
 
@@ -6588,6 +7408,7 @@ STR16 szUDBGenWeaponsStatsTooltipText[]=
 	L"|A|c|c|u|r|a|c|y",
 	L"|D|a|m|a|g|e",
 	L"|R|a|n|g|e",
+	L"|H|a|n|d|l|i|n|g |D|i|f|f|i|c|u|l|t|y",	// TODO.Translate
 	L"|A|l|l|o|w|e|d |A|i|m|i|n|g |L|e|v|e|l|s",
 	L"|S|c|o|p|e |M|a|g|n|i|f|i|c|a|t|i|o|n |F|a|c|t|o|r",
 	L"|P|r|o|j|e|c|t|i|o|n |F|a|c|t|o|r",
@@ -6596,16 +7417,15 @@ STR16 szUDBGenWeaponsStatsTooltipText[]=
 	L"|R|e|l|i|a|b|i|l|i|t|y",
 	L"|R|e|p|a|i|r |E|a|s|e",
 	L"|M|i|n|. |R|a|n|g|e |f|o|r |A|i|m|i|n|g |B|o|n|u|s",
-	L"|T|o|-|H|i|t |M|o|d|i|f|i|e|r",
-	L"", // (12)
+	L"|T|o|-|H|i|t |M|o|d|i|f|i|e|r",	
 	L"|A|P|s |t|o |R|e|a|d|y",
 	L"|A|P|s |t|o |A|t|t|a|c|k",
 	L"|A|P|s |t|o |B|u|r|s|t",
 	L"|A|P|s |t|o |A|u|t|o|f|i|r|e",
 	L"|A|P|s |t|o |R|e|l|o|a|d",
 	L"|A|P|s |t|o |R|e|c|h|a|m|b|e|r",
-	L"|L|a|t|e|r|a|l |R|e|c|o|i|l",
-	L"|V|e|r|t|i|c|a|l |R|e|c|o|i|l",
+	L"",	// No longer used!
+	L"|T|o|t|a|l |R|e|c|o|i|l",		// TODO.Translate
 	L"|A|u|t|o|f|i|r|e |B|u|l|l|e|t|s |p|e|r |5 |A|P|s",
 };
 
@@ -6614,25 +7434,26 @@ STR16 szUDBGenWeaponsStatsExplanationsTooltipText[]=
 	L"\n \nDetermines whether bullets fired by\nthis gun will stray far from where\nit is pointed.\n \nScale: 0-100.\nHigher is better.",
 	L"\n \nDetermines the average amount of damage done\nby bullets fired from this weapon, before\ntaking into account armor or armor-penetration.\n \nHigher is better.",
 	L"\n \nThe maximum distance (in tiles) that\nbullets fired from this gun will travel\nbefore they begin dropping towards the\nground.\n \nHigher is better.",
+	L"\n \nDetermines the difficulty of holding and firing\nthis gun.\n \nHigher Handling Difficulty results in lower\nchance-to-hit - when aimed and especially when\nunaimed.\n \nLower is better.",	// TODO.Translate
 	L"\n \nThis is the number of Extra Aiming\nLevels you can add when aiming this gun.\n \nThe FEWER aiming levels are allowed, the MORE\nbonus each aiming level gives you. Therefore,\nhaving FEWER levels makes the gun faster to aim,\nwithout making it any less accurate.\n \nLower is better.",
 	L"\n \nWhen greater than 1.0, will proportionally reduce\naiming errors at a distance.\n \nRemember that high scope magnification is detrimental\nwhen the target is too close!\n \nA value of 1.0 means no scope is installed.",
 	L"\n \nProportionally reduces aiming errors at a distance.\n \nThis effect works up to a given distance,\nthen begins to dissipate and eventually\ndisappears at sufficient range.\n \nHigher is better.",
 	L"\n \nWhen this property is in effect, the weapon\nproduces no visible flash when firing.\n \nEnemies will not be able to spot you\njust by your muzzle flash (but they\nmight still HEAR you).",
 	L"\n \nWhen firing this weapon, Loudness is the\ndistance (in tiles) that the sound of\ngunfire will travel.\n \nEnemies within this distance will probably\nhear the shot.\n \nLower is better.",
 	L"\n \nDetermines how quickly this weapon will degrade\nwith use.\n \nHigher is better.",
-	L"\n \nDetermines how difficult it is to repair this weapon.\n \nHigher is better.",
+	L"\n \nDetermines how difficult it is to repair\nthis weapon and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only Technicians and special\nNPCs can repair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
 	L"\n \nThe minimum range at which a scope can provide it's aimBonus.",
-	L"\n \nTo hit modifier granted by laser sights.",
-	L"", // (12)
+	L"\n \nTo hit modifier granted by laser sights.",	
 	L"\n \nThe number of APs required to bring this\nweapon up to firing stance.\n \nOnce the weapon is raised, you may fire repeatedly\nwithout paying this cost again.\n \nA weapon is automatically 'Unreadied' if its\nwielder performs any action other than\nfiring or turning.\n \nLower is better.",
 	L"\n \nThe number of APs required to perform\na single attack with this weapon.\n \nFor guns, this is the cost of firing\na single shot without extra aiming.\n \nIf this icon is greyed-out, single-shots\n are not possible with this weapon.\n \nLower is better.",
 	L"\n \nThe number of APs required to fire\na burst.\n \nThe number of bullets fired in each burst is\ndetermined by the weapon itself, and indicated\nby the number of bullets shown on this icon.\n \nIf this icon is greyed-out, burst fire\nis not possible with this weapon.\n \nLower is better.",
 	L"\n \nThe number of APs required to fire\nan Autofire Volley of three bullets.\n \nIf you wish to fire more than 3 bullets,\nyou will need to pay extra APs.\n \nIf this icon is greyed-out, autofire\nis not possible with this weapon.\n \nLower is better.",
 	L"\n \nThe number of APs required to reload\nthis weapon.\n \nLower is better.",
 	L"\n \nThe number of APs required to rechamber this weapon\nbetween each and every shot fired.\n \nLower is better.",
-	L"\n \nThe distance this weapon's muzzle will shift\nhorizontally between each and every bullet in a\nburst or autofire volley.\n \nPositive numbers indicate shifting to the right.\nNegative numbers indicate shifting to the left.\n \nCloser to 0 is better.",
-	L"\n \nThe distance this weapon's muzzle will shift\nvertically between each and every bullet in a\nburst or autofire volley.\n \nPositive numbers indicate shifting upwards.\nNegative numbers indicate shifting downwards.\n \nCloser to 0 is better.",
+	L"",	// No longer used!
+	L"\n \nThe total distance this weapon's muzzle will shift\nbetween each and every bullet in a burst or\nautofire volley, if no Counter Force is applied.\n \nLower is better.", // HEADROCK HAM 5: Altered to reflect unified number.	// TODO.Translate
 	L"\n \nIndicates the number of bullets that will be added\nto an autofire volley for every extra 5 APs\nyou spend.\n \nHigher is better.",
+	L"\n \nDetermines how difficult it is to repair\nthis weapon and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only special NPCs can\nrepair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
 };
 
 STR16 szUDBGenArmorStatsTooltipText[]=
@@ -6640,6 +7461,7 @@ STR16 szUDBGenArmorStatsTooltipText[]=
 	L"|P|r|o|t|e|c|t|i|o|n |V|a|l|u|e",
 	L"|C|o|v|e|r|a|g|e",
 	L"|D|e|g|r|a|d|e |R|a|t|e",
+	L"|R|e|p|a|i|r |E|a|s|e",
 };
 
 STR16 szUDBGenArmorStatsExplanationsTooltipText[]=
@@ -6647,6 +7469,8 @@ STR16 szUDBGenArmorStatsExplanationsTooltipText[]=
 	L"\n \nThis primary armor property defines how much\ndamage the armor will absorb from any attack.\n \nRemember that armor-piercing attacks and\nvarious randomal factors may alter the\nfinal damage reduction.\n \nHigher is better.",
 	L"\n \nDetermines how much of the protected\nbodypart is covered by the armor.\n \nIf coverage is below 100%, attacks have\na certain chance of bypassing the armor\ncompletely, causing maximum damage\nto the protected bodypart.\n \nHigher is better.",
 	L"\n \nIndicates how quickly this armor's condition\ndrops when it is struck, proportional to\nthe damage caused by the attack.\n \nLower is better.",
+	L"\n \nDetermines how difficult it is to repair\nthis armor and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only Technicians and special\nNPCs can repair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
+	L"\n \nDetermines how difficult it is to repair\nthis armor and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only special NPCs can\nrepair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
 };
 
 STR16 szUDBGenAmmoStatsTooltipText[]=
@@ -6654,19 +7478,26 @@ STR16 szUDBGenAmmoStatsTooltipText[]=
 	L"|A|r|m|o|r |P|i|e|r|c|i|n|g",
 	L"|B|u|l|l|e|t |T|u|m|b|l|e",
 	L"|P|r|e|-|I|m|p|a|c|t |E|x|p|l|o|s|i|o|n",
+	L"|T|e|m|p|e|r|a|t|u|r|e |M|o|d|i|f|i|c|a|t|i|o|n",		// TODO.Translate
+	L"|P|o|i|s|o|n |P|e|r|c|e|n|t|a|g|e",	// TODO.Translate
+	L"|D|i|r|t |M|o|d|i|f|i|c|a|t|i|o|n",	// TODO.Translate
 };
 
 STR16 szUDBGenAmmoStatsExplanationsTooltipText[]=
 {
-	L"\n \nThis is the bullet's ability to penetrate\na target's armor.\n \nWhen above 1.0, the bullet proportionally\nreduces the Protection value of any\narmor it hits.\n \nWhen below 1.0, the bullet increases the\nprotection value of the armor instead.\n \nHigher is better.",
+	L"\n \nThis is the bullet's ability to penetrate\na target's armor.\n \nWhen below 1.0, the bullet proportionally\nreduces the Protection value of any\narmor it hits.\n \nWhen above 1.0, the bullet increases the\nprotection value of the armor instead.\n \nLower is better.",	// TODO.Translate
 	L"\n \nDetermines a proportional increase of damage\npotential once the bullet gets through the\ntarget's armor and hits the bodypart behind it.\n \nWhen above 1.0, the bullet's damage\nincreases after penetrating the armor.\n \nWhen below 1.0, the bullet's damage\npotential decreases after passing through armor.\n \nHigher is better.",
 	L"\n \nA multiplier to the bullet's damage potential\nthat is applied immediately before hitting the\ntarget.\n \nValues above 1.0 indicate an increase in damage,\nvalues below 1.0 indicate a decrease.\n \nHigher is better.",
+	L"\n \nAdditional heat generated by this ammunition.\n \nLower is better.",		// TODO.Translate
+	L"\n \nDetermines what percentage of a\nbullet's damage will be poisonous.",	// TODO.Translate
+	L"\n \nAdditional dirt generated by this ammunition.\n \nLower is better.",		// TODO.Translate
 };
 
 STR16 szUDBGenExplosiveStatsTooltipText[]=
 {
 	L"|D|a|m|a|g|e",
 	L"|S|t|u|n |D|a|m|a|g|e",
+	L"|E|x|p|l|o|d|e|s |o|n| |I|m|p|a|c|t",		// HEADROCK HAM 5	// TODO.Translate
 	L"|B|l|a|s|t |R|a|d|i|u|s",
 	L"|S|t|u|n |B|l|a|s|t |R|a|d|i|u|s",
 	L"|N|o|i|s|e |B|l|a|s|t |R|a|d|i|u|s",
@@ -6681,14 +7512,21 @@ STR16 szUDBGenExplosiveStatsTooltipText[]=
 	L"|S|m|o|k|e |E|n|d |R|a|d|i|u|s",
 	L"|I|n|c|e|n|d|i|a|r|y |E|n|d |R|a|d|i|u|s",
 	L"|E|f|f|e|c|t |D|u|r|a|t|i|o|n",
+	// HEADROCK HAM 5: Fragmentation		// TODO.Translate
+	L"|N|u|m|b|e|r |o|f |F|r|a|g|m|e|n|t|s",
+	L"|D|a|m|a|g|e |p|e|r |F|r|a|g|m|e|n|t",
+	L"|F|r|a|g|m|e|n|t |R|a|n|g|e",
+	// HEADROCK HAM 5: End Fragmentations
 	L"|L|o|u|d|n|e|s|s",
 	L"|V|o|l|a|t|i|l|i|t|y",
+	L"|R|e|p|a|i|r |E|a|s|e",
 };
 
 STR16 szUDBGenExplosiveStatsExplanationsTooltipText[]=
 {
 	L"\n \nThe amount of damage caused by this explosive.\n \nNote that blast-type explosives deliver this damage\nonly once (when they go off), while prolonged effect\nexplosives deliver this amount of damage every turn until the\neffect dissipates.\n \nHigher is better.",
 	L"\n \nThe amount of non-lethal (stun) damage caused\nby this explosive.\n \nNote that blast-type explosives deliver their damage\nonly once (when they go off), while prolonged effect\nexplosives deliver this amount of stun damage every\nturn until the effect dissipates.\n \nHigher is better.",
+	L"\n \nThis explosive will not bounce around -\nit will explode as soon as it hits any obstacle.",	// HEADROCK HAM 5	// TODO.Translate
 	L"\n \nThis is the radius of the explosive blast caused by\nthis explosive item.\n \nTargets will suffer less damage the further they are\nfrom the center of the explosion.\n \nHigher is better.",
 	L"\n \nThis is the radius of the stun-blast caused by\nthis explosive item.\n \nTargets will suffer less damage the further they are\nfrom the center of the blast.\n \nHigher is better.",
 	L"\n \nThis is the distance that the noise from this\ntrap will travel. Soldiers within this distance\nare likely to hear the noise and be alerted.\n \nHigher is better.",
@@ -6703,8 +7541,24 @@ STR16 szUDBGenExplosiveStatsExplanationsTooltipText[]=
 	L"\n \nThis is the final radius of the smoke released\nby this explosive item before it dissipates.\n \nEnemies caught within the radius will suffer\nthe listed damage and stun-damage each turn\n(if any), unless wearing a gas mask. More importantly,\nanyone inside the cloud becomes extremely difficult to spot,\nand also loses a large chunk of sight-range themselves.\n \nAlso note the start radius and duration\nof the effect.\n \nHigher is better.",
 	L"\n \nThis is the final radius of the flames caused\nby this explosive item before they dissipate.\n \nEnemies caught within the radius will suffer\nthe listed damage and stun-damage each turn.\n \nAlso note the start radius and duration of the effect.\n \nHigher is better.",
 	L"\n \nThis is the duration of the explosive effect.\n \nEach turn, the radius of the effect will grow by\none tile in every direction, until reaching\nthe listed End Radius.\n \nOnce the duration has been reached, the effect\ndissipates completely.\n \nNote that light-type explosives become SMALLER\nover time, unlike other effects.\n \nHigher is better.",
+	// HEADROCK HAM 5: Fragmentation		// TODO.Translate
+	L"\n \nThis is the number of fragments that will\nbe ejected from the explosion.\n \nFragments are similar to bullets, and may hit\nanyone who's close enough to the explosion.\n \nHigher is better.",
+	L"\n \nThe potential amount of damage caused by each\nfragment ejected from the explosion.\n \nHigher is better.",
+	L"\n \nThis is the average range to which fragments\nfrom this explosion will fly.\n \nSome fragments may end up further away, or fail\nto cover the distance altogether.\n \nHigher is better.",
+	// HEADROCK HAM 5: End Fragmentations
 	L"\n \nThis is the distance (in Tiles) within which\nsoldiers and mercs will hear the explosion when\nit goes off.\n \nEnemies hearing the explosion will be alerted to your\npresence.\n \nLower is better.",
 	L"\n \nThis value represents a chance (out of 100) for this\nexplosive to spontaneously explode whenever it is damaged\n(for instance, when other explosions go off nearby).\n \nCarrying highly-volatile explosives into combat\nis therefore extremely risky and should be avoided.\n \nScale: 0-100.\nLower is better.",
+	L"\n \nDetermines how difficult it is to repair these explosives.\n \ngreen = Anybody can repair them.\n \nred = This item can't be repaired.\n \nHigher is better.",
+};
+
+STR16 szUDBGenCommonStatsTooltipText[]=
+{
+	L"|R|e|p|a|i|r |E|a|s|e",
+};
+
+STR16 szUDBGenCommonStatsExplanationsTooltipText[]=
+{
+	L"\n \nDetermines how difficult it is to repair this item.\n \ngreen = Anybody can repair it.\n \nred = This item can't be repaired.\n \nHigher is better.",
 };
 
 STR16 szUDBGenSecondaryStatsTooltipText[]=
@@ -6735,6 +7589,17 @@ STR16 szUDBGenSecondaryStatsTooltipText[]=
 	L"|F|i|r|s|t |A|i|d |K|i|t",
 	L"|M|e|d|i|c|a|l |K|i|t",
 	L"|L|o|c|k |B|o|m|b",
+	L"|D|r|i|n|k",// TODO.Translate
+	L"|M|e|a|l",
+	L"|A|m|m|o |B|e|l|t",
+	L"|A|m|m|o |V|e|s|t",
+	L"|D|e|f|u|s|a|l |K|i|t",	// TODO.Translate
+	L"|C|o|v|e|r|t |I|t|e|m",	// TODO.Translate
+	L"|C|a|n|n|o|t |b|e |d|a|m|a|g|e|d",
+	L"|M|a|d|e |o|f |M|e|t|a|l",
+	L"|S|i|n|k|s",
+	L"|T|w|o|-|H|a|n|d|e|d",
+	L"|B|l|o|c|k|s |I|r|o|n |S|i|g|h|t|s",
 };
 
 STR16 szUDBGenSecondaryStatsExplanationsTooltipText[]=
@@ -6749,15 +7614,15 @@ STR16 szUDBGenSecondaryStatsExplanationsTooltipText[]=
 	L"\n \nThis item is electronic in nature, and contains\ncomplex circuitry.\n \nElectronic items are inherently more difficult\nto repair, at least without the ELECTRONICS skill.",
 	L"\n \nWhen this item is worn on a character's face,\nit will protect them from all sorts of noxious gasses.\n \nNote that some gases are corrosive, and might eat\nright through the mask...",
 	L"\n \nThis item requires batteries. Without batteries,\nyou cannot activate its primary abilities.\n \nTo use a set of batteries, attach them to\nthis item as you would a scope to a rifle.",
-	L"\n \nThis item can be used to pick open locked\ndoors or containers.\n \nLockpicking is silent, although it requires\nsubstantial mechanical skill to pick anything\nbut the simplest locks.",
+	L"\n \nThis item can be used to pick open locked\ndoors or containers.\n \nLockpicking is silent, although it requires\nsubstantial mechanical skill to pick anything\nbut the simplest locks. This item modifies\nthe lockpicking chance by ", //JMich_SkillsModifiers: needs to be followed by a number		// TODO.Translate
 	L"\n \nThis item can be used to cut through wire fences.\n \nThis allows a character to rapidly move through\nfenced areas, possibly outflanking the enemy!",
-	L"\n \nThis item can be used to smash open locked\ndoors or containers.\n \nLock-smashing requires substantial strength,\ngenerates a lot of noise, and can easily\ntire a character out. However, it is a good\nway to get through locks without superior skills or\ncomplicated tools.",
+	L"\n \nThis item can be used to smash open locked\ndoors or containers.\n \nLock-smashing requires substantial strength,\ngenerates a lot of noise, and can easily\ntire a character out. However, it is a good\nway to get through locks without superior skills or\ncomplicated tools. This item improves \nyour chance by ", //JMich_SkillsModifiers: needs to be followed by a number		// TODO.Translate
 	L"\n \nThis item can be used to detect metallic objects\nunder the ground.\n \nNaturally, its primary function is to detect\nmines without the necessary skills to spot them\nwith the naked eye.\n \nMaybe you'll find some buried treasure too.",
 	L"\n \nThis item can be used to detonate a bomb\nwhich has been set with a remote detonator.\n \nPlant the bomb first, then use the\nRemote Trigger item to set it off when the\ntime is right.",
 	L"\n \nWhen attached to an explosive device and set up\nin the right position, this detonator can be triggered\nby a (separate) remote device.\n \nRemote Detonators are great for setting traps,\nbecause they only go off when you tell them to.\n \nAlso, you have plenty of time to get away!",
 	L"\n \nWhen attached to an explosive device and set up\nin the right position, this detonator will count down\nfrom the set amount of time, and explode once the\ntimer expires.\n \nTimer Detonators are cheap and easy to install,\nbut you'll need to time them just right to give\nyourself enough chance to get away!",
 	L"\n \nThis item contains gasoline (fuel).\n \nIt might come in handy if you ever\nneed to fill up a gas tank...",
-	L"\n \nThis item contains various tools that can\nbe used to repair other items.\n \nA toolkit item is always required when setting\na character to repair duty.",
+	L"\n \nThis item contains various tools that can\nbe used to repair other items.\n \nA toolkit item is always required when setting\na character to repair duty. This item modifies\nthe effectiveness of repair by ", //JMich_SkillsModifiers: need to be followed by a number		// TODO.Translate
 	L"\n \nWhen worn in a face-slot, this item provides\nthe ability to spot enemies through walls,\nthanks to their heat signature.",
 	L"\n \nThis powerful device can be used to scan\nfor enemies using X-rays.\n \nIt will reveal all enemies within a certain radius\nfor a short period of time.\n \nKeep away from reproductive organs!",
 	L"\n \nThis item contains fresh drinking water.\nUse when thirsty.",
@@ -6765,6 +7630,17 @@ STR16 szUDBGenSecondaryStatsExplanationsTooltipText[]=
 	L"\n \nThis is a basic field medical kit, containing\nitems required to provide basic medical aid.\n \nIt can be used to bandage wounded characters\nand prevent bleeding.\n \nFor actual healing, use a proper Medical Kit\nand/or plenty of rest.",
 	L"\n \nThis is a proper medical kit, which can\nbe used in surgery and other serious medicinal\npurposes.\n \nMedical Kits are always required when setting\na character to Doctoring duty.",
 	L"\n \nThis item can be used to blast open locked\ndoors and containers.\n \nExplosives skill is required to avoid\npremature detonation.\n \nBlowing locks is a relatively easy way of quickly\ngetting through locked doors. However,\nit is very loud, and dangerous to most characters.",
+	L"\n \nThis item will still your thirst\nif you drink it.",// TODO.Translate
+	L"\n \nThis item will still your hunger\nif you eat it.",
+	L"\n \nWith this ammo belt you can\nfeed someone else's MG.",
+	L"\n \nYou can feed an MG with ammo\nbelts stored in this vest.",
+	L"\n \nThis item improves your trap disarm chance by ",		// TODO.Translate
+	L"\n \nThis item and everything attached/inside\nit is hidden from curious eyes.",	// TODO.Translate
+	L"\n \nThis item cannot be damaged.",
+	L"\n \nThis item is made of metal.\nIt takes less damage than other items.",
+	L"\n \nThis item sinks when put in water.",
+	L"\n \nThis item requires both hands to be used.",
+	L"\n \nThis item will block your iron sights\nso you cannot use them.",
 };
 
 STR16 szUDBAdvStatsTooltipText[]=
@@ -6817,6 +7693,24 @@ STR16 szUDBAdvStatsTooltipText[]=
 	L"|C|o|u|n|t|e|r|-|F|o|r|c|e |F|r|e|q|u|e|n|c|y",
 	L"|T|o|-|H|i|t |B|o|n|u|s",
 	L"|A|i|m |B|o|n|u|s",
+	L"|S|i|n|g|l|e |S|h|o|t |T|e|m|p|e|r|a|t|u|r|e",		// TODO.Translate
+	L"|C|o|o|l|d|o|w|n |F|a|c|t|o|r",
+	L"|J|a|m |T|h|r|e|s|h|o|l|d",
+	L"|D|a|m|a|g|e |T|h|r|e|s|h|o|l|d",
+	L"|T|e|m|p|e|r|a|t|u|r|e |M|o|d|i|f|i|e|r",
+	L"|C|o|o|l|d|o|w|n |M|o|d|i|f|i|e|r",
+	L"|J|a|m |T|h|r|e|s|h|o|l|d |M|o|d|i|f|i|e|r",
+	L"|D|a|m|a|g|e |T|h|r|e|s|h|o|l|d |M|o|d|i|f|i|e|r",
+	L"|P|o|i|s|o|n |P|e|r|c|e|n|t|a|g|e",	// TODO.Translate
+	L"|D|i|r|t |M|o|d|i|f|i|e|r",			// TODO.Translate
+	L"|P|o|i|s|o|n |M|o|d|i|f|i|e|r",// TODO.Translate
+	L"|F|o|o|d| |P|o|i|n|t|s",// TODO.Translate
+	L"|D|r|i|n|k |P|o|i|n|t|s",// TODO.Translate
+	L"|P|o|r|t|i|o|n |S|i|z|e",// TODO.Translate
+	L"|M|o|r|a|l|e |M|o|d|i|f|i|e|r",// TODO.Translate
+	L"|D|e|c|a|y |M|o|d|i|f|i|e|r",// TODO.Translate
+	L"|B|e|s|t |L|a|s|e|r |R|a|n|g|e",// TODO.Translate
+	L"|P|e|r|c|e|n|t |R|e|c|o|i|l |M|o|d|i|f|i|e|r",	// 65
 };
 
 // Alternate tooltip text for weapon Advanced Stats. Just different wording, nothing spectacular.
@@ -6837,8 +7731,8 @@ STR16 szUDBAdvStatsExplanationsTooltipText[]=
 	L"\n \nWhen attached to a ranged weapon, this item\nmodifies its maximum effective range.\n \nMaximum Range mainly dictates how far a bullet\nfired from the weapon can fly before it begins\ndropping sharply towards the ground.\n \nHigher is better.",
 	L"\n \nWhen attached to a ranged weapon, this item\nprovides extra magnification, making shots at a distance\ncomparatively easier to make.\n \nNote that a high Magnification Factor is detrimental\nwhen used at targets CLOSER than the\noptimal distance.\n \nHigher is better.",
 	L"\n \nWhen attached to a ranged weapon, this item\nprojects a dot on the target, making it easier to hit.\n \nThe projection effect is only useful up to a given\ndistance, beyond which it begins to diminish and\neventually disappears.\n \nHigher is better.",
-	L"\n \nWhen attached to a ranged weapon capable\nof Burst or Autofire modes, this item modifies\nthe weapon's Horizontal Recoil\nby the listed percentage.\n \nReducing recoil makes it easier to keep the gun's\nmuzzle pointed at the target during a volley.\n \nLower is better.",
-	L"\n \nWhen attached to a ranged weapon capable\nof Burst or Autofire modes, this item modifies\nthe weapon's Vertical Recoil\nby the listed percentage.\n \nReducing recoil makes it easier to keep the gun's\nmuzzle pointed at the target during a volley.\n \nLower is better.",
+	L"\n \nWhen attached to a ranged weapon capable\nof Burst or Autofire modes, this item modifies\nthe weapon's Horizontal Recoil\nby the listed value.\n \nReducing recoil makes it easier to keep the gun's\nmuzzle pointed at the target during a volley.\n \nLower is better.",
+	L"\n \nWhen attached to a ranged weapon capable\nof Burst or Autofire modes, this item modifies\nthe weapon's Vertical Recoil\nby the listed value.\n \nReducing recoil makes it easier to keep the gun's\nmuzzle pointed at the target during a volley.\n \nLower is better.",
 	L"\n \nThis item modifies the shooter's ability to\ncope with recoil during Burst or Autofire volleys.\n \nWhen high, this can help a shooter to control\nguns with powerful recoil, even if the shooter\nhas low Strength.\n \nHigher is better.",
 	L"\n \nThis item modifies the shooter's ability to\naccurately apply counter-force against a gun's\nrecoil, during Burst or Autofire volleys.\n \nA high bonus helps the shooter bring the gun's muzzle\nprecisely towards the target, even at longer ranges,\nmaking volleys more accurate as a result.\n \nHigher is better.",
 	L"\n \nThis item modifies the shooter's ability to\nfrequently reasses how much counter-force they\nneed to apply against a gun's recoil, during Burst\nor Autofire volleys.\n \nHigher frequency makes volleys more accurate on the whole,\nand also makes longer volleys more accurate assuming\nthe shooter can overcome recoil correctly.\n \nHigher is better.",
@@ -6870,6 +7764,23 @@ STR16 szUDBAdvStatsExplanationsTooltipText[]=
 	L"\n \nThis is the shooter's ability to\nfrequently reasses how much counter-force they\nneed to apply against a gun's recoil, during Burst\nor Autofire volleys.\n \nLower frequency makes volleys more accurate on the whole,\nand also makes longer volleys more accurate assuming\nthe shooter can overcome recoil correctly.\n \nLower is better.",
 	L"\n \nWhen attached to a ranged weapon, this item\nmodifies the weapon's CTH value.\n \nIncreased CTH allows the gun to hit targets\nmore often, assuming it is also well-aimed.\n \nHigher is better.",
 	L"\n \nWhen attached to a ranged weapon, this item\nmodifies the weapon's Aim Bonus.\n \nIncreased Aim Bonus allows the gun to hit\ntargets at longer ranges more often, assuming\nit is also well-aimed.\n \nHigher is better.",
+	L"\n \nA single shot causes this much heat.\nAmmunition types and attachments can\naffect this value.\n \nLower is better.",					// TODO.Translate
+	L"\n \nEvery turn, the temperature is lowered\nby this amount.\n \nHigher is better.",
+	L"\n \nIf an item's temperature is above this,\nit will jam more frequently.\n \nHigher is better.",
+	L"\n \nIf an item's temperature is above this,\nit will be damaged more easily.\n \nHigher is better.",
+	L"\n \nA gun's single shot temperature is\nincreased by this percentage.\n \nLower is better.",
+	L"\n \nA gun's cooldown factor is\nincreased by this percentage.\n \nHigher is better.",
+	L"\n \nA gun's jam threshold is\nincreased by this percentage.\n \nHigher is better.",
+	L"\n \nA gun's damage threshold is\nincreased by this percentage.\n \nHigher is better.",
+	L"\n \nThis is the percentage of damage dealt\nby this item that will be poisonous.\n\nUsefulness depends on wether enemy\nhas poison resistance or absorption.",	// TODO.Translate
+	L"\n \nA single shot causes this much dirt.\nAmmunition types and attachments can\naffect this value.\n \nLower is better.",	// TODO.Translate
+	L"\n \nWhen this item is eaten\nit causes that much poison.\n \nLower is better.",	// TODO.Translate
+	L"\n \nAmount of energy in kcal.\n \nHigher is better.",	// TODO.Translate
+	L"\n \nAmount of water in liter.\n \nHigher is better.",	// TODO.Translate
+	L"\n \nThe percentage of the item\nthat will be eaten at once.\n \nLower is better.",	// TODO.Translate
+	L"\n \nMorale is adjusted by this amount.\n \nHigher is better.",	// TODO.Translate
+	L"\n \nThis item becomes stale over time.\nIf more then 50% is molded it becomes poisoneous.\nThis is the rate at which mold is generated.\nLower is better.",	// TODO.Translate
+	L"\n \nWhen attached to a ranged weapon capable\nof Burst or Autofire modes, this item modifies\nthe weapon's Recoil by the listed percentage.\n \nReducing recoil makes it easier to keep the gun's\nmuzzle pointed at the target during a volley.\n \nLower is better.",
 };
 
 STR16 szUDBAdvStatsExplanationsTooltipTextForWeapons[]=
@@ -6922,6 +7833,11 @@ STR16 szUDBAdvStatsExplanationsTooltipTextForWeapons[]=
 	L"\n \nThis is the shooter's ability to\nfrequently reasses how much counter-force they\nneed to apply against a gun's recoil.\n \nNaturally, this has no effect if the weapon lacks\nboth Burst and Auto-Fire modes.\n \nLower frequency makes volleys more accurate on the whole,\nand also makes longer volleys more accurate assuming\nthe shooter can overcome recoil correctly.\n \nLower is better.",
 	L"\n \nThis weapon's to-hit is being modified by\nan ammo, attachment, or built-in attributes.\n \nIncreased To-Hit allows the gun to hit targets\nmore often, assuming it is also well-aimed.\n \nHigher is better.",
 	L"\n \nThis weapon's Aim Bonus is being modified by\nan ammo, attachment, or built-in attributes.\n \nIncreased Aim Bonus allows the gun to hit\ntargets at longer ranges more often, assuming\nit is also well-aimed.\n \nHigher is better.",
+	L"\n \nA single shot causes this much heat.\nThe type of ammunition can affect this value.\n \nLower is better.",					// TODO.Translate
+	L"\n \nEvery turn, the temperature is lowered\nby this amount.\nWeapon attachments can affect this.\n \nHigher is better.",
+	L"\n \nIf a gun's temperature is above this,\nit will jam more frequently.",
+	L"\n \nIf a gun's temperature is above this,\nit will be damaged more easily.",
+	L"\n \nThis weapon's recoil strength is being\nmodified by this percentage value by its ammo,\nattachments, or inherent abilities.\n \nThis has no effect if the weapon lacks both\nBurst and Auto-Fire modes.\n \nReducing recoil makes it easier to keep the gun's\nmuzzle pointed at the target during a volley.\n \nLower is better.",
 };
 
 // HEADROCK HAM 4: Text for the new CTH indicator.
@@ -6933,6 +7849,716 @@ STR16 gzNCTHlabels[]=
 //////////////////////////////////////////////////////
 // HEADROCK HAM 4: End new UDB texts and tooltips
 //////////////////////////////////////////////////////
+
+// TODO.Translate
+// HEADROCK HAM 5: Screen messages for sector inventory sorting reports.
+STR16 gzMapInventorySortingMessage[] =
+{
+	L"Finished sorting ammo into crates in sector %c%d.",
+	L"Finished removing attachments from items in sector %c%d.",
+	L"Finished ejecting ammo from weapons in sector %c%d.",
+	L"Finished stacking and merging all items in sector %c%d.",
+};
+
+STR16 gzMapInventoryFilterOptions[] =
+{
+	L"Show all",
+	L"Guns",
+	L"Ammo",
+	L"Explosives",
+	L"Melee Weapons",
+	L"Armor",
+	L"LBE",
+	L"Kits",
+	L"Misc. Items",
+	L"Hide all",
+};
+
+// Flugente: Temperature-based text similar to HAM 4's condition-based text.
+STR16 gTemperatureDesc[] =			// TODO.Translate
+{
+	L"Temperature is ",
+	L"very low",
+	L"low",
+	L"medium",
+	L"high",
+	L"very high",
+	L"dangerous",
+	L"CRITICAL",
+	L"DRAMATIC",
+	L"unknown",
+	L"."
+};
+
+// TODO.Translate
+// Flugente: food condition texts
+STR16 gFoodDesc[] =
+{
+	L"Food is ",
+	L"fresh",
+	L"good",
+	L"ok",
+	L"stale",
+	L"shabby",
+	L"rotting",
+	L"."
+};
+
+// TODO.Translate
+CHAR16* ranks[] = 
+{	L"",			//ExpLevel 0
+	L"Pvt. ",		//ExpLevel 1
+	L"Pfc. ",		//ExpLevel 2
+	L"Cpl. ",		//ExpLevel 3
+	L"Sgt. ",		//ExpLevel 4
+	L"Lt. ",		//ExpLevel 5
+	L"Cpt. ",		//ExpLevel 6
+	L"Maj. ",		//ExpLevel 7
+	L"Lt.Col. ",	//ExpLevel 8
+	L"Col. ",		//ExpLevel 9
+	L"Gen. "		//ExpLevel 10
+};
+
+STR16	gzNewLaptopMessages[]=
+{
+	L"Ask about our special offer!",
+	L"Temporarily Unavailable",
+	L"This special press preview of Jagged Alliance 2: Unfinished Business contains the only first 6 sector maps. The final version of the game will feature many more - please see the included readme file for details.",
+};
+
+STR16	zNewTacticalMessages[]=
+{
+	//L"Distanza dal bersaglio: %d caselle, Luminosità: %d/%d",
+	L"Colleghi il trasmettitore al tuo computer portatile.",
+	L"Non puoi permetterti di ingaggiare %s",
+	L"Per un periodo limitato, la tariffa qui sopra includerà i costi dell'intera missione, oltre all'equipaggiamento indicato sotto.",
+	L"Assolda %s adesso e approfitta della nostra nuova tariffa 'tutto incluso'. Compreso in questa incredibile offerta anche l'equipaggiamento personale del mercenario, senza alcun costo aggiuntivo.",
+	L"Tariffa",
+	L"C'è qualcun altro nel settore...",
+	//L"Gittata dell'arma: %d caselle, Probabilità di colpire: %d percent",
+	L"Mostra nascondigli",
+	L"Linea di Vista",
+	L"Le nuove reclute non possono arrivare qui.",
+	L"Poiché il tuo portatile non ha un trasmettitore, non potrai assoldare nuovi mercenari. Forse questo sarebbe un buon momento per caricare una partita salvata o ricominciare daccapo!",
+	L"%s sente venire da sotto al corpo di Jerry il rumore di metallo che si accartoccia. E' un suono fastidioso, come se l'antenna del tuo portatile venisse schiacciata.",  //the %s is the name of a merc.
+	L"Dopo aver dato un'occhiata al biglietto lasciato dal Vice Comandante Morris, %s vede una possibilità. La nota contiene le coordinate per il lancio di missili contro diverse città ad Arulco. C'è anche la locazione della base di lancio: la fabbrica di missili.",
+	L"Guardando il pannello di controllo %s immagina che i numeri possano essere invertiti, cosicché il missile distrugga proprio questa fabbrica. %s deve trovare una via di fuga. L'ascensore sembra offrire la soluzione più rapida...",
+	L"Questa è una partita a livello IRON MAN: non puoi salvare quando ci sono nemici nei dintorni.",
+	L"(Non puoi salvare durante il combattimento.)",
+	L"Il nome della campagna è più grande di 30 caratteri",
+	L"Campagna non trovata.",
+	L"Campagna: Default ( %S )",
+	L"Campagna: %S",
+	L"Hai selezionato la campagna %S. Questa campagna è una versione amatoriale della campagna originale di Unfinished Business. Sei sicuro di voler giocare la campagna %S?",
+	L"Per usare l'editor, selezionare una campagna diversa da quella di default.",
+};
+
+// The_bob : pocket popup text defs	// TODO.Translate
+STR16	gszPocketPopupText[]=
+{
+	L"Grenade launchers",	// POCKET_POPUP_GRENADE_LAUNCHERS,
+	L"Rocket launchers",	// POCKET_POPUP_ROCKET_LAUNCHERS
+	L"Melee & thrown weapons",	// POCKET_POPUP_MEELE_AND_THROWN
+	L"- no matching ammo -",	//POCKET_POPUP_NO_AMMO
+	L"- no guns in inventory -",	//POCKET_POPUP_NO_GUNS
+	L"more...",		//POCKET_POPUP_MOAR
+};
+
+// Flugente: externalised texts for some features	// TODO.Translate
+STR16	szCovertTextStr[]=
+{
+	L"%s has camo!",
+	L"%s has a backpack!",
+	L"%s is seen carrying a corpse!",
+	L"%s's %s is suspicious!",
+	L"%s's %s is considered military hardware!",
+	L"%s carries too many guns!",
+	L"%s's %s is too advanced for an %s soldier!",
+	L"%s's %s has too many attachments!",
+	L"%s was seen performing suspicious activities!",
+	L"%s does not look like a civilian!",
+	L"%s bleeding was discovered!",
+	L"%s is drunk and doesn't behave like a soldier!",
+	L"On closer inspection, %s's disguise does not hold!",
+	L"%s isn't supposed to be here!",
+	L"%s isn't supposed to be here at this time!",
+	L"%s was seen near a fresh corpse!",
+	L"%s equipment raises a few eyebrows!",
+	L"%s is seen targetting %s!",
+	L"%s has seen through %s's disguise!",
+	L"No clothes item found in Items.xml!",
+	L"This does not work with the old trait system!",
+	L"Not enough APs!",
+	L"Bad palette found!",
+	L"You need the covert skill to do this!",
+	L"No uniform found!",
+	L"%s is now disguised as a civilian.",
+	L"%s is now disguised as a soldier.",
+	L"%s wears a disorderly uniform!",
+	L"In retrospect, asking for surrender in disguise wasn't the best idea...",
+	L"%s was uncovered!",
+	L"%s's disguise seems to be ok...",
+	L"%s's disguise will not hold.",
+	L"%s was caught stealing!",
+	L"%s tried to manipulate %s's inventory.",
+	L"%s is too close to an elite soldier!",	// TODO.Translate
+};
+
+STR16	szCorpseTextStr[]=
+{
+	L"No head item found in Items.xml!",
+	L"Corpse cannot be decapitated!",
+	L"No meat item found in Items.xml!",
+	L"Not possible, you sick, twisted individual!",
+	L"No clothes to take!",
+	L"%s cannot take clothes off of this corpse!",
+	L"This corpse cannot be taken!",
+	L"No free hand to carry corpse!",
+	L"No corpse item found in Items.xml!",
+	L"Invalid corpse ID!",
+};
+
+STR16	szFoodTextStr[]=
+{
+	L"%s does not want to eat %s",
+	L"%s does not want to drink %s",
+	L"%s ate %s",
+	L"%s drank %s",
+	L"%s's strength was damaged due to being overfed!",
+	L"%s's strength was damaged due to lack of nutrition!",
+	L"%s's health was damaged due to being overfed!",
+	L"%s's health was damaged due to lack of nutrition!",
+	L"%s's strength was damaged due to excessive drinking!",
+	L"%s's strength was damaged due to lack of water!",
+	L"%s's health was damaged due to excessive drinking!",
+	L"%s's health was damaged due to lack of water!",
+	L"Sectorwide canteen filling not possible, Food System is off!"
+};
+
+// TODO.Translate
+STR16	szPrisonerTextStr[]=
+{
+	L"%d elites, %d regulars and %d admins were interrogated.",
+	L"%d prisoners paid ransom money.",
+	L"%d prisoners revealed enemy positions.",
+	L"%d elites, %d regulars and %d admins joined our cause.",
+	L"Prisoners start a massive riot in %s!",
+	L"%d prisoners were sent to %s!",
+	L"Prisoners have been released!",
+	L"The army now occupies the prison in %s, the prisoners were freed!",
+	L"The enemy refuses to surrender!",
+	L"The enemy refuses to take you as prisoners - they prefer you dead!",
+	L"This behaviour is set OFF in your ini settings.",
+	L"%s has freed %s!",
+};
+
+STR16	szMTATextStr[]=	// TODO.Translate
+{
+	L"nothing",
+	L"building a fortification",
+	L"removing a fortification",
+	L"filling sandbags",
+	L"%s had to stop %s.",
+	L"The selected barricade cannot be built in this sector",		// TODO.Translate
+};
+
+// TODO.Translate
+STR16	szInventoryArmTextStr[]= // TODO.Translate
+{
+	L"Blow up (%d AP)",
+	L"Blow up",
+	L"Arm (%d AP)",
+	L"Arm",
+	L"Disarm (%d AP)",
+	L"Disarm",
+};
+
+// TODO.Translate
+STR16		szBackgroundText_Flags[]=
+{
+	L" might consume drugs in inventory\n",
+	L" disregard for other backgrounds\n",
+	L" +1 level in  underground sectors\n",
+	L" might steal items\n",
+
+	L" +1 traplevel to planted bombs\n",
+	L" spreads corruption to nearby mercs\n",
+	L" female only",							// won't show up, text exists for compatibility reasons
+	L" male only",								// won't show up, text exists for compatibility reasons
+};
+
+// TODO.Translate
+STR16	szBackgroundText_Value[]=
+{
+	L" %s%d%% APs in polar sectors\n",
+	L" %s%d%% APs in desert sectors\n",	
+	L" %s%d%% APs in swamp sectors\n",
+	L" %s%d%% APs in urban sectors\n",
+	L" %s%d%% APs in river sectors\n",
+	L" %s%d%% APs in tropical sectors\n",
+	L" %s%d%% APs in coastal sectors\n",
+	L" %s%d%% APs in mountainous sectors\n",
+
+	L" %s%d%% agility stat\n",
+	L" %s%d%% dexterity stat\n",
+	L" %s%d%% strength stat\n",
+	L" %s%d%% leadership stat\n",
+	L" %s%d%% marksmanship stat\n",
+	L" %s%d%% mechanical stat\n",	
+	L" %s%d%% explosives stat\n",
+	L" %s%d%% medical stat\n",
+	L" %s%d%% wisdom stat\n",
+
+	L" %s%d%% APs on rooftops\n",
+	L" %s%d%% APs needed to swim\n",
+	L" %s%d%% APs needed for fortification actions\n",
+	L" %s%d%% APs needed for mortars\n",
+	L" %s%d%% APs needed to access inventory\n",
+	L" looks in other direction on airdrops\n %s%d%% APs after airdrop\n",
+	L" %s%d%% APs on first turn when assaulting a sector\n",
+		
+	L" %s%d%% travel speed on foot\n",
+	L" %s%d%% travel speed on land vehicles\n",
+	L" %s%d%% travel speed on air vehicles\n",
+	L" %s%d%% travel speed on water vehicles\n",
+
+	L" %s%d%% poison resistance\n",
+	L" %s%d%% fear resistance\n",
+	L" %s%d%% suppression resistance\n",
+	L" %s%d%% physical resistance\n",
+	L" %s%d%% alcohol resistance\n",
+
+	L" %s%d%% interrogation effectiveness\n",
+	L" %s%d%% prison guard strength\n",
+	L" %s%d%% better prices when trading guns and ammo\n",
+	L" %s%d%% better prices when trading armour, lbe, blades, kits etc.\n",
+	L" %s%d%% team capitulation strength if we lead negotiations\n",
+	L" %s%d%% faster running\n",
+	L" %s%d%% bandaging speed\n",
+	L" drinking restores %s%d%% energy\n",
+	L" %s%d%% strength to carry items\n",
+	L" %s%d%% food consumption\n",
+	L" %s%d%% water consumption\n",
+	L" %s%d need for sleep\n",
+	L" %s%d%% melee damage\n",	
+	L" %s%d%% cth with blades\n",
+	L" %s%d%% camo effectiveness\n",
+	L" %s%d%% stealth\n",
+	L" %s%d%% max CTH\n",
+	L" %s%d hearing range during the night\n",
+	L" %s%d hearing range during the day\n",
+	L" %s%d effectivity at disarming traps\n",	// TODO.Translate
+
+	L" %s%d%% effectiveness to friendly approach\n",
+	L" %s%d%% effectiveness to direct approach\n",
+	L" %s%d%% effectiveness to threaten approach\n",
+	L" %s%d%% effectiveness to recruit approach\n",
+
+	L" %s%d%% chance of success with door breaching charges\n",
+	L" %s%d%% cth with firearms against creatures\n",
+	L" %s%d%% insurance cost\n",
+	L" %s%d%% effectiveness as spotter for fellow snipers\n",	// TODO.Translate
+};
+
+STR16		szBackgroundTitleText[] =	// TODO.Translate
+{
+	L"I.M.P. Background",
+};
+
+// Flugente: personality
+STR16		szPersonalityTitleText[] =	// TODO.Translate
+{
+	L"I.M.P. Prejudices",
+};
+
+STR16		szPersonalityDisplayText[]=	// TODO.Translate
+{
+	L"You look",
+	L"and appearance is",
+	L"important to you.",
+	L"You have",
+	L"and care",
+	L"about that.",
+	L"You are",
+	L"and hate everyone",
+	L".",
+	L"racist against non-",
+	L"people.",
+};
+
+// texts showing up when hovering over the box, used to explain what a selection does. Do not use more than 200 characters!
+STR16		szPersonalityHelpText[]=
+{
+	L"How do you look?",
+	L"How important are the looks of others to you?",
+	L"What are your manners?",
+	L"How important are the manners of other people to you?",
+	L"What is your nationality?",
+	L"What nation o you dislike?",
+	L"How much do you dislike that nation?",
+	L"How racist are you?",
+	L"What is your race? You will be\nracist against all other races.",
+	L"How sexist are you against the other gender?",
+};
+
+STR16		szRaceText[]=
+{
+	L"white",
+	L"black",
+	L"asian",
+	L"eskimo",
+	L"hispanic",
+};
+
+STR16		szAppearanceText[]=
+{
+	L"average",
+	L"ugly",
+	L"homely",
+	L"attractive",
+	L"like a babe",
+};
+
+STR16		szRefinementText[]=
+{
+	L"average manners",
+	L"manners of a slob",
+	L"manners of a snob",
+};
+
+STR16		szNationalityText[]=
+{
+	L"American",		// 0
+	L"Arab",
+	L"Australian",
+	L"British",
+	L"Canadian",
+	L"Cuban",			// 5
+	L"Danish",
+	L"French",
+	L"Russian",
+	L"Nigerian",
+	L"Swiss",			// 10
+	L"Jamaican",
+	L"Polish",
+	L"Chinese",
+	L"Irish",
+	L"South African",	// 15
+	L"Hungarian",
+	L"Scottish",
+	L"Arulcan",
+	L"German",
+	L"African",			// 20
+	L"Italian",
+	L"Dutch",
+	L"Romanian",
+	L"Metaviran",
+
+	// newly added from here on
+	L"Greek",			// 25
+	L"Estonian",
+	L"Venezuelan",
+	L"Japanese",
+	L"Turkish",
+	L"Indian",			// 30
+	L"Mexican",
+	L"Norwegian",
+	L"Spanish",
+	L"Brasilian",
+	L"Finnish",			// 35
+	L"Iranian",
+	L"Israeli",
+	L"Bulgarian",
+	L"Swedish",
+	L"Iraqi",			// 40
+	L"Syrian",
+	L"Belgian",
+	L"Portoguese",
+};
+
+// special text used if we do not hate any nation (value of -1)
+STR16		szNationalityText_Special[]=
+{
+	L"and do not hate any other nationality.",		// used in personnel.cpp
+	L"of no origin",		// used in IMP generation
+};
+
+STR16		szCareLevelText[]=
+{
+	L"not",
+	L"somewhat",
+	L"extremely",
+};
+
+STR16		szRacistText[]=
+{
+	L"not",
+	L"somewhat",
+	L"very",
+};
+
+STR16		szSexistText[]=
+{
+	L"no sexist",
+	L"somewhat sexist",
+	L"very sexist",
+	L"a Gentleman",
+};
+
+// Flugente: power pack texts
+STR16 gPowerPackDesc[] =
+{
+	L"Batteries are ",
+	L"full",
+	L"good",
+	L"at half",
+	L"low",
+	L"depleted",
+	L"."
+};
+
+// WANNE: Special characters like % or someting else should go here
+// We can't put them directly in the CPP code files, because they need special encoding (UTF8) for some languages (e.g: Chinese)
+STR16 sSpecialCharacters[] =
+{
+	L"%",		// Percentage character
+};
+
+STR16	szSoldierClassName[]=	// TODO.Translate
+{
+	L"Mercenary",
+	L"Green militia",
+	L"Regular militia",
+	L"Elite militia",
+
+	L"Civilian",
+
+	L"Administrator",
+	L"Army Soldier",
+	L"Elite Soldier",
+	L"Tank",
+
+	L"Creature",
+	L"Zombie",
+};
+
+STR16	szCampaignHistoryWebSite[]=
+{
+	L"%s Press Council",
+	L"Ministry for %s Information Distribution",
+	L"%s Revolutionary Movement",
+	L"The Times International",
+	L"International Times",
+	L"R.I.S. (Recon Intelligence Service)",
+
+	L"A collection of press sources from %s",
+	L"We are a neutral source of information. We collect different news articles from %s. We do not judge these sources - we merely publish them, so you can judge yourself. We post articles from various sources, among them",
+	
+	L"Conflict Summary",
+	L"Battle reports",
+	L"News",
+	L"About us",
+};
+
+STR16	szCampaignHistoryDetail[]=
+{
+	L"%s, %s %s %s in %s.",
+
+	L"rebel forces",
+	L"the army",
+
+	L"attacked",
+	L"ambushed",
+	L"airdropped",
+
+	L"The attack came from %s.",
+	L"%s were reinforced from %s.",
+	L"The attack came from %s, %s were reinforced from %s.",
+	L"north",
+	L"east",
+	L"south",
+	L"west",
+	L"and",
+	L"an unknown location",	// TODO.Translate
+
+	L"Buildings in the sector were damaged.",	// TODO.Translate
+	L"In the fighting, buildings in the sector were damaged, and %d civilians were killed and %d wounded.",
+	L"During the attack, %s and %s called reinforcements.",
+	L"During the attack, %s called reinforcements.",
+	L"Eyewitnesses report the use of chemical weapons from both sides.",
+	L"Chemical weapons were used by %s.",
+	L"In a serious escalation of the conflict, both sides deployed tanks.",
+	L"%d tanks were used by %s, %d of them were destroyed in the fierce fighting.",
+	L"Both sides are said to have used snipers.",
+	L"Unverified reports indicate %s snipers were involved in the firefight."
+	L"This sector is of huge strategic importance, as it houses one of the handful of anti-air missile batteries the %s army posesses. Aerial photographs show extensive damage to the command center. This will leave the airspace above %s undefended for the time being.",
+	L"The situation on the ground has gotten even more confusing, as it seems rebel infighting has reached a new level. We now have confirmation that rebel militia engaed in active combat with foreign mercenaries.",
+	L"The royalists position seems more precarious than previously thought. Reports of a split surfaced, with amry personnel opening fire on each other.",
+};
+
+STR16	szCampaignHistoryTimeString[]=
+{
+	L"Deep in the night",		// 23 - 3
+	L"At dawn",					// 3 - 6
+	L"Early in the morning",	// 6 - 8
+	L"In the morning hours",	// 8 - 11
+	L"At noon",					// 11 - 14
+	L"On the afternoon",		// 14 - 18
+	L"On the evening",			// 18 - 21
+	L"During the night",		// 21 - 23
+};
+
+STR16	szCampaignHistoryMoneyTypeString[]=
+{
+	L"Initial funding",
+	L"Mine income",
+	L"Trade",
+	L"Other sources",
+};
+
+STR16	szCampaignHistoryConsumptionTypeString[]=
+{
+	L"Ammunition",
+	L"Explosives",
+	L"Food",
+	L"Medical gear",
+	L"Item maintenance",
+};
+
+STR16	szCampaignHistoryResultString[]=
+{
+	L"In an extremely one-sided battle, the army force was wiped out without much resistance.",
+
+	L"The rebels easily defeated the army, inflicting heavy losses.",
+	L"Without much effort, the rebels inflicted heavy losses upon the army and took several prisoners.",
+
+	L"In a bloody fight, the rebels finally overcame the opposition. The army had severe losses.",
+	L"The rebels had losses but defeated the royalists. Unverified information says several soldiers might have been taken prisoner.",
+
+	L"In a phyrric victory, the rebels defeated the royalists but had severe casualties of their own. Wether they will be able to hold this position against continued attacks is doubtful.",
+	
+	L"The army's superiority in numbers came into full play. The rebels never had a chance and had to either retreat or be killed or captured.",
+	L"Despite the high number of rebels in this sector, the army easily dispatched them.",
+
+	L"The rebels were clearly unprepared against the army's superiority in numbers an equipment. They were easily defeated.",
+	L"Even though the rebels had more boots on the ground, the army was better equipped. The rebels clearly lost.",
+
+	L"Fierce fighting saw significant losses on both sides, but in the end, the army's higher number of bodies decided the battle. The rebel force was destroyed. There might have been survivors, but we cannot verify this at this point.",
+	L"In an intense firefight, the superior training of the armed forces tipped the scales. The rebels had to retreat.",
+	
+	L"Neither side was willing to yield. While the army ultimately removed the rebel threat in the area, the staggering losses have resulted in the army unit continuing to exist in name only. But it is clear the rebels will soon be out of men and women if the army can keep on this rate of attrition.",
+};
+
+STR16	szCampaignHistoryImportanceString[]=
+{
+	L"Irrelevant",
+	L"Insignificant",
+	L"Notable",
+	L"Noteworthy",
+	L"Significant",
+	L"Interesting",
+	L"Important",
+	L"Very important",
+	L"Grave",
+	L"Major",
+	L"Momentous",
+};
+
+STR16	szCampaignHistoryWebpageString[]=
+{
+	L"Killed",
+	L"Wounded",
+	L"Prisoners",
+	L"Shots fired",
+
+	L"Money earned",
+	L"Consumption",
+	L"Losses",
+	L"Participants",
+
+	L"Promotions",
+	L"Summary",
+	L"Detail",
+	L"Previous",
+
+	L"Next",
+	L"Incident",
+	L"Day",
+};
+
+STR16   szTacticalInventoryDialogString[]=
+{
+        L"Inventory Manipulations",
+
+        L"NVG",
+        L"Reload All",
+        L"Move",			// TODO.Translate
+        L"",
+
+        L"Sort",
+        L"Merge",
+        L"Separate",
+        L"Organize",
+
+        L"Crates",
+        L"Boxes",
+        L"Drop B/P",
+        L"Pickup B/P",
+
+        L"",
+        L"",
+        L"",
+        L"",
+};
+
+STR16   szTacticalCoverDialogString[]=
+{
+        L"Cover Display Mode",
+
+        L"Off",
+        L"Enemy",
+        L"Merc",
+        L"",
+
+        L"",
+        L"",
+        L"",
+        L"",
+
+        L"Traps",
+        L"Network",
+        L"Detector",
+        L"",
+
+        L"Net A",
+        L"Net B",
+        L"Net C",
+        L"Net D",
+};
+
+STR16   szTacticalCoverDialogPrintString[]=
+{
+        
+        L"Turning off cover/traps display",
+        L"Showing danger zones",
+        L"Showing merc view",
+        L"",
+
+        L"",
+        L"",
+        L"",
+        L"",
+
+        L"Display trap network",
+        L"Display trap network colouring",
+        L"Display nearby traps",
+        L"",
+
+        L"Display trap network A",
+        L"Display trap network B",
+        L"Display trap network C",
+        L"Display trap network D",
+};
 
 // anv - extended panels
 STR16 pExtendedPanelStrings[] =

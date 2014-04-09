@@ -16,9 +16,12 @@
 	#include "GameSettings.h"
 	#include "Animation Data.h"
 	#include "Soldier Control.h"
+#include "Interface.h"				// added by Flugente for zBackground
 #endif
 
-INT8 EffectiveStrength( SOLDIERTYPE * pSoldier )
+extern void ReducePointsForHunger( SOLDIERTYPE *pSoldier, UINT32 *pusPoints );
+
+INT16 EffectiveStrength( SOLDIERTYPE *pSoldier, BOOLEAN fTrainer )
 {
 	INT8	bBandaged;
 	INT32	iEffStrength;
@@ -30,37 +33,54 @@ INT8 EffectiveStrength( SOLDIERTYPE * pSoldier )
 
 	if (pSoldier->stats.bStrength > 0)
 	{
-		iEffStrength = pSoldier->stats.bStrength / 2;
-		iEffStrength += (pSoldier->stats.bStrength / 2) * (pSoldier->stats.bLife + bBandaged / 2) / (pSoldier->stats.bLifeMax);
+		if ( fTrainer )
+		{
+			iEffStrength = pSoldier->stats.bStrength / 2;
+			iEffStrength += ( pSoldier->stats.bStrength / 2) * (pSoldier->stats.bLife + bBandaged / 2) / (pSoldier->stats.bLifeMax);
+		}
+		else
+		{
+			iEffStrength = ( pSoldier->stats.bStrength + pSoldier->bExtraStrength )/ 2;
+			iEffStrength += ( (pSoldier->stats.bStrength + pSoldier->bExtraStrength) / 2) * (pSoldier->stats.bLife + bBandaged / 2) / (pSoldier->stats.bLifeMax);
+		}
 	}
 	else
 	{
 		iEffStrength = 0;
 	}
 
+	iEffStrength = (iEffStrength * (100 + pSoldier->GetBackgroundValue(BG_STRENGTH))) / 100;
+
 	// ATE: Make sure at least 2...
 	iEffStrength = __max( iEffStrength, 2 );
 
-	return( (INT8) iEffStrength );
+	return( (INT16) iEffStrength );
 }
 
 
-INT8 EffectiveWisdom( SOLDIERTYPE * pSoldier )
+INT16 EffectiveWisdom( SOLDIERTYPE * pSoldier)
 {
 	INT32	iEffWisdom;
 
 	iEffWisdom = pSoldier->stats.bWisdom;
 
+	iEffWisdom += pSoldier->bExtraWisdom;
+
 	iEffWisdom = EffectStatForBeingDrunk( pSoldier, iEffWisdom );
 
-	return( (INT8) iEffWisdom );
+	iEffWisdom = (iEffWisdom * (100 + pSoldier->GetBackgroundValue(BG_WISDOM))) / 100;
+
+	return( (INT16) iEffWisdom );
 }
 
-INT8 EffectiveAgility( SOLDIERTYPE * pSoldier )
+INT16 EffectiveAgility( SOLDIERTYPE * pSoldier, BOOLEAN fTrainer )
 {
 	INT32	iEffAgility;
 
 	iEffAgility = pSoldier->stats.bAgility;
+
+	if ( !fTrainer )
+		iEffAgility += pSoldier->bExtraAgility;
 
 	iEffAgility = EffectStatForBeingDrunk( pSoldier, iEffAgility );
 
@@ -69,7 +89,9 @@ INT8 EffectiveAgility( SOLDIERTYPE * pSoldier )
 		iEffAgility = (iEffAgility * 100) / pSoldier->sWeightCarriedAtTurnStart;
 	}
 
-	return( (INT8) iEffAgility );
+	iEffAgility = (iEffAgility * (100 + pSoldier->GetBackgroundValue(BG_AGILITY))) / 100;
+
+	return( (INT16) iEffAgility );
 }
 
 
@@ -80,6 +102,8 @@ INT8 EffectiveMechanical( SOLDIERTYPE * pSoldier )
 	iEffMechanical = pSoldier->stats.bMechanical;
 
 	iEffMechanical = EffectStatForBeingDrunk( pSoldier, iEffMechanical );
+
+	iEffMechanical = (iEffMechanical * (100 + pSoldier->GetBackgroundValue(BG_MECHANICAL))) / 100;
 
 	return( (INT8) iEffMechanical );
 }
@@ -93,6 +117,8 @@ INT8 EffectiveExplosive( SOLDIERTYPE * pSoldier )
 
 	iEffExplosive = EffectStatForBeingDrunk( pSoldier, iEffExplosive );
 
+	iEffExplosive = (iEffExplosive * (100 + pSoldier->GetBackgroundValue(BG_EXPLOSIVE_ASSIGN))) / 100;
+
 	return( (INT8) iEffExplosive );
 }
 
@@ -104,6 +130,8 @@ INT8 EffectiveMedical( SOLDIERTYPE * pSoldier )
 	iEffMedical = pSoldier->stats.bMedical;
 
 	iEffMedical = EffectStatForBeingDrunk( pSoldier, iEffMedical );
+
+	iEffMedical = (iEffMedical * (100 + pSoldier->GetBackgroundValue(BG_MEDICAL))) / 100;
 
 	return( (INT8) iEffMedical );
 }
@@ -122,6 +150,8 @@ INT8 EffectiveLeadership( SOLDIERTYPE * pSoldier )
 	{
 		iEffLeadership = ( iEffLeadership * 120 / 100 );
 	}
+
+	iEffLeadership = (iEffLeadership * (100 + pSoldier->GetBackgroundValue(BG_LEADERSHIP))) / 100;
 
 	return( (INT8) iEffLeadership );
 }
@@ -152,18 +182,21 @@ INT8 EffectiveExpLevel( SOLDIERTYPE * pSoldier )
 
 	if (pSoldier->ubProfile != NO_PROFILE)
 	{
-		if ( (gMercProfiles[ pSoldier->ubProfile ].bDisability == CLAUSTROPHOBIC) && pSoldier->bActive && pSoldier->bInSector && gbWorldSectorZ > 0)
+		// Flugente: drugs can temporarily cause a merc to be claustrophobic
+		if ( ( (gMercProfiles[ pSoldier->ubProfile ].bDisability == CLAUSTROPHOBIC) || MercUnderTheInfluence(pSoldier, DRUG_TYPE_CLAUSTROPHOBIC) ) && pSoldier->bActive && pSoldier->bInSector && gbWorldSectorZ > 0)
 		{
 			// claustrophobic!
 			iEffExpLevel -= 2;
 		}
-		else if ( (gMercProfiles[ pSoldier->ubProfile ].bDisability == FEAR_OF_INSECTS) && MercIsInTropicalSector( pSoldier ) )
+		else if ( ( (gMercProfiles[ pSoldier->ubProfile ].bDisability == FEAR_OF_INSECTS) || MercUnderTheInfluence(pSoldier, DRUG_TYPE_FEAROFINSECTS) )&& MercIsInTropicalSector( pSoldier ) )
 		{
 			// SANDRO - fear of insects, and we are in tropical sector
 			iEffExpLevel -= 1;
 		}
 	}
-	
+
+	iEffExpLevel += pSoldier->bExtraExpLevel;
+		
 	if (iEffExpLevel > 10)
 	{
 		// can't go over 10 - SANDRO
@@ -188,18 +221,25 @@ INT8 EffectiveMarksmanship( SOLDIERTYPE * pSoldier )
 
 	iEffMarksmanship = EffectStatForBeingDrunk( pSoldier, iEffMarksmanship );
 
+	iEffMarksmanship = (iEffMarksmanship * (100 + pSoldier->GetBackgroundValue(BG_MARKSMANSHIP))) / 100;
+
 	return( (INT8) iEffMarksmanship );
 }
 
-INT8 EffectiveDexterity( SOLDIERTYPE * pSoldier )
+INT16 EffectiveDexterity( SOLDIERTYPE * pSoldier, BOOLEAN fTrainer )
 {
 	INT32	iEffDexterity;
 
 	iEffDexterity = pSoldier->stats.bDexterity;
 
+	if ( !fTrainer )
+		iEffDexterity += pSoldier->bExtraDexterity;
+
 	iEffDexterity = EffectStatForBeingDrunk( pSoldier, iEffDexterity );
 
-	return( (INT8) iEffDexterity );
+	iEffDexterity = (iEffDexterity * (100 + pSoldier->GetBackgroundValue(BG_DEXTERITY))) / 100;
+
+	return( (INT16) iEffDexterity );
 }
 
 
@@ -219,7 +259,7 @@ UINT8 GetPenaltyForFatigue( SOLDIERTYPE *pSoldier )
 	return( ubPercentPenalty );
 }
 
-void ReducePointsForFatigue( SOLDIERTYPE *pSoldier, UINT16 *pusPoints )
+void ReducePointsForFatigue( SOLDIERTYPE *pSoldier, UINT32 *pusPoints )
 {
 	*pusPoints -= (*pusPoints * GetPenaltyForFatigue( pSoldier )) / 100;
 }
@@ -235,7 +275,6 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 	INT32	iSkill;
 	INT32	iChance, iReportChance;
 	INT32	iRoll, iMadeItBy;
-	INT8	bSlot;
 	INT32	iLoop;
 	SOLDIERTYPE * pTeamSoldier;
 	INT8	bBuddyIndex;
@@ -247,6 +286,7 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 	{
 		case LOCKPICKING_CHECK:
 		case ELECTRONIC_LOCKPICKING_CHECK:
+		INT8	bSlot;
 
 		fForceDamnSound = TRUE;
 
@@ -258,7 +298,7 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 			// adjust skill based on wisdom (knowledge)
 			iSkill = iSkill * (EffectiveWisdom( pSoldier ) + 100) / 200;
 			// and dexterity (clumsy?)
-			iSkill = iSkill * (EffectiveDexterity( pSoldier ) + 100) / 200;
+			iSkill = iSkill * (EffectiveDexterity( pSoldier, FALSE ) + 100) / 200;
 			// factor in experience
 			iSkill = iSkill + EffectiveExpLevel( pSoldier ) * 3;
 
@@ -300,7 +340,16 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 				// this should never happen, but might as well check...
 				iSkill = 0;
 			}
-			iSkill = iSkill * pSoldier->inv[bSlot][0]->data.objectStatus / 100;
+			else
+			{
+				//JMich_SkillsModifiers: Modifying the skill by the bonus from the lockpick, then reducing due to status
+				iSkill += Item[pSoldier->inv[bSlot].usItem].LockPickModifier;
+			}
+			//JMich_SkillsModifiers: If skill goes negative due to crappy lockpicks, the status of them doesn't matter.
+			if (iSkill > 0)
+			{
+				iSkill = (iSkill * pSoldier->inv[bSlot][0]->data.objectStatus) / 100;
+			}
 			break;
 		case ATTACHING_DETONATOR_CHECK:
 		case ATTACHING_REMOTE_DETONATOR_CHECK:
@@ -309,7 +358,7 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 			{
 				break;
 			}
-			iSkill = (iSkill * 3 + EffectiveDexterity( pSoldier ) ) / 4;
+			iSkill = (iSkill * 3 + EffectiveDexterity( pSoldier, FALSE ) ) / 4;
 
 			// SANDRO - STOMP traits - Demolitions trait detonator attaching bonus
 			if ( gGameOptions.fNewTraitSystem )
@@ -387,8 +436,13 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 				}
 				else
 				{
-					iSkill = EffectiveExplosive( pSoldier ) * 5;
-					iSkill += EffectiveMechanical( pSoldier ) * 2;
+					// The part that Mechanical plays is a bit too high. A merc with 90+ explosives will still fail
+					// a lot when his Mechanical is not in the 90+ as well. Even when disarming own mines which provides a bonus
+					// he will fail a lot which doesn't make sense. Let's change this from 5/2 to 6/1.
+					//iSkill = EffectiveExplosive( pSoldier ) * 5;
+					//iSkill += EffectiveMechanical( pSoldier ) * 2;
+					iSkill = EffectiveExplosive( pSoldier ) * 6;
+					iSkill += EffectiveMechanical( pSoldier );
 				}
 			}
 			else
@@ -399,10 +453,19 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 					break;
 				}
 			}
-
-			iSkill += EffectiveDexterity( pSoldier ) * 2;
+			iSkill += EffectiveDexterity( pSoldier, FALSE ) * 2;
 			iSkill += EffectiveExpLevel( pSoldier ) * 10;
+
+			// Flugente: backgrounds
+			iSkill += pSoldier->GetBackgroundValue(BG_TRAP_DISARM);
+
 			iSkill = iSkill / 10; // bring the value down to a percentage
+			//JMich_SkillModifiers: Adding a Disarm Trap bonus
+			bSlot = FindDisarmKit( pSoldier);
+			if (bSlot != NO_SLOT)
+			{
+				iSkill += Item[pSoldier->inv[bSlot].usItem].DisarmModifier * pSoldier->inv[bSlot][0]->data.objectStatus / 100;
+			}
 
 			// SANDRO - STOMP traits - Demolitions trait removing traps bonus
 			if ( gGameOptions.fNewTraitSystem )
@@ -444,9 +507,15 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 					break;
 				}
 			}
-			iSkill += EffectiveDexterity( pSoldier ) * 2;
+			iSkill += EffectiveDexterity( pSoldier, FALSE ) * 2;
 			iSkill += EffectiveExpLevel( pSoldier ) * 10;
 			iSkill = iSkill / 10; // bring the value down to a percentage
+			//JMich_SkillModifiers: Adding a Disarm Trap bonus
+			bSlot = FindDisarmKit( pSoldier);
+			if (bSlot != NO_SLOT)
+			{
+				iSkill += Item[pSoldier->inv[bSlot].usItem].DisarmModifier * pSoldier->inv[bSlot][0]->data.objectStatus / 100;
+			}
 			// penalty based on poor wisdom
 			iSkill -= (100 - EffectiveWisdom( pSoldier ) ) / 5;
 
@@ -474,12 +543,21 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 
 		case OPEN_WITH_CROWBAR:
 			// Add for crowbar...
-			iSkill = EffectiveStrength( pSoldier ) + 20;
-		fForceDamnSound = TRUE;
+			//JMich_SkillModifiers: Changing the +20 to the crowbar's bonus.
+			bSlot = FindUsableCrowbar( pSoldier );
+			if (bSlot != NO_SLOT)
+			{
+				iSkill = EffectiveStrength( pSoldier, FALSE ) + Item[pSoldier->inv[bSlot].usItem].CrowbarModifier;
+			}
+			else //how are we trying to force with a crowbar, without having one??
+			{
+				iSkill = 0;
+			}
+			fForceDamnSound = TRUE;
 			break;
 
 		case SMASH_DOOR_CHECK:
-			iSkill = EffectiveStrength( pSoldier );
+			iSkill = EffectiveStrength( pSoldier, FALSE );
 			// SANDRO - STOMP traits - Martial Arts trait kick doors bonus
 			if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ))
 			{
@@ -518,7 +596,7 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 			// adjust skill based on wisdom (knowledge)
 			iSkill = iSkill * (EffectiveWisdom( pSoldier ) + 100) / 200;
 			// and dexterity (clumsy?)
-			iSkill = iSkill * (EffectiveDexterity( pSoldier ) + 100) / 200;
+			iSkill = iSkill * (EffectiveDexterity( pSoldier, FALSE ) + 100) / 200;
 			// factor in experience
 			iSkill = iSkill + EffectiveExpLevel( pSoldier ) * 3;
 
@@ -546,6 +624,14 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 				}
 			}
 			break;
+		case ATTACH_POWER_PACK:			// added by Flugente
+			// technicians can attach it, other people can't
+			if ( HAS_SKILL_TRAIT( pSoldier, TECHNICIAN_NT ))
+				iSkill = 100;
+			else
+				iSkill = 0;
+
+			break;
 		default:
 			iSkill = 0;
 			break;
@@ -564,7 +650,7 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 		iChance -= 15;
 	}
 	// also added a small penalty for fear of insects in tropical sectors
-	else if ( (gMercProfiles[ pSoldier->ubProfile ].bDisability == FEAR_OF_INSECTS) && MercIsInTropicalSector( pSoldier ))
+	else if ( ( (gMercProfiles[ pSoldier->ubProfile ].bDisability == FEAR_OF_INSECTS) || MercUnderTheInfluence(pSoldier, DRUG_TYPE_FEAROFINSECTS) ) && MercIsInTropicalSector( pSoldier ))
 	{
 		// fear of insects, and we are in tropical sector
 		iChance -= 5;
@@ -678,7 +764,12 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 		iChance = 0;
 	}
 
-	iRoll = PreRandom( 100 );
+	// silversurfer: changed this a little. I think this is supposed to represent "luck".
+	// A soldier that has low skills, attributes and experience should have to rely more on luck
+	// than someone that knows exactly what he is doing. This will produce more stable results
+	// for those that are good at their job.
+	// iRoll = PreRandom( 100 );
+	iRoll = PreRandom( UINT32( 115 - iChance / 3 ) );
 	iMadeItBy = iChance - iRoll;
 	if (iMadeItBy < 0)
 	{
@@ -753,6 +844,27 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 								TacticalCharacterDialogue( pTeamSoldier, 	QUOTE_BUDDY_2_GOOD );
 								break;
 							case 2:
+								// buddy #3 did something good!
+								if( pTeamSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+									TacticalCharacterDialogue( pTeamSoldier, QUOTE_AIM_BUDDY_3_GOOD );
+								else
+									TacticalCharacterDialogue( pTeamSoldier, QUOTE_NON_AIM_BUDDY_3_GOOD );
+								break;
+							case 3:
+								// buddy #4 did something good!
+								if( pTeamSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+									TacticalCharacterDialogue( pTeamSoldier, QUOTE_AIM_BUDDY_4_GOOD );
+								else
+									TacticalCharacterDialogue( pTeamSoldier, QUOTE_NON_AIM_BUDDY_4_GOOD );
+								break;
+							case 4:
+								// buddy #5 did something good!
+								if( pTeamSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+									TacticalCharacterDialogue( pTeamSoldier, QUOTE_AIM_BUDDY_5_GOOD );
+								else
+									TacticalCharacterDialogue( pTeamSoldier, QUOTE_NON_AIM_BUDDY_5_GOOD );
+								break;
+							case 5:
 								// learn to like buddy did something good!
 								TacticalCharacterDialogue( pTeamSoldier, QUOTE_LEARNED_TO_LIKE_WITNESSED );
 								break;
@@ -768,11 +880,11 @@ INT32 SkillCheck( SOLDIERTYPE * pSoldier, INT8 bReason, INT8 bChanceMod )
 }
 
 
-INT8 CalcTrapDetectLevel( SOLDIERTYPE * pSoldier, BOOLEAN fExamining )
+INT16 CalcTrapDetectLevel( SOLDIERTYPE * pSoldier, BOOLEAN fExamining )
 {
 	// return the level of trap which the guy is able to detect
 
-	INT8 bDetectLevel;
+	INT16 bDetectLevel;
 
 	// formula: 1 pt for every exp_level
 	//	 plus 1 pt for every 40 explosives

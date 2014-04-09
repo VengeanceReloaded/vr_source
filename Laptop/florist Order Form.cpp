@@ -659,6 +659,9 @@ void BtnFlowerOrderSendButtonCallback(GUI_BUTTON *btn,INT32 reason)
 
 			if ( gubCurrentlySelectedFlowerLocation == 7 )
 			{
+#ifdef JA2UB
+// no UB
+#else
 				// sent to meduna!
 				if ( gfFLoristCheckBox0Down )
 				{
@@ -668,6 +671,7 @@ void BtnFlowerOrderSendButtonCallback(GUI_BUTTON *btn,INT32 reason)
 				{
 					HandleFlowersMeanwhileScene( 1 );
 				}
+#endif
 			}
 
 			//increment the order number
@@ -1269,7 +1273,7 @@ void HandleFloristOrderKeyBoardInput()
 {
 	InputAtom					InputEvent;
 
-	while (DequeueEvent(&InputEvent) == TRUE)
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 		if( !HandleTextInput( &InputEvent ) && InputEvent.usEvent == KEY_DOWN )
 		{
@@ -1277,6 +1281,7 @@ void HandleFloristOrderKeyBoardInput()
 			switch (InputEvent.usParam)
 			{
 				case ENTER:
+				case 'e':
 
 					ubTextFieldID = (UINT8) GetActiveFieldID();
 

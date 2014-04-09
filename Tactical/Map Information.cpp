@@ -9,15 +9,12 @@
 	#include "Soldier Init List.h"
 	#include "Random.h"
 	#include "worlddef.h"
-	#include "worldman.h"
 	#include "renderworld.h"
 	#include "EditorMercs.h"
 	#include "Exit Grids.h"
 	#include "Isometric Utils.h"
-	#include "ja2.h"
 	#include "Animation Data.h"
 	#include "Road Smoothing.h"
-	#include "sys globals.h"
 	#include "message.h"
 	#include "weapons.h"
 	#include "environment.h"
@@ -274,7 +271,7 @@ void UpdateOldVersionMap()
 	{
 		gMapInformation.ubMapVersion++;
 		//6)	Change all doors to FIRSTDOOR
-		for( i = 0; i < WORLD_MAX; i++ )
+		for( i = 0; i < WORLD_MAX; ++i )
 		{
 			//NOTE:	Here are the index values for the various doors
 			//DOOR		OPEN		CLOSED
@@ -351,7 +348,8 @@ void UpdateOldVersionMap()
 			//Bug #04)	Assign enemy mercs default army color code if applicable
 			if( curr->pDetailedPlacement )
 			{
-				for( i = 0; i < curr->pDetailedPlacement->Inv.size(); i++ )
+				INT32 invsize = (INT32)curr->pDetailedPlacement->Inv.size();
+				for( i = 0; i < invsize; ++i )
 				{ //make all items undroppable, even if it is empty.	This will allow for
 					//random item generation, while empty, droppable slots are locked as empty
 					//during random item generation.
@@ -479,7 +477,7 @@ void UpdateOldVersionMap()
 	}
 	if( gMapInformation.ubMapVersion < 13 )
 	{	//replace all merc ammo inventory slots status value with the max ammo that the clip can hold.
-		INT32 i, cnt;
+		INT32 cnt;
 		OBJECTTYPE *pItem;
 		gMapInformation.ubMapVersion++;
 		//Bug 10) Padding on detailed placements is uninitialized.	Clear all data starting at
@@ -489,12 +487,13 @@ void UpdateOldVersionMap()
 		{
 			if( curr->pDetailedPlacement )
 			{
-				for ( i = 0; i < curr->pDetailedPlacement->Inv.size(); i++ )
+				UINT32 invsize = curr->pDetailedPlacement->Inv.size();
+				for ( UINT32 i = 0; i < invsize; ++i )
 				{
 					pItem = &curr->pDetailedPlacement->Inv[ i ];
 					if( Item[ pItem->usItem ].usItemClass & IC_AMMO )
 					{
-						for( cnt = 0; cnt < pItem->ubNumberOfObjects; cnt++ )
+						for( cnt = 0; cnt < pItem->ubNumberOfObjects; ++cnt )
 						{
 							pItem->shots.ubShotsLeft[ cnt ] = Magazine[ Item[ pItem->usItem ].ubClassIndex ].ubMagSize;
 						}
@@ -574,7 +573,8 @@ void UpdateOldVersionMap()
 		{
 			if( curr->pDetailedPlacement )
 			{
-				for( UINT32 i = 0; i < curr->pDetailedPlacement->Inv.size(); i++ )
+				UINT32 invsize = curr->pDetailedPlacement->Inv.size();
+				for( UINT32 i = 0; i < invsize; ++i )
 				{
 					if( !curr->pDetailedPlacement->Inv[ i ].usItem )
 					{
@@ -601,7 +601,7 @@ void UpdateOldVersionMap()
 		gMapInformation.ubMapVersion = 23;
 		if( giCurrentTilesetID == 1 ) //cave/mine tileset only
 		{ //convert all civilians to miners which use uniforms and more masculine body types.
-			// VENGEANCE - we don't want to convert, because of H&B "mine"
+			// anv: VR - we don't want to convert, because of H&B "mine"
 			//curr = gSoldierInitHead;
 			//while( curr )
 			//{
@@ -612,7 +612,6 @@ void UpdateOldVersionMap()
 			//	}
 			//	curr = curr->next;
 			//}
-			// /VENGEANCE
 		}
 	}
 	if( gMapInformation.ubMapVersion < 25 )
@@ -631,6 +630,10 @@ void UpdateOldVersionMap()
 	{ //Allow map edgepoints to be regenerated as new system has been reenabled.
 		gMapInformation.ubMapVersion = 27;
 	}
+	if( gMapInformation.ubMapVersion < 29 )
+	{ 
+		gMapInformation.ubMapVersion = 29;
+	}
 }
 
 void AutoCalculateItemNoOverwriteStatus()
@@ -646,7 +649,8 @@ void AutoCalculateItemNoOverwriteStatus()
 	{
 		if( curr->pDetailedPlacement )
 		{
-			for( UINT32 i = 0; i < curr->pDetailedPlacement->Inv.size(); i++ )
+			UINT32 invsize = curr->pDetailedPlacement->Inv.size();
+			for( UINT32 i = 0; i < invsize; ++i )
 			{
 				pItem = &curr->pDetailedPlacement->Inv[ i ];
 				if( pItem->exists() == true )

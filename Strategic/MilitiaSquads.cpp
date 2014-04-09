@@ -14,7 +14,6 @@
 	#include "Map Screen Interface.h"
 	#include "Interface.h"
 	#include "Laptopsave.h"
-	#include "finances.h"
 	#include "Game Clock.h"
 	#include "Assignments.h"
 	#include "squads.h"
@@ -26,16 +25,23 @@
 	#include "Auto Resolve.h"
 	#include "Vehicles.h"
 	#include "Tactical Save.h"
+	#include "Campaign.h"
+	#include "message.h"
 #endif
 
 #include "connect.h"
 #include "MilitiaSquads.h"
 #include "Reinforcement.h"
+#include "Inventory Choosing.h"		// added by Flugente for MoveOneMilitiaEquipmentSet() and MoveMilitiaEquipment()
 
 // Debug defines
 
 //#define DEBUG_SHOW_RATINGS
-#define DEBUG_RATINGS_CONDITION !fForBattle
+#ifdef DEBUG_SHOW_RATINGS
+	#define DEBUG_RATINGS_CONDITION TRUE
+	//#define DEBUG_RATINGS_CONDITION !fForBattle
+#include "message.h"
+#endif
 
 
 // will create a squad each n hours (12 for example). Should divide 24 without remainder
@@ -71,7 +77,8 @@ UINT8 gubManualRestrictMilitia[ 256 ];
 // HEADROCK HAM B1: Alternate array keeps track of dynamically unrestricted sectors
 BOOLEAN gDynamicRestrictMilitia[ 256 ];
 // HEADROCK HAM B1: Function that dynamically unrestricts sectors as we take over towns.
-extern void AdjustRoamingRestrictions();
+// HEADROCK HAM 5: New flag tells us to also recheck restriced sectors.
+extern void AdjustRoamingRestrictions( BOOLEAN fRecheck );
 
 DYNAMICRESTRICTIONS gDynamicRestrictions[5001];
 
@@ -320,6 +327,7 @@ void GenerateMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, 
 				ubTargetElite--;
 				ubMilitiaToTrain--;
 				ubActualyAdded++;
+				MoveOneMilitiaEquipmentSet(sMapX, sMapY, sTMapX, sTMapY, ELITE_MILITIA);
 			}
 			else if (ubTargetRegular > 0)
 			{
@@ -328,6 +336,7 @@ void GenerateMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, 
 				ubTargetRegular--;
 				ubMilitiaToTrain--;
 				ubActualyAdded++;
+				MoveOneMilitiaEquipmentSet(sMapX, sMapY, sTMapX, sTMapY, REGULAR_MILITIA);
 			}
 			else if (ubTargetGreen > 0)
 			{
@@ -336,6 +345,7 @@ void GenerateMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, 
 				ubTargetGreen--;
 				ubMilitiaToTrain--;
 				ubActualyAdded++;
+				MoveOneMilitiaEquipmentSet(sMapX, sMapY, sTMapX, sTMapY, GREEN_MILITIA);
 			}
 			else
 			{
@@ -365,7 +375,7 @@ void GenerateMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, 
 					GetWorldDay( ) < gGameExternalOptions.guiTrainVeteranMilitiaDelay )) // Or not YET allowed to train elites
 				{
 					// Add a regular. This will effectively replace one Green militia
-					StrategicAddMilitiaToSector( sTMapX, sTMapY, ELITE_MILITIA, 1);
+					StrategicAddMilitiaToSector( sTMapX, sTMapY, REGULAR_MILITIA, 1);
 					ubTargetElite--;
 					ubMilitiaToTrain--;	
 					ubActualyAdded++;
@@ -506,14 +516,15 @@ void MoveMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, BOOL
 				ubNumEnemiesNearTarget > 0 )
 		{
 			// Both sectors threatened. 
-
-			if (gGameExternalOptions.gfAllowReinforcements && !gGameExternalOptions.gfAllowReinforcementsOnlyInCity)
+			//Moa: removed below: reinforcement is handled elsewhere, the function below is even better then 50%/50% because it leaves
+			//a chance to make one sector fully defended instead of possibly two losses. Talking about unfull groups - full groups wont change anyway.
+			/*if (gGameExternalOptions.gfAllowReinforcements && !gGameExternalOptions.gfAllowReinforcementsOnlyInCity)
 			{
 				// Militia will spread out between the two sectors to maximize defensive capability, since they can 
 				// always reinforce one another if either sector is attacked.
 				ubChanceToSpreadOut = 100;
 			}
-			else
+			else*/
 			{
 				// Militia chance to spread out is based on whether the Origin or the Destination are under greater
 				// threat. If the destination is more threatened, militia are more likely to reinforce it 
@@ -523,20 +534,7 @@ void MoveMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, BOOL
 				ubChanceToSpreadOut = __min( 100, (ubNumEnemiesNearOrigin * 100) / usTotalNumEnemies );
 			}
 		}
-		else if (NumEnemiesInFiveSectors( sMapX, sMapY ) > 0 &&
-				NumEnemiesInFiveSectors( sTMapX, sTMapY ) > 0 )
-		{
-			// Both sectors threatened. Militia will spread out between them, to maximize defensive capability.
-			ubChanceToSpreadOut = 100;
-		}	
 
-		else if (NumEnemiesInFiveSectors( sMapX, sMapY ) > 0 &&
-				NumEnemiesInFiveSectors( sTMapX, sTMapY ) == 0 )
-		{
-			// Source sector is threatened, while destination is not. The group does not
-			// move at all, as it is already in a good position to defend.
-			return;
-		}
 		else
 		{
 			///////////////////////////////////////////////////////
@@ -565,6 +563,19 @@ void MoveMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, BOOL
 			// this ignores any of the possible options above.
 			if (gubManualRestrictMilitia[ SECTOR(sTMapX, sTMapY) ] == MANUAL_MOBILE_NO_LEAVE )
 			{
+				ubChanceToSpreadOut = 0;
+			}
+
+			
+			if (!gGameExternalOptions.gfAllowMilitiaSpread )
+			{
+				// Spreading is not allowed by user. Let them fill up the target sector.
+				ubChanceToSpreadOut = 0;
+			}
+			else if ( !gGameExternalOptions.gfAllowMilitiaSpreadWhenFollowing && PlayerMercsInSector_MSE( (UINT8) sTMapX, (UINT8) sTMapY, FALSE ) )
+			{
+				// There is a Player in targetsector or about to arrive, but spreading is not allowed by user.
+				// Let them fill up the target sector
 				ubChanceToSpreadOut = 0;
 			}
 		}
@@ -598,6 +609,13 @@ void MoveMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, BOOL
 			bRegularsDestTeam = bTotalRegulars - bRegularsSourceTeam;
 			bElitesDestTeam = bTotalElites - bElitesSourceTeam;
 
+			// Flugente: mobiles take along their gear
+			// move only gear for those who come new into a sector
+			UINT8 elites   = max(0, bElitesDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ ELITE_MILITIA ]);
+			UINT8 regulars = max(0, bRegularsDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ]);
+			UINT8 greens   = max(0, bGreensDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]);
+			MoveMilitiaEquipment(sMapX, sMapY, sTMapX, sTMapY, elites, regulars, greens);
+
 			// Erase ALL militia from both locations.
 			StrategicRemoveMilitiaFromSector( sMapX, sMapY, GREEN_MILITIA, pSectorInfo->ubNumberOfCivsAtLevel[ GREEN_MILITIA ] );
 			StrategicRemoveMilitiaFromSector( sMapX, sMapY, REGULAR_MILITIA, pSectorInfo->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] );
@@ -625,6 +643,13 @@ void MoveMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, BOOL
 
 			bElitesSourceTeam = pSectorInfo->ubNumberOfCivsAtLevel[ ELITE_MILITIA ];
 			bElitesDestTeam = bElitesSourceTeam / 2;
+
+			// Flugente: mobiles take along their gear
+			// move only gear for those who come new into a sector
+			UINT8 elites   = max(0, bElitesDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ ELITE_MILITIA ]);
+			UINT8 regulars = max(0, bRegularsDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ]);
+			UINT8 greens   = max(0, bGreensDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]);
+			MoveMilitiaEquipment(sMapX, sMapY, sTMapX, sTMapY, elites, regulars, greens);
 
 			// Add half team to target sector
 			StrategicAddMilitiaToSector( sTMapX, sTMapY, GREEN_MILITIA, bGreensDestTeam );
@@ -702,6 +727,13 @@ void MoveMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, BOOL
 				}
 			}
 
+			// Flugente: mobiles take along their gear
+			// move only gear for those who come new into a sector
+			UINT8 elites   = max(0, bElitesDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ ELITE_MILITIA ]);
+			UINT8 regulars = max(0, bRegularsDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ]);
+			UINT8 greens   = max(0, bGreensDestTeam - pTSectorInfo->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]);
+			MoveMilitiaEquipment(sMapX, sMapY, sTMapX, sTMapY, elites, regulars, greens);
+
 			// Erase ALL militia from both locations.
 			StrategicRemoveMilitiaFromSector( sMapX, sMapY, GREEN_MILITIA, pSectorInfo->ubNumberOfCivsAtLevel[ GREEN_MILITIA ] );
 			StrategicRemoveMilitiaFromSector( sMapX, sMapY, REGULAR_MILITIA, pSectorInfo->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] );
@@ -720,6 +752,9 @@ void MoveMilitiaSquad(INT16 sMapX, INT16 sMapY, INT16 sTMapX, INT16 sTMapY, BOOL
 		}
 		else
 		{
+			// Flugente: mobiles take along their gear
+			MoveMilitiaEquipment(sMapX, sMapY, sTMapX, sTMapY, pSectorInfo->ubNumberOfCivsAtLevel[ ELITE_MILITIA ], pSectorInfo->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ], pSectorInfo->ubNumberOfCivsAtLevel[ GREEN_MILITIA ]);
+
 			// Entire group moves from Source to Target, leaving no one behind.			
 			StrategicAddMilitiaToSector( sTMapX, sTMapY, GREEN_MILITIA, pSectorInfo->ubNumberOfCivsAtLevel[ GREEN_MILITIA ] );
 			StrategicAddMilitiaToSector( sTMapX, sTMapY, REGULAR_MILITIA, pSectorInfo->ubNumberOfCivsAtLevel[ REGULAR_MILITIA ] );
@@ -1456,7 +1491,7 @@ void UpdateMilitiaSquads(INT16 sMapX, INT16 sMapY )
 	// moving squad, if it is not a SAM site
 	if( ( fSourceCityAllowsRoaming ) && (!IsThisSectorASAMSector(	sMapX, sMapY, 0 )) )
 	{
-		if( !PlayerMercsInSector_MSE( (UINT8)sMapX, (UINT8)sMapY, FALSE ) ) // and there's no player's mercs in the sector
+		if( !gGameExternalOptions.gfAllowMilitiaFollowPlayer || !PlayerMercsInSector_MSE( (UINT8)sMapX, (UINT8)sMapY, FALSE ) ) // and there's no player's mercs in the sector, or they are not forced to follow
 		{
 			if( GetWorldHour() % 2 )return;
 
@@ -1475,6 +1510,9 @@ void UpdateMilitiaSquads(INT16 sMapX, INT16 sMapY )
 
 
 				//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Roll %ld", iRandomRes);
+
+				// Flugente: as I once broke this, allow me to explain this part. We've determined the 'urge' to move to an adjacent sector.
+				// We now see wether an adjacent sector is a worthy target to move to. If we do not find a vali target, we stop the movement function
 
 				iRandomRes = 256;
 
@@ -1537,6 +1575,9 @@ void UpdateMilitiaSquads(INT16 sMapX, INT16 sMapY )
 							pEnemyGroup->ubNextX = targetX;
 							pEnemyGroup->ubNextY = targetY;
 		*/
+						//Moa: handle deserters before moving in hostile territory
+						MobileMilitiaDeserters( targetX, targetY, TRUE, TRUE );
+
 							gfMSBattle = TRUE;
 
 			//				GroupArrivedAtSector( pEnemyGroup->ubGroupID , TRUE, FALSE );
@@ -1775,6 +1816,105 @@ void DoMilitiaHelpFromAdjacentSectors( INT16 sMapX, INT16 sMapY )
 	gfStrategicMilitiaChangesMade = FALSE;
 }
 
+// Flugente: order sNumber reinforcements from src sector to target sector
+BOOLEAN CallMilitiaReinforcements( INT16 sTargetMapX, INT16 sTargetMapY, INT16 sSrcMapX, INT16 sSrcMapY, UINT16 sNumber )
+{
+	UINT8 uiNumGreen = 0, uiNumReg = 0, uiNumElite = 0;
+	SECTORINFO *pSectorInfo = &( SectorInfo[ SECTOR( sTargetMapX, sTargetMapY ) ] );
+
+	guiDirNumber = 0;
+
+	UINT8 insertioncode = INSERTION_CODE_CENTER;
+	UINT8 movetype = THROUGH_STRATEGIC_MOVE;
+
+	// determine from which direction militia should enter (and exit if this isn't possible)
+	if ( sTargetMapX == sSrcMapX + 1 && sTargetMapY == sSrcMapY )
+	{
+		insertioncode = INSERTION_CODE_WEST;
+		movetype = EAST_STRATEGIC_MOVE;		
+	}
+	else if ( sTargetMapX == sSrcMapX - 1 && sTargetMapY == sSrcMapY )
+	{
+		insertioncode = INSERTION_CODE_EAST;
+		movetype = WEST_STRATEGIC_MOVE;
+	}
+	else if ( sTargetMapX == sSrcMapX && sTargetMapY == sSrcMapY + 1 )
+	{
+		insertioncode = INSERTION_CODE_NORTH;
+		movetype = SOUTH_STRATEGIC_MOVE;
+	}
+	else if ( sTargetMapX == sSrcMapX && sTargetMapY == sSrcMapY - 1 )
+	{
+		insertioncode = INSERTION_CODE_SOUTH;
+		movetype = NORTH_STRATEGIC_MOVE;
+	}
+	else
+	{
+		// no proper direction here... get out
+		return FALSE;
+	}
+
+	// test wether travel from src to target is possible ( we cannot open the src map information, we'll rely on the xml data instead
+	if( SectorInfo[ SECTOR(sSrcMapX,sSrcMapY) ].ubTraversability[ movetype ] == GROUNDBARRIER || SectorInfo[ SECTOR(sSrcMapX,sSrcMapY) ].ubTraversability[ movetype ] == EDGEOFWORLD )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Militia cannot traverse to this sector due to the terrain." );
+		return FALSE;
+	}
+
+	guiDirNumber = 0;
+		
+	ZeroMemory( gpAttackDirs, sizeof( gpAttackDirs ) );
+
+	gpAttackDirs[ guiDirNumber ][0] = uiNumGreen = pSectorInfo->ubNumberOfCivsAtLevel[GREEN_MILITIA];
+	gpAttackDirs[ guiDirNumber ][1] = uiNumReg = pSectorInfo->ubNumberOfCivsAtLevel[REGULAR_MILITIA];
+	gpAttackDirs[ guiDirNumber ][2] = uiNumElite = pSectorInfo->ubNumberOfCivsAtLevel[ELITE_MILITIA];
+	gpAttackDirs[ guiDirNumber ][3] = INSERTION_CODE_CENTER;
+
+	guiDirNumber = insertioncode + 1;
+	UINT16 sMilitiaMoved = 0;
+	while ( sMilitiaMoved < sNumber && CountMilitia(pSectorInfo ) < gGameExternalOptions.iMaxMilitiaPerSector && MoveOneBestMilitiaMan( sSrcMapX, sSrcMapY, sTargetMapX, sTargetMapY ) )
+	{
+		++sMilitiaMoved;
+
+		gpAttackDirs[ guiDirNumber ][0] += pSectorInfo->ubNumberOfCivsAtLevel[GREEN_MILITIA] - uiNumGreen;
+		gpAttackDirs[ guiDirNumber ][1] += pSectorInfo->ubNumberOfCivsAtLevel[REGULAR_MILITIA] - uiNumReg;
+		gpAttackDirs[ guiDirNumber ][2] += pSectorInfo->ubNumberOfCivsAtLevel[ELITE_MILITIA] - uiNumElite;
+		gpAttackDirs[ guiDirNumber ][3] = insertioncode;
+
+		uiNumGreen = pSectorInfo->ubNumberOfCivsAtLevel[GREEN_MILITIA];
+		uiNumReg = pSectorInfo->ubNumberOfCivsAtLevel[REGULAR_MILITIA];
+		uiNumElite = pSectorInfo->ubNumberOfCivsAtLevel[ELITE_MILITIA];
+	}
+
+	guiDirNumber = 5;
+
+	if ( !sMilitiaMoved )
+		return FALSE;
+
+	// we need to se this falg. If it wasn't set prior to this, we remove it again afterwards, otherwise all militia will join us if we are in combat
+	BOOLEAN wantreinforcements = (gTacticalStatus.uiFlags & WANT_MILITIA_REINFORCEMENTS);
+	gTacticalStatus.uiFlags |= WANT_MILITIA_REINFORCEMENTS;
+
+	if (is_networked)
+	{
+		if (gfStrategicMilitiaChangesMade)
+		{
+			RemoveMilitiaFromTactical();
+			if(is_server && gMilitiaEnabled == 1)
+				PrepareMilitiaForTactical(FALSE);
+		}
+	}
+	else
+		PrepareMilitiaForTactical(FALSE);
+
+	if ( !wantreinforcements )
+		gTacticalStatus.uiFlags &= ~WANT_MILITIA_REINFORCEMENTS;
+	
+	gfStrategicMilitiaChangesMade = FALSE;
+
+	return TRUE;
+}
+
 void MSCallBack( UINT8 ubResult )
 {
 	if( ubResult == MSG_BOX_RETURN_YES )
@@ -1841,333 +1981,13 @@ void MilitiaFollowPlayer( INT16 sMapX, INT16 sMapY, INT16 sDMapX, INT16 sDMapY )
 
 	MoveMilitiaSquad( sMapX, sMapY, sDMapX, sDMapY, FALSE );
 }
-// HEADROCK (HAM): New function to alter Restricted Roaming based on the recent capture of new towns. The area
-// around the town will be unrestricted, as well as some road sectors leading away from the town.
+
+
+// HEADROCK HAM 5: New flag tells us to also recheck restriced sectors.
+//Moa: changed the flag behavier - makes no sense to overwrite user settings, instead I reusing it to correct wrong values in old savegames.
 // This function runs during sector conquest checks, and only if an entire town has been conquered. It also
 // runs at day end, as well as on load/save.
-
-// HEADROCK HAM 3.4: This hardcoded function has been made obsolete by XML externalization.
-/*void AdjustRoamingRestrictions()
-{
-	if (!gGameExternalOptions.bDynamicRestrictRoaming)
-		return;
-
-	// to do: Add something to clean up the entire array before setting the flags...
-
-	if ( IsTownUnderCompleteControlByPlayer(DRASSEN) )
-	{
-		// DRASSEN OUTSKIRTS
-		gDynamicRestrictMilitia[SECTOR(12,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,5)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,5)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,5)] = true;
-
-		// SAM SITE DEFENSE
-		gDynamicRestrictMilitia[SECTOR(15,5)] = true;
-
-		// ROAD WEST TO OMERTA
-		gDynamicRestrictMilitia[SECTOR(9,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(11,2)] = true;
-
-		// ROAD SOUTH TO ALMA
-		gDynamicRestrictMilitia[SECTOR(12,6)] = true;
-
-		// HEADROCK HAM 3.3: Drassen SAM-Site (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(15,4)] = true;
-
-		// HEADROCK HAM 3.3: Drassen ITSELF (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(13,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,4)] = true;
-
-		// HEADROCK HAM 3.3: Forgot Omerta!
-		gDynamicRestrictMilitia[SECTOR(9,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,1)] = true;
-	
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(ALMA) )
-	{
-		// ALMA OUTSKIRTS
-		gDynamicRestrictMilitia[SECTOR(12,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(15,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(15,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,9)] = true;
-		gDynamicRestrictMilitia[SECTOR(15,9)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,10)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,10)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,10)] = true;
-		gDynamicRestrictMilitia[SECTOR(15,10)] = true;
-
-		// ROAD SOUTH
-		gDynamicRestrictMilitia[SECTOR(14,11)] = true;
-
-		// HEADROCK HAM 3.3: Alma ITSELF (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(13,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,9)] = true;
-		gDynamicRestrictMilitia[SECTOR(14,9)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(CHITZENA) )
-	{
-		// CHITZENA OUTSKIRTS
-		gDynamicRestrictMilitia[SECTOR(1,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(1,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(1,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(2,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,3)] = true;
-
-		// SAM SITE DEFENSE / ROAD SOUTH
-		gDynamicRestrictMilitia[SECTOR(3,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,5)] = true;
-
-		// HEADROCK HAM 3.3: Chitzena SAM-Site (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(2,4)] = true;
-
-		// HEADROCK HAM 3.3: Chitzena ITSELF (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(2,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(2,2)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(CAMBRIA) )
-	{
-		// CAMBRIA OUTSKIRTS
-		gDynamicRestrictMilitia[SECTOR(7,5)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,5)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,5)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,5)] = true;
-		gDynamicRestrictMilitia[SECTOR(7,6)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,6)] = true;
-		gDynamicRestrictMilitia[SECTOR(7,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(7,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,8)] = true;
-		
-		// SAM SITE DEFENSE
-		gDynamicRestrictMilitia[SECTOR(7,9)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,9)] = true;
-
-		// ROAD TO OMERTA
-		gDynamicRestrictMilitia[SECTOR(9,2)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,4)] = true;	
-
-		// CROSSROADS WEST
-		gDynamicRestrictMilitia[SECTOR(6,7)] = true;
-
-		// ROAD TO ALMA
-		gDynamicRestrictMilitia[SECTOR(11,7)] = true;
-
-		// HEADROCK HAM 3.3: Cambria SAM-Site (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(8,9)] = true;
-
-		// HEADROCK HAM 3.3: Cambria ITSELF (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(8,6)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,6)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,8)] = true;
-
-		// HEADROCK HAM 3.3: Forgot Omerta!
-		gDynamicRestrictMilitia[SECTOR(9,1)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,1)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(BALIME) )
-	{
-		// BALIME OUTSKIRTS
-		gDynamicRestrictMilitia[SECTOR(10,11)] = true;
-		gDynamicRestrictMilitia[SECTOR(11,11)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,11)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,11)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,12)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,12)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,13)] = true;
-		gDynamicRestrictMilitia[SECTOR(13,13)] = true;
-
-		// WEST ROAD
-		gDynamicRestrictMilitia[SECTOR(6,11)] = true;
-		gDynamicRestrictMilitia[SECTOR(7,11)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,11)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,11)] = true;
-
-		// SOUTH ROAD
-		gDynamicRestrictMilitia[SECTOR(8,14)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,14)] = true;
-		gDynamicRestrictMilitia[SECTOR(10,14)] = true;
-
-		// HEADROCK HAM 3.3: Balime ITSELF (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(11,12)] = true;
-		gDynamicRestrictMilitia[SECTOR(12,12)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(GRUMM) )
-	{
-		// GRUMM OUTSKIRTS
-		gDynamicRestrictMilitia[SECTOR(1,6)] = true;
-		gDynamicRestrictMilitia[SECTOR(2,6)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,6)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,9)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,9)] = true;
-
-		// ROAD NORTH
-		gDynamicRestrictMilitia[SECTOR(3,5)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,4)] = true;
-
-		// ROAD EAST
-		gDynamicRestrictMilitia[SECTOR(5,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(6,7)] = true;
-
-		// ROAD SOUTH
-		gDynamicRestrictMilitia[SECTOR(2,10)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,10)] = true;
-		gDynamicRestrictMilitia[SECTOR(2,11)] = true;
-
-		// HEADROCK HAM 3.3: Grumm ITSELF (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(1,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(2,7)] = true;
-		gDynamicRestrictMilitia[SECTOR(1,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(2,8)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,8)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(MEDUNA) )
-	{
-		// HEADROCK HAM 3.3: Meduna ITSELF (for reinforcement purposes)
-		gDynamicRestrictMilitia[SECTOR(3,14)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,14)] = true;
-		gDynamicRestrictMilitia[SECTOR(5,14)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,15)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,15)] = true;
-		gDynamicRestrictMilitia[SECTOR(3,16)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(DRASSEN) && IsTownUnderCompleteControlByPlayer(CHITZENA) )
-	{
-		// ROAD EAST OF SAN-MONA
-		gDynamicRestrictMilitia[SECTOR(7,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,3)] = true;
-	
-		// SAN MONA
-		gDynamicRestrictMilitia[SECTOR(5,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(6,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(5,4)] = true;
-	}	
-
-	if ( IsTownUnderCompleteControlByPlayer(CAMBRIA) && ( IsTownUnderCompleteControlByPlayer(CHITZENA) || IsTownUnderCompleteControlByPlayer(DRASSEN) ) )
-	{
-		// ROAD TO SAN MONA
-		gDynamicRestrictMilitia[SECTOR(7,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,3)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(CAMBRIA) && ( IsTownUnderCompleteControlByPlayer(DRASSEN) || IsTownUnderCompleteControlByPlayer(CHITZENA) || IsTownUnderCompleteControlByPlayer(GRUMM) ) )
-	{
-		// ROAD SOUTH-EAST OF SAN MONA
-		gDynamicRestrictMilitia[SECTOR(6,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(7,4)] = true;
-
-		// SAN MONA
-		gDynamicRestrictMilitia[SECTOR(5,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(6,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(5,4)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(ALMA) && ( IsTownUnderCompleteControlByPlayer(DRASSEN) || IsTownUnderCompleteControlByPlayer(CAMBRIA) ) )		
-	{
-		// ROAD WEST OF ALMA
-		gDynamicRestrictMilitia[SECTOR(11,7)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(CHITZENA) && ( IsTownUnderCompleteControlByPlayer(DRASSEN) || IsTownUnderCompleteControlByPlayer(CAMBRIA) || IsTownUnderCompleteControlByPlayer(GRUMM) ) )		
-	{
-		// SAN MONA
-		gDynamicRestrictMilitia[SECTOR(5,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(6,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(4,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(5,4)] = true;
-
-		// ROAD TO SAN MONA
-		gDynamicRestrictMilitia[SECTOR(7,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,3)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,3)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(CAMBRIA) && IsTownUnderCompleteControlByPlayer(ALMA) )
-	{
-		// ROAD EAST OF CAMBRIA
-		gDynamicRestrictMilitia[SECTOR(11,7)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(CAMBRIA) && ( IsTownUnderCompleteControlByPlayer(BALIME) || IsTownUnderCompleteControlByPlayer(GRUMM) || IsTownUnderCompleteControlByPlayer(ALMA) ) )
-	{
-		// UPGRADED SAM-SITE DEFENSE FOR CAMBRIA
-		gDynamicRestrictMilitia[SECTOR(7,10)] = true;
-		gDynamicRestrictMilitia[SECTOR(8,10)] = true;
-		gDynamicRestrictMilitia[SECTOR(9,10)] = true; // Tixa. Won't be accessible unless Minor Cities are allowed.
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(CAMBRIA) && IsTownUnderCompleteControlByPlayer(GRUMM) )
-	{
-		// ESTONI
-		gDynamicRestrictMilitia[SECTOR(6,8)] = true;
-
-		// ESTONI MOUNTAIN GATE
-		gDynamicRestrictMilitia[SECTOR(6,9)] = true;
-
-		// SOUTHEAST ROAD TO SAN MONA
-		gDynamicRestrictMilitia[SECTOR(6,4)] = true;
-		gDynamicRestrictMilitia[SECTOR(7,4)] = true;
-	}
-
-	if ( IsTownUnderCompleteControlByPlayer(BALIME) && IsTownUnderCompleteControlByPlayer(GRUMM) && IsTownUnderCompleteControlByPlayer(CAMBRIA) )
-	{
-		// GRUMM-CAMBRIA-BALIME ROAD
-		gDynamicRestrictMilitia[SECTOR(6,10)] = true;
-	}
-
-	// CONTROL ALL TOWNS?
-	if ( IsTownUnderCompleteControlByPlayer(BALIME) && IsTownUnderCompleteControlByPlayer(CAMBRIA) && IsTownUnderCompleteControlByPlayer(CHITZENA) && IsTownUnderCompleteControlByPlayer(DRASSEN) && IsTownUnderCompleteControlByPlayer(ALMA) && IsTownUnderCompleteControlByPlayer(GRUMM) )
-	{
-		// ROADS TO MEDUNA
-		gDynamicRestrictMilitia[SECTOR(6,12)] = true;	
-		gDynamicRestrictMilitia[SECTOR(7,14)] = true;
-		gDynamicRestrictMilitia[SECTOR(2,12)] = true;	
-
-		// MEDUNA OUTSKIRTS
-		gDynamicRestrictMilitia[SECTOR(2,13)] = true;	
-		gDynamicRestrictMilitia[SECTOR(3,13)] = true;	
-		gDynamicRestrictMilitia[SECTOR(4,13)] = true;	
-		gDynamicRestrictMilitia[SECTOR(5,13)] = true;	
-		gDynamicRestrictMilitia[SECTOR(6,13)] = true;
-		gDynamicRestrictMilitia[SECTOR(6,14)] = true;
-	}
-}*/
-
-void AdjustRoamingRestrictions()
+void AdjustRoamingRestrictions( BOOLEAN fRecheck )
 {
 	UINT32 uiCapturedTownsFlag = 0;
 	UINT16 cnt = 0;
@@ -2203,7 +2023,22 @@ void AdjustRoamingRestrictions()
 			}
 		}
 	}
-}
+
+	// HEADROCK HAM 5: All restricted sectors are checked to see they aren't manually-permitted.
+	//Moa: Dont ever touch user settings, player set the restrictions for a reason. Initialization allready in InitManualMobileRestrictions.
+	//dnl!!! However if we are loading an older save we might need to check the array for MANUAL_MOBILE_RESTRICTED and replace it with MANUAL_MOBILE_NO_ENTER
+	//actually this can be removed once there are no older savegames around :)
+	if (fRecheck)
+	{
+		for (cnt = 0; cnt < 256; cnt++)
+		{
+			if (gubManualRestrictMilitia[cnt] == MANUAL_MOBILE_RESTRICTED)
+			{
+				gubManualRestrictMilitia[cnt] = MANUAL_MOBILE_NO_ENTER;
+			}
+		}
+	}
+}			
 
 
 // HEADROCK HAM B2.7: This is a copy of an existing function that generates possible movement directions for militia.
@@ -2375,7 +2210,7 @@ BOOLEAN IsSectorRoamingAllowed( UINT32 uiSector )
 			}
 		}
 	}
-	// Please note that with exploration restrictions, an UNVISITED sector is not neccesarily RESTRICTED.
+	// Please note that with dynamic restrictions, an UNVISITED sector is not neccesarily RESTRICTED.
 
 	// XML-BASED RESTRICTION
 	// Is destination allowed by the Dynamic Restrictions Array?
@@ -2445,58 +2280,57 @@ UINT16 MilitiaUpgradeSlotsCheck( SECTORINFO * pSectorInfo )
 	return (usNumUpgradeSlots);
 }
 
+extern BOOLEAN SectorIsImpassable( INT16 sSector );
 // HEADROCK HAM 4: Returns whether sector is allowed for militia roaming, taking into account player-set restrictions.
 UINT8 ManualMobileMovementAllowed( UINT8 ubSector )
 {
-	BOOLEAN fRestricted = TRUE;
-
-	if (gGameExternalOptions.gflimitedRoaming)
-	{
-		if (gGameExternalOptions.fUnrestrictVisited)
-		{
-			// Has the sector ever been visited?
-			if ( SectorInfo[ ubSector ].fSurfaceWasEverPlayerControlled )
-			{
-				// Always return TRUE.
-				fRestricted = FALSE;
-			}
-		}
+	BOOLEAN fcheckManualSettings = FALSE;
 	
-		if(gGameExternalOptions.fDynamicRestrictRoaming)
+	//if no one can pass get out of here quick!
+	if ( SectorIsImpassable( ubSector ) )
+		return MANUAL_MOBILE_RESTRICTED;
+
+	if (gGameExternalOptions.gflimitedRoaming)//RESTRICT_ROAMING = TRUE
+	{
+		if ( SectorInfo[ ubSector ].fSurfaceWasEverPlayerControlled )// Has the sector ever been liberated?
 		{
-			if (gDynamicRestrictMilitia[ ubSector ] )
+			if (gGameExternalOptions.fUnrestrictVisited)//ALLOW_MILITIA_MOVEMENT_THROUGH_EXPLORED_SECTORS = TRUE
 			{
-				fRestricted = FALSE;
+				// Always check for manual restrictions.
+				fcheckManualSettings = TRUE;
+			} 
+			else if (gGameExternalOptions.fAllowMilitiaMoveThroughMinorCities)//ALLOW_MILITIA_MOVEMENT_THROUGH_MINOR_CITIES = TRUE
+			{
+				UINT8 townID = GetTownIdForSector( SECTORX(ubSector), SECTORY(ubSector) );
+				//this is a city and its a minor one where training is not allowed like San Mona, Tixa, Orta, Estoni, or Omerta?
+				if (townID != BLANK_SECTOR && !gfMilitiaAllowedInTown[townID])
+					fcheckManualSettings = TRUE;
 			}
 		}
+		if(gGameExternalOptions.fDynamicRestrictRoaming)//ALLOW_DYNAMIC_RESTRICTED_ROAMING = TRUE
+		{
+			fcheckManualSettings |= gDynamicRestrictMilitia[ ubSector ];
+		}
 	}
-	else
+	else//RESTRICT_ROAMING = FALSE
 	{
-		fRestricted = FALSE;
+		// No restrictions, militia is free to go (green)
+		return MANUAL_MOBILE_NO_RESTRICTION;
 	}
 
-	if (fRestricted)
+	if (fcheckManualSettings)
 	{
-		// Restricted roaming! Militia can't go here ever.
-		return (0);
+		// player has restricted manually (green,yellow,red)
+#ifdef JA2BETAVERSION
+		AssertGE(gubManualRestrictMilitia[ ubSector ],0);
+		AssertLE(gubManualRestrictMilitia[ ubSector ],3);
+#endif
+		return gubManualRestrictMilitia[ ubSector ];
 	}
 	else
 	{
-		if (gubManualRestrictMilitia[ ubSector ] == MANUAL_MOBILE_NO_ENTER )
-		{
-			// Player-restricted. Militia can potentially go here, if the player removed the restriction.
-			return (1);
-		}
-		else if (gubManualRestrictMilitia[ ubSector ] == MANUAL_MOBILE_NO_LEAVE )
-		{
-			// Militia allowed to enter, but not leave.
-			return (2);
-		}
-		else
-		{
-			// Roaming allowed.
-			return (3);
-		}
+		// Restricted roaming! Militia can't go here ever. (gray)
+		return MANUAL_MOBILE_RESTRICTED;
 	}
 }
 
@@ -2523,5 +2357,361 @@ void InitManualMobileRestrictions()
 		}
 		// By default, all other sectors are "go".
 		gubManualRestrictMilitia[x] = MANUAL_MOBILE_NO_RESTRICTION;
+	}
+}
+
+
+extern BOOLEAN IsMercOnTeam(UINT8 ubMercID);
+// @brief Calculates the contingent for mobile militia. 
+// Calculates current active mobile militia and compares to variable maximum limit which can be altered by external data.
+// @param printMessage Set to TRUE to get a screenmessage telling the player which maximum is reached. No message is generated when the maximum is not yet reached (<=100).
+// @return The current percentage (0% - 255%). If the feature is deactivated allways 0 is returned.
+UINT8 GetMobileMilitiaQuota( BOOLEAN printMessage )
+{
+	///////////////////////
+	// Check for maximum mobiles allowed
+	//
+	if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode > 1 )
+	{
+		//what we need to know
+		UINT16 iActiveMobiles = 0, iCurrentMax = 0;
+		UINT16 iTownSectorsUnderPlayerControl = 0, iTownSectorsLiberatedAtLeastOnce = 0;
+		UINT8 iTownsUnderPlayerControl = 0, iCurrentProgress = 0, iMaxProgress = 0, iNumRebelsInPlayerTeam = 0;
+
+		//temp values for sectors we gonna check
+		INT8 iCurrT_ID;
+		UINT16 iStrategicMapID, iSectorInfoID;
+		SECTORINFO *pSectorInfo;
+		
+		// start gathering data
+		if (gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 8U)		// check for TownsLiberated is active
+			for ( iCurrT_ID = 0; iCurrT_ID < NUM_TOWNS; iCurrT_ID++)	// for each town
+			{
+				if ( GetTownSectorsUnderControl( iCurrT_ID ) == GetTownSectorSize( iCurrT_ID ) )
+					iTownsUnderPlayerControl++;										// remember player has that town under control
+			}
+
+		for ( iSectorInfoID = 0; iSectorInfoID < 255; iSectorInfoID++)				// for each sector ...
+		{
+			iStrategicMapID = SECTOR_INFO_TO_STRATEGIC_INDEX(iSectorInfoID);
+			pSectorInfo = &( SectorInfo[ iSectorInfoID ] );
+			iCurrT_ID = StrategicMap[ iStrategicMapID ].bNameId;
+
+			if ( iCurrT_ID != BLANK_SECTOR )
+			{
+				// we have found a town (no sam site)
+
+				if ( StrategicMap[ iStrategicMapID ].fEnemyControlled == FALSE )
+					iTownSectorsUnderPlayerControl++;								// remember player currently controls that town sector
+
+				if ( pSectorInfo->fSurfaceWasEverPlayerControlled == TRUE )
+					iTownSectorsLiberatedAtLeastOnce++;								// remember player had allready liberated that town sector once
+
+				if ( MilitiaTrainingAllowedInTown( iCurrT_ID ) == FALSE )	// considered as mobile only if in that town training is taboo (Tixa, Omerta..)
+					iActiveMobiles += CountMilitia( pSectorInfo );
+					//for ( UINT8 militiaLevel = 0; militiaLevel < MAX_MILITIA_LEVELS; militiaLevel++ )
+					//	iActiveMobiles += pSectorInfo->ubNumberOfCivsAtLevel[ militiaLevel ];	// remember number of roaming militia in that town sector (green, regular, elite, ..)
+			}
+			
+			//else if ( StrategicMap[ iStrategicMapID ].bSAMCondition > 0 ) //faster then below, but not safe
+			else if ( MilitiaTrainingAllowedInSector( SECTORX(iSectorInfoID), SECTORY(iSectorInfoID), 0 ) == FALSE ) 
+			{
+				// we are in wilderness
+
+				//for ( UINT8 militiaLevel = 0; militiaLevel < MAX_MILITIA_LEVELS; militiaLevel++ )
+				//		iActiveMobiles += pSectorInfo->ubNumberOfCivsAtLevel[ militiaLevel ];	// remember number of roaming militia in that sector (green, regular, elite, ..)
+				iActiveMobiles += CountMilitia( pSectorInfo );
+			}
+		}
+		
+		if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 64U )				// check for rebels in player team is active
+		{
+			if ( gProfilesRPC != NULL )
+			{
+				UINT16 rebelStructSize = sizeof ( gProfilesRPC );
+				for (UINT16 rebelPC = 0; rebelPC < rebelStructSize; rebelPC++)
+				{
+					if ( IsMercOnTeam ( gProfilesRPC[ rebelPC ].ProfilId ) ) iNumRebelsInPlayerTeam++;
+				}
+			}
+			//if ( IsMercOnTeam ( IRA ) ) iNumRebelsInPlayerTeam++;
+			//if ( IsMercOnTeam ( DIMITRI ) ) iNumRebelsInPlayerTeam++;
+			//if ( IsMercOnTeam ( CARLOS ) ) iNumRebelsInPlayerTeam++;
+			//if ( IsMercOnTeam ( MIGUEL ) ) iNumRebelsInPlayerTeam++;
+			//if ( IsMercOnTeam ( DYNAMO ) ) iNumRebelsInPlayerTeam++;
+			//if ( IsMercOnTeam ( ENRICO ) ) iNumRebelsInPlayerTeam++;
+		}
+		
+		if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 16U )				// check for current progress is active
+			iCurrentProgress = CurrentPlayerProgressPercentage();
+		if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 32U )				// check for max progress is active
+			iMaxProgress = HighestPlayerProgressPercentage();
+		//end gathering data
+		/////////////////////
+		// calc maximum (note: the modifier was initilized allready with MOBILE_MILITIA_MAX_ACTIVE_MODIFIER * MAX_MILITIA_PER_SECTOR)
+		UINT8 iModeMatch = 0;	//takes the mode which matches the maximum used in order to build a message later on (0=no match 1..6)
+		UINT16 iCalc;
+		if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 128U )				// we are using the highest value
+		{
+			iCurrentMax = 0;
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 2U )			// check for town sectors under player control is active
+			{
+				iCalc = (UINT16) ( iTownSectorsUnderPlayerControl * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier );
+				if ( iCurrentMax <= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 1;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 4U )			// check for town sectors liberated at least once is active
+			{
+				iCalc = (UINT16) (iTownSectorsLiberatedAtLeastOnce * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier );
+				if ( iCurrentMax <= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 2;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 8U )
+			{
+				iCalc = (UINT16) (iTownsUnderPlayerControl * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 3 );
+				if ( iCurrentMax <= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 3;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 16U )
+			{
+				iCalc = (UINT16) (iCurrentProgress * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 20 / 100 );
+				if ( iCurrentMax <= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 4;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 32U )
+			{
+				iCalc = (UINT16) (iMaxProgress * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 20 / 100 );
+				if ( iCurrentMax <= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 5;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 64U )
+			{
+				iCalc = (UINT16) (iNumRebelsInPlayerTeam * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 3 );
+				if ( iCurrentMax <= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 6;
+				}
+			}
+		}
+		else	// we are using lowest value
+		{
+			iCurrentMax = (UINT16) -1;
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 2U )
+			{
+				iCalc = (UINT16) ( iTownSectorsUnderPlayerControl * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier );
+				if ( iCurrentMax >= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 1;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 4U )
+			{
+				iCalc = (UINT16) (iTownSectorsLiberatedAtLeastOnce * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier );
+				if ( iCurrentMax >= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 2;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 8U )
+			{
+				iCalc = (UINT16) (iTownsUnderPlayerControl * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 3 );
+				if ( iCurrentMax >= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 3;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 16U )
+			{
+				iCalc = (UINT16) (iCurrentProgress * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 20 / 100 );
+				if ( iCurrentMax >= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 4;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 32U )
+			{
+				iCalc = (UINT16) (iMaxProgress * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 20 / 100 );
+				if ( iCurrentMax >= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 5;
+				}
+			}
+			if ( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 64U )
+			{
+				iCalc = (UINT16) (iNumRebelsInPlayerTeam * gGameExternalOptions.gfpMobileMilitiaMaxActiveModifier * 3 );
+				if ( iCurrentMax >= iCalc )
+				{
+					iCurrentMax = iCalc;
+					iModeMatch = 6;
+				}
+			}
+		}
+		/////////////////////
+		//Notify player
+		if ( iActiveMobiles >= iCurrentMax )
+		{	
+			if ( printMessage && iModeMatch > 0 )//fail safe to avoid in-buffer == out-buffer
+			{
+				// providing feedback why player cant train more.
+				CHAR16 sString[200];
+				swprintf( sString, pMilitiaConfirmStrings[15], iActiveMobiles, iCurrentMax, pMilitiaConfirmStrings[15 + iModeMatch] );//We reached maximum (..active../..max..)..make this..to do sth
+				//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, sString );
+				DoScreenIndependantMessageBox(sString, MSG_BOX_FLAG_OK, NULL);
+			}
+		}
+		return ( iCurrentMax == 0 ? 255 : (iActiveMobiles * 100 / iCurrentMax) );
+		//return ( iCurrentMax == 0 ? 255 : max( 255, (iActiveMobiles * 100 / iCurrentMax) ) );
+
+	}//end check for maximum mobile militia allowed
+
+	return 0;
+}
+
+
+//@brief Checks for militia quota and removes randomly some of militia if there are too many.
+// Deserting works only if the feature is enabled and the sector is threatened by an adjacent enemy presence.
+// The chance to generate deserters raises with the quota.
+//@param sMapX, sMapY Strategic sector coordinate which will be checked.
+//@param fDeleteEquipment If the militia has any equipment it will be deleted when he is a deserter.
+//@param fPrintMessage Notifies player that some militia have deserted.
+//@auth Moa
+void MobileMilitiaDeserters(INT16 sMapX, INT16 sMapY, BOOLEAN fDeleteEquip, BOOLEAN fPrintMessage)
+{
+	// if more then allowed mobiles are active some of them will desert (green and only some regulars, elites will never desert)
+	UINT8 desertersGreen = 0, desertersRegular = 0;
+	BOOLEAN enemiesNear = FALSE;
+
+	// feature not activated, return
+	if (!( gGameExternalOptions.gbMobileMilitiaMaxActiveMode & 1U ) )
+		return;
+
+	// Training allowed here therefore not a sector for mobile militia, return
+	if ( gfMilitiaAllowedInTown [ GetTownIdForSector( sMapX, sMapY ) ] )
+		return;
+
+	// This is a SAM site therefore no mobile militia here, return
+	if (IsThisSectorASAMSector( sMapX, sMapY, 0 ))
+		return;
+
+	///////////////////////
+	// check enemy presence to decide if mobiles are threatened and some will desert.
+	// Note: cant use NumEnemiesInFiveSectors() as it does not work for omerta or when reinforcements are deactivated, also it uses generateDirectionInfo(), which is used for militia movement.
+	UINT8 eAdmins = 0, eTroops = 0, eElites = 0;
+	
+	//enemies in current sector
+	GetNumberOfEnemiesInSector( sMapX, sMapY, &eAdmins, &eTroops, &eElites );
+	if ( (eAdmins > 0) || (eTroops > 0) ||(eElites > 0) )
+		enemiesNear = TRUE;
+
+	if ( ( sMapX > MINIMUM_VALID_X_COORDINATE ) && !enemiesNear )
+	{
+		//left side
+		GetNumberOfEnemiesInSector( sMapX - 1, sMapY, &eAdmins, &eTroops, &eElites );
+		if ( (eAdmins > 0) || (eTroops > 0) ||(eElites > 0) )
+			enemiesNear = TRUE;
+	}
+	if ( ( sMapX < MAXIMUM_VALID_X_COORDINATE ) && !enemiesNear)
+	{
+		//right side
+		GetNumberOfEnemiesInSector( sMapX + 1, sMapY, &eAdmins, &eTroops, &eElites );
+		if ( (eAdmins > 0) || (eTroops > 0) ||(eElites > 0) )
+			enemiesNear = TRUE;
+	}
+	if ( ( sMapY > MINIMUM_VALID_Y_COORDINATE ) && !enemiesNear )
+	{
+		//top side
+		GetNumberOfEnemiesInSector( sMapX, sMapY - 1, &eAdmins, &eTroops, &eElites );
+		if ( (eAdmins > 0) || (eTroops > 0) ||(eElites > 0) )
+			enemiesNear = TRUE;
+	}
+	if ( ( sMapY < MAXIMUM_VALID_Y_COORDINATE ) && !enemiesNear)
+	{
+		//bottom side
+		GetNumberOfEnemiesInSector( sMapX, sMapY + 1, &eAdmins, &eTroops, &eElites );
+		if ( (eAdmins > 0) || (eTroops > 0) ||(eElites > 0) )
+			enemiesNear = TRUE;
+	}
+
+	/////////////////////////
+	//calc number of deserters
+	if ( enemiesNear )		//if deserting feature is active, this is a sector where mobile militia is allowed and there is a threat at target
+	{
+		UINT8 quota = GetMobileMilitiaQuota( FALSE );
+
+		if (quota > 100)	//more active then allowed
+		{
+			UINT8 militiaGreen = SectorInfo[ SECTOR( sMapX, sMapY) ].ubNumberOfCivsAtLevel[ GREEN_MILITIA ];
+			UINT8 militiaRegular = SectorInfo[ SECTOR( sMapX, sMapY) ].ubNumberOfCivsAtLevel[ REGULAR_MILITIA ];
+
+			desertersGreen = (quota - 100) * militiaGreen / 100;
+			desertersGreen = Random( min( militiaGreen, desertersGreen ) );//cant remove more then actually exist in that group
+
+			desertersRegular = (quota - 100) * militiaRegular / 200;
+			desertersRegular = Random( min ( militiaRegular, desertersRegular ) );
+		}
+	}
+
+	////////////////////////
+	//remove militia
+	if ( desertersRegular + desertersGreen > 0 )
+	{
+		StrategicRemoveMilitiaFromSector( sMapX, sMapY, GREEN_MILITIA, desertersGreen );
+		StrategicRemoveMilitiaFromSector( sMapX, sMapY, REGULAR_MILITIA, desertersRegular );
+
+		///////////////////////////
+		//remove equipment
+		if ( fDeleteEquip && gGameExternalOptions.fMilitiaUseSectorInventory)
+		{
+			SOLDIERCREATE_STRUCT trashIt;
+			UINT8 cnt = desertersGreen;
+			while ( cnt > 0 )
+			{
+				TakeMilitiaEquipmentfromSector( sMapX, sMapY, 0, &trashIt, SOLDIER_CLASS_GREEN_MILITIA);
+				cnt--;
+			}
+			cnt = desertersRegular;
+			while ( cnt > 0 )
+			{
+				TakeMilitiaEquipmentfromSector( sMapX, sMapY, 0, &trashIt, SOLDIER_CLASS_REG_MILITIA);
+				cnt--;
+			}
+		}
+
+		///////////////////////////
+		//notify player
+		if ( fPrintMessage )
+		{
+			CHAR16 sSector[16];
+			GetShortSectorString( sMapX, sMapY, sSector );
+
+			//using screen message to have it logged. Cant use msgBox as it prevents showing the autoresolve screen.
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMilitiaConfirmStrings[ 22 ], ( desertersRegular + desertersGreen ), sSector );
+		}
+	}
+	//clean up
+	if (gfStrategicMilitiaChangesMade)
+	{
+		ResetMilitia();
 	}
 }

@@ -4,6 +4,7 @@
 #include "handle UI.h"
 #include "mousesystem.h"
 #include "structure.h"
+#include "Assignments.h"		// added by Flugente for the stat-enums
 
 #define		MAX_UICOMPOSITES				4
 
@@ -61,7 +62,7 @@ typedef struct
 
 } ENEMY_RANK_VALUES;
 
-extern ENEMY_RANK_VALUES zEnemyRank[500];
+extern ENEMY_RANK_VALUES zEnemyRank[20];
 
 typedef struct
 {
@@ -87,8 +88,127 @@ typedef struct
 
 extern CIV_NAMES_VALUES zCivGroupName[NUM_CIV_GROUPS];
 
-// anv: enums for externalised taunts
+// Flugente: soldier profiles
+typedef struct
+{
+	UINT16		uiIndex;
+	CHAR16		szName[MAX_ENEMY_NAMES_CHARS];
+	UINT8		uiBodyType;
+	UINT8		uiHair;
+	UINT8		uiSkin;
+	UINT8		uiTrait[3];	
+	UINT32		uiFlags;
+} SOLDIER_PROFILE_VALUES;
+
+#define NUM_SOLDIER_PROFILES 300
+
+extern SOLDIER_PROFILE_VALUES zSoldierProfile[6][NUM_SOLDIER_PROFILES];
+
+extern UINT16 num_found_soldier_profiles[6];	// the correct number is set on reading the xml
+extern UINT16 num_found_profiles;		// a helper variable during reading xmls
+
+// Flugente: backgrounds
+// enums for backgrounds
 enum {
+	// sector dependent AP modifiers
+	BG_POLAR,		// not used ingame (yet?)
+	BG_DESERT,
+	BG_SWAMP,
+	BG_URBAN,
+	BG_RIVER,
+	BG_TROPICAL,
+	BG_COASTAL,
+	BG_MOUNTAIN,
+
+	// stat effectiveness modifiers
+	BG_AGILITY,
+	BG_DEXTERITY,
+	BG_STRENGTH,
+	BG_LEADERSHIP,
+	BG_MARKSMANSHIP,
+	BG_MECHANICAL,
+	BG_EXPLOSIVE_ASSIGN,
+	BG_MEDICAL,
+	BG_WISDOM,
+
+	// ap modifiers for non-sector related tasks
+	BG_HEIGHT,
+	BG_SWIMMING,
+	BG_FORTIFY,
+	BG_ARTILLERY,
+	BG_INVENTORY,
+	BG_AIRDROP,
+	BG_ASSAULT,
+
+	// travel speed modifiers
+	BG_TRAVEL_FOOT,
+	BG_TRAVEL_CAR,
+	BG_TRAVEL_AIR,
+	BG_TRAVEL_BOAT,
+
+	// resistances
+	BG_RESI_POISON,
+	BG_RESI_FEAR,
+	BG_RESI_SUPPRESSION,
+	BG_RESI_PHYSICAL,
+	BG_RESI_ALCOHOL,
+
+	// various
+	BG_PERC_INTERROGATION,
+	BG_PERC_GUARD,
+	BG_PERC_PRICES_GUNS,
+	BG_PERC_PRICES,
+	BG_PERC_CAPITULATION,
+	BG_PERC_SPEED_RUNNING,
+	BG_PERC_BANDAGING,
+	BG_PERC_REGEN_ENERGY,
+	BG_PERC_CARRYSTRENGTH,
+	BG_PERC_FOOD,
+	BG_PERC_WATER,
+	BG_PERC_SLEEP,
+	BG_PERC_DAMAGE_MELEE,
+	BG_PERC_CTH_BLADE,
+	BG_PERC_CAMO,
+	BG_PERC_STEALTH,
+	BG_PERC_CTH_MAX,
+	BG_PERC_HEARING_NIGHT,
+	BG_PERC_HEARING_DAY,
+	BG_TRAP_DISARM,
+
+	// approaches
+	BG_PERC_APPROACH_FRIENDLY,
+	BG_PERC_APPROACH_DIRECT,
+	BG_PERC_APPROACH_THREATEN,
+	BG_PERC_APPROACH_RECRUIT,
+
+	// various
+	BG_BONUS_BREACHINGCHARGE,
+	BG_PERC_CTH_CREATURE,
+	BG_PERC_INSURANCE,
+	BG_PERC_SPOTTER,
+
+	BG_MAX,
+};
+
+typedef struct
+{
+	UINT16		uiIndex;
+	CHAR16		szName[MAX_ENEMY_NAMES_CHARS];	// name of a background etc.
+	CHAR16		szShortName[20];				// abbreviated name for laptop display
+	CHAR16		szDescription[256];				// description of background, should explain the abilities
+
+	UINT64		uiFlags;						// this flagmask defines what speial properties this background has (on/off behaviour)	
+	INT16		value[BG_MAX];					// property values
+} BACKGROUND_VALUES;
+
+#define NUM_BACKGROUND 500
+
+extern BACKGROUND_VALUES zBackground[NUM_BACKGROUND];
+
+extern UINT16 num_found_background;		// the correct number is set on reading the xml
+
+// anv: enums for externalised taunts
+enum TAUNTPROPERTY{
 
 	// progress
 	TAUNT_PROGRESS_LT,
@@ -139,6 +259,9 @@ enum {
 	// taunt target's profile
 	TAUNT_TARGET_MERC_PROFILE,
 
+	// which merc quote should be riposted
+	TAUNT_RIPOSTE_QUOTE,
+
 	TAUNT_MAX,
 };
 
@@ -146,7 +269,9 @@ typedef struct
 {
 	UINT16		uiIndex;
 	CHAR16		szText[320];
+	CHAR16		szCensoredText[320];
 	UINT64		uiFlags;
+	UINT64		uiFlags2;
 	INT16		value[TAUNT_MAX];
 
 } TAUNT_VALUES;
@@ -235,6 +360,7 @@ extern UINT32		guiCOMPANEL;
 extern UINT32		guiCOMPANELB;
 extern UINT32		guiRADIO;
 extern UINT32		guiPORTRAITICONS;		// Default JA2 portrait icons (+ additional headgear icons from legion)
+extern UINT32		guiASSIGNMENTICONS;		// Flugente: icons for assignments
 extern UINT32		guiBURSTACCUM;
 extern UINT32		guiITEMPOINTERHATCHES;
 
@@ -398,7 +524,26 @@ void BeginMultiPurposeLocator( INT32 sGridNo, INT8 bLevel, BOOLEAN fSlideTo );
 void HandleMultiPurposeLocator( );
 void RenderTopmostMultiPurposeLocator( );
 
+// sevenfm: draw lines in health bar
+void DrawBar( INT32 x, INT32 y, INT32 width, INT32 height, UINT16 color8, UINT16 color16, UINT8 *pDestBuf );
+// draw health bar over enemy
+void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLines, INT32 iBarWidth, INT32 iBarHeight );
+// get cover display code from cover value
+BOOLEAN CoverColorCode( INT8 cover, INT16 &color8, INT16 &color16 );
+void DrawRankIcon( INT8 rank, INT32 baseX, INT32 baseY );
+void DrawLine( INT32 x1, INT32 y1, INT32 x2, INT32 y2, UINT16 color8, UINT16 color16, UINT8 *pDestBuf );
 
+//sevenfm: draw additional info for NCTH indicator
+void DrawItemPic( INVTYPE *pItem, INT16 sX, INT16 sY );
+void GetItemDimensions( INVTYPE *pItem, INT16 &sWidth, INT16 &sHeight );
+BOOLEAN ShowExactInfo( SOLDIERTYPE* pSoldier, SOLDIERTYPE* pTargetSoldier );
+void DrawNCTHCursorItemPics( INT16 sStartScreenX, INT16 sStartScreenY  );
 
+void GetEnemyInfoString( SOLDIERTYPE* pSelectedSoldier, SOLDIERTYPE* pTargetSoldier, BOOLEAN showExactInfo, CHAR16 *NameStr );
+
+void ShowEnemyWeapon( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier );
+void ShowAdditionalInfo( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier );
+void ShowRankIcon( INT16 sXPos, INT16 sYPos, SOLDIERTYPE* pSoldier );
+void ShowEnemyHealthBar( INT16 sX, INT16 sY, SOLDIERTYPE* pSoldier );
 
 #endif

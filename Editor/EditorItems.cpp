@@ -43,6 +43,7 @@
 	#include "Pits.h"
 	#include "keys.h"
 	#include "InterfaceItemImages.h"
+	#include "Editor Undo.h"//dnl ch86 220214
 #endif
 
 #include <vfs/Tools/vfs_log.h>
@@ -207,6 +208,9 @@ void EntryInitEditorItemsInfo()
 					else
 						eInfo.sNumEquipment3++;
 					break;
+				case IC_RANDOMITEM:
+					eInfo.sNumRandomItems++;
+					break;
 				//case IC_KEY:
 				//	eInfo.sNumKeys++;
 				//	break;
@@ -226,12 +230,12 @@ void InitEditorItemsInfo(UINT32 uiItemType)
 	HVOBJECT hVObject;
 	UINT32 uiVideoObjectIndex;
 	UINT16 usUselessWidth, usUselessHeight;
-	INT16 sWidth, sOffset, sStart;
-	INT16 i, x, y;
+	INT32 sWidth, sOffset, sStart;
+	INT32 i, x, y;
 	UINT16 usCounter;
 	CHAR16 pStr[ 100 ];//, pStr2[ 100 ];
 	CHAR16 pItemName[SIZE_ITEM_NAME];
-	UINT8						ubBitDepth;
+	UINT8 ubBitDepth;
 	BOOLEAN fTypeMatch;
 	INT32 iEquipCount = 0;
 
@@ -310,13 +314,18 @@ void InitEditorItemsInfo(UINT32 uiItemType)
 			eInfo.sScrollIndex = eInfo.sSaveKeysScrollIndex;
 			eInfo.sSelItemIndex = eInfo.sSaveSelKeysIndex;
 			break;
+		case TBAR_MODE_ITEM_RANDOMITEM:
+			eInfo.sNumItems = eInfo.sNumRandomItems;
+			eInfo.sScrollIndex = eInfo.sSaveRandomItemScrollIndex;
+			eInfo.sSelItemIndex = eInfo.sSaveSelRandomItemIndex;
+			break;
 		default:
 			//error
 			return;
 	}
 	//Allocate memory to store all the item pointers.
-	eInfo.pusItemIndex = (UINT16*)MemAlloc( sizeof(UINT16) * eInfo.sNumItems );
-
+	if(eInfo.sNumItems)//dnl ch78 271113
+		eInfo.pusItemIndex = (UINT16*)MemAlloc( sizeof(UINT16) * eInfo.sNumItems );
 	//Disable the appropriate scroll buttons based on the saved scroll index if applicable
 	//Left most scroll position
 	DetermineItemsScrolling();
@@ -324,7 +333,7 @@ void InitEditorItemsInfo(UINT32 uiItemType)
 	//every pair of items (odd rounded up) requires 60 pixels for width.
 	//the minimum buffer size is 420.	Height is always 80 pixels.
 
-	eInfo.sWidth = (eInfo.sNumItems > 12) ? ((eInfo.sNumItems+1)/2)*60 : SCREEN_HEIGHT - 120;
+	eInfo.sWidth = (eInfo.sNumItems > 12) ? (((INT32) eInfo.sNumItems+1)/2)*60 : 360;//dnl ch77 251113 was (SCREEN_HEIGHT - 120) but editor crash if resolution is 1024x768
 	eInfo.sHeight = 80;
 	// Create item buffer
 	GetCurrentVideoSettings( &usUselessWidth, &usUselessHeight, &ubBitDepth );
@@ -472,6 +481,9 @@ void InitEditorItemsInfo(UINT32 uiItemType)
 					else
 						fTypeMatch = eInfo.uiItemType == TBAR_MODE_ITEM_EQUIPMENT3;
 					iEquipCount++;
+					break;
+				case IC_RANDOMITEM:
+					fTypeMatch = eInfo.uiItemType == TBAR_MODE_ITEM_RANDOMITEM;
 					break;
 			}
 			if( fTypeMatch )
@@ -666,22 +678,34 @@ void RenderEditorItemsInfo()
 			}
 		}
 	}
-	//draw the numbers of each visible item that currently resides in the world.
+	//draw item index no & the numbers of each visible item that currently resides in the world.
 	maxIndex = min( maxIndex, eInfo.sNumItems-1 );
 	for( i = minIndex; i <= maxIndex; i++ )
 	{
+		x = iScreenWidthOffset + (i/2 - eInfo.sScrollIndex)*60 + 110;
+		y = 2 * iScreenHeightOffset + 360 + (i % 2) * 40;
+		SetFont( BLOCKFONTNARROW );
+		SetFontForeground( FONT_LTGREEN );
+		SetFontShadow( FONT_NEARBLACK );
+		
+		// item index no
+		mprintf( x + 12, y + 18, L"%d", eInfo.pusItemIndex[ i ] );
+
+		// index no within usItemClass
+		SetFontForeground( FONT_LTBLUE );
+		mprintf( x + 40, y + 18, L"%d", i );
+
+		// numbers of each visible item
 		usNumItems = CountNumberOfEditorPlacementsInWorld( i, &usQuantity );
+
 		if( usNumItems )
 		{
-			x = iScreenWidthOffset + (i/2 - eInfo.sScrollIndex)*60 + 110;
-			y = 2 * iScreenHeightOffset + 360 + (i % 2) * 40;
 			SetFont( FONT10ARIAL );
 			SetFontForeground( FONT_YELLOW );
-			SetFontShadow( FONT_NEARBLACK );
 			if( usNumItems == usQuantity )
-				mprintf( x + 12, y + 4, L"%d", usNumItems );
+				mprintf( x + 10, y + 4, L"%d", usNumItems );
 			else
-				mprintf( x + 12, y + 4, L"%d(%d)", usNumItems, usQuantity );
+				mprintf( x + 10, y + 4, L"%d(%d)", usNumItems, usQuantity );
 		}
 	}
 }
@@ -746,6 +770,10 @@ void ClearEditorItemsInfo()
 		case TBAR_MODE_ITEM_KEYS:
 			eInfo.sSaveSelKeysIndex = eInfo.sSelItemIndex;
 			eInfo.sSaveKeysScrollIndex = eInfo.sScrollIndex;
+			break;
+		case TBAR_MODE_ITEM_RANDOMITEM:
+			eInfo.sSaveSelRandomItemIndex = eInfo.sSelItemIndex;
+			eInfo.sSaveRandomItemScrollIndex = eInfo.sScrollIndex;
 			break;
 	}
 }
@@ -817,7 +845,7 @@ void ShowItemCursor( INT32 iMapIndex )
 	pNode = gpWorldLevelData[ iMapIndex ].pTopmostHead;
 	while( pNode )
 	{
-		if( pNode->usIndex == SELRING )
+		if( pNode->usIndex == SELRING1 )//dnl ch86 240214
 			return;
 		pNode = pNode->pNext;
 	}
@@ -864,11 +892,27 @@ void AddSelectedItemToWorld( INT32 sGridNo )
 
 	if( eInfo.uiItemType == TBAR_MODE_ITEM_KEYS )
 	{
-		CreateKeyObject( &gTempObject, 1, (UINT8)eInfo.sSelItemIndex );
+		if ( fEditorCreateItemFromKeyboard )
+		{		
+			CreateKeyObject( &gTempObject, 1, (UINT8)usEditorTempItem );
+			fEditorCreateItemFromKeyboard = FALSE;
+		}
+		else
+			CreateKeyObject( &gTempObject, 1, (UINT8)eInfo.sSelItemIndex );
 	}
 	else
 	{
-		CreateItem( eInfo.pusItemIndex[eInfo.sSelItemIndex], 100, &gTempObject );
+		if ( fEditorCreateItemFromKeyboard )
+		{		
+			CreateItem( usEditorTempItem, 100, &gTempObject );
+			fEditorCreateItemFromKeyboard = FALSE;
+		}
+		else
+		{
+			if(!eInfo.pusItemIndex)//dnl ch74 181013
+				return;
+			CreateItem( eInfo.pusItemIndex[eInfo.sSelItemIndex], 100, &gTempObject );
+		}
 	}
 	usFlags = 0;
 	switch( gTempObject.usItem )
@@ -939,6 +983,8 @@ void AddSelectedItemToWorld( INT32 sGridNo )
 			break;
 	}
 
+	ITEM_POOL *pItemPoolOld;
+	GetItemPoolFromGround(sGridNo, &pItemPoolOld);//dnl ch86 220214
 	pObject = InternalAddItemToPool( &sGridNo, &gTempObject, bVisibility, 0, usFlags, 0, -1, &iItemIndex );
 	if( gTempObject.usItem != OWNERSHIP )
 	{
@@ -964,7 +1010,10 @@ void AddSelectedItemToWorld( INT32 sGridNo )
 	else
 	{
 		if(gTempObject.usItem != OWNERSHIP)//dnl ch35 110909
+		{
 			(*pObject)[0]->data.objectStatus = (INT8)(70 + Random( 26 ));
+			(*pObject)[0]->data.sRepairThreshold = max(1, min(100, (100 + (*pObject)[0]->data.objectStatus)/2 ));
+		}
 	}
 	if( pItem->usItemClass & IC_GUN )
 	{
@@ -980,6 +1029,7 @@ void AddSelectedItemToWorld( INT32 sGridNo )
 
 	if( !GetItemPoolFromGround( sGridNo, &pItemPool ) )
 		Assert( 0 );
+	UpdateItemPoolInUndoList(sGridNo, pItemPoolOld, pItemPool);//dnl ch86 220214
 	while( pItemPool )
 	{
 		if( &(gWorldItems[ pItemPool->iItemIndex ].object) == pObject )
@@ -1076,7 +1126,7 @@ void DeleteSelectedItem()
 {
 	SpecifyItemToEdit( NULL, -1 );
 	//First, check to see if there even is a currently selected item.
-	if( iCurrentTaskbar == TASK_MERCS )
+	if( gsSelectedMercID != -1 )//dnl ch86 220214
 	{
 		DeleteSelectedMercsItem();
 		return;
@@ -1101,9 +1151,20 @@ void DeleteSelectedItem()
 		if( gpEditingItemPool == gpItemPool )
 			gpEditingItemPool = NULL;
 		RemoveItemFromPool( sGridNo, gpItemPool->iItemIndex, 0 );
+#if 0//dnl ch86 220214
 		gpItemPool = NULL;
 		//determine if there are still any items at this location
-		if( !GetItemPoolFromGround( sGridNo, &gpItemPool ) )
+		if( GetItemPoolFromGround( sGridNo, &gpItemPool ) )
+#else
+		ITEM_POOL *pItemPoolOld = gpItemPool;
+		GetItemPoolFromGround(sGridNo, &gpItemPool);
+		UpdateItemPoolInUndoList(sGridNo, pItemPoolOld, gpItemPool);
+		if(gpItemPool)
+#endif
+		{ //reset display for remaining items
+			SpecifyItemToEdit( &gWorldItems[ gpItemPool->iItemIndex ].object, gpItemPool->sGridNo );
+		}
+		else
 		{ //no items left, so remove the node from the list.
 			IPListNode *pIPPrev, *pIPCurr;
 			pIPCurr = pIPHead;
@@ -1121,10 +1182,18 @@ void DeleteSelectedItem()
 						gpCurrItemPoolNode = pIPCurr->next;
 					else
 						gpCurrItemPoolNode = pIPHead;
-					if( gpCurrItemPoolNode )
+					if( gpCurrItemPoolNode && iCurrentTaskbar == TASK_ITEMS )//dnl ch86 220214
 					{
+						//get the item pool at this node's gridno.
 						GetItemPoolFromGround( gpCurrItemPoolNode->sGridNo, &gpItemPool );
 						Assert( gpItemPool );
+
+						MarkMapIndexDirty( gpItemPool->sGridNo );
+						SpecifyItemToEdit( &gWorldItems[ gpItemPool->iItemIndex ].object, gpItemPool->sGridNo );
+						if( gsItemGridNo != -1 )
+						{
+							CenterScreenAtMapIndex( gsItemGridNo );
+						}
 					}
 					//remove node
 					HideItemCursor( sGridNo );
@@ -1676,16 +1745,88 @@ void DisplayItemStatistics()
 	mprintf( iScreenWidthOffset + 2, 2 * iScreenHeightOffset + 450, pDisplayItemStatisticsTex[4]);
 }
 
+void ScrollEditorItemsInfo(BOOLEAN fForward)//dnl ch80 011213
+{
+	if(fForward)
+	{
+		if(eInfo.sScrollIndex < max(0, (eInfo.sNumItems+1)/2-6))
+		{
+			if(_KeyDown(17))// CTRL
+			{
+				if(_KeyDown(16))// SHIFT
+					eInfo.sScrollIndex = max(0, (eInfo.sNumItems+1)/2-6);
+				else
+					eInfo.sScrollIndex = min(eInfo.sScrollIndex+60, (eInfo.sNumItems+1)/2-6);
+			}
+			else if(_KeyDown(16))
+				eInfo.sScrollIndex = min(eInfo.sScrollIndex+6, (eInfo.sNumItems+1)/2-6);
+			else
+				eInfo.sScrollIndex++;
+		}
+	}
+	else
+	{
+		if(eInfo.sScrollIndex)
+		{
+			if(_KeyDown(17))// CTRL
+			{
+				if(_KeyDown(16))// SHIFT
+					eInfo.sScrollIndex = 0;
+				else
+					eInfo.sScrollIndex = max(eInfo.sScrollIndex-60, 0);
+			}
+			else if(_KeyDown(16))
+				eInfo.sScrollIndex = max(eInfo.sScrollIndex-6, 0);
+			else
+				eInfo.sScrollIndex--;
+		}
+	}
+	DetermineItemsScrolling();
+	gfRenderTaskbar = TRUE;
+}
 
+//dnl ch86 120214
+BOOLEAN ItemPoolListMove(INT32 iOldGridNo, INT32 iNewGridNo, ITEM_POOL *pItemPool)
+{
+	while(pItemPool)
+	{
+		if(gWorldItems[pItemPool->iItemIndex].sGridNo == iOldGridNo)
+			gWorldItems[pItemPool->iItemIndex].sGridNo = iNewGridNo;
+		pItemPool->sGridNo = iNewGridNo;
+		pItemPool = pItemPool->pNext;
+	}
+	IPListNode *curr = pIPHead;
+	while(curr)
+	{
+		if(curr->sGridNo == iOldGridNo)
+			curr->sGridNo = iNewGridNo;
+		curr = curr->next;
+	}
+	return(TRUE);
+}
+
+BOOLEAN DeleteItemNode(INT32 iMapIndex)
+{
+	IPListNode *pIPPrev = NULL, *pIPCurr = pIPHead;
+	while(pIPCurr)
+	{
+		if(pIPCurr->sGridNo == iMapIndex)// remove node from the list
+		{
+			if(pIPPrev)
+				pIPPrev->next = pIPCurr->next;// middle of list
+			else
+				pIPHead = pIPHead->next;// head of list
+			if(pIPCurr->next)// move the curr item pool to the next one
+				gpCurrItemPoolNode = pIPCurr->next;
+			else
+				gpCurrItemPoolNode = pIPHead;
+			MemFree(pIPCurr);
+			pIPCurr = NULL;
+			return(TRUE);
+		}
+		pIPPrev = pIPCurr, pIPCurr = pIPCurr->next;
+	}
+	return(FALSE);
+}
 
 #endif
-
-
-
-
-
-
-
-
-
-

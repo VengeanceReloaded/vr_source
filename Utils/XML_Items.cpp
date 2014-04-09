@@ -3,39 +3,31 @@
 #else
 	#include "sgp.h"
 	#include "overhead types.h"
-	#include "Sound Control.h"
 	#include "Soldier Control.h"
 	#include "overhead.h"
 	#include "Event Pump.h"
 	#include "weapons.h"
 	#include "Animation Control.h"
-	#include "sys globals.h"
 	#include "Handle UI.h"
 	#include "Isometric Utils.h"
-	#include "worldman.h"
 	#include "math.h"
-	#include "points.h"
 	#include "ai.h"
 	#include "los.h"
 	#include "renderworld.h"
-	#include "opplist.h"
 	#include "interface.h"
 	#include "message.h"
 	#include "campaign.h"
 	#include "items.h"
 	#include "text.h"
 	#include "Soldier Profile.h"
-	#include "tile animation.h"
 	#include "Dialogue Control.h"
 	#include "SkillCheck.h"
-	#include "explosion control.h"
 	#include "Quests.h"
 	#include "Physics.h"
 	#include "Random.h"
 	#include "Vehicles.h"
 	#include "bullets.h"
 	#include "morale.h"
-	#include "meanwhile.h"
 	#include "SkillCheck.h"
 	#include "gamesettings.h"
 	#include "SaveLoadMap.h"
@@ -124,6 +116,9 @@ itemStartElementHandle(void *userData, const XML_Char *name, const XML_Char **at
 				strcmp(name, "usItemClass") == 0 ||
 				strcmp(name, "nasAttachmentClass") == 0 ||
 				strcmp(name, "nasLayoutClass") == 0 ||
+				strcmp(name, "AvailableAttachmentPoint") == 0 ||
+				strcmp(name, "AttachmentPoint") == 0 ||
+				strcmp(name, "AttachToPointAPCost") == 0 ||
 				strcmp(name, "ubClassIndex") == 0 ||
 				strcmp(name, "ubCursor") == 0 ||
 				strcmp(name, "bSoundType") == 0 ||
@@ -161,6 +156,7 @@ itemStartElementHandle(void *userData, const XML_Char *name, const XML_Char **at
 				strcmp(name, "BestLaserRange") == 0 ||
 				strcmp(name, "ToHitBonus") == 0 ||
 				strcmp(name, "RangeBonus") == 0 ||
+				strcmp(name, "PercentRangeBonus") == 0 ||
 				strcmp(name, "AimBonus") == 0 ||
 				strcmp(name, "MinRangeForAimBonus") == 0 ||
 				strcmp(name, "PercentAPReduction") == 0 ||
@@ -215,7 +211,6 @@ itemStartElementHandle(void *userData, const XML_Char *name, const XML_Char **at
 				strcmp(name, "Flare") == 0 ||
 				strcmp(name, "MetalDetector") == 0 ||
 				strcmp(name, "FingerPrintID") == 0 ||
-				strcmp(name, "AmmoCrate") == 0 ||
 				strcmp(name, "Cannon") == 0 ||
 				strcmp(name, "RocketRifle") == 0 ||
 				strcmp(name, "MedicalKit") == 0 ||
@@ -251,8 +246,40 @@ itemStartElementHandle(void *userData, const XML_Char *name, const XML_Char **at
 				strcmp(name, "RecoilModifierX") == 0 ||
 				strcmp(name, "RecoilModifierY") == 0 ||
 				strcmp(name, "PercentRecoilModifier") == 0 ||
+				strcmp(name, "barrel") == 0 ||
+				strcmp(name, "usOverheatingCooldownFactor") == 0 ||
+				strcmp(name, "overheatTemperatureModificator") == 0 ||
+				strcmp(name, "overheatCooldownModificator") == 0 ||
+				strcmp(name, "overheatJamThresholdModificator") == 0 ||
+				strcmp(name, "overheatDamageThresholdModificator") == 0 ||
+				strcmp(name, "AttachmentClass") == 0 ||
+				strcmp(name, "TripWireActivation") == 0 ||
+				strcmp(name, "TripWire") == 0 ||
+				strcmp(name, "Directional") == 0 ||
+				strcmp(name, "DrugType") == 0 ||
+				strcmp(name, "BlockIronSight") == 0 ||
+				strcmp(name, "PoisonPercentage") == 0 ||
+				strcmp(name, "ItemFlag") == 0 ||
+				strcmp(name, "FoodType") == 0 ||
+				strcmp(name, "DamageChance") == 0 ||
+				strcmp(name, "DirtIncreaseFactor") == 0 ||
 
-				strcmp(name, "fFlags") == 0 ))
+				strcmp(name, "fFlags") == 0 ||
+				//JMich_SkillModifiers: Adding new flags
+				strcmp(name, "LockPickModifier") == 0 ||
+				strcmp(name, "CrowbarModifier") == 0 ||
+				strcmp(name, "DisarmModifier") == 0 ||
+				strcmp(name, "RepairModifier") == 0 ||
+				
+				strcmp(name, "usActionItemFlag") == 0 ||
+				strcmp(name, "clothestype") == 0 ||
+				strcmp(name, "randomitem") == 0 ||
+				strcmp(name, "randomitemcoolnessmodificator") == 0 ||
+				strcmp(name, "FlashLightRange") == 0 ||
+				strcmp(name, "ItemChoiceTimeSetting") == 0 ||
+				strcmp(name, "buddyitem") == 0 ||
+				strcmp(name, "SleepModifier") == 0 ||
+				strcmp(name, "usSpotting") == 0))
 		{
 			pData->curElement = ELEMENT_PROPERTY;
 			//DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("itemStartElementHandle: going into element, name = %s",name) );
@@ -513,17 +540,32 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "usItemClass") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curItem.usItemClass = (UINT32) atol(pData->szCharData);
+			pData->curItem.usItemClass = (UINT32) strtoul(pData->szCharData, NULL, 0);
 		}
 		else if(strcmp(name, "nasAttachmentClass") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curItem.nasAttachmentClass = (UINT32) atol(pData->szCharData);
+			pData->curItem.nasAttachmentClass = (UINT64) atof(pData->szCharData);
 		}
 		else if(strcmp(name, "nasLayoutClass") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curItem.nasLayoutClass = (UINT32) atol(pData->szCharData);
+			pData->curItem.nasLayoutClass = (UINT64) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "AvailableAttachmentPoint") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.ulAvailableAttachmentPoint |= (UINT64) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "AttachmentPoint") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.ulAttachmentPoint = (UINT64) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "AttachToPointAPCost") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.ubAttachToPointAPCost = (UINT8) atol(pData->szCharData);
 		}
 		else if(strcmp(name, "ubClassIndex") == 0)
 		{
@@ -563,7 +605,7 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "ItemSize") == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curItem.ItemSize = (UINT8) atol(pData->szCharData);
+			pData->curItem.ItemSize = (UINT16) atol(pData->szCharData);
 		}
 		else if(strcmp(name, "usPrice") == 0)
 		{
@@ -673,7 +715,7 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "Inseparable")	 == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curItem.inseparable = (BOOLEAN) atol(pData->szCharData);
+			pData->curItem.inseparable = (UINT8) atol(pData->szCharData);
 		}
 		else if(strcmp(name, "BR_NewInventory")	 == 0)
 		{
@@ -739,6 +781,11 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curItem.rangebonus  = (INT16) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "PercentRangeBonus")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.percentrangebonus  = (INT16) atol(pData->szCharData);
 		}
 		else if(strcmp(name, "AimBonus")	 == 0)
 		{
@@ -1072,7 +1119,7 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curItem.mine   = (BOOLEAN) atol(pData->szCharData);
-		}
+		}		
 		else if(strcmp(name, "GasCan")	 == 0)
 		{
 			pData->curElement = ELEMENT;
@@ -1092,11 +1139,6 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curItem.fingerprintid    = (BOOLEAN) atol(pData->szCharData);
-		}
-		else if(strcmp(name, "AmmoCrate")	 == 0)
-		{
-			pData->curElement = ELEMENT;
-			pData->curItem.ammocrate    = (BOOLEAN) atol(pData->szCharData);
 		}
 		else if(strcmp(name, "Rock")	 == 0)
 		{
@@ -1160,12 +1202,12 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 		else if(strcmp(name, "RecoilModifierX")	 == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curItem.RecoilModifierX  = (INT16) atol(pData->szCharData);
+			pData->curItem.RecoilModifierX  = (FLOAT) atof(pData->szCharData);
 		}
 		else if(strcmp(name, "RecoilModifierY")	 == 0)
 		{
 			pData->curElement = ELEMENT;
-			pData->curItem.RecoilModifierY  = (INT16) atol(pData->szCharData);
+			pData->curItem.RecoilModifierY  = (FLOAT) atof(pData->szCharData);
 		}
 		else if(strcmp(name, "PercentRecoilModifier") == 0)
 		{
@@ -1246,6 +1288,164 @@ itemEndElementHandle(void *userData, const XML_Char *name)
 			pData->curElement = ELEMENT;
 		}
 
+		// Flugente FTW 1.2
+		else if(strcmp(name, "barrel")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.barrel    = (BOOLEAN) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "usOverheatingCooldownFactor") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.usOverheatingCooldownFactor  = (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "overheatTemperatureModificator") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.overheatTemperatureModificator  = (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "overheatCooldownModificator") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.overheatCooldownModificator  = (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "overheatJamThresholdModificator") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.overheatJamThresholdModificator  = (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "overheatDamageThresholdModificator") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.overheatDamageThresholdModificator  = (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "AttachmentClass")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.attachmentclass   = (UINT32) strtoul(pData->szCharData, NULL, 0);
+		}
+		else if(strcmp(name, "TripWireActivation")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.tripwireactivation   = (BOOLEAN) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "TripWire")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.tripwire   = (BOOLEAN) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "Directional")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.directional   = (BOOLEAN) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "DrugType")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.drugtype   = (UINT32) strtoul(pData->szCharData, NULL, 0);
+		}
+		else if(strcmp(name, "BlockIronSight")	 == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.blockironsight   = (BOOLEAN) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "PoisonPercentage") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.bPoisonPercentage = (INT16) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "ItemFlag") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.usItemFlag = (UINT32) strtoul(pData->szCharData, NULL, 0);
+		}
+		else if(strcmp(name, "FoodType") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.foodtype = (UINT32) strtoul(pData->szCharData, NULL, 0);
+		}
+		//JMich_SkillsModifiers: Parse new values
+		else if(strcmp(name, "LockPickModifier") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.LockPickModifier = (INT8) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "CrowbarModifier") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.CrowbarModifier = (UINT8) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "DisarmModifier") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.DisarmModifier = (UINT8) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "RepairModifier") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.RepairModifier = (INT8) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "DamageChance") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.usDamageChance = (UINT8) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "DirtIncreaseFactor") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.dirtIncreaseFactor = (FLOAT) atof(pData->szCharData);
+		}
+		else if(strcmp(name, "usActionItemFlag") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.usActionItemFlag = (UINT32) strtoul(pData->szCharData, NULL, 0);
+		}
+		else if(strcmp(name, "clothestype") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.clothestype = (UINT32) strtoul(pData->szCharData, NULL, 0);
+		}
+		else if(strcmp(name, "randomitem") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.randomitem = (UINT16) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "randomitemcoolnessmodificator") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.randomitemcoolnessmodificator = (INT8) atol(pData->szCharData);
+
+			// no nonsense, only values between -20 and + 20
+			pData->curItem.randomitemcoolnessmodificator = min(20, max(-20, pData->curItem.randomitemcoolnessmodificator) );
+		}
+		else if(strcmp(name, "FlashLightRange") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.usFlashLightRange = (UINT8) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "ItemChoiceTimeSetting") == 0)
+		{
+			pData->curElement = ELEMENT;
+			// no nonsense, only values between 0 and + 2
+			pData->curItem.usItemChoiceTimeSetting = min(2, max(0, (UINT8) atol(pData->szCharData) ) );
+		}
+		else if(strcmp(name, "buddyitem") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.usBuddyItem = (UINT16) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "SleepModifier") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curItem.ubSleepModifier = (UINT8) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "usSpotting") == 0)
+		{
+			pData->curElement = ELEMENT;
+			// values between 0 and 100 only
+			pData->curItem.usSpotting = min(100, max(0, (INT16) atol(pData->szCharData) ) );
+		}
+										
 		pData->maxReadDepth--;
 	}
 
@@ -1697,6 +1897,7 @@ BOOLEAN WriteItemStats()
 			FilePrintf(hFile,"\t\t<HideMuzzleFlash>%d</HideMuzzleFlash>\r\n",						Item[cnt].hidemuzzleflash   );
 			FilePrintf(hFile,"\t\t<Bipod>%d</Bipod>\r\n",						Item[cnt].bipod  );
 			FilePrintf(hFile,"\t\t<RangeBonus>%d</RangeBonus>\r\n",						Item[cnt].rangebonus   );
+			FilePrintf(hFile,"\t\t<PercentRangeBonus>%d</PercentRangeBonus>\r\n",						Item[cnt].rangebonus   );
 			FilePrintf(hFile,"\t\t<ToHitBonus>%d</ToHitBonus>\r\n",						Item[cnt].tohitbonus    );
 			FilePrintf(hFile,"\t\t<AimBonus>%d</AimBonus>\r\n",						Item[cnt].aimbonus   );
 			FilePrintf(hFile,"\t\t<MinRangeForAimBonus>%d</MinRangeForAimBonus>\r\n",						Item[cnt].minrangeforaimbonus  );
@@ -1722,7 +1923,7 @@ BOOLEAN WriteItemStats()
 			FilePrintf(hFile,"\t\t<GrenadeLauncher>%d</GrenadeLauncher>\r\n",						Item[cnt].grenadelauncher  );
 			FilePrintf(hFile,"\t\t<Duckbill>%d</Duckbill>\r\n",						Item[cnt].duckbill  );
 			FilePrintf(hFile,"\t\t<GLGrenade>%d</GLGrenade>\r\n",						Item[cnt].glgrenade  );
-			FilePrintf(hFile,"\t\t<Mine>%d</Mine>\r\n",						Item[cnt].mine  );
+			FilePrintf(hFile,"\t\t<Mine>%d</Mine>\r\n",						Item[cnt].mine  );			
 			FilePrintf(hFile,"\t\t<Mortar>%d</Mortar>\r\n",						Item[cnt].mortar  );
 			FilePrintf(hFile,"\t\t<RocketLauncher>%d</RocketLauncher>\r\n",						Item[cnt].rocketlauncher  );
 			FilePrintf(hFile,"\t\t<SingleShotRocketLauncher>%d</SingleShotRocketLauncher>\r\n",						Item[cnt].singleshotrocketlauncher  );
@@ -1790,7 +1991,6 @@ BOOLEAN WriteItemStats()
 			FilePrintf(hFile,"\t\t<ContainsLiquid>%d</ContainsLiquid>\r\n",						Item[cnt].containsliquid  );
 			FilePrintf(hFile,"\t\t<MetalDetector>%d</MetalDetector>\r\n",						Item[cnt].metaldetector   );
 			FilePrintf(hFile,"\t\t<FingerPrintID>%d</FingerPrintID>\r\n",						Item[cnt].fingerprintid    );
-			FilePrintf(hFile,"\t\t<AmmoCrate>%d</AmmoCrate>\r\n",						Item[cnt].ammocrate    );
 
 			// HEADROCK HAM 4: Print out new values
 			FilePrintf(hFile,"\t\t<ScopeMagFactor>%d</ScopeMagFactor>\r\n",						Item[cnt].scopemagfactor    );
@@ -1843,6 +2043,52 @@ BOOLEAN WriteItemStats()
 			FilePrintf(hFile,"\t\t\t<AimLevels>%d</AimLevels>\r\n",							Item[cnt].aimlevelsmodifier[2]    );
 			FilePrintf(hFile,"\t\t</PRONE_MODIFIERS>\r\n");
 
+			// Flugente FTW 1.2
+			FilePrintf(hFile,"\t\t<barrel>%d</barrel>\r\n",						Item[cnt].barrel    );
+			FilePrintf(hFile,"\t\t<usOverheatingCooldownFactor>%4.2f</usOverheatingCooldownFactor>\r\n",						Item[cnt].usOverheatingCooldownFactor    );
+			FilePrintf(hFile,"\t\t<overheatTemperatureModificator>%4.2f</overheatTemperatureModificator>\r\n",					Item[cnt].overheatTemperatureModificator    );
+			FilePrintf(hFile,"\t\t<overheatCooldownModificator>%4.2f</overheatCooldownModificator>\r\n",						Item[cnt].overheatCooldownModificator    );
+			FilePrintf(hFile,"\t\t<overheatJamThresholdModificator>%4.2f</overheatJamThresholdModificator>\r\n",				Item[cnt].overheatJamThresholdModificator    );
+			FilePrintf(hFile,"\t\t<overheatDamageThresholdModificator>%4.2f</overheatDamageThresholdModificator>\r\n",			Item[cnt].overheatDamageThresholdModificator    );
+
+			FilePrintf(hFile,"\t\t<AttachmentClass>%4.2f</AttachmentClass>\r\n",												Item[cnt].attachmentclass    );
+
+			FilePrintf(hFile,"\t\t<TripwireActivation>%d</TripwireActivation>\r\n",						Item[cnt].tripwireactivation  );
+			FilePrintf(hFile,"\t\t<TripWire>%d</TripWire>\r\n",											Item[cnt].tripwire  );
+			FilePrintf(hFile,"\t\t<Directional>%d</Directional>\r\n",									Item[cnt].directional  );
+
+			FilePrintf(hFile,"\t\t<DrugType>%d</DrugType>\r\n",											Item[cnt].drugtype  );
+
+			FilePrintf(hFile,"\t\t<BlockIronSight>%d</BlockIronSight>\r\n",								Item[cnt].blockironsight  );
+
+			FilePrintf(hFile,"\t\t<PoisonPercentage>%d</PoisonPercentage>\r\n",							Item[cnt].bPoisonPercentage    );
+
+			FilePrintf(hFile,"\t\t<ItemFlag>%d</ItemFlag>\r\n",											Item[cnt].usItemFlag  );
+
+			FilePrintf(hFile,"\t\t<FoodType>%d</FoodType>\r\n",											Item[cnt].foodtype  );
+			
+			//JMich_SkillModifiers: Adding the values here as well
+			FilePrintf(hFile, "\t\t<LockPickModifier>%d</LockPickModifier>\r\n",						Item[cnt].LockPickModifier );
+			FilePrintf(hFile, "\t\t<CrowbarModifier>%d</CrowbarModifier>\r\n",							Item[cnt].CrowbarModifier );
+			FilePrintf(hFile, "\t\t<DisarmModifier>%d</DisarmModifier>\r\n",							Item[cnt].DisarmModifier );
+			FilePrintf(hFile, "\t\t<RepairModifier>%d</RepairModifier>\r\n",							Item[cnt].RepairModifier );
+
+			// Flugente poison system
+			FilePrintf(hFile,"\t\t<PoisonPercentage>%d</PoisonPercentage>\r\n",							Item[cnt].bPoisonPercentage    );
+
+			FilePrintf(hFile,"\t\t<DamageChance>%d</DamageChance>\r\n",									Item[cnt].usDamageChance  );
+			FilePrintf(hFile,"\t\t<DirtIncreaseFactor>%4.2f</DirtIncreaseFactor>\r\n",					Item[cnt].dirtIncreaseFactor  );
+
+			FilePrintf(hFile,"\t\t<usActionItemFlag>%d</usActionItemFlag>\r\n",							Item[cnt].usActionItemFlag  );
+			FilePrintf(hFile,"\t\t<clothestype>%d</clothestype>\r\n",									Item[cnt].clothestype  );
+			FilePrintf(hFile,"\t\t<randomitem>%d</randomitem>\r\n",										Item[cnt].randomitem  );
+			FilePrintf(hFile,"\t\t<randomitemcoolnessmodificator>%d</randomitemcoolnessmodificator>\r\n",	Item[cnt].randomitemcoolnessmodificator  );
+			FilePrintf(hFile,"\t\t<FlashLightRange>%d</FlashLightRange>\r\n",							Item[cnt].usFlashLightRange  );
+			FilePrintf(hFile,"\t\t<ItemChoiceTimeSetting>%d</ItemChoiceTimeSetting>\r\n",				Item[cnt].usItemChoiceTimeSetting  );
+			FilePrintf(hFile,"\t\t<buddyitem>%d</buddyitem>\r\n",										Item[cnt].usBuddyItem  );
+			FilePrintf(hFile,"\t\t<SleepModifier>%d</SleepModifier>\r\n",								Item[cnt].ubSleepModifier  );
+			FilePrintf(hFile,"\t\t<usSpotting>%d</usSpotting>\r\n",										Item[cnt].usSpotting  );
+																		
 			FilePrintf(hFile,"\t</ITEM>\r\n");
 		}
 		FilePrintf(hFile,"</ITEMLIST>\r\n");

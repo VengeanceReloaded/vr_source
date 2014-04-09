@@ -44,9 +44,8 @@
 	#include "Scheduling.h"
 	#include "MessageBoxScreen.h"
 	#include <vfs/Core/vfs.h>//dnl ch37 110909
+	#include "Exit Grids.h"//dnl ch86 190214
 #endif
-
-INT16 gsMouseWheelDeltaValue;
 
 //===========================================================================
 
@@ -90,6 +89,9 @@ INT32 iCurrFileShown;
 INT32	iLastFileClicked;
 INT32 iLastClickTime;
 
+#ifdef USE_VFS
+CHAR8 gzProfileName[FILENAME_BUFLEN];//dnl ch81 021213
+#endif
 CHAR16 gzFilename[FILENAME_BUFLEN];//dnl ch39 190909
 extern INT16 gsSelSectorX;
 extern INT16 gsSelSectorY;
@@ -154,6 +156,7 @@ void LoadSaveScreenEntry()
 	gfDeleteFile = FALSE;
 	gfNoFiles = FALSE;
 	gfSaveError = FALSE;//dnl ch37 200909
+	RestoreBackgroundRects();//dnl ch86 210214
 
 	// setup filename dialog box
 	// (*.dat and *.map) as file filter
@@ -169,6 +172,7 @@ void LoadSaveScreenEntry()
 
 	iTopFileShown = iTotalFiles = 0;
 #ifdef USE_VFS//dnl ch37 300909
+	gzProfileName[0] = 0;//dnl ch81 021213
 	FDLG_LIST* TempFileList = NULL;
 	vfs::CProfileStack* st = getVFS()->getProfileStack();
 	vfs::CProfileStack::Iterator it = st->begin();
@@ -664,7 +668,7 @@ void DrawFileDialog(void)
 
 	MarkButtonsDirty();
 	RenderButtons();
-	RenderButtonsFastHelp();
+	//RenderButtonsFastHelp();//dnl ch86 210214 disable this because of sticky tooltip from taskbar
 
 	SetFont( FONT10ARIAL );
 	SetFontForeground( FONT_LTKHAKI );
@@ -727,6 +731,20 @@ void SelectFileDialogYPos( UINT16 usRelativeYPos )
 			}
 			iLastClickTime = iCurrClickTime;
 			iLastFileClicked = x;
+			//dnl ch81 021213
+#ifdef USE_VFS
+			gzProfileName[0] = 0;
+			while(FListNode = FListNode->pPrev)
+			{
+				if(FListNode->FileInfo.zFileName[0] == '<')
+				{
+					strcpy(gzProfileName, &FListNode->FileInfo.zFileName[2]);
+					gzProfileName[strlen(gzProfileName)-2] = 0;
+					break;
+				}
+			}
+#endif
+			break;
 		}
 		FListNode = FListNode->pNext;
 	}
@@ -887,6 +905,8 @@ void HandleMainKeyEvents( InputAtom *pEvent )
 				iCurrFileShown = iTotalFiles - 1;
 			else if( iTopFileShown < iCurrFileShown-7 )
 				iTopFileShown++;
+			else if( iTopFileShown > iCurrFileShown )//dnl ch84 290114
+				iTopFileShown = iCurrFileShown;
 			break;
 		case HOME:
 		case CTRL_HOME:
@@ -924,10 +944,30 @@ void HandleMainKeyEvents( InputAtom *pEvent )
 			curr = curr->pNext;
 			x++;
 		}
-		if( curr )	
+		if( curr )
 		{
 			SetInputFieldStringWith8BitString( 0, curr->FileInfo.zFileName );
 			swprintf( gzFilename, L"%S", curr->FileInfo.zFileName );
+			//dnl ch84 290114
+			if(ValidFilename())
+				SetInputFieldStringWith16BitString(0, gzFilename);
+			else
+			{
+				SetInputFieldStringWith16BitString(0, L"");
+				wcscpy(gzFilename, L"");
+			}
+#ifdef USE_VFS
+			gzProfileName[0] = 0;
+			while(curr = curr->pPrev)
+			{
+				if(curr->FileInfo.zFileName[0] == '<')
+				{
+					strcpy(gzProfileName, &curr->FileInfo.zFileName[2]);
+					gzProfileName[strlen(gzProfileName)-2] = 0;
+					break;
+				}
+			}
+#endif
 		}
 	}
 }
@@ -955,7 +995,7 @@ void HandleMouseWheelEvents(void)//dnl ch36 150909
 
 void InitErrorCatchDialog()
 {
-	SGPRect CenteringRect= {0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1 };
+	SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, SCREEN_HEIGHT };
 
 	// do message box and return
 	giErrorCatchMessageBox = DoMessageBox( MSG_BOX_BASIC_STYLE, gzErrorCatchString, 
@@ -972,7 +1012,7 @@ extern BOOLEAN ReEvaluateWorld( const STR8	puiFilename );
 UINT32 ProcessFileIO()
 {
 	INT16 usStartX, usStartY;
-	CHAR8 ubNewFilename[50];
+	CHAR8 ubNewFilename[FILENAME_BUFLEN];//dnl ch81 021213
 	BOOLEAN fAltMap;//dnl ch31 150909
 	switch( gbCurrentFileIOStatus )
 	{
@@ -1017,6 +1057,11 @@ UINT32 ProcessFileIO()
 				gbCurrentFileIOStatus = IOSTATUS_NONE;
 				CreateMessageBox((STR16)(_BS(L" Error saving ") << (const char*)ubNewFilename << L" file. Try another filename? " << _BS::wget).c_str() );
 				return(guiCurrentScreen);
+			}
+			if(gfShowExitGrids)//dnl ch86 190214
+			{
+				gfShowExitGrids = FALSE;
+				ShowExitGrids();
 			}
 			if( gfShowPits )
 				AddAllPits();
@@ -1073,10 +1118,10 @@ UINT32 ProcessFileIO()
 			//ATE: Any current mercs are transfered here...
 			//UpdateMercsInSector( gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
 
-			AddSoldierInitListTeamToWorld( ENEMY_TEAM,		255 );
-			AddSoldierInitListTeamToWorld( CREATURE_TEAM,	255 );
-			AddSoldierInitListTeamToWorld( MILITIA_TEAM,	255 );
-			AddSoldierInitListTeamToWorld( CIV_TEAM,		255 );
+			AddSoldierInitListTeamToWorld( ENEMY_TEAM,		TOTAL_SOLDIERS + 1 );
+			AddSoldierInitListTeamToWorld( CREATURE_TEAM,	TOTAL_SOLDIERS + 1 );
+			AddSoldierInitListTeamToWorld( MILITIA_TEAM,	TOTAL_SOLDIERS + 1 );
+			AddSoldierInitListTeamToWorld( CIV_TEAM,		TOTAL_SOLDIERS + 1 );
 			iCurrentAction = ACTION_NULL;
 			gbCurrentFileIOStatus = IOSTATUS_NONE;
 			if( !gfCaves && !gfBasement )
@@ -1103,7 +1148,7 @@ UINT32 ProcessFileIO()
 				AnalyseCaveMapForStructureInfo();
 
 			AddLockedDoorCursors();
-			gubCurrRoomNumber = gubMaxRoomNumber;
+			gusCurrRoomNumber = gusMaxRoomNumber;
 			UpdateRoofsView();
 			UpdateWallsView();
 			ShowLightPositionHandles();
@@ -1117,6 +1162,12 @@ UINT32 ProcessFileIO()
 			fRaiseWorld = FALSE;//dnl ch3 210909
 			ShowHighGround(4);//dnl ch41 210909
 			SetRenderCenter(WORLD_COLS/2, WORLD_ROWS/2);//dnl ch43 280909
+			gsSelectedMercGridNo = 0;//dnl ch74 241013 to prevent CTD in IndicateSelectedMerc after loading
+			if(gfShowExitGrids)//dnl ch86 190214
+			{
+				gfShowExitGrids = FALSE;
+				ShowExitGrids();
+			}
 			if( gfShowPits )
 				AddAllPits();
 
@@ -1271,10 +1322,3 @@ UINT32 LoadSaveScreenShutdown( )
 }
 
 #endif
-
-
-
-
- 
-
-

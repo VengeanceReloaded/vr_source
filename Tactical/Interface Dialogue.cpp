@@ -6,11 +6,9 @@
 	#include "builddefines.h"
 	#include <stdio.h>
 	#include "sgp.h"
-	//#include "soldier control.h"
 	#include "Encrypted File.h"
 	#include "faces.h"
 	#include "wcheck.h"
-	#include "render dirty.h"
 	#include "soldier profile.h"
 	#include "wordwrap.h"
 	#include "sysutil.h"
@@ -26,7 +24,6 @@
 	#include "items.h"
 	#include "text.h"
 	#include "overhead.h"
-	//#include "soldier control.h"
 	#include "assignments.h"
 	#include "strategic.h"
 	#include "strategicmap.h"
@@ -61,7 +58,6 @@
 	// including this for Strategic AI.h
 	#include "Strategic Movement.h"
 	#include "Strategic AI.h"
-	#include "Handle Doors.h"
 	#include "Soldier create.h"
 	#include "SkillCheck.h"
 	#include "Sound Control.h"
@@ -81,13 +77,37 @@
 	#include "Overhead.h"
 #endif
 
+#include "LuaInitNPCs.h"
+#include "Text.h"
+#include "Luaglobal.h"
+
+
+#ifdef JA2UB
+#include "Explosion Control.h"
+#include "Ja25_Tactical.h"
+#include "Ja25 Strategic Ai.h"
+#include "MapScreen Quotes.h"
+#include "email.h"
+#include "Soldier macros.h"
+#include "LOS.h"
+#include "Soldier Control.h"
+#include "Ja25Update.h"
+#endif
+
+#ifdef JA2UB
+#else
+	// anv: for playable Speck
+	#include "Speck Quotes.h"
+	#include "mercs.h"
+#endif
+
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
 
-
-INT32	sBasementEnterGridNos[ ] = { 13362, 13363, 13364, 13365, 13525, 13524 };
-INT32	sBasementExitGridNos[ ] = { 8047, 8207, 8208, 8048, 7888, 7728, 7727, 7567 };
+//DBrot: not needed anymore, got an option for those
+//INT32	sBasementEnterGridNos[ ] = { 13362, 13363, 13364, 13365, 13525, 13524 };
+//INT32	sBasementExitGridNos[ ] = { 8047, 8207, 8208, 8048, 7888, 7728, 7727, 7567 };
 
 extern	UINT8		gubWaitingForAllMercsToExitCode;
 extern BOOLEAN fFoundTixa;
@@ -166,6 +186,30 @@ BOOLEAN InternalInitiateConversation( SOLDIERTYPE *pDestSoldier, SOLDIERTYPE *pS
 extern void EndGameMessageBoxCallBack( UINT8 ubExitValue );
 extern INT32 FindNearestOpenableNonDoor( INT32 sStartGridNo );
 extern void RecalculateOppCntsDueToBecomingNeutral( SOLDIERTYPE * pSoldier );
+extern UINT8 NumCapableEnemyInSector( );
+
+#ifdef JA2UB
+//JA25 UB
+void PerformJerryMiloAction301();
+void PerformJerryMiloAction302();
+void DelayedMercQuote( UINT16 usProfileID, UINT32 uiQuoteNum, UINT32 uiTimeTillQuoteSaid );
+void DelayedSayingOfMercQuote( UINT32 uiParam );
+void HandleSpecificQuoteWhenLeavingNpcTalkMenu();
+void HaveQualifiedMercSayQuoteAboutNpcWhenLeavingTalkScreen( UINT8 ubNpcProfileID, UINT32 uiQuoteNum );
+void CheckForValidQuotesWhenLeavingDealer( UINT8 ubProfile );
+BOOLEAN IsMineEntranceInSectorI13AtThisGridNo( UINT32 sGridNo );
+void HaveBiggensDetonatingExplosivesByTheMine();
+void ReplaceMineEntranceGraphicWithCollapsedEntrance();
+void HandleCannotAffordNpcMsgBox();
+void CantAffordMercCallback( UINT8 ubExitValue );
+void HandleMercArrivesQuotesFromHeliCrashSequence();
+void HandleRaulBlowingHimselfUp();
+void HandleTexFlushingToilet();
+void HandleTexMakingHimselfAlreadyBeIntroduced();
+void DisplayJerryBreakingLaptopTransmitterPopup();
+void HaveNpcOpenUpDealerScreen( UINT8 ubProfileID );
+void HandleTexBecomingCamoed();
+#endif
 
 UINT8	ubTalkMenuApproachIDs[] =
 {
@@ -211,6 +255,12 @@ extern BOOLEAN			fMapPanelDirty;
 INT32 giHospitalTempBalance; // stores amount of money for current doctoring
 INT32 giHospitalRefund; // stores amount of money given to hospital for doctoring that wasn't used
 INT8	gbHospitalPriceModifier; // stores discount being offered
+
+void StartDialogueMessageBox( UINT8 ubProfileID, UINT16 usMessageBoxType );
+#ifdef JA2UB
+//ja25 ub
+BOOLEAN	gfDisplayMsgBoxSayingCantAffordNPC=FALSE;
+#endif
 
 enum
 {
@@ -1677,6 +1727,13 @@ void HandleNPCClosePanel(	)
 
 void HandleStuffForNPCEscorted( UINT8 ubNPC )
 {
+
+#ifdef LUA_INTERFACE_DIALOGUE
+
+	LetLuaInterfaceDialogue(ubNPC,1);
+
+#else
+
 	SOLDIERTYPE * pSoldier;
 
 	switch( ubNPC )
@@ -1722,7 +1779,8 @@ void HandleStuffForNPCEscorted( UINT8 ubNPC )
 				StartQuest( QUEST_ESCORT_TOURISTS, gWorldSectorX, gWorldSectorY );
 			}
 			break;
-		// VENGEANCE
+
+		// anv: VR - escort Conman quest
 		case CONMAN:
 			SetFactTrue( FACT_CONMAN_ESCORTED );
 			if ( gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTNOTSTARTED )
@@ -1730,8 +1788,9 @@ void HandleStuffForNPCEscorted( UINT8 ubNPC )
 				StartQuest( QUEST_ESCORT_CONMAN, gWorldSectorX, gWorldSectorY );
 			}
 			break;
-		// /VENGEANCE
 	}
+	
+#endif
 }
 
 void HandleFactForNPCUnescorted( UINT8 ubNPC )
@@ -1805,14 +1864,14 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				// OK, we want to goto the basement level!
 
 				//DEF: First thing, Add the exit grid to the map temps file
-
-				ExitGrid.ubGotoSectorX = 10;
-				ExitGrid.ubGotoSectorY = 1;
-				ExitGrid.ubGotoSectorZ = 1;
-				ExitGrid.usGridNo = 12722; //dnl!!!
+				//DBrot: Grids
+				ExitGrid.ubGotoSectorX = gModSettings.ubHideoutSectorX;
+				ExitGrid.ubGotoSectorY = gModSettings.ubHideoutSectorY;
+				ExitGrid.ubGotoSectorZ = gModSettings.ubHideoutSectorZ;
+				ExitGrid.usGridNo = gModSettings.iHideoutExitGrid; //dnl!!!
 
 				ApplyMapChangesToMapTempFile( TRUE );
-				AddExitGridToWorld( 7887, &ExitGrid );
+				AddExitGridToWorld( gModSettings.iHideoutEntryGrid, &ExitGrid );
 				ApplyMapChangesToMapTempFile( FALSE );
 
 				// For one, loop through our current squad and move them over
@@ -1828,19 +1887,21 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					if ( pSoldier->bActive && pSoldier->stats.bLife >= OKLIFE && pSoldier->bInSector && pSoldier->bAssignment == CurrentSquad( ) )
 					{
 						gfTacticalTraversal = TRUE;
-						SetGroupSectorValue( 10, 1, 1, pSoldier->ubGroupID );
+						SetGroupSectorValue( gModSettings.ubHideoutSectorX, gModSettings.ubHideoutSectorY, gModSettings.ubHideoutSectorZ, pSoldier->ubGroupID );
 
 						// Set insertion gridno
-						if ( bNumDone < 6 )
+						if ( bNumDone < 10 )
 						{
 							// Set next sectore
-							pSoldier->sSectorX = 10;
-							pSoldier->sSectorY = 1;
-							pSoldier->bSectorZ = 1;
+							//DBrot: Grids
+							pSoldier->sSectorX = gModSettings.ubHideoutSectorX;
+							pSoldier->sSectorY = gModSettings.ubHideoutSectorY;
+							pSoldier->bSectorZ = gModSettings.ubHideoutSectorZ;
 
 							// Set gridno
 							pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
-							pSoldier->usStrategicInsertionData = sBasementEnterGridNos[ bNumDone ];
+							//pSoldier->usStrategicInsertionData = sBasementEnterGridNos[ bNumDone ];
+							pSoldier->usStrategicInsertionData = gModSettings.iBasementEntry[ bNumDone ];
 						}
 						bNumDone++;
 					}
@@ -1852,14 +1913,14 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				gMercProfiles[ 101 ].sSectorY = 1;
 				gMercProfiles[ 101 ].bSectorZ = 1;
 */
-				ChangeNpcToDifferentSector( FATIMA, 10, 1, 1 );
+				ChangeNpcToDifferentSector( FATIMA, gModSettings.ubHideoutSectorX, gModSettings.ubHideoutSectorY, gModSettings.ubHideoutSectorZ);
 
 				// Dimitri
 /*				gMercProfiles[ 60 ].sSectorX = 10;
 				gMercProfiles[ 60 ].sSectorY = 1;
 				gMercProfiles[ 60 ].bSectorZ = 1;
 */
-				ChangeNpcToDifferentSector( DIMITRI, 10, 1, 1 );
+				ChangeNpcToDifferentSector( DIMITRI, gModSettings.ubHideoutSectorX, gModSettings.ubHideoutSectorY, gModSettings.ubHideoutSectorZ);
 
 				gFadeOutDoneCallback = DoneFadeOutActionBasement;
 
@@ -1977,7 +2038,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				if (pSoldier && pSoldier->inv[HANDPOS].exists() == true)
 				{
 					sGridNo = pSoldier->sGridNo + DirectionInc( pSoldier->ubDirection );
-					pSoldier->SoldierReadyWeapon( (INT16) (sGridNo % WORLD_COLS), (INT16) (sGridNo / WORLD_COLS), FALSE );
+					pSoldier->SoldierReadyWeapon( (INT16) (sGridNo % WORLD_COLS), (INT16) (sGridNo / WORLD_COLS), FALSE, FALSE );
 				}
 				break;
 
@@ -2078,7 +2139,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				{
 					//MakeCivHostile( pSoldier, 2 );
 				}
-				if (pSoldier->ubProfile != NO_PROFILE && pSoldier->stats.bLife >= OKLIFE)
+				if ( ( pSoldier->ubProfile != NO_PROFILE || pSoldier->IsAssassin() ) && pSoldier->stats.bLife >= OKLIFE )
 				{
 					// trigger quote!
 					//TriggerNPCWithIHateYouQuote( pSoldier->ubProfile );
@@ -2116,19 +2177,21 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					if ( pSoldier->bActive && pSoldier->stats.bLife >= OKLIFE && pSoldier->bInSector )
 					{
 						gfTacticalTraversal = TRUE;
-						SetGroupSectorValue( 10, 1, 0, pSoldier->ubGroupID );
+						//DBrot: Grids
+						SetGroupSectorValue( gModSettings.ubHideoutSurfaceX, gModSettings.ubHideoutSurfaceY, gModSettings.ubHideoutSurfaceZ, pSoldier->ubGroupID );
 
 						// Set insertion gridno
-						if ( bNumDone < 8 )
+						if ( bNumDone < 12 )
 						{
 							// Set next sectore
-							pSoldier->sSectorX = 10;
-							pSoldier->sSectorY = 1;
-							pSoldier->bSectorZ = 0;
+							pSoldier->sSectorX = gModSettings.ubHideoutSurfaceX;
+							pSoldier->sSectorY = gModSettings.ubHideoutSurfaceY;
+							pSoldier->bSectorZ = gModSettings.ubHideoutSurfaceZ;
 
 							// Set gridno
 							pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
-							pSoldier->usStrategicInsertionData = sBasementExitGridNos[ bNumDone ];
+							//pSoldier->usStrategicInsertionData = sBasementExitGridNos[ bNumDone ];
+							pSoldier->usStrategicInsertionData = gModSettings.iBasementExit[ bNumDone ];
 						}
 						bNumDone++;
 					}
@@ -2223,6 +2286,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					DeleteTalkingMenu();
 					SetSoldierNeutral( pSoldier );
 					pSoldier->bBleeding = 0; // make sure he doesn't bleed now...
+					pSoldier->bPoisonBleeding = 0;
 					RecalculateOppCntsDueToBecomingNeutral( pSoldier );
 					if ( gTacticalStatus.uiFlags & INCOMBAT )
 					{
@@ -2245,7 +2309,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				{
 					SwapObjs( pSoldier, HANDPOS, bItemIn, TRUE );
 					sGridNo = pSoldier->sGridNo + DirectionInc( pSoldier->ubDirection );
-					pSoldier->SoldierReadyWeapon( (INT16) (sGridNo % WORLD_COLS), (INT16) (sGridNo / WORLD_COLS), FALSE );
+					pSoldier->SoldierReadyWeapon( (INT16) (sGridNo % WORLD_COLS), (INT16) (sGridNo / WORLD_COLS), FALSE, FALSE );
 				}
 				// fall through so that the person faces the nearest merc!
 			case NPC_ACTION_TURN_TO_FACE_NEAREST_MERC:
@@ -2347,9 +2411,8 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 			case NPC_ACTION_MEDICAL_REQUESTOR_2: // at hospital
 			case NPC_ACTION_BUY_VEHICLE_REQUESTOR: // from Dave
 			case NPC_ACTION_KROTT_REQUESTOR:
-			// VENGEANCE
-			case NPC_ACTION_MENDAX_REQUESTOR:
-			// /VENGEANCE
+			case NPC_ACTION_WALDO_REPAIR_REQUESTOR:
+			case NPC_ACTION_MENDAX_REQUESTOR: // anv: VR, spare Mendax?
 				// Vince or Willis asks about payment? for medical attention
 				if (ubTargetNPC != gpDestSoldier->ubProfile)
 				{
@@ -2386,7 +2449,9 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				// add a money item with $10000 to the tile in front of Kyle
 				// and then have him pick it up
 				{
-					INT32 sGridNo = 14952; //dnl!!!
+					// this isn't mod friendly. Let's make a new Mod_Settings.ini value
+					// INT32 sGridNo = 14952; //dnl!!!
+					INT32 sGridNo = gModSettings.iKyleMoneyGridNo;
 					INT32				iWorldItem;
 
 					pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
@@ -2435,9 +2500,9 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				break;
 
 			case NPC_ACTION_ADD_JOEY_TO_WORLD:
-				gMercProfiles[ JOEY ].sSectorX = 4;
-				gMercProfiles[ JOEY ].sSectorY = MAP_ROW_D;
-				gMercProfiles[ JOEY ].bSectorZ = 1;
+				gMercProfiles[ JOEY ].sSectorX = gModSettings.ubJoeyPrimarySectorX; //4
+				gMercProfiles[ JOEY ].sSectorY = gModSettings.ubJoeyPrimarySectorY; //MAP_ROW_D
+				gMercProfiles[ JOEY ].bSectorZ = gModSettings.ubJoeyPrimarySectorZ; //1
 				AddFutureDayStrategicEvent( EVENT_SET_BY_NPC_SYSTEM, GetWorldMinutesInDay(), NPC_SYSTEM_EVENT_ACTION_PARAM_BONUS + NPC_ACTION_ADD_JOEY_TO_WORLD, 3 );
 				break;
 
@@ -2464,25 +2529,25 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 			case NPC_ACTION_OPEN_CARLAS_DOOR:
 				if (usActionCode == NPC_ACTION_OPEN_CARLAS_DOOR )
 				{
-					sGridNo = 12290; //dnl!!!
+					sGridNo = gModSettings.iCarlaDoorGridNo; //12290; //dnl!!!
 				}
 				// fall through
 			case NPC_ACTION_OPEN_CINDYS_DOOR:
 				if (usActionCode == NPC_ACTION_OPEN_CINDYS_DOOR )
 				{
-					sGridNo = 13413; //dnl!!!
+					sGridNo = gModSettings.iCindyDoorGridNo; //13413; //dnl!!!
 				}
 				// fall through
 			case NPC_ACTION_OPEN_BAMBIS_DOOR:
 				if (usActionCode == NPC_ACTION_OPEN_BAMBIS_DOOR )
 				{
-					sGridNo = 11173; //dnl!!!
+					sGridNo = gModSettings.iBambiDoorGridNo; //11173; //dnl!!!
 				}
 				// fall through
 			case NPC_ACTION_OPEN_MARIAS_DOOR:
 				if (usActionCode == NPC_ACTION_OPEN_MARIAS_DOOR )
 				{
-					sGridNo = 10852; //dnl!!!
+					sGridNo = gModSettings.iMariaDoorGridNo; //10852; //dnl!!!
 				}
 				// JA3Gold: unlock the doors instead of opening them
 				{
@@ -2677,9 +2742,21 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				AddHistoryToPlayersLog( HISTORY_MERC_MARRIED_OFF, pSoldier->ubProfile, GetWorldTotalMin(), gWorldSectorX, gWorldSectorY );
 
 				// if Flo is going off with Daryl, then set that fact true
-				if( pSoldier->ubProfile == 44 )
+				if( pSoldier->ubProfile == FLO )
 				{
 					SetFactTrue( FACT_PC_MARRYING_DARYL_IS_FLO );
+
+#ifdef JA2UB
+#else
+					// anv: make Speck whine about it immediately if on team
+					if( !IsMercDead(BIFF) && !IsSpeckComAvailable() )
+					{
+						TacticalCharacterDialogue( FindSoldierByProfileID( SPECK_PLAYABLE , TRUE ), SPECK_PLAYABLE_QUOTE_FLO_MARRIED_A_COUSIN_BIFF_IS_ALIVE );
+						// don't bring this up again
+						LaptopSaveInfo.fSpeckSaidFloMarriedCousinQuote = TRUE;
+						MakeBiffAwayForCoupleOfDays();
+					}
+#endif
 				}
 
 				HandleMoraleEvent( pSoldier, MORALE_MERC_MARRIED, gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
@@ -2906,7 +2983,8 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				// increment number of heads on hand
 				gMercProfiles[ 78 ].bNPCData2++;
 
-				if (gWorldSectorX == 13 && gWorldSectorY == MAP_ROW_C && gbWorldSectorZ == 0)
+				if (gWorldSectorX == gModSettings.ubCarmenGiveRewardSectorX && gWorldSectorY == gModSettings.ubCarmenGiveRewardSectorY && 
+					gbWorldSectorZ == gModSettings.ubCarmenGiveRewardSectorZ) //13, 3, 0
 				{
 					TriggerNPCRecord( 78, 20 );
 				}
@@ -2951,7 +3029,10 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				break;
 
 			case NPC_ACTION_END_COMBAT:
-				ExitCombatMode();
+				// silversurfer: Bugfix for JaggZilla Bug #635
+				// We can't end combat just because this one guy is now not hostile anymore. What about the rest of the sector?
+				if ( NumCapableEnemyInSector() == 0 )
+					ExitCombatMode();
 				break;
 
 			case NPC_ACTION_BECOME_FRIENDLY_END_COMBAT:
@@ -2964,7 +3045,10 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					RecalculateOppCntsDueToBecomingNeutral( pSoldier );
 					if ( gTacticalStatus.bNumFoughtInBattle[ CIV_TEAM ] == 0 )
 					{
-						gTacticalStatus.fEnemyInSector = FALSE;
+						// silversurfer: Bugfix for JaggZilla Bug #635
+						// Function CheckForEndOfBattle() will set this IF the sector is really free of enemies.
+						//gTacticalStatus.fEnemyInSector = FALSE;
+						CheckForEndOfBattle( FALSE );
 					}
 					if ( !gTacticalStatus.fEnemyInSector )
 					{
@@ -3188,9 +3272,11 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				pSoldier = FindSoldierByProfileID( KINGPIN, FALSE );
 				if (pSoldier)
 				{
-					UINT8 ubRoom;
+					//DBrot: More Rooms
+					//UINT8 ubRoom;
+					UINT16 usRoom;
 
-					if ( InARoom( pSoldier->sGridNo, &ubRoom ) && (ubRoom == 1 || ubRoom == 2 || ubRoom == 3 ) )
+					if ( InARoom( pSoldier->sGridNo, &usRoom ) && (usRoom == 1 || usRoom == 2 || usRoom == 3 ) )
 					{	// Kingpin is in the club
 						TriggerNPCRecord( DARREN, 31 );
 						break;
@@ -3278,18 +3364,18 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					// Target a different merc....
 					if ( usActionCode == NPC_ACTION_PUNCH_PC_SLOT_0 )
 					{
-						sGridNo = gsInterrogationGridNo[ 0 ];
 						//pTarget = MercPtrs[ 0 ];
+						sGridNo = gModSettings.iMeanwhileInterrogatePOWGridNo[ 0 ];
 					}
 					else if ( usActionCode == NPC_ACTION_PUNCH_PC_SLOT_1 )
 					{
 						//pTarget = MercPtrs[ 1 ];
-						sGridNo = gsInterrogationGridNo[ 1 ];
+						sGridNo = gModSettings.iMeanwhileInterrogatePOWGridNo[ 1 ];
 					}
 					else //if ( usActionCode == NPC_ACTION_PUNCH_PC_SLOT_2 )
 					{
 						//pTarget = MercPtrs[ 2 ];
-						sGridNo = gsInterrogationGridNo[ 2 ];
+						sGridNo = gModSettings.iMeanwhileInterrogatePOWGridNo[ 2 ];
 					}
 
 					ubTargetID = WhoIsThere2( sGridNo, 0 );
@@ -3399,7 +3485,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 					for ( cnt = 0; cnt < 3; cnt++ )
 					{
-						ubTargetID = WhoIsThere2( gsInterrogationGridNo[ cnt ], 0 );
+						ubTargetID = WhoIsThere2( gModSettings.iMeanwhileInterrogatePOWGridNo[ cnt ], 0 );
 						if ( ubTargetID == NOBODY )
 						{
 							continue;
@@ -3502,6 +3588,13 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 			case NPC_ACTION_SEND_SOLDIERS_TO_OMERTA:
 			case NPC_ACTION_ADD_MORE_ELITES:
 			case NPC_ACTION_GIVE_KNOWLEDGE_OF_ALL_MERCS:
+			case NPC_ACTION_SEND_SOLDIERS_TO_CHITZENA:
+			case NPC_ACTION_SEND_SOLDIERS_TO_GRUMM:
+			case NPC_ACTION_SEND_SOLDIERS_TO_CAMBRIA:
+			case NPC_ACTION_SEND_SOLDIERS_TO_ALMA:
+			case NPC_ACTION_SEND_SOLDIERS_TO_BALIME:
+			case NPC_ACTION_GLOBAL_OFFENSIVE_1:
+			case NPC_ACTION_GLOBAL_OFFENSIVE_2:
 				break;
 
 			case NPC_ACTION_TRIGGER_QUEEN_BY_SAM_SITES_CONTROLLED:
@@ -3942,6 +4035,13 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 			case NPC_ACTION_ADD_JOHNS_GUN_SHIPMENT:
 				AddJohnsGunShipment();
+
+#ifdef JA2UB
+#else
+				// anv: recruitable Kulba
+				if( gGameExternalOptions.fEnableRecruitableJohnKulba == TRUE )
+					AddJohnAsMerc();
+#endif
 				// also close panel
 				DeleteTalkingMenu();
 				break;
@@ -4044,9 +4144,9 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 			case NPC_ACTION_ADD_RAT:
 				// add Rat
-				gMercProfiles[ RAT ].sSectorX = 9;
-				gMercProfiles[ RAT ].sSectorY = MAP_ROW_G;
-				gMercProfiles[ RAT ].bSectorZ = 0;
+				gMercProfiles[ RAT ].sSectorX = gModSettings.ubAddRatSectorX; //9
+				gMercProfiles[ RAT ].sSectorY = gModSettings.ubAddRatSectorY; //7
+				gMercProfiles[ RAT ].bSectorZ = gModSettings.ubAddRatSectorZ; //0
 				break;
 
 			case NPC_ACTION_ENDGAME_STATE_1:
@@ -4056,13 +4156,22 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				{
 					// This is not the end, 'cause momma creature is still alive
 					TriggerNPCRecordImmediately( 136, 8 );
+#ifdef JA2UB
+//no Ub
+#else
 					EndQueenDeathEndgame( );
+#endif
+
 				}
 				else
 				{
 					// Continue with endgame cimematic..
 					DeleteTalkingMenu( );
+#ifdef JA2UB
+//no Ub
+#else
 					EndQueenDeathEndgameBeginEndCimenatic( );
+#endif
 				}
 				break;
 
@@ -4070,7 +4179,11 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 				// Just end queen killed dequence.......
 				DeleteTalkingMenu( );
+#ifdef JA2UB
+// no UB
+#else
 				EndQueenDeathEndgame( );
+#endif
 				break;
 
 			case NPC_ACTION_MAKE_ESTONI_A_FUEL_SITE:
@@ -4093,6 +4206,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				{
 					pSoldier = ChangeSoldierTeam( pSoldier, CIV_TEAM );
 				}
+                Assert(pSoldier);
 				// remove profile from map
 				gMercProfiles[ pSoldier->ubProfile ].sSectorX = 0;
 				gMercProfiles[ pSoldier->ubProfile ].sSectorY = 0;
@@ -4226,9 +4340,11 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				{
 					if ( gpSrcSoldier )
 					{
-						UINT8 ubRoom;
+						//DBrot: More Rooms
+						//UINT8 ubRoom;
+						UINT16 usRoom;
 
-						if ( InARoom( gpSrcSoldier->sGridNo, &ubRoom ) && (ubRoom == 49) )
+						if ( InARoom( gpSrcSoldier->sGridNo, &usRoom ) && (usRoom == gModSettings.usPornShopRoomHans) )
 						{
 							TriggerNPCRecord( HANS, 18 );
 						}
@@ -4320,7 +4436,66 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					TriggerNPCRecord( WALTER, 15 );
 				}
 				break;
-			// VENGEANCE
+#ifdef JA2UB
+			//JA25 UB	
+			case NPC_ACTION_TRIGGER_JERRY_CONVERSATION_WITH_PGC_1:
+				PerformJerryMiloAction301();
+				break;
+			
+			case NPC_ACTION_TRIGGER_JERRY_CONVERSATION_WITH_PGC_2:
+				PerformJerryMiloAction302();
+				break;
+
+			case NPC_ACTION_BIGGENS_DETONATES_BOMBS:
+				HaveBiggensDetonatingExplosivesByTheMine();
+				break;
+
+			case NPC_ACTION_LEAVING_NPC_TALK_MENU:
+				HandleSpecificQuoteWhenLeavingNpcTalkMenu();
+				break;
+
+			case NPC_ACTION_RAUL_BLOWS_HIMSELF_UP:
+				HandleRaulBlowingHimselfUp();
+				break;
+
+			case NPC_ACTION_TEX_FLUSHES_TOILET:
+				HandleTexFlushingToilet();
+				break;
+
+			case NPC_ACTION_MARK_TEX_AS_ALREADY_INTRODUCED_HIMSELF:
+				HandleTexMakingHimselfAlreadyBeIntroduced();
+				break;
+
+			case NPC_ACTION_MAKE_TEX_CAMOED:
+				HandleTexBecomingCamoed();
+				break;
+
+			case NPC_ACTION_HAVE_DEALER_OPEN_BUY_SELL_SCREEN:
+				HaveNpcOpenUpDealerScreen( ubTargetNPC );
+				break;
+#endif
+
+			case NPC_ACTION_RECRUIT_PROFILE_TO_EPC:
+					//if ( !CheckNPCIsEPC(ubTargetNPC) )
+						//{
+							RecruitEPC( ubTargetNPC );
+						//}
+				break;
+				
+			case NPC_ACTION_UNRECRUIT_EPC:
+					//if ( CheckNPCIsEPC(ubTargetNPC) )
+					//	{
+							UnRecruitEPC( ubTargetNPC );
+					//	}
+				break;
+
+			case NPC_ACTION_WALDO_START_REPAIRS:
+				// it's called after giving him money
+				StartHelicopterRepair( FALSE, TRUE );
+				break;
+
+
+			// anv: VR - NPC actions
 			case NPC_ACTION_HISTORY_ENRICO:
 				AddHistoryToPlayersLog( HISTORY_ENRICO, 0, GetWorldTotalMin(), gWorldSectorX, gWorldSectorY );
 				break;
@@ -4385,10 +4560,16 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				}
 				break;
 			// /VENGEANCE
+						break;
+
+
 			default:
 				ScreenMsg( FONT_MCOLOR_RED, MSG_TESTVERSION, L"No code support for NPC action %d", usActionCode );
 				break;
 		}
+		
+				//Lua
+	//	LuaHandleNPCDoAction( ubTargetNPC, usActionCode, ubQuoteNum , 0);
 	}
 }
 
@@ -4413,6 +4594,9 @@ UINT32 CalcPatientMedicalCost( SOLDIERTYPE * pSoldier )
 		// charge additional $25 for every point below OKLIFE he is
 		uiCost += ( 25 * ( OKLIFE - pSoldier->stats.bLife ) );
 	}
+
+	// charge additional $13 for every poison point that has to be cured
+	uiCost += 13 * pSoldier->bPoisonSum;
 
 	// also charge $2 for each point of bleeding that must be stopped
 	if ( pSoldier->bBleeding > 0 )
@@ -4491,7 +4675,7 @@ UINT32 CalcMedicalCost( UINT8 ubId )
 
 BOOLEAN PlayerTeamHasTwoSpotsLeft( )
 {
-	return ( CountNonVehiclesOnPlayerTeam() <= gGameExternalOptions.ubGameMaximumNumberOfPlayerMercs - 2 );
+	return ( CountNonVehiclesOnPlayerTeam() <= OUR_TEAM_SIZE_NO_VEHICLE - 2 );
 }
 
 
@@ -4564,19 +4748,31 @@ void StartDialogueMessageBox( UINT8 ubProfileID, UINT16 usMessageBoxType )
 			DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, DialogueMessageBoxCallBack, NULL );
 			break;
 		case NPC_ACTION_TRIGGER_MARRY_DARYL_PROMPT:
-			swprintf( zTemp, TacticalStr[ MARRY_DARYL_PROMPT ] );
+			swprintf( zTemp, TacticalStr[ MARRY_DARYL_PROMPT ], gMercProfiles[ubProfileID].zNickname );
 			DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, DialogueMessageBoxCallBack, NULL );
 			break;
 		case NPC_ACTION_KROTT_REQUESTOR:
-			swprintf( zTemp, TacticalStr[ SPARE_KROTT_PROMPT ] );
+			swprintf( zTemp, TacticalStr[ SPARE_KROTT_PROMPT ], gMercProfiles[ubProfileID].zNickname );
 			DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, DialogueMessageBoxCallBack, NULL );
 			break;
-		// VENGEANCE
+		// anv: Waldo The Mechanic
+		case NPC_ACTION_WALDO_REPAIR_REQUESTOR:
+			swprintf( zTemp, TacticalStr[ STR_HELI_RR_REPAIR_PROMPT ], gMercProfiles[ubProfileID].zNickname );
+			if( CheckFact(FACT_HELI_DAMAGED_CAN_START_REPAIR, 0) == TRUE )
+			{	
+				swprintf( zTemp, pHelicopterRepairRefuelStrings[ STR_HELI_RR_REPAIR_PROMPT ], gMercProfiles[ WALDO ].zNickname, CalculateHelicopterRepairCost( FALSE ), gHelicopterSettings.ubHelicopterBasicRepairTime);
+			}
+			else
+			{
+				swprintf( zTemp, pHelicopterRepairRefuelStrings[ STR_HELI_RR_REPAIR_PROMPT ], gMercProfiles[ WALDO ].zNickname, CalculateHelicopterRepairCost( TRUE ),  gHelicopterSettings.ubHelicopterSeriousRepairTime	 );
+			}
+			DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, DialogueMessageBoxCallBack, NULL );
+			break;
+		// anv: VR - requestors
 		case NPC_ACTION_MENDAX_REQUESTOR:
 			swprintf( zTemp, pSpareMendax[ SPARE_MENDAX_PROMPT ] );
 			DoMessageBox( MSG_BOX_BASIC_STYLE, zTemp, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, DialogueMessageBoxCallBack, NULL );
 			break;
-		// /VENGEANCE
 		default:
 			break;
 	}
@@ -4615,13 +4811,12 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 							break;
 						}
 					}
-					// VENGEANCE - conman quest
+					// anv: VR
 					if ( ubProfile == CONMAN )
 					{
 						// conman informs about problems
 						TriggerNPCRecord( CONMAN, 6 );
 					}
-					// /VENGEANCE
 
 					RecruitEPC( ubProfile );
 
@@ -4644,6 +4839,36 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 			break;
 		case NPC_ACTION_ASK_ABOUT_PAYING_RPC:
 		case NPC_ACTION_ASK_ABOUT_PAYING_RPC_WITH_DAILY_SALARY:
+
+#ifdef JA2UB
+			if ( ubExitValue == MSG_BOX_RETURN_YES )
+			{
+				//if the player cannot afford to hire the npc
+				if( LaptopSaveInfo.iCurrentBalance < gMercProfiles[ubProfile].sSalary )
+				{
+					//Set a flag indicating that you cannot afford the merc
+					gfDisplayMsgBoxSayingCantAffordNPC = TRUE;
+				}
+				else
+				{
+					//First Deduct the money out of the players account
+					AddTransactionToPlayersBook( PAYMENT_TO_NPC, ubProfile, GetWorldTotalMin(), -gMercProfiles[ubProfile].sSalary );
+
+					TriggerNPCRecord( ubProfile, 1 );
+
+					//if the person is BIGGENS
+					if( ubProfile ==  BIGGENS_UB ) //BIGGENS
+					{
+						SetFactTrue( FACT_BIGGENS_IS_ON_TEAM );
+					}
+				}
+			}
+			else
+			{
+				TriggerNPCRecord( ubProfile, 0 );
+			}
+#else
+			
 			if ( ubExitValue == MSG_BOX_RETURN_YES )
 			{
 				TriggerNPCRecord( ubProfile, 1 );
@@ -4652,6 +4877,7 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 			{
 				TriggerNPCRecord( ubProfile, 0 );
 			}
+#endif
 			break;
 		case NPC_ACTION_REDUCE_CONRAD_SALARY_CONDITIONS:
 			if ( ubExitValue == MSG_BOX_RETURN_YES )
@@ -4836,6 +5062,16 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 				TriggerNPCRecord( SERGEANT, 6 );
 			}
 			break;
+		case NPC_ACTION_WALDO_REPAIR_REQUESTOR:
+			if ( ubExitValue == MSG_BOX_RETURN_YES )
+			{
+				StartHelicopterRepair( FALSE, FALSE );
+			}
+			else
+			{
+				TriggerNPCRecord( WALDO, 17 );
+			}
+			break;
 		case NPC_ACTION_TRIGGER_MARRY_DARYL_PROMPT:
 			gMercProfiles[ gpSrcSoldier->ubProfile ].ubMiscFlags2 |= PROFILE_MISC_FLAG2_ASKED_BY_HICKS;
 			if ( ubExitValue == MSG_BOX_RETURN_YES )
@@ -4856,7 +5092,7 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 				TriggerNPCRecord( DARYL, 12 );
 			}
 			break;
-		// VENGEANCE
+		// anv: VR - requestors
 		case NPC_ACTION_MENDAX_REQUESTOR:
 			if ( ubExitValue == MSG_BOX_RETURN_YES )
 			{
@@ -4867,7 +5103,6 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 				TriggerNPCRecord( MENDAX, 9 );
 			}
 			break;
-		// /VENGEANCE
 		default:
 			break;
 	}
@@ -4877,7 +5112,8 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 void	DoneFadeOutActionBasement( )
 {
 	// OK, insertion data found, enter sector!
-	SetCurrentWorldSector( 10, 1, 1 );
+	//DBrot: Grids
+	SetCurrentWorldSector( gModSettings.ubHideoutSectorX, gModSettings.ubHideoutSectorY, gModSettings.ubHideoutSectorZ );
 
 	// OK, once down here, adjust the above map with crate info....
 	gfTacticalTraversal = FALSE;
@@ -4885,12 +5121,12 @@ void	DoneFadeOutActionBasement( )
 	gpTacticalTraversalChosenSoldier = NULL;
 
 	// Remove crate
-	RemoveStructFromUnLoadedMapTempFile( 7887, SECONDOSTRUCT1, 10, 1, 0 );
+	RemoveStructFromUnLoadedMapTempFile( gModSettings.iHideoutEntryGrid, gModSettings.usCrateTileDef, gModSettings.ubHideoutSurfaceX, gModSettings.ubHideoutSurfaceY, gModSettings.ubHideoutSurfaceZ );
 	// Add crate
-	AddStructToUnLoadedMapTempFile( 8207, SECONDOSTRUCT1, 10, 1, 0 );
+	AddStructToUnLoadedMapTempFile( gModSettings.iFinalCrateGrid, gModSettings.usCrateTileDef, gModSettings.ubHideoutSurfaceX, gModSettings.ubHideoutSurfaceY, gModSettings.ubHideoutSurfaceZ );
 
 	// Add trapdoor
-	AddStructToUnLoadedMapTempFile( 7887, DEBRIS2MISC1, 10, 1, 0 );
+	AddStructToUnLoadedMapTempFile( gModSettings.iHideoutEntryGrid, gModSettings.usTrapdoorTileDef, gModSettings.ubHideoutSurfaceX, gModSettings.ubHideoutSurfaceY, gModSettings.ubHideoutSurfaceZ );
 
 
 	gFadeInDoneCallback = DoneFadeInActionBasement;
@@ -5073,6 +5309,12 @@ void TextRegionClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 
 void CarmenLeavesSectorCallback( void )
 {
+#ifdef LUA_INTERFACE_DIALOGUE
+
+	LetLuaInterfaceDialogue(0,0);
+
+#else
+
 	if (gWorldSectorX == 13 && gWorldSectorY == MAP_ROW_C && gbWorldSectorZ == 0)
 	{
 		TriggerNPCRecord( 78, 34 );
@@ -5085,5 +5327,573 @@ void CarmenLeavesSectorCallback( void )
 	{
 		TriggerNPCRecord( 78, 36 );
 	}
-
+#endif
 }
+
+#ifdef JA2UB
+//JA25 UB
+
+
+void PerformJerryMiloAction301()
+{
+	UINT8		ubMercsPresent[NUM_MERCS_WITH_NEW_QUOTES];
+	INT8		bNumMercsPresent=-1;
+	SOLDIERTYPE	*pSoldier=NULL;
+	INT32   cnt;
+	UINT8		ubId;
+
+	//Get the number and array of the new soldiers
+	bNumMercsPresent = GetNumSoldierIdAndProfileIdOfTheNewMercsOnPlayerTeam( ubMercsPresent, NULL );
+
+
+//Randomly choose one
+/*	//if there is at least 1 of the desired mercs found
+	if( bNumMercsPresent != -1 )
+	{
+		ubId = ubMercsPresent[ Random( bNumMercsPresent ) ];
+
+		pSoldier = MercPtrs[ ubId ];
+
+		TacticalCharacterDialogue( pSoldier, QUOTE_DEATH_RATE_REFUSAL );
+	}
+*/
+	//Have them all say their quote
+
+	for( cnt=0; cnt<bNumMercsPresent; cnt++ )
+	{
+		ubId = ubMercsPresent[ cnt ];
+
+		pSoldier = MercPtrs[ ubId ];
+
+		TacticalCharacterDialogue( pSoldier, QUOTE_DEATH_RATE_REFUSAL );
+	}
+
+	//Trigger Jerry Milo's script record 11 ( call action 302 )
+	TriggerNPCRecord( JERRY_MILO_UB, 11 );
+
+	//Close the dialogue panel
+	DeleteTalkingMenu();
+}
+
+void PerformJerryMiloAction302()
+{
+	UINT8	ubMercsPresent[NUM_MERCS_WITH_NEW_QUOTES];
+	INT8	bNumMercsPresent=-1;
+	SOLDIERTYPE	*pSoldier=NULL;
+	UINT8		ubId;
+	
+	//off jazz
+	//Get the number and array of the new soldiers
+	bNumMercsPresent = GetNumSoldierIdAndProfileIdOfTheNewMercsOnPlayerTeam( ubMercsPresent, NULL );
+
+	//Randomly choose one
+	//if there is at least 1 of the desired mercs found
+	if( bNumMercsPresent != 0 )
+	{
+		UINT8 ubProfileID = NO_PROFILE;
+		UINT8	ubIdOfMercWhoSaidQuote;
+
+		ubIdOfMercWhoSaidQuote = Random( bNumMercsPresent );
+		ubId = ubMercsPresent[ ubIdOfMercWhoSaidQuote ];
+
+		pSoldier = MercPtrs[ ubId ];
+
+		TacticalCharacterDialogue( pSoldier, QUOTE_LAME_REFUSAL );
+
+		if( bNumMercsPresent == 1 )
+			ubProfileID = MercPtrs[ ubId ]->ubProfile;
+		else
+		{
+			BOOLEAN fDone=FALSE;
+
+			while( !fDone )
+			{
+				ubProfileID = Random( bNumMercsPresent );
+
+				if( ubProfileID != ubIdOfMercWhoSaidQuote )
+				{
+					ubId = ubMercsPresent[ ubProfileID ];
+					fDone = TRUE;
+				}
+			}
+
+			ubProfileID = MercPtrs[ ubId ]->ubProfile;
+		}
+
+		//Say the quote in 15 seconds
+		DelayedMercQuote( ubProfileID, QUOTE_DEPARTING_COMMENT_CONTRACT_NOT_RENEWED_OR_48_OR_MORE, GetWorldTotalSeconds( ) + 15 );
+		
+	}
+
+	//handle the merc arrives quotes now
+	HandleMercArrivesQuotesFromHeliCrashSequence();
+
+	//Set the fact that we should show the destination dialog
+	gJa25SaveStruct.fShowMercDestinationDialogWhenHiringMerc = TRUE;
+
+	//Close the dialogue panel
+	DeleteTalkingMenu();
+}
+
+void DelayedMercQuote( UINT16 usProfileID, UINT32 uiQuoteNum, UINT32 uiTimeTillQuoteSaid )
+{
+	UINT32 uiParam;
+
+	uiParam = usProfileID + ( uiQuoteNum << 16 );
+
+	AddStrategicEventUsingSeconds( EVENT_SAY_DELAYED_MERC_QUOTE, uiTimeTillQuoteSaid, uiParam );
+}
+
+void DelayedSayingOfMercQuote( UINT32 uiParam )
+{
+	SOLDIERTYPE *pSoldier=NULL;
+	UINT16 usProfileID;
+	UINT16 usQuoteNum;
+
+	usProfileID = 0x0000FFFF & uiParam;
+	usQuoteNum = uiParam >> 16;
+
+	//if its a normal quote
+	if( usQuoteNum < DQ__NORMAL_DELAYED_QUOTE )
+	{
+		//Get the soldier that should say the quote
+		pSoldier = FindSoldierByProfileID( (UINT8)usProfileID, FALSE );
+		if( pSoldier == NULL )
+			return;
+
+		//
+		// Do Quote specific code here
+		//
+		if( usQuoteNum == QUOTE_DEPARTING_COMMENT_CONTRACT_NOT_RENEWED_OR_48_OR_MORE )
+		{
+			//if the soldier is saying the 'brr its cold' quote, and he has left the sector
+			if( pSoldier->sSectorX != JA2_5_START_SECTOR_X || pSoldier->sSectorY != JA2_5_START_SECTOR_Y && pSoldier->bSectorZ != 0 )
+			{
+				//dont say the quote
+				return;
+			}
+		}
+
+		//Say the quote
+		TacticalCharacterDialogue( pSoldier, usQuoteNum );
+	}
+	else
+	{
+		switch( usQuoteNum )
+		{
+			case DQ__JERRY_BROKE_TRANSMITTER:
+				//Display the popup saying Jerry broke the transmitter
+				DisplayJerryBreakingLaptopTransmitterPopup();
+				break;
+
+			case DQ__MORRIS_NOTE_NEW_MERC_DELAY:
+				HandleCommanderMorrisNewMercWantsNoteDelayedSpeech();
+				break;
+
+			case DQ__MORRIS_NOTE_DISPLAY_NOTE_1:
+			case DQ__MORRIS_NOTE_DISPLAY_NOTE_2:
+			{
+				//Get the soldier that should say the quote
+				pSoldier = FindSoldierByProfileID( (UINT8)usProfileID, FALSE );
+				if( pSoldier == NULL )
+					return;
+
+				DisplayCommanderMorrisNote( pSoldier );
+			}
+			break;
+
+			case DQ__SHOW_RADIO_LOCATOR:
+				BeginMultiPurposeLocator( usProfileID, 0, TRUE );
+				break;
+
+			case DQ__NEW_MERC_SAY_NOTE_QUOTES:
+				//Get the soldier that should say the quote
+				pSoldier = FindSoldierByProfileID( (UINT8)usProfileID, FALSE );
+				if( pSoldier == NULL )
+					return;
+
+				HandleNewMercSayingContentsOfMorrisNote( pSoldier );
+				break;
+
+			case DQ__START_EVERYONE_TALKING_AT_END_OF_GAME:
+				EndGameEveryoneSayTheirGoodByQuotes();
+				break;
+
+			case DQ__FADE_OUT_TO_END_GAME_CINEMATIC:
+				HandleFadingOutToEndGameCinematics();
+				break;
+		}
+	}
+}
+
+void HandleSpecificQuoteWhenLeavingNpcTalkMenu()
+{
+	SetFactTrue( FACT_MERC_SAY_QUOTE_WHEN_TALK_MENU_CLOSES );
+}
+
+void HaveQualifiedMercSayQuoteAboutNpcWhenLeavingTalkScreen( UINT8 ubNpcProfileID, UINT32 uiQuoteNum )
+{
+	INT8	bNumMercsPresent=-1;
+	UINT8 SoldierIdArray[NUM_MERCS_WITH_NEW_QUOTES];
+	UINT8 ValidSoldierIdArray[NUM_MERCS_WITH_NEW_QUOTES] = {0};
+	UINT8 ubNumValidSoldiers=0;
+	UINT8	ubCnt;
+	SOLDIERTYPE *pSoldier=NULL;
+	SOLDIERTYPE * pNPC;
+
+	pNPC = FindSoldierByProfileID( ubNpcProfileID, FALSE );
+	if( pNPC == NULL )
+	{
+		return;
+	}
+
+	//Get the number and array of the new soldiers
+	bNumMercsPresent = GetNumSoldierIdAndProfileIdOfTheNewMercsOnPlayerTeam( SoldierIdArray, NULL );
+
+	//if the player doesnt have any qualified players on the team
+	if( bNumMercsPresent == -1 )
+	{
+		return;
+	}
+
+
+	//loop through the mercs and see if there in range of the dealer
+	for( ubCnt=0; ubCnt<bNumMercsPresent; ubCnt++)
+	{
+		pSoldier = &Menptr[ SoldierIdArray[ ubCnt ] ];
+
+		// Add guy if he's a candidate...
+		if ( OK_INSECTOR_MERC( pSoldier ) && PythSpacesAway( pNPC->sGridNo, pSoldier->sGridNo ) < 10 && !AM_AN_EPC( pSoldier ) && !( pSoldier->flags.uiStatusFlags & SOLDIER_GASSED ) && !(AM_A_ROBOT( pSoldier )) && !pSoldier->flags.fMercAsleep &&
+			SoldierTo3DLocationLineOfSightTest( pSoldier, pNPC->sGridNo, 0, 0, (UINT8)MaxDistanceVisible(), TRUE ) )
+		{
+			ValidSoldierIdArray[ ubNumValidSoldiers ] = pSoldier->ubID;
+			ubNumValidSoldiers++;
+		}
+	}
+
+	//If there is a valid merc, pick a merc to say the quote
+	if( ubNumValidSoldiers > 0 )
+	{
+		UINT8 ubChosenMerc = (UINT8)Random( ubNumValidSoldiers );
+		TacticalCharacterDialogue( MercPtrs[ ValidSoldierIdArray[ ubChosenMerc ] ], (UINT16)uiQuoteNum );
+	}
+
+	SetFactFalse( FACT_MERC_SAY_QUOTE_WHEN_TALK_MENU_CLOSES );
+}
+
+void CheckForValidQuotesWhenLeavingDealer( UINT8 ubProfile )
+{
+	//if the user is going to the dealer
+	if( gTalkPanel.bCurSelect != -1 && ubTalkMenuApproachIDs[ gTalkPanel.bCurSelect ] == APPROACH_BUYSELL )
+	{
+		return;
+	} 
+
+	//if their scripting event going on, leave
+	if( gTacticalStatus.uiFlags & ENGAGED_IN_CONV )
+	{
+		return;
+	}
+
+
+	if( CheckFact( FACT_MERC_SAY_QUOTE_WHEN_TALK_MENU_CLOSES, 0 ) )
+	{
+		if ( ubProfile == BETTY_UB ) 
+			HaveQualifiedMercSayQuoteAboutNpcWhenLeavingTalkScreen( ubProfile, QUOTE_JOINING_CAUSE_BUDDY_1_ON_TEAM );
+		else if ( ubProfile == RAUL_UB )
+		{
+				//if the Raul is about to blow himself up
+				if( !IsJa25GeneralFlagSet( JA_GF__RAUL_BLOW_HIMSELF_UP ) )
+				{
+					//we can say the quote
+					HaveQualifiedMercSayQuoteAboutNpcWhenLeavingTalkScreen( ubProfile, QUOTE_JOINING_CAUSE_BUDDY_2_ON_TEAM );
+				}
+			}
+		else if ( ubProfile == RUDY_UB )
+				HaveQualifiedMercSayQuoteAboutNpcWhenLeavingTalkScreen( ubProfile, QUOTE_REFUSAL_RENEW_DUE_TO_MORALE );
+	}
+}
+
+
+// This function checks if we should replace the mine entrance graphic
+BOOLEAN IsMineEntranceInSectorI13AtThisGridNo( UINT32 sGridNo )
+{
+	// First check current sector......
+	if( gWorldSectorX == 13 && gWorldSectorY == MAP_ROW_I && gbWorldSectorZ == 0 )
+	{
+		//if this is the right gridno
+		if( sGridNo == 12421 )
+		{
+			return( TRUE );
+		}
+	}
+
+	return( FALSE );
+}
+
+void HaveBiggensDetonatingExplosivesByTheMine()
+{
+	SOLDIERTYPE *pSoldier = NULL;
+	UINT8	ubID=NOBODY;
+
+	pSoldier = FindSoldierByProfileID( BIGGENS_UB , FALSE ); //BIGGENS
+	if( pSoldier != NULL )
+	{
+		ubID = pSoldier->ubID;
+	}
+	//Have Biggens Triger the bombs by the cave wall
+	SetOffBombsByFrequency( ubID, FIRST_MAP_PLACED_FREQUENCY + 1 );
+}
+
+void ReplaceMineEntranceGraphicWithCollapsedEntrance()
+{
+	UINT16									usTileIndex;
+	UINT32 usGridNo=12745;
+
+	//Make sure wed ont blow things up twice
+	//off
+	if( gJa25SaveStruct.fBiggensUsedDetonator )
+		return;
+
+	//Remeber that biggens detonated the explosives
+	gJa25SaveStruct.fBiggensUsedDetonator = TRUE;  
+
+	// Turn on permenant changes....
+	ApplyMapChangesToMapTempFile( TRUE );
+
+	// Remove it!
+	// Get index for it...
+	GetTileIndexFromTypeSubIndex( FIRSTOSTRUCT, (INT8)( 1 ), &usTileIndex );
+
+	AddStructToHead( usGridNo, usTileIndex );
+
+	//remove the exit grid from the world
+	RemoveExitGridFromWorld( 12422 );
+	RemoveExitGridFromWorld( 12423 );
+	AddRemoveExitGridToUnloadedMapTempFile( 12422, 13, MAP_ROW_I, 0 );
+	AddRemoveExitGridToUnloadedMapTempFile( 12423, 13, MAP_ROW_I, 0 );
+
+	gpWorldLevelData[ usGridNo ].uiFlags |= MAPELEMENT_REVEALED;
+
+
+	// Re-render the world!
+	gTacticalStatus.uiFlags |= NOHIDE_REDUNDENCY;
+
+	// FOR THE NEXT RENDER LOOP, RE-EVALUATE REDUNDENT TILES
+	InvalidateWorldRedundency( );
+	SetRenderFlags(RENDER_FLAG_FULL);
+
+	// Redo movement costs....
+	RecompileLocalMovementCostsFromRadius( usGridNo, 5 );
+
+
+
+
+	//
+	// Apply changes to the underground mine
+	//
+
+	//Remove the old tunnel pieces first
+
+	//First half of entrance
+	usGridNo = 13057;
+
+	// Get index for it...
+	GetTileIndexFromTypeSubIndex( FIRSTDECORATIONS, (INT8)( 1 ), &usTileIndex );
+
+	RemoveStructFromUnLoadedMapTempFile( usGridNo, usTileIndex, 13, MAP_ROW_I, 1 );
+
+	// Get index for it...
+	GetTileIndexFromTypeSubIndex( FIRSTDECORATIONS, (INT8)( 5 ), &usTileIndex );
+
+	//Apply changes
+	AddStructToUnLoadedMapTempFile( usGridNo, usTileIndex, 13, MAP_ROW_I, 1 );
+
+
+
+	// 2nd half of entrance
+	usGridNo = 12897;
+
+	// Get index for it...
+	GetTileIndexFromTypeSubIndex( FIRSTDECORATIONS, (INT8)( 2 ), &usTileIndex );
+
+	RemoveStructFromUnLoadedMapTempFile( usGridNo, usTileIndex, 13, MAP_ROW_I, 1 );
+
+	// Get index for it...
+	GetTileIndexFromTypeSubIndex( FIRSTDECORATIONS, (INT8)( 6 ), &usTileIndex );
+
+	//Apply changes
+	AddStructToUnLoadedMapTempFile( usGridNo, usTileIndex, 13, MAP_ROW_I, 1 );
+
+	//Remove the exit grid
+	AddRemoveExitGridToUnloadedMapTempFile( usGridNo, 13, MAP_ROW_I, 1 );
+
+	// Turn off permenant changes....
+	ApplyMapChangesToMapTempFile( FALSE );
+}
+
+void HandleCannotAffordNpcMsgBox()
+{
+//	CHAR16	zString[512];
+	if( !gfDisplayMsgBoxSayingCantAffordNPC )
+	{
+		return;
+	}
+
+	//display a msg box saying cant afford merc
+//	swprintf( zString, zNewTacticalMessages[ TACT_MSG__CANNOT_AFFORD_MERC ], gMercProfiles[ 61 ].zNickname ); //BIGGENS
+//	DoMessageBox( MSG_BOX_BASIC_STYLE, zString, GAME_SCREEN, ( UINT8 )MSG_BOX_FLAG_OK, CantAffordMercCallback, NULL );
+
+	gfDisplayMsgBoxSayingCantAffordNPC = FALSE;
+}
+
+void CantAffordMercCallback( UINT8 ubExitValue )
+{
+	//Make the RPC say a quote
+	TriggerNPCRecord( BIGGENS_UB, 0 ); //BIGGENS
+}
+
+void HandleMercArrivesQuotesFromHeliCrashSequence()
+{
+	UINT32 uiCnt;
+	SOLDIERTYPE *pSoldier=NULL;
+
+	uiCnt = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+
+	// look for all mercs on the same team, 
+	for ( pSoldier = MercPtrs[ uiCnt ]; uiCnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; uiCnt++,pSoldier++)
+	{
+		if ( pSoldier->bActive && pSoldier->stats.bLife >= OKLIFE && pSoldier->bInSector )
+		{
+			HandleMercArrivesQuotes( pSoldier );
+		}
+	}
+}
+
+void HandleRaulBlowingHimselfUp()
+{
+	SOLDIERTYPE *pSoldier=NULL;
+	UINT16			usItem=0;
+
+	//Find Raul
+	pSoldier = FindSoldierByProfileID( RAUL_UB, FALSE );
+
+	//if he exists
+	if( pSoldier )
+	{
+		//First lower his life, artificially
+		pSoldier->stats.bLife = 5;
+
+		//blow himself up with, hmmm, lets say TNT.  :)
+		usItem = HAND_GRENADE;
+		IgniteExplosion( RAUL_UB, CenterX( pSoldier->sGridNo ), CenterY( pSoldier->sGridNo ), 0, pSoldier->sGridNo, usItem, pSoldier->pathing.bLevel );
+
+		SetJa25GeneralFlag( JA_GF__RAUL_BLOW_HIMSELF_UP );
+	}
+}
+
+void HandleTexFlushingToilet()
+{
+	PlayJA2SampleFromFile( "SOUNDS\\ToiletFlush.wav", RATE_11025, HIGHVOLUME, 1, MIDDLE );
+}
+
+void HandleTexMakingHimselfAlreadyBeIntroduced()
+{
+	gMercProfiles[ TEX_UB ].ubLastDateSpokenTo = GetWorldDay( );
+}
+
+void HandleTexBecomingCamoed()
+{
+	SOLDIERTYPE *pSoldier=NULL;
+
+	//Find TEX
+	pSoldier = FindSoldierByProfileID( TEX_UB, FALSE );
+
+	//if we found him
+	if( pSoldier != NULL )
+	{
+		//make him camoed
+		pSoldier->bCamo = gGameExternalOptions.bCamoKitArea;	// 100
+		pSoldier->CreateSoldierPalettes(  );
+	}
+
+	//Then set him to be camo'ed in the profile ( cause he is still an RPC and we are just about to hire him )
+			// SANDRO - old/new traits check (I am not sure if this is used at all)
+		if ( gGameOptions.fNewTraitSystem )
+		{
+			gMercProfiles[ TEX_UB ].bSkillTraits[0] = RANGER_NT;
+		}
+		else
+		{
+			gMercProfiles[ TEX_UB ].bSkillTraits[0] = CAMOUFLAGED_OT;
+		}
+
+	//Close down the talking menu...
+	DeleteTalkingMenu( );
+
+//		InitTalkingMenu( pSoldier->ubProfile, pSoldier->sGridNo );
+
+	// Trigger Tex to say the quote, this will cause the radio locater to come up giving a pause to make it appear that he
+	// put on camoflauge
+	TriggerNPCRecord( TEX_UB, 15 );
+}
+
+void DisplayJerryBreakingLaptopTransmitterPopup()
+{
+	CHAR16	zString[512];
+	INT8		bID=-1;
+	UINT32	uiStartLoc=0;  	
+	
+	#define			LANGMESSAGEFILE		"BinaryData\\TacticalMessages.EDT"
+	#define 		EDT_SIZE 400 * 2
+
+
+	if( gJa25SaveStruct.fJerryBreakingLaptopOccuring )
+	{
+		return;
+	}
+
+	//get a random ID for a mercs name
+	bID = RandomSoldierIdForAnyMercInSector();
+
+	if( bID == -1 )
+	{
+		//Assert( 0 );
+		return;
+	}
+/*	
+	if ( FileExists(LANGMESSAGEFILE) )
+	{
+	
+		uiStartLoc = EDT_SIZE * 10;
+		LoadEncryptedDataFromFile(LANGMESSAGEFILE, sText, uiStartLoc, EDT_SIZE);	
+	
+		swprintf( zString, sText, Menptr[ bID ].name );
+	}
+	else
+	{
+		//Create the string
+		swprintf( zString, zNewTacticalMessages[ TCTL_MSG__JERRY_BREAKIN_LAPTOP_ANTENA ], Menptr[ bID ].name );
+	}
+*/
+	#ifdef UBMODSHADYJOB   //See file builddefines.h
+		swprintf( zString, XMLTacticalMessages[0] ); //Shady Job
+	#else
+		swprintf( zString, zNewTacticalMessages[TCTL_MSG__JERRY_BREAKIN_LAPTOP_ANTENA], Menptr[ bID ].name ); //UB
+	#endif
+	
+
+	//Display it
+	ExecuteTacticalTextBox( 110, zString );
+
+	gJa25SaveStruct.fJerryBreakingLaptopOccuring = TRUE;
+}
+
+void HaveNpcOpenUpDealerScreen( UINT8 ubProfileID )
+{
+	DeleteTalkingMenu( );
+
+	//Enter the shopkeeper interface
+	EnterShopKeeperInterfaceScreen( gTalkPanel.ubCharNum );
+}
+#endif

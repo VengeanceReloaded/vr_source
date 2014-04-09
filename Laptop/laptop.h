@@ -61,6 +61,8 @@ extern INT32 guiPrevArmourFilterMode;
 
 extern INT32 guiCurrentMiscFilterMode;
 extern INT32 guiPrevMiscFilterMode;
+extern INT32 guiCurrentMiscSubFilterMode;
+extern INT32 guiPrevMiscSubFilterMode;
 
 extern BOOLEAN gbMessageDisplayed;
 
@@ -136,7 +138,25 @@ enum
 	LAPTOP_MODE_FUNERAL,
 	LAPTOP_MODE_SIRTECH,
 	LAPTOP_MODE_BROKEN_LINK,
+
+	// Flugente: Campaign History
+	LAPTOP_MODE_CAMPAIGNHISTORY_SUMMARY,
+	LAPTOP_MODE_CAMPAIGNHISTORY_MOSTIMPORTANT,
+	LAPTOP_MODE_CAMPAIGNHISTORY_LATESTNEWS,
+	LAPTOP_MODE_CAMPAIGNHISTORY_ABOUTTUS,
+
 	LAPTOP_MODE_BOBBYR_SHIPMENTS,
+	
+	//ENCYCLOPEDIA
+	LAPTOP_MODE_ENCYCLOPEDIA,//main page
+	LAPTOP_MODE_ENCYCLOPEDIA_DATA,//subpage for locations, items, profiles or quests
+
+	//BRIEFING ROOM
+	LAPTOP_MODE_BRIEFING_ROOM_PAGE,
+	LAPTOP_MODE_BRIEFING_ROOM,
+	LAPTOP_MODE_BRIEFING_ROOM_ENTER,
+	
+	LAPTOP_MODE_AIM_MEMBERS_ARCHIVES_NEW,
 };
 
 // bookamrks for WWW bookmark list
@@ -160,23 +180,25 @@ enum{
 #define LAPTOP_X						iScreenWidthOffset
 #define LAPTOP_Y						iScreenHeightOffset
 
+//Moa: added brackets around definitions below to make them work. Especialy LAPTOP_SCREEN_HEIGHT and all its references resulted in wrong regions for invalidating screen which in return forced to redraw the screen emidiatly after render as invalidate did not work. Removed those redraw flags from all render functions I found (f.i.RenderBobbyRUsed()), but most likely missed some of them.
+#define LAPTOP_SCREEN_UL_X				(iScreenWidthOffset + 111)
+#define LAPTOP_SCREEN_UL_Y				(iScreenHeightOffset + 27)
 
-#define LAPTOP_SCREEN_UL_X				iScreenWidthOffset + 111
-#define LAPTOP_SCREEN_UL_Y				iScreenHeightOffset + 27
 
+#define LAPTOP_SCREEN_LR_X									(iScreenWidthOffset + 613)
+#define LAPTOP_SCREEN_LR_Y									(iScreenHeightOffset + 427)
+#define LAPTOP_UL_X											(iScreenWidthOffset + 24)
+#define LAPTOP_UL_Y											(iScreenHeightOffset + 27)
 
-#define LAPTOP_SCREEN_LR_X									iScreenWidthOffset + 613
-#define LAPTOP_SCREEN_LR_Y									iScreenHeightOffset + 427
-#define LAPTOP_UL_X											iScreenWidthOffset + 24			
-#define LAPTOP_UL_Y											iScreenHeightOffset + 27
-
-#define LAPTOP_SCREEN_WIDTH									LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X
-#define LAPTOP_SCREEN_HEIGHT								LAPTOP_SCREEN_LR_Y - LAPTOP_SCREEN_UL_Y
+#define LAPTOP_SCREEN_WIDTH									(LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X)
+#define LAPTOP_SCREEN_HEIGHT								(LAPTOP_SCREEN_LR_Y - LAPTOP_SCREEN_UL_Y)
 
 // new positions for web browser
-#define LAPTOP_SCREEN_WEB_UL_Y								LAPTOP_SCREEN_UL_Y + 19
-#define LAPTOP_SCREEN_WEB_LR_Y								LAPTOP_SCREEN_WEB_UL_Y + LAPTOP_SCREEN_HEIGHT
+#define LAPTOP_SCREEN_WEB_UL_Y								(LAPTOP_SCREEN_UL_Y + 19)
+#define LAPTOP_SCREEN_WEB_LR_Y								(LAPTOP_SCREEN_WEB_UL_Y + LAPTOP_SCREEN_HEIGHT)
 #define LAPTOP_SCREEN_WEB_DELTA_Y							19 //LAPTOP_SCREEN_WEB_UL_Y - LAPTOP_SCREEN_UL_Y
+#define LAPTOP_TITLE_Y										(LAPTOP_SCREEN_WEB_UL_Y + 12)
+#define LAPTOP_TEXT_WIDTH									((LAPTOP_SCREEN_LR_X - LAPTOP_SCREEN_UL_X + 1) + (2 * 111))
 
 // the laptop on/off button 
 #define ON_X												iScreenWidthOffset + 113
@@ -194,6 +216,9 @@ enum{
 	FLORIST_BOOKMARK,
 	INSURANCE_BOOKMARK,
 	CANCEL_STRING,
+	ENCYCLOPEDIA_BOOKMARK, //Encyclopedia
+	BRIEFING_ROOM_BOOKMARK, 
+	CAMPAIGNHISTORY_BOOKMARK,	// added by Flugente
 	TEXT_NUM_LAPTOP_BOOKMARKS
 };
 
@@ -205,6 +230,12 @@ extern UINT32 guiLaptopBACKGROUND;
 #define	DEAD_MERC_COLOR_GREEN						55
 #define	DEAD_MERC_COLOR_BLUE						55
 
+#ifdef JA2UB
+//ja25 UB
+void			ShouldImpReminderEmailBeSentWhenLaptopBackOnline();
+
+extern BOOLEAN gfProcessCustomMaps;
+#endif
 
 #endif
 

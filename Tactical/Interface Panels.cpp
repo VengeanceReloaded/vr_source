@@ -3,7 +3,6 @@
 #else
 	#include "builddefines.h"
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include <time.h>
 	#include "sgp.h"
 	#include "gameloop.h"
@@ -19,10 +18,8 @@
 	#include "input.h"
 	#include "Handle UI.h"
 	#include "renderworld.h"
-	#include "sys globals.h"
 	#include "cursors.h"
 	#include "radar screen.h"
-	#include "worldman.h"
 	#include "Font Control.h"
 	#include "render dirty.h"
 	#include "utilities.h"
@@ -40,7 +37,7 @@
 	#include "Interface Items.h"
 	#include "interface control.h"
 	#include "interface utils.h"
-	#include "game clock.h"
+	#include "Game Clock.h"
 	#include "mapscreen.h"
 	#include "Soldier Macros.h"
 	#include "strategicmap.h"
@@ -72,8 +69,10 @@
 	#include "MessageBoxScreen.h"
 	#include "wordwrap.h"
 	#include "Boxing.h"
+	#include "personnel.h"
 	// HEADROCK HAM 3.6: This is required for Stat Progress Bars
 	#include "Campaign.h"
+	#include "Food.h"	// added by Flugente
 #endif
 
 //legion by Jazz
@@ -254,10 +253,10 @@ int SM_EXPLVL_X;
 int SM_EXPLVL_Y;
 int SM_MRKM_X;
 int SM_MRKM_Y;
-int SM_EXPL_X;
-int SM_EXPL_Y;
 int SM_MECH_X;
 int SM_MECH_Y;
+int SM_EXPL_X;
+int SM_EXPL_Y;
 int SM_MED_X;
 int SM_MED_Y;
 
@@ -337,15 +336,11 @@ TEAM_PANEL_SLOTS_TYPE	gTeamPanel[ NUM_TEAM_SLOTS ];
  *	i will work with radar screen to allow moving it. or maby someone else will do it
  *	any questions? joker
  */
-int	INTERFACE_CLOCK_X;
-int	INTERFACE_CLOCK_Y;
 int	LOCATION_NAME_X;
 int	LOCATION_NAME_Y;
 
-/* CHRISL: Added new "TM" variables to allow team and inventory screens to place the clock and location name
+/* CHRISL: Added new "TM" variables to allow team and inventory screens to place the location name
 independantly of each other */
-int	INTERFACE_CLOCK_TM_X;
-int	INTERFACE_CLOCK_TM_Y;
 int	LOCATION_NAME_TM_X;
 int	LOCATION_NAME_TM_Y;
 
@@ -431,6 +426,7 @@ extern	void HandleAnyMercInSquadHasCompatibleStuff( UINT8 ubSquad, OBJECTTYPE *p
 extern	void SetNewItem( SOLDIERTYPE *pSoldier, UINT8 ubInvPos, BOOLEAN fNewItem );
 extern	BOOLEAN InternalInitItemDescriptionBox( OBJECTTYPE *pObject, INT16 sX, INT16 sY, UINT8 ubStatusIndex, SOLDIERTYPE *pSoldier, UINT8 ubPosition );
 extern	BOOLEAN InternalHandleCompatibleAmmoUI( SOLDIERTYPE *pSoldier, OBJECTTYPE *pTestObject, BOOLEAN fOn	);
+extern	BOOLEAN CompatibleAmmoForGun( OBJECTTYPE *pTryObject, OBJECTTYPE *pTestObject );//dnl ch66 070913
 
 BOOLEAN IsMouseInRegion( MOUSE_REGION *pRegion );
 void HandleMouseOverSoldierFaceForContMove( SOLDIERTYPE *pSoldier, BOOLEAN fOn );
@@ -448,6 +444,8 @@ BOOLEAN gfDeductPoints;
 // By saving this in memory, we tell the DescBox which background and values to draw, and make sure that we end up
 // on the same page every time we open the description box. UDB buttons allow switching between pages.
 UINT8 gubDescBoxPage;
+// silversurfer: Now we also have a secondary page on the general tab for weapons so we can look at their secondary attributes.
+UINT8 gubDescGenPage;
 // Record which line we're looking at. This only applied to the Advanced tab in description boxes.
 UINT8 gubDescBoxLine;
 // Record how many lines this item has to display. This only applies to the Advanced tab.
@@ -578,11 +576,13 @@ void UpdateSelectedSoldier( UINT16 usSoldierID, BOOLEAN fSelect );
 void CheckForFacePanelStartAnims( SOLDIERTYPE *pSoldier, INT16 sPanelX, INT16 sPanelY );
 void HandleSoldierFaceFlash( SOLDIERTYPE *pSoldier, INT16 sFaceX, INT16 sFaceY );
 BOOLEAN PlayerExistsInSlot( UINT8 ubID );
-void UpdateStatColor( UINT32 uiTimer, BOOLEAN fIncrease, BOOLEAN fDamaged ); // SADNRO - added argument
+void UpdateStatColor( UINT32 uiTimer, BOOLEAN fIncrease, BOOLEAN fDamaged, BOOLEAN fAugmented ); // SANDRO - added argument // Flugente - me too
 
 extern void UpdateItemHatches();
 
 extern SOLDIERTYPE *FindNextActiveSquad( SOLDIERTYPE *pSoldier );
+
+extern BOOLEAN gfMouseLockedOnBorder;
 
 // Wraps up check for AP-s get from a different soldier for in a vehicle...
 INT16 GetUIApsToDisplay( SOLDIERTYPE *pSoldier )
@@ -739,6 +739,18 @@ void SetSMPanelCurrentMerc( UINT8 ubNewID )
 	if ( gfInItemDescBox )
 	{
 		DeleteItemDescriptionBox( );
+	}
+
+	// Remove stack popup panel if one up....
+	if ( InItemStackPopup( ) || InSectorStackPopup( ) )
+	{
+		DeleteItemStackPopup( );
+	}
+
+	// Remove keyring popup panel if one up....
+	if ( InKeyRingPopup( ) )
+	{
+		DeleteKeyRingPopup( );
 	}
 
 	if ( gfInItemPickupMenu )
@@ -984,13 +996,13 @@ void UpdateSMPanel( )
 	
 	if (gGameExternalOptions.fCanClimbOnWalls == TRUE)
 	{
-		if ( FindWallJumpDirection( gpSMCurrentMerc, gpSMCurrentMerc->sGridNo, gpSMCurrentMerc->ubDirection, &bDirection ) )
-		{
+        if ( FindWallJumpDirection( gpSMCurrentMerc, gpSMCurrentMerc->sGridNo, gpSMCurrentMerc->ubDirection, &bDirection ) )
+        {
 			if ( EnoughPoints( gpSMCurrentMerc, GetAPsToJumpWall( gpSMCurrentMerc, FALSE ), 0, FALSE ) )
 			{
 				EnableButton( iSMPanelButtons[ CLIMB_BUTTON ] );
 			}
-		}
+        }
 	}
 
 	if ( FindFenceJumpDirection( gpSMCurrentMerc, gpSMCurrentMerc->sGridNo, gpSMCurrentMerc->ubDirection, &bDirection ) )
@@ -1092,7 +1104,7 @@ void UpdateSMPanel( )
 		// Enable some buttons!
 		// Changed by ADB, rev 1513
 		//if ( ((IsGunAutofireCapable( gpSMCurrentMerc, HANDPOS ) || IsGunBurstCapable( gpSMCurrentMerc, HANDPOS , FALSE )) && !Weapon[gpSMCurrentMerc->inv[HANDPOS].usItem].NoSemiAuto ) || IsGrenadeLauncherAttached ( &(gpSMCurrentMerc->inv[HANDPOS]) ) )
-		if ( ((IsGunAutofireCapable( &gpSMCurrentMerc->inv[HANDPOS] ) || IsGunBurstCapable( &gpSMCurrentMerc->inv[HANDPOS], FALSE, gpSMCurrentMerc )) && !Weapon[gpSMCurrentMerc->inv[HANDPOS].usItem].NoSemiAuto ) || IsGrenadeLauncherAttached ( &(gpSMCurrentMerc->inv[HANDPOS]) ) )
+		if ( ((IsGunAutofireCapable( &gpSMCurrentMerc->inv[HANDPOS] ) || IsGunBurstCapable( &gpSMCurrentMerc->inv[HANDPOS], FALSE, gpSMCurrentMerc )) && !Weapon[gpSMCurrentMerc->inv[HANDPOS].usItem].NoSemiAuto ) || IsGrenadeLauncherAttached ( &(gpSMCurrentMerc->inv[HANDPOS]) ) || IsWeaponAttached( &(gpSMCurrentMerc->inv[HANDPOS]), IC_GUN ) )
 		{
 			EnableButton( iSMPanelButtons[ BURSTMODE_BUTTON ] );
 		}
@@ -1135,7 +1147,8 @@ void ReevaluateItemHatches( SOLDIERTYPE *pSoldier, BOOLEAN fAllValid )
 	if ( ( gpItemPointer != NULL ) && !fAllValid )
 	{
 		// check all inventory positions and mark the ones where cursor item won't fit as invalid
-		for ( cnt = 0; cnt < pSoldier->inv.size(); cnt++ )
+		UINT32 invsize = pSoldier->inv.size();
+		for ( cnt = 0; cnt < invsize; ++cnt )
 		{
 			gbInvalidPlacementSlot[ cnt ] = !CanItemFitInPosition( pSoldier, gpItemPointer, (INT8)cnt, FALSE );
 
@@ -1159,7 +1172,7 @@ void ReevaluateItemHatches( SOLDIERTYPE *pSoldier, BOOLEAN fAllValid )
 	else
 	{
 		// mark all inventory positions as valid
-		for ( cnt = 0; cnt < NUM_INV_SLOTS; cnt++ )
+		for ( cnt = 0; cnt < NUM_INV_SLOTS; ++cnt )
 		{
 			gbInvalidPlacementSlot[ cnt ] = FALSE;
 		}
@@ -1410,10 +1423,16 @@ UINT16 GetSMPanelCurrentMerc( )
 // CHRISL: New functions to define initial settings for New Inventory system
 void InitNewInventorySystem( )
 {
-	INTERFACE_WIDTH			= 640;
+	if (iResolution >= _640x480 && iResolution < _800x600)
+		INTERFACE_WIDTH			= 640;
+	else if (iResolution < _1024x768)
+		INTERFACE_WIDTH			= 800;
+	else
+		INTERFACE_WIDTH			= 1024;
+
+	INTERFACE_START_X		= (SCREEN_WIDTH - INTERFACE_WIDTH)/2;
 	INTERFACE_HEIGHT		= 120;
 	INV_INTERFACE_HEIGHT	= 200;
-	INTERFACE_START_X		= 0;
 	INTERFACE_START_Y		= ( SCREEN_HEIGHT - INTERFACE_HEIGHT );
 	INV_INTERFACE_START_Y	= ( SCREEN_HEIGHT - INV_INTERFACE_HEIGHT );
 }
@@ -1421,10 +1440,16 @@ void InitNewInventorySystem( )
 // CHRISL: New functions to define initial settings for Old Inventory system
 void InitOldInventorySystem( )
 {
-	INTERFACE_WIDTH			= 640;
+	if (iResolution >= _640x480 && iResolution < _800x600)
+		INTERFACE_WIDTH			= 640;
+	else if (iResolution < _1024x768)
+		INTERFACE_WIDTH			= 800;
+	else
+		INTERFACE_WIDTH			= 1024;
+
+	INTERFACE_START_X		= (SCREEN_WIDTH - INTERFACE_WIDTH)/2;
 	INTERFACE_HEIGHT		= 120;
 	INV_INTERFACE_HEIGHT	= 140;
-	INTERFACE_START_X		= 0;
 	INTERFACE_START_Y		= ( SCREEN_HEIGHT - INTERFACE_HEIGHT );
 	INV_INTERFACE_START_Y	= ( SCREEN_HEIGHT - INV_INTERFACE_HEIGHT );
 }
@@ -1538,9 +1563,17 @@ BOOLEAN InitializeSMPanelCoordsOld()
 	SM_STEALTHMODE_X		= ( 187 + INTERFACE_START_X );
 	SM_STEALTHMODE_Y		= ( 73 + INV_INTERFACE_START_Y );
 
-	SM_DONE_X				=	(SCREEN_WIDTH - 97);//( 543 + INTERFACE_START_X );
+	SM_DONE_X				=	xResOffset + (xResSize - 97);
+	SM_MAPSCREEN_X			=	xResOffset + (xResSize - 51);
+
+//dnl	INTERFACE_CLOCK_X		=	xResOffset + (xResSize - 86);
+//dnl	INTERFACE_CLOCK_Y		= ( 119	+ INV_INTERFACE_START_Y );
+	INTERFACE_CLOCK_X		= xResOffset + (xResSize - 86);
+	INTERFACE_CLOCK_Y		= SCREEN_HEIGHT - 24;
+	LOCATION_NAME_X			=	xResOffset + (xResSize - 92);
+	LOCATION_NAME_Y			= ( 65	+ INTERFACE_START_Y	);
+	
 	SM_DONE_Y				= ( 4 + INV_INTERFACE_START_Y );
-	SM_MAPSCREEN_X			=	(SCREEN_WIDTH - 51);//( 589 + INTERFACE_START_X );
 	SM_MAPSCREEN_Y			= ( 4 + INV_INTERFACE_START_Y );
 
 	SM_POSITIONB_X			= ( 106 + INTERFACE_START_X );
@@ -1587,10 +1620,10 @@ BOOLEAN InitializeSMPanelCoordsOld()
 	SM_EXPLVL_Y				= ( 7 + INV_INTERFACE_START_Y );
 	SM_MRKM_X				= ( 163 + INTERFACE_START_X );
 	SM_MRKM_Y				= ( 17 + INV_INTERFACE_START_Y );
-	SM_EXPL_X				= ( 163 + INTERFACE_START_X );
-	SM_EXPL_Y				= ( 27 + INV_INTERFACE_START_Y );
 	SM_MECH_X				= ( 163 + INTERFACE_START_X );
-	SM_MECH_Y				= ( 37 + INV_INTERFACE_START_Y );
+	SM_MECH_Y				= ( 27 + INV_INTERFACE_START_Y );
+	SM_EXPL_X				= ( 163 + INTERFACE_START_X );
+	SM_EXPL_Y				= ( 37 + INV_INTERFACE_START_Y );
 	SM_MED_X				= ( 163 + INTERFACE_START_X );
 	SM_MED_Y				= ( 47 + INV_INTERFACE_START_Y );
 
@@ -1603,15 +1636,9 @@ BOOLEAN InitializeSMPanelCoordsOld()
 	STATS_TITLE_FONT_COLOR	= 6;
 	STATS_TEXT_FONT_COLOR	= 5;
 
-	// ow and te clock and location i will put it here
-	INTERFACE_CLOCK_X	=		(SCREEN_WIDTH - 86);				//( 554	+ INTERFACE_START_X		);
-	INTERFACE_CLOCK_Y	= ( 119	+ INV_INTERFACE_START_Y );
-	LOCATION_NAME_X		=	(SCREEN_WIDTH - 92);				//( 548	+ INTERFACE_START_X		);
-	LOCATION_NAME_Y		= ( 65	+ INTERFACE_START_Y		);
-
-	// Keyring
-	KEYRING_X			= 494; //487;
-	KEYRING_Y			= (105 + INV_INTERFACE_START_Y);
+	// Keyring	496/106 on Inventory_Bottom_Panel.sti
+	KEYRING_X			= xResOffset + 496;
+	KEYRING_Y			= (106 + INV_INTERFACE_START_Y);
 
 	// so we got everything "dynamic" now we just return TRUE
 	return ( TRUE );
@@ -1629,7 +1656,8 @@ BOOLEAN InitializeSMPanelCoordsNew()
 	to allow the new inventory interface to function properly. Also altered many of the interface coords
 	so that the new interface would line up correctly.*/
 	// Inventory slots
-	if(iResolution == 0){
+	if (iResolution >= _640x480 && iResolution < _800x600)
+	{
 		gSMInvPocketXY[0].sX = INTERFACE_START_X + 239;		gSMInvPocketXY[0].sY = INV_INTERFACE_START_Y + 68;		// HELMETPOS
 		gSMInvPocketXY[1].sX = INTERFACE_START_X + 239;		gSMInvPocketXY[1].sY = INV_INTERFACE_START_Y + 96;		// VESTPOS
 		gSMInvPocketXY[2].sX = INTERFACE_START_X + 239;		gSMInvPocketXY[2].sY = INV_INTERFACE_START_Y + 157;		// LEGPOS
@@ -1686,7 +1714,8 @@ BOOLEAN InitializeSMPanelCoordsNew()
 		gSMInvPocketXY[53].sX = INTERFACE_START_X + 559;	gSMInvPocketXY[53].sY = INV_INTERFACE_START_Y + 58;		// SMALLPOCK29
 		gSMInvPocketXY[54].sX = INTERFACE_START_X + 559;	gSMInvPocketXY[54].sY = INV_INTERFACE_START_Y + 82;		// SMALLPOCK30
 	}
-	else if(iResolution == 1){
+	else if (iResolution < _1024x768)
+	{
 		gSMInvPocketXY[0].sX = INTERFACE_START_X + 258;		gSMInvPocketXY[0].sY = INV_INTERFACE_START_Y + 68;		// HELMETPOS
 		gSMInvPocketXY[1].sX = INTERFACE_START_X + 258;		gSMInvPocketXY[1].sY = INV_INTERFACE_START_Y + 97;		// VESTPOS
 		gSMInvPocketXY[2].sX = INTERFACE_START_X + 258;		gSMInvPocketXY[2].sY = INV_INTERFACE_START_Y + 157;		// LEGPOS
@@ -1743,7 +1772,8 @@ BOOLEAN InitializeSMPanelCoordsNew()
 		gSMInvPocketXY[53].sX = INTERFACE_START_X + 693;	gSMInvPocketXY[53].sY = INV_INTERFACE_START_Y + 58;		// SMALLPOCK29
 		gSMInvPocketXY[54].sX = INTERFACE_START_X + 693;	gSMInvPocketXY[54].sY = INV_INTERFACE_START_Y + 82;		// SMALLPOCK30
 	}
-	else if(iResolution == 2){
+	else
+	{
 		//1024x768 resolution
 		gSMInvPocketXY[0].sX = INTERFACE_START_X + 258;		gSMInvPocketXY[0].sY = INV_INTERFACE_START_Y + 68;		// HELMETPOS
 		gSMInvPocketXY[1].sX = INTERFACE_START_X + 258;		gSMInvPocketXY[1].sY = INV_INTERFACE_START_Y + 97;		// VESTPOS
@@ -1847,11 +1877,13 @@ BOOLEAN InitializeSMPanelCoordsNew()
 	SM_SELMERC_PLATE_HEIGHT = 65;
 	SM_SELMERC_PLATE_WIDTH	= 83;
 
-	if(iResolution == 0){
+	if (iResolution >= _640x480 && iResolution < _800x600)
+	{
 		SM_BODYINV_X			= ( 141 + INTERFACE_START_X );
 		SM_BODYINV_Y			= ( 68 + INV_INTERFACE_START_Y );
 	}
-	else{
+	else
+	{
 		SM_BODYINV_X			= ( 151 + INTERFACE_START_X );
 		SM_BODYINV_Y			= ( 68 + INV_INTERFACE_START_Y );
 	}
@@ -1885,24 +1917,23 @@ BOOLEAN InitializeSMPanelCoordsNew()
 	SM_NEXTMERCB_Y			= ( 130 + INV_INTERFACE_START_Y );
 	SM_OPTIONSB_X			= ( 10 + INTERFACE_START_X );
 	SM_OPTIONSB_Y			= ( 165 + INV_INTERFACE_START_Y );
+	
 	// CHRISL: Backpack buttons
-	if(iResolution == 0){
-		SM_DROPPACK_X			= ( 504 + INTERFACE_START_X );
-		SM_DROPPACK_Y			= ( 39 + INV_INTERFACE_START_Y );
-		SM_ZIPPER_X				= ( 482 + INTERFACE_START_X );
-		SM_ZIPPER_Y				= ( 39 + INV_INTERFACE_START_Y );
-	}
-	else{
-		SM_DROPPACK_X			= ( 612 + INTERFACE_START_X );
-		SM_DROPPACK_Y			= ( 39 + INV_INTERFACE_START_Y );
-		SM_ZIPPER_X				= ( 590 + INTERFACE_START_X );
-		SM_ZIPPER_Y				= ( 39 + INV_INTERFACE_START_Y );
-	}
+	SM_DROPPACK_X			= ( 612 + INTERFACE_START_X );
+	SM_DROPPACK_Y			= ( 39 + INV_INTERFACE_START_Y );
+	SM_ZIPPER_X				= ( 590 + INTERFACE_START_X );
+	SM_ZIPPER_Y				= ( 39 + INV_INTERFACE_START_Y );
+	SM_MAPSCREEN_X			= xResOffset + (xResSize - 146);	// 152
+	SM_DONE_X				= xResOffset + (xResSize - 146);	// 152
 
-	// WANNE 2
-	SM_DONE_X				=  (SCREEN_WIDTH - 146);	// 152
+//dnl	INTERFACE_CLOCK_X		= xResOffset + (xResSize - 86);
+//dnl	INTERFACE_CLOCK_Y		= ( 119	+ INV_INTERFACE_START_Y );
+	INTERFACE_CLOCK_X		= xResOffset + (xResSize - 86);
+	INTERFACE_CLOCK_Y		= SCREEN_HEIGHT - 24;
+	LOCATION_NAME_X			= xResOffset + (xResSize - 92);
+	LOCATION_NAME_Y			= ( 89	+ INTERFACE_START_Y	);
+
 	SM_DONE_Y				= ( 118 + INV_INTERFACE_START_Y );
-	SM_MAPSCREEN_X			=  (SCREEN_WIDTH - 146);	// 152
 	SM_MAPSCREEN_Y			= ( 140 + INV_INTERFACE_START_Y );
 
 	SM_POSITIONB_X			= ( 106 + INTERFACE_START_X );
@@ -1913,7 +1944,8 @@ BOOLEAN InitializeSMPanelCoordsNew()
 	SM_PERCENT_WIDTH		= 20;
 	SM_PERCENT_HEIGHT		= 10;
 
-	if(iResolution == 0){
+	if (iResolution >= _640x480 && iResolution < _800x600)
+	{
 		SM_ARMOR_X				= ( 245 + INTERFACE_START_X );
 		SM_ARMOR_Y				= ( 141 + INV_INTERFACE_START_Y );
 		SM_ARMOR_LABEL_X		= ( 260 + INTERFACE_START_X );
@@ -1921,7 +1953,8 @@ BOOLEAN InitializeSMPanelCoordsNew()
 		SM_ARMOR_PERCENT_X		= ( 265 + INTERFACE_START_X );
 		SM_ARMOR_PERCENT_Y		= ( 141 + INV_INTERFACE_START_Y );
 	}
-	else{
+	else
+	{
 		SM_ARMOR_X				= ( 264 + INTERFACE_START_X );
 		SM_ARMOR_Y				= ( 141 + INV_INTERFACE_START_Y );
 		SM_ARMOR_LABEL_X		= ( 279 + INTERFACE_START_X );
@@ -1960,10 +1993,10 @@ BOOLEAN InitializeSMPanelCoordsNew()
 	SM_EXPLVL_Y				= ( 7 + INV_INTERFACE_START_Y );
 	SM_MRKM_X				= ( 163 + INTERFACE_START_X );
 	SM_MRKM_Y				= ( 17 + INV_INTERFACE_START_Y );
-	SM_EXPL_X				= ( 163 + INTERFACE_START_X );
-	SM_EXPL_Y				= ( 27 + INV_INTERFACE_START_Y );
 	SM_MECH_X				= ( 163 + INTERFACE_START_X );
-	SM_MECH_Y				= ( 37 + INV_INTERFACE_START_Y );
+	SM_MECH_Y				= ( 27 + INV_INTERFACE_START_Y );
+	SM_EXPL_X				= ( 163 + INTERFACE_START_X );
+	SM_EXPL_Y				= ( 37 + INV_INTERFACE_START_Y );
 	SM_MED_X				= ( 163 + INTERFACE_START_X );
 	SM_MED_Y				= ( 47 + INV_INTERFACE_START_Y );
 
@@ -1976,14 +2009,8 @@ BOOLEAN InitializeSMPanelCoordsNew()
 	STATS_TITLE_FONT_COLOR	= 6;
 	STATS_TEXT_FONT_COLOR	= 5;
 
-	// ow and te clock and location i will put it here 
-	INTERFACE_CLOCK_X	=  	(SCREEN_WIDTH - 86);
-	INTERFACE_CLOCK_Y	= ( 117	+ INV_INTERFACE_START_Y );
-	LOCATION_NAME_X		=	(SCREEN_WIDTH - 92);
-	LOCATION_NAME_Y		= ( 89	+ INTERFACE_START_Y		);
-
-	//Keyring
-	KEYRING_X			= 217;	// 209
+	//Keyring 218/5 on Inventory_Bottom_Panel.sti
+	KEYRING_X			= xResOffset + 219; //209;
 	KEYRING_Y			= (5 + INV_INTERFACE_START_Y);
 
 	// so we got everything "dynamic" now we just return TRUE
@@ -2005,15 +2032,15 @@ BOOLEAN InitializeSMPanel(	)
 	// failing the CHECKF after this will cause you to lose your mouse
 	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 
-	if (iResolution == 0)
+	if (iResolution >= _640x480 && iResolution < _800x600)
 	{
-	strcpy( VObjectDesc.ImageFile, "INTERFACE\\inventory_bottom_panel.STI" );
+		strcpy( VObjectDesc.ImageFile, "INTERFACE\\inventory_bottom_panel.STI" );
 	}
-	else if (iResolution == 1)
+	else if (iResolution < _1024x768)
 	{
 		strcpy( VObjectDesc.ImageFile, "INTERFACE\\inventory_bottom_panel_800x600.STI" );
 	}
-	else if (iResolution == 2)
+	else
 	{
 		strcpy( VObjectDesc.ImageFile, "INTERFACE\\inventory_bottom_panel_1024x768.STI" );
 	}
@@ -2161,12 +2188,16 @@ BOOLEAN CreateSMPanelButtons( )
 	
 	iSMPanelImages[ OPTIONS_IMAGES	]				= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	] ,-1,24,-1,25,-1 );
 	
-	iBurstButtonImages[ WM_NORMAL ]					= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 7, -1, -1, -1 );
+	iBurstButtonImages[ WM_NORMAL ]					= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1,  7, -1, -1, -1 );
 	iBurstButtonImages[ WM_BURST ]					= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
 	iBurstButtonImages[ WM_AUTOFIRE ]				= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
-	iBurstButtonImages[ WM_ATTACHED_GL ]				= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 26, -1, -1, -1 );
-	iBurstButtonImages[ WM_ATTACHED_GL_BURST ]					= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
-	iBurstButtonImages[ WM_ATTACHED_GL_AUTO ]				= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
+	iBurstButtonImages[ WM_ATTACHED_GL ]			= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 26, -1, -1, -1 );
+	iBurstButtonImages[ WM_ATTACHED_GL_BURST ]		= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
+	iBurstButtonImages[ WM_ATTACHED_GL_AUTO ]		= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
+	iBurstButtonImages[ WM_ATTACHED_UB ]			= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1,  7, -1, -1, -1 );
+	iBurstButtonImages[ WM_ATTACHED_UB_BURST ]		= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
+	iBurstButtonImages[ WM_ATTACHED_UB_AUTO ]		= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
+	iBurstButtonImages[ WM_ATTACHED_BAYONET ]		= UseLoadedButtonImage( iSMPanelImages[ STANCEUP_IMAGES	], -1, 17, -1, -1, -1 );
 
 	FilenameForBPP("INTERFACE\\invadd-ons.sti", ubString);
 	// Load button Graphics
@@ -2390,7 +2421,10 @@ void	RemoveSMPanelButtons( )
 	UnloadButtonImage( iBurstButtonImages[ WM_ATTACHED_GL ] );
 	UnloadButtonImage( iBurstButtonImages[ WM_ATTACHED_GL_BURST ] );
 	UnloadButtonImage( iBurstButtonImages[ WM_ATTACHED_GL_AUTO ] );
-
+	UnloadButtonImage( iBurstButtonImages[ WM_ATTACHED_UB ] );
+	UnloadButtonImage( iBurstButtonImages[ WM_ATTACHED_UB_BURST ] );
+	UnloadButtonImage( iBurstButtonImages[ WM_ATTACHED_UB_AUTO ] );
+	UnloadButtonImage( iBurstButtonImages[ WM_ATTACHED_BAYONET ] );
 }
 
 
@@ -2455,7 +2489,7 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 	INT16	usX, usY;
 	CHAR16 sString[9];
 	UINT32	cnt;
-	static CHAR16 pStr[ 200 ], pMoraleStr[ 20 ];
+	static CHAR16 pStr[ 200 ], pMoraleStr[ 20 ], sTemp[ 20 ];
 
 	if ( gubSelectSMPanelToMerc != NOBODY )
 	{
@@ -2519,7 +2553,15 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 				}
 			}
 
-			RenderItemDescriptionBox( );
+			// HEADROCK HAM 5: Test for active Transform Popup
+			if (gfItemDescTransformPopupVisible)
+			{
+				gItemDescTransformPopup->show();
+			}
+			else
+			{
+				RenderItemDescriptionBox( );
+			}
 		}
 		else
 		{
@@ -2735,61 +2777,61 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 				mprintf( SM_CAMMO_PERCENT_X, SM_CAMMO_PERCENT_Y, L"%%" );
 			#endif
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeAgilityTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & AGIL_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_AGILITY] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeAgilityTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & AGIL_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_AGILITY] > 0 )) ? TRUE : FALSE), MercUnderTheInfluence(gpSMCurrentMerc, DRUG_TYPE_AGILITY)); // SANDRO
 
-			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bAgility );
+			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bAgility + gpSMCurrentMerc->bExtraAgility );
 			FindFontRightCoordinates(SM_AGI_X, SM_AGI_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeDexterityTime,( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & DEX_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_DEXTERITY] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeDexterityTime,( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & DEX_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_DEXTERITY] > 0 )) ? TRUE : FALSE), MercUnderTheInfluence(gpSMCurrentMerc, DRUG_TYPE_DEXTERITY)); // SANDRO
 
-			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bDexterity );
+			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bDexterity + gpSMCurrentMerc->bExtraDexterity );
 			FindFontRightCoordinates(SM_DEX_X, SM_DEX_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeStrengthTime, ( BOOLEAN )( gpSMCurrentMerc->usValueGoneUp & STRENGTH_INCREASE?TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_STRENGTH] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeStrengthTime, ( BOOLEAN )( gpSMCurrentMerc->usValueGoneUp & STRENGTH_INCREASE?TRUE: FALSE ), ( BOOLEAN ) ( (( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_STRENGTH] > 0 )) || (gGameOptions.fFoodSystem && gpSMCurrentMerc->usStarveDamageStrength > 0) ) ? TRUE : FALSE), MercUnderTheInfluence(gpSMCurrentMerc, DRUG_TYPE_STRENGTH)); // SANDRO
 
-			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bStrength );
+			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bStrength + gpSMCurrentMerc->bExtraStrength );
 			FindFontRightCoordinates(SM_STR_X, SM_STR_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeLeadershipTime, ( BOOLEAN )( gpSMCurrentMerc->usValueGoneUp & LDR_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_LEADERSHIP] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeLeadershipTime, ( BOOLEAN )( gpSMCurrentMerc->usValueGoneUp & LDR_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_LEADERSHIP] > 0 )) ? TRUE : FALSE), FALSE); // SANDRO
 
 			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bLeadership );
 			FindFontRightCoordinates(SM_CHAR_X, SM_CHAR_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeWisdomTime,( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & WIS_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_WISDOM] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeWisdomTime,( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & WIS_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_WISDOM] > 0 )) ? TRUE : FALSE), MercUnderTheInfluence(gpSMCurrentMerc, DRUG_TYPE_WISDOM)); // SANDRO
 
-			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bWisdom );
+			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bWisdom + gpSMCurrentMerc->bExtraWisdom );
 			FindFontRightCoordinates(SM_WIS_X, SM_WIS_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeLevelTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & LVL_INCREASE? TRUE: FALSE ),  FALSE );
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeLevelTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & LVL_INCREASE? TRUE: FALSE ),  FALSE , FALSE);
 
-			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bExpLevel );
+			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bExpLevel + gpSMCurrentMerc->bExtraExpLevel );
 			FindFontRightCoordinates(SM_EXPLVL_X, SM_EXPLVL_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeMarksmanshipTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & MRK_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_MARKSMANSHIP] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeMarksmanshipTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & MRK_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_MARKSMANSHIP] > 0 )) ? TRUE : FALSE), FALSE); // SANDRO
 
 			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bMarksmanship );
 			FindFontRightCoordinates(SM_MRKM_X, SM_MRKM_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeExplosivesTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & EXP_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_EXPLOSIVES] > 0 )) ? TRUE : FALSE)); // SANDRO
-
-			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bExplosive );
-			FindFontRightCoordinates(SM_EXPL_X, SM_EXPL_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
-			mprintf( usX, usY , sString );
-
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeMechanicalTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & MECH_INCREASE ? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_MECHANICAL] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeMechanicalTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & MECH_INCREASE ? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_MECHANICAL] > 0 )) ? TRUE : FALSE), FALSE); // SANDRO
 
 			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bMechanical );
 			FindFontRightCoordinates(SM_MECH_X, SM_MECH_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
 			mprintf( usX, usY , sString );
 
-			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeMedicalTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & MED_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_MEDICAL] > 0 )) ? TRUE : FALSE)); // SANDRO
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeExplosivesTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & EXP_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_EXPLOSIVES] > 0 )) ? TRUE : FALSE), FALSE); // SANDRO
+
+			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bExplosive );
+			FindFontRightCoordinates(SM_EXPL_X, SM_EXPL_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
+			mprintf( usX, usY , sString );
+
+			UpdateStatColor( gpSMCurrentMerc->timeChanges.uiChangeMedicalTime, ( BOOLEAN ) ( gpSMCurrentMerc->usValueGoneUp & MED_INCREASE? TRUE: FALSE ), ( BOOLEAN ) ( ( gGameOptions.fNewTraitSystem && ( gpSMCurrentMerc->ubCriticalStatDamage[DAMAGED_STAT_MEDICAL] > 0 )) ? TRUE : FALSE), FALSE); // SANDRO
 
 			swprintf( sString, L"%2d", gpSMCurrentMerc->stats.bMedical );
 			FindFontRightCoordinates(SM_MED_X, SM_MED_Y ,SM_STATS_WIDTH ,SM_STATS_HEIGHT ,sString, BLOCKFONT2, &usX, &usY);
@@ -2908,13 +2950,110 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 		else
 		{
 			GetMoraleString( gpSMCurrentMerc, pMoraleStr );
-			swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_POPUPTEXT ], gpSMCurrentMerc->stats.bLife, gpSMCurrentMerc->stats.bLifeMax, gpSMCurrentMerc->bBreath, gpSMCurrentMerc->bBreathMax, pMoraleStr );
+			// Flugente: food info if food system is active
+			if ( gGameOptions.fFoodSystem && gpSMCurrentMerc->ubProfile != ROBOT && !IsVehicle(gpSMCurrentMerc) )
+			{
+				// Flugente: added a display for poison, only show text if actually poisoned
+				if ( gpSMCurrentMerc->bPoisonSum > 0 )
+				{
+					swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_WITH_POISON_AND_FOOD_POPUPTEXT ], gpSMCurrentMerc->stats.bLife, gpSMCurrentMerc->stats.bLifeMax, gpSMCurrentMerc->bPoisonSum, gpSMCurrentMerc->stats.bLifeMax, gpSMCurrentMerc->bBreath, gpSMCurrentMerc->bBreathMax, pMoraleStr, (INT32)(100*(gpSMCurrentMerc->bDrinkLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%", (INT32)(100*(gpSMCurrentMerc->bFoodLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%" );
+				}
+				else
+				{
+					swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_WITH_FOOD_POPUPTEXT ], gpSMCurrentMerc->stats.bLife, gpSMCurrentMerc->stats.bLifeMax, gpSMCurrentMerc->bBreath, gpSMCurrentMerc->bBreathMax, pMoraleStr, (INT32)(100*(gpSMCurrentMerc->bDrinkLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%", (INT32)(100*(gpSMCurrentMerc->bFoodLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%" );
+				}
+			}
+			else
+			{
+				// Flugente: added a display for poison, only show text if actually poisoned
+				if ( gpSMCurrentMerc->bPoisonSum > 0 )
+				{
+					swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_WITH_POISON_POPUPTEXT ], gpSMCurrentMerc->stats.bLife, gpSMCurrentMerc->stats.bLifeMax, gpSMCurrentMerc->bPoisonSum, gpSMCurrentMerc->stats.bLifeMax, gpSMCurrentMerc->bBreath, gpSMCurrentMerc->bBreathMax, pMoraleStr );
+				}
+				else
+				{
+					swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_POPUPTEXT ], gpSMCurrentMerc->stats.bLife, gpSMCurrentMerc->stats.bLifeMax, gpSMCurrentMerc->bBreath, gpSMCurrentMerc->bBreathMax, pMoraleStr );
+				}
+			}
 			SetRegionFastHelpText( &(gSM_SELMERCBarsRegion), pStr );
-		}
+
+			// Buggler: skills/traits tooltip on merc portrait
+			// clear pStr value
+			swprintf( pStr, L"");
+
+			if (gGameOptions.fNewTraitSystem) // SANDRO - old/new traits check
+			{
+				UINT8 ubTempSkillArray[30];
+				INT8 bNumSkillTraits = 0;
+
+				// lets rearrange our skills to a temp array
+				// we also get the number of lines (skills) to be displayed 
+				for ( UINT8 ubCnt = 1; ubCnt < NUM_SKILLTRAITS_NT; ubCnt++ )
+				{
+					if ( ProfileHasSkillTrait( gpSMCurrentMerc->ubProfile, ubCnt ) == 2 )
+					{
+						ubTempSkillArray[bNumSkillTraits] = (ubCnt + NEWTRAIT_MERCSKILL_EXPERTOFFSET);
+						bNumSkillTraits++;
+					}
+					else if ( ProfileHasSkillTrait( gpSMCurrentMerc->ubProfile, ubCnt ) == 1 )
+					{
+						ubTempSkillArray[bNumSkillTraits] = ubCnt;
+						bNumSkillTraits++;
+					}
+				}
+
+				if ( bNumSkillTraits == 0 )
+				{
+					swprintf( pStr, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+				}
+				else
+				{
+					for ( UINT8 ubCnt = 0; ubCnt < bNumSkillTraits; ubCnt++ )
+					{
+						swprintf( sTemp, L"%s\n", gzMercSkillTextNew[ ubTempSkillArray[ubCnt] ] );
+						wcscat( pStr, sTemp );
+					}
+				}
+			}
+			else
+			{
+				INT8 bSkill1 = 0, bSkill2 = 0; 	
+				bSkill1 = gMercProfiles[ gpSMCurrentMerc->ubProfile ].bSkillTraits[0];
+				bSkill2 = gMercProfiles[ gpSMCurrentMerc->ubProfile ].bSkillTraits[1];
+
+				if ( bSkill1 == 0 && bSkill2 == 0 )
+				{
+					swprintf( pStr, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+				}
+				else
+				{
+					//if the 2 skills are the same, add the '(expert)' at the end
+					if( bSkill1 == bSkill2 )
+					{
+						swprintf( pStr, L"%s %s", gzMercSkillText[bSkill1], gzMercSkillText[EXPERT] );
+					}
+					else
+					{
+						//Display the first skill
+						if( bSkill1 != 0 )
+						{
+							swprintf( pStr, L"%s\n", gzMercSkillText[bSkill1] );
+						}
+						if( bSkill2 != 0 )
+						{
+							swprintf( sTemp, L"%s", gzMercSkillText[bSkill2] );
+							wcscat( pStr, sTemp );
+						}
+					}
+				}
+			}
+			SetRegionFastHelpText( &gSM_SELMERCPanelRegion, pStr );
+			}
 		}
 		else
 		{
 			SetRegionFastHelpText( &(gSM_SELMERCBarsRegion), L"" );
+			SetRegionFastHelpText( &gSM_SELMERCPanelRegion, L"" );
 		}
 
 		//if we are in the shop keeper interface
@@ -2928,7 +3067,7 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 			{
 				SetFont( TINYFONT1 );
 				//if ( gpSMCurrentMerc->sLastTarget != NOWHERE && !EnoughPoints( gpSMCurrentMerc, MinAPsToAttack( gpSMCurrentMerc, gpSMCurrentMerc->sLastTarget, FALSE ), 0, FALSE ) || GetUIApsToDisplay( gpSMCurrentMerc ) < 0 )
-				if ( !EnoughPoints( gpSMCurrentMerc, MinAPsToAttack( gpSMCurrentMerc, gpSMCurrentMerc->sLastTarget, FALSE ), 0, FALSE ) || GetUIApsToDisplay( gpSMCurrentMerc ) < 0 )
+				if ( !EnoughPoints( gpSMCurrentMerc, MinAPsToAttack( gpSMCurrentMerc, gpSMCurrentMerc->sLastTarget, FALSE, 0 ), 0, FALSE ) || GetUIApsToDisplay( gpSMCurrentMerc ) < 0 )
 				{
 					SetFontBackground( FONT_MCOLOR_BLACK );
 					SetFontForeground( FONT_MCOLOR_DKRED );
@@ -2938,7 +3077,10 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 					if ( MercUnderTheInfluence( gpSMCurrentMerc ) )
 					{
 						SetFontBackground( FONT_MCOLOR_BLACK );
-						SetFontForeground( FONT_MCOLOR_LTBLUE );
+						//SetFontForeground( FONT_MCOLOR_LTBLUE );
+
+						// Flugente: new colour for being drugged, as blue on black was hard to see
+						SetRGBFontForeground( 250, 5, 250 );
 					}
 					else if ( gpSMCurrentMerc->bStealthMode )
 					{
@@ -3025,7 +3167,7 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 
 }
 
-void UpdateStatColor( UINT32 uiTimer, BOOLEAN fIncrease, BOOLEAN fDamaged ) // SANDRO - added argument
+void UpdateStatColor( UINT32 uiTimer, BOOLEAN fIncrease, BOOLEAN fDamaged, BOOLEAN fAugmented ) // SANDRO - added argument // Flugente - me too
 {
 	if ( gpSMCurrentMerc->stats.bLife >= OKLIFE )
 	{
@@ -3044,6 +3186,10 @@ void UpdateStatColor( UINT32 uiTimer, BOOLEAN fIncrease, BOOLEAN fDamaged ) // S
 			{
 				SetFontForeground( FONT_RED );
 			}
+		}
+		else if ( fAugmented )
+		{
+			SetRGBFontForeground( 250, 5, 250 );
 		}
 		else
 		{
@@ -3207,11 +3353,10 @@ void SMInvClickCamoCallback( MOUSE_REGION * pRegion, INT32 iReason )
 							// This should fix the bug and crashes with missing faces
 							if (gGameExternalOptions.fShowCamouflageFaces == TRUE )
 							{
-								if (SetCamoFace( gpSMCurrentMerc ))
-								{
-									DeleteSoldierFace( gpSMCurrentMerc );// remove face
-									gpSMCurrentMerc->iFaceIndex = InitSoldierFace( gpSMCurrentMerc );// create new face
-								}
+								// Flugente: refresh face regardless of result of SetCamoFace(), otherwise applying a rag will not clean the picture
+								SetCamoFace( gpSMCurrentMerc );
+								DeleteSoldierFace( gpSMCurrentMerc );// remove face
+								gpSMCurrentMerc->iFaceIndex = InitSoldierFace( gpSMCurrentMerc );// create new face
 							}
 							
 							
@@ -3228,8 +3373,8 @@ void SMInvClickCamoCallback( MOUSE_REGION * pRegion, INT32 iReason )
 							// Say OK acknowledge....
 							gpSMCurrentMerc->DoMercBattleSound( BATTLE_SOUND_COOL1 );
 						}
-					}
-					else if ( ApplyCanteen( gpSMCurrentMerc, gpItemPointer, &fGoodAPs ) )
+					}					
+					else if ( !gGameOptions.fFoodSystem && ApplyCanteen( gpSMCurrentMerc, gpItemPointer, &fGoodAPs, TRUE ) )
 					{
 						// Dirty
 						if ( fGoodAPs )
@@ -3288,6 +3433,36 @@ void SMInvClickCamoCallback( MOUSE_REGION * pRegion, INT32 iReason )
 						// Say OK acknowledge....
 						gpSMCurrentMerc->DoMercBattleSound( BATTLE_SOUND_COOL1 );
 
+					}
+					else if ( gGameOptions.fFoodSystem && ApplyFood( gpSMCurrentMerc, gpItemPointer, FALSE, FALSE ) )
+					{
+						// Dirty
+						fInterfacePanelDirty = DIRTYLEVEL2;
+
+						// Check if it's the same now!
+						if ( gpItemPointer->exists() == false )
+						{
+							gbCompatibleApplyItem = FALSE;
+							EndItemPointer( );
+						}
+
+						// Say OK acknowledge....
+						gpSMCurrentMerc->DoMercBattleSound( BATTLE_SOUND_COOL1 );
+					}
+					else if ( ApplyClothes( gpSMCurrentMerc, gpItemPointer ) )
+					{
+						// Dirty
+						fInterfacePanelDirty = DIRTYLEVEL2;
+
+						// Check if it's the same now!
+						if ( gpItemPointer->exists() == false )
+						{
+							gbCompatibleApplyItem = FALSE;
+							EndItemPointer( );
+						}
+
+						// Say OK acknowledge....
+						gpSMCurrentMerc->DoMercBattleSound( BATTLE_SOUND_COOL1 );
 					}
 					else
 					{
@@ -3396,16 +3571,6 @@ BOOLEAN HandleBabyfaceGlassesFetish( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, UI
 
 BOOLEAN UIHandleItemPlacement( UINT8 ubHandPos, UINT16 usOldItemIndex, UINT16 usNewItemIndex, BOOLEAN fDeductPoints )
 {
-	if ( _KeyDown(CTRL) )
-	{
-		CleanUpStack( &( gpSMCurrentMerc->inv[ ubHandPos ] ), gpItemPointer );
-		if ( gpItemPointer->exists() == false )
-		{
-			EndItemPointer( );
-		}
-		return( TRUE );
-	}
-
 	// Try to place here
 	if ( PlaceObject( gpSMCurrentMerc, ubHandPos, gpItemPointer ) )
 	{
@@ -3414,11 +3579,11 @@ BOOLEAN UIHandleItemPlacement( UINT8 ubHandPos, UINT16 usOldItemIndex, UINT16 us
 			// Deduct points
 			if ( gpItemPointerSoldier->stats.bLife >= CONSCIOUSNESS )
 			{
-				DeductPoints( gpItemPointerSoldier,	2, 0 );
+				DeductPoints( gpItemPointerSoldier,	2, 0, UNTRIGGERED_INTERRUPT );
 			}
 			if ( gpSMCurrentMerc->stats.bLife >= CONSCIOUSNESS )
 			{
-				DeductPoints( gpSMCurrentMerc,	2, 0 );
+				DeductPoints( gpSMCurrentMerc,	2, 0, UNTRIGGERED_INTERRUPT );
 			}
 		}
 
@@ -3459,15 +3624,165 @@ BOOLEAN UIHandleItemPlacement( UINT8 ubHandPos, UINT16 usOldItemIndex, UINT16 us
 
 }
 
+//Jenilee
+INT32 iLastHandPos = -1;
+
+#define SLOT_NONE		0
+#define SLOT_HANDS		1
+#define SLOT_EQUIPMENT	2
+#define SLOT_VEST		3
+#define SLOT_RIG		4
+#define SLOT_CPACK		5
+#define SLOT_BPACK		6
+#define SLOT_SLING		7
+#define SLOT_KNIFE		8
+#define SLOT_FACE		9
+
+STR16 uiSlotTypeName[] = 
+{
+	L"",				//0
+	L"Hands",			//1
+	L"Equipment",		//2
+	L"Vest",			//3
+	L"Leg Rig",			//4
+	L"Combat Pack",		//5
+	L"Backpack",		//6
+	L"Sling",			//7
+	L"Knife",			//8
+	L"Face",			//9
+	L"Large Pocket",	//10
+	L"Small Pocket"		//11
+};
+
+INT16 uiNIVSlotType[NUM_INV_SLOTS] = { 
+						2, 2, 2, //0-2
+						9, 9, //3-4
+						1, 1, //5-6
+						2, 2, 2, 2, 2,  //7-11
+						7, //12
+						8, //13
+						5, 5, 5, //14-16
+						6, 6, 6, 6, //17-20
+						3, 3, //21-22
+						4, 4, //23-24
+						3, 3, 3, 3, 3, //25-29
+						3, 3, 3, 3, 3, //30-34
+						4, 4, 4, 4, //35-38
+						4, 4, 4, 4, //39-42
+						5, 5, 5, 5, //43-46
+						6, 6, 6, 6, //47-50
+						6, 6, 6, 6  //51-54
+					};
+
+UINT16 uiOIVSlotType[NUM_INV_SLOTS] = {
+						2, 2, 2, //0-2
+						9, 9, //3-4
+						1, 1, //5-6
+						0, 0, 0, 0, 0, 0, 0, //7-13
+						10, 10, 10, 10,	//14-17
+						0, 0, 0, 0, 0, 0, 0, //18-24
+						11, 11, 11, 11, 11, 11, 11, 11, //25-32
+						0, 0, 0, 0, 0, 0, 0, 0,	//33-40
+						0, 0, 0, 0, 0, 0, 0, 0,	//41-48
+						0, 0, 0, 0, 0, 0	//49-54
+};
+
+UINT16 GetInvMovementCost(OBJECTTYPE* pObj, INT16 old_pos, INT16 new_pos)
+{
+	if (!(gTacticalStatus.uiFlags & INCOMBAT) || //Not in combat
+		(old_pos == -1 || new_pos == -1)||	//Either position is invalid
+		(old_pos == new_pos))				//Old position same as new position
+		return 0;
+	INT16 src_type;
+	INT16 dst_type;
+	if (UsingNewInventorySystem() == TRUE) 
+	{
+		src_type = uiNIVSlotType[old_pos];
+		dst_type = uiNIVSlotType[new_pos];
+	}
+	else
+	{
+		src_type = uiOIVSlotType[old_pos];
+		dst_type = uiOIVSlotType[new_pos];
+	}
+	if (src_type == dst_type)	//Moving to same lbe type
+		return 0;
+
+	//If these 2 arrays are initiated outside the function, APBPConstants will not have been initialized, and all values will be 0
+	INT16 uiAPCostFromSlot[12] =
+	{
+		APBPConstants[AP_INV_FROM_NONE],
+		APBPConstants[AP_INV_FROM_HANDS],
+		APBPConstants[AP_INV_FROM_EQUIPMENT],
+		APBPConstants[AP_INV_FROM_VEST],
+		APBPConstants[AP_INV_FROM_RIG],
+		APBPConstants[AP_INV_FROM_CPACK],
+		APBPConstants[AP_INV_FROM_BPACK],
+		APBPConstants[AP_INV_FROM_SLING],
+		APBPConstants[AP_INV_FROM_KNIFE],
+		APBPConstants[AP_INV_FROM_FACE],
+		APBPConstants[AP_INV_FROM_BIG_POCKET],
+		APBPConstants[AP_INV_FROM_SMALL_POCKET]
+	};
+	INT16 uiAPCostToSlot[12] =
+	{
+		APBPConstants[AP_INV_TO_NONE],
+		APBPConstants[AP_INV_TO_HANDS],
+		APBPConstants[AP_INV_TO_EQUIPMENT],
+		APBPConstants[AP_INV_TO_VEST],
+		APBPConstants[AP_INV_TO_RIG],
+		APBPConstants[AP_INV_TO_CPACK],
+		APBPConstants[AP_INV_TO_BPACK],
+		APBPConstants[AP_INV_TO_SLING],
+		APBPConstants[AP_INV_TO_KNIFE],
+		APBPConstants[AP_INV_TO_FACE],
+		APBPConstants[AP_INV_TO_BIG_POCKET],
+		APBPConstants[AP_INV_TO_SMALL_POCKET]
+	};
+	FLOAT Weight_Divisor = gGameExternalOptions.uWeightDivisor;
+	UINT16 weight_modifier;
+	if (Weight_Divisor != 0)
+		weight_modifier = DynamicAdjustAPConstants((int)((Item[pObj->usItem].ubWeight) / Weight_Divisor),(int)((Item[pObj->usItem].ubWeight) / Weight_Divisor));
+	else
+		weight_modifier = 0;
+
+	INT32 cost = 0; 
+
+	cost += uiAPCostFromSlot[src_type];
+	cost += uiAPCostToSlot[dst_type];
+	cost += weight_modifier;
+
+	// Flugente if we move an item from our hands to the sling, and item has a weapon sling, don't charge any APs
+	if ( 1 == src_type && 7 == dst_type )
+	{
+		// if item has a weapon sling attached
+		if ( HasAttachmentOfClass(pObj, AC_SLING) )
+			// we simply let go of the item, we can do that because the sling will catch it
+			cost = 0;
+	}
+
+	if (cost > APBPConstants[AP_INV_MAX_COST]) 
+		cost = APBPConstants[AP_INV_MAX_COST];
+
+#ifdef _DEBUG
+	CHAR16 szTemp[255];
+	swprintf(szTemp, L"Moving item from %s to %s (costs: %d/%d/%d/%d)", uiSlotTypeName[src_type], uiSlotTypeName[dst_type], uiAPCostFromSlot[src_type], uiAPCostToSlot[dst_type], weight_modifier, cost);
+	ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_CHAT, szTemp);
+#endif
+	return cost;
+}
+
 void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 {
 	UINT32 uiHandPos;
-	// Copyies of values
+	// Copies of values
 	UINT16 usOldItemIndex, usNewItemIndex;
 	UINT16 usItemPrevInItemPointer;
+	UINT16 usCostToMoveItem = 0; //Jenilee
 	BOOLEAN fNewItem = FALSE;
 	static BOOLEAN	fRightDown = FALSE;
 	static BOOLEAN	fLeftDown = FALSE;
+	BOOLEAN INV_AP_COST = gGameOptions.fInventoryCostsAP;
 
 	uiHandPos = MSYS_GetRegionUserData( pRegion, 0 );
 
@@ -3565,7 +3880,17 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 			// Turn off new item glow!
 			gpSMCurrentMerc->inv.bNewItemCount[ uiHandPos ] = 0;
 
-			usOldItemIndex = gpSMCurrentMerc->inv[ uiHandPos ].usItem;
+				// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
+				if ( HandleBabyfaceGlassesFetish( gpSMCurrentMerc, uiHandPos, NOTHING ) )
+				{
+					return;
+				}
+
+				usOldItemIndex = gpSMCurrentMerc->inv[ uiHandPos ].usItem;
+
+			//Jenilee: remember our last selected slot
+			iLastHandPos = uiHandPos;
+
 
 			// move item into the mouse cursor
 			BeginItemPointer( gpSMCurrentMerc, (UINT8)uiHandPos );
@@ -3593,8 +3918,36 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 
 			if ( ubSrcID == ubDestID )
 			{
+				if(!CanItemFitInPosition(gpSMCurrentMerc, gpItemPointer, (INT8)uiHandPos, FALSE))//dnl ch66 070913
+					return;
+				if (INV_AP_COST)
+					//Jenilee: determine the cost of moving this item around in our inventory
+					usCostToMoveItem = GetInvMovementCost(gpItemPointer, iLastHandPos, uiHandPos);
+				
+				// Flugente: backgrounds
+				usCostToMoveItem = (usCostToMoveItem * (100 + gpSMCurrentMerc->GetBackgroundValue(BG_INVENTORY))) / 100;
+				
+				if ( ( usCostToMoveItem == 0 ) || ( gpSMCurrentMerc->bActionPoints >= usCostToMoveItem ) )
+				{
+					fOKToGo = TRUE;
+					//iLastHandPos = uiHandPos;//dnl ch66 070913 this should be set after we move item
+				}
+				else //we dont have enough APs to move it to this slot, show a warning message
+				{
+					// silversurfer: What if our old slot is occupied now (could happen when we swap items)?
+					// We will be stuck with an item at the hand cursor and nowhere to put it -> bad. :-(
+					// So let's check if our old slot is empty and if it is not allow item placement anyway.
+					if ( gpSMCurrentMerc->inv[ iLastHandPos ].usItem == NULL )
+					{
+						ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, TacticalStr[NOT_ENOUGH_APS_STR]);
+						fOKToGo = FALSE;
+					}
+					else
+						fOKToGo = TRUE;
+				}
+
 				// We are doing this ourselve, continue
-				fOKToGo = TRUE;
+//				fOKToGo = TRUE;
 			}
 			else
 			{
@@ -3633,34 +3986,69 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 
 			if ( fOKToGo )
 			{
-				// OK, check if this is Nails, and we're in the vest position , don't allow it to come off....
-				if ( HandleNailsVestFetish( gpSMCurrentMerc, uiHandPos, gpItemPointer->usItem ) )
-				{
-					return;
-				}
-
-				// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
-				if ( HandleBabyfaceGlassesFetish( gpSMCurrentMerc, uiHandPos, NOTHING ) )
-				{
-					return;
-				}
-
 				usOldItemIndex = gpSMCurrentMerc->inv[ uiHandPos ].usItem;
 				usNewItemIndex = gpItemPointer->usItem;
 
+				// OK, check if this is Nails, and we're in the vest position , don't allow it to come off....
+				if ( HandleNailsVestFetish( gpSMCurrentMerc, uiHandPos, usNewItemIndex ) )
+				{
+					return;
+				}
+
+				if ( _KeyDown(CTRL) )
+				{
+					if ( gpItemPointer->exists() && gpSMCurrentMerc->inv[ uiHandPos ].exists() )
+					{
+						if ( gpItemPointer->usItem == gpSMCurrentMerc->inv[ uiHandPos ].usItem )
+							CleanUpStack( &( gpSMCurrentMerc->inv[ uiHandPos ] ), gpItemPointer );
+						else // Madd: attach / merge object, merge only works on single objects for now
+						{
+							UINT8 cnt = gpSMCurrentMerc->inv[ uiHandPos ].ubNumberOfObjects;
+							if ( gpItemPointer->ubNumberOfObjects < cnt ) 
+								cnt = gpItemPointer->ubNumberOfObjects;
+
+							for (UINT8 i = 0; i<cnt;i++)
+							{
+								// silversurfer: This didn't cost any AP. Why? CTRL + LeftClick should deduct the same AP as manual attachment in the EDB.
+								usCostToMoveItem = AttachmentAPCost( gpItemPointer->usItem, gpSMCurrentMerc->inv[ uiHandPos ].usItem, gpSMCurrentMerc );
+								// Flugente: backgrounds
+								usCostToMoveItem = (usCostToMoveItem * (100 + gpSMCurrentMerc->GetBackgroundValue(BG_INVENTORY))) / 100;
+								// do we have enough AP?
+								if ( !EnoughPoints( gpSMCurrentMerc, usCostToMoveItem, 0, FALSE ) )
+									return;
+								// only deduct AP if attachment was placed successfully.
+								if ( gpSMCurrentMerc->inv[ uiHandPos ].AttachObject(gpSMCurrentMerc,gpItemPointer,TRUE,i) )
+									gpSMCurrentMerc->bActionPoints -= usCostToMoveItem;
+							}
+						}
+					}
+
+					if ( gpItemPointer->exists() == false )
+					{
+						EndItemPointer( );
+					}
+					return;
+				}
+
+				// hold ALT key to swap valid attachment item instead
+				if ( _KeyDown(ALT) )
+				{
+					// do nothing
+				}
+				// we allow attaching on items in any slot
+				else if ( ValidAttachment( usNewItemIndex, &(gpSMCurrentMerc->inv[uiHandPos]) ) )
+				{
+					// it's an attempt to attach; bring up the inventory panel
+					if ( !InItemDescriptionBox( ) )
+					{
+						InitItemDescriptionBox( gpSMCurrentMerc, (UINT8)uiHandPos, ITEMDESC_START_X, ITEMDESC_START_Y, 0 );
+					}
+					return;
+				}
+
 				if ( uiHandPos == HANDPOS || uiHandPos == SECONDHANDPOS || uiHandPos == HELMETPOS || uiHandPos == VESTPOS || uiHandPos == LEGPOS )
 				{
-					//if ( ValidAttachmentClass( usNewItemIndex, usOldItemIndex ) )
-					if ( ValidAttachment( usNewItemIndex, &(gpSMCurrentMerc->inv[uiHandPos]) ) )
-					{
-						// it's an attempt to attach; bring up the inventory panel
-						if ( !InItemDescriptionBox( ) )
-						{
-							InitItemDescriptionBox( gpSMCurrentMerc, (UINT8)uiHandPos, ITEMDESC_START_X, ITEMDESC_START_Y, 0 );
-						}
-						return;
-					}
-					else if ( ValidMerge( usNewItemIndex, usOldItemIndex ) )
+					if ( ValidMerge( usNewItemIndex, usOldItemIndex ) )
 					{
 						// bring up merge requestor
 						gubHandPos = (UINT8) uiHandPos;
@@ -3672,7 +4060,7 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 						{
 							//the only way to merge items is to pick them up.	In SKI when you pick up an item, the cursor is
 							//locked in a region, free it up.
-							FreeMouseCursor();
+							FreeMouseCursor( TRUE );
 
 							DoMessageBox( MSG_BOX_BASIC_STYLE, Message[ STR_MERGE_ITEMS ], SHOPKEEPER_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, MergeMessageBoxCallBack, NULL );
 						}
@@ -3718,6 +4106,11 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 				// try to place the item in the cursor into this inventory slot
 				if ( UIHandleItemPlacement( (UINT8) uiHandPos, usOldItemIndex, usNewItemIndex, fDeductPoints ) )
 				{
+					iLastHandPos = uiHandPos;//dnl ch66 070913
+					//Jenilee: pay the price
+					//just make sure to handle that if we are putting it back in the SAME slot, the cost should be 0!!!
+					gpSMCurrentMerc->bActionPoints -= usCostToMoveItem;
+
 					RenderBackpackButtons(ACTIVATE_BUTTON);	/* CHRISL: Needed for new inventory backpack buttons */
 					// it worked!	if we're in the SKI...
 					if( guiTacticalInterfaceFlags & INTERFACE_SHOPKEEP_INTERFACE )
@@ -3791,6 +4184,10 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 				*/
 			}
 		}
+
+		// Flugente: we have to recheck our flashlights, as we changed items
+		//gpSMCurrentMerc->bSoldierFlagMask |= SOLDIER_REDOFLASHLIGHT;
+		gpSMCurrentMerc->HandleFlashLights();
 	}
 	else if (iReason & MSYS_CALLBACK_REASON_RBUTTON_DWN)
 	{
@@ -3819,7 +4216,23 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 		// Check for # of slots in item
 		// CHRISL: Use new ItemSlotLimit function if we're using the new inventory system
 		UINT8 isLimit = ItemSlotLimit( &gpSMCurrentMerc->inv[ uiHandPos ], uiHandPos, gpSMCurrentMerc );
-		if( ( gpSMCurrentMerc->inv[ uiHandPos ].ubNumberOfObjects > 1 && isLimit > 0 ) && ( guiCurrentScreen != MAP_SCREEN ) )
+
+		// access description box directly if CTRL is pressed for stack items
+		if( !( ( gpSMCurrentMerc->inv[ uiHandPos ].ubNumberOfObjects > 1 && isLimit > 0 ) && ( guiCurrentScreen != MAP_SCREEN ) ) || _KeyDown( CTRL ) )
+		{
+			if ( !InItemDescriptionBox( ) )
+			{
+				if ( _KeyDown(SHIFT) && gpItemPointer == NULL && Item[gpSMCurrentMerc->inv[ uiHandPos ].usItem].usItemClass == IC_GUN && (gpSMCurrentMerc->inv[ uiHandPos ])[uiHandPos]->data.gun.ubGunShotsLeft > 0 && !(Item[gpSMCurrentMerc->inv[ uiHandPos ].usItem].singleshotrocketlauncher) && !( guiTacticalInterfaceFlags & INTERFACE_SHOPKEEP_INTERFACE ) )
+				{
+					EmptyWeaponMagazine( &(gpSMCurrentMerc->inv[ uiHandPos ]), &gItemPointer, uiHandPos );
+					gpItemPointer = &gItemPointer;
+					gpItemPointerSoldier = gpSMCurrentMerc;
+				}
+				else
+					InitItemDescriptionBox( gpSMCurrentMerc, (UINT8)uiHandPos, ITEMDESC_START_X, ITEMDESC_START_Y, 0 );
+			}
+		}
+		else
 		{
 			if ( !InItemStackPopup( )	)
 			{
@@ -3841,13 +4254,6 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 					inv_interface_start_x = 248;
 				InitItemStackPopup( gpSMCurrentMerc, (UINT8)uiHandPos, inv_interface_start_x, INV_INTERFACE_START_Y, invWidth, ( SCREEN_HEIGHT - INV_INTERFACE_START_Y ) );
 
-			}
-		}
-		else
-		{
-			if ( !InItemDescriptionBox( ) )
-			{
-				InitItemDescriptionBox( gpSMCurrentMerc, (UINT8)uiHandPos, ITEMDESC_START_X, ITEMDESC_START_Y, 0 );
 			}
 		}
 	}
@@ -4782,17 +5188,22 @@ void BtnPositionShowCallback(GUI_BUTTON *btn,INT32 reason)
 
 BOOLEAN InitializeTEAMPanelCoords( )
 {
-
 	TM_FACE_WIDTH		= 48;
 	TM_FACE_HEIGHT		= 43;
 	TM_APPANEL_HEIGHT	= 56;
 	TM_APPANEL_WIDTH	= 16;
 
-	TM_ENDTURN_X		=	(SCREEN_WIDTH - 133);		//( 507 + INTERFACE_START_X );
+	TM_ENDTURN_X				=	xResOffset + (xResSize - 131);
+	TM_ROSTERMODE_X				=	xResOffset + (xResSize - 131);
+	TM_DISK_X					=	xResOffset + (xResSize - 131);
+	// CHRISL: New definitions for the team panel clock and location coordinates
+	INTERFACE_CLOCK_TM_X	= xResOffset + (xResSize - 86 );
+	INTERFACE_CLOCK_TM_Y	= ( 96	+ INTERFACE_START_Y );
+	LOCATION_NAME_TM_X		= xResOffset + (xResSize - 92 );
+	LOCATION_NAME_TM_Y		= ( 65	+ INTERFACE_START_Y	);
+		
 	TM_ENDTURN_Y		= ( 9 + INTERFACE_START_Y );
-	TM_ROSTERMODE_X	=		(SCREEN_WIDTH - 133);		//( 507 + INTERFACE_START_X );
 	TM_ROSTERMODE_Y	= ( 45 + INTERFACE_START_Y );
-	TM_DISK_X			=	(SCREEN_WIDTH - 133);		//( 507 + INTERFACE_START_X );
 	TM_DISK_Y			= ( 81 + INTERFACE_START_Y );
 
 	TM_NAME_WIDTH		= 60;
@@ -4908,11 +5319,6 @@ BOOLEAN InitializeTEAMPanelCoords( )
 	sTEAMHandInvXY[10] = ( TM_INV_HAND1STARTX + ( 5 * TM_INV_HAND_SEP ));	sTEAMHandInvXY[11] = TM_INV_HAND1STARTY;
 	// ufff to much copy&paste :D
 */
-	// CHRISL: New definitions for the team panel clock and location coordinates
-	INTERFACE_CLOCK_TM_X	= ( SCREEN_WIDTH - 86 );
-	INTERFACE_CLOCK_TM_Y	= ( 99	+ INTERFACE_START_Y );
-	LOCATION_NAME_TM_X		= ( SCREEN_WIDTH - 92 );
-	LOCATION_NAME_TM_Y		= ( 65	+ INTERFACE_START_Y	);
 
 	return ( TRUE );
 }
@@ -4928,10 +5334,15 @@ BOOLEAN InitializeTEAMPanel(	)
 	context sensitive cursor when closing the inventory panel*/
 	fDisplayOverheadMap = TRUE;
 
+	// WANNE: Make a black background color for the whole screen
+	ColorFillVideoSurfaceArea( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Get16BPPColor( FROMRGB( 0, 0, 0 ) ) );
+
+
 /*	OK i need to initialize coords here
  *	Isnt it cool
  *	any questions? joker
- *	i moved it
+ *	i moved itrk
+
  */
 //	InitializeTEAMPanelCoords( );
 	// INit viewport region
@@ -4945,17 +5356,35 @@ BOOLEAN InitializeTEAMPanel(	)
 
 	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 
-	if (iResolution == 0)
+	//SQUAD10 FIX:  Use panels with more slots if SquadSize at current resolution is > 6
+
+	if (iResolution >= _640x480 && iResolution < _800x600)
+		FilenameForBPP("INTERFACE\\bottom_bar.sti", VObjectDesc.ImageFile);
+	else if (iResolution < _1024x768)
 	{
-	FilenameForBPP("INTERFACE\\bottom_bar.sti", VObjectDesc.ImageFile);
+		if (gGameOptions.ubSquadSize > 6)
+		{
+			FilenameForBPP("INTERFACE\\bottom_bar_8_800x600.sti", VObjectDesc.ImageFile);
+		}
+		else
+		{
+			FilenameForBPP("INTERFACE\\bottom_bar_800x600.sti", VObjectDesc.ImageFile);
+		}
 	}
-	else if (iResolution == 1)
+	else
 	{
-		FilenameForBPP("INTERFACE\\bottom_bar_800x600.sti", VObjectDesc.ImageFile);
-	}
-	else if (iResolution == 2)
-	{
-		FilenameForBPP("INTERFACE\\bottom_bar_1024x768.sti", VObjectDesc.ImageFile);
+		if (gGameOptions.ubSquadSize > 8)
+		{
+			FilenameForBPP("INTERFACE\\bottom_bar_10_1024x768.sti", VObjectDesc.ImageFile);
+		}
+		else if (gGameOptions.ubSquadSize > 6)
+		{
+			FilenameForBPP("INTERFACE\\bottom_bar_8_1024x768.sti", VObjectDesc.ImageFile);
+		}
+		else
+		{
+			FilenameForBPP("INTERFACE\\bottom_bar_1024x768.sti", VObjectDesc.ImageFile);
+		}
 	}
 
 	CHECKF( AddVideoObject( &VObjectDesc, &guiTEAMPanel ) );
@@ -4982,7 +5411,7 @@ BOOLEAN InitializeTEAMPanel(	)
 	// Add region
 	MSYS_AddRegion( &gTEAM_PanelRegion);
 
-	for ( posIndex = 0, cnt = 0; cnt < NUM_TEAM_SLOTS; cnt++, posIndex +=2 )
+	for ( posIndex = 0, cnt = 0; cnt < gGameOptions.ubSquadSize; cnt++, posIndex +=2 )
 	{
 		MSYS_DefineRegion( &gTEAM_FaceRegions[ cnt ], sTEAMFacesXY[ posIndex ], sTEAMFacesXY[ posIndex + 1 ] ,(INT16)(sTEAMFacesXY[ posIndex ] + TM_FACE_WIDTH ), (INT16)(sTEAMFacesXY[ posIndex + 1 ] + TM_FACE_HEIGHT), MSYS_PRIORITY_NORMAL,
 							MSYS_NO_CURSOR, MercFacePanelMoveCallback, MercFacePanelCallback );
@@ -5105,7 +5534,7 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 	INT16 sFontX, sFontY;
 	UINT32				cnt, posIndex;
 	SOLDIERTYPE		*pSoldier;
-	static				CHAR16		pStr[ 512 ], pMoraleStr[ 20 ];
+	static				CHAR16		pStr[ 512 ], pMoraleStr[ 20 ], sTemp[ 20 ];
 
 	if ( fDirty == DIRTYLEVEL2 )
 	{
@@ -5119,7 +5548,7 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 		RestoreExternBackgroundRect( INTERFACE_START_X, INTERFACE_START_Y, SCREEN_WIDTH - INTERFACE_START_X , INTERFACE_HEIGHT );
 
 		// LOOP THROUGH ALL MERCS ON TEAM PANEL
-		for ( cnt = 0, posIndex = 0; cnt < NUM_TEAM_SLOTS; cnt++, posIndex+= 2 )
+		for ( cnt = 0, posIndex = 0; cnt < gGameOptions.ubSquadSize; cnt++, posIndex+= 2 )
 		{
 			// GET SOLDIER
 			if ( !gTeamPanel[ cnt ].fOccupied )
@@ -5180,7 +5609,6 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 					SetRegionFastHelpText( &(gTEAM_SecondHandInv[ cnt ]), pStr );
 				}
 
-
 				// Render Selected guy if selected
 				if ( gusSelectedSoldier == pSoldier->ubID && gTacticalStatus.ubCurrentTeam == OUR_TEAM && OK_INTERRUPT_MERC( pSoldier ) )
 				{
@@ -5234,13 +5662,12 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 				VarFindFontCenterCoordinates( (INT16)(sTEAMNamesXY[ posIndex ] + 2 ), (INT16)(sTEAMNamesXY[ posIndex + 1 ] ), TM_NAME_WIDTH, TM_NAME_HEIGHT, BLOCKFONT2, &sFontX, &sFontY, L"%s", pSoldier->name );
 				mprintf( sFontX, sFontY, L"%s", pSoldier->name );
 				gprintfRestore( sFontX, sFontY, L"%s", pSoldier->name );
-				
 
 				 /*anv - Render selected guy's extended panel*/
 				if ( gusSelectedSoldier == pSoldier->ubID && gTacticalStatus.ubCurrentTeam == OUR_TEAM && OK_INTERRUPT_MERC( pSoldier ) )
 				{
-                    if( gExtendedPanelsSettings.bExtendedPanelsOn )
-                        DrawExtendedPanel( pSoldier , SCREEN_WIDTH );
+					if( gExtendedPanelsSettings.bExtendedPanelsOn )
+						DrawExtendedPanel( pSoldier , SCREEN_WIDTH );
 				}
 
 				// reset to frame buffer!
@@ -5248,10 +5675,11 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 
 			}
 		}
+
 	}
 
 	// Loop through all mercs and make go
-	for ( cnt = 0, posIndex = 0; cnt < NUM_TEAM_SLOTS; cnt++, posIndex+= 2 )
+	for ( cnt = 0, posIndex = 0; cnt < gGameOptions.ubSquadSize; cnt++, posIndex+= 2 )
 	{
 		// GET SOLDIER
 		if ( gTeamPanel[ cnt ].fOccupied )
@@ -5269,42 +5697,139 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 			if ( fDirty != DIRTYLEVEL0 )
 			{
 				// UPdate stats!
-		if ( fDirty == DIRTYLEVEL2 )
-		{
-				if ( pSoldier->stats.bLife != 0 )
+				if ( fDirty == DIRTYLEVEL2 )
 				{
-			if ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE )
-			{
-				 swprintf( pStr, TacticalStr[ VEHICLE_VITAL_STATS_POPUPTEXT ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax );
-				 SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), pStr );
-			}
-			else if ( pSoldier->flags.uiStatusFlags & SOLDIER_ROBOT )
-			{
-				 swprintf( pStr, gzLateLocalizedString[ 16 ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax );
-				 SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), pStr );
-			}
-			else
-			{
-					 GetMoraleString( pSoldier, pMoraleStr );
-					 swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_POPUPTEXT ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pMoraleStr );
-					 SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), pStr );
-			}
+					if ( pSoldier->stats.bLife != 0 )
+					{
+						if ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE )
+						{
+							 swprintf( pStr, TacticalStr[ VEHICLE_VITAL_STATS_POPUPTEXT ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax );
+							 SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), pStr );
+						}
+						else if ( pSoldier->flags.uiStatusFlags & SOLDIER_ROBOT )
+						{
+							 swprintf( pStr, gzLateLocalizedString[ 16 ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax );
+							 SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), pStr );
+						}
+						else
+						{
+							GetMoraleString( pSoldier, pMoraleStr );
+			
+							if ( gGameOptions.fFoodSystem && pSoldier->ubProfile != ROBOT && !IsVehicle(pSoldier) )
+							{
+								// Flugente: added a display for poison, only show text if actually poisoned
+								if ( pSoldier->bPoisonSum > 0 )
+								{
+									swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_WITH_POISON_AND_FOOD_POPUPTEXT ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bPoisonSum, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pMoraleStr, (INT32)(100*(pSoldier->bDrinkLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%", (INT32)(100*(pSoldier->bFoodLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%" );
+								}
+								else
+								{
+									swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_WITH_FOOD_POPUPTEXT ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pMoraleStr, (INT32)(100*(pSoldier->bDrinkLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%", (INT32)(100*(pSoldier->bFoodLevel - FOOD_MIN) / FOOD_HALF_RANGE), L"%" );
+								}
+							}
+							else
+							{
+								// Flugente: added a display for poison, only show text if actually poisoned
+								if ( pSoldier->bPoisonSum > 0 )
+								{
+									swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_WITH_POISON_POPUPTEXT ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bPoisonSum, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pMoraleStr );
+								}
+								else
+								{
+									swprintf( pStr, TacticalStr[ MERC_VITAL_STATS_POPUPTEXT ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pMoraleStr );
+								}
+							}
+							SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), pStr );
+			
+							// Buggler: skills/traits tooltip on merc portrait
+							// clear pStr value
+							swprintf( pStr, L"");
+			
+							if (gGameOptions.fNewTraitSystem) // SANDRO - old/new traits check
+							{
+								UINT8 ubTempSkillArray[30];
+								INT8 bNumSkillTraits = 0;
+			
+								// lets rearrange our skills to a temp array
+								// we also get the number of lines (skills) to be displayed 
+								for ( UINT8 ubCnt = 1; ubCnt < NUM_SKILLTRAITS_NT; ubCnt++ )
+								{
+									if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 2 )
+									{
+										ubTempSkillArray[bNumSkillTraits] = (ubCnt + NEWTRAIT_MERCSKILL_EXPERTOFFSET);
+										bNumSkillTraits++;
+									}
+									else if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 1 )
+									{
+										ubTempSkillArray[bNumSkillTraits] = ubCnt;
+										bNumSkillTraits++;
+									}
+								}
+			
+								if ( bNumSkillTraits == 0 )
+								{
+									swprintf( pStr, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+								}
+								else
+								{
+									for ( UINT8 ubCnt = 0; ubCnt < bNumSkillTraits; ubCnt++ )
+									{
+										swprintf( sTemp, L"%s\n", gzMercSkillTextNew[ ubTempSkillArray[ubCnt] ] );
+										wcscat( pStr, sTemp );
+									}
+								}
+							}
+							else
+							{
+								INT8 bSkill1 = 0, bSkill2 = 0; 	
+								bSkill1 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[0];
+								bSkill2 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[1];
+			
+								if ( bSkill1 == 0 && bSkill2 == 0 )
+								{
+									swprintf( pStr, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+								}
+								else
+								{
+									//if the 2 skills are the same, add the '(expert)' at the end
+									if( bSkill1 == bSkill2 )
+									{
+										swprintf( pStr, L"%s %s", gzMercSkillText[bSkill1], gzMercSkillText[EXPERT] );
+									}
+									else
+									{
+										//Display the first skill
+										if( bSkill1 != 0 )
+										{
+											swprintf( pStr, L"%s\n", gzMercSkillText[bSkill1] );
+										}
+										if( bSkill2 != 0 )
+										{
+											swprintf( sTemp, L"%s", gzMercSkillText[bSkill2] );
+											wcscat( pStr, sTemp );
+										}
+									}
+								}
+							}
+							SetRegionFastHelpText( &(gTEAM_FaceRegions[ cnt ]), pStr );
+						}
+					}
+					else
+					{
+						SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), L"" );
+						SetRegionFastHelpText( &(gTEAM_FaceRegions[ cnt ]), L"" );
+					}
 				}
-				else
-				{
-					SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), L"" );
-				}
-		}
 
 				if ( !( pSoldier->flags.uiStatusFlags & SOLDIER_DEAD ) )
 				{
 					DrawLifeUIBarEx( pSoldier, sTEAMLifeXY[ posIndex ], sTEAMLifeXY[ posIndex + 1 ], TM_LIFEBAR_WIDTH, TM_LIFEBAR_HEIGHT, TRUE, FRAME_BUFFER );
 
-			if ( !( pSoldier->flags.uiStatusFlags & SOLDIER_ROBOT ) )
-			{
-					DrawBreathUIBarEx( pSoldier, sTEAMBreathXY[ posIndex ], sTEAMBreathXY[ posIndex + 1 ], TM_LIFEBAR_WIDTH, TM_LIFEBAR_HEIGHT, TRUE, FRAME_BUFFER );
-					DrawMoraleUIBarEx( pSoldier, sTEAMMoraleXY[ posIndex ], sTEAMMoraleXY[ posIndex + 1 ], TM_LIFEBAR_WIDTH, TM_LIFEBAR_HEIGHT, TRUE, FRAME_BUFFER );
-			}
+					if ( !( pSoldier->flags.uiStatusFlags & SOLDIER_ROBOT ) )
+					{
+							DrawBreathUIBarEx( pSoldier, sTEAMBreathXY[ posIndex ], sTEAMBreathXY[ posIndex + 1 ], TM_LIFEBAR_WIDTH, TM_LIFEBAR_HEIGHT, TRUE, FRAME_BUFFER );
+							DrawMoraleUIBarEx( pSoldier, sTEAMMoraleXY[ posIndex ], sTEAMMoraleXY[ posIndex + 1 ], TM_LIFEBAR_WIDTH, TM_LIFEBAR_HEIGHT, TRUE, FRAME_BUFFER );
+					}
 
 					if ( gTacticalStatus.uiFlags & TURNBASED && pSoldier->stats.bLife >= OKLIFE )
 					{
@@ -5312,7 +5837,7 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 						SetFont( TINYFONT1 );
 
 						//if ( pSoldier->sLastTarget != NOWHERE && !EnoughPoints( pSoldier, MinAPsToAttack( pSoldier, pSoldier->sLastTarget, TRUE ), 0, FALSE ) || GetUIApsToDisplay( pSoldier ) < 0 )
-						if ( !EnoughPoints( pSoldier, MinAPsToAttack( pSoldier, pSoldier->sLastTarget, TRUE ), 0, FALSE ) || GetUIApsToDisplay( pSoldier ) < 0 )
+						if ( !EnoughPoints( pSoldier, MinAPsToAttack( pSoldier, pSoldier->sLastTarget, TRUE, 0 ), 0, FALSE ) || GetUIApsToDisplay( pSoldier ) < 0 )
 						{
 							SetFontBackground( FONT_MCOLOR_BLACK );
 							SetFontForeground( FONT_MCOLOR_DKRED );
@@ -5322,7 +5847,10 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 							if ( MercUnderTheInfluence( pSoldier ) )
 							{
 								SetFontBackground( FONT_MCOLOR_BLACK );
-								SetFontForeground( FONT_MCOLOR_LTBLUE );
+								//SetFontForeground( FONT_MCOLOR_LTBLUE );
+
+								// Flugente: new colour for being drugged, as blue on black was hard to see
+								SetRGBFontForeground( 250, 5, 250 );
 							}
 							else if ( pSoldier->bStealthMode )
 							{
@@ -5352,9 +5880,7 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 
 					// Erase APs
 					RestoreExternBackgroundRect( sTEAMApXY[ posIndex ], sTEAMApXY[ posIndex + 1 ], TM_AP_WIDTH, TM_AP_HEIGHT );
-
 				}
-
 			}
 
 			RenderSoldierTeamInv( pSoldier, sTEAMHandInvXY[ posIndex ], sTEAMHandInvXY[ posIndex + 1 ], (UINT8)cnt, fDirty );
@@ -6416,7 +6942,7 @@ BOOLEAN PlayerExistsInSlot( UINT8 ubID )
 {
 	INT32 cnt;
 
-	for ( cnt = 0; cnt < NUM_TEAM_SLOTS; cnt++ )
+	for ( cnt = 0; cnt < gGameOptions.ubSquadSize; cnt++ )
 	{
 		if ( gTeamPanel[ cnt ].fOccupied	)
 		{
@@ -6435,7 +6961,7 @@ INT8 GetTeamSlotFromPlayerID( UINT8 ubID )
 {
 	INT8 cnt;
 
-	for ( cnt = 0; cnt < NUM_TEAM_SLOTS; cnt++ )
+	for ( cnt = 0; cnt < gGameOptions.ubSquadSize; cnt++ )
 	{
 		if ( gTeamPanel[ cnt ].fOccupied	)
 		{
@@ -6454,7 +6980,7 @@ BOOLEAN RemovePlayerFromTeamSlotGivenMercID( UINT8 ubMercID )
 {
 	INT32 cnt;
 
-	for ( cnt = 0; cnt < NUM_TEAM_SLOTS; cnt++ )
+	for ( cnt = 0; cnt < gGameOptions.ubSquadSize; cnt++ )
 	{
 		if ( gTeamPanel[ cnt ].fOccupied	)
 		{
@@ -6483,7 +7009,7 @@ void AddPlayerToInterfaceTeamSlot( UINT8 ubID )
 	if ( !PlayerExistsInSlot( ubID ) )
 	{
 		// Find a free slot
-		for ( cnt = 0; cnt < NUM_TEAM_SLOTS; cnt++ )
+		for ( cnt = 0; cnt < gGameOptions.ubSquadSize; cnt++ )
 		{
 			if ( !gTeamPanel[ cnt ].fOccupied	)
 			{
@@ -6509,7 +7035,7 @@ BOOLEAN InitTEAMSlots( )
 {
 	INT32 cnt;
 
-	for ( cnt = 0; cnt < NUM_TEAM_SLOTS; cnt++ )
+	for ( cnt = 0; cnt < gGameOptions.ubSquadSize; cnt++ )
 	{
 		gTeamPanel[ cnt ].fOccupied = FALSE;
 		gTeamPanel[ cnt ].ubID			= NOBODY;
@@ -6522,7 +7048,7 @@ BOOLEAN InitTEAMSlots( )
 
 BOOLEAN GetPlayerIDFromInterfaceTeamSlot( UINT8 ubPanelSlot, UINT8 *pubID )
 {
-	if ( ubPanelSlot >= NUM_TEAM_SLOTS )
+	if ( ubPanelSlot >= gGameOptions.ubSquadSize )
 	{
 		return( FALSE );
 	}
@@ -6542,7 +7068,7 @@ void RemoveAllPlayersFromSlot( )
 {
 	int cnt;
 
-	for ( cnt = 0; cnt < NUM_TEAM_SLOTS; cnt++ )
+	for ( cnt = 0; cnt < gGameOptions.ubSquadSize; cnt++ )
 	{
 		RemovePlayerFromInterfaceTeamSlot( (UINT8)cnt );
 	}
@@ -6551,7 +7077,7 @@ void RemoveAllPlayersFromSlot( )
 
 BOOLEAN RemovePlayerFromInterfaceTeamSlot( UINT8 ubPanelSlot )
 {
-	if ( ubPanelSlot >= NUM_TEAM_SLOTS )
+	if ( ubPanelSlot >= gGameOptions.ubSquadSize )
 	{
 		return( FALSE );
 	}
@@ -6694,7 +7220,7 @@ UINT8 FindNextMercInTeamPanel( SOLDIERTYPE *pSoldier, BOOLEAN fGoodForLessOKLife
 		return( pSoldier->ubID );
 	}
 
-	for ( cnt = ( bFirstID + 1 ); cnt < NUM_TEAM_SLOTS; cnt++ )
+	for ( cnt = ( bFirstID + 1 ); cnt < gGameOptions.ubSquadSize; cnt++ )
 	{
 		if ( gTeamPanel[ cnt ].fOccupied )
 		{
@@ -7075,11 +7601,11 @@ void KeyRingSlotInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 							// Deduct points
 							if ( gpItemPointerSoldier->stats.bLife >= CONSCIOUSNESS )
 							{
-								DeductPoints( gpItemPointerSoldier,	2, 0 );
+								DeductPoints( gpItemPointerSoldier,	2, 0, UNTRIGGERED_INTERRUPT );
 							}
 							if ( gpItemPopupSoldier->stats.bLife >= CONSCIOUSNESS )
 							{
-								DeductPoints( gpItemPopupSoldier,	2, 0 );
+								DeductPoints( gpItemPopupSoldier,	2, 0, UNTRIGGERED_INTERRUPT );
 							}
 						}
 
@@ -7118,11 +7644,11 @@ void KeyRingSlotInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 						// Deduct points
 						if ( gpItemPointerSoldier && gpItemPointerSoldier->stats.bLife >= CONSCIOUSNESS )
 						{
-							DeductPoints( gpItemPointerSoldier,	2, 0 );
+							DeductPoints( gpItemPointerSoldier,	2, 0, UNTRIGGERED_INTERRUPT );
 						}
 						if ( gpSMCurrentMerc->stats.bLife >= CONSCIOUSNESS )
 						{
-							DeductPoints( gpSMCurrentMerc,	2, 0 );
+							DeductPoints( gpSMCurrentMerc,	2, 0, UNTRIGGERED_INTERRUPT );
 						}
 					}
 
@@ -7335,7 +7861,7 @@ void SMInvMoneyButtonCallback( MOUSE_REGION * pRegion, INT32 iReason )
 					//if we are in the shop keeper interface, free the cursor
 					if( guiTacticalInterfaceFlags & INTERFACE_SHOPKEEP_INTERFACE )
 					{
-						FreeMouseCursor();
+						FreeMouseCursor( TRUE );
 					}
 
 					DoMessageBox( MSG_BOX_BASIC_STYLE, zText, SHOPKEEPER_SCREEN, ( UINT8 )MSG_BOX_FLAG_YESNO, ConfirmationToDepositMoneyToPlayersAccount, NULL );
@@ -7421,6 +7947,7 @@ void GoToMapScreenFromTactical( void )
 		return;
 	}
 	// ok, proceed!
+	gfMouseLockedOnBorder = FALSE;
 	gfEnteringMapScreen = TRUE;
 }
 
@@ -7466,310 +7993,310 @@ BOOLEAN HandleKlerykPistolet( SOLDIERTYPE *pSoldier, UINT32 uiHandPos, UINT16 us
 //anv - extended panel functions
 BOOLEAN DrawExtendedPanel(SOLDIERTYPE* pSoldier, UINT16 screenWidth)
 {
-    // ini stuff
-    UINT16 uiMaxPanels = gExtendedPanelsSettings.uepMaxPanels;
-    // shifts from borders
-    UINT16 uiExtendedPanelXLShift = gExtendedPanelsSettings.uepXLShift;
-    UINT16 uiExtendedPanelXRShift = gExtendedPanelsSettings.uepXRShift;
+	// ini stuff
+	UINT16 uiMaxPanels = gExtendedPanelsSettings.uepMaxPanels;
+	// shifts from borders
+	UINT16 uiExtendedPanelXLShift = gExtendedPanelsSettings.uepXLShift;
+	UINT16 uiExtendedPanelXRShift = gExtendedPanelsSettings.uepXRShift;
 	UINT16 uiExtendedPanelYShift = gExtendedPanelsSettings.uepYShift;
 
-    // distances
+	// distances
 	UINT16 uiExtendedPanelRowDist = gExtendedPanelsSettings.uepRowDist;
-    UINT16 uiExtendedPanelColDist = gExtendedPanelsSettings.uepColDist;
+	UINT16 uiExtendedPanelColDist = gExtendedPanelsSettings.uepColDist;
 
-    UINT16 uiExtendedPanelMaxRow = gExtendedPanelsSettings.uepMaxRow;  
-    UINT16 uiExtendedPanelMinWidth = gExtendedPanelsSettings.uepMinWidth;
+	UINT16 uiExtendedPanelMaxRow = gExtendedPanelsSettings.uepMaxRow;  
+	UINT16 uiExtendedPanelMinWidth = gExtendedPanelsSettings.uepMinWidth;
 
-    //135 - map screen width
-    //83 - one merc avatar width
-    UINT16 uiPlaceForPanels = (UINT16)( screenWidth - 135 - ( NUM_TEAM_SLOTS * 83 ) );
+	//135 - map screen width
+	//83 - one merc avatar width
+	UINT16 uiPlaceForPanels = (UINT16)( screenWidth - 135 - ( gGameOptions.ubSquadSize * 83 ) );
 
-    UINT16 uiPanels = 0;
+	UINT16 uiPanels = 0;
 
-    // how many panels can we fit in
-    while( uiPlaceForPanels > ( uiExtendedPanelXLShift + ( uiPanels + 1) * uiExtendedPanelMinWidth + uiPanels * uiExtendedPanelColDist + uiExtendedPanelXRShift ) )
-    {
-        uiPanels++;
-    }
+	// how many panels can we fit in
+	while( uiPlaceForPanels > ( uiExtendedPanelXLShift + ( uiPanels + 1) * uiExtendedPanelMinWidth + uiPanels * uiExtendedPanelColDist + uiExtendedPanelXRShift ) )
+	{
+		uiPanels++;
+	}
 
-    //cut off if too many
-    if( uiPanels > uiMaxPanels)
-        uiPanels = uiMaxPanels;
+	//cut off if too many
+	if( uiPanels > uiMaxPanels)
+		uiPanels = uiMaxPanels;
 
-    UINT16 uiExtendedPanelWidth;
-    if(uiPanels)
-        uiExtendedPanelWidth=(UINT16)( uiPlaceForPanels - ( uiExtendedPanelXLShift + ( uiPanels - 1 ) * uiExtendedPanelColDist + uiExtendedPanelXLShift ) ) / uiPanels;
-    else
-        uiExtendedPanelWidth=0;
+	UINT16 uiExtendedPanelWidth;
+	if(uiPanels)
+		uiExtendedPanelWidth=(UINT16)( uiPlaceForPanels - ( uiExtendedPanelXLShift + ( uiPanels - 1 ) * uiExtendedPanelColDist + uiExtendedPanelXLShift ) ) / uiPanels;
+	else
+		uiExtendedPanelWidth=0;
 
 	UINT16 uiExtendedPanelX[10] = 
-    {
-        (UINT16)(INTERFACE_START_X + NUM_TEAM_SLOTS*83 + uiExtendedPanelXLShift)
-    };
-    for(UINT16 uiCnt = 1; (uiCnt < uiPanels) && uiCnt < 10; uiCnt++ )
-    {
-        uiExtendedPanelX[uiCnt] = uiExtendedPanelX[uiCnt-1] + uiExtendedPanelWidth + uiExtendedPanelColDist;
-    }
-    UINT16 uiExtendedPanelY = INTERFACE_START_Y + uiExtendedPanelYShift;
-             
-    //translate layout from .ini
-    //loop through panels
-    for(UINT16 PP = 0; ( PP < uiPanels ) && ( PP < gExtendedPanelsSettings.uepMaxPanels ); PP++)
-    {
-        //loop through rows
-        for(UINT16 ERP = 0; ( ERP < gExtendedPanelsSettings.uepRowCapacity[PP] ) && ( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_BREAK" ) != 0 ); ERP++)
+	{
+		(UINT16)(INTERFACE_START_X + gGameOptions.ubSquadSize*83 + uiExtendedPanelXLShift)
+	};
+	for(UINT16 uiCnt = 1; (uiCnt < uiPanels) && uiCnt < 10; uiCnt++ )
+	{
+		uiExtendedPanelX[uiCnt] = uiExtendedPanelX[uiCnt-1] + uiExtendedPanelWidth + uiExtendedPanelColDist;
+	}
+	UINT16 uiExtendedPanelY = INTERFACE_START_Y + uiExtendedPanelYShift;
+			 
+	//translate layout from .ini
+	//loop through panels
+	for(UINT16 PP = 0; ( PP < uiPanels ) && ( PP < gExtendedPanelsSettings.uepMaxPanels ); PP++)
+	{
+		//loop through rows
+		for(UINT16 ERP = 0; ( ERP < gExtendedPanelsSettings.uepRowCapacity[PP] ) && ( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_BREAK" ) != 0 ); ERP++)
 		{
-            BOOLEAN bIgnoreNext = FALSE; // for trait display
-            EXTENDED_PANEL_STRING expsTemp;
+			BOOLEAN bIgnoreNext = FALSE; // for trait display
+			EXTENDED_PANEL_STRING expsTemp;
 
-            if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_NAME" ) == 0 )
-                    expsTemp = GetNameString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_BATTLES" ) == 0  )
-                    expsTemp = GetBattlesString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_KILLS" ) == 0  )
-                    expsTemp = GetKillsString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_ASSISTS" ) == 0  )
-                    expsTemp = GetAssistsString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SHOTS_FIRED" ) == 0  )
-                expsTemp = GetShotsFiredString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SHOTS_HIT" ) == 0  )
-                expsTemp = GetShotsHitString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_HIT_PERCENTAGE" ) == 0  )
-                    expsTemp = GetHitPercentageString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_TIMES_WOUNDED" ) == 0  )
-                    expsTemp = GetTimesWoundedString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_ACHIEVEMENTS" ) == 0  )
-                    expsTemp = GetAchievementsString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SKILLS" ) == 0  )
-            {
-                UINT16 uiHowManySkills = 0;
-                for( INT16 iS = ERP; (iS < gExtendedPanelsSettings.uepRowCapacity[PP]) && ( strcmp(gExtendedPanelsSettings.sepPanel[PP][iS], "EXTENDED_PANEL_SKILLS" ) == 0 ) ; iS++)
-                {
-                    uiHowManySkills++;
-                }
-                EXTENDED_PANEL_STRING *expsTemps = GetSkillsStrings(pSoldier,uiHowManySkills);
-                for( INT16 iS = 0; iS < uiHowManySkills; iS++)
-                {
-                    //override if type set to show only label or value 
-                    if( ( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP+iS], "BOTH") != 0) )
-                        if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP+iS], "LABEL") == 0 )
-                                swprintf(expsTemps[iS].sPanelStringRight,L"");
-                        else if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP+iS], "VALUE") == 0 )
-                                swprintf(expsTemps[iS].sPanelStringLeft,L"");
+			if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_NAME" ) == 0 )
+					expsTemp = GetNameString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_BATTLES" ) == 0  )
+					expsTemp = GetBattlesString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_KILLS" ) == 0  )
+					expsTemp = GetKillsString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_ASSISTS" ) == 0  )
+					expsTemp = GetAssistsString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SHOTS_FIRED" ) == 0  )
+				expsTemp = GetShotsFiredString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SHOTS_HIT" ) == 0  )
+				expsTemp = GetShotsHitString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_HIT_PERCENTAGE" ) == 0  )
+					expsTemp = GetHitPercentageString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_TIMES_WOUNDED" ) == 0  )
+					expsTemp = GetTimesWoundedString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_ACHIEVEMENTS" ) == 0  )
+					expsTemp = GetAchievementsString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SKILLS" ) == 0  )
+			{
+				UINT16 uiHowManySkills = 0;
+				for( INT16 iS = ERP; (iS < gExtendedPanelsSettings.uepRowCapacity[PP]) && ( strcmp(gExtendedPanelsSettings.sepPanel[PP][iS], "EXTENDED_PANEL_SKILLS" ) == 0 ) ; iS++)
+				{
+					uiHowManySkills++;
+				}
+				EXTENDED_PANEL_STRING *expsTemps = GetSkillsStrings(pSoldier,uiHowManySkills);
+				for( INT16 iS = 0; iS < uiHowManySkills; iS++)
+				{
+					//override if type set to show only label or value 
+					if( ( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP+iS], "BOTH") != 0) )
+						if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP+iS], "LABEL") == 0 )
+								swprintf(expsTemps[iS].sPanelStringRight,L"");
+						else if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP+iS], "VALUE") == 0 )
+								swprintf(expsTemps[iS].sPanelStringLeft,L"");
 
-                     //override colors if given 
-                    if( gExtendedPanelsSettings.sepLabelColors[PP][ERP+iS] != 0 ) 
-                        expsTemps[iS].uiFontColorLeft = gExtendedPanelsSettings.sepLabelColors[PP][ERP+iS];
-                    if( gExtendedPanelsSettings.sepValueColors[PP][ERP+iS] != 0 )
-                        expsTemps[iS].uiFontColorRight = gExtendedPanelsSettings.sepValueColors[PP][ERP+iS];
-                    //override fonts if given
-                    expsTemps[iS].uiFontL = ReturnFont(gExtendedPanelsSettings.sepLabelFonts[PP][ERP+iS]);
-                    expsTemps[iS].uiFontR = ReturnFont(gExtendedPanelsSettings.sepValueFonts[PP][ERP+iS]);
-                    WriteStringOnPanel(expsTemps[iS], ERP+iS, uiExtendedPanelX[PP], uiExtendedPanelY, uiExtendedPanelWidth, uiExtendedPanelRowDist);
-                }
-                bIgnoreNext = TRUE;
-                ERP += uiHowManySkills-1;
-            }
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_DISABILITY" ) == 0 )
-                    expsTemp = GetDisabilityString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_CHARACTER" ) == 0  )
-                    expsTemp = GetCharacterString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_ATTITUDE_OLD" ) == 0  )
-                    expsTemp = GetAttitudeOldString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SQUAD" ) == 0  )
-                    expsTemp = GetSquadString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_TOTAL_COST" ) == 0  )
-                    expsTemp = GetTotalCostString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_TOTAL_SERVICE" ) == 0  )
-                    expsTemp = GetTotalServiceString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MEDICAL_DEPOSIT" ) == 0  )
-                    expsTemp = GetMedicalDepositString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_DAILY_COST" ) == 0  )
-                    expsTemp = GetDailyCostString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_CURRENT_CONTRACT" ) == 0  )
-                    expsTemp = GetCurrentContractString(pSoldier);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_AGILITY" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_AGILITY);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_DEXTERITY" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_DEXTERITY);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_EXP_LVL" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_EXP_LVL);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MARKSMANSHIP" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_MARKSMANSHIP);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_STRENGTH" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_STRENGTH);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_EXPLOSIVES" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_EXPLOSIVES);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_LEADERSHIP" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_LEADERSHIP);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_WISDOM" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_WISDOM);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MECHANICAL" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_MECHANICAL);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MEDICAL" ) == 0  )
-                expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_MEDICAL);
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_EMPTY" ) == 0  )
-                    expsTemp = GetEmptyString();
-            else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_BREAK" ) == 0  )
-                ERP=uiExtendedPanelMaxRow;
-            else
-            {
-                // STR8 to STR16 (wchar_t* to char*)
-                CHAR16  sString16[32];
-                swprintf(sString16, sizeof(sString16), L"%hs", gExtendedPanelsSettings.sepPanel[PP][ERP]);
+					 //override colors if given 
+					if( gExtendedPanelsSettings.sepLabelColors[PP][ERP+iS] != 0 ) 
+						expsTemps[iS].uiFontColorLeft = gExtendedPanelsSettings.sepLabelColors[PP][ERP+iS];
+					if( gExtendedPanelsSettings.sepValueColors[PP][ERP+iS] != 0 )
+						expsTemps[iS].uiFontColorRight = gExtendedPanelsSettings.sepValueColors[PP][ERP+iS];
+					//override fonts if given
+					expsTemps[iS].uiFontL = ReturnFont(gExtendedPanelsSettings.sepLabelFonts[PP][ERP+iS]);
+					expsTemps[iS].uiFontR = ReturnFont(gExtendedPanelsSettings.sepValueFonts[PP][ERP+iS]);
+					WriteStringOnPanel(expsTemps[iS], ERP+iS, uiExtendedPanelX[PP], uiExtendedPanelY, uiExtendedPanelWidth, uiExtendedPanelRowDist);
+				}
+				bIgnoreNext = TRUE;
+				ERP += uiHowManySkills-1;
+			}
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_DISABILITY" ) == 0 )
+					expsTemp = GetDisabilityString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_CHARACTER" ) == 0  )
+					expsTemp = GetCharacterString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_ATTITUDE_OLD" ) == 0  )
+					expsTemp = GetAttitudeOldString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_SQUAD" ) == 0  )
+					expsTemp = GetSquadString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_TOTAL_COST" ) == 0  )
+					expsTemp = GetTotalCostString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_TOTAL_SERVICE" ) == 0  )
+					expsTemp = GetTotalServiceString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MEDICAL_DEPOSIT" ) == 0  )
+					expsTemp = GetMedicalDepositString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_DAILY_COST" ) == 0  )
+					expsTemp = GetDailyCostString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_CURRENT_CONTRACT" ) == 0  )
+					expsTemp = GetCurrentContractString(pSoldier);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_AGILITY" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_AGILITY);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_DEXTERITY" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_DEXTERITY);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_EXP_LVL" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_EXP_LVL);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MARKSMANSHIP" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_MARKSMANSHIP);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_STRENGTH" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_STRENGTH);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_EXPLOSIVES" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_EXPLOSIVES);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_LEADERSHIP" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_LEADERSHIP);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_WISDOM" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_WISDOM);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MECHANICAL" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_MECHANICAL);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_MEDICAL" ) == 0  )
+				expsTemp = GetStatString(pSoldier, EXTENDED_PANEL_MEDICAL);
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_EMPTY" ) == 0  )
+					expsTemp = GetEmptyString();
+			else if( strcmp( gExtendedPanelsSettings.sepPanel[PP][ERP], "EXTENDED_PANEL_BREAK" ) == 0  )
+				ERP=uiExtendedPanelMaxRow;
+			else
+			{
+				// STR8 to STR16 (wchar_t* to char*)
+				CHAR16  sString16[32];
+				swprintf(sString16, sizeof(sString16), L"%hs", gExtendedPanelsSettings.sepPanel[PP][ERP]);
 
-                expsTemp = GetTextString( sString16, sString16 );
-            }
-            //check if not part of trait display
-            if(!bIgnoreNext)
-            {
-                //override if type set to show only label or value 
-                if( ( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP], "BOTH") != 0) )
-                {
-                    if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP], "LABEL") == 0 )
-                        swprintf(expsTemp.sPanelStringRight,L"");
-                    else if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP], "VALUE") == 0 )
-                        swprintf(expsTemp.sPanelStringLeft,L"");
-                }
+				expsTemp = GetTextString( sString16, sString16 );
+			}
+			//check if not part of trait display
+			if(!bIgnoreNext)
+			{
+				//override if type set to show only label or value 
+				if( ( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP], "BOTH") != 0) )
+				{
+					if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP], "LABEL") == 0 )
+						swprintf(expsTemp.sPanelStringRight,L"");
+					else if( strcmp( gExtendedPanelsSettings.sepTypes[PP][ERP], "VALUE") == 0 )
+						swprintf(expsTemp.sPanelStringLeft,L"");
+				}
 
-                 //override colors if given 
-                if( gExtendedPanelsSettings.sepLabelColors[PP][ERP] != 0 ) 
-                    expsTemp.uiFontColorLeft = gExtendedPanelsSettings.sepLabelColors[PP][ERP];
-                if( gExtendedPanelsSettings.sepValueColors[PP][ERP] != 0 )
-                    expsTemp.uiFontColorRight = gExtendedPanelsSettings.sepValueColors[PP][ERP];
+				 //override colors if given 
+				if( gExtendedPanelsSettings.sepLabelColors[PP][ERP] != 0 ) 
+					expsTemp.uiFontColorLeft = gExtendedPanelsSettings.sepLabelColors[PP][ERP];
+				if( gExtendedPanelsSettings.sepValueColors[PP][ERP] != 0 )
+					expsTemp.uiFontColorRight = gExtendedPanelsSettings.sepValueColors[PP][ERP];
 
-                //override fonts if given
-                expsTemp.uiFontL = ReturnFont(gExtendedPanelsSettings.sepLabelFonts[PP][ERP]);
-                expsTemp.uiFontR = ReturnFont(gExtendedPanelsSettings.sepValueFonts[PP][ERP]);
+				//override fonts if given
+				expsTemp.uiFontL = ReturnFont(gExtendedPanelsSettings.sepLabelFonts[PP][ERP]);
+				expsTemp.uiFontR = ReturnFont(gExtendedPanelsSettings.sepValueFonts[PP][ERP]);
 
-                WriteStringOnPanel(expsTemp, ERP, uiExtendedPanelX[PP], uiExtendedPanelY, uiExtendedPanelWidth, uiExtendedPanelRowDist);
-            }
-       }
-    }        
-    return true;
+				WriteStringOnPanel(expsTemp, ERP, uiExtendedPanelX[PP], uiExtendedPanelY, uiExtendedPanelWidth, uiExtendedPanelRowDist);
+			}
+	   }
+	}		
+	return true;
 }
 
 EXTENDED_PANEL_STRING GetNameString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf(exps.sPanelStringLeft, L"%s", gMercProfiles[pSoldier->ubProfile].zName);
-    swprintf(exps.sPanelStringRight, L"");
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	swprintf(exps.sPanelStringLeft, L"%s", gMercProfiles[pSoldier->ubProfile].zName);
+	swprintf(exps.sPanelStringRight, L"");
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetKillsString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    UINT16 uiKills = gMercProfiles[pSoldier->ubProfile].records.usKillsAdmins //kills
+	EXTENDED_PANEL_STRING exps;
+	UINT16 uiKills = gMercProfiles[pSoldier->ubProfile].records.usKillsAdmins //kills
 						+gMercProfiles[pSoldier->ubProfile].records.usKillsCreatures
 						+gMercProfiles[pSoldier->ubProfile].records.usKillsElites
 						+gMercProfiles[pSoldier->ubProfile].records.usKillsHostiles
 						+gMercProfiles[pSoldier->ubProfile].records.usKillsOthers
 						+gMercProfiles[pSoldier->ubProfile].records.usKillsRegulars
 						+gMercProfiles[pSoldier->ubProfile].records.usKillsTanks;
-    swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_KILLS]);
-    swprintf(exps.sPanelStringRight, L"%d", uiKills );
+	swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_KILLS]);
+	swprintf(exps.sPanelStringRight, L"%d", uiKills );
 
-    if( uiKills >= gExtendedPanelsSettings.uepAwesomeKills )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if(uiKills >= gExtendedPanelsSettings.uepGreatKills)
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if(uiKills <= gExtendedPanelsSettings.uepAwfulKills)
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
-    else if(uiKills <= gExtendedPanelsSettings.uepPoorKills)
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
-    else
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    
-    return exps;
+	if( uiKills >= gExtendedPanelsSettings.uepAwesomeKills )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
+	else if(uiKills >= gExtendedPanelsSettings.uepGreatKills)
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+	else if(uiKills <= gExtendedPanelsSettings.uepAwfulKills)
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	else if(uiKills <= gExtendedPanelsSettings.uepPoorKills)
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
+	else
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetShotsFiredString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    UINT16 uiShotsFired = gMercProfiles[pSoldier->ubProfile].records.usShotsFired;    
-    swprintf(exps.sPanelStringLeft, L"%s\0", pPersonnelRecordsHelpTexts[ 10 ] );
-    swprintf(exps.sPanelStringRight, L"%d", uiShotsFired );
+	EXTENDED_PANEL_STRING exps;
+	UINT16 uiShotsFired = gMercProfiles[pSoldier->ubProfile].records.usShotsFired;	
+	swprintf(exps.sPanelStringLeft, L"%s\0", pPersonnelRecordsHelpTexts[ 10 ] );
+	swprintf(exps.sPanelStringRight, L"%d", uiShotsFired );
 
-    //remove that damn "%d\n"
-    exps.sPanelStringLeft[wcslen(exps.sPanelStringLeft) - 4] = L'\0';
+	//remove that damn "%d\n"
+	exps.sPanelStringLeft[wcslen(exps.sPanelStringLeft) - 4] = L'\0';
 
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;   
-    return exps;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;   
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetShotsHitString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    UINT16 uiShotsHit = gMercProfiles[pSoldier->ubProfile].records.usShotsHit;
-    swprintf(exps.sPanelStringLeft, L"%s", pPersonnelRecordsHelpTexts[ 16 ] );
-    swprintf(exps.sPanelStringRight, L"%d", uiShotsHit );
+	EXTENDED_PANEL_STRING exps;
+	UINT16 uiShotsHit = gMercProfiles[pSoldier->ubProfile].records.usShotsHit;
+	swprintf(exps.sPanelStringLeft, L"%s", pPersonnelRecordsHelpTexts[ 16 ] );
+	swprintf(exps.sPanelStringRight, L"%d", uiShotsHit );
 
-    //remove that damn "%d\n"
-    exps.sPanelStringLeft[wcslen(exps.sPanelStringLeft) - 4] = L'\0';
+	//remove that damn "%d\n"
+	exps.sPanelStringLeft[wcslen(exps.sPanelStringLeft) - 4] = L'\0';
 
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;   
-    return exps;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;   
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetAssistsString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_ASSISTS]);
-    UINT16 uiAssists = gMercProfiles[pSoldier->ubProfile].records.usAssistsMercs //assists
+	EXTENDED_PANEL_STRING exps;
+	swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_ASSISTS]);
+	UINT16 uiAssists = gMercProfiles[pSoldier->ubProfile].records.usAssistsMercs //assists
 						+gMercProfiles[pSoldier->ubProfile].records.usAssistsMilitia
 						+gMercProfiles[pSoldier->ubProfile].records.usAssistsOthers;   
-    swprintf(exps.sPanelStringRight, L"%d", uiAssists );
+	swprintf(exps.sPanelStringRight, L"%d", uiAssists );
 
-    if( uiAssists >= gExtendedPanelsSettings.uepAwesomeAssists )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiAssists >= gExtendedPanelsSettings.uepGreatAssists )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiAssists <= gExtendedPanelsSettings.uepAwfulAssists )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	if( uiAssists >= gExtendedPanelsSettings.uepAwesomeAssists )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
+	else if( uiAssists >= gExtendedPanelsSettings.uepGreatAssists )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+	else if( uiAssists <= gExtendedPanelsSettings.uepAwfulAssists )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
 	else if( uiAssists <= gExtendedPanelsSettings.uepPoorAssists )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
-    else
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
+	else
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
 
-    return exps;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetAchievementsString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_ACHIEVEMNTS]);
+	EXTENDED_PANEL_STRING exps;
+	swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_ACHIEVEMNTS]);
 
 
-    UINT16 uiAchievements = CalculateMercsAchievemntPercentage( pSoldier->ubProfile ); // achievements
-    swprintf(exps.sPanelStringRight, L"%d %%",uiAchievements);
+	UINT16 uiAchievements = CalculateMercsAchievemntPercentage( pSoldier->ubProfile ); // achievements
+	swprintf(exps.sPanelStringRight, L"%d %%",uiAchievements);
 
-    if( uiAchievements >= gExtendedPanelsSettings.uepAwesomeAchievements )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiAchievements >= gExtendedPanelsSettings.uepGreatAchievements )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiAchievements <= gExtendedPanelsSettings.uepAwfulAchievements )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	if( uiAchievements >= gExtendedPanelsSettings.uepAwesomeAchievements )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
+	else if( uiAchievements >= gExtendedPanelsSettings.uepGreatAchievements )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+	else if( uiAchievements <= gExtendedPanelsSettings.uepAwfulAchievements )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
 	else if( uiAchievements <= gExtendedPanelsSettings.uepPoorAchievements)
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
-    else
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
+	else
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
 
-    return exps;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetHitPercentageString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_HIT_PERCENTAGE]);
-    //hit percentage
+	EXTENDED_PANEL_STRING exps;
+	swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_HIT_PERCENTAGE]);
+	//hit percentage
 	UINT32 uiHits = ( UINT32 )gMercProfiles[pSoldier->ubProfile].records.usShotsHit;
 	uiHits *= 100;
 	// check we have shot at least once
@@ -7794,350 +8321,350 @@ EXTENDED_PANEL_STRING GetHitPercentageString(SOLDIERTYPE* pSoldier)
 		// no, set hit % to 0
 		uiHits=0;
 	}
-    swprintf( exps.sPanelStringRight, L"%d %%",uiHits);
-    if( uiHits >= gExtendedPanelsSettings.uepAwesomeAchievements )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiHits >= gExtendedPanelsSettings.uepGreatAchievements )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiHits <= gExtendedPanelsSettings.uepAwfulAchievements )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	swprintf( exps.sPanelStringRight, L"%d %%",uiHits);
+	if( uiHits >= gExtendedPanelsSettings.uepAwesomeAchievements )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
+	else if( uiHits >= gExtendedPanelsSettings.uepGreatAchievements )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+	else if( uiHits <= gExtendedPanelsSettings.uepAwfulAchievements )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
 	else if( uiHits <= gExtendedPanelsSettings.uepPoorAchievements )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
-    else
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
+	else
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
 
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    return exps;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetBattlesString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    //mprintf
-    swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_BATTLES]);
-    UINT16 uiBattles = gMercProfiles[pSoldier->ubProfile].records.usBattlesTactical//battles
+	EXTENDED_PANEL_STRING exps;
+	//mprintf
+	swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_BATTLES]);
+	UINT16 uiBattles = gMercProfiles[pSoldier->ubProfile].records.usBattlesTactical//battles
 						+gMercProfiles[pSoldier->ubProfile].records.usBattlesTactical;
-    swprintf( exps.sPanelStringRight, L"%d", uiBattles );
-    if( uiBattles >= gExtendedPanelsSettings.uepAwesomeBattles )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-    else if( uiBattles >= gExtendedPanelsSettings.uepGreatBattles )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-    else if( uiBattles <= gExtendedPanelsSettings.uepAwfulBattles )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	swprintf( exps.sPanelStringRight, L"%d", uiBattles );
+	if( uiBattles >= gExtendedPanelsSettings.uepAwesomeBattles )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
+	else if( uiBattles >= gExtendedPanelsSettings.uepGreatBattles )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+	else if( uiBattles <= gExtendedPanelsSettings.uepAwfulBattles )
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
 	else if( uiBattles <= gExtendedPanelsSettings.uepPoorBattles )
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
-    else
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    return exps;
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
+	else
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetTimesWoundedString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TIMES_WOUNDED]);
-    swprintf(exps.sPanelStringRight, L"%d",gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedShot//wounds
+	EXTENDED_PANEL_STRING exps;
+	swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TIMES_WOUNDED]);
+	swprintf(exps.sPanelStringRight, L"%d",gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedShot//wounds
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedStabbed
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedPunched/2,
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedBlasted);
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING *GetSkillsStrings(SOLDIERTYPE* pSoldier, UINT16 uiSkills)
 {
 
 	EXTENDED_PANEL_STRING *sRet = new EXTENDED_PANEL_STRING[4];
-    if ( !AM_A_ROBOT(pSoldier) )
-    {
-        if (gGameOptions.fNewTraitSystem) // SANDRO - old/new traits check
-	    {
-		    UINT8 ubTempSkillArray[30];
-		    INT8 bNumSkillTraits = 0;
-		    // lets rearrange our skills to a temp array
-		    // we also get the number of lines (skills) to be displayed 
-		    for ( UINT8 ubCnt = 1; ubCnt < NUM_SKILLTRAITS_NT; ubCnt++ )
-		    {
-			    if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 2 )
-			    {	
-				    ubTempSkillArray[bNumSkillTraits] = (ubCnt + NEWTRAIT_MERCSKILL_EXPERTOFFSET);
-				    bNumSkillTraits++;
-			    }
-			    else if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 1 )
-			    {
-				    ubTempSkillArray[bNumSkillTraits] = ubCnt;
-				    bNumSkillTraits++;
-			    }
-		    }
+	if ( !AM_A_ROBOT(pSoldier) )
+	{
+		if (gGameOptions.fNewTraitSystem) // SANDRO - old/new traits check
+		{
+			UINT8 ubTempSkillArray[30];
+			INT8 bNumSkillTraits = 0;
+			// lets rearrange our skills to a temp array
+			// we also get the number of lines (skills) to be displayed 
+			for ( UINT8 ubCnt = 1; ubCnt < NUM_SKILLTRAITS_NT; ubCnt++ )
+			{
+				if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 2 )
+				{	
+					ubTempSkillArray[bNumSkillTraits] = (ubCnt + NEWTRAIT_MERCSKILL_EXPERTOFFSET);
+					bNumSkillTraits++;
+				}
+				else if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 1 )
+				{
+					ubTempSkillArray[bNumSkillTraits] = ubCnt;
+					bNumSkillTraits++;
+				}
+			}
 
-		    if ( bNumSkillTraits == 0 )
-		    {
-                swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
-                sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
-                swprintf( sRet[0].sPanelStringRight, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
-                sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
-                for( INT16 iC = 1; iC<uiSkills; iC++ )
-                {
-                    sRet[iC].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                    sRet[iC].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
-                    swprintf(sRet[iC].sPanelStringLeft, L"");	
-                    swprintf(sRet[iC].sPanelStringRight, L"");	
-                }
-		    }
-		    else
-		    {
-			    CHAR16 sString2[500];
-			    swprintf( sString2, L"" );
-			    BOOLEAN fDisplayMoreTraits = FALSE;
-			    for ( UINT8 ubCnt = 0; ubCnt < bNumSkillTraits; ubCnt++ )
-			    {
-				    if ( (ubCnt + 1 == uiSkills) && (uiSkills<bNumSkillTraits)) // display "more..."
-                    {
-                        sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
-                        if(ubCnt==0)
-                            swprintf( sRet[ubCnt].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );		
-                        else
-                            swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
-                        sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-                        swprintf( sRet[ubCnt].sPanelStringRight, L"%s", gzMercSkillTextNew[ 2 * NEWTRAIT_MERCSKILL_OFFSET_ALL + 1 ] );
-                    }
-				    else
-                    {
-                        if ( ubTempSkillArray[ubCnt] > NEWTRAIT_MERCSKILL_EXPERTOFFSET )
-						    sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;// double major trait
-					    else
+			if ( bNumSkillTraits == 0 )
+			{
+				swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
+				sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+				swprintf( sRet[0].sPanelStringRight, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+				sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+				for( INT16 iC = 1; iC<uiSkills; iC++ )
+				{
+					sRet[iC].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+					sRet[iC].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
+					swprintf(sRet[iC].sPanelStringLeft, L"");	
+					swprintf(sRet[iC].sPanelStringRight, L"");	
+				}
+			}
+			else
+			{
+				CHAR16 sString2[500];
+				swprintf( sString2, L"" );
+				BOOLEAN fDisplayMoreTraits = FALSE;
+				for ( UINT8 ubCnt = 0; ubCnt < bNumSkillTraits; ubCnt++ )
+				{
+					if ( (ubCnt + 1 == uiSkills) && (uiSkills<bNumSkillTraits)) // display "more..."
+					{
+						sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;
+						if(ubCnt==0)
+							swprintf( sRet[ubCnt].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );		
+						else
+							swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
+						sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+						swprintf( sRet[ubCnt].sPanelStringRight, L"%s", gzMercSkillTextNew[ 2 * NEWTRAIT_MERCSKILL_OFFSET_ALL + 1 ] );
+					}
+					else
+					{
+						if ( ubTempSkillArray[ubCnt] > NEWTRAIT_MERCSKILL_EXPERTOFFSET )
+							sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;// double major trait
+						else
 						{
 							if ( ubTempSkillArray[ubCnt] < NUM_MAJOR_TRAITS )
 								sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;//single major trait
 							else
 								sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;// minor trait
 						}
-                        sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                        if(ubCnt==0)
-                            swprintf( sRet[ubCnt].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
-                        else
-                            swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
-                        swprintf( sRet[ubCnt].sPanelStringRight, L"%s", gzMercSkillTextNew[ ubTempSkillArray[ubCnt] ] );
-                    }
-			    }
-                //fill unfilled
-                for ( UINT8 ubCnt = bNumSkillTraits; ubCnt < uiSkills; ubCnt++ )
-			    {
-                        sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                        sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
-                        swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
-                        swprintf( sRet[ubCnt].sPanelStringRight, L"");
-			    }
-		    }
-        }
-        else // old trait system, for crying out loud, more copy/paste
-        {						
-            INT8 bSkill1 = 0, bSkill2 = 0; 	
-		    bSkill1 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[0];
-		    bSkill2 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[1];
+						sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+						if(ubCnt==0)
+							swprintf( sRet[ubCnt].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
+						else
+							swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
+						swprintf( sRet[ubCnt].sPanelStringRight, L"%s", gzMercSkillTextNew[ ubTempSkillArray[ubCnt] ] );
+					}
+				}
+				//fill unfilled
+				for ( UINT8 ubCnt = bNumSkillTraits; ubCnt < uiSkills; ubCnt++ )
+				{
+						sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+						sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
+						swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
+						swprintf( sRet[ubCnt].sPanelStringRight, L"");
+				}
+			}
+		}
+		else // old trait system, for crying out loud, more copy/paste
+		{						
+			INT8 bSkill1 = 0, bSkill2 = 0; 	
+			bSkill1 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[0];
+			bSkill2 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[1];
 
 			//if the 2 skills are the same, add the '(expert)' at the end
 			if( bSkill1 == bSkill2 && bSkill1 != 0 )
 			{
-                sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;	
-                swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
-                swprintf( sRet[0].sPanelStringRight, L"%s %s", gzMercSkillText[bSkill1], gzMercSkillText[EXPERT] );
-                for ( UINT8 ubCnt = 1; ubCnt < uiSkills; ubCnt++ )
-			    {
-                    sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                    sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
-                    swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
-                    swprintf( sRet[ubCnt].sPanelStringRight, L"");
-			    }
+				sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+				sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;	
+				swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
+				swprintf( sRet[0].sPanelStringRight, L"%s %s", gzMercSkillText[bSkill1], gzMercSkillText[EXPERT] );
+				for ( UINT8 ubCnt = 1; ubCnt < uiSkills; ubCnt++ )
+				{
+					sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+					sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
+					swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
+					swprintf( sRet[ubCnt].sPanelStringRight, L"");
+				}
 			}
 			else
 			{
-                UINT16 uiDisplayedSkills = 0; 
+				UINT16 uiDisplayedSkills = 0; 
 				//Display the first skill
 				if( bSkill1 != 0 )
 				{
-                    sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                    sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
-                    swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
-                    swprintf( sRet[0].sPanelStringRight, L"%s", gzMercSkillText[bSkill1] );
-                    uiDisplayedSkills++;
+					sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+					sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
+					swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
+					swprintf( sRet[0].sPanelStringRight, L"%s", gzMercSkillText[bSkill1] );
+					uiDisplayedSkills++;
 				}
 
 				//Display the second skill
 				if( bSkill2 != 0 )
 				{
-                    sRet[1].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                    sRet[1].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
-                    swprintf( sRet[1].sPanelStringLeft, L"");
-                    swprintf( sRet[1].sPanelStringRight, L"%s", gzMercSkillText[bSkill2] );
-                    uiDisplayedSkills++;
+					sRet[1].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+					sRet[1].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
+					swprintf( sRet[1].sPanelStringLeft, L"");
+					swprintf( sRet[1].sPanelStringRight, L"%s", gzMercSkillText[bSkill2] );
+					uiDisplayedSkills++;
 				}
 
 				//if no skill was displayed
 				if( bSkill1 == 0 && bSkill2 == 0 )
 				{
-                    sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                    sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;	
-                    swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
-                    swprintf( sRet[0].sPanelStringRight, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
-                    uiDisplayedSkills++;
+					sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+					sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;	
+					swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
+					swprintf( sRet[0].sPanelStringRight, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+					uiDisplayedSkills++;
 				}
-                for ( UINT16 ubCnt = uiDisplayedSkills; ubCnt < uiSkills; ubCnt++ )
-			    {
-                    sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                    sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
-                    swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
-                    swprintf( sRet[ubCnt].sPanelStringRight, L"");
-			    }
+				for ( UINT16 ubCnt = uiDisplayedSkills; ubCnt < uiSkills; ubCnt++ )
+				{
+					sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+					sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
+					swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
+					swprintf( sRet[ubCnt].sPanelStringRight, L"");
+				}
 			}
-        }		
-    }
-    else // robot - skills n/a
-    {  
-                sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-                swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
-                swprintf( sRet[0].sPanelStringRight, L"%s", gpStrategicString[ STR_PB_NOTAPPLICABLE_ABBREVIATION ] );
-                for ( UINT8 ubCnt = 1; ubCnt < uiSkills; ubCnt++ )
-			    {
-                        sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
-                        sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
-                        swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
-                        swprintf( sRet[ubCnt].sPanelStringRight, L"");
-			    }
-    }
-    return sRet;
+		}		
+	}
+	else // robot - skills n/a
+	{  
+				sRet[0].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+				sRet[0].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+				swprintf( sRet[0].sPanelStringLeft, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_SKILLS ] );
+				swprintf( sRet[0].sPanelStringRight, L"%s", gpStrategicString[ STR_PB_NOTAPPLICABLE_ABBREVIATION ] );
+				for ( UINT8 ubCnt = 1; ubCnt < uiSkills; ubCnt++ )
+				{
+						sRet[ubCnt].uiFontColorLeft = gExtendedPanelsSettings.uepNormalColor;	
+						sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;	
+						swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
+						swprintf( sRet[ubCnt].sPanelStringRight, L"");
+				}
+	}
+	return sRet;
 }
 
 EXTENDED_PANEL_STRING GetDisabilityString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf( exps.sPanelStringLeft, L"%s", pPersonnelRecordsHelpTexts[44] );
-    swprintf( exps.sPanelStringRight, L"%s", gzIMPDisabilityTraitText[gMercProfiles[pSoldier->ubProfile].bDisability]);
-    if(gMercProfiles[pSoldier->ubProfile].bDisability == 0)
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    else
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	swprintf( exps.sPanelStringLeft, L"%s", pPersonnelRecordsHelpTexts[44] );
+	swprintf( exps.sPanelStringRight, L"%s", gzIMPDisabilityTraitText[gMercProfiles[pSoldier->ubProfile].bDisability]);
+	if(gMercProfiles[pSoldier->ubProfile].bDisability == 0)
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	else
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetCharacterString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    if (gGameOptions.fNewTraitSystem)			
+	EXTENDED_PANEL_STRING exps;
+	if (gGameOptions.fNewTraitSystem)			
 		swprintf(exps.sPanelStringLeft, L"%s",pPersonnelRecordsHelpTexts[43]); //L"Character:"
 	else
 		swprintf(exps.sPanelStringLeft, L"%s",pPersonnelRecordsHelpTexts[45]); //L"Attitudes:"
 
-    if ( gGameOptions.fNewTraitSystem)
+	if ( gGameOptions.fNewTraitSystem)
 		swprintf(exps.sPanelStringRight, L"%s",gzIMPCharacterTraitText[gMercProfiles[pSoldier->ubProfile].bCharacterTrait]);
 	else
 		swprintf(exps.sPanelStringRight, L"%s",gzIMPCharacterTraitText[gMercProfiles[pSoldier->ubProfile].bAttitude]);
 
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetAttitudeOldString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    if (gGameOptions.fNewTraitSystem)		
-    {
+	EXTENDED_PANEL_STRING exps;
+	if (gGameOptions.fNewTraitSystem)		
+	{
 		swprintf(exps.sPanelStringLeft, L"%s",pPersonnelRecordsHelpTexts[45]); //L"Attitudes:"
-        swprintf(exps.sPanelStringRight, L"%s",gzIMPCharacterTraitText[gMercProfiles[pSoldier->ubProfile].bAttitude]);
-    }
+		swprintf(exps.sPanelStringRight, L"%s",gzIMPCharacterTraitText[gMercProfiles[pSoldier->ubProfile].bAttitude]);
+	}
 	else
-    {
-        swprintf(exps.sPanelStringLeft, L"");
-        swprintf(exps.sPanelStringRight, L"");
-    }
+	{
+		swprintf(exps.sPanelStringLeft, L"");
+		swprintf(exps.sPanelStringRight, L"");
+	}
 
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetCurrentContractString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_CURRENT_CONTRACT] );
-    static const UINT32 uiMinutesInDay = 24 * 60;
+	EXTENDED_PANEL_STRING exps;
+	swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_CURRENT_CONTRACT] );
+	static const UINT32 uiMinutesInDay = 24 * 60;
 	if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC || pSoldier->ubProfile == SLAY )
 	{
 		INT32 iTimeLeftOnContract = CalcTimeLeftOnMercContract( pSoldier );
 		// if there is going to be a both days and hours left on the contract
 		if( iTimeLeftOnContract / uiMinutesInDay )
-        {
+		{
 			swprintf( exps.sPanelStringRight, L"%d%s %d%s / %d%s",( iTimeLeftOnContract / uiMinutesInDay ), gpStrategicString[ STR_PB_DAYS_ABBREVIATION ], (iTimeLeftOnContract % uiMinutesInDay)/60, gpStrategicString[ STR_PB_HOURS_ABBREVIATION ], pSoldier->iTotalContractLength, gpStrategicString[ STR_PB_DAYS_ABBREVIATION ] );
-            exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-        }
+			exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+		}
 		//else there is under a day left
 		else
-        {
+		{
 			swprintf( exps.sPanelStringRight, L"%d%s / %d%s", (iTimeLeftOnContract % uiMinutesInDay)/60, gpStrategicString[ STR_PB_HOURS_ABBREVIATION ], pSoldier->iTotalContractLength, gpStrategicString[ STR_PB_DAYS_ABBREVIATION ] );
-            exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
-        }
+			exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+		}
 	}
 	else
 	{
 		wcscpy( exps.sPanelStringRight, gpStrategicString[ STR_PB_NOTAPPLICABLE_ABBREVIATION ] );
-        exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+		exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
 	}
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    return exps;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetTotalServiceString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TOTAL_SERVICE] );
-    swprintf( exps.sPanelStringRight, L"%d %s",gMercProfiles[ pSoldier->ubProfile ].usTotalDaysServed, gpStrategicString[ STR_PB_DAYS_ABBREVIATION ] );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TOTAL_SERVICE] );
+	swprintf( exps.sPanelStringRight, L"%d %s",gMercProfiles[ pSoldier->ubProfile ].usTotalDaysServed, gpStrategicString[ STR_PB_DAYS_ABBREVIATION ] );
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetTotalCostString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TOTAL_COST] );
-    swprintf( exps.sPanelStringRight, L"%d", gMercProfiles[ pSoldier->ubProfile ].uiTotalCostToDate );
-    InsertCommasForDollarFigure( exps.sPanelStringRight );
-    InsertDollarSignInToString( exps.sPanelStringRight );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TOTAL_COST] );
+	swprintf( exps.sPanelStringRight, L"%d", gMercProfiles[ pSoldier->ubProfile ].uiTotalCostToDate );
+	InsertCommasForDollarFigure( exps.sPanelStringRight );
+	InsertDollarSignInToString( exps.sPanelStringRight );
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetMedicalDepositString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC )
-        swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_UNPAID_AMOUNT]);// med depo / debt
-    else
+	EXTENDED_PANEL_STRING exps;
+	if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC )
+		swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_UNPAID_AMOUNT]);// med depo / debt
+	else
 		swprintf( exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_MED_DEPOSIT]);
-    if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC )
-        swprintf( exps.sPanelStringRight, L"%d", gMercProfiles[ pSoldier->ubProfile ].sSalary * gMercProfiles[pSoldier->ubProfile ].iMercMercContractLength );
-    else
+	if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC )
+		swprintf( exps.sPanelStringRight, L"%d", gMercProfiles[ pSoldier->ubProfile ].sSalary * gMercProfiles[pSoldier->ubProfile ].iMercMercContractLength );
+	else
 		swprintf( exps.sPanelStringRight, L"%d", gMercProfiles[ pSoldier->ubProfile ].sMedicalDepositAmount);
-    InsertCommasForDollarFigure( exps.sPanelStringRight );
-    InsertDollarSignInToString( exps.sPanelStringRight );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	InsertCommasForDollarFigure( exps.sPanelStringRight );
+	InsertDollarSignInToString( exps.sPanelStringRight );
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetDailyCostString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_DAILY_COST]);
+	EXTENDED_PANEL_STRING exps;
+	swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_DAILY_COST]);
 
-    if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC)
+	if( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC)
 	{
 		// daily rate
 		if( pSoldier->bTypeOfLastContract == CONTRACT_EXTEND_2_WEEK )
@@ -8155,194 +8682,194 @@ EXTENDED_PANEL_STRING GetDailyCostString(SOLDIERTYPE* pSoldier)
 	}
 	InsertCommasForDollarFigure( exps.sPanelStringRight );
 	InsertDollarSignInToString( exps.sPanelStringRight );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetSquadString(SOLDIERTYPE* pSoldier)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf(exps.sPanelStringLeft, L"%s", pUpperLeftMapScreenStrings[ 0 ]);
-    swprintf(exps.sPanelStringRight, L"%s", pAssignmentStrings[pSoldier->bAssignment] );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	swprintf(exps.sPanelStringLeft, L"%s", pUpperLeftMapScreenStrings[ 0 ]);
+	swprintf(exps.sPanelStringRight, L"%s", pAssignmentStrings[pSoldier->bAssignment] );
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetStatString(SOLDIERTYPE* pSoldier, UINT16 uiStat)
 {
-    EXTENDED_PANEL_STRING exps;
-    if(AM_A_ROBOT(pSoldier))
-    {
-        wcscpy( exps.sPanelStringRight, gpStrategicString[ STR_PB_NOTAPPLICABLE_ABBREVIATION ] );
-    }
-    else
-    {
-        UINT16 uiStatValue = 0;
-        CHAR16 sStatLabel[32];
-        switch (uiStat)
-        {
-            case EXTENDED_PANEL_AGILITY:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bAgility;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_AGILITY]);
-                break;
-            case EXTENDED_PANEL_DEXTERITY:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bDexterity;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_DEXTERITY]);
-                break;
-            case EXTENDED_PANEL_STRENGTH:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bStrength;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_STRENGTH]);
-                break;
-            case EXTENDED_PANEL_LEADERSHIP:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bLeadership;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_LEADERSHIP]);
-                break;
-            case EXTENDED_PANEL_WISDOM:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bWisdom;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_WISDOM]);
-                break;
-            case EXTENDED_PANEL_EXP_LVL:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bExpLevel;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_EXP_LVL]);
-                break;
-            case EXTENDED_PANEL_MARKSMANSHIP:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bMarksmanship;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_MARKSMANSHIP]);
-                break;
-            case EXTENDED_PANEL_MECHANICAL:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bMechanical;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_MECHANICAL]);
-                break;
-            case EXTENDED_PANEL_EXPLOSIVES:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bExplosive;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_EXPLOSIVES]);
-                break;
-            case EXTENDED_PANEL_MEDICAL:
-                uiStatValue = gMercProfiles[pSoldier->ubProfile].bMedical;
-                swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_MEDICAL]);
-                break;
-        }      
-        swprintf(exps.sPanelStringLeft, L"%s", sStatLabel );  
-        swprintf(exps.sPanelStringRight, L"%d", uiStatValue );
-        if(uiStat==EXTENDED_PANEL_EXP_LVL)
-        {
-            if( uiStatValue >= gExtendedPanelsSettings.uepAwesomeLevel )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-            else if( uiStatValue >= gExtendedPanelsSettings.uepGreatLevel )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-            else if( uiStatValue <= gExtendedPanelsSettings.uepAwfulLevel )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
-            else if( uiStatValue <= gExtendedPanelsSettings.uepPoorLevel )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
-            else
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-        }
-        else
-        {
-            if( uiStatValue >= gExtendedPanelsSettings.uepAwesomeStats )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
-            else if( uiStatValue >= gExtendedPanelsSettings.uepGreatStats  )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
-            else if( uiStatValue <= gExtendedPanelsSettings.uepAwfulStats  )
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
-            else if( uiStatValue <= gExtendedPanelsSettings.uepPoorStats)
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
-            else
-                exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-        }
-        exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    }
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	if(AM_A_ROBOT(pSoldier))
+	{
+		wcscpy( exps.sPanelStringRight, gpStrategicString[ STR_PB_NOTAPPLICABLE_ABBREVIATION ] );
+	}
+	else
+	{
+		UINT16 uiStatValue = 0;
+		CHAR16 sStatLabel[32];
+		switch (uiStat)
+		{
+			case EXTENDED_PANEL_AGILITY:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bAgility;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_AGILITY]);
+				break;
+			case EXTENDED_PANEL_DEXTERITY:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bDexterity;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_DEXTERITY]);
+				break;
+			case EXTENDED_PANEL_STRENGTH:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bStrength;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_STRENGTH]);
+				break;
+			case EXTENDED_PANEL_LEADERSHIP:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bLeadership;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_LEADERSHIP]);
+				break;
+			case EXTENDED_PANEL_WISDOM:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bWisdom;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_WISDOM]);
+				break;
+			case EXTENDED_PANEL_EXP_LVL:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bExpLevel;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_EXP_LVL]);
+				break;
+			case EXTENDED_PANEL_MARKSMANSHIP:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bMarksmanship;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_MARKSMANSHIP]);
+				break;
+			case EXTENDED_PANEL_MECHANICAL:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bMechanical;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_MECHANICAL]);
+				break;
+			case EXTENDED_PANEL_EXPLOSIVES:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bExplosive;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_EXPLOSIVES]);
+				break;
+			case EXTENDED_PANEL_MEDICAL:
+				uiStatValue = gMercProfiles[pSoldier->ubProfile].bMedical;
+				swprintf(sStatLabel, L"%s", pPersonnelScreenStrings[PRSNL_TXT_MEDICAL]);
+				break;
+		}	  
+		swprintf(exps.sPanelStringLeft, L"%s", sStatLabel );  
+		swprintf(exps.sPanelStringRight, L"%d", uiStatValue );
+		if(uiStat==EXTENDED_PANEL_EXP_LVL)
+		{
+			if( uiStatValue >= gExtendedPanelsSettings.uepAwesomeLevel )
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
+			else if( uiStatValue >= gExtendedPanelsSettings.uepGreatLevel )
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+			else if( uiStatValue <= gExtendedPanelsSettings.uepAwfulLevel )
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+			else if( uiStatValue <= gExtendedPanelsSettings.uepPoorLevel )
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
+			else
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+		}
+		else
+		{
+			if( uiStatValue >= gExtendedPanelsSettings.uepAwesomeStats )
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepAwesomeColor;
+			else if( uiStatValue >= gExtendedPanelsSettings.uepGreatStats  )
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepGreatColor;
+			else if( uiStatValue <= gExtendedPanelsSettings.uepAwfulStats  )
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepAwfulColor;
+			else if( uiStatValue <= gExtendedPanelsSettings.uepPoorStats)
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepPoorColor;
+			else
+				exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+		}
+		exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	}
+	return exps;
 }
 
 EXTENDED_PANEL_STRING GetEmptyString()
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf(exps.sPanelStringLeft, L"");
-    swprintf(exps.sPanelStringRight, L"");
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	swprintf(exps.sPanelStringLeft, L"");
+	swprintf(exps.sPanelStringRight, L"");
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 EXTENDED_PANEL_STRING GetTextString(STR16 sStringL, STR16 sStringR)
 {
-    EXTENDED_PANEL_STRING exps;
-    swprintf( exps.sPanelStringLeft, L"%s", sStringL );
-    swprintf( exps.sPanelStringRight, L"%s", sStringR );
-    exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
-    exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-    return exps;
+	EXTENDED_PANEL_STRING exps;
+	swprintf( exps.sPanelStringLeft, L"%s", sStringL );
+	swprintf( exps.sPanelStringRight, L"%s", sStringR );
+	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
+	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
+	return exps;
 }
 
 INT32 ReturnFont(STR8 FontName)
 {
-        if ( strcmp(FontName, "LARGEFONT1") == 0 )
-            return LARGEFONT1;
-        else if ( strcmp(FontName, "SMALLFONT1") == 0 )
-            return SMALLFONT1;
-        else if ( strcmp(FontName, "TINYFONT1") == 0 )
-            return TINYFONT1;
-        else if ( strcmp(FontName, "CLOCKFONT") == 0 )
-            return CLOCKFONT;
-        else if ( strcmp(FontName, "COMPFONT") == 0 )
-            return COMPFONT;
-        else if ( strcmp(FontName, "SMALLCOMPFONT") == 0 )
-            return SMALLCOMPFONT;
-        else if ( strcmp(FontName, "FONT10ROMAN") == 0 )
-            return FONT10ROMAN;
-        else if ( strcmp(FontName, "FONT12ROMAN") == 0 )
-            return FONT12ROMAN;
-        else if ( strcmp(FontName, "FONT14SANSERIF") == 0 )
-            return FONT14SANSERIF;
-        else if ( strcmp(FontName, "MILITARYFONT1") == 0 )
-            return MILITARYFONT1;
-        else if ( strcmp(FontName, "BLOCKFONT") == 0 )
-            return BLOCKFONT;
-        else if ( strcmp(FontName, "FONT10ARIAL") == 0 )
-            return FONT10ARIAL;
-        else if ( strcmp(FontName, "FONT14ARIAL") == 0 )
-            return FONT14ARIAL;
-        else if ( strcmp(FontName, "FONT12ARIAL") == 0 )
-            return FONT12ARIAL;
-        else if ( strcmp(FontName, "FONT10ARIALBOLD") == 0 )
-            return FONT10ARIALBOLD;
-        else if ( strcmp(FontName, "BLOCKFONT") == 0 )
-            return BLOCKFONT;
-        else if ( strcmp(FontName, "BLOCKFONT2") == 0 )
-            return BLOCKFONT2;
-        else if ( strcmp(FontName, "BLOCKFONT3") == 0 )
-            return BLOCKFONT3;
-        else if ( strcmp(FontName, "FONT12ARIALFIXEDWIDTH") == 0 )
-            return FONT12ARIALFIXEDWIDTH;
-        else if ( strcmp(FontName, "FONT16ARIAL") == 0 )
-            return FONT16ARIAL;
-        else if ( strcmp(FontName, "BLOCKFONTNARROW") == 0 )
-            return BLOCKFONTNARROW;
-        else if ( strcmp(FontName, "FONT14HUMANIST") == 0 )
-            return FONT14HUMANIST;
-        else
-            return FONT10ARIAL;
+		if ( strcmp(FontName, "LARGEFONT1") == 0 )
+			return LARGEFONT1;
+		else if ( strcmp(FontName, "SMALLFONT1") == 0 )
+			return SMALLFONT1;
+		else if ( strcmp(FontName, "TINYFONT1") == 0 )
+			return TINYFONT1;
+		else if ( strcmp(FontName, "CLOCKFONT") == 0 )
+			return CLOCKFONT;
+		else if ( strcmp(FontName, "COMPFONT") == 0 )
+			return COMPFONT;
+		else if ( strcmp(FontName, "SMALLCOMPFONT") == 0 )
+			return SMALLCOMPFONT;
+		else if ( strcmp(FontName, "FONT10ROMAN") == 0 )
+			return FONT10ROMAN;
+		else if ( strcmp(FontName, "FONT12ROMAN") == 0 )
+			return FONT12ROMAN;
+		else if ( strcmp(FontName, "FONT14SANSERIF") == 0 )
+			return FONT14SANSERIF;
+		else if ( strcmp(FontName, "MILITARYFONT1") == 0 )
+			return MILITARYFONT1;
+		else if ( strcmp(FontName, "BLOCKFONT") == 0 )
+			return BLOCKFONT;
+		else if ( strcmp(FontName, "FONT10ARIAL") == 0 )
+			return FONT10ARIAL;
+		else if ( strcmp(FontName, "FONT14ARIAL") == 0 )
+			return FONT14ARIAL;
+		else if ( strcmp(FontName, "FONT12ARIAL") == 0 )
+			return FONT12ARIAL;
+		else if ( strcmp(FontName, "FONT10ARIALBOLD") == 0 )
+			return FONT10ARIALBOLD;
+		else if ( strcmp(FontName, "BLOCKFONT") == 0 )
+			return BLOCKFONT;
+		else if ( strcmp(FontName, "BLOCKFONT2") == 0 )
+			return BLOCKFONT2;
+		else if ( strcmp(FontName, "BLOCKFONT3") == 0 )
+			return BLOCKFONT3;
+		else if ( strcmp(FontName, "FONT12ARIALFIXEDWIDTH") == 0 )
+			return FONT12ARIALFIXEDWIDTH;
+		else if ( strcmp(FontName, "FONT16ARIAL") == 0 )
+			return FONT16ARIAL;
+		else if ( strcmp(FontName, "BLOCKFONTNARROW") == 0 )
+			return BLOCKFONTNARROW;
+		else if ( strcmp(FontName, "FONT14HUMANIST") == 0 )
+			return FONT14HUMANIST;
+		else
+			return FONT10ARIAL;
 }
 
 BOOLEAN WriteStringOnPanel(EXTENDED_PANEL_STRING expsString, UINT16 uiLine, UINT16 uiPanelX, UINT16 uiPanelY, UINT16 uiPanelWidth, UINT16 uiRowDist)
 {
-    SetFont(expsString.uiFontL);
-    SetFontBackground( FONT_MCOLOR_BLACK );
-    SetFontForeground( expsString.uiFontColorLeft );
-    mprintf( uiPanelX, uiPanelY + uiLine * uiRowDist, L"%s", expsString.sPanelStringLeft );
+	SetFont(expsString.uiFontL);
+	SetFontBackground( FONT_MCOLOR_BLACK );
+	SetFontForeground( expsString.uiFontColorLeft );
+	mprintf( uiPanelX, uiPanelY + uiLine * uiRowDist, L"%s", expsString.sPanelStringLeft );
 	gprintfRestore( uiPanelX, uiPanelY + uiLine * uiRowDist, L"%s", expsString.sPanelStringLeft );
 
-    SetFont(expsString.uiFontR);    
+	SetFont(expsString.uiFontR);	
 	SetFontBackground( FONT_MCOLOR_BLACK );
 	SetFontForeground( expsString.uiFontColorRight );
 
-    INT16 sFontX, sFontY;
-    FindFontRightCoordinates(uiPanelX, 0, uiPanelWidth, 0,  expsString.sPanelStringRight, expsString.uiFontR, &sFontX, &sFontY );
+	INT16 sFontX, sFontY;
+	FindFontRightCoordinates(uiPanelX, 0, uiPanelWidth, 0,  expsString.sPanelStringRight, expsString.uiFontR, &sFontX, &sFontY );
 	mprintf( sFontX, uiPanelY + uiLine * uiRowDist, L"%s", expsString.sPanelStringRight );
 	gprintfRestore( sFontX, uiPanelY + uiLine * uiRowDist, L"%s", expsString.sPanelStringRight );
-    return TRUE;
+	return TRUE;
 }
 //-----------
 
@@ -8408,7 +8935,6 @@ BOOLEAN WriteStringOnPanel(EXTENDED_PANEL_STRING expsString, UINT16 uiLine, UINT
 		}
 	}
 }*/
-
 
 
 

@@ -10,14 +10,12 @@
 	#include "Game Clock.h"
 	#include "quests.h"
 	#include "Ambient Control.h"
-	#include "AimMembers.h"
 	#include "Strategic Event Handler.h"
 	#include "BobbyR.h"
 	#include "mercs.h"
 	#include "email.h"
 	#include "Merc Hiring.h"
 	#include "insurance Contract.h"
-	#include "Strategic Merc Handler.h"
 	#include "Game Events.h"
 	#include "message.h"
 	#include "opplist.h"
@@ -220,7 +218,14 @@ void EnvironmentController( BOOLEAN fCheckForLights )
 				{
 					if ( guiRainLoop == NO_SAMPLE )
 					{
-						guiRainLoop	= PlayJA2Ambient( RAIN_1, BTNVOLUME, 0 );
+						if (guiEnvWeather & WEATHER_FORECAST_THUNDERSHOWERS )
+						{
+							guiRainLoop	= PlayJA2Ambient( RAIN_1, 140, 0 );
+						}
+						else
+						{
+							guiRainLoop	= PlayJA2Ambient( RAIN_1, 70, 0 );
+						}
 					}
 				}
 
@@ -707,24 +712,26 @@ void EnvBeginRainStorm( UINT8 ubIntensity )
 	{
 		gfDoLighting = TRUE;
 
-	#ifdef JA2TESTVERSION
-	ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Starting Rain...."	);
-	#endif
+		#ifdef JA2TESTVERSION
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Starting Rain...."	);
+		#endif
 
-	// First turn off whatever rain it is, then turn on the requested rain
-	guiEnvWeather &= ~(WEATHER_FORECAST_THUNDERSHOWERS | WEATHER_FORECAST_SHOWERS);
+		// First turn off whatever rain it is, then turn on the requested rain
+		guiEnvWeather &= ~(WEATHER_FORECAST_THUNDERSHOWERS | WEATHER_FORECAST_SHOWERS);
 
-	if ( ubIntensity == 1 )
-	{
-		// Turn on rain storms
-		guiEnvWeather	|= WEATHER_FORECAST_THUNDERSHOWERS;
-		  ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_STORM_STARTED] );
-	}
-	else
-	{
-		guiEnvWeather	|= WEATHER_FORECAST_SHOWERS;
-		  ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_RAIN_STARTED] );
-	}
+		if ( ubIntensity == 1 )
+		{
+			// Turn on rain storms
+			guiEnvWeather	|= WEATHER_FORECAST_THUNDERSHOWERS;
+
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_STORM_STARTED] );
+		}
+		else
+		{
+			guiEnvWeather	|= WEATHER_FORECAST_SHOWERS;
+
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_RAIN_STARTED] );
+		}
 	}
 
 }

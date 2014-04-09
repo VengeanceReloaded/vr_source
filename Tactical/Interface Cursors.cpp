@@ -2,18 +2,15 @@
 	#include "Tactical All.h"
 #else
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include <time.h>
 	#include "sgp.h"
 	#include "mousesystem.h"
 	#include "vsurface.h"
-	#include "wcheck.h"
 	#include "input.h"
 	#include "Handle UI.h"
 	#include "cursors.h"
 	#include "worlddef.h"
 	#include "worldman.h"
-	#include "render dirty.h"
 	#include "Interface Cursors.h"
 	#include "interface.h"
 	#include "Isometric utils.h"
@@ -211,6 +208,15 @@ UICursor	gUICursors[ NUM_UI_CURSORS ] =
 
 	REFUEL_GREY_UICURSOR,						UICURSOR_FREEFLOWING,													CURSOR_FUEL,	 						0,
 	REFUEL_RED_UICURSOR,						UICURSOR_FREEFLOWING,													CURSOR_FUEL_RED,							0,
+
+	FORTIFICATION_GREY_UICURSOR,				UICURSOR_FREEFLOWING,													CURSOR_FORTIFICATION,	 						0,
+	FORTIFICATION_RED_UICURSOR,					UICURSOR_FREEFLOWING,													CURSOR_FORTIFICATION_RED,							0,
+
+	HANDCUFF_GREY_UICURSOR,						UICURSOR_FREEFLOWING,													CURSOR_HANDCUFF,	 						0,
+	HANDCUFF_RED_UICURSOR,						UICURSOR_FREEFLOWING,													CURSOR_HANDCUFF_RED,							0,
+
+	APPLYITEM_GREY_UICURSOR,					UICURSOR_FREEFLOWING,													CURSOR_APPLYITEM,	 						0,
+	APPLYITEM_RED_UICURSOR,						UICURSOR_FREEFLOWING,													CURSOR_APPLYITEM_RED,							0,
 
 };
 

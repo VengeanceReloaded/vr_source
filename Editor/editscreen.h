@@ -45,8 +45,11 @@ UINT32 WaitForSelectionWindowResponse( void );
 UINT32 WaitForMessageBoxResponse( UINT32 uiCurrentScreen );
 UINT32 WaitForHelpScreenResponse( void );
 
-BOOLEAN PlaceLight( INT16 sRadius, INT16 iMapX, INT16 iMapY, INT16 sType );
-BOOLEAN RemoveLight( INT16 iMapX, INT16 iMapY );
+//dnl ch86 210214
+BOOLEAN FindLight(INT32 iGridNo, INT8 bLightType, UINT8 *pubLightRadius, UINT8 *pubLightId, INT32 *piSprite=NULL);
+BOOLEAN PlaceLight(INT16 sRadius, INT16 iMapX, INT16 iMapY, INT16 sType, INT8 bLightType);
+BOOLEAN RemoveLight(INT16 iMapX, INT16 iMapY, INT8 bLightType);
+
 extern BOOLEAN gfMercResetUponEditorEntry;
 
 void ShowEditorToolbar( INT32 iNewTaskMode );
@@ -81,6 +84,10 @@ extern BOOLEAN gfVanillaMode;//dnl ch33 160909
 extern BOOLEAN fRaiseWorld;//dnl ch3 210909
 extern BOOLEAN fShowHighGround;//dnl ch2 210909
 void ShowHighGround(INT32 iShowHighGroundCommand);//dnl ch2 210909
+
+extern BOOLEAN fEditorCreateItemFromKeyboard;
+extern UINT16 usEditorTempItem;
+extern UINT16 gusSavedLightLevel;//dnl ch80 011213
 
 #endif
 #endif

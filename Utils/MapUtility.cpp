@@ -21,6 +21,11 @@
 #include "map information.h"
 #include "line.h"
 #include "quantize wrap.h"
+//dnl ch77 131113
+#include "Editor Taskbar Utils.h"
+#include "Text Input.h"
+#include "Cursor Control.h"//dnl ch78 271113
+#include "lighting.h"//dnl ch79 301113
 
 #define MINIMAP_X_SIZE	88//RADAR_WINDOW_WIDTH
 #define MINIMAP_Y_SIZE	44//RADAR_WINDOW_HEIGHT
@@ -40,11 +45,11 @@ typedef struct
 }RGBValues;
 
 FLOAT gdXStep, gdYStep;
-INT32 giMiniMap, gi8BitMiniMap;
+UINT32 guiMiniMap=0, gui8BitMiniMap=0, guiBigMap=0;//dnl ch77 121113
 HVSURFACE ghVSurface = NULL;
 RGBValues* p24BitValues = NULL;
 FDLG_LIST* FListNode = NULL;
-
+BOOLEAN gfMapUtilityWindowActive = FALSE;
 
 void GenerateAllMapsInit(void)
 {
@@ -63,45 +68,69 @@ void GenerateAllMapsInit(void)
 // Utililty file for sub-sampling/creating our radar screen maps.
 // Loops through our maps directory and reads all *.map files, subsamples an area, color quantizes into an 8-bit image and writes to sti file in radarmaps.
 // From editor will create radar map for you current map.
+//dnl ch77 121113
 UINT32 MapUtilScreenInit(void)
 {
 	UINT8 ubBitDepth;
 	UINT16 usWidth, usHeight;
 	VSURFACE_DESC vs_desc;
+
+	vs_desc.fCreateFlags = VSURFACE_CREATE_DEFAULT | VSURFACE_SYSTEM_MEM_USAGE;
 	// Create render buffer
 	GetCurrentVideoSettings(&usWidth, &usHeight, &ubBitDepth);
-	vs_desc.fCreateFlags = VSURFACE_CREATE_DEFAULT | VSURFACE_SYSTEM_MEM_USAGE;
-	vs_desc.usWidth = MINIMAP_X_SIZE;
-	vs_desc.usHeight = MINIMAP_Y_SIZE;
-	vs_desc.ubBitDepth = ubBitDepth;
-	if(AddVideoSurface(&vs_desc, (UINT32*)&giMiniMap) == FALSE)
-		return(ERROR_SCREEN);
+	if(!GetVideoSurface(&ghVSurface, guiMiniMap))
+	{
+		vs_desc.usWidth = MINIMAP_X_SIZE;
+		vs_desc.usHeight = MINIMAP_Y_SIZE;
+		vs_desc.ubBitDepth = ubBitDepth;
+		if(AddVideoSurface(&vs_desc, (UINT32*)&guiMiniMap) == FALSE)
+			return(ERROR_SCREEN);
+	}
 	// Allocate 24 bit Surface
-	p24BitValues = (RGBValues*)MemAlloc(MINIMAP_X_SIZE * MINIMAP_Y_SIZE * sizeof(RGBValues));
+	if(!p24BitValues)
+		p24BitValues = (RGBValues*)MemAlloc(MINIMAP_X_SIZE * MINIMAP_Y_SIZE * sizeof(RGBValues));
 	//Allocate 8-bit surface
-	vs_desc.fCreateFlags = VSURFACE_CREATE_DEFAULT | VSURFACE_SYSTEM_MEM_USAGE;
-	vs_desc.usWidth = MINIMAP_X_SIZE;
-	vs_desc.usHeight = MINIMAP_Y_SIZE;
-	vs_desc.ubBitDepth = 8;
-	if(AddVideoSurface(&vs_desc, (UINT32*)&gi8BitMiniMap) == FALSE)
-		return(ERROR_SCREEN);
-	GetVideoSurface(&ghVSurface, gi8BitMiniMap);
+	if(!GetVideoSurface(&ghVSurface, gui8BitMiniMap))
+	{
+		vs_desc.usWidth = MINIMAP_X_SIZE;
+		vs_desc.usHeight = MINIMAP_Y_SIZE;
+		vs_desc.ubBitDepth = 8;
+		if(AddVideoSurface(&vs_desc, (UINT32*)&gui8BitMiniMap) == FALSE)
+			return(ERROR_SCREEN);
+	}
+	// Create big map buffer which contains whole map for radar map generation
+	vs_desc.usWidth = (640 * WORLD_COLS / OLD_WORLD_COLS);
+	vs_desc.usHeight = (320 * WORLD_ROWS / OLD_WORLD_ROWS) + 50;//!!! without this additional lines editor will crash as renderer go beyond them
+	vs_desc.ubBitDepth = ubBitDepth;
+	if(!GetVideoSurface(&ghVSurface, guiBigMap))
+	{
+		if(AddVideoSurface(&vs_desc, (UINT32*)&guiBigMap) == FALSE)
+			return(ERROR_SCREEN);
+	}
+	else if(!(ghVSurface->usWidth == vs_desc.usWidth && ghVSurface->usHeight == vs_desc.usHeight))
+	{
+		DeleteVideoSurfaceFromIndex(guiBigMap);
+		if(AddVideoSurface(&vs_desc, (UINT32*)&guiBigMap) == FALSE)
+			return(ERROR_SCREEN);
+	}
+	GetVideoSurface(&ghVSurface, gui8BitMiniMap);
 	return(TRUE);
 }
 
+//dnl ch77 131113
 UINT32 MapUtilScreenHandle(void)
 {
 	InputAtom InputEvent;
 	SGPPaletteEntry pPalette[256];
 	CHAR8 zFilename[260], zFilename2[260];
-	UINT8 *pDataPtr;
+	UINT8 *pDataPtr, ubMinorMapVersion;
 	UINT16 *pDestBuf, *pSrcBuf;
 	UINT32 uiDestPitchBYTES, uiSrcPitchBYTES, uiRGBColor, bR, bG, bB, bAvR, bAvG, bAvB;
 	INT16 s16BPPSrc, sDest16BPPColor, sX1, sX2, sY1, sY2, sTop, sBottom, sLeft, sRight;
 	INT32 cnt, iX, iY, iSubX1, iSubY1, iSubX2, iSubY2, iWindowX, iWindowY, iCount;
-	FLOAT dX, dY, dStartX, dStartY;
+	FLOAT dX, dY, dStartX, dStartY, dMajorMapVersion;
 
-	while(DequeueEvent(&InputEvent) == TRUE)
+	while(DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT) == TRUE || (_RightButtonDown ? InputEvent.usParam = ESC : 0))//dnl ch78 291113
 	{
 		if(InputEvent.usParam == ESC)
 		{
@@ -110,6 +139,9 @@ UINT32 MapUtilScreenHandle(void)
 			{
 				TrashFDlgList(FileList);
 				FileList = FListNode = NULL;
+				EnableEditorTaskbar();
+				EnableAllTextFields();
+				gfMapUtilityWindowActive = FALSE;
 				return(EDIT_SCREEN);
 			}
 			else
@@ -118,6 +150,16 @@ UINT32 MapUtilScreenHandle(void)
 				return(MAPUTILITY_SCREEN);
 			}
 		}
+	}
+	if(gfMapUtilityWindowActive)
+	{
+		SetCurrentCursorFromDatabase(VIDEO_NO_CURSOR);//dnl ch78 271113
+		return(MAPUTILITY_SCREEN);
+	}
+	else
+	{
+		DisableEditorTaskbar();
+		DisableAllTextFields();
 	}
 	sDest16BPPColor = -1;
 	bAvR = bAvG = bAvB = 0;
@@ -134,20 +176,31 @@ UINT32 MapUtilScreenHandle(void)
 			return(MAPUTILITY_SCREEN);
 		}
 		sprintf(zFilename, "%s", FListNode->FileInfo.zFileName);
-		// OK, load maps and do overhead shrinkage of them...
-		if(!LoadWorld(zFilename))
+		// OK, load maps and do overhead shrinkage of them... //dnl ch79 301113
+		if(!LoadWorld(zFilename, &dMajorMapVersion, &ubMinorMapVersion))
 			return(ERROR_SCREEN);
+		if(strcmp(gzCommandLine, "-DOMAPSCNV") == 0)
+			if(!(dMajorMapVersion == MAJOR_MAP_VERSION && ubMinorMapVersion == MINOR_MAP_VERSION && gMapInformation.ubMapVersion == MINOR_MAP_VERSION))
+				if(!SaveWorld(zFilename))
+					return(ERROR_SCREEN);
+		LightReset();
+		LightSpriteRenderAll();
 	}
 	// Render small map
-	iOffsetHorizontal = (SCREEN_WIDTH / 2) - (640 / 2);// Horizontal start postion of the overview map
-	iOffsetVertical = (SCREEN_HEIGHT - 160) / 2 - 160;// Vertical start position of the overview map
+	//iOffsetHorizontal = (SCREEN_WIDTH / 2) - (640 / 2);// Horizontal start postion of the overview map
+	//iOffsetVertical = (SCREEN_HEIGHT - 160) / 2 - 160;// Vertical start position of the overview map
+	iOffsetHorizontal = iOffsetVertical = 0;
+	MapUtilScreenInit();//dnl ch79 291113
+	//ColorFillVideoSurfaceArea(guiBigMap, 0, 0, (INT16)(640 * WORLD_COLS / OLD_WORLD_COLS), (INT16)(320 * WORLD_ROWS / OLD_WORLD_ROWS), Get16BPPColor(FROMRGB(0, 0, 0)));
 	InitNewOverheadDB((UINT8)giCurrentTilesetID);
 	gfOverheadMapDirty = TRUE;
-	RenderOverheadMap(0, (WORLD_COLS/2), iOffsetHorizontal, iOffsetVertical, iOffsetHorizontal+640, iOffsetVertical+320, TRUE);
+	//Buggler: interim code for radar map sti creation <= 360x360 based on DBrot bigger overview code
+	RenderOverheadMap(0, (WORLD_COLS/2), iOffsetHorizontal, iOffsetVertical, iOffsetHorizontal + (640 * WORLD_COLS / OLD_WORLD_COLS), iOffsetVertical + (320 * WORLD_ROWS / OLD_WORLD_ROWS), guiBigMap);//dnl ch82 090114
 	TrashOverheadMap();
-	// OK, NOW PROCESS OVERHEAD MAP ( SHOUIDL BE ON THE FRAMEBUFFER )
-	gdXStep	= (FLOAT)640 / (FLOAT)MINIMAP_X_SIZE;
-	gdYStep	= (FLOAT)320 / (FLOAT)MINIMAP_Y_SIZE;
+	// OK, NOW PROCESS OVERHEAD MAP ( SHOULD BE ON THE FRAMEBUFFER )
+	//Buggler: interim code for radar map sti creation <= 360x360 based on DBrot bigger overview code
+	gdXStep	= (FLOAT)(640 * WORLD_COLS / OLD_WORLD_COLS) / (FLOAT)MINIMAP_X_SIZE;
+	gdYStep	= (FLOAT)(320 * WORLD_ROWS / OLD_WORLD_ROWS) / (FLOAT)MINIMAP_Y_SIZE;
 	dStartX = iOffsetHorizontal;
 	dStartY = iOffsetVertical;
 	// Adjust if we are using a restricted map...
@@ -165,9 +218,8 @@ UINT32 MapUtilScreenHandle(void)
 	//LOCK BUFFERS
 	dX = dStartX;
 	dY = dStartY;
-	pDestBuf = (UINT16*)LockVideoSurface(giMiniMap, &uiDestPitchBYTES);
-	pSrcBuf = (UINT16*)LockVideoSurface(FRAME_BUFFER, &uiSrcPitchBYTES);
-
+	pDestBuf = (UINT16*)LockVideoSurface(guiMiniMap, &uiDestPitchBYTES);
+	pSrcBuf = (UINT16*)LockVideoSurface(guiBigMap, &uiSrcPitchBYTES);
 	for ( iX = 0; iX < MINIMAP_X_SIZE; iX++ )
 	{
 		dY = dStartY;
@@ -190,7 +242,8 @@ UINT32 MapUtilScreenHandle(void)
 			{
 				for ( iWindowY = iSubY1; iWindowY < iSubY2; iWindowY++ )
 				{
-					if ( iWindowX >= iOffsetHorizontal && iWindowX < (iOffsetHorizontal+640) && iWindowY >= iOffsetVertical && iWindowY < (iOffsetVertical+320) )
+					//Buggler: interim code for radar map sti creation <= 360x360 based on DBrot bigger overview code					
+					if ( iWindowX >= iOffsetHorizontal && iWindowX < (iOffsetHorizontal + (640 * WORLD_COLS / OLD_WORLD_COLS)) && iWindowY >= iOffsetVertical && iWindowY < (iOffsetVertical + (320 * WORLD_ROWS / OLD_WORLD_ROWS)) )
 					{
 						s16BPPSrc = pSrcBuf[ ( iWindowY * (uiSrcPitchBYTES/2) ) + iWindowX ];
 
@@ -229,14 +282,15 @@ UINT32 MapUtilScreenHandle(void)
 		//Increment
 		dX += gdXStep;
 	}
-
-	UnLockVideoSurface(giMiniMap);
-	UnLockVideoSurface(FRAME_BUFFER);
 	// RENDER!
-	BltVideoSurface(FRAME_BUFFER, giMiniMap, 0, iOffsetHorizontal+10, iOffsetVertical+360, VS_BLT_FAST|VS_BLT_USECOLORKEY, NULL);
-	//QUantize!
-	pDataPtr = (UINT8*)LockVideoSurface(gi8BitMiniMap, &uiSrcPitchBYTES);
+	UnLockVideoSurface(guiMiniMap);
+	iOffsetVertical = SCREEN_HEIGHT - 480;
+	BltVideoSurface(FRAME_BUFFER, guiMiniMap, 0, iOffsetHorizontal+10, iOffsetVertical+360, VS_BLT_FAST|VS_BLT_USECOLORKEY, NULL);
 	pDestBuf = (UINT16*)LockVideoSurface(FRAME_BUFFER, &uiDestPitchBYTES);
+	Blt16BPPTo16BPP((UINT16 *)pDestBuf, uiDestPitchBYTES, (UINT16 *)pSrcBuf, uiSrcPitchBYTES, 0, 0, 0, 0, min((640 * WORLD_COLS / OLD_WORLD_COLS), SCREEN_WIDTH), min((320 * WORLD_ROWS / OLD_WORLD_ROWS), SCREEN_HEIGHT - 160));
+	UnLockVideoSurface(guiBigMap);
+	//QUantize!
+	pDataPtr = (UINT8*)LockVideoSurface(gui8BitMiniMap, &uiSrcPitchBYTES);
 	QuantizeImage(pDataPtr, (UINT8*)p24BitValues, MINIMAP_X_SIZE, MINIMAP_Y_SIZE, pPalette);
 	SetVideoSurfacePalette(ghVSurface, pPalette);
 	// Blit!
@@ -260,7 +314,7 @@ UINT32 MapUtilScreenHandle(void)
 			zFilename[cnt] = '\0';
 	sprintf(zFilename2, "RADARMAPS\\%s.STI", zFilename);
 	WriteSTIFile((INT8*)pDataPtr, pPalette, MINIMAP_X_SIZE, MINIMAP_Y_SIZE, (STR)zFilename2, CONVERT_ETRLE_COMPRESS, 0);
-	UnLockVideoSurface(gi8BitMiniMap);
+	UnLockVideoSurface(gui8BitMiniMap);
 	SetFont(TINYFONT1);
 	SetFontBackground(FONT_MCOLOR_BLACK);
 	SetFontForeground(FONT_MCOLOR_DKGRAY);
@@ -271,7 +325,15 @@ UINT32 MapUtilScreenHandle(void)
 	if(FListNode)
 		FListNode = FListNode->pNext;
 	if(fEditModeFirstTime == FALSE && FListNode == NULL)
-		return(EDIT_SCREEN);
+	{
+		if(gfWorldLoaded)
+		{
+			gfMapUtilityWindowActive = TRUE;
+			return(MAPUTILITY_SCREEN);
+		}
+		else
+			return(EDIT_SCREEN);
+	}
 	return(MAPUTILITY_SCREEN);
 }
 

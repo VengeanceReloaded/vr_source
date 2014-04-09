@@ -98,6 +98,12 @@ typedef enum
 	AI_ACTION_OFFER_SURRENDER,		// offer surrender to the player
 	AI_ACTION_RAISE_GUN,
 	AI_ACTION_STEAL_MOVE, // added by SANDRO
+
+	AI_ACTION_RELOAD_GUN,
+
+	AI_ACTION_JUMP_WINDOW,			// added by Flugente: jump through a window
+	AI_ACTION_FREE_PRISONER,		// added by Flugente: free a prisoner
+	AI_ACTION_USE_SKILL,			// added by Flugente: perform a skill, which one is stored in usAISkillUse
 } ActionType;
 
 
@@ -158,6 +164,7 @@ INT8 ClosestPanicTrigger( SOLDIERTYPE * pSoldier );
 
 INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel);
 INT32 ClosestPC( SOLDIERTYPE *pSoldier, INT32 * psDistance );
+INT32 ClosestUnDisguisedPC( SOLDIERTYPE *pSoldier, INT32 * psDistance );	// Flugente: like ClosestPC(...), but does not account for covert or not visible mercs
 BOOLEAN CanAutoBandage( BOOLEAN fDoFullCheck );
 
 void DebugAI( STR szOutput );
@@ -251,5 +258,8 @@ INT8 CalcWorstCTGTForPosition( SOLDIERTYPE * pSoldier, UINT8 ubOppID, INT32 sOpp
 INT8 CalcBestCTGT( SOLDIERTYPE *pSoldier, UINT8 ubOppID, INT32 sOppGridNo, INT8 bLevel, INT32 iMyAPsLeft );
 INT8 CalcAverageCTGTForPosition( SOLDIERTYPE * pSoldier, UINT8 ubOppID, INT32 sOppGridNo, INT8 bLevel, INT32 iMyAPsLeft );
 UINT8 NumberOfTeamMatesAdjacent( SOLDIERTYPE * pSoldier, INT32 sGridNo );
+
+// Flugente: get the id of the closest soldier (coser than x tiles) of a specific team with a specific flag that we can currently see
+UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 auTeam, UINT32 aFlag );
 
 #endif

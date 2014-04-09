@@ -45,13 +45,11 @@
 	#include "Soldier Find.h"
 	#include "lighting.h"
 	#include "Keys.h"
-
 	#include "InterfaceItemImages.h"
+	#include "renderworld.h"//dnl ch78 271113
 #endif
 
 void RenderEditorInfo();
-
-//extern ITEM_POOL *gpItemPool;//dnl ch26 210909
 
 //editor icon storage vars
 INT32	giEditMercDirectionIcons[2];
@@ -91,7 +89,7 @@ void DisableEditorRegion( INT8	bRegionID )
 	switch( bRegionID )
 	{
 		case BASE_TERRAIN_TILE_REGION_ID:
-		case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+		case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8://dnl ch78 261113
 			MSYS_DisableRegion( &TerrainTileButtonRegion[ bRegionID ] );
 			break;
 		case ITEM_REGION_ID:
@@ -345,6 +343,17 @@ void DoTaskbar(void)
 			SetMercEditingMode( MERC_TEAMMODE );
 			fBuildingShowRoofs = FALSE;
 			UpdateRoofsView();
+			//dnl ch78 261113
+			if(gfShowPlayers)
+				ClickEditorButton(MERCS_PLAYERTOGGLE);
+			if(gfShowEnemies)
+				ClickEditorButton(MERCS_ENEMYTOGGLE);
+			if(gfShowCreatures)
+				ClickEditorButton(MERCS_CREATURETOGGLE);
+			if(gfShowRebels)
+				ClickEditorButton(MERCS_REBELTOGGLE);
+			if(gfShowCivilians)
+				ClickEditorButton(MERCS_CIVILIANTOGGLE);
 			break;
 		case TASK_TERRAIN:
 			ClickEditorButton( TAB_TERRAIN );
@@ -393,6 +402,9 @@ void DoTaskbar(void)
 			iDrawMode = DRAW_MODE_LIGHT;
 			TerrainTileDrawMode = TERRAIN_TILES_BRETS_STRANGEMODE;
 			SetupTextInputForMapInfo();
+			//dnl ch80 011213
+			SetEditorSmoothingMode(gMapInformation.ubEditorSmoothingType);
+			ChangeLightDefault(gbDefaultLightType);
 			break;
 		case TASK_OPTIONS:
 			iDrawMode = DRAW_MODE_NOTHING;//dnl ch22 210909
@@ -802,7 +814,7 @@ void RenderSelectedItemBlownUp()
 	INT16 sScreenX, sScreenY, xp, yp;
 	ITEM_POOL	*pItemPool;
 	CHAR16 szItemName[ SIZE_ITEM_NAME ];
-	INT32 i;
+	INT32 i, iStackIndex;
 	INT16 sWidth, sHeight, sOffsetX, sOffsetY;
 
 	GetGridNoScreenPos( gsItemGridNo, 0, &sScreenX, &sScreenY );
@@ -856,19 +868,37 @@ void RenderSelectedItemBlownUp()
 		mprintf( xp, yp, pStr );
 		SetFontForeground( FONT_YELLOW );
 	}
+	else
+	{
+		// Display item index no
+		xp = sScreenX + 2;
+		yp += 10;
+		SetFont( BLOCKFONTNARROW );
+		SetFontForeground( FONT_LTGREEN );
+		mprintf( xp, yp, L"%d", Item[ gpItem->usItem ].uiIndex );
+	}
 
-	//Count the number of items in the current pool, and display that.
+	//Display current item stack index and number of items in stack
 	i = 0;
 	GetItemPoolFromGround( gsItemGridNo, &pItemPool );
 	Assert( pItemPool );
+	//Count the number of items in the current pool
 	while( pItemPool )
 	{
 		i++;
+		if ( gpItemPool == pItemPool )
+			iStackIndex = i;
 		pItemPool = pItemPool->pNext;
 	}
 	xp = sScreenX;
 	yp = sScreenY + 10;
-	mprintf( xp, yp, L"%d", i );
+	SetFont( FONT10ARIAL );
+	SetFontForeground( FONT_YELLOW );
+	//Omit current item stack index if only 1 item in stack
+	if ( i == 1 )
+		mprintf( xp, yp, L"%d", i );
+	else
+		mprintf( xp - 6, yp, L"%d/%d", iStackIndex , i );	
 
 	//If the item is hidden, render a blinking H (just like DG)
 	if( gWorldItems[ gpItemPool->iItemIndex ].bVisible == HIDDEN_ITEM ||
@@ -892,8 +922,8 @@ void RenderEditorInfo( )
 
 	//dnl ch52 091009
 	SetFont(FONT12ARIAL);
-	SetFontShadow(NO_SHADOW);
-	SetFontForeground(FONT_BLACK);
+	SetFontShadow(FONT_NEARBLACK);
+	SetFontForeground(FONT_GRAY2);
 	SetFontBackground(FONT_BLACK);
 
 	//dnl ch1 101009 Display the mapindex position
@@ -901,7 +931,7 @@ void RenderEditorInfo( )
 	{
 		INT16 sGridX, sGridY;
 		GetMouseXY(&sGridX, &sGridY);
-		swprintf(FPSText, L"%4d %4d %6d", sGridX, sGridY, iMapIndexD);
+		swprintf(FPSText, L"%4d %4d %6d ", sGridX, sGridY, iMapIndexD);
 	}
 	else
 		swprintf(FPSText, L"                  ");
@@ -948,6 +978,10 @@ void RenderEditorInfo( )
 			break;
 		case TASK_MERCS:
 			UpdateMercsInfo();
+				#ifdef JA113DEMO
+				DisableButton (iEditorButton[ MERCS_CIVILIANTOGGLE ]);
+				DisableButton (iEditorButton[ MERCS_CIVILIAN ]);
+				#endif
 			break;
 		case TASK_MAPINFO:
 			UpdateMapInfo();
@@ -964,6 +998,7 @@ void RenderEditorInfo( )
 //taskbar render, we need to draw the buttons without hilites, hence this flag.	This flag is
 //always true in ButtonSystem.c, so it won't effect anything else.
 extern BOOLEAN gfGotoGridNoUI;
+extern BOOLEAN gfKeyboardItemCreationUI;
 
 void ProcessEditorRendering()
 {
@@ -1001,7 +1036,7 @@ void ProcessEditorRendering()
 
 	if( gfSummaryWindowActive )
 		RenderSummaryWindow();
-	else if( !gfGotoGridNoUI && !InOverheadMap() )
+	else if( !gfGotoGridNoUI && !gfKeyboardItemCreationUI && !InOverheadMap() && !gfEditingDoor )//dnl ch86 220214
 		RenderMercStrings();
 
 	if( gfEditingDoor )
@@ -1011,7 +1046,7 @@ void ProcessEditorRendering()
 		RenderAllTextFields();
 	RenderEditorInfo();
 
-	if( !gfSummaryWindowActive && !gfGotoGridNoUI && !InOverheadMap() )
+	if( !gfSummaryWindowActive && !gfGotoGridNoUI && !gfKeyboardItemCreationUI && !InOverheadMap() && !gfEditingDoor )//dnl ch86 220214
 	{
 		if( gpItem && gsItemGridNo != -1 )
 			RenderSelectedItemBlownUp();
@@ -1022,8 +1057,6 @@ void ProcessEditorRendering()
 			RenderDoorLockInfo();
 	}
 
-
-
 	if( fSaveBuffer )
 		BlitBufferToBuffer( FRAME_BUFFER, guiSAVEBUFFER, 0, 2 * iScreenHeightOffset + 360, SCREEN_WIDTH, 120 );
 
@@ -1031,10 +1064,8 @@ void ProcessEditorRendering()
 	//It is set to false when before we save the buffer, so the buttons don't get
 	//rendered with hilites, in case the mouse is over one.
 	gfRenderHilights = TRUE;
-
-	RenderButtonsFastHelp();
-
+	if(!gfSummaryWindowActive && !gfScrollInertia && !gfEditingDoor)//dnl ch77 131113 //dnl ch78 271113 //dnl ch86 210214
+		RenderButtonsFastHelp();
 }
-
 
 #endif

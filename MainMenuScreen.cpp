@@ -5,12 +5,9 @@
 	#include "sgp.h"
 	#include "screenids.h"
 	#include "Timer Control.h"
-	#include "sys globals.h"
-	#include "fade screen.h"
 	#include "sysutil.h"
 	#include "vobject_blitters.h"
 	#include "MercTextBox.h"
-	#include "wcheck.h"
 	#include "cursors.h"
 	#include "font control.h"
 	#include "mainmenuscreen.h"
@@ -18,7 +15,6 @@
 	#include "render dirty.h"
 	#include "music control.h"
 	#include "GameSettings.h"
-	#include "GameScreen.h"
 	#include "SaveLoadScreen.h"
 	#include "SaveLoadGame.h"
 	#include "Options Screen.h"
@@ -35,7 +31,6 @@
 	#include "GameVersion.h"
 #endif
 
-#include "mercs.h"
 #include "gamesettings.h"
 #include "connect.h"
 #include "strategic.h"
@@ -46,51 +41,47 @@
 #include <vfs/Core/vfs.h>
 #include <vfs/Core/vfs_profile.h>
 
+#ifdef JA2UB
+#include "ub_config.h"
+#endif
+
 #define	MAINMENU_TEXT_FILE						"LoadScreens\\MainMenu.edt"
 #define MAINMENU_RECORD_SIZE					80 * 2
 
-//#define TESTFOREIGNFONTS
-
+//externals
+extern HVSURFACE ghFrameBuffer;
+extern	HVSURFACE		ghBackBuffer;
 // MENU ITEMS
 enum
 {
-//	TITLE,
 	NEW_GAME,
 	NEW_MP_GAME,
 	LOAD_GAME,
-	//LOAD_MP_GAME,
 	PREFERENCES,
 	CREDITS,
 	QUIT,
 	NUM_MENU_ITEMS
 };
 
-//#define		MAINMENU_Y				iScreenHeightOffset + 277
-#define		MAINMENU_Y				iScreenHeightOffset + 210
-#define		MAINMENU_Y_SPACE		37
+UINT32 MAINMENU_Y;
+UINT32 MAINMENU_X;
+UINT32 MAINMENU_Y_SPACE;
 
-
-INT32							iMenuImages[ NUM_MENU_ITEMS ];
-INT32							iMenuButtons[ NUM_MENU_ITEMS ];
+INT32						iMenuImages[ NUM_MENU_ITEMS ];
+INT32						iMenuButtons[ NUM_MENU_ITEMS ];
 
 UINT16						gusMainMenuButtonWidths[ NUM_MENU_ITEMS ];
 
-UINT32						guiMainMenuBackGroundImage;
-UINT32						guiJa2LogoImage;
-
-MOUSE_REGION			gBackRegion;
-INT8							gbHandledMainMenu = 0;
+MOUSE_REGION				gBackRegion;
+INT8						gbHandledMainMenu = 0;
 BOOLEAN						fInitialRender = FALSE;
-//BOOLEAN						gfDoHelpScreen = 0;
 
 BOOLEAN						gfMainMenuScreenEntry = FALSE;
 BOOLEAN						gfMainMenuScreenExit = FALSE;
 
 UINT32						guiMainMenuExitScreen = MAINMENU_SCREEN;
 
-
 extern	BOOLEAN		gfLoadGameUponEntry;
-
 
 void ExitMainMenu( );
 void MenuButtonCallback(GUI_BUTTON *btn, INT32 reason);
@@ -106,10 +97,11 @@ BOOLEAN CreateDestroyMainMenuButtons( BOOLEAN fCreate );
 void RenderMainMenu();
 void RestoreButtonBackGrounds();
 
+//Main Menu layout by Jazz
+MAIN_MENU_VALUES gMainMenulayout[MAX_MAIN_MENU_IMAGE];
+//VSURFACE_DESC		vs_desc;
+
 extern void InitSightRange(); //lal
-
-
-
 
 UINT32	MainMenuScreenInit( )
 {
@@ -119,8 +111,6 @@ UINT32	MainMenuScreenInit( )
 
 	return( TRUE );
 }
-
-
 
 UINT32	MainMenuScreenHandle( )
 {
@@ -134,7 +124,7 @@ UINT32	MainMenuScreenHandle( )
 		return MAINMENU_SCREEN;	//The splash screen hasn't been up long enough yet.
 	}
 	if( guiSplashFrameFade )
-	{ //Fade the splash screen.
+	{ 
 		uiTime = GetJA2Clock();
 		if( guiSplashFrameFade > 2 )
 			ShadowVideoSurfaceRectUsingLowPercentTable( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT );
@@ -143,11 +133,8 @@ UINT32	MainMenuScreenHandle( )
 		else
 		{
 			uiTime = GetJA2Clock();
-			//while( GetJA2Clock() < uiTime + 375 );
 			SetMusicMode( MUSIC_MAIN_MENU );
 		}
-
-		//while( uiTime + 100 > GetJA2Clock() );
 
 		guiSplashFrameFade--;
 
@@ -170,7 +157,6 @@ UINT32	MainMenuScreenHandle( )
 		SetMusicMode( MUSIC_MAIN_MENU );
 	}
 
-
 	if ( fInitialRender )
 	{
 		ClearMainMenu();
@@ -191,12 +177,7 @@ UINT32	MainMenuScreenHandle( )
 
 	EndFrameBufferRender( );
 
-
-//	if ( gfDoHelpScreen )
-//		HandleHelpScreenInput();
-//	else
-		HandleMainMenuInput();
-
+	HandleMainMenuInput();
 	HandleMainMenuScreen();
 
 	if( gfMainMenuScreenExit )
@@ -212,14 +193,10 @@ UINT32	MainMenuScreenHandle( )
 	return( guiMainMenuExitScreen );
 }
 
-
 UINT32	MainMenuScreenShutdown(	)
 {
 	return( FALSE );
 }
-
-
-
 
 void HandleMainMenuScreen()
 {
@@ -234,14 +211,8 @@ void HandleMainMenuScreen()
 				break;
 
 			case NEW_GAME:
-
-//					gfDoHelpScreen = 1;
-//				gfMainMenuScreenExit = TRUE;
-//				if( !gfDoHelpScreen )
-//					SetMainMenuExitScreen( INIT_SCREEN );
 				break;
 
-			// ROMAN: TODO??
 			case NEW_MP_GAME:
 				break;
 
@@ -252,19 +223,7 @@ void HandleMainMenuScreen()
 				gbHandledMainMenu = 0;
 				gfSaveGame = FALSE;
 				gfMainMenuScreenExit = TRUE;
-
 				break;
-
-			// ROMAN: TODO
-//			case LOAD_MP_GAME:
-				//// Select the game which is to be restored
-				//guiPreviousOptionScreen = guiCurrentScreen;
-				//guiMainMenuExitScreen = SAVE_LOAD_SCREEN;
-				//gbHandledMainMenu = 0;
-				//gfSaveGame = FALSE;
-				//gfMainMenuScreenExit = TRUE;
-
-				//break;
 
 			case PREFERENCES:
 				guiPreviousOptionScreen = guiCurrentScreen;
@@ -282,17 +241,18 @@ void HandleMainMenuScreen()
 	}
 }
 
-
-
 BOOLEAN InitMainMenu( )
 {
-	VOBJECT_DESC	VObjectDesc;
+	//VOBJECT_DESC	VObjectDesc;	
+	VSURFACE_DESC		vs_desc = {};
 
-//	gfDoHelpScreen = 0;
+	//main Menu by JAzz
+	UINT16 iCounter2; 
 
 	if(is_networked)
 	{	
 		is_networked = FALSE;
+
 #ifdef USE_VFS
 		// remove Multiplayer profile if it exists
 		vfs::CProfileStack *PS = getVFS()->getProfileStack();
@@ -317,58 +277,60 @@ BOOLEAN InitMainMenu( )
 	CreateDestroyBackGroundMouseMask( TRUE );
 
 	CreateDestroyMainMenuButtons( TRUE );
-
-	// load background graphic and add it
-	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
-
-	if (iResolution == 0)
+		
+	// load background graphic and add it	
+	//Main Menu by Jazz
+	for( iCounter2 = 1; iCounter2 < MAX_ELEMENT; iCounter2++ )
 	{
-		FilenameForBPP("LOADSCREENS\\MainMenuBackGround.sti", VObjectDesc.ImageFile);
-	}
-	else if (iResolution == 1)
-	{
-		FilenameForBPP("LOADSCREENS\\MainMenuBackGround_800x600.sti", VObjectDesc.ImageFile);
-	}
-	else if (iResolution == 2)
-	{
-		FilenameForBPP("LOADSCREENS\\MainMenuBackGround_1024x768.sti", VObjectDesc.ImageFile);
-	}
+		//VObjectDesc.fCreateFlags = VSURFACE_CREATE_FROMFILE;		
+		vs_desc.fCreateFlags = VSURFACE_CREATE_FROMFILE | VSURFACE_SYSTEM_MEM_USAGE | VSURFACE_CREATE_FROMPNG_FALLBACK;
 
-	CHECKF(AddVideoObject(&VObjectDesc, &guiMainMenuBackGroundImage ));
+		if (gMainMenulayout[iCounter2].Visible == 1)
+		{
+			strcpy(vs_desc.ImageFile, gMainMenulayout[iCounter2].FileName);
+			
+			if( !AddVideoSurface( &vs_desc, &gMainMenulayout[iCounter2].uiIndex ) )
+			AssertMsg(0, String( "Missing %s", gMainMenulayout[iCounter2].FileName ) );	
 
-	// load ja2 logo graphic and add it
-	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
-//	FilenameForBPP("INTERFACE\\Ja2_2.sti", VObjectDesc.ImageFile);
-	FilenameForBPP("LOADSCREENS\\Ja2Logo.sti", VObjectDesc.ImageFile);
-	CHECKF(AddVideoObject(&VObjectDesc, &guiJa2LogoImage ));
 
-/*
-	// Gray out some buttons based on status of game!
-	if( gGameSettings.bLastSavedGameSlot < 0 || gGameSettings.bLastSavedGameSlot >= NUM_SLOT )
-	{
-		DisableButton( iMenuButtons[ LOAD_GAME ] );
+			//if (iResolution >= _640x480 && iResolution < _800x600)
+			//{				
+			//	strcpy(VObjectDesc.ImageFile, gMainMenulayout[iCounter2].FileName);
+
+			//	if( !AddVideoObject( &VObjectDesc, &gMainMenulayout[iCounter2].uiIndex ) )
+			//		AssertMsg(0, String( "Missing %s", gMainMenulayout[iCounter2].FileName ) );				
+			//}
+			//else if (iResolution < _1024x768)
+			//{		
+			//	strcpy(VObjectDesc.ImageFile, gMainMenulayout[iCounter2].FileName800x600);
+
+			//	if( !AddVideoObject( &VObjectDesc, &gMainMenulayout[iCounter2].uiIndex ) )
+			//		AssertMsg(0, String( "Missing %s", gMainMenulayout[iCounter2].FileName800x600 ) );				
+			//}
+			//else
+			//{		
+			//	strcpy(VObjectDesc.ImageFile, gMainMenulayout[iCounter2].FileName1024x768);
+
+			//	if( !AddVideoObject( &VObjectDesc, &gMainMenulayout[iCounter2].uiIndex ) )
+			//		AssertMsg(0, String( "Missing %s", gMainMenulayout[iCounter2].FileName1024x768 ) );				
+			//}
+		}
 	}
-	//The ini file said we have a saved game, but there is no saved game
-	else if( gbSaveGameArray[ gGameSettings.bLastSavedGameSlot ] == FALSE )
-		DisableButton( iMenuButtons[ LOAD_GAME ] );
-*/
-
+	
 	//if there are no saved games, disable the button
 	if( !IsThereAnySavedGameFiles() )
 		DisableButton( iMenuButtons[ LOAD_GAME ] );
-
-
-//	DisableButton( iMenuButtons[ CREDITS ] );
-//	DisableButton( iMenuButtons[ TITLE ] );
+		
+		
+	#ifdef JA113DEMO
+		DisableButton( iMenuButtons[ NEW_MP_GAME ] );
+	#endif
 
 	gbHandledMainMenu = 0;
 	fInitialRender		= TRUE;
 
 	SetPendingNewScreen( MAINMENU_SCREEN);
 	guiMainMenuExitScreen = MAINMENU_SCREEN;
-
-	// WANNE: I don't think that is needed!
-	//InitGameOptions();
 
 	DequeueAllKeyBoardEvents();
 
@@ -378,28 +340,25 @@ BOOLEAN InitMainMenu( )
 
 void ExitMainMenu( )
 {
-//	UINT32										uiDestPitchBYTES;
-//	UINT8											*pDestBuf;
+	UINT32 iCounter2 ;
 
-//	if( !gfDoHelpScreen )
-	{
-		CreateDestroyBackGroundMouseMask( FALSE );
-	}
-
-
+	CreateDestroyBackGroundMouseMask( FALSE );
 	CreateDestroyMainMenuButtons( FALSE );
 
-	DeleteVideoObjectFromIndex( guiMainMenuBackGroundImage );
-	DeleteVideoObjectFromIndex( guiJa2LogoImage );
+	for( iCounter2 = 1; iCounter2 < MAX_ELEMENT; iCounter2++ )
+	{			
+		if (gMainMenulayout[iCounter2].Visible == 1)
+		{
+			// WANNE: This is a dirty fix. I don't know when that was introduced, but when clicking on "Multiplayer Game", the game crashes when trying to call DeleteVideoSurfaceFromIndex()
+			if (is_networked && iCounter2 == 1)
+				continue;		
 
+//			DeleteVideoObjectFromIndex( gMainMenulayout[iCounter2].uiIndex );
+			DeleteVideoSurfaceFromIndex( gMainMenulayout[iCounter2].uiIndex );
+		}
+	}
+	
 	gMsgBox.uiExitScreen = MAINMENU_SCREEN;
-/*
-	// CLEAR THE FRAME BUFFER
-	pDestBuf = LockVideoSurface( FRAME_BUFFER, &uiDestPitchBYTES );
-	memset(pDestBuf, 0, SCREEN_HEIGHT * uiDestPitchBYTES );
-	UnLockVideoSurface( FRAME_BUFFER );
-	InvalidateScreen( );
-*/
 }
 
 // WANNE - MP: This method initializes variables that should be initialized
@@ -422,14 +381,25 @@ void InitDependingGameStyleOptions()
 	LoadGameExternalOptions();
 	// Load new STOMP ini - SANDRO
 	LoadSkillTraitsExternalSettings();
-
-    // anv - extended panels
-    LoadExtendedPanelsExternalSettings();
-
 	// HEADROCK HAM 4: CTH constants
 	LoadCTHConstants();
 	// Load externalised taunts settings
 	LoadTauntsSettings();
+	// Load helicopter repair settings
+	LoadHelicopterRepairRefuelSettings();
+	// Load externalised morale settings
+	LoadMoraleSettings();
+	// Load externalised reputation settings
+	LoadReputationSettings();
+	// Load creatures settings
+	LoadCreaturesSettings();
+
+	// anv: VR - extended panels
+	LoadExtendedPanelsExternalSettings();
+
+#ifdef JA2UB
+	LoadGameUBOptions(); // JA25 UB
+#endif
 
 	InitSightRange(); //lal
 
@@ -462,7 +432,6 @@ void MenuButtonCallback(GUI_BUTTON *btn,INT32 reason)
 				// Snap: UN-Init MP save game directory
 				if ( !InitSaveDir() )
 				{
-
 					//if something didnt work, dont even know how to make error code...//hayden
 				}
 			};
@@ -485,8 +454,9 @@ void MenuButtonCallback(GUI_BUTTON *btn,INT32 reason)
 				//if something didnt work, dont even know how to make error code...//hayden
 			}
 
+			// WANNE: Removed, cause I don't think it is needed if we only want to play a multiplayer game!
 			// Reload the external gameplay data, because maybe we started a MP game before!
-			LoadExternalGameplayData(TABLEDATA_DIRECTORY);
+			//LoadExternalGameplayData(TABLEDATA_DIRECTORY);
 
 			SetMainMenuExitScreen( MP_JOIN_SCREEN ); // OJW - 20081129
 			//SetMainMenuExitScreen( GAME_INIT_OPTIONS_SCREEN );
@@ -524,52 +494,46 @@ void MenuButtonMoveCallback(GUI_BUTTON *btn,INT32 reason)
 {
 	if(reason & MSYS_CALLBACK_REASON_LOST_MOUSE)
 	{
-//		btn->uiFlags &= (~BUTTON_CLICKED_ON );
 		RenderMainMenu();
 		InvalidateRegion(btn->Area.RegionTopLeftX, btn->Area.RegionTopLeftY, btn->Area.RegionBottomRightX, btn->Area.RegionBottomRightY);
 	}
 	if(reason & MSYS_CALLBACK_REASON_GAIN_MOUSE)
 	{
-//		btn->uiFlags &= (~BUTTON_CLICKED_ON );
 		RenderMainMenu();
 		InvalidateRegion(btn->Area.RegionTopLeftX, btn->Area.RegionTopLeftY, btn->Area.RegionBottomRightX, btn->Area.RegionBottomRightY);
 	}
 }
-
-
 
 void HandleMainMenuInput()
 {
 	InputAtom	InputEvent;
 
 	// Check for esc
-	while (DequeueEvent(&InputEvent) == TRUE)
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 	if( InputEvent.usEvent == KEY_UP )
 		{
 			switch( InputEvent.usParam )
 			{
-/*
-				case ESC:
-					gbHandledMainMenu = QUIT;
-					break;
-*/
+//#ifdef JA2TESTVERSION
 
-#ifdef JA2TESTVERSION
-				case 'q':
+				case 'n':
 					gbHandledMainMenu = NEW_GAME;
 					gfMainMenuScreenExit = TRUE;
 					SetMainMenuExitScreen( INIT_SCREEN );
+					break;
 
-//						gfDoHelpScreen = 1;
+				case 'm':
+					gbHandledMainMenu = NEW_MP_GAME;
+					gfMainMenuScreenExit = TRUE;
+					SetMainMenuExitScreen( MP_JOIN_SCREEN );
 					break;
 
 				case 'i':
 					SetPendingNewScreen( INTRO_SCREEN );
 					gfMainMenuScreenExit = TRUE;
 					break;
-#endif
-
+//#endif
 				case 'c':
 					gbHandledMainMenu = LOAD_GAME;
 
@@ -590,6 +554,11 @@ void HandleMainMenuInput()
 				case 's':
 					gbHandledMainMenu = CREDITS;
 					break;
+
+				case 'q':
+					gfMainMenuScreenExit = TRUE;
+					gfProgramIsRunning = FALSE;
+					break;
 			}
 		}
 	}
@@ -600,7 +569,7 @@ void HandleHelpScreenInput()
 	InputAtom									InputEvent;
 
 	// Check for key
-	while (DequeueEvent(&InputEvent) == TRUE)
+	while (DequeueSpecificEvent(&InputEvent, KEY_DOWN|KEY_UP|KEY_REPEAT))
 	{
 		switch( InputEvent.usEvent )
 		{
@@ -632,21 +601,9 @@ void SelectMainMenuBackGroundRegionCallBack(MOUSE_REGION * pRegion, INT32 iReaso
 	}
 	else if(iReason & MSYS_CALLBACK_REASON_LBUTTON_UP)
 	{
-//		if( gfDoHelpScreen )
-//		{
-//			SetMainMenuExitScreen( INIT_SCREEN );
-//			gfDoHelpScreen = FALSE;
-//		}
 	}
 	else if (iReason & MSYS_CALLBACK_REASON_RBUTTON_UP)
 	{
-/*
-		if( gfDoHelpScreen )
-		{
-			SetMainMenuExitScreen( INIT_SCREEN );
-			gfDoHelpScreen = FALSE;
-		}
-*/
 	}
 }
 
@@ -696,6 +653,29 @@ BOOLEAN CreateDestroyMainMenuButtons( BOOLEAN fCreate )
 	SGPFILENAME filename;
 	SGPFILENAME filenameMP;
 	INT16 sSlot;
+	
+	MAINMENU_X = SCREEN_WIDTH * gMainMenulayout[0].MAINMENU_X / 640;
+	MAINMENU_Y = SCREEN_HEIGHT * gMainMenulayout[0].MAINMENU_Y / 480;
+	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+
+	//if (iResolution >= _640x480 && iResolution < _800x600)
+	//{
+	//	MAINMENU_X =  gMainMenulayout[0].MAINMENU_X;
+	//	MAINMENU_Y =  gMainMenulayout[0].MAINMENU_Y;
+	//	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+	//}
+	//else if (iResolution < _1024x768)
+	//{
+	//	MAINMENU_X =  gMainMenulayout[0].MAINMENU_800x600X + xResOffset;
+	//	MAINMENU_Y =  gMainMenulayout[0].MAINMENU_800x600Y + yResOffset;
+	//	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+	//}
+	//else
+	//{
+	//	MAINMENU_X =  gMainMenulayout[0].MAINMENU_1024x768X + xResOffset;
+	//	MAINMENU_Y =  gMainMenulayout[0].MAINMENU_1024x768Y + yResOffset;
+	//	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+	//}
 
 	if( fCreate )
 	{
@@ -709,14 +689,17 @@ BOOLEAN CreateDestroyMainMenuButtons( BOOLEAN fCreate )
 		GetMLGFilename( filename, MLG_TITLETEXT );
 		GetMLGFilename( filenameMP, MLG_TITLETEXT_MP );
 
+#ifdef JA113DEMO
+		// Load the "Start Demo" image
+		iMenuImages[ NEW_GAME ] = LoadButtonImage( filename ,17,17,18,19,-1 );
+#else
 		iMenuImages[ NEW_GAME ]	= LoadButtonImage( filename, 0,0, 1, 2 ,-1 );
-		
+#endif
+			
 		iMenuImages[ NEW_MP_GAME ] = LoadButtonImage( filenameMP, 0, 0, 1, 2, -1 );
 
 		sSlot = 0;
 		iMenuImages[ LOAD_GAME ] = UseLoadedButtonImage( iMenuImages[ NEW_GAME ] ,6,3,4,5,-1 );
-
-		//iMenuImages[ LOAD_MP_GAME ] = UseLoadedButtonImage( iMenuImages[ NEW_MP_GAME ], 3, 3, 4, 5, -1 );
 
 		iMenuImages[ PREFERENCES ] = UseLoadedButtonImage( iMenuImages[ NEW_GAME ] ,7,7,8,9,-1 );
 		iMenuImages[ CREDITS ] = UseLoadedButtonImage( iMenuImages[ NEW_GAME ] ,13,10,11,12,-1 );
@@ -729,21 +712,17 @@ BOOLEAN CreateDestroyMainMenuButtons( BOOLEAN fCreate )
 				case NEW_GAME:		gusMainMenuButtonWidths[cnt] = GetWidthOfButtonPic( (UINT16)iMenuImages[cnt], sSlot );	break;
 				case NEW_MP_GAME:	gusMainMenuButtonWidths[cnt] = GetWidthOfButtonPic( (UINT16)iMenuImages[cnt], 0);	break;
 				case LOAD_GAME:		gusMainMenuButtonWidths[cnt] = GetWidthOfButtonPic( (UINT16)iMenuImages[cnt], 3 );			break;
-//				case LOAD_MP_GAME:	gusMainMenuButtonWidths[cnt] = GetWidthOfButtonPic( (UINT16)iMenuImages[cnt], 3);		break;
 				case PREFERENCES:	gusMainMenuButtonWidths[cnt] = GetWidthOfButtonPic( (UINT16)iMenuImages[cnt], 7 );			break;
 				case CREDITS:			gusMainMenuButtonWidths[cnt] = GetWidthOfButtonPic( (UINT16)iMenuImages[cnt], 10 );			break;
 				case QUIT:				gusMainMenuButtonWidths[cnt] = GetWidthOfButtonPic( (UINT16)iMenuImages[cnt], 15 );			break;
 			}
 #ifdef TESTFOREIGNFONTS
-			iMenuButtons[ cnt ] = QuickCreateButton( iMenuImages[ cnt ], (INT16)((SCREEN_WIDTH / 2) - gusMainMenuButtonWidths[cnt]/2), (INT16)( 0 + ( cnt * 18 ) ),
+//			iMenuButtons[ cnt ] = QuickCreateButton( iMenuImages[ cnt ], (INT16)((SCREEN_WIDTH / 2) - gusMainMenuButtonWidths[cnt]/2), (INT16)( 0 + ( cnt * 18 ) ),
+			iMenuButtons[ cnt ] = QuickCreateButton( iMenuImages[ cnt ], (INT16)(MAINMENU_X - gusMainMenuButtonWidths[cnt]/2), (INT16)( 0 + ( cnt * 18 ) ), //(INT16)((SCREEN_WIDTH / 2) - gusMainMenuButtonWidths[cnt]/2)
 												BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST,
 												DEFAULT_MOVE_CALLBACK, MenuButtonCallback );
-#else
-			/*iMenuButtons[ cnt ] = QuickCreateButton( iMenuImages[ cnt ], (INT16)(420 - gusMainMenuButtonWidths[cnt]/2), (INT16)( MAINMENU_Y + ( cnt * MAINMENU_Y_SPACE ) ),
-												BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST,
-												DEFAULT_MOVE_CALLBACK, MenuButtonCallback );*/
-
-			iMenuButtons[ cnt ] = QuickCreateButton( iMenuImages[ cnt ], (INT16)((SCREEN_WIDTH / 2) - gusMainMenuButtonWidths[cnt]/2), (INT16)( MAINMENU_Y + ( cnt * MAINMENU_Y_SPACE ) ),
+#else			
+			iMenuButtons[ cnt ] = QuickCreateButton( iMenuImages[ cnt ], (INT16)(MAINMENU_X - gusMainMenuButtonWidths[cnt]/2), (INT16)( MAINMENU_Y + ( cnt * MAINMENU_Y_SPACE ) ),
 												BUTTON_TOGGLE, MSYS_PRIORITY_HIGHEST,
 												DEFAULT_MOVE_CALLBACK, MenuButtonCallback );
 #endif
@@ -751,29 +730,9 @@ BOOLEAN CreateDestroyMainMenuButtons( BOOLEAN fCreate )
 			{
 				return( FALSE );
 			}
-			ButtonList[ iMenuButtons[ cnt ] ]->UserData[0] = cnt;
 
-			// WANNE: Removed this, because in Release version it always crashes!
-			/*
-			#ifndef _DEBUG
-				//load up some info from the 'mainmenu.edt' file.	This makes sure the file is present.	The file is
-				// 'marked' with a code that identifies the testers
-				INT32 iStartLoc = MAINMENU_RECORD_SIZE * cnt;
-				if( !LoadEncryptedDataFromFile(MAINMENU_TEXT_FILE, zText, iStartLoc, MAINMENU_RECORD_SIZE ) )
-				{
-					//the file was not able to be loaded properly
-					SOLDIERTYPE *pSoldier = NULL;
-
-					if( pSoldier->bActive != TRUE )
-					{
-						//something is very wrong
-						pSoldier->bActive = pSoldier->stats.bLife;
-					}
-				}
-			#endif
-			*/
+			ButtonList[ iMenuButtons[ cnt ] ]->UserData[0] = cnt;			
 		}
-
 
 		fButtonsCreated = TRUE;
 	}
@@ -797,17 +756,96 @@ BOOLEAN CreateDestroyMainMenuButtons( BOOLEAN fCreate )
 
 void RenderMainMenu()
 {
-	HVOBJECT hPixHandle;
-
+	HVSURFACE hVSurface;	
+	UINT32 iCounter2;
+		
 	//Get and display the background image
-	GetVideoObject(&hPixHandle, guiMainMenuBackGroundImage );
-	BltVideoObject( guiSAVEBUFFER, hPixHandle, 0, 0, 0, VO_BLT_SRCTRANSPARENCY,NULL);
-	BltVideoObject( FRAME_BUFFER, hPixHandle, 0, 0, 0, VO_BLT_SRCTRANSPARENCY,NULL);
+	for( iCounter2 = 1; iCounter2 < MAX_ELEMENT; iCounter2++ )
+	{	
+		if (gMainMenulayout[iCounter2].Visible == 1)
+		{
+			SGPRect SrcRect, DstRect;
+			INT32 iPosX = 0, iPosY = 0;
 
-	GetVideoObject(&hPixHandle, guiJa2LogoImage );
-	BltVideoObject( FRAME_BUFFER, hPixHandle, 0, iScreenWidthOffset + 188, iScreenHeightOffset + 10, VO_BLT_SRCTRANSPARENCY,NULL);
-	BltVideoObject( guiSAVEBUFFER, hPixHandle, 0, iScreenWidthOffset + 188, iScreenHeightOffset + 10, VO_BLT_SRCTRANSPARENCY,NULL);
+			GetVideoSurface(&hVSurface, gMainMenulayout[iCounter2].uiIndex);
+			
+			SrcRect.iLeft = 0;
+			SrcRect.iTop = 0;
+			SrcRect.iRight = hVSurface->usWidth;
+			SrcRect.iBottom = hVSurface->usHeight;
+			
+			//DstRect.iLeft = 0;
+			//DstRect.iTop = 0;
+			//DstRect.iRight = hVSurface->usWidth;
+			//DstRect.iBottom = hVSurface->usHeight;
+			
+			//Stretch the background image to screen size
+			if(gMainMenulayout[iCounter2].FitToScreen == 1)
+			{
+				DstRect.iLeft = 0;
+				DstRect.iTop = 0;
+				DstRect.iRight = SCREEN_WIDTH;
+				DstRect.iBottom = SCREEN_HEIGHT;
+			}
+			else
+			{
+				if(gMainMenulayout[iCounter2].ImagePositionRelative == 1)
+				{
+					iPosX = SCREEN_WIDTH * gMainMenulayout[iCounter2].ImagePositionX / 640;
+					iPosY = SCREEN_HEIGHT * gMainMenulayout[iCounter2].ImagePositionY / 480;
+				}
+				else
+				{
+					iPosX = gMainMenulayout[iCounter2].ImagePositionX;
+					iPosY = gMainMenulayout[iCounter2].ImagePositionY;
+				}
 
+				DstRect.iLeft = iPosX;
+				DstRect.iTop = iPosY;
+				DstRect.iRight = iPosX + hVSurface->usWidth;
+				DstRect.iBottom = iPosY + hVSurface->usHeight;
+
+				if(gMainMenulayout[iCounter2].StretchImage == 1)
+				{
+					DstRect.iRight = iPosX + SCREEN_WIDTH * hVSurface->usWidth / 640;
+					DstRect.iBottom = iPosY + SCREEN_HEIGHT * hVSurface->usHeight / 480;
+				}
+
+				if(gMainMenulayout[iCounter2].CenterImage == 1)
+				{
+					INT32 iTmpXSize = DstRect.iRight - DstRect.iLeft;
+
+					DstRect.iLeft = SCREEN_WIDTH / 2 - iTmpXSize / 2;
+					DstRect.iRight = DstRect.iLeft + iTmpXSize;
+				}
+			}
+
+			BltStretchVideoSurface( FRAME_BUFFER, gMainMenulayout[iCounter2].uiIndex, 0, 0, VO_BLT_SRCTRANSPARENCY, &SrcRect, &DstRect );
+			BltStretchVideoSurface( guiSAVEBUFFER, gMainMenulayout[iCounter2].uiIndex, 0, 0, VO_BLT_SRCTRANSPARENCY, &SrcRect, &DstRect );
+
+			
+
+
+			//if (iResolution >= _640x480 && iResolution < _800x600)
+			//{	
+			//	GetVideoObject(&hPixHandle, gMainMenulayout[iCounter2].uiIndex);
+			//	BltVideoObject( guiSAVEBUFFER, hPixHandle, 0, gMainMenulayout[iCounter2].ImagePositionX + xResOffset, gMainMenulayout[iCounter2].ImagePositionY + yResOffset, VO_BLT_SRCTRANSPARENCY,NULL);
+			//	BltVideoObject( FRAME_BUFFER, hPixHandle, 0, gMainMenulayout[iCounter2].ImagePositionX + xResOffset, gMainMenulayout[iCounter2].ImagePositionY + yResOffset, VO_BLT_SRCTRANSPARENCY,NULL);
+			//}
+			//else if (iResolution < _1024x768)
+			//{	
+			//	GetVideoObject(&hPixHandle, gMainMenulayout[iCounter2].uiIndex);
+			//	BltVideoObject( guiSAVEBUFFER, hPixHandle, 0, gMainMenulayout[iCounter2].ImagePosition800x600X + xResOffset, gMainMenulayout[iCounter2].ImagePosition800x600Y + yResOffset, VO_BLT_SRCTRANSPARENCY,NULL);
+			//	BltVideoObject( FRAME_BUFFER, hPixHandle, 0, gMainMenulayout[iCounter2].ImagePosition800x600X + xResOffset, gMainMenulayout[iCounter2].ImagePosition800x600Y + yResOffset, VO_BLT_SRCTRANSPARENCY,NULL);
+			//}
+			//else
+			//{	
+			//	GetVideoObject(&hPixHandle, gMainMenulayout[iCounter2].uiIndex);
+			//	BltVideoObject( guiSAVEBUFFER, hPixHandle, 0, gMainMenulayout[iCounter2].ImagePosition1024x768X + xResOffset, gMainMenulayout[iCounter2].ImagePosition1024x768Y + yResOffset, VO_BLT_SRCTRANSPARENCY,NULL);
+			//	BltVideoObject( FRAME_BUFFER, hPixHandle, 0, gMainMenulayout[iCounter2].ImagePosition1024x768X + xResOffset, gMainMenulayout[iCounter2].ImagePosition1024x768Y + yResOffset, VO_BLT_SRCTRANSPARENCY,NULL);
+			//}
+		}
+	}
 
 #ifdef TESTFOREIGNFONTS
 	DrawTextToScreen( L"LARGEFONT1: ÄÀÁÂÇËÈÉÊÏÖÒÓÔÜÙÚÛäàáâçëèéêïöòóôüùúûÌÎìî"/*gzCopyrightText[ 0 ]*/, 0, 105, 640, LARGEFONT1, FONT_MCOLOR_WHITE, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED );
@@ -842,15 +880,35 @@ void RestoreButtonBackGrounds()
 {
 	UINT8	cnt;
 
-//	RestoreExternBackgroundRect( (UINT16)(320 - gusMainMenuButtonWidths[TITLE]/2), MAINMENU_TITLE_Y, gusMainMenuButtonWidths[TITLE], 23 );
-
 #ifndef TESTFOREIGNFONTS
+
+	MAINMENU_X = SCREEN_WIDTH * gMainMenulayout[0].MAINMENU_X / 640;
+	MAINMENU_Y = SCREEN_HEIGHT * gMainMenulayout[0].MAINMENU_Y / 480;
+	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+
+	//if (iResolution >= _640x480 && iResolution < _800x600)
+	//{
+	//	MAINMENU_Y =  gMainMenulayout[0].MAINMENU_Y;
+	//	MAINMENU_X =  gMainMenulayout[0].MAINMENU_X;
+	//	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+	//}
+	//else if (iResolution < _1024x768)
+	//{
+	//	MAINMENU_Y =  gMainMenulayout[0].MAINMENU_800x600Y;
+	//	MAINMENU_X =  gMainMenulayout[0].MAINMENU_800x600X;
+	//	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+	//}
+	//else
+	//{
+	//	MAINMENU_Y =  gMainMenulayout[0].MAINMENU_1024x768Y;
+	//	MAINMENU_X =  gMainMenulayout[0].MAINMENU_1024x768X;
+	//	MAINMENU_Y_SPACE = gMainMenulayout[0].MAINMENU_Y_SPACE;
+	//}
+			
 	for ( cnt = 0; cnt < NUM_MENU_ITEMS; cnt++ )
-	{
-		RestoreExternBackgroundRect( (UINT16)((SCREEN_WIDTH / 2) - gusMainMenuButtonWidths[cnt]/2), (INT16)( MAINMENU_Y + ( cnt * MAINMENU_Y_SPACE )-1), (UINT16)(gusMainMenuButtonWidths[cnt]+1), 23 );
+	{		
+		RestoreExternBackgroundRect( (UINT16)(MAINMENU_X - gusMainMenuButtonWidths[cnt]/2), (INT16)( MAINMENU_Y + ( cnt * MAINMENU_Y_SPACE )-1), (UINT16)(gusMainMenuButtonWidths[cnt]+1), 23 );
 	}
+
 #endif
 }
-
-
-

@@ -2,6 +2,7 @@
 #define	_ARMS_DEALER_INV_INIT__H_
 
 #include "Item Types.h"
+#include "Arms Dealer Init.h"
 
 #define		LAST_DEALER_ITEM					0//-1
 #define		NO_DEALER_ITEM						0
@@ -53,7 +54,13 @@ UINT8 GetDealerItemCategoryNumber( UINT16 usItemIndex );
 BOOLEAN CanDealerItemBeSoldUsed( UINT16 usItemIndex );
 
 extern DEALER_POSSIBLE_INV gTonyInventory[MAXITEMS+1]; 
+
+#ifdef JA2UB
+extern DEALER_POSSIBLE_INV gBettyInventory[MAXITEMS+1];
+#else  //ja25 ub Biggins
 extern DEALER_POSSIBLE_INV gDevinInventory[MAXITEMS+1];
+#endif
+
 extern DEALER_POSSIBLE_INV gFranzInventory[MAXITEMS+1];
 extern DEALER_POSSIBLE_INV gKeithInventory[MAXITEMS+1];
 extern DEALER_POSSIBLE_INV gSamInventory[MAXITEMS+1];
@@ -69,7 +76,15 @@ extern DEALER_POSSIBLE_INV gAlbertoInventory[MAXITEMS+1];
 extern DEALER_POSSIBLE_INV gCarloInventory[MAXITEMS+1];
 extern DEALER_POSSIBLE_INV gMickyInventory[MAXITEMS+1];
 extern DEALER_POSSIBLE_INV gArnieInventory[MAXITEMS+1];
+#ifdef JA2UB
+extern DEALER_POSSIBLE_INV gRaulInventory[MAXITEMS+1];
+#else
 extern DEALER_POSSIBLE_INV gPerkoInventory[MAXITEMS+1];
+#endif
 extern DEALER_POSSIBLE_INV gFredoInventory[MAXITEMS+1];
+
+// added by Flugente 2012-12-19
+extern DEALER_POSSIBLE_INV gTinaInventory[MAXITEMS+1];
+extern DEALER_POSSIBLE_INV gArmsDealerAdditional[ADDITIONAL_ARMS_DEALERS][MAXITEMS+1];
 
 #endif

@@ -79,14 +79,15 @@ void AssignCreatureInventory( SOLDIERTYPE *pSoldier );
 
 void ReplaceExtendedGuns( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass );
 
-UINT16 SelectStandardArmyGun( UINT8 uiGunLevel );
+UINT16 SelectStandardArmyGun( UINT8 uiGunLevel, INT8 bSoldierClass );
 
 INT8 GetWeaponClass( UINT16 usGun );
 void MarkAllWeaponsOfSameGunClassAsDropped( UINT16 usWeapon );
 
 void ResetMortarsOnTeamCount( void );
 
-extern ARMY_GUN_CHOICE_TYPE gExtendedArmyGunChoices[ARMY_GUN_LEVELS];
+// Flugente: created separate gun choices for different soldier classes
+extern ARMY_GUN_CHOICE_TYPE gExtendedArmyGunChoices[SOLDIER_GUN_CHOICE_SELECTIONS][ARMY_GUN_LEVELS];
 
 // Headrock: Added LBE enumeration
 enum
@@ -115,7 +116,17 @@ enum
 	MAX_ITEM_TYPES
 };
 
-extern ARMY_GUN_CHOICE_TYPE gArmyItemChoices[MAX_ITEM_TYPES];
+// Flugente: created separate gun choices for different soldier classes
+extern ARMY_GUN_CHOICE_TYPE gArmyItemChoices[SOLDIER_GUN_CHOICE_SELECTIONS][MAX_ITEM_TYPES];
 
+////////////////// Flugente: militia equipment feature ///////////////////////////////////
+// move one set of militia equipment between sectors
+void MoveOneMilitiaEquipmentSet(INT16 sSourceX, INT16 sSourceY, INT16 sTargetX, INT16 sTargetY, INT8 bSoldierClass);
+
+// move a number of militia equipment sets between sectors
+void MoveMilitiaEquipment(INT16 sSourceX, INT16 sSourceY, INT16 sTargetX, INT16 sTargetY, UINT8 usElites, UINT8 usRegulars, UINT8 usGreens);
+
+// take militia items from sector
+void TakeMilitiaEquipmentfromSector( INT16 sMapX, INT16 sMapY, INT8 sMapZ, SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass );
 
 #endif

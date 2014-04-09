@@ -29,6 +29,20 @@
 #define SIGHTINTERRUPT	1
 #define NOISEINTERRUPT	2
 
+// SANDRO - enum for improved interrupt system
+enum
+{
+	DISABLED_INTERRUPT = 0,
+	UNTRIGGERED_INTERRUPT,
+	UNDEFINED_INTERRUPT,
+	MOVEMENT_INTERRUPT,
+	SP_MOVEMENT_INTERRUPT,
+	BEFORESHOT_INTERRUPT,
+	AFTERSHOT_INTERRUPT,
+	AFTERACTION_INTERRUPT,
+	INSTANT_INTERRUPT,
+	MAX_INTERRUPT_TYPES
+};
 
 // noise type constants
 enum
@@ -46,6 +60,7 @@ enum
 	NOISE_WINDOW_SMASHING,
 	NOISE_DOOR_SMASHING,
 	NOISE_SILENT_ALARM, // only heard by enemies
+	NOISE_VOICE, // anv: for enemy taunts
 	MAX_NOISES
 };
 
@@ -74,6 +89,9 @@ extern INT8 gfKnowAboutOpponents;
 extern BOOLEAN	gfPlayerTeamSawJoey;
 extern BOOLEAN	gfMikeShouldSayHi;
 
+#ifdef JA2UB
+extern BOOLEAN   gfMorrisShouldSayHi; // JA25 UB
+#endif
 
 extern INT32			gsWatchedLoc[ TOTAL_SOLDIERS ][ NUM_WATCHED_LOCS ];
 extern INT8				gbWatchedLocLevel[ TOTAL_SOLDIERS ][ NUM_WATCHED_LOCS ];
@@ -121,8 +139,8 @@ void DebugSoldierPage4( );
 
 UINT8 MovementNoise( SOLDIERTYPE *pSoldier );
 UINT8 DoorOpeningNoise( SOLDIERTYPE *pSoldier );
-void MakeNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType );
-void OurNoise( UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType );
+void MakeNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType, STR16 zNoiseMessage = NULL );
+void OurNoise( UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType, STR16 zNoiseMessage = NULL );
 
 void ResolveInterruptsVs( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType);
 
@@ -148,9 +166,14 @@ UINT8 DoorOpeningNoise( SOLDIERTYPE * pSoldier );
 
 void AddToShouldBecomeHostileOrSayQuoteList( UINT8 ubID );
 
-extern INT8 gbLightSighting[1][16];
+//extern INT8 gbLightSighting[1][16];
 
 BOOLEAN SoldierHasLimitedVision(SOLDIERTYPE * pSoldier);
+
+
+#ifdef JA2UB
+INT32 MaxDistanceVisible( void );
+#endif
 
 // HEADROCK HAM 3.6: Moved here from cpp
 void MakeBloodcatsHostile( void );

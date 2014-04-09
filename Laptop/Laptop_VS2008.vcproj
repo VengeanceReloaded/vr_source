@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="Laptop"
 	ProjectGUID="{4D6F7570-9A1E-4DB0-8FD7-B9D14DD4E821}"
 	RootNamespace="Laptop"
@@ -112,7 +112,6 @@
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -176,7 +175,7 @@
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="0"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -294,7 +293,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
+				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				StringPooling="true"
@@ -302,7 +301,7 @@
 				EnableFunctionLevelLinking="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -404,11 +403,43 @@
 				>
 			</File>
 			<File
+				RelativePath=".\BriefingRoom.h"
+				>
+			</File>
+			<File
+				RelativePath=".\BriefingRoom_Data.h"
+				>
+			</File>
+			<File
+				RelativePath=".\BriefingRoomM.h"
+				>
+			</File>
+			<File
 				RelativePath="BrokenLink.h"
 				>
 			</File>
 			<File
+				RelativePath="CampaignHistoryData.h"
+				>
+			</File>
+			<File
+				RelativePath="CampaignHistoryMain.h"
+				>
+			</File>
+			<File
+				RelativePath="CampaignHistory_Summary.h"
+				>
+			</File>
+			<File
+				RelativePath="CampaignStats.h"
+				>
+			</File>
+			<File
 				RelativePath="CharProfile.h"
+				>
+			</File>
+			<File
+				RelativePath="DropDown.h"
 				>
 			</File>
 			<File
@@ -465,6 +496,10 @@
 			</File>
 			<File
 				RelativePath="IMP Attribute Selection.h"
+				>
+			</File>
+			<File
+				RelativePath="IMP Background.h"
 				>
 			</File>
 			<File
@@ -525,6 +560,10 @@
 			</File>
 			<File
 				RelativePath="IMP Portraits.h"
+				>
+			</File>
+			<File
+				RelativePath="IMP Prejudice.h"
 				>
 			</File>
 			<File
@@ -680,11 +719,39 @@
 				>
 			</File>
 			<File
+				RelativePath=".\BriefingRoom.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\BriefingRoom_Data.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\BriefingRoomM.cpp"
+				>
+			</File>
+			<File
 				RelativePath="BrokenLink.cpp"
 				>
 			</File>
 			<File
+				RelativePath="CampaignHistoryMain.cpp"
+				>
+			</File>
+			<File
+				RelativePath="CampaignHistory_Summary.cpp"
+				>
+			</File>
+			<File
+				RelativePath="CampaignStats.cpp"
+				>
+			</File>
+			<File
 				RelativePath="CharProfile.cpp"
+				>
+			</File>
+			<File
+				RelativePath="DropDown.cpp"
 				>
 			</File>
 			<File
@@ -741,6 +808,10 @@
 			</File>
 			<File
 				RelativePath="IMP Attribute Selection.cpp"
+				>
+			</File>
+			<File
+				RelativePath="IMP Background.cpp"
 				>
 			</File>
 			<File
@@ -801,6 +872,10 @@
 			</File>
 			<File
 				RelativePath="IMP Portraits.cpp"
+				>
+			</File>
+			<File
+				RelativePath="IMP Prejudice.cpp"
 				>
 			</File>
 			<File
@@ -876,6 +951,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_BriefingRoom.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_CampaignStatsEvents.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_ConditionsForMercAvailability.cpp"
 				>
 			</File>
@@ -884,7 +967,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_Email.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_EmailMercAvailable.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_EmailMercLevelUp.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_IMPPortraits.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_OldAIMArchive.cpp"
 				>
 			</File>
 			<File

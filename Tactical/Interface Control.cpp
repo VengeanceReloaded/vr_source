@@ -2,7 +2,6 @@
 	#include "Tactical All.h"
 #else
 	#include <stdio.h>
-	#include <stdarg.h>
 	#include <time.h>
 	#include "sgp.h"
 	#include "gameloop.h"
@@ -14,13 +13,11 @@
 	#include "Button System.h"
 	#include "interface.h"
 	#include "vsurface.h"
-	#include "wcheck.h"
 	#include "input.h"
 	#include "Handle UI.h"
 	#include "Animation Control.h"
 	#include "Animation Data.h"
 	#include "renderworld.h"
-	#include "sys globals.h"
 	#include "cursors.h"
 	#include "radar screen.h"
 	#include "worldman.h"
@@ -28,7 +25,6 @@
 	#include "render dirty.h"
 	#include "utilities.h"
 	#include "interface cursors.h"
-	#include "Sound Control.h"
 	#include "lighting.h"
 	#include "Interface Panels.h"
 	#include "pathai.h"
@@ -50,6 +46,13 @@
 	#include "Map Screen Interface.h"
 	#include "civ quotes.h"
 	#include "GameSettings.h"
+#endif
+
+#include "connect.h"
+#include "Text.h"
+
+#ifdef JA2UB
+#include "Dialogue Control.h"
 #endif
 
 /*	I deleted here declaration of clock coords for tactical screen i will declare them
@@ -108,6 +111,25 @@ void HandleTacticalPanelSwitch( )
 	}
 }
 
+// Flugente: handle flashlights
+void HandleFlashLights()
+{
+	if ( !fInterfacePanelDirty )
+		return;
+
+	SOLDIERTYPE* pSoldier = NULL;
+
+	for (UINT32 uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop )
+	{
+		pSoldier = MercSlots[ uiLoop ];
+
+		if ( pSoldier != NULL && pSoldier->bSoldierFlagMask & SOLDIER_REDOFLASHLIGHT )
+		{
+			pSoldier->HandleFlashLights();
+		}
+	}
+}
+
 void RenderTacticalInterface( )
 {
 
@@ -140,6 +162,8 @@ void RenderTacticalInterface( )
 	if( !(guiTacticalInterfaceFlags & INTERFACE_SHOPKEEP_INTERFACE ) )
 		HandleAutoFaces( );
 
+	// Flugente: handle flashlights
+	HandleFlashLights();
 }
 
 
@@ -690,14 +714,6 @@ void RenderTopmostTacticalInterface( )
 
 	RenderAccumulatedBurstLocations( );
 
-	// HEADROCK HAM 4: The NCTH indicator is now drawn to the FRAMEBUFFER instead of the MOUSEBUFFER. This is
-	// due to size constraints related to drawing directly on the cursor. This indicator follows the mouse, and
-	// is a mouse-cursor in everything but name. See the function itself for more details.
-	if (UsingNewCTHSystem() == true && gfUICtHBar)
-	{
-		DrawCTHIndicator();
-	}
-
 	// Loop through all mercs and make go
 	for ( cnt = 0; cnt < guiNumMercSlots; cnt++ )
 	{
@@ -714,51 +730,9 @@ void RenderTopmostTacticalInterface( )
 				DrawSelectedUIAboveGuy((UINT16)pSoldier->ubID);
 			}
 
-			if ( pSoldier->flags.fDisplayDamage )
-			{
-				// Display damage
-
-				// Use world coordinates!
-				INT16 sMercScreenX, sMercScreenY, sOffsetX, sOffsetY, sDamageX, sDamageY;
-				
-				if (!TileIsOutOfBounds(pSoldier->sGridNo) && pSoldier->bVisible != -1 )
-				{
-					GetSoldierScreenPos( pSoldier, &sMercScreenX, &sMercScreenY );
-					GetSoldierAnimOffsets( pSoldier, &sOffsetX, &sOffsetY );
-
-			if ( pSoldier->ubBodyType == QUEENMONSTER )
-			{
-			 sDamageX = sMercScreenX + pSoldier->sDamageX - pSoldier->sBoundingBoxOffsetX;
-			 sDamageY = sMercScreenY + pSoldier->sDamageY - pSoldier->sBoundingBoxOffsetY;
-
-			 sDamageX += 25;
-			 sDamageY += 10;
-			}
-			else
-			{
-					sDamageX = pSoldier->sDamageX + (INT16)(sMercScreenX + ( 2 * 30 / 3 )	);
-					sDamageY = pSoldier->sDamageY + (INT16)(sMercScreenY - 5 );
-
-					sDamageX -= sOffsetX;
-					sDamageY -= sOffsetY;
-
-				if ( sDamageY < gsVIEWPORT_WINDOW_START_Y )
-				{
-					sDamageY = ( sMercScreenY - sOffsetY );
-			}
-			}
-
-			SetFont( TINYFONT1 );
-					SetFontBackground( FONT_MCOLOR_BLACK );
-					SetFontForeground( FONT_MCOLOR_WHITE );
-
-					gprintfdirty( sDamageX, sDamageY, L"-%d", pSoldier->sDamage );
-					mprintf( sDamageX, sDamageY, L"-%d", pSoldier->sDamage );
+			DrawCounters( pSoldier );
 				}
-			}
-		}
-
-	}
+					}
 
 	if ( gusSelectedSoldier != NOBODY )
 	{
@@ -768,6 +742,14 @@ void RenderTopmostTacticalInterface( )
 	if ( gfUIHandleSelectionAboveGuy && gsSelectedGuy != NOBODY )
 	{
 		DrawSelectedUIAboveGuy((UINT16)gsSelectedGuy );
+	}
+
+	// HEADROCK HAM 4: The NCTH indicator is now drawn to the FRAMEBUFFER instead of the MOUSEBUFFER. This is
+	// due to size constraints related to drawing directly on the cursor. This indicator follows the mouse, and
+	// is a mouse-cursor in everything but name. See the function itself for more details.
+	if (UsingNewCTHSystem() == true && gfUICtHBar)
+	{
+		DrawCTHIndicator();
 	}
 
 	// FOR THE MOST PART, DISABLE INTERFACE STUFF WHEN IT'S ENEMY'S TURN
@@ -943,13 +925,13 @@ void StartViewportOverlays( )
 	memcpy( &gOldDirtyClippingRect, &gDirtyClipRect, sizeof( gOldDirtyClippingRect ) );
 
 	// Set bottom clipping value for blitter clipping rect
-	ClippingRect.iLeft = INTERFACE_START_X;
+	ClippingRect.iLeft = 0;
 	ClippingRect.iTop = gsVIEWPORT_WINDOW_START_Y;
 	ClippingRect.iRight = SCREEN_WIDTH;
 	ClippingRect.iBottom = gsVIEWPORT_WINDOW_END_Y;
 
 	// Set values for dirty rect clipping rect
-	gDirtyClipRect.iLeft = INTERFACE_START_X;
+	gDirtyClipRect.iLeft = 0;
 	gDirtyClipRect.iTop = gsVIEWPORT_WINDOW_START_Y;
 	gDirtyClipRect.iRight = SCREEN_WIDTH;
 	gDirtyClipRect.iBottom = gsVIEWPORT_WINDOW_END_Y;
@@ -1017,6 +999,9 @@ void EraseInterfaceMenus( BOOLEAN fIgnoreUIUnLock )
 	PopDownMovementMenu( );
 	PopDownOpenDoorMenu( );
 	DeleteTalkingMenu( );
+#ifdef JA2UB
+	RemoveJerryMiloBrokenLaptopOverlay();
+#endif
 }
 
 
@@ -1063,4 +1048,272 @@ BOOLEAN InterfaceOKForMeanwhilePopup()
 	}
 
 	return( TRUE );
+}
+
+void PrintCounter( INT16 x, INT16 y, INT16 data, UINT16 &width, UINT8 ubForegound, UINT8 scale )
+{
+	CHAR16 pStr[100];
+	UINT8 num = 0;
+	UINT8 i;
+
+	if( data == 0)
+		return;
+
+	switch ( scale )
+	{
+	case PRINT_SCALE_ASTERISK_SUPPRESSION:
+		num = CalcScaleSuppression( abs(data) );
+		break;
+	case PRINT_SCALE_ASTERISK_DAMAGE:
+		num = CalcScaleDamage( abs(data) );
+		break;
+	case PRINT_SCALE_ASTERISK_MORALE:
+		num = CalcScaleMorale( abs(data) );
+		break;
+	case PRINT_SCALE_ASTERISK_AP:
+		num = CalcScaleAP( abs(data) );
+		break;
+	case PRINT_SCALE_ASTERISK_SHOCK:
+		num = CalcScaleShock( abs(data) );
+		break;
+	default:
+		num = 1;
+	}
+	if ( !gGameExternalOptions.ubShowSuppressionScaleAsterisk )
+		num = 1;
+
+	SetFontBackground( FONT_MCOLOR_BLACK );
+	SetFontForeground( ubForegound );
+	// scale = 0 - print numbers
+	// scale = 1 - print one asterisk
+	// scale > 1 - print num asterisks
+	if( scale > PRINT_SCALE_PLAIN_NUMBER )
+	{
+		swprintf( pStr, L"*" );
+		for ( i = 1; i<num; i++)
+			wcscat( pStr, L"*" );
+	}
+	else
+	{
+		swprintf( pStr, L"%d ", data );
+	}
+	gprintfdirty( x+width, y, pStr );
+	mprintf( x+width, y, pStr );
+	width += StringPixLength ( pStr, TINYFONT1 );
+	SetFontForeground( FONT_MCOLOR_WHITE );
+}
+
+UINT8 CalcScaleSuppression( INT16 data )
+{
+	if( data > 20 ) return 5;
+	if( data > 15 ) return 4;
+	if( data > 10 ) return 3;
+	if( data > 5 ) return 2;
+	return 1;
+}
+
+UINT8 CalcScaleDamage( INT16 data )
+{
+	if( data > 100 ) return 5;
+	if( data > 60 ) return 4;
+	if( data > 30 ) return 3;
+	if( data > 10 ) return 2;
+	return 1;
+}
+
+UINT8 CalcScaleMorale( INT16 data )
+{
+	return __min( 5, data );
+}
+UINT8 CalcScaleAP( INT16 data )
+{
+	if( data > 100 ) return 5;
+	if( data > 60 ) return 4;
+	if( data > 30 ) return 3;
+	if( data > 10 ) return 2;
+	return 1;
+}
+UINT8 CalcScaleShock( INT16 data )
+{
+	if( data > 20 ) return 5;
+	if( data > 12 ) return 4;
+	if( data > 7 ) return 3;
+	if( data > 3 ) return 2;
+	return 1;
+}
+
+void DrawCounters( SOLDIERTYPE *pSoldier )
+{
+	// Use world coordinates!
+	INT16 sMercScreenX, sMercScreenY, sOffsetX, sOffsetY, sDamageX, sDamageY;
+
+	// sevenfm: added for suppression counters
+	INT16 sSuppressionX, sSuppressionY;				
+	UINT16 widthDamage = 0;							// print damage counters one after another in one line
+	UINT16 widthSuppression = 0;					// print suppression counters (not moving) one after another in one line above soldier
+	BOOLEAN printSuppression = FALSE;               // determines if any value is printed above soldier (only for new suppression counters)
+	UINT8 hitCount;
+	CHAR16 pStr[100];
+
+	if (    gGameExternalOptions.ubShowSuppressionCountAlt ||
+		gGameExternalOptions.ubShowSuppressionCount == 2 ||
+		gGameExternalOptions.ubShowShockCount == 2 ||
+		gGameExternalOptions.ubShowAPCount == 2 ||
+		gGameExternalOptions.ubShowMoraleCount == 2 )
+		printSuppression = TRUE;
+
+	if (!TileIsOutOfBounds(pSoldier->sGridNo) && pSoldier->bVisible != -1 )
+	{
+		GetSoldierScreenPos( pSoldier, &sMercScreenX, &sMercScreenY );
+		GetSoldierAnimOffsets( pSoldier, &sOffsetX, &sOffsetY );
+		// coordinates for suppression counter
+
+		if ( pSoldier->ubBodyType == QUEENMONSTER )
+		{
+			sSuppressionX = sMercScreenX - pSoldier->sBoundingBoxOffsetX;
+			sSuppressionY = sMercScreenY - pSoldier->sBoundingBoxOffsetY;
+			sSuppressionX += 25;
+			sSuppressionY += 10;
+		}
+		else
+		{
+			sSuppressionX = (INT16)(sMercScreenX + ( 2 * 30 / 3 ) );
+			sSuppressionY = (INT16)(sMercScreenY - 5 );
+
+			if ( sSuppressionY < gsVIEWPORT_WINDOW_START_Y )
+				sSuppressionY = ( sMercScreenY - sOffsetY );
+		}		
+		// coordinates for damage counter
+		if ( pSoldier->ubBodyType == QUEENMONSTER )
+		{
+			sDamageX = sMercScreenX + pSoldier->sDamageX - pSoldier->sBoundingBoxOffsetX;
+			sDamageY = sMercScreenY + pSoldier->sDamageY - pSoldier->sBoundingBoxOffsetY;
+			sDamageX += 25;
+			sDamageY += 10;
+		}
+		else
+		{
+			sDamageX = pSoldier->sDamageX + (INT16)(sMercScreenX + ( 2 * 30 / 3 )	);
+			sDamageY = pSoldier->sDamageY + (INT16)(sMercScreenY - 5 );
+			sDamageX -= sOffsetX;
+			sDamageY -= sOffsetY;
+			// if showing suppression - move damage counter higher on screen
+			if( printSuppression)
+//				sDamageY -= 2*WFGetFontHeight ( TINYFONT1 );
+				sDamageY -= WFGetFontHeight ( TINYFONT1 );
+			if ( sSuppressionY < gsVIEWPORT_WINDOW_START_Y )
+				sSuppressionY = ( sMercScreenY - sOffsetY );
+		}
+		// print current ubSuppressionPoints counter
+		if( gGameExternalOptions.ubShowSuppressionCountAlt && pSoldier->stats.bLife >= OKLIFE )
+		{                               
+			if( pSoldier->ubSuppressionPoints >0 )
+			{
+				PrintCounter( sSuppressionX, sSuppressionY, pSoldier->ubSuppressionPoints, widthSuppression, FONT_MCOLOR_LTGRAY,
+					gGameExternalOptions.ubShowSuppressionUseAsterisks ? PRINT_SCALE_ASTERISK_SUPPRESSION : PRINT_SCALE_PLAIN_NUMBER );
+			}
+		}
+
+		if ( pSoldier->flags.fDisplayDamage )
+		{
+			// Display damage
+			SetFont( TINYFONT1 );
+
+			SetFontBackground( FONT_MCOLOR_BLACK );
+			SetFontForeground( FONT_MCOLOR_WHITE );
+
+			if( pSoldier->bTeam == OUR_TEAM )
+				hitCount = gGameExternalOptions.ubPlayerHitCount;
+			else
+				hitCount = gGameExternalOptions.ubEnemyHitCount;
+
+			if( pSoldier->sDamage < 0 )
+			{								
+				// Flugente: it is possible that someone might regain negative damage as zombies can regenerate health through bleeding
+				SetFontForeground( FONT_MCOLOR_LTGREEN );
+				swprintf( pStr, L"+%d ", -pSoldier->sDamage );
+				gprintfdirty( sDamageX, sDamageY, pStr );
+				mprintf( sDamageX, sDamageY, pStr );
+				widthDamage += StringPixLength ( pStr, TINYFONT1 );
+				SetFontForeground( FONT_MCOLOR_WHITE );
+			}
+			else							// normal soldier
+			{
+				switch (hitCount)
+				{
+				case 0:				// show damage as usual
+					if( pSoldier->sDamage > 0 )
+					{
+						//PrintCounter( sDamageX, sDamageY, pSoldier->sDamage, widthDamage, FONT_MCOLOR_WHITE, PRINT_SCALE_PLAIN_NUMBER );
+						swprintf( pStr, L"-%d ", pSoldier->sDamage );
+						gprintfdirty( sDamageX, sDamageY, pStr );
+						mprintf( sDamageX, sDamageY, pStr );
+						widthDamage += StringPixLength ( pStr, TINYFONT1 );
+					}
+				break;
+				case 1:				// show ? indicator
+					if( pSoldier->sDamage != 0 )
+					{
+						swprintf( pStr, L"%s ", gzHiddenHitCountStr[0] );
+						gprintfdirty( sDamageX, sDamageY, pStr );
+						mprintf( sDamageX, sDamageY, pStr );
+						widthDamage += StringPixLength ( pStr, TINYFONT1 );
+					}
+					break;
+				case 2:				// do not show anything
+					break;
+				case 3:				// show white asterisks
+					PrintCounter( sDamageX, sDamageY, pSoldier->sDamage, widthDamage, FONT_MCOLOR_WHITE, PRINT_SCALE_ASTERISK_DAMAGE );
+					break;
+				case 4:				// show red asterisks
+					PrintCounter( sDamageX, sDamageY, pSoldier->sDamage, widthDamage, FONT_MCOLOR_DKRED, PRINT_SCALE_ASTERISK_DAMAGE );
+					break;
+				default:
+					break;
+				}
+				// show additional hit info
+				if( gGameExternalOptions.fShowHitInfo && ( pSoldier->iLastBulletImpact > 0 || pSoldier->iLastArmourProtection ) )
+				{
+					SetFontBackground( FONT_MCOLOR_BLACK );
+					SetFontForeground( COLOR_ORANGE );
+
+					//swprintf( pStr, L"%d/%d ", pSoldier->iLastBulletImpact, pSoldier->iLastArmourProtection );
+					swprintf( pStr, L"%d ", pSoldier->iLastArmourProtection );
+					gprintfdirty( sDamageX + widthDamage, sDamageY, pStr );
+					mprintf( sDamageX + widthDamage, sDamageY, pStr );
+					widthDamage += StringPixLength ( pStr, TINYFONT1 );
+
+					SetFontForeground( FONT_MCOLOR_WHITE );
+			}
+			}
+
+			// do not show suppression info for dying soldier
+			if ( pSoldier->stats.bLife >= OKLIFE )
+			{
+				// replace ubLastSuppression count on screen
+				if( gGameExternalOptions.ubShowSuppressionCountAlt && gGameExternalOptions.ubShowSuppressionCount == 2 && pSoldier->ubLastSuppression > 0 )
+					widthSuppression = 0;
+				// display suppression from last attack
+				PrintSuppressionCounter( sDamageX, sDamageY, sSuppressionX, sSuppressionY, pSoldier->ubLastSuppression, widthDamage, widthSuppression, 
+										FONT_MCOLOR_LTGRAY, PRINT_SCALE_ASTERISK_SUPPRESSION, gGameExternalOptions.ubShowSuppressionCount );
+				// display shock from last attack
+				PrintSuppressionCounter( sDamageX, sDamageY, sSuppressionX, sSuppressionY, pSoldier->ubLastShock + pSoldier->ubLastShockFromHit, widthDamage, widthSuppression,
+										FONT_MCOLOR_LTYELLOW, PRINT_SCALE_ASTERISK_SHOCK,  gGameExternalOptions.ubShowShockCount );
+				// display morale hit from last attack
+				PrintSuppressionCounter( sDamageX, sDamageY, sSuppressionX, sSuppressionY, pSoldier->ubLastMorale + pSoldier->ubLastMoraleFromHit, widthDamage, widthSuppression,
+										FONT_MCOLOR_LTGREEN, PRINT_SCALE_ASTERISK_MORALE, gGameExternalOptions.ubShowMoraleCount );
+				// display AP loss from last attack
+				PrintSuppressionCounter( sDamageX, sDamageY, sSuppressionX, sSuppressionY, pSoldier->ubLastAP + pSoldier->ubLastAPFromHit, widthDamage, widthSuppression, 
+										FONT_MCOLOR_LTBLUE, PRINT_SCALE_ASTERISK_AP, gGameExternalOptions.ubShowAPCount );
+			}
+		} 
+	}
+}
+
+void PrintSuppressionCounter( INT16 x, INT16 y, INT16 sX, INT16 sY, UINT8 data, UINT16 &widthDamage, UINT16 &widthSuppression, UINT8 ubForeground, UINT8 scale, UINT8 option)
+{
+	if( option == 1 )  // show after damage counter
+		PrintCounter( x, y, data, widthDamage, ubForeground, gGameExternalOptions.ubShowSuppressionUseAsterisks ? scale : PRINT_SCALE_PLAIN_NUMBER );
+	if( option == 2 )  // show after suppression counter
+		PrintCounter( sX, sY, data, widthSuppression, ubForeground, gGameExternalOptions.ubShowSuppressionUseAsterisks ? scale : PRINT_SCALE_PLAIN_NUMBER );
 }

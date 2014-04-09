@@ -9,7 +9,6 @@
 	#include "WorldMan.h"
 	#include "AIInternals.h"
 	#include "Items.h"
-	#include "wcheck.h"
 	#include "message.h"
 	#include "los.h"
 	#include "assignments.h"
@@ -24,6 +23,7 @@
 	#include "lighting.h"
 	#include "Soldier Create.h"
 	#include "SkillCheck.h" // added by SANDRO
+	#include "Vehicles.h" // added by silversurfer
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -39,7 +39,7 @@
 // InWaterOrGas - gas stuff
 // RoamingRange - point patrol stuff
 
-extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady );
+extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fHipStance );
 
 UINT8 Urgency[NUM_STATUS_STATES][NUM_MORALE_STATES] =
 {
@@ -189,7 +189,7 @@ UINT8 ShootingStanceChange( SOLDIERTYPE * pSoldier, ATTACKTYPE * pAttack, INT8 b
 
 	UINT16	usRealAnimState, usBestAnimState;
 	INT8		bBestStanceDiff=-1;
-	INT8		bLoop, bStanceNum, bStanceDiff, bAPsAfterAttack, bCurAimTime;
+	INT8		bLoop, bStanceNum, bStanceDiff, bAPsAfterAttack, bCurAimTime, bSetScopeMode;
 	UINT32	uiChanceOfDamage, uiBestChanceOfDamage, uiCurrChanceOfDamage;
 	UINT32	uiStanceBonus, uiMinimumStanceBonusPerChange = 20 - 3 * pAttack->ubAimTime;
 	INT32		iRange;
@@ -197,7 +197,10 @@ UINT8 ShootingStanceChange( SOLDIERTYPE * pSoldier, ATTACKTYPE * pAttack, INT8 b
 	bStanceNum = 0;
 	uiCurrChanceOfDamage = 0;
 
-	bAPsAfterAttack = pSoldier->bActionPoints - MinAPsToAttack( pSoldier, pAttack->sTarget, ADDTURNCOST, 1);
+	bSetScopeMode = pSoldier->bScopeMode;
+	pSoldier->bScopeMode = pAttack->bScopeMode;
+	bAPsAfterAttack = pSoldier->bActionPoints - MinAPsToAttack( pSoldier, pAttack->sTarget, ADDTURNCOST, pAttack->ubAimTime, 1);
+	pSoldier->bScopeMode = bSetScopeMode;
 	if (bAPsAfterAttack < GetAPsCrouch(pSoldier, TRUE))
 	{
 		return( 0 );
@@ -511,7 +514,7 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier)
 		case AI_ACTION_KNIFE_MOVE:            // preparing to stab adjacent opponent
 		case AI_ACTION_THROW_KNIFE:
 			// only FIRE_GUN currently actually pays extra turning costs!
-			bMinPointsNeeded = MinAPsToAttack(pSoldier,pSoldier->aiData.usActionData,ADDTURNCOST);
+			bMinPointsNeeded = MinAPsToAttack(pSoldier,pSoldier->aiData.usActionData,ADDTURNCOST,pSoldier->aiData.bAimTime);
 
 #ifdef BETAVERSION
 			if (ptsNeeded > pSoldier->bActionPoints)
@@ -573,6 +576,22 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier)
 
 		case AI_ACTION_STEAL_MOVE: // added by SANDRO
 			//bMinPointsNeeded = GetAPsToStealItem( pSoldier, NULL, pSoldier->aiData.usActionData );;
+			break;
+
+		case AI_ACTION_JUMP_WINDOW:
+			if((UsingNewInventorySystem() == true) && pSoldier->inv[BPACKPOCKPOS].exists() == true)
+				bMinPointsNeeded = GetAPsToJumpThroughWindows( pSoldier, TRUE );
+			else
+				bMinPointsNeeded = GetAPsToJumpFence( pSoldier, FALSE );
+
+			break;
+
+		case AI_ACTION_FREE_PRISONER:
+			bMinPointsNeeded = APBPConstants[AP_HANDCUFF];
+			break;
+
+		case AI_ACTION_USE_SKILL:
+			bMinPointsNeeded = 10;	// TODO
 			break;
 
 		default:
@@ -746,8 +765,9 @@ INT32 RandDestWithinRange(SOLDIERTYPE *pSoldier)
 	INT16 sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXRange, sYRange, sXOffset, sYOffset;
 	INT16 sOrigX, sOrigY;
 	INT16 sX, sY;
-	UINT8	ubRoom = 0, ubTempRoom;
-
+	//DBrot: More Rooms
+	//UINT8	ubRoom = 0, ubTempRoom;
+	UINT16 usRoom = 0, usTempRoom;
 	sOrigX = sOrigY = -1;
 	sMaxLeft = sMaxRight = sMaxUp = sMaxDown = sXRange = sYRange = -1;
 
@@ -768,9 +788,9 @@ INT32 RandDestWithinRange(SOLDIERTYPE *pSoldier)
 	if ( pSoldier->aiData.bOrders <= CLOSEPATROL && (pSoldier->bTeam == CIV_TEAM || pSoldier->ubProfile != NO_PROFILE ) )
 	{
 		// any other combo uses the default of ubRoom == 0, set above
-		if ( !InARoom( pSoldier->aiData.sPatrolGrid[0], &ubRoom ) )
+		if ( !InARoom( pSoldier->aiData.sPatrolGrid[0], &usRoom ) )
 		{
-			ubRoom = 0;
+			usRoom = 0;
 		}
 	}
 
@@ -839,12 +859,13 @@ INT32 RandDestWithinRange(SOLDIERTYPE *pSoldier)
 		{
 			if (fLimited)
 			{
+				UINT8 ubTriesLeft2 = 128;
 				do//dnl ch53 111009 This loop should increase search performance, but probably need some counter to prevent eventual endless loop
 				{
 					sXOffset = ((INT16)Random(sXRange)) - sMaxLeft;
 					sYOffset = ((INT16)Random(sYRange)) - sMaxUp;
 					sRandDest = usOrigin + sXOffset + (MAXCOL * sYOffset);
-				}while(!GridNoOnVisibleWorldTile(sRandDest));
+				}while(!GridNoOnVisibleWorldTile(sRandDest) && --ubTriesLeft2);
 	#ifdef BETAVERSION
 				if ((sRandDest < 0) || (sRandDest >= GRIDSIZE))
 				{
@@ -855,13 +876,14 @@ INT32 RandDestWithinRange(SOLDIERTYPE *pSoldier)
 			}
 			else
 			{
+				UINT8 ubTriesLeft2 = 128;
 				do//dnl ch53 111009 This loop should increase search performance, but probably need some counter to prevent eventual endless loop
 				{
 					sRandDest = PreRandom(GRIDSIZE);
-				}while(!GridNoOnVisibleWorldTile(sRandDest));
+				}while(!GridNoOnVisibleWorldTile(sRandDest) && --ubTriesLeft2);
 			}
 
-			if ( ubRoom && InARoom( sRandDest, &ubTempRoom ) && ubTempRoom != ubRoom )
+			if ( usRoom && InARoom( sRandDest, &usTempRoom ) && usTempRoom != usRoom )
 			{
 				// outside of room available for patrol!
 				sRandDest = NOWHERE;
@@ -1020,6 +1042,15 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		// if we are there (at the noise gridno)
 		if (sGridNo == pSoldier->sGridNo)
 		{
+			for(uiLoop=0; uiLoop<guiNumMercSlots; uiLoop++)//dnl ch58 160813
+			{
+				pOpp = MercSlots[uiLoop];
+				if(pOpp && pSoldier->bSide == pOpp->bSide && pSoldier->ubID != pOpp->ubID&& pSoldier->aiData.sNoiseGridno == pOpp->aiData.sNoiseGridno)
+				{
+					pOpp->aiData.sNoiseGridno = NOWHERE;// Erase for all from the same team as it not useful anymore, this will avoid others to check already tested location
+					pOpp->aiData.ubNoiseVolume = 0;
+				}
+			}
 			pSoldier->aiData.sNoiseGridno = NOWHERE;		// wipe it out, not useful anymore
 			pSoldier->aiData.ubNoiseVolume = 0;
 		}
@@ -1077,7 +1108,10 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		else
 		{
 			// degrade our public noise a bit
-			*pusNoiseGridNo -= 2;
+			//dnl ch58 160813
+			//*pusNoiseGridNo -= 2;
+			if(*pubNoiseVolume > 1)
+				(*pubNoiseVolume)--;
 		}
 	}
 
@@ -1129,8 +1163,12 @@ INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLev
 			continue;			// next merc
 		}
 
+		// silversurfer: ignore empty vehicles
+		if ( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
+			continue;
+
 		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != 64)
+		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != SLAY)
 		{
 			continue;	// next opponent
 		}
@@ -1232,8 +1270,12 @@ INT32 ClosestSeenOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLeve
 			continue;			// next merc
 		}
 
+		// silversurfer: ignore empty vehicles
+		if ( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
+			continue;
+
 		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != 64)
+		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != SLAY)
 		{
 			continue;	// next opponent
 		}
@@ -1295,6 +1337,103 @@ INT32 ClosestSeenOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLeve
 }
 
 
+// special variant with a minor twist
+INT32 ClosestSeenOpponentWithRoof(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel)
+{
+	INT32 sGridNo, sClosestOpponent = NOWHERE;
+	UINT32 uiLoop;
+	INT32 iRange, iClosestRange = 1500;
+	INT8	*pbPersOL;
+	INT8	bLevel, bClosestLevel;
+	SOLDIERTYPE * pOpp;
+
+	bClosestLevel = -1;
+
+	// look through this man's personal & public opplists for opponents known
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpp = MercSlots[ uiLoop ];
+
+		// if this merc is inactive, at base, on assignment, or dead
+		if (!pOpp)
+		{
+			continue;			// next merc
+		}
+
+		// if this merc is neutral/on same side, he's not an opponent
+		if ( CONSIDERED_NEUTRAL( pSoldier, pOpp ) || (pSoldier->bSide == pOpp->bSide))
+		{
+			continue;			// next merc
+		}
+
+		// silversurfer: ignore empty vehicles
+		if ( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
+			continue;
+
+		// Special stuff for Carmen the bounty hunter
+		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != SLAY)
+		{
+			continue;	// next opponent
+		}
+
+		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
+
+		// if this opponent is not seen personally
+		if (*pbPersOL != SEEN_CURRENTLY)
+		{
+			continue;			// next merc
+		}
+
+		// since we're dealing with seen people, use exact gridnos
+		sGridNo = pOpp->sGridNo;
+		bLevel = pOpp->pathing.bLevel;
+
+		// if we are standing at that gridno(!, obviously our info is old...)
+		if (sGridNo == pSoldier->sGridNo)
+		{
+			continue;			// next merc
+		}
+
+		// special: allow zombies to also find opponents on a roof
+		// otherwise they have will never decide to climb a roof while they are seeing an enemy
+		// this function is used only for turning towards closest opponent or changing stance
+		// as such, if they AI is in a building,
+		// we should ignore people who are on the roof of the same building as the AI
+		/*if ( !pSoldier->IsZombie() && (bLevel != pSoldier->pathing.bLevel) && SameBuilding( pSoldier->sGridNo, sGridNo ) )
+		{
+			continue;
+		}*/
+
+		// I hope this will be good enough; otherwise we need a fractional/world-units-based 2D distance function
+		//sRange = PythSpacesAway( pSoldier->sGridNo, sGridNo);
+		iRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sGridNo );
+
+		if (iRange < iClosestRange)
+		{
+			iClosestRange = iRange;
+			sClosestOpponent = sGridNo;
+			bClosestLevel = bLevel;
+		}
+	}
+
+#ifdef DEBUGDECISIONS	
+	if (!TileIsOutOfBounds(sClosestOpponent))
+	{
+		AINumMessage("CLOSEST OPPONENT is at gridno ",sClosestOpponent);
+	}
+#endif
+
+	if (psGridNo)
+	{
+		*psGridNo = sClosestOpponent;
+	}
+	if (pbLevel)
+	{
+		*pbLevel = bClosestLevel;
+	}
+	return( sClosestOpponent );
+}
+
 INT32 ClosestPC( SOLDIERTYPE *pSoldier, INT32 * psDistance )
 {
 	// used by NPCs... find the closest PC
@@ -1338,6 +1477,59 @@ INT32 ClosestPC( SOLDIERTYPE *pSoldier, INT32 * psDistance )
 		{
 			sDist += 10;
 		}
+
+		if (sDist < sMinDist)
+		{
+			sMinDist = sDist;
+			sGridNo = pTargetSoldier->sGridNo;
+		}
+	}
+
+	if ( psDistance )
+	{
+		*psDistance = sMinDist;
+	}
+
+	return( sGridNo );
+}
+
+// Flugente: like ClosestPC(...), but does not account for covert or not visible mercs
+INT32 ClosestUnDisguisedPC( SOLDIERTYPE *pSoldier, INT32 * psDistance )
+{
+	// used by NPCs... find the closest PC
+	// NOTE: skips EPCs!
+
+	UINT8 ubLoop;
+	SOLDIERTYPE		*pTargetSoldier;
+	INT32					sMinDist = WORLD_MAX;
+	INT32					sDist;
+	INT32					sGridNo = NOWHERE;
+
+	// Loop through all mercs on player team
+	ubLoop = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+	for ( ; ubLoop <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; ubLoop++)
+	{
+		pTargetSoldier = Menptr + ubLoop;
+
+		if (!pTargetSoldier->bActive || !pTargetSoldier->bInSector)
+			continue;
+				
+		// if not conscious, skip him
+		if (pTargetSoldier->stats.bLife < OKLIFE)
+			continue;
+
+		if ( AM_AN_EPC( pTargetSoldier ) )
+			continue;
+
+		if ( pTargetSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			continue;
+
+		sDist = PythSpacesAway(pSoldier->sGridNo,pTargetSoldier->sGridNo);
+
+		// if this PC is not visible to the soldier, then add a penalty to the distance
+		// so that we weight in favour of visible mercs
+		if ( pTargetSoldier->bTeam != pSoldier->bTeam && pSoldier->aiData.bOppList[ ubLoop ] != SEEN_CURRENTLY )
+			continue;
 
 		if (sDist < sMinDist)
 		{
@@ -1547,6 +1739,8 @@ BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier )
 
 	for ( ubTeamLoop = 0; ubTeamLoop < MAXTEAMS; ubTeamLoop++ )
 	{
+		if(!gTacticalStatus.Team[ubTeamLoop].bTeamActive)//dnl ch58 070913 skip any inactive teams
+			continue;
 		if ( gTacticalStatus.Team[ ubTeamLoop ].bSide != pSoldier->bSide )
 		{
 			// consider guys in this team, which isn't on our side
@@ -1726,31 +1920,19 @@ BOOLEAN InWaterGasOrSmoke( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 	// smoke
 	if (gpWorldLevelData[sGridNo].ubExtFlags[ pSoldier->pathing.bLevel ] & MAPELEMENT_EXT_SMOKE)
 	{
-		return( TRUE );
+		return TRUE;
 	}
 
-	// tear/mustard gas
-	if((gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_TEARGAS|MAPELEMENT_EXT_MUSTARDGAS)) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
-		return(TRUE);
-	if ( gpWorldLevelData[sGridNo].ubExtFlags[ pSoldier->pathing.bLevel ] & MAPELEMENT_EXT_BURNABLEGAS )
-	{
-		return( TRUE );
-	}
-
-	return(FALSE);
+	return InGas( pSoldier, sGridNo );
 }
 
 BOOLEAN InGasOrSmoke( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 {
-	// smoke/tear/mustard gas
-	if((gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_SMOKE|MAPELEMENT_EXT_TEARGAS|MAPELEMENT_EXT_MUSTARDGAS)) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 230909
-		return(TRUE);
-	if ( gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_BURNABLEGAS )
-	{
-		return( TRUE );
-	}
+	// smoke
+	if (gpWorldLevelData[sGridNo].ubExtFlags[ pSoldier->pathing.bLevel ] & (MAPELEMENT_EXT_SMOKE|MAPELEMENT_EXT_SIGNAL_SMOKE) )	
+		return TRUE;
 
-	return(FALSE);
+	return InGas(pSoldier,sGridNo);
 }
 
 
@@ -1761,25 +1943,29 @@ INT16 InWaterOrGas(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 		return(TRUE);
 	}
 
-	// tear/mustard gas
-	if((gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_TEARGAS|MAPELEMENT_EXT_MUSTARDGAS)) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
-		return(TRUE);
-	if ( gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_BURNABLEGAS )
-	{
-		return( TRUE );
-	}
-
-	return(FALSE);
+	return (INT16)InGas( pSoldier, sGridNo );
 }
 
 BOOLEAN InGas( SOLDIERTYPE *pSoldier, INT32 sGridNo )
-{
-	// tear/mustard gas
-	if((gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_TEARGAS|MAPELEMENT_EXT_MUSTARDGAS)) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
-		return(TRUE);
-	if ( gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_BURNABLEGAS )
-	{
-		return( TRUE );
+{//WarmSteel - One square away from gas is still considered in gas, because it could expand any moment.
+	//Note: this only works for gas that expands with one tile, but hey it's better than nothing!
+	int iNeighbourGridNo;
+	for(int iDir = 0; iDir < NUM_WORLD_DIRECTIONS; ++iDir)
+ 	{
+		iNeighbourGridNo = sGridNo + DirectionInc(iDir);
+		if(!TileIsOutOfBounds(iNeighbourGridNo))
+		{
+			// tear/mustard gas
+			if((gpWorldLevelData[iNeighbourGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_TEARGAS|MAPELEMENT_EXT_MUSTARDGAS)) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
+			{
+				return(TRUE);
+			}
+			// fire/creature gas
+			if(gpWorldLevelData[iNeighbourGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_BURNABLEGAS|MAPELEMENT_EXT_CREATUREGAS))//dnl ch62 240813
+			{
+				return(TRUE);
+			}
+		}
 	}
 
 	return(FALSE);
@@ -1794,11 +1980,11 @@ BOOLEAN WearGasMaskIfAvailable( SOLDIERTYPE * pSoldier )
 	{
 		return( FALSE );
 	}
-	if ( bSlot == HEAD1POS || bSlot == HEAD2POS )
+	if ( bSlot == HEAD1POS || bSlot == HEAD2POS || bSlot == HELMETPOS )
 	{
 		return( FALSE );
 	}
-	if ( pSoldier->inv[ HEAD1POS ].exists() == false)
+	if ( pSoldier->inv[ HEAD1POS ].exists() == false )
 	{
 		bNewSlot = HEAD1POS;
 	}
@@ -1890,7 +2076,7 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 	 continue;			// next merc
 
 		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != 64)
+		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
 		{
 			continue;	// next opponent
 		}
@@ -2249,6 +2435,7 @@ INT32 CalcManThreatValue( SOLDIERTYPE *pEnemy, INT32 sMyGrid, UINT8 ubReduceForC
 
 INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 {
+	BOOL OppPosKnown = FALSE;
 	if ( CREATURE_OR_BLOODCAT( pSoldier ) )
 	{
 		if ( pSoldier->aiData.bAlertStatus == STATUS_BLACK )
@@ -2269,6 +2456,19 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 		*pusFromGridNo = pSoldier->aiData.sPatrolGrid[0];
 	}
 
+	//Do we know about any opponent?
+	for(UINT16 oppID = 0; oppID < MAX_NUM_SOLDIERS; oppID++)
+	{
+		if ( pSoldier->aiData.bOppList[oppID]  !=  NOT_HEARD_OR_SEEN &&  gbPublicOpplist[pSoldier->bTeam][oppID] != NOT_HEARD_OR_SEEN)
+		{
+			OppPosKnown = TRUE;
+			break;
+		}
+	}
+
+	//TODO: Externalize if people want?
+	BOOL fLessRestrictiveRoaming = TRUE;
+
 	switch (pSoldier->aiData.bOrders)
 	{
 		// JA2 GOLD: give non-NPCs a 5 tile roam range for cover in combat when being shot at
@@ -2281,16 +2481,68 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 										return( 5 );
 									}		
 		case ONGUARD:				return( 5 );
-		case CLOSEPATROL:			return( 15 );
-		case RNDPTPATROL:
-		case POINTPATROL:			return(10 );	 // from nextPatrolGrid, not whereIWas
-		case FARPATROL:				if (pSoldier->aiData.bAlertStatus < STATUS_RED)
+		case CLOSEPATROL:			if (pSoldier->aiData.bAlertStatus < STATUS_RED)
 													{
-														return( 25 );
+														return( 5 );
 													}
 													else
 													{
-														return( 50 );
+														if(!OppPosKnown || !fLessRestrictiveRoaming)
+														{
+															return( 15 );
+														}
+														else
+														{
+															return( 30 );
+															//return( MAX_ROAMING_RANGE );
+														}
+													}
+		case POINTPATROL:			if (pSoldier->aiData.bAlertStatus < STATUS_RED)
+													{
+														return( 10 );
+													}
+													else
+													{
+														if(!OppPosKnown || !fLessRestrictiveRoaming)
+														{
+															return( 20 );
+														}
+														else
+														{
+															return( 40 );
+															//return( MAX_ROAMING_RANGE );
+														}
+													}	 // from nextPatrolGrid, not whereIWas
+		case RNDPTPATROL:			if (pSoldier->aiData.bAlertStatus < STATUS_RED)
+													{
+														return( 10 );
+													}
+													else
+													{
+														if(!OppPosKnown || !fLessRestrictiveRoaming)
+														{
+															return( 20 );
+														}
+														else
+														{
+															//return( 40 );
+															return( MAX_ROAMING_RANGE );
+														}
+													}// from nextPatrolGrid, not whereIWas
+		case FARPATROL:				if (pSoldier->aiData.bAlertStatus < STATUS_RED)
+													{
+														return( 15 );
+													}
+													else
+													{
+														if(!OppPosKnown || !fLessRestrictiveRoaming)
+														{
+															return( 30 );
+														}
+														else
+														{
+															return( MAX_ROAMING_RANGE );
+														}
 													}
 		case ONCALL:					if (pSoldier->aiData.bAlertStatus < STATUS_RED)
 													{
@@ -2298,14 +2550,22 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 													}
 													else
 													{
-														return( 30 );
+														if(!OppPosKnown || !fLessRestrictiveRoaming)
+														{
+															return( 30 );
+														}
+														else
+														{
+															//return(50);
+															return( MAX_ROAMING_RANGE );
+														}
 													}
 		case SEEKENEMY:				*pusFromGridNo = pSoldier->sGridNo; // from current position!
 													return(MAX_ROAMING_RANGE);
 		case SNIPER:				return ( 5 );
 		default:
 #ifdef BETAVERSION
-			sprintf(tempstr,"%s has invalid orders = %d",pSoldier->name,pSoldier->aiData.bOrders);
+			sprintf(tempstr,"%s has invalid orders = %d",pSoldier->GetName(),pSoldier->aiData.bOrders);
 			PopMessage(tempstr);
 #endif
 			return(0);
@@ -2420,6 +2680,12 @@ UINT8 SoldierDifficultyLevel( SOLDIERTYPE * pSoldier )
 		case SOLDIER_CLASS_ELITE_MILITIA:
 			bDifficulty = 4;
 			break;
+
+#ifdef ENABLE_ZOMBIES
+		case SOLDIER_CLASS_ZOMBIE:
+			bDifficulty = bDifficultyBase;
+			break;
+#endif
 
 		default:
 			if (pSoldier->bTeam == CREATURE_TEAM)
@@ -2557,7 +2823,7 @@ void AINumMessage(const STR8	str, INT32 num)
 void AINameMessage(SOLDIERTYPE * pSoldier,const STR8	str,INT32 num)
 {
 	STR tempstr;
-	sprintf( tempstr,"%d %s %d",pSoldier->name , str, num);
+	sprintf( tempstr,"%d %s %d",pSoldier->GetName() , str, num);
 	DebugAI( tempstr );
 }
 #endif
@@ -2569,7 +2835,7 @@ void AINameMessage(SOLDIERTYPE * pSoldier,const STR8	str,INT32 num)
 // friendlies. The idea is to return a value called "TacticalSituation" which can tell a combatant
 // whether he should try to undertake a smarter course of action.
 /////////////////////////////////////////////////////////////////////////////////////////////////
-
+/*
 INT16 AssessTacticalSituation( INT8 bTeam )
 {
 	UINT16 ubFriendlyTeamTacticalValue = 0;
@@ -2651,7 +2917,7 @@ INT16 AssessTacticalSituation( INT8 bTeam )
 
 
 }
-
+*/
 
 // HEADROCK: Function to check whether a team can see the specified soldier.
 BOOLEAN TeamSeesOpponent( INT8 bTeam, SOLDIERTYPE * pOpponent )
@@ -2793,4 +3059,49 @@ INT32 CalcStraightThreatValue( SOLDIERTYPE *pEnemy )
 	}
 
 	return(iThreatValue);
+}
+
+// Flugente: get the id of the closest soldier with a specific flag that we can currently see
+UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 auTeam, UINT32 aFlag )
+{
+	UINT8 id = NOBODY;
+
+	UINT32				uiLoop;
+	BOOLEAN				fRangeRestricted = FALSE, fFound = FALSE;
+	SOLDIERTYPE *		pFriend;
+	INT16				range = aRange;
+
+	// go through each soldier, looking for "friends" (soldiers on same side)
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
+	{
+		pFriend = MercSlots[ uiLoop ];
+
+		// if this merc is inactive, not in sector, or dead
+		if (!pFriend)
+			continue;
+		
+		if ( auTeam != pFriend->bTeam )
+			continue;
+
+		// check for flag
+		if ( !(pFriend->bSoldierFlagMask & aFlag) )
+			continue;
+				
+		// skip ourselves
+		if (pFriend->ubID == pSoldier->ubID)
+			continue;
+				
+		// if we're not already neighbors
+		if (SpacesAway(pSoldier->sGridNo, pFriend->sGridNo) < range)
+		{
+			// can we see this guy?
+			if ( SoldierTo3DLocationLineOfSightTest( pSoldier, pFriend->sGridNo, pSoldier->pathing.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
+			{
+				range = SpacesAway(pSoldier->sGridNo,pFriend->sGridNo);
+				id = pFriend->ubID;
+			}
+		}
+	}
+		
+	return id;
 }

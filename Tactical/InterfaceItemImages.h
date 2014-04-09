@@ -21,16 +21,14 @@ private:
 
 
 extern bool					g_bUsePngItemImages;
+const UINT8					MAX_PITEMS = 20;
 // old item image handles
 extern UINT32				guiGUNSM;
-extern UINT32				guiP1ITEMS;
-extern UINT32				guiP2ITEMS;
-extern UINT32				guiP3ITEMS;
+extern UINT32				guiPITEMS[MAX_PITEMS];
+
 // new item image handles
 extern MDItemVideoObjects	g_oGUNSM;
-extern MDItemVideoObjects	g_oP1ITEMS;
-extern MDItemVideoObjects	g_oP2ITEMS;
-extern MDItemVideoObjects	g_oP3ITEMS;
+extern MDItemVideoObjects	g_oPITEMS[MAX_PITEMS];
 
 bool RegisterItemImages();
 

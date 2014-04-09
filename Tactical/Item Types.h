@@ -4,6 +4,9 @@
 #include "types.h"
 #include <vector>
 #include <list>
+// THE_BOB : added for pocket popup definitions
+#include <map>
+#include "popup_definition.h"
 
 //if the number of slots are ever changed, the loading / saving checksum should use this value to make conversion easier
 #define NUM_ORIGINAL_INV_SLOTS 19
@@ -170,6 +173,9 @@ typedef enum ATTACHMENT_SLOT{
 #define	JARCURS			21
 #define	TINCANCURS	22
 #define REFUELCURS  23
+#define FORTICURS 24
+#define HANDCUFFCURS 25
+#define APPLYITEMCURS 26
 
 #define CAMERARANGE 10
 
@@ -215,6 +221,10 @@ typedef enum
 
 #define GS_CARTRIDGE_IN_CHAMBER				0x01
 #define GS_WEAPON_BEING_RELOADED			0x02
+
+// Flugente: define for maximum temperature
+#define OVERHEATING_MAX_TEMPERATURE			60000.0f
+#define DIRT_MIN_TO_CLEAN					10.0f		// minimum dirt until we consider cleaning (as weapons constantly get dirtier, this prevents a gun from being constantly cleaned)
 
 //forward declaration
 class OBJECTTYPE;
@@ -263,6 +273,20 @@ extern	std::list<LBENODE>	LBEArray;
 //do not alter or saves will break, create new defines if the size changes
 #define OLD_MAX_ATTACHMENTS_101 4
 #define OLD_MAX_OBJECTS_PER_SLOT_101 8
+
+// HEADROCK HAM 5: Define Self-Transformations
+// Have to define this early on, because this struct is used in OBJECTTYPE
+#define MAX_NUM_TRANSFORMATION_RESULTS 10
+
+typedef struct
+{
+	UINT16 usItem;
+	UINT16 usResult[MAX_NUM_TRANSFORMATION_RESULTS];
+	UINT16 usAPCost;
+	INT32 iBPCost;
+	CHAR16 szMenuRowText[50];
+	CHAR16 szTooltipText[300];
+} TransformInfoStruct;
 
 namespace Version101
 {
@@ -444,8 +468,28 @@ public:
 	INT8		bTrap;			// 1-10 exp_lvl to detect
 	UINT8		fUsed;			// flags for whether the item is used or not
 	UINT8		ubImprintID;	// ID of merc that item is imprinted on
-};
 
+	// Flugente: due do inconsistencies with WF maps, where data from a map is laoded differently, I had to add this marker. 
+	// New values, like bTemperature, have to come after this. And please, don't destroy ObjectData's POD-ness.
+	char		endOfPOD;
+
+	// these variables should belong to a different position. However, I am forced to put them here, otherwise loading of WF maps and other old data would not work properly
+	FLOAT		bTemperature;	// Flugente FTW 1.2: temperature of gun
+
+	// should belong to misc, but was moved here because of the old maps issue
+	// added by Flugente 12-04-15
+	UINT8		ubDirection;		// direction the bomb faces (for directional explosives)
+	UINT32		ubWireNetworkFlag;	// flags for the tripwire network
+	INT8		bDefuseFrequency;	// frequency for defusing, >=0 values used only
+
+	// Flugente: advanced repair/dirt system
+	INT16		sRepairThreshold;	// repair only possible up to this value
+	FLOAT		bDirtLevel;			// counter for how dirty a gun is
+
+	UINT64		sObjectFlag;		// used to notify of various states that apply to this object, but not the item in general
+};
+// Flugente: needed for reading WF maps
+#define SIZEOF_OBJECTDATA_POD	(offsetof(ObjectData, endOfPOD))
 
 typedef	std::list<OBJECTTYPE>	attachmentList;
 class StackedObjectData  {
@@ -519,6 +563,8 @@ public:
 	BOOLEAN AttachObjectOAS( SOLDIERTYPE * pSoldier, OBJECTTYPE * pAttachment, BOOLEAN playSound = TRUE, UINT8 subObject = 0);
 	BOOLEAN AttachObjectNAS( SOLDIERTYPE * pSoldier, OBJECTTYPE * pAttachment, BOOLEAN playSound = TRUE, UINT8 subObject = 0, INT32 iItemPos = -1, BOOLEAN fRemoveProhibited = TRUE, std::vector<UINT16> usAttachmentSlotIndexVector = std::vector<UINT16>());
 	BOOLEAN RemoveAttachment( OBJECTTYPE* pAttachment, OBJECTTYPE * pNewObj = NULL, UINT8 subObject = 0, SOLDIERTYPE * pSoldier = NULL, BOOLEAN fForceInseperable = FALSE, BOOLEAN fRemoveProhibited = TRUE);
+	// HEADROCK HAM 5: Object Transformation
+	BOOLEAN TransformObject( SOLDIERTYPE * pSoldier, UINT8 ubStatusIndex, TransformInfoStruct * Transform, OBJECTTYPE *pParent );
 
 	//see comments in .cpp
 	static	void DeleteMe(OBJECTTYPE** ppObject);
@@ -575,6 +621,7 @@ extern OBJECTTYPE gTempObject;
 
 #define IC_MISC						0x10000000
 #define IC_MONEY					0x20000000
+#define IC_RANDOMITEM				0x40000000	// added by Flugente for random items
 
 // PARENT TYPES
 #define IC_WEAPON					( IC_GUN | IC_BLADE | IC_THROWING_KNIFE | IC_LAUNCHER | IC_TENTACLES )
@@ -583,39 +630,248 @@ extern OBJECTTYPE gTempObject;
 #define IC_BOBBY_GUN			( IC_GUN | IC_LAUNCHER )
 #define IC_BOBBY_MISC			( IC_GRENADE | IC_BOMB | IC_MISC | IC_MEDKIT | IC_KIT | IC_BLADE | IC_THROWING_KNIFE | IC_PUNCH | IC_FACE | IC_LBEGEAR )
 
+// HEADROCK HAM 5: Inventory Filter Types
+#define IC_MAPFILTER_GUN		( IC_GUN | IC_LAUNCHER )
+#define IC_MAPFILTER_AMMO		( IC_AMMO )
+#define IC_MAPFILTER_EXPLOSV	( IC_GRENADE | IC_BOMB )
+#define IC_MAPFILTER_MELEE		( IC_BLADE | IC_PUNCH | IC_THROWN | IC_THROWING_KNIFE )
+#define IC_MAPFILTER_KIT		( IC_KIT | IC_MEDKIT | IC_APPLIABLE )
+#define IC_MAPFILTER_LBE		( IC_LBEGEAR | IC_BELTCLIP )
+#define IC_MAPFILTER_ARMOR		( IC_ARMOUR | IC_FACE )
+#define IC_MAPFILTER_MISC		( IC_TENTACLES | IC_KEY | IC_MISC | IC_MONEY | IC_NONE )
+#define IC_MAPFILTER_ALL		( IC_MAPFILTER_GUN | IC_MAPFILTER_AMMO | IC_MAPFILTER_EXPLOSV | IC_MAPFILTER_MELEE | IC_MAPFILTER_KIT | IC_MAPFILTER_LBE | IC_MAPFILTER_ARMOR | IC_MAPFILTER_MISC )
+
+// redesigned by Flugente on 12-04-10
 // Chrisl: Define attachment classes
-#define AC_DEFAULT1		0x00000001	//1
-#define AC_BARREL		0x00000002	//2
+#define AC_BIPOD		0x00000001	//1
+#define AC_MUZZLE		0x00000002	//2
 #define AC_LASER		0x00000004	//4
 #define AC_SIGHT		0x00000008	//8
 #define AC_SCOPE		0x00000010	//16
 #define AC_STOCK		0x00000020	//32
-#define AC_AMMO			0x00000040	//64
+#define AC_MAGWELL   	0x00000040	//64
 #define AC_INTERNAL		0x00000080	//128
 #define AC_EXTERNAL		0x00000100	//256
 #define AC_UNDERBARREL	0x00000200	//512
 #define AC_GRENADE		0x00000400	//1024
 #define AC_ROCKET		0x00000800	//2048
-#define AC_MISC1		0x00001000	//4096
-#define AC_MISC2		0x00002000	//8192
-#define AC_MISC3		0x00004000	//16384
-#define AC_MISC4		0x00008000	//32768
-#define AC_MISC5		0x00010000	//65536
-#define AC_MISC6		0x00020000	//131072
-#define AC_MISC7		0x00040000	//262144
-#define AC_MISC8		0x00080000	//524288
-#define AC_MISC9		0x00100000	//1048576
-#define AC_MISC10		0x00200000	//2097152
-#define AC_MISC11		0x00400000	//4194304
-#define AC_MISC12		0x00800000	//8388608
-#define AC_MISC13		0x01000000	//16777216
-#define AC_MISC14		0x02000000	//33554432
-#define AC_MISC15		0x04000000	//67108864
+#define AC_FOREGRIP		0x00001000	//4096
+#define AC_HELMET       0x00002000	//8192
+#define AC_VEST 		0x00004000	//16384
+#define AC_PANTS		0x00008000	//32768
+#define AC_DETONATOR    0x00010000	//65536
+#define AC_BATTERY      0x00020000	//131072
+#define AC_EXTENDER		0x00040000	//262144
+#define AC_SLING		0x00080000	//524288			// rifle sling
+#define AC_REMOTEDET    0x00100000	//1048576			// remote detonator for bombs
+#define AC_DEFUSE		0x00200000	//2097152			// defuse item for bombs
+#define AC_IRONSIGHT	0x00400000	//4194304			// for attachable Iron Sights
+#define AC_FEEDER		0x00800000	//8388608			// allow external feeding
+#define AC_MODPOUCH		0x01000000	//16777216			// for new modular pouches
+#define AC_RIFLEGRENADE	0x02000000	//33554432			// GL, needs a bullet and blocks other firing modes
+#define AC_BAYONET		0x04000000	//67108864
 #define AC_MISC16		0x08000000	//134217728
 #define AC_MISC17		0x10000000	//268435456
 #define AC_MISC18		0x20000000	//536870912
 #define AC_MISC19		0x40000000	//1073741824
 #define AC_MISC20		0x80000000	//2147483648
+
+// -------- added by Flugente: flags for tripwire networks --------
+// the numbering of these flags is important. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+// these flags were revised on 2012-9-2
+// it is theoretically possible to have much more than the currently existing 4 networks, and to have many more hierarchy levels
+// however, at the moment, there is no need for that
+#define TRIPWIRE_NETWORK_OWNER_ENEMY		0x00000001	//1			// this wire belongs to an enemy network
+#define TRIPWIRE_NETWORK_OWNER_PLAYER		0x00000002	//2			// this wire was set by the player
+//#define TRIPWIRE_NETWORK_OWNER_PLAYER		0x00000004	//4			// unused, might one day be used in multiplayer or with several factions
+//#define TRIPWIRE_NETWORK_OWNER_PLAYER		0x00000008	//8			// unused, might one day be used in multiplayer or with several factions
+
+#define TRIPWIRE_NETWORK_NET_1				0x00000010	//16		// network number  of the wire
+#define TRIPWIRE_NETWORK_NET_2				0x00000020	//32
+#define TRIPWIRE_NETWORK_NET_3   			0x00000040	//64
+#define TRIPWIRE_NETWORK_NET_4				0x00000080	//128
+
+/*#define ENEMY_NET_1_LVL_3		0x00000100	//256
+#define ENEMY_NET_2_LVL_3		0x00000200	//512
+#define ENEMY_NET_3_LVL_3		0x00000400	//1024
+#define ENEMY_NET_4_LVL_3		0x00000800	//2048
+
+#define TRIPWIRE_NETWORK_LVL_1				0x00001000	//4096		// hierarchy level of the wire
+#define TRIPWIRE_NETWORK_LVL_2				0x00002000	//8192
+#define TRIPWIRE_NETWORK_LVL_3 				0x00004000	//16384
+#define TRIPWIRE_NETWORK_LVL_4				0x00008000	//32768
+
+#define PLAYER_NET_1_LVL_1		0x00010000	//65536
+#define PLAYER_NET_2_LVL_1      0x00020000	//131072
+#define PLAYER_NET_3_LVL_1		0x00040000	//262144
+#define PLAYER_NET_4_LVL_1		0x00080000	//524288*/
+
+// WARNING! It is important that the flags with the highest numbers are the hierarchy flags!
+// This allows for a very simple check on wether a wire gets called
+// keep this in mind when adding additional flags!
+#define TRIPWIRE_NETWORK_LVL_1				0x00100000	//1048576	// hierarchy level of the wire
+#define TRIPWIRE_NETWORK_LVL_2				0x00200000	//2097152
+#define TRIPWIRE_NETWORK_LVL_3				0x00400000	//4194304
+#define TRIPWIRE_NETWORK_LVL_4				0x00800000	//8388608
+
+#define ARTILLERY_STRIKE_COUNT_1			0x01000000	//16777216
+#define ARTILLERY_STRIKE_COUNT_2			0x02000000	//33554432
+#define ARTILLERY_STRIKE_COUNT_4			0x04000000	//67108864
+/*#define TRIPWIRE_NETWORK_LVL_4		0x08000000	//134217728
+
+#define PLAYER_NET_1_LVL_4		0x10000000	//268435456
+#define PLAYER_NET_2_LVL_4		0x20000000	//536870912
+#define PLAYER_NET_3_LVL_4		0x40000000	//1073741824
+#define PLAYER_NET_4_LVL_4		0x80000000	//2147483648*/
+// ----------------------------------------------------------------
+
+#define ANY_ARTILLERY_FLAG	(ARTILLERY_STRIKE_COUNT_1|ARTILLERY_STRIKE_COUNT_2|ARTILLERY_STRIKE_COUNT_4)
+
+// -------- added by Flugente: various item flags --------
+// flags used for various item properties (easier than adding 32 differently named variables). DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+// note that these should not be used to determine what kind of an attachment an item is, that is determined by attachmentclass and the AC_xxx flags above
+#define EMPTY_SANDBAG			0x00000001	//1
+#define FULL_SANDBAG			0x00000002	//2
+#define SHOVEL					0x00000004	//4			// a shovel is used for filling sandbags and other building-related tasks
+#define CONCERTINA				0x00000008	//8
+
+#define WATER_DRUM				0x00000010	//16		// water drums allow to refill canteens in the sector they are in
+#define MEAT_BLOODCAT			0x00000020	//32		// retrieve this by gutting a bloodcat
+#define COW_MEAT   				0x00000040	//64		// retrieve this by gutting a cow
+#define BELT_FED				0x00000080	//128		// item can be fed externally
+
+#define AMMO_BELT				0x00000100	//256		// this item can be used to feed externally
+#define AMMO_BELT_VEST			0x00000200	//512		// this is a vest that can contain AMMO_BELT items in its medium slots
+#define CAMO_REMOVAL			0x00000400	//1024		// item can be used to remove camo
+#define CLEANING_KIT			0x00000800	//2048		// weapon cleaning kit
+
+#define ATTENTION_ITEM			0x00001000	//4096		// this item is 'interesting' to the AI. Dumb soldiers may try to pick it up
+#define GAROTTE					0x00002000	//8192		// this item is a garotte
+#define COVERT 					0x00004000	//16384		// if LBE, any gun inside will be covert. On a gun, it will be covert in any LBE, even if the LBE does not have that tag itself
+#define CORPSE					0x00008000	//32768		// a dead body
+
+#define SKIN_BLOODCAT			0x00010000	//65536		// retrieve this by skinning (=decapitating) a bloodcat
+#define NO_METAL_DETECTION      0x00020000	//131072	// a planted bomb with this flag can NOT be detected via metal detector. Use sparingly!
+#define JUMP_GRENADE			0x00040000	//262144	// add +25 heigth to explosion, used for bouncing grenades and jumping mines
+#define HANDCUFFS				0x00080000	//524288	// item can be used to capture soldiers
+
+#define TASER					0x00100000	//1048576	// item is a taser, melee hits with this will drain breath (if batteries are supplied)
+#define SCUBA_BOTTLE			0x00200000	//2097152	// item is a scuba gear air bottle
+#define SCUBA_MASK				0x00400000	//4194304	// item is a scuba gear breathing mask
+#define SCUBA_FINS				0x00800000	//8388608	// this item speed up swimming, but slows walking and running
+
+#define TRIPWIREROLL			0x01000000	//16777216	// this item is a tripwire roll
+#define RADIO_SET				0x02000000	//33554432	// item can be used to radio militia/squads in other sectors
+#define SIGNAL_SHELL			0x04000000	//67108864	// this is a signal shell that precedes artillery barrages
+#define POWER_PACK				0x08000000	//134217728	// item continously powers an item it is attached to
+
+#define SPOTTERITEM				0x10000000	//268435456	// binocular
+/*#define PLAYER_NET_2_LVL_4		0x20000000	//536870912
+#define PLAYER_NET_3_LVL_4		0x40000000	//1073741824
+#define PLAYER_NET_4_LVL_4		0x80000000	//2147483648*/
+// ----------------------------------------------------------------
+
+// -------- added by Flugente: flags for objects --------
+// the numbering of these flags is important. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+#define CORPSE_M_SMALL			0x00000001	//1
+#define CORPSE_M_BIG			0x00000002	//2
+#define CORPSE_F				0x00000004	//4
+#define CORPSE_NO_HEAD			0x00000008	//8
+
+#define CORPSE_HAIR_BROWN		0x00000010	//16
+#define CORPSE_HAIR_BLACK		0x00000020	//32
+#define CORPSE_HAIR_WHITE   	0x00000040	//64
+#define CORPSE_HAIR_BLOND		0x00000080	//128
+
+#define CORPSE_NO_ZOMBIE_RISE	0x00000100	//256		// no zombie can rise from this corpse
+#define CORPSE_SKIN_PINK		0x00000200	//512
+#define CORPSE_SKIN_TAN			0x00000400	//1024
+#define CORPSE_SKIN_DARK		0x00000800	//2048
+
+#define CORPSE_SKIN_BLACK		0x00001000	//4096
+#define CORPSE_VEST_BROWN       0x00002000	//8192
+#define CORPSE_VEST_grey 		0x00004000	//16384
+#define CORPSE_VEST_GREEN		0x00008000	//32768
+
+#define CORPSE_VEST_JEAN		0x00010000	//65536
+#define CORPSE_VEST_RED			0x00020000	//131072
+#define CORPSE_VEST_BLUE		0x00040000	//262144
+#define CORPSE_VEST_YELLOW		0x00080000	//524288
+
+#define CORPSE_VEST_WHITE		0x00100000	//1048576
+#define CORPSE_VEST_BLACK		0x00200000	//2097152
+#define CORPSE_VEST_GYELLOW		0x00400000	//4194304
+#define CORPSE_VEST_PURPLE		0x00800000	//8388608
+
+#define CORPSE_PANTS_GREEN		0x01000000	//16777216
+#define CORPSE_PANTS_JEAN		0x02000000	//33554432
+#define CORPSE_PANTS_TAN		0x04000000	//67108864
+#define CORPSE_PANTS_BLACK		0x08000000	//134217728
+
+#define CORPSE_PANTS_BLUE		0x10000000	//268435456
+#define CORPSE_PANTS_BEIGE		0x20000000	//536870912
+#define CORPSE_NO_VEST			0x40000000	//1073741824		// corpse has no vest item (it has been either taken or been destroyed)
+#define CORPSE_NO_PANTS			0x80000000	//2147483648		// corpse has no pants item/for tripwire activation (gets set and unset when activating tripwire)
+
+#define TRIPWIRE_ACTIVATED		0x0000000100000000	//		 4294967296
+#define TAKEN_BY_MILITIA		0x0000000200000000	//		 8589934592
+#define TAKEN_BY_MILITIA_TABOO_GREEN		0x0000000400000000	//		17179869184		// this item is taboo for green militia (have to reset flag for world item upon dropping it)
+#define TAKEN_BY_MILITIA_TABOO_BLUE			0x0000000800000000	//		34359738368		// this item is taboo for blue militia (have to reset flag for world item upon dropping it)
+
+// Flugente TODO 2012-09-17: next time we break savegame compatibility, extend the flagmasks from UINT32 to UINT64. I didn't do it this time (see double-used flag above), as we try to minimise those breaks. But it is needed.
+// ----------------------------------------------------------------
+
+// -------- added by Flugente: flags for action items --------
+// the numbering of these flags is important. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
+// these flags are supposed to be given to items that are used with action items. When an object is created from these action items, various object properties are set depending on this
+// for example, directional explosive mines have to get their direction from this, as there is no way to specify this in the editor. Even if there was, there are no varaibles to store this information
+// adding variables to the existing structure is unadvisable, as it would break too many existing structures.
+// note: it will be assumed that tripwire placed via the editor is of enemy networks, so there is no flag for that
+#define ITEM_TRIPWIRE_NETWORK_NET_1		0x00000001	//1			// network number  of the wire
+#define ITEM_TRIPWIRE_NETWORK_NET_2		0x00000002	//2
+#define ITEM_TRIPWIRE_NETWORK_NET_3		0x00000004	//4
+#define ITEM_TRIPWIRE_NETWORK_NET_4		0x00000008	//8
+
+#define ITEM_TRIPWIRE_NETWORK_LVL_1		0x00000010	//16		// hierarchy level of the wire
+#define ITEM_TRIPWIRE_NETWORK_LVL_2		0x00000020	//32
+#define ITEM_TRIPWIRE_NETWORK_LVL_3   	0x00000040	//64
+#define ITEM_TRIPWIRE_NETWORK_LVL_4		0x00000080	//128
+
+#define ITEM_DIRECTION_NORTH			0x00000100	//256		// direction for directional exxplosives (claymore etc.)
+#define ITEM_DIRECTION_NORTHEAST		0x00000200	//512
+#define ITEM_DIRECTION_EAST				0x00000400	//1024
+#define ITEM_DIRECTION_SOUTHEAST		0x00000800	//2048
+
+#define ITEM_DIRECTION_SOUTH			0x00001000	//4096
+#define ITEM_DIRECTION_SOUTHWEST		0x00002000	//8192
+#define ITEM_DIRECTION_WEST 			0x00004000	//16384
+#define ITEM_DIRECTION_NORTHWEST		0x00008000	//32768
+
+/*#define PLAYER_NET_1_LVL_1		0x00010000	//65536
+#define PLAYER_NET_2_LVL_1      0x00020000	//131072
+#define PLAYER_NET_3_LVL_1		0x00040000	//262144
+#define PLAYER_NET_4_LVL_1		0x00080000	//524288
+
+#define TRIPWIRE_NETWORK_LVL_1				0x00100000	//1048576	// hierarchy level of the wire
+#define TRIPWIRE_NETWORK_LVL_2				0x00200000	//2097152
+#define TRIPWIRE_NETWORK_LVL_3				0x00400000	//4194304
+#define TRIPWIRE_NETWORK_LVL_4				0x00800000	//8388608
+
+/*#define TRIPWIRE_NETWORK_LVL_1		0x01000000	//16777216
+#define TRIPWIRE_NETWORK_LVL_2		0x02000000	//33554432
+#define TRIPWIRE_NETWORK_LVL_3		0x04000000	//67108864
+#define TRIPWIRE_NETWORK_LVL_4		0x08000000	//134217728
+
+#define PLAYER_NET_1_LVL_4		0x10000000	//268435456
+#define PLAYER_NET_2_LVL_4		0x20000000	//536870912
+#define PLAYER_NET_3_LVL_4		0x40000000	//1073741824
+#define PLAYER_NET_4_LVL_4		0x80000000	//2147483648*/
+
+#define ITEM_TRIPWIRE_ANY				0x000000FF
+#define ITEM_DIRECTION_ANY				0x0000FF00
+// ----------------------------------------------------------------
+
+
 
 // replaces candamage
 //#define ITEM_DAMAGEABLE			0x0001
@@ -679,8 +935,12 @@ extern OBJECTTYPE gTempObject;
 typedef struct
 {
 	UINT32		usItemClass;
-	UINT32		nasAttachmentClass;	//CHRISL: Identify the class of attachment
-	UINT32		nasLayoutClass;
+	UINT64		nasAttachmentClass;	//CHRISL: Identify the class of attachment 
+	UINT64		nasLayoutClass;
+//Madd: Common Attachment Framework:  attach items based on matching connection points rather than using the old long attachmentinfo method
+	UINT64		ulAvailableAttachmentPoint; 
+	UINT64		ulAttachmentPoint; 
+	UINT8		ubAttachToPointAPCost; // cost to attach to any matching point
 	UINT16			ubClassIndex;
 	UINT8			ubCursor;
 	INT8			bSoundType;
@@ -688,7 +948,7 @@ typedef struct
 	UINT16			ubGraphicNum;
 	UINT16			ubWeight; //2 units per kilogram; roughly 1 unit per pound
 	UINT8			ubPerPocket;
-	UINT8			ItemSize;
+	UINT16			ItemSize;
 	UINT16		usPrice;
 	UINT8			ubCoolness;
 	INT8			bReliability;
@@ -714,7 +974,11 @@ typedef struct
 	BOOLEAN defaultundroppable;
 	BOOLEAN unaerodynamic;
 	BOOLEAN electronic;
-	BOOLEAN inseparable;
+	UINT8 inseparable; //Madd:Normally, an inseparable attachment can never be removed.  
+						//But now we will make it so that these items can be replaced, but still not removed directly.
+						//0 = removeable (as before)
+						//1 = inseparable (as before)
+						//2 = inseparable, but replaceable
 
 	CHAR16 szLongItemName[80];
 	CHAR16 szItemDesc[400];
@@ -731,12 +995,12 @@ typedef struct
 	BOOLEAN gasmask;
 	BOOLEAN lockbomb;
 	BOOLEAN flare;
-	BOOLEAN ammocrate;
 	INT16 percentnoisereduction;
 	INT16 bipod;
 	INT16 tohitbonus;
 	INT16 bestlaserrange;
 	INT16 rangebonus;
+	INT16 percentrangebonus;
 	INT16 aimbonus;
 	INT16 minrangeforaimbonus;
 	INT16 percentapreduction;
@@ -780,7 +1044,7 @@ typedef struct
 	BOOLEAN robotremotecontrol;
 	BOOLEAN camouflagekit;
 	BOOLEAN locksmithkit;
-	BOOLEAN mine;
+	BOOLEAN mine;	
 	BOOLEAN alcohol;
 	BOOLEAN hardware;
 	BOOLEAN medical;
@@ -835,15 +1099,91 @@ typedef struct
 	INT16 aimlevelsmodifier[3];
 	// HEADROCK HAM 4: New modifiers that do not require a stance array, since they affect the gun objectively, not
 	// subjectively.
-	INT16 RecoilModifierX;
-	INT16 RecoilModifierY;
+	FLOAT RecoilModifierX;
+	FLOAT RecoilModifierY;
 	INT16 PercentRecoilModifier;
 	INT16 percentaccuracymodifier;
 	FLOAT scopemagfactor;
 	FLOAT projectionfactor;
 	BOOLEAN speeddot;
 
+	// Flugente
+	BOOLEAN	barrel;									// item can be used on some guns as an exchange barrel
+	FLOAT	usOverheatingCooldownFactor;			// every turn/5 seconds, a gun's temperature is lowered by this amount
+	FLOAT	overheatTemperatureModificator;			// percentage modifier of heat a shot generates (read from attachments)
+	FLOAT	overheatCooldownModificator;			// percentage modifier of cooldown amount (read from attachments, applies to guns & barrels)
+	FLOAT	overheatJamThresholdModificator;		// percentage modifier of a gun's jam threshold (read from attachments)
+	FLOAT	overheatDamageThresholdModificator;		// percentage modifier of a gun's damage threshold (read from attachments)
+
+	UINT32	attachmentclass;						// attachmentclass used
+
+	BOOLEAN tripwireactivation;						// item (mine) can be activated by nearby tripwire
+	BOOLEAN tripwire;								// item is tripwire
+	BOOLEAN	directional;							// item is a directional mine/bomb (actual direction is set upon planting)
+	
+	UINT32	drugtype;								// this flagmask determines what different components are used in a drug, which results in different effects
+
+	BOOLEAN blockironsight;							// if a gun or any attachment have this property, the iron sight won't be usable (if there is at least one other usable sight)
+
+	// Flugente poison system
+	INT16	bPoisonPercentage;
+
+	UINT32	usItemFlag;								// bitflags to store various item properties (better than introducing 32 BOOLEAN values). If I only had thought of this earlier....
+
+	// Flugente: food type
+	UINT32	foodtype;
+
+	//JMich_SkillModifiers: Adding new skill modifiers
+	INT8	LockPickModifier;
+	UINT8	CrowbarModifier;
+	UINT8	DisarmModifier;
+	INT8	RepairModifier;
+
+	// Flugente: advanced repair/dirt system
+	UINT8	usDamageChance;							// chance that damage to the status will also damage the repair threshold
+	FLOAT	dirtIncreaseFactor;						// one shot causes this much dirt on a gun
+
+	// Flugente: a flag that is necessary for transforming action items to objects with new abilities (for now, tripwire networks and directional explosives)
+	UINT32	usActionItemFlag;
+
+	// Flugente: clothes type that 'links' to an entry in Clothes.xml
+	UINT32	clothestype;
+
+	// Flugente: a link to RandomItemsClass.xml. Out of such an item, a random object is created, depending on the entries in the xml
+	UINT16	randomitem;
+	INT8	randomitemcoolnessmodificator;		// alters the allowed maximum coolness a random item can have
+
+	// Flugente: range of a flashlight (an item with usFlashLightRange > 0 is deemed a flashlight)
+	UINT8	usFlashLightRange;
+
+	// Flugente: determine wether the AI should pick this item for its choices only at certain times
+	UINT8	usItemChoiceTimeSetting;
+
+	// Flugente: item is connected to another item. Type of connection depends on item specifics
+	UINT16	usBuddyItem;
+
+	// silversurfer: item provides breath regeneration bonus while resting
+	UINT8	ubSleepModifier;
+
+	// Flugente: spoting effectiveness
+	INT16	usSpotting;
+
 } INVTYPE;
+
+
+// Flugente: move this to a better position
+typedef struct RANDOM_ITEM_CHOICE_TYPE
+{
+	UINT16		uiIndex;
+	//CHAR16		szName[80];					// name of this choice (not used ingame, only for readability)
+	UINT16		randomitem[10];				// room to link to other random item choices
+	UINT16		item[10];					// room for up to 10 items
+
+} RANDOM_ITEM_CHOICE_TYPE;
+
+#define RANDOM_ITEM_MAX_CATEGORIES 1000
+
+extern RANDOM_ITEM_CHOICE_TYPE gRandomItemClass[RANDOM_ITEM_MAX_CATEGORIES];
 
 // CHRISL: Added new structures to handle LBE gear and the two new XML files that will be needed to deal
 // with the IC pockets and the new inventory system.
@@ -858,8 +1198,12 @@ public:
 	UINT32			lbeClass;
 	UINT32			lbeCombo;
 	UINT8			lbeFilledSize;
+	//DBrot: MOLLE
+	UINT8			lbeAvailableVolume;
+	UINT16			lbePocketsAvailable;
 	char			POD;
 	std::vector<UINT8>	lbePocketIndex;
+
 };
 #define SIZEOF_LBETYPE offsetof( LBETYPE, POD )
 extern std::vector<LBETYPE> LoadBearingEquipment;
@@ -870,7 +1214,7 @@ typedef enum eLBE_CLASS	// Designation of lbeClass
 	COMBAT_PACK,
 	BACKPACK,
 	LBE_POCKET,
-	OTHER_POCKET
+	OTHER_POCKET,
 };
 
 
@@ -885,11 +1229,17 @@ public:
 	UINT8			pSilhouette;
 	UINT16			pType;
 	UINT32			pRestriction;
+	//DBrot: MOLLE
+	UINT8			pVolume;
 	char			POD;
 	std::vector<UINT8>	ItemCapacityPerSize;
 };
 #define SIZEOF_POCKETTYPE offsetof( POCKETTYPE, POD )
 extern std::vector<POCKETTYPE> LBEPocketType;
+
+// THE_BOB : added for pocket popup definitions
+extern std::map<UINT8,popupDef> LBEPocketPopup;
+
 typedef enum ePOCKET_TYPE
 {
 	NO_POCKET_TYPE = 0,
@@ -904,7 +1254,11 @@ typedef enum ePOCKET_TYPE
 #define FIRST_ARMOUR 161
 #define FIRST_MISC 201
 #define FIRST_KEY 271
-
+#ifdef JA2EDITOR
+#define OLD_MAXITEMS 351//dnl ch74 191013
+#else
+#define OLD_MAXITEMS MAXITEMS
+#endif
 #define NOTHING NONE
 typedef enum
 {
@@ -1091,6 +1445,10 @@ typedef enum
 	SMALL_CREATURE_GAS,
 	LARGE_CREATURE_GAS,
 	VERY_SMALL_CREATURE_GAS=270, // Renumbered because the original 160 was lost
+	SMALL_SMOKE=1702,			//	sevenfm - item for small smoke effect after explosion
+	MOLOTOV_EXPLOSION=979,				//	molotov - small fire explosion
+	GAS_EXPLOSION=1703,				//	molotov - small fire explosion
+	FRAG_EXPLOSION=1704,				//	molotov - small fire explosion
 
 	// armor
 	FLAK_JACKET=161,					//= FIRST_ARMOUR, ( We're out of space! )
@@ -1307,7 +1665,7 @@ typedef enum
 	DEFAULT_CPACK = 442,
 	DEFAULT_BPACK = 448,
 
-	MAXITEMS = 5001
+	MAXITEMS = 16001
 } ITEMDEFINE;
 
 /* CHRISL: Arrays to track ic group information.  These allow us to determine which LBE slots control which pockets and
@@ -1330,15 +1688,15 @@ const INT8	vehicleInv[NUM_INV_SLOTS]=	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 // Determines the default pocket
 const INT16	icDefault[NUM_INV_SLOTS] =	{
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	DEFAULT_CPACK, DEFAULT_CPACK, DEFAULT_CPACK,
-	DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK,
-	DEFAULT_VEST, DEFAULT_VEST,
-	DEFAULT_THIGH, DEFAULT_THIGH,
-	DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST,
-	DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH,
-	DEFAULT_CPACK, DEFAULT_CPACK, DEFAULT_CPACK, DEFAULT_CPACK,
-	DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK};
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,//0-13
+	DEFAULT_CPACK, DEFAULT_CPACK, DEFAULT_CPACK,//14,15,16
+	DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK,//17,18,19,20
+	DEFAULT_VEST, DEFAULT_VEST,//21,22
+	DEFAULT_THIGH, DEFAULT_THIGH,//23,24
+	DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST, DEFAULT_VEST,//24-34
+	DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH, DEFAULT_THIGH,//35-42
+	DEFAULT_CPACK, DEFAULT_CPACK, DEFAULT_CPACK, DEFAULT_CPACK,//43,44,45,46
+	DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK, DEFAULT_BPACK};//47+
 
 #define FIRST_HELMET STEEL_HELMET
 #define LAST_HELMET SPECTRA_HELMET_Y
@@ -1362,12 +1720,14 @@ typedef struct
 {
 	UINT16	uiSlotIndex;
 	CHAR16	szSlotName[200];
-	UINT32	nasAttachmentClass;
-	UINT128	nasLayoutClass;
+	UINT64	nasAttachmentClass;
+	UINT64	nasLayoutClass;
 	UINT16	usDescPanelPosX;
 	UINT16	usDescPanelPosY;
 	BOOLEAN	fMultiShot;
 	BOOLEAN	fBigSlot;
+	//DBrot: MOLLE
+	UINT8	ubPocketMapping;
 } AttachmentSlotStruct;
 
 extern AttachmentSlotStruct AttachmentSlots[MAXITEMS+1]; 
@@ -1402,7 +1762,7 @@ typedef struct
 	UINT32	uiIndex;
 } AttachmentInfoStruct;
 
-extern AttachmentInfoStruct AttachmentInfo[MAXITEMS+1]; 
+extern AttachmentInfoStruct AttachmentInfo[MAXITEMS+1];
 
 extern UINT16 Launchable[MAXITEMS+1][2];
 extern UINT16 CompatibleFaceItems[MAXITEMS+1][2];
@@ -1413,11 +1773,17 @@ typedef enum
 	DESTRUCTION,
 	COMBINE_POINTS,
 	TREAT_ARMOUR,
-	EXPLOSIVE,
+	EXPLOSIVE_MERGE_HARD, //Madd: renamed to hard
 	EASY_MERGE,
 	ELECTRONIC_MERGE,
 	USE_ITEM,
-	USE_ITEM_HARD
+	USE_ITEM_HARD,
+	TEMPERATURE,
+	EXPLOSIVE_MERGE_EASY, //Madd: new merge types
+	MECHANICAL_MERGE_EASY,
+	MECHANICAL_MERGE_HARD,
+	TRIPWIRE_ROLL,
+	USE_ITEM_NEW,
 } MergeType;
 
 extern UINT16 Merge[MAXITEMS+1][6];
@@ -1425,10 +1791,13 @@ extern UINT16 Merge[MAXITEMS+1][6];
 typedef struct
 {
 	UINT16	usItem;
-	UINT16	usAttachment[2];
+	UINT16	usAttachment[MAX_DEFAULT_ATTACHMENTS]; //Madd: extended from 2 to 20, being lazy with constant reuse :p
 	UINT16	usResult;
 	UINT32  uiIndex;
 } ComboMergeInfoStruct;
+
+// HEADROCK HAM 5: Defining this here because we need MAXITEMS. The struct is defined earlier.
+extern TransformInfoStruct Transform[MAXITEMS+1];
 
 extern ComboMergeInfoStruct AttachmentComboMerge[MAXITEMS+1];
 BOOLEAN EXPLOSIVE_GUN(UINT16 x );
@@ -1497,7 +1866,29 @@ enum
 	IMP_TEACHING_EXP,
 	IMP_LOCKPICKING_EXP,
 
+	// Flugente: added covert ops
+	IMP_COVERT,
+	IMP_COVERT_EXP,
+
+	// Flugente: added radio operator
+	IMP_RADIO_OPERATOR,
+
 	MAX_IMP_ITEM_TYPES
+};
+
+// sevenfm: types for quick items
+enum
+{
+	INV_ITEM_TYPE_UNKNOWN = 0,
+	INV_ITEM_TYPE_HTH = -1,
+	INV_ITEM_TYPE_MELEE = -2,
+	INV_ITEM_TYPE_TASER = -3,
+	INV_ITEM_TYPE_HANDCUFFS = -4,
+	INV_ITEM_TYPE_SIDEARM = -5,
+	INV_ITEM_TYPE_FIRSTAID = -6,
+	INV_ITEM_TYPE_BINOCULARS = -7,	
+	INV_ITEM_TYPE_XRAY = -8,	
+	INV_ITEM_TYPE_METALDETECTOR = -9,
 };
 
 extern IMP_ITEM_CHOICE_TYPE gIMPItemChoices[MAX_IMP_ITEM_TYPES];

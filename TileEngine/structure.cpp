@@ -636,7 +636,11 @@ BOOLEAN OkayToAddStructureToTile( INT32 sBaseGridNo, INT16 sCubeOffset, DB_STRUC
 	INT32						sOtherGridNo;
 
 	ppTile = pDBStructureRef->ppTile;
+#if 0//dnl ch83 080114
 	sGridNo = sBaseGridNo + ppTile[ubTileIndex]->sPosRelToBase;
+#else
+	sGridNo = AddPosRelToBase(sBaseGridNo, ppTile[ubTileIndex]);
+#endif
 	if (sGridNo < 0 || sGridNo > WORLD_MAX)
 	{
 		return( FALSE );
@@ -742,11 +746,16 @@ BOOLEAN OkayToAddStructureToTile( INT32 sBaseGridNo, INT16 sCubeOffset, DB_STRUC
 							}
 							for (bLoop2 = 0; bLoop2 < pDBStructure->ubNumberOfTiles; bLoop2++)
 							{
+#if 0//dnl ch83 080114
 								if ( sBaseGridNo + ppTile[bLoop2]->sPosRelToBase == sOtherGridNo)
 								{
 									// obstacle will straddle wall!
 									return( FALSE );
 								}
+#else
+								if(AddPosRelToBase(sBaseGridNo, ppTile[bLoop2]) == sOtherGridNo)
+									return(FALSE);// obstacle will straddle wall!
+#endif
 							}
 						}
 					}
@@ -988,7 +997,11 @@ STRUCTURE * InternalAddStructureToWorld( INT32 sBaseGridNo, INT8 bLevel, DB_STRU
 			MemFree( ppStructure );
 			return( NULL );
 		}
+#if 0//dnl ch83 080114
 		ppStructure[ubLoop]->sGridNo = sBaseGridNo + ppTile[ubLoop]->sPosRelToBase;
+#else
+		ppStructure[ubLoop]->sGridNo = AddPosRelToBase(sBaseGridNo, ppTile[ubLoop]);
+#endif
 		if (ubLoop != BASE_TILE)
 		{
 			#ifdef JA2EDITOR
@@ -1196,7 +1209,11 @@ BOOLEAN DeleteStructureFromWorld( STRUCTURE * pStructure )
 	// Free all the tiles
 	for (ubLoop = BASE_TILE; ubLoop < ubNumberOfTiles; ubLoop++)
 	{
+#if 0//dnl ch83 080114
 		sGridNo = sBaseGridNo + ppTile[ubLoop]->sPosRelToBase;
+#else
+		sGridNo = AddPosRelToBase(sBaseGridNo, ppTile[ubLoop]);
+#endif
 		// there might be two structures in this tile, one on each level, but we just want to
 		// delete one on each pass
 		pCurrent = FindStructureByID( sGridNo, usStructureID );
@@ -1329,6 +1346,13 @@ STRUCTURE * SwapStructureForPartnerAndStoreChangeInMap( INT32 sGridNo, STRUCTURE
 {
 	return( InternalSwapStructureForPartner( sGridNo, pStructure, TRUE, TRUE ) );
 }
+
+#ifdef JA2UB
+STRUCTURE * SwapStructureForPartnerForcingGraphicalChange( INT32 sGridNo, STRUCTURE * pStructure )
+{
+	return( InternalSwapStructureForPartner( sGridNo, pStructure, FALSE, TRUE ) );
+}
+#endif
 
 STRUCTURE * FindStructure( INT32 sGridNo, UINT32 fFlags )
 {
@@ -1867,6 +1891,11 @@ void DebugStructurePage1( void )
 		else if (pStructure->fFlags & STRUCTURE_DDOOR_RIGHT)
 		{
 			gprintf( 0, LINE_HEIGHT * 1, L"DDoorRt with orientation %s", WallOrientationString[pStructure->ubWallOrientation] );
+		}
+		else if (pStructure->fFlags & STRUCTURE_PERSON)
+		{
+			if (pStructure->pDBStructureRef != NULL && pStructure->pDBStructureRef->pDBStructure != NULL)
+				gprintf( 0, LINE_HEIGHT * 1, L"PersonStructure with StructureNumber %d", pStructure->pDBStructureRef->pDBStructure->usStructureNumber );
 		}
 		else
 		{

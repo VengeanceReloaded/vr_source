@@ -67,6 +67,11 @@ INT8 ChanceToGetThrough( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOAT d
 INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOAT dEndZ, UINT16 usHandItem, INT16 sHitBy, BOOLEAN fBuckshot, BOOLEAN fFake );
 // HEADROCK HAM 4: Changed the name of one argument to avoid confusion with the new CTH system.
 INT8 FireBulletGivenTargetNCTH( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOAT dEndZ, UINT16 usHandItem, INT16 sApertureRatio, BOOLEAN fBuckshot, BOOLEAN fFake );
+// HEADROCK HAM 5: Function for fragments ejected from an explosion.
+INT8 FireFragmentGivenTarget( UINT8 ubOwner, FLOAT dStartX, FLOAT dStartY, FLOAT dStartZ, FLOAT dEndX, FLOAT dEndY, FLOAT dEndZ, UINT16 usExplosiveItem );
+
+// Flugente: fire a shot from a gun that has no user (used for traps with attached guns)
+INT8 FireBulletGivenTargetTrapOnly( SOLDIERTYPE* pThrower, OBJECTTYPE* pObj, INT32 gridno, FLOAT dStartZ, FLOAT dEndX, FLOAT dEndY, FLOAT dEndZ, INT16 sHitBy);
 
 #define CALC_FROM_ALL_DIRS -1
 #define CALC_FROM_WANTED_DIR -2
@@ -97,7 +102,7 @@ BOOLEAN CalculateSoldierZPos( SOLDIERTYPE * pSoldier, UINT8 ubPosType, FLOAT * p
 #define CONVERT_WITHINTILE_TO_INDEX( n ) ((n) >> 1)
 #define CONVERT_INDEX_TO_WITHINTILE( n ) ((n) << 1)
 #define CONVERT_INDEX_TO_PIXELS( n ) ((n) * MAX_STRUCTURE_HEIGHT * HEIGHT_UNITS_PER_INDEX / HEIGHT_UNITS)
-
+#define HEIGHTUNITS_PER_CELL (1.0f * HEIGHT_UNITS / CELL_X_SIZE)//dnl ch60 010913 was 2.56f which isn't correct
 
 #define TREE_SIGHT_REDUCTION 6
 #define NORMAL_TREES 10
@@ -116,6 +121,12 @@ BOOLEAN CalculateSoldierZPos( SOLDIERTYPE * pSoldier, UINT8 ubPosType, FLOAT * p
 #define STANDING_TORSO_BOTTOM_POS 95.0f
 #define STANDING_LEGS_TARGET_POS 47.0f
 #define STANDING_TARGET_POS STANDING_HEAD_TARGET_POS
+
+// Flugente: new defines for kid bodytypes
+#define STANDING_HEAD_BOTTOM_POS_KID 111.0f
+#define STANDING_TORSO_BOTTOM_POS_KID 67.0f
+#define CROUCHED_HEAD_BOTTOM_POS_KID 78.0f
+#define CROUCHED_TORSO_BOTTOM_POS_KID 33.0f
 
 #define CROUCHED_HEIGHT 130.0f
 #define CROUCHED_LOS_POS 111.0f
@@ -214,7 +225,8 @@ extern INT32 GetSpreadPattern( OBJECTTYPE * pObj );
 // HEADROCK HAM 4: The following functions are all part of the NCTH project,
 // which completely redesigns the way we calculate and handle CTH for the purposes of firing weapons.
 void AdjustTargetCenterPoint( SOLDIERTYPE *pShooter, INT32 iTargetGridNo, FLOAT *dEndX, FLOAT *dEndY, FLOAT *dEndZ, OBJECTTYPE *pWeapon, UINT32 uiMuzzleSway, INT16 *sApertureRatio );
-FLOAT CalcMagFactor( SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon, FLOAT d2DDistance, UINT8 ubAimTime );
+FLOAT CalcMagFactor( SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon, FLOAT d2DDistance, INT32 iTargetGridNo, UINT8 ubAimTime );
+FLOAT CalcEffectiveMagFactor( SOLDIERTYPE *pShooter, FLOAT fRealMagFactor );
 FLOAT CalcProjectionFactor( SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon, FLOAT d2DDistance, UINT8 ubAimTime );
 FLOAT CalcBasicAperture();
 void CalcTargetMovementOffset( SOLDIERTYPE *pShooter, SOLDIERTYPE *pTarget, OBJECTTYPE *pWeapon, FLOAT *dMuzzleOffsetX, DOUBLE ddShootingAngle, INT32 iAperture );
@@ -223,18 +235,22 @@ void CalcMuzzleSway( SOLDIERTYPE *pShooter, FLOAT *dMuzzleOffsetX, FLOAT *dMuzzl
 FLOAT CalcBulletDeviation( SOLDIERTYPE *pShooter, FLOAT *dShotOffsetX, FLOAT *dShotOffsetY, OBJECTTYPE *pWeapon, UINT32 uiRange );
 void LimitImpactPointByFacing( SOLDIERTYPE *pShooter, SOLDIERTYPE *pTarget, FLOAT *dShotOffsetX, FLOAT *dShotOffsetY, FLOAT *dEndX, FLOAT *dEndY );
 void LimitImpactPointToMaxAperture( FLOAT *dShotOffsetX, FLOAT *dShotOffsetY, FLOAT dDistanceAperture );
-UINT32 CalcCounterForceFrequency(SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon);
+// HEADROCK HAM 5: Removed and replaced by continuously-variable CF
+// UINT32 CalcCounterForceFrequency(SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon);
 FLOAT CalcCounterForceMax(SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon, UINT8 uiStance = 0);
 UINT32 CalcCounterForceAccuracy(SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon, UINT32 uiRange, BOOLEAN fTracer, bool fAnticipate = false);
 void CalcPreRecoilOffset( SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon, FLOAT *dMuzzleOffsetX, FLOAT *dMuzzleOffsetY, UINT32 uiRange );
 void CalcRecoilOffset( SOLDIERTYPE *pShooter, FLOAT *dMuzzleOffsetX, FLOAT *dMuzzleOffsetY, OBJECTTYPE *pWeapon, UINT32 uiRange );
+// HEADROCK HAM 5: New function, completely replaces the Counter Force Frequency check.
+FLOAT CalcCounterForceChange( SOLDIERTYPE * pShooter, UINT32 uiCounterForceAccuracy, FLOAT dCounterForceMax, FLOAT dMuzzleOffset, FLOAT bRecoil, FLOAT dPrevCounterForce, UINT32 uiIntendedBullets );
 
 // HEADROCK HAM 4: Required for shooting mechanic
 extern INT8 EffectiveMarksmanship( SOLDIERTYPE * pSoldier ); 
-extern INT8 EffectiveWisdom( SOLDIERTYPE * pSoldier ); 
+extern INT16 EffectiveWisdom( SOLDIERTYPE * pSoldier ); 
 extern INT8 EffectiveExpLevel( SOLDIERTYPE * pSoldier ); 
-extern INT8 EffectiveDexterity( SOLDIERTYPE * pSoldier ); 
-extern INT8 EffectiveStrength( SOLDIERTYPE * pSoldier ); 
-extern INT8 EffectiveAgility( SOLDIERTYPE * pSoldier ); 
+extern INT16 EffectiveDexterity( SOLDIERTYPE * pSoldier, BOOLEAN fTrainer ); 
+extern INT16 EffectiveStrength( SOLDIERTYPE * pSoldier, BOOLEAN fTrainer );
+extern INT16 EffectiveAgility( SOLDIERTYPE * pSoldier, BOOLEAN fTrainer ); 
+extern INT8 EffectiveLeadership( SOLDIERTYPE * pSoldier ); // anv: and passed to Hourly Update.cpp apparently, so added this one too
 
 #endif

@@ -6,6 +6,7 @@
 #define	SURPRISED					3
 
 #include "soldier control.h"
+#include "soldier profile type.h"
  
 // Defines
 #define		NUM_FACE_SLOTS					50
@@ -25,7 +26,7 @@ typedef struct
 	BOOLEAN gSnowCamoface;
 } CAMO_FACE;
 
-extern CAMO_FACE gCamoFace[255];
+extern CAMO_FACE gCamoFace[NUM_PROFILES];
 
 
 typedef struct
@@ -121,6 +122,7 @@ typedef struct
 	INT32			iVideoOverlay;									// Value for video overlay ( not used too much )
 
 	UINT32		uiSoundID;											// Sound ID if one being played
+	
 	UINT8			ubSoldierID;										// SoldierID if one specified
 	UINT8			ubCharacterNum;									// Profile ID num
 
@@ -233,6 +235,8 @@ BOOLEAN RenderAutoFace( INT32 iFaceIndex );
 BOOLEAN SetFaceTalking( INT32 iFaceIndex, CHAR8 *zSoundFile, STR16 zTextString, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan );
 // This function will setup appropriate face data and begin the speech process. It can fail if the sound 
 //cannot be played for any reason.
+
+BOOLEAN SetFaceTalkingMultipleSounds( INT32 iFaceIndex, CHAR8 zSoundFiles[][64], UINT8 ubMaxSoundsCount, STR16 zTextString, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan );
 
 // Set some face talking flags without need to play sound
 BOOLEAN ExternSetFaceTalking( INT32 iFaceIndex, UINT32 uiSoundID );

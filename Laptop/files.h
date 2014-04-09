@@ -74,7 +74,7 @@ UINT32 AddFilesToPlayersLog(UINT8 ubCode, UINT32 uiDate , UINT8 ubFormat, STR8 p
 // add a file about this terrorist
 BOOLEAN AddFileAboutTerrorist( INT32 iProfileId );
 
-// anv: add a file about this MIA
+// anv: VR - add a file about this MIA
 BOOLEAN AddFileAboutMIA( INT32 iProfileId );
 
 #endif

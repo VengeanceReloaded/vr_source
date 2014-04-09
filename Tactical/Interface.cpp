@@ -60,10 +60,24 @@
 	#include "Queen Command.h"
 	// HEADROCK HAM 4: Included for new CTH indicator
 	#include "weapons.h"
+	#include "Map Screen Interface.h"	// added by Flugente for SquadNames
+	#include "environment.h"
+	// sevenfm: needed for _KeyDown(SHIFT)
+	#include "english.h"
 
 #endif
 
 #include "InterfaceItemImages.h"
+#ifdef JA2UB
+#include "Explosion Control.h"
+#include "Ja25_Tactical.h"
+#include "Ja25 Strategic Ai.h"
+#include "MapScreen Quotes.h"
+#include "email.h"
+#include "interface Dialogue.h"
+#include "mercs.h"
+#include "ub_config.h"
+#endif
 
 #include "connect.h"
 //const UINT32 INTERFACE_START_X			= 0;
@@ -89,17 +103,20 @@ int INV_INTERFACE_START_Y;//	= ( SCREEN_HEIGHT - INV_INTERFACE_HEIGHT );
 
 HIDDEN_NAMES_VALUES zHiddenNames[500]; //legion2 Jazz
 ENEMY_NAMES_VALUES zEnemyName[500];
-ENEMY_RANK_VALUES zEnemyRank[500];
+ENEMY_RANK_VALUES zEnemyRank[20];				// Flugente: set this to 20, which should be way enough, as there are only 10 exp levels
 CIV_NAMES_VALUES zCivGroupName[NUM_CIV_GROUPS];
+
+// Flugente: soldier profiles
+SOLDIER_PROFILE_VALUES zSoldierProfile[6][NUM_SOLDIER_PROFILES];
+UINT16 num_found_soldier_profiles[6];	// the correct number is set on reading the xml
+
+BACKGROUND_VALUES zBackground[NUM_BACKGROUND];				// Flugente: backgrounds
 
 TAUNT_VALUES zTaunt[NUM_TAUNT];	// anv: externalised taunts
 
 BOOLEAN	gfInMovementMenu = FALSE;
 INT32		giMenuAnchorX, giMenuAnchorY;
 
-
-
-#define PROG_BAR_START_X			5
 //*ddd
 //#define PROG_BAR_START_Y			2
 
@@ -116,6 +133,7 @@ UINT8		gubProgCurEnemy			= 0;
 
 
 UINT32		guiPORTRAITICONS;
+UINT32		guiASSIGNMENTICONS;		// Flugente: icons for assignments
 
 //UINT32		guiPORTRAITICONS_NV; //legion
 //UINT32		guiPORTRAITICONS_GAS_MASK; //legion
@@ -234,6 +252,8 @@ UINT32					guiVEHINV;
 UINT32					guiBURSTACCUM;
 UINT32					guiITEMPOINTERHATCHES;
 
+UINT32					guiUNDERWATER;	// added by Flugente
+
 // UI Globals
 MOUSE_REGION	gViewportRegion;
 MOUSE_REGION	gRadarRegion;
@@ -252,10 +272,14 @@ RECT MagRect;
 RECT AimRect;
 RECT ModeRect;
 RECT APRect;
+// sevenfm: additional rectangles
+RECT RightRect;
+RECT LeftRect;
+RECT LeftRect2;
 // HEADROCK HAM 4: Externed this value which tracks whether we've clicked out final aiming click yet.
 extern BOOLEAN gfDisplayFullCountRing;
 
-void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sWidth, INT16 sHeight );
+void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sWidth, INT16 sHeight, INT16 interval);
 void PopupDoorOpenMenu( BOOLEAN fClosingDoor );
 
 
@@ -274,10 +298,13 @@ void DoorMenuBackregionCallback( MOUSE_REGION * pRegion, INT32 iReason );
 
 UINT32 CalcUIMessageDuration( STR16 wString );
 
+// sevenfm: this function is needed to show cover in health bar
+extern void	CalculateCoverForSoldier( SOLDIERTYPE* pForSoldier, const INT32& sTargetGridNo, const BOOLEAN& fRoof, INT8& bCover );
+
+extern FLOAT Distance2D( FLOAT dDeltaX, FLOAT dDeltaY );
 
 BOOLEAN InitializeFaceGearGraphics()
 {
-	VSURFACE_DESC	vs_desc;
 	VOBJECT_DESC	VObjectDesc;
 
 	char fileName[500];
@@ -366,6 +393,12 @@ BOOLEAN InitializeTacticalPortraits(	)
 			AssertMsg(0, "Missing INTERFACE\\portraiticons.sti" );
 	}
 
+	// Flugente: icons for assignments
+	FilenameForBPP("INTERFACE\\AssignmentIcons.sti", VObjectDesc.ImageFile);
+
+	if( !AddVideoObject( &VObjectDesc, &guiASSIGNMENTICONS ) )
+		AssertMsg(0, "Missing INTERFACE\\AssignmentIcons.sti" );
+
 	return ( TRUE );
 }
 
@@ -374,10 +407,8 @@ BOOLEAN InitializeTacticalInterface(	)
 	VSURFACE_DESC		vs_desc;
 	VOBJECT_DESC	VObjectDesc;
 	
-	UINT32 iCounter2;
+	//UINT32 iCounter2;
 	
-	char fileName[500];
-
 	// CHRISL: Setup default interface coords based on inventory system in use
 	if((UsingNewInventorySystem() == true))
 	{
@@ -511,6 +542,12 @@ BOOLEAN InitializeTacticalInterface(	)
 	FilenameForBPP("INTERFACE\\burst1.sti", VObjectDesc.ImageFile);
 	if( !AddVideoObject( &VObjectDesc, &guiBURSTACCUM ) )
 		AssertMsg(0, "Missing INTERFACE\\burst1.sti" );
+
+	// Flugente: load fish symbol (signifies that a merc is diving until someone comes up with a proper animation)
+	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
+	FilenameForBPP("INTERFACE\\fish.sti", VObjectDesc.ImageFile);
+	if( !AddVideoObject( &VObjectDesc, &guiUNDERWATER ) )
+		AssertMsg(0, "Missing INTERFACE\\fish.sti" );
 
 	//CHRISL: Moved to seperate function so we can call seperately
 	InitializeTacticalPortraits();
@@ -1636,7 +1673,19 @@ void DrawCTHPixelToBuffer( UINT16 *pBuffer, UINT32 uiPitch, INT16 sLeft, INT16 s
 	{
 		return;
 	}
-
+	// sevenfm: added additional right, left rectangles
+	if ((sPixelX >= RightRect.left && sPixelX <= RightRect.right) && (sPixelY >= RightRect.top && sPixelY <= RightRect.bottom))
+	{
+		return;
+	}
+	if ((sPixelX >= LeftRect.left && sPixelX <= LeftRect.right) && (sPixelY >= LeftRect.top && sPixelY <= LeftRect.bottom))
+	{
+		return;
+	}
+	if ((sPixelX >= LeftRect2.left && sPixelX <= LeftRect2.right) && (sPixelY >= LeftRect2.top && sPixelY <= LeftRect2.bottom))
+	{
+		return;
+	}
 	
 	pBuffer[sPixelX + uiPitch*sPixelY] = usColor;
 }
@@ -1651,8 +1700,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	INT32			iBack;
 	TILE_ELEMENT	TileElem;
 	CHAR16			*pStr;
-	//CHAR16			*pStr2;
-	CHAR16			NameStr[ 50 ];
+	CHAR16			NameStr[ MAX_ENEMY_NAMES_CHARS ];
 	UINT16			usGraphicToUse = THIRDPOINTERS1;
 	BOOLEAN		 fRaiseName = FALSE;
 	BOOLEAN		 fDoName = TRUE;
@@ -1707,8 +1755,8 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 			//}
 			if ( pSoldier->flags.fFlashLocator == pSoldier->ubNumLocateCycles )
 			{
-					pSoldier->flags.fFlashLocator = FALSE;
-					pSoldier->flags.fShowLocator = FALSE;
+				pSoldier->flags.fFlashLocator = FALSE;
+				pSoldier->flags.fShowLocator = FALSE;
 			}
 
 			//if ( pSoldier->flags.fShowLocator )
@@ -1733,23 +1781,61 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 					SetBackgroundRectFilled( iBack );
 				}
 
-				if ( ( !pSoldier->aiData.bNeutral && ( pSoldier->bSide != gbPlayerNum ) ) )
+				if ( !pSoldier->aiData.bNeutral && ( pSoldier->bSide != gbPlayerNum ) )
 				{
 					BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO2, pSoldier->sLocatorFrame, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
 				}
 				else
 				{
-
 					BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO, pSoldier->sLocatorFrame, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
 
-				//BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO, 0, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
+					//BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO, 0, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
 				}
-
 			}
 		}
-		//return;
 	}
+	// Flugente: show a small animation hat signifies that a merc is underwater (hopefully temporary until someone comes up with a proper animation)
+	else if ( pSoldier->UsesScubaGear() )
+	{
+		if ( TIMECOUNTERDONE( pSoldier->timeCounters.BlinkSelCounter, 320 ) )
+		{
+			RESETTIMECOUNTER( pSoldier->timeCounters.BlinkSelCounter, 320 );
+			
+			// Update frame
+			pSoldier->sLocatorFrame++;
 
+			if ( pSoldier->sLocatorFrame == 5 )
+			{
+				// Update time we do this
+				pSoldier->sLocatorFrame = 0;
+			}
+		}
+
+		if ( pSoldier->flags.fFlashLocator == pSoldier->ubNumLocateCycles )
+		{
+				pSoldier->flags.fShowLocator = FALSE;
+		}
+		
+		if ( gGameExternalOptions.ubShowHealthBarsOnHead )
+		{
+			// Render the beastie
+			GetSoldierAboveGuyPositions( pSoldier, &sXPos, &sYPos, TRUE );
+
+			// Adjust for bars!
+			sXPos += 25;
+			sYPos += 25;
+
+			// Add bars
+			iBack = RegisterBackgroundRect( BGND_FLAG_SINGLE, NULL, sXPos, sYPos, (INT16)(sXPos +40 ), (INT16)(sYPos + 40 ) );
+
+			if ( iBack != -1 )
+			{
+				SetBackgroundRectFilled( iBack );
+			}
+
+			BltVideoObjectFromIndex( FRAME_BUFFER, guiUNDERWATER, pSoldier->sLocatorFrame, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
+		}
+	}
 
 	if ( !pSoldier->flags.fShowLocator )
 	{
@@ -1784,7 +1870,6 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 		}
 	}
 
-
 	// If he is in the middle of a certain animation, ignore!
 	if ( gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_NOSHOW_MARKER )
 	{
@@ -1796,15 +1881,47 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	{
 		return;
 	}
-
-
+	
 	GetSoldierAboveGuyPositions( pSoldier, &sXPos, &sYPos, FALSE );
-
-
+	
 	// Display name
 	SetFont( TINYFONT1 );
 	SetFontBackground( FONT_MCOLOR_BLACK );
-	SetFontForeground( FONT_MCOLOR_WHITE );
+	
+	BOOLEAN bInCombat = gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT;
+	BOOLEAN bStealth = pSoldier->bStealthMode || pSoldier->bSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER );
+	// sevenfm: for mercs use name color as cover indicator
+	// only use color when there is enemy in sector
+	if( pSoldier->bTeam == OUR_TEAM &&
+		(NumEnemyInSector() != 0) &&
+		! ( pSoldier->flags.uiStatusFlags & ( SOLDIER_VEHICLE | SOLDIER_ROBOT) ) &&
+		( ( gGameExternalOptions.ubShowCoverIndicator == 1 && ( bInCombat || bStealth ) ) ||
+		( gGameExternalOptions.ubShowCoverIndicator == 2 && bStealth ) ) )
+	{
+		INT8 cover = 3;		// MAX_COVER
+		BOOLEAN showCover;
+		INT32 usMapPos;
+		INT16 color8, color16;
+
+		if( GetMouseMapPos(&usMapPos) && _KeyDown(SHIFT) )
+		{
+			// target tile cover
+			CalculateCoverForSoldier( pSoldier, usMapPos, gsInterfaceLevel, cover );
+			showCover = CoverColorCode( cover, color8, color16 );
+			SetFontForeground( (UINT8)color8 );
+		}
+		else
+		{
+			// merc's cover
+			CalculateCoverForSoldier( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, cover );
+			showCover = CoverColorCode( cover, color8, color16 );
+			SetFontForeground( (UINT8)color8 );
+		}
+	}
+	else
+	{
+		SetFontForeground( FONT_MCOLOR_WHITE );
+	}
 
 	if ( pSoldier->ubProfile != NO_PROFILE || ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
 	{
@@ -1814,7 +1931,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 			FindFontCenterCoordinates( sXPos, (INT16)(sYPos ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
 			gprintfdirty( sX, sY, NameStr );
 			mprintf( sX, sY, NameStr );
-		fRaiseName = TRUE;
+			fRaiseName = TRUE;
 		}
 		else if ( gfUIMouseOnValidCatcher == 3 && pSoldier->ubID == gubUIValidCatcherID )
 		{
@@ -1822,7 +1939,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 			FindFontCenterCoordinates( sXPos, (INT16)(sYPos ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
 			gprintfdirty( sX, sY, NameStr );
 			mprintf( sX, sY, NameStr );
-		fRaiseName = TRUE;
+			fRaiseName = TRUE;
 		}
 		else if ( gfUIMouseOnValidCatcher == 4 && pSoldier->ubID == gubUIValidCatcherID )
 		{
@@ -1830,26 +1947,29 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 			FindFontCenterCoordinates( sXPos, (INT16)(sYPos ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
 			gprintfdirty( sX, sY, NameStr );
 			mprintf( sX, sY, NameStr );
-		fRaiseName = TRUE;
+			fRaiseName = TRUE;
 		}
 		else if ( pSoldier->bAssignment >= ON_DUTY )
 		{
-				SetFontForeground( FONT_YELLOW );
-				swprintf( NameStr, L"(%s)", pAssignmentStrings[ pSoldier->bAssignment ] );
-				FindFontCenterCoordinates( sXPos, (INT16)(sYPos ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-				gprintfdirty( sX, sY, NameStr );
-				mprintf( sX, sY, NameStr );
-		fRaiseName = TRUE;
+			SetFontForeground( FONT_YELLOW );
+			swprintf( NameStr, L"(%s)", pAssignmentStrings[ pSoldier->bAssignment ] );
+			FindFontCenterCoordinates( sXPos, (INT16)(sYPos ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+			gprintfdirty( sX, sY, NameStr );
+			mprintf( sX, sY, NameStr );
+			fRaiseName = TRUE;
 		}
 		else if ( pSoldier->bTeam == gbPlayerNum &&	pSoldier->bAssignment < ON_DUTY && pSoldier->bAssignment != CurrentSquad() && !(	pSoldier->flags.uiStatusFlags & SOLDIER_MULTI_SELECTED ) )
 		{
+			if ( gGameExternalOptions.fUseXMLSquadNames )
+				swprintf( NameStr, SquadNames[ pSoldier->bAssignment ].squadname );
+			else
 				swprintf( NameStr, gzLateLocalizedString[ 34 ], ( pSoldier->bAssignment + 1 ) );
-				FindFontCenterCoordinates( sXPos, (INT16)(sYPos ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-				gprintfdirty( sX, sY, NameStr );
-				mprintf( sX, sY, NameStr );
-		fRaiseName = TRUE;
-		}
 
+			FindFontCenterCoordinates( sXPos, (INT16)(sYPos ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+			gprintfdirty( sX, sY, NameStr );
+			mprintf( sX, sY, NameStr );
+			fRaiseName = TRUE;
+		}
 
 		// If not in a squad....
 		if ( ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
@@ -1869,119 +1989,155 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 
 		if ( fDoName )
 		{
-		if ( fRaiseName )
-		{
-		
-		
-		//legion2 jazz
-		if (pSoldier->ubBodyType == ROBOTNOWEAPON && pSoldier->bTeam == ENEMY_TEAM )
-		{
-		swprintf( NameStr, zGrod[0] );
-		}
-		else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-		{
-		swprintf( NameStr,L"???" );
-		}
-		else
-		{
-		swprintf( NameStr, L"%s", pSoldier->name );
-		}
+			if ( fRaiseName )
+			{
+				//legion2 jazz
+				if (pSoldier->ubBodyType == ROBOTNOWEAPON && pSoldier->bTeam == ENEMY_TEAM )
+				{
+					swprintf( NameStr, zGrod[0] );
+				}
+				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
+				{
+					swprintf( NameStr,L"???" );
+				}
+				else
+				{
+					swprintf( NameStr, L"%s", pSoldier->name );
+				}
 		  
-		//Legion	
-		if (pSoldier->ubBodyType == TANK_NE || pSoldier->ubBodyType == TANK_NW)
-		{
-		swprintf( NameStr, pVehicleStrings[4] );
-		}
-		else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-		{
-		swprintf( NameStr,L"???" );
-		}
-		else
-		{
-		swprintf( NameStr, L"%s", pSoldier->name );
-		}	
-		//-------
+				//Legion	
+				if (pSoldier->ubBodyType == TANK_NE || pSoldier->ubBodyType == TANK_NW)
+				{
+				  swprintf( NameStr, gNewVehicle[164].NewVehicleStrings );
+					//swprintf( NameStr, pVehicleStrings[4] );
+				}
+				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
+				{
+					swprintf( NameStr,L"???" );
+				}
+				else
+				{
+					swprintf( NameStr, L"%s", pSoldier->name );
+				}	
+				//-------
 		
-			//swprintf( NameStr, L"%s", pSoldier->name );
-			FindFontCenterCoordinates( sXPos, (INT16)( sYPos - 10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-			gprintfdirty( sX, sY, NameStr );
-			mprintf( sX, sY, NameStr );
-		}
-		else
-		{
-		
-			//legion Jazz 
-			if (pSoldier->ubBodyType == ROBOTNOWEAPON && pSoldier->bTeam == ENEMY_TEAM )
-			{
-			swprintf( NameStr, zGrod[0] );
-			}
-			else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-			{
-			swprintf( NameStr,L"???" );
+				//swprintf( NameStr, L"%s", pSoldier->name );
+				FindFontCenterCoordinates( sXPos, (INT16)( sYPos - 10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+				gprintfdirty( sX, sY, NameStr );
+				mprintf( sX, sY, NameStr );
 			}
 			else
 			{
-			swprintf( NameStr, L"%s", pSoldier->name );
-			}
+				//legion Jazz 
+				if (pSoldier->ubBodyType == ROBOTNOWEAPON && pSoldier->bTeam == ENEMY_TEAM )
+				{
+					swprintf( NameStr, zGrod[0] );
+				}
+				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
+				{
+					swprintf( NameStr,L"???" );
+				}
+				else
+				{
+					swprintf( NameStr, L"%s", pSoldier->name );
+				}
 		
-			//Legion	
-			if (pSoldier->ubBodyType == TANK_NE || pSoldier->ubBodyType == TANK_NW)
-			{
-			swprintf( NameStr, pVehicleStrings[4] );
-			}
-			else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-			{
-			swprintf( NameStr,L"???" );
-			}
-			else
-			{
-			swprintf( NameStr, L"%s", pSoldier->name );
-			}
-			//---------------
+				//Legion	
+				if (pSoldier->ubBodyType == TANK_NE || pSoldier->ubBodyType == TANK_NW)
+				{
+					//swprintf( NameStr, pVehicleStrings[4] );
+					swprintf( NameStr, gNewVehicle[164].NewVehicleStrings );
+				}
+				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
+				{
+					swprintf( NameStr,L"???" );
+				}
+				else
+				{
+					wprintf( NameStr, L"%s", pSoldier->name );
+				}
+				//---------------
 			
-			//swprintf( NameStr, L"%s", pSoldier->name );
-			FindFontCenterCoordinates( sXPos, sYPos, (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-			gprintfdirty( sX, sY, NameStr );
-			mprintf( sX, sY, NameStr );
-		}
+				//swprintf( NameStr, L"%s", pSoldier->name );
+				FindFontCenterCoordinates( sXPos, sYPos, (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+				gprintfdirty( sX, sY, NameStr );
+				mprintf( sX, sY, NameStr );
+			}
 		}
 
 //		if ( pSoldier->ubProfile < FIRST_RPC || pSoldier->ubProfile >= GASTON || RPC_RECRUITED( pSoldier ) || AM_AN_EPC( pSoldier ) || ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
 		//new profiles by Jazz	
 		if ( gProfilesIMP[pSoldier->ubProfile].ProfilId == pSoldier->ubProfile || gProfilesAIM[pSoldier->ubProfile].ProfilId == pSoldier->ubProfile || gProfilesMERC[pSoldier->ubProfile].ProfilId == pSoldier->ubProfile || RPC_RECRUITED( pSoldier ) || AM_AN_EPC( pSoldier ) || ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ))			
 		{
-			// Adjust for bars!
+			if ( gGameExternalOptions.ubShowHealthBarsOnHead )
+			{
+				if( gGameExternalOptions.ubShowHealthBarsOnHead > 1 )
+				{
+					INT16 interval = gGameExternalOptions.ubShowHealthBarsOnHead;
+					//if( interval > 3 )
+					//	interval -= 2;
+					sXPos += 28;
+					sYPos += 7;
+					iBack = RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, sXPos, sYPos-1, (INT16)(sXPos + 24 ), (INT16)(sYPos + 3 + interval*3 ) );
+					if ( iBack != -1 )
+						SetBackgroundRectFilled( iBack );
+					DrawBarsInUIBox( pSoldier,	(INT16)(sXPos), (INT16)(sYPos), 20, 1, 2 );
 
-			if ( pSoldier->ubID == gusSelectedSoldier )
-			{
-				sXPos += 28;
-				sYPos += 5;
-			}
-			else
-			{
-				sXPos += 30;
-				sYPos += 7;
-			}
+					// show AP only in turnbased combat, only during our turn
+					if( gGameExternalOptions.ubShowHealthBarsOnHead > 2 && 
+						(gTacticalStatus.uiFlags & TURNBASED ) && (gTacticalStatus.uiFlags & INCOMBAT) &&
+						gTacticalStatus.ubCurrentTeam == OUR_TEAM)
+					{
+						INT16 len;
+						swprintf( NameStr,L"%d", pSoldier->bActionPoints );
+						len = StringPixLength ( NameStr, TINYFONT1 );
+						SetFont( TINYFONT1 );
+						if(pSoldier->bActionPoints > APBPConstants[MIN_APS_TO_INTERRUPT])
+							SetFontForeground( FONT_MCOLOR_LTGRAY );
+						else if(pSoldier->bActionPoints > 10)
+							SetFontForeground( FONT_YELLOW );
+						else
+							SetFontForeground( FONT_MCOLOR_DKRED );
+						gprintfdirty( sXPos-2-len, sYPos-2, NameStr );
+						mprintf( sXPos-2-len, sYPos-2, NameStr );
+					}
+				}
+				else
+				{
+					// Adjust for bars!
+					if ( pSoldier->ubID == gusSelectedSoldier )
+					{
+						sXPos += 28;
+						sYPos += 5;
+					}
+					else
+					{
+						sXPos += 30;
+						sYPos += 7;
+					}
 
-			// Add bars
-			iBack = RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, sXPos, sYPos, (INT16)(sXPos + 34 ), (INT16)(sYPos + 11 ) );
+					// Add bars
+					iBack = RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, sXPos, sYPos, (INT16)(sXPos + 34 ), (INT16)(sYPos + 11 ) );
 
-			if ( iBack != -1 )
-			{
-				SetBackgroundRectFilled( iBack );
-			}
-			TileElem = gTileDatabase[ usGraphicToUse ];
-			BltVideoObject(	FRAME_BUFFER, TileElem.hTileSurface, TileElem.usRegionIndex, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
+					if ( iBack != -1 )
+					{
+						SetBackgroundRectFilled( iBack );
+					}
+					TileElem = gTileDatabase[ usGraphicToUse ];
+					BltVideoObject(	FRAME_BUFFER, TileElem.hTileSurface, TileElem.usRegionIndex, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
 
-			// Draw life, breath
-			// Only do this when we are a vehicle but on our team
-			if ( pSoldier->ubID == gusSelectedSoldier )
-			{
-				DrawBarsInUIBox( pSoldier,	(INT16)(sXPos + 1), (INT16)(sYPos + 2), 16, 1 );
-			}
-			else
-			{
-				DrawBarsInUIBox( pSoldier,	(INT16)(sXPos ), (INT16)(sYPos ), 16, 1 );
+					// Draw life, breath
+					// Only do this when we are a vehicle but on our team
+					if ( pSoldier->ubID == gusSelectedSoldier )
+					{
+						DrawBarsInUIBox( pSoldier,	(INT16)(sXPos +1), (INT16)(sYPos + 2), 16, 1, 3);
+					}
+					else
+					{
+						DrawBarsInUIBox( pSoldier,	(INT16)(sXPos -1), (INT16)(sYPos ), 16, 1, 3 );
+					}
+				}
+
 			}
 		}
 		else // ( pSoldier->ubProfile < FIRST_RPC || pSoldier->ubProfile >= GASTON ||
@@ -1996,7 +2152,6 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 				FindFontCenterCoordinates( sXPos, (INT16)(sYPos + 10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
 				gprintfdirty( sX, sY, NameStr );
 				mprintf( sX, sY, NameStr );
-
 			}
 			else
 			{
@@ -2004,91 +2159,107 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 				SetFontBackground( FONT_MCOLOR_BLACK );
 				SetFontForeground( FONT_MCOLOR_DKRED );
 
-
 				pStr = GetSoldierHealthString( pSoldier );
-
 
 				FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 10 ), (INT16)(80 ), 1, pStr, TINYFONT1, &sX, &sY );
 				gprintfdirty( sX, sY, pStr );
 				mprintf( sX, sY, pStr );
 			
-			//-----------------	
-				if (gGameExternalOptions.fEnemyNames == TRUE && gGameExternalOptions.fEnemyRank == FALSE)
+				//-----------------	
+				if ( pSoldier->bInSector && pSoldier->ubProfile == NO_PROFILE )
 				{
-				for( iCounter2 = 0; iCounter2 < 500; iCounter2++ )
+					if ( pSoldier->bTeam == ENEMY_TEAM )
 					{
-					if (zEnemyName[iCounter2].Enabled == 1)
-					{
+						// Flugente: soldier profiles
+						if ( gGameExternalOptions.fSoldierProfiles_Enemy && pSoldier->usSoldierProfile )
+						{					
+							swprintf(NameStr, pSoldier->GetName());
+							
+							SetFont( TINYFONT1 );
+							SetFontBackground( FONT_MCOLOR_BLACK );
+							SetFontForeground( FONT_YELLOW );
+
+							FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+							gprintfdirty( sX, sY, NameStr );
+							mprintf( sX, sY, NameStr );
+						}
+						else if (gGameExternalOptions.fEnemyNames == TRUE && gGameExternalOptions.fEnemyRank == FALSE)
+						{
+							for( iCounter2 = 0; iCounter2 < 500; ++iCounter2 )
+							{
+								if (zEnemyName[iCounter2].Enabled == 1)
+								{
+									if ( pSoldier->sSectorX == zEnemyName[iCounter2].SectorX && pSoldier->sSectorY == zEnemyName[iCounter2].SectorY )
+									{
+										swprintf(NameStr, zEnemyName[iCounter2].szCurGroup);
 				
-					if ((gWorldSectorX == zEnemyName[iCounter2].SectorX && gWorldSectorY == zEnemyName[iCounter2].SectorY ))
-					{
-					if (NumEnemiesInSector( zEnemyName[iCounter2].SectorX  , zEnemyName[iCounter2].SectorY ) && pSoldier->ubProfile == NO_PROFILE && pSoldier->bTeam == 1 ) 
-					{	
-			
-					swprintf(NameStr, zEnemyName[iCounter2].szCurGroup);
-				
-					SetFont( TINYFONT1 );
-					SetFontBackground( FONT_MCOLOR_BLACK );
-					SetFontForeground( FONT_YELLOW );
+										SetFont( TINYFONT1 );
+										SetFontBackground( FONT_MCOLOR_BLACK );
+										SetFontForeground( FONT_YELLOW );
 					
-					//legion2
-					FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-					gprintfdirty( sX, sY, NameStr );
-					mprintf( sX, sY, NameStr );
+										//legion2
+										FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+										gprintfdirty( sX, sY, NameStr );
+										mprintf( sX, sY, NameStr );
 				
-					}
-					}
-					}
-					}
-				} 
-				
-				if (gGameExternalOptions.fEnemyNames == FALSE && gGameExternalOptions.fEnemyRank == TRUE)
-				{
-					for( iCounter2 = 1; iCounter2 < 13; iCounter2++ )
-					{
-						if (zEnemyRank[iCounter2].Enabled == 1)
-						{			
-						
-							if ( zEnemyRank[iCounter2].Stats == 0 && zEnemyRank[iCounter2].ExpLevel > 0 && pSoldier->ubProfile == NO_PROFILE && pSoldier->bTeam == 1 && pSoldier->stats.bExpLevel == zEnemyRank[iCounter2].ExpLevel )  
-							{	
-							
-								swprintf(NameStr, zEnemyRank[iCounter2].szCurRank);
-							
-								SetFont( TINYFONT1 );
-								SetFontBackground( FONT_MCOLOR_BLACK );
-								SetFontForeground( FONT_YELLOW );
-								
-								//legion2
-								FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-								gprintfdirty( sX, sY, NameStr );
-								mprintf( sX, sY, NameStr );
+										break;
+									}
+								}
 							}
 						}
-					}
-				
-				}
-				
-				
-				if (gGameExternalOptions.fCivGroupName == TRUE)
-				{
-					for( iCounter2 = 1; iCounter2 < NUM_CIV_GROUPS; iCounter2++ )
-					{
-						if (zCivGroupName[iCounter2].Enabled == 1)
-						{			
-							if (pSoldier->ubProfile == NO_PROFILE && pSoldier->ubCivilianGroup == iCounter2 ) 
-							{	
+						else if (gGameExternalOptions.fEnemyNames == FALSE && gGameExternalOptions.fEnemyRank == TRUE)
+						{
+							for( iCounter2 = 1; iCounter2 < 11; ++iCounter2 )
+							{
+								if (zEnemyRank[iCounter2].Enabled == 1)
+								{		
+									if ( zEnemyRank[iCounter2].Stats == 0 && pSoldier->stats.bExpLevel == zEnemyRank[iCounter2].ExpLevel )  
+									{
+										swprintf(NameStr, zEnemyRank[iCounter2].szCurRank);
 							
-								swprintf(NameStr, zCivGroupName[iCounter2].szCurGroup);
-							
-								SetFont( TINYFONT1 );
-								SetFontBackground( FONT_MCOLOR_BLACK );
-								SetFontForeground( FONT_YELLOW );
+										SetFont( TINYFONT1 );
+										SetFontBackground( FONT_MCOLOR_BLACK );
+										SetFontForeground( FONT_YELLOW );
 								
-								//legion2
-								FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-								gprintfdirty( sX, sY, NameStr );
-								mprintf( sX, sY, NameStr );
-							}
+										//legion2
+										FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+										gprintfdirty( sX, sY, NameStr );
+										mprintf( sX, sY, NameStr );
+
+										break;
+									}
+								}
+							}				
+						}
+					}
+					// Flugente: soldier profiles
+					else if ( pSoldier->bTeam == MILITIA_TEAM && gGameExternalOptions.fSoldierProfiles_Militia && pSoldier->usSoldierProfile )
+					{
+						// get a proper chaos name							
+						swprintf(NameStr, pSoldier->GetName());
+							
+						SetFont( TINYFONT1 );
+						SetFontBackground( FONT_MCOLOR_BLACK );
+						SetFontForeground( FONT_YELLOW );
+
+						FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+						gprintfdirty( sX, sY, NameStr );
+						mprintf( sX, sY, NameStr );
+					}
+					else if (gGameExternalOptions.fCivGroupName == TRUE && pSoldier->ubCivilianGroup > 0 )
+					{
+						if (zCivGroupName[pSoldier->ubCivilianGroup].Enabled == 1)
+						{	
+							swprintf(NameStr, zCivGroupName[pSoldier->ubCivilianGroup].szCurGroup);
+							
+							SetFont( TINYFONT1 );
+							SetFontBackground( FONT_MCOLOR_BLACK );
+							SetFontForeground( FONT_YELLOW );
+								
+							//legion2
+							FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+							gprintfdirty( sX, sY, NameStr );
+							mprintf( sX, sY, NameStr );
 						}
 					}
 				}
@@ -2098,17 +2269,21 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	}
 	else //pSoldier->ubProfile != NO_PROFILE || ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE )
 	{
+		// show (roof) text
 		if ( pSoldier->pathing.bLevel != 0 )
 		{
-			// Display name
+			// sevenfm: fix for overlapping with SHOW_ENEMY_WEAPON feature
+			if( !gGameExternalOptions.fShowEnemyWeapon || !gfUIFullTargetFound )
+			{
 			SetFont( TINYFONT1 );
 			SetFontBackground( FONT_MCOLOR_BLACK );
 			SetFontForeground( FONT_YELLOW );
 
-				swprintf( NameStr, gzLateLocalizedString[ 15 ] );
-				FindFontCenterCoordinates( sXPos, (INT16)(sYPos + 10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-				gprintfdirty( sX, sY, NameStr );
-				mprintf( sX, sY, NameStr );
+			swprintf( NameStr, gzLateLocalizedString[ 15 ] );
+				FindFontCenterCoordinates( sXPos, (INT16)(sYPos + 10), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+			gprintfdirty( sX, sY, NameStr );
+			mprintf( sX, sY, NameStr );
+		}
 		}
 
 		pStr = GetSoldierHealthString( pSoldier );
@@ -2128,46 +2303,50 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 		mprintf( sX, sY, pStr );
 		
 		//-----------------	
-		if (gGameExternalOptions.fEnemyNames == TRUE  && gGameExternalOptions.fEnemyRank == FALSE)
+		if ( pSoldier->bInSector && pSoldier->ubProfile == NO_PROFILE )
 		{
-			for( iCounter2 = 0; iCounter2 < 500; iCounter2++ )
+#ifdef ENABLE_ZOMBIES
+			if ( pSoldier->IsZombie() )
 			{
-				if (zEnemyName[iCounter2].Enabled == 1 )
-				{
-		
-					if ((gWorldSectorX == zEnemyName[iCounter2].SectorX && gWorldSectorY == zEnemyName[iCounter2].SectorY ))
-					{
-						if (NumEnemiesInSector( zEnemyName[iCounter2].SectorX  , zEnemyName[iCounter2].SectorY ) && pSoldier->ubProfile == NO_PROFILE && pSoldier->bTeam == 1 ) 
-						{	
-	
-							swprintf(NameStr, zEnemyName[iCounter2].szCurGroup);
+				swprintf(NameStr, pSoldier->name);
 							
-							SetFont( TINYFONT1 );
-							SetFontBackground( FONT_MCOLOR_BLACK );
-							SetFontForeground( FONT_YELLOW );
+				// Display name
+				SetFont( TINYFONT1 );
+				SetFontBackground( FONT_MCOLOR_BLACK );
+				SetFontForeground( FONT_MCOLOR_WHITE );
 								
-							//legion2
-							FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-							gprintfdirty( sX, sY, NameStr );
-							mprintf( sX, sY, NameStr );
-		
-						}
-					}
-				}
+				//legion2
+				FindFontCenterCoordinates( sXPos, (INT16)( sYPos -10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+				gprintfdirty( sX, sY, NameStr );
+				mprintf( sX, sY, NameStr );
 			}
-		}
-		
-		if (gGameExternalOptions.fEnemyNames == FALSE && gGameExternalOptions.fEnemyRank == TRUE)
+			else
+#endif
+			if ( pSoldier->bTeam == ENEMY_TEAM )
+			{
+				// Flugente: soldier profiles
+				if ( gGameExternalOptions.fSoldierProfiles_Enemy && pSoldier->usSoldierProfile )
 				{
-					for( iCounter2 = 1; iCounter2 < 13; iCounter2++ )
-					{
-						if (zEnemyRank[iCounter2].Enabled == 1)
-						{
-						
-							if ( zEnemyRank[iCounter2].Stats == 0 && zEnemyRank[iCounter2].ExpLevel > 0 && pSoldier->ubProfile == NO_PROFILE && pSoldier->bTeam == 1 && pSoldier->stats.bExpLevel == zEnemyRank[iCounter2].ExpLevel )  
-							{	
+					// get a proper chaos name							
+					swprintf(NameStr, pSoldier->GetName());
 							
-								swprintf(NameStr, zEnemyRank[iCounter2].szCurRank);
+					SetFont( TINYFONT1 );
+					SetFontBackground( FONT_MCOLOR_BLACK );
+					SetFontForeground( FONT_YELLOW );
+
+					FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+					gprintfdirty( sX, sY, NameStr );
+					mprintf( sX, sY, NameStr );	
+				}
+				else if (gGameExternalOptions.fEnemyNames == TRUE)
+				{
+					for( iCounter2 = 0; iCounter2 < 500; ++iCounter2 )
+					{
+						if (zEnemyName[iCounter2].Enabled == 1 )
+						{
+							if ( pSoldier->sSectorX == zEnemyName[iCounter2].SectorX && pSoldier->sSectorY == zEnemyName[iCounter2].SectorY )
+							{
+								swprintf(NameStr, zEnemyName[iCounter2].szCurGroup);
 							
 								SetFont( TINYFONT1 );
 								SetFontBackground( FONT_MCOLOR_BLACK );
@@ -2177,36 +2356,86 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 								FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
 								gprintfdirty( sX, sY, NameStr );
 								mprintf( sX, sY, NameStr );
+		
+								break;
 							}
 						}
 					}
-				
 				}
-		
-		if (gGameExternalOptions.fCivGroupName == TRUE)
-		{
-			for( iCounter2 = 1; iCounter2 < NUM_CIV_GROUPS; iCounter2++ )
-			{
-				if (zCivGroupName[iCounter2].Enabled == 1)
+				if (gGameExternalOptions.fEnemyRank == TRUE)
 				{
-	
-					if (pSoldier->ubProfile == NO_PROFILE && pSoldier->ubCivilianGroup == iCounter2 ) 
-					{	
-						swprintf(NameStr, zCivGroupName[iCounter2].szCurGroup);
-					
-						SetFont( TINYFONT1 );
-						SetFontBackground( FONT_MCOLOR_BLACK );
-						SetFontForeground( FONT_YELLOW );
-						
-						//legion2
-						FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-						gprintfdirty( sX, sY, NameStr );
-						mprintf( sX, sY, NameStr );
+					for( iCounter2 = 1; iCounter2 < 11; ++iCounter2 )
+					{
+						if (zEnemyRank[iCounter2].Enabled == 1)
+						{
+							if ( zEnemyRank[iCounter2].Stats == 0 && pSoldier->stats.bExpLevel == zEnemyRank[iCounter2].ExpLevel )  
+							{
+								swprintf(NameStr, zEnemyRank[iCounter2].szCurRank);
+
+								SetFont( TINYFONT1 );
+								SetFontBackground( FONT_MCOLOR_BLACK );
+								SetFontForeground( FONT_YELLOW );
+
+								// need to adjust sYPos because default position already occupied by the name
+								if ( gGameExternalOptions.fSoldierProfiles_Enemy && pSoldier->usSoldierProfile || gGameExternalOptions.fEnemyNames )
+									FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+
+								// use default position for text
+								else
+									FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+
+								//legion2
+								gprintfdirty( sX, sY, NameStr );
+								mprintf( sX, sY, NameStr );
+
+								break;
+							}
+						}
 					}
 				}
+
+				//FindFontCenterCoordinates( sXPos, (INT16)( sYPos ), (INT16)(80 ), 1, L"", TINYFONT1, &sX, &sY );
+
+				// sevenfm: show weapon name and additional info
+				ShowEnemyWeapon( sX, sY, pSoldier );
+				ShowEnemyHealthBar( sX, sY, pSoldier );				
+				ShowAdditionalInfo( sX, sY, pSoldier );
+				ShowRankIcon( sXPos, sYPos, pSoldier );
+					}
+			// Flugente: soldier profiles
+			else if ( pSoldier->bTeam == MILITIA_TEAM && gGameExternalOptions.fSoldierProfiles_Militia && pSoldier->usSoldierProfile )
+			{
+				// get a proper chaos name							
+				swprintf(NameStr, pSoldier->GetName());
+							
+				SetFont( TINYFONT1 );
+				SetFontBackground( FONT_MCOLOR_BLACK );
+				SetFontForeground( FONT_YELLOW );
+
+				FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+				gprintfdirty( sX, sY, NameStr );
+				mprintf( sX, sY, NameStr );	
+			}
+			else if (gGameExternalOptions.fCivGroupName == TRUE && pSoldier->ubCivilianGroup > 0 )
+			{
+				if (zCivGroupName[pSoldier->ubCivilianGroup].Enabled == 1)
+				{	
+					swprintf(NameStr, zCivGroupName[pSoldier->ubCivilianGroup].szCurGroup);
+							
+					SetFont( TINYFONT1 );
+					SetFontBackground( FONT_MCOLOR_BLACK );
+					SetFontForeground( FONT_YELLOW );
+								
+					//legion2
+					FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
+					gprintfdirty( sX, sY, NameStr );
+					mprintf( sX, sY, NameStr );
+				}
+				// sevenfm: show weapon name and additional info
+				FindFontCenterCoordinates( sXPos, (INT16)( sYPos ), (INT16)(80 ), 1, L"", TINYFONT1, &sX, &sY );
+				ShowEnemyWeapon( sX, sY, pSoldier );
 			}
 		}
-	//------------
 	}
 }
 
@@ -2245,6 +2474,8 @@ BOOLEAN DrawCTHIndicator()
 	// Find the shooter.
 	SOLDIERTYPE *pSoldier;
 	GetSoldier( &pSoldier, gusSelectedSoldier );
+
+	OBJECTTYPE* pWeapon = pSoldier->GetUsedWeapon( &pSoldier->inv[ pSoldier->ubAttackingHand ] );
 
 	// Create a Background Rect for us to draw our indicator on. With NCTH, the size and position of this rectangle
 	// is equal exactly to the size of the tactical screen viewport. Unlike the OCTH indicator, the NCTH one can grow
@@ -2308,7 +2539,7 @@ BOOLEAN DrawCTHIndicator()
 	FLOAT dDeltaY = dEndY - dStartY;
 
 	// Calculate the distance of the shot, using Pythagorean Theorem
-	DOUBLE d2DDistance = sqrt( (DOUBLE) (dDeltaX * dDeltaX + dDeltaY * dDeltaY ));
+	DOUBLE d2DDistance = Distance2D( dDeltaX, dDeltaY );
 	// Round it upwards.
 	INT32 iDistance = (INT32) d2DDistance;
 	if ( d2DDistance != iDistance )
@@ -2316,11 +2547,6 @@ BOOLEAN DrawCTHIndicator()
 		iDistance += 1;
 		d2DDistance = (FLOAT) ( iDistance);
 	}
-
-	// Calculate the Distance Ratio. This will increase or decrease the size of the Shooting Aperture based
-	// on both distance and Magnification Factor.
-	FLOAT iDistanceRatio = (FLOAT)(d2DDistance / gGameCTHConstants.NORMAL_SHOOTING_DISTANCE);
-	FLOAT iFinalRatio = iDistanceRatio / gCTHDisplay.FinalMagFactor;
 
 	///////////////////////////////////////////////////////////
 	// Now we calculate the Aperture size. This is done using the same method as the shooting formula uses.
@@ -2331,22 +2557,83 @@ BOOLEAN DrawCTHIndicator()
 	// Calculate the size of a "normal" aperture. This is how wide a shot can go at 1x Normal Distance.
 	FLOAT iBasicAperture = (FLOAT)((sin(ddMaxAngleRadians) * gGameCTHConstants.NORMAL_SHOOTING_DISTANCE) * 2); // The *2 compensates for the difference between CellXY and ScreenXY 
 
-	// Calculate the Maximum Aperture. This is the margin of error for the "worst" shot we can have given the
-	// target's actual distance. This will later be used to draw the Outer Circle around the target.
-	FLOAT iMaxAperture = iBasicAperture * iDistanceRatio;
+	// when using the reworked NCTH code we do additional calculations for iron sights and lasers
+	if (gGameExternalOptions.fUseNewCTHCalculation)
+	{
+		// iron sights can get a percentage bonus to make them overall better but only when not shooting from hip
+		if ( gCTHDisplay.ScopeMagFactor <= 1.0 && !pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, gCTHDisplay.iTargetGridNo ) )
 
-	// Calculate the aperture for our shot by applying both distance and scope magnification (which work against each
-	// other) to the size of a normal aperture.
-	FLOAT iAperture = iBasicAperture * iFinalRatio;
+			iBasicAperture = iBasicAperture * (FLOAT)( (100 - gGameCTHConstants.IRON_SIGHT_PERFORMANCE_BONUS) / 100);
 
-	// Apply CTH to the aperture to find out how much smaller it's become thanks to skills and extra aiming.
-	UINT8 actualPct		= __min(gCTHDisplay.MuzzleSwayPercentage,99);
-	iAperture = ((100 - actualPct) * iAperture) / 100;
+		// laser pointers can provide a percentage bonus to base aperture
+		if ( gCTHDisplay.iBestLaserRange > 0 
+			&& ( gGameCTHConstants.LASER_PERFORMANCE_BONUS_HIP + gGameCTHConstants.LASER_PERFORMANCE_BONUS_IRON + gGameCTHConstants.LASER_PERFORMANCE_BONUS_SCOPE != 0) )
+		{
+			INT8 bLightLevel = LightTrueLevel(gCTHDisplay.iTargetGridNo, gsInterfaceLevel );
+			INT32 iMaxLaserRange = ( gCTHDisplay.iBestLaserRange*( 2*bLightLevel + 3*NORMAL_LIGHTLEVEL_NIGHT - 5*NORMAL_LIGHTLEVEL_DAY ) ) / ( 2 * ( NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY ) );
+
+			// laser only has effect when in range
+			if ( iMaxLaserRange > d2DDistance )
+			{
+				FLOAT fLaserBonus = 0;
+				// which bonus do we want to apply?
+				if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, gCTHDisplay.iTargetGridNo ) )
+					// shooting from hip
+					fLaserBonus = gGameCTHConstants.LASER_PERFORMANCE_BONUS_HIP;
+				else if ( gCTHDisplay.ScopeMagFactor <= 1.0 )
+					// using iron sights or other 1x sights
+					fLaserBonus = gGameCTHConstants.LASER_PERFORMANCE_BONUS_IRON;
+				else
+					// must be using a scope
+					fLaserBonus = gGameCTHConstants.LASER_PERFORMANCE_BONUS_SCOPE;
+
+				// light level influences how easy it is to spot the laser dot on the target
+				FLOAT fBrightnessModifier = (FLOAT)(bLightLevel) / (FLOAT)(NORMAL_LIGHTLEVEL_NIGHT);
+
+				// laser fully efficient
+				if ( gCTHDisplay.iBestLaserRange > d2DDistance )
+					// apply full bonus
+					iBasicAperture = iBasicAperture * (FLOAT)( (100 - (fLaserBonus * fBrightnessModifier)) / 100);
+				else
+				{
+					// beyond BestLaserRange laser bonus drops linearly to 0
+					FLOAT fEffectiveLaserRatio = (FLOAT)(iMaxLaserRange - d2DDistance) / (FLOAT)(iMaxLaserRange - gCTHDisplay.iBestLaserRange);
+					// apply partial bonus
+					iBasicAperture = iBasicAperture * (FLOAT)( (100 - (fLaserBonus * fBrightnessModifier * fEffectiveLaserRatio)) / 100);
+				}
+			}
+		}
+	}
+
+	// Next, find out how large the aperture can be around the target, given range. The further the target is, the
+	// larger the aperture can be.
+	FLOAT iDistanceAperture = iBasicAperture * (d2DDistance / gGameCTHConstants.NORMAL_SHOOTING_DISTANCE);
+
+	///////////////////////////////////////////////////////////////
+	// To make things easier for us, we now calculate the Magnification Factor for this shot. A Mag Factor
+	// is a divisor to the sway of the muzzle. It's about the same as multiplying CTH by a certain amount.
+	// Note that both optical magnification devices (like scopes) and dot-projection devices (like lasers and 
+	// reflex sights) provide this sort of bonus.
+	FLOAT iMagFactor = CalcMagFactor( pSoldier, pWeapon, d2DDistance, gCTHDisplay.iTargetGridNo, (UINT8)pSoldier->aiData.bAimTime );
+
+	// Get effective mag factor for this shooter. This represents his ability to use scopes.
+	FLOAT fEffectiveMagFactor = CalcEffectiveMagFactor( pSoldier, iMagFactor );
+
+	// Next step is to apply scope/projection factor to decrease the size of the aperture. This gives us the "Max
+	// Aperture" value - the size of the shooting circle if the gun is as unstable as possible.
+	FLOAT iMaxAperture = iDistanceAperture / fEffectiveMagFactor;
+
+	// We now use the Muzzle Sway value, calculated by the CTH formula, to decrease the size of the shot aperture.
+	// It is used as a percentage: a 50% muzzle sway value gives a cone with half the maximum radius. A cone with
+	// 0% Muzzle Sway is a single line with no width (meaning all shots will fly right down the center, and all will
+	// hit the target), while a cone with 100% muzzle sway is as wide as possible.
+	FLOAT iAperture = ( iMaxAperture * (100.0f - (FLOAT)gCTHDisplay.MuzzleSwayPercentage) / 100.0f);
 
 	/////////////////////////////////////////////
 	// Factor in Weapon "Effective Range".
 	UINT16 sEffRange = Weapon[Item[pSoldier->inv[pSoldier->ubAttackingHand].usItem].ubClassIndex].usRange + GetRangeBonus(&(pSoldier->inv[ pSoldier->ubAttackingHand ]));
 	FLOAT iRangeRatio = __max(1.0f, (FLOAT)(d2DDistance / sEffRange));
+	FLOAT iDistanceRatio = (FLOAT)(d2DDistance / gGameCTHConstants.NORMAL_SHOOTING_DISTANCE);
 	
 	/////////////////////////////////////////////
 	// Factor in Gun Accuracy.
@@ -2363,7 +2650,7 @@ BOOLEAN DrawCTHIndicator()
 
 	// Since bullet dev is only affected by distance, we add it last as a flat modifier.
 	iBasicAperture += iBulletDev;
-	iMaxAperture += iBulletDev;
+	iDistanceAperture += iBulletDev;
 	iAperture += iBulletDev;
 
 	// CHRISL: Moved here so we can base the cursor color on the iAperture value
@@ -2488,6 +2775,9 @@ BOOLEAN DrawCTHIndicator()
 		APRect.right = sCenter + (usTotalWidth / 2);
 	}
 
+	// sevenfm: draw item pics
+	DrawNCTHCursorItemPics( sStartScreenX, sStartScreenY );
+
 	/////////////// MAG FACTOR
 	{
 		SetFont( TINYFONT1 );
@@ -2581,7 +2871,7 @@ BOOLEAN DrawCTHIndicator()
 		SetFont( TINYFONT1 );
 
 		// Find coordinates, using full string ("X.X x")
-		swprintf( pStr, L"%3.2f", iMaxAperture );
+		swprintf( pStr, L"%3.2f", iDistanceAperture );
 		FindFontCenterCoordinates( (INT16)MagRect.left, (INT16)MagRect.top-5, (INT16)MagRect.right-(INT16)MagRect.left, 5, pStr, TINYFONT1, &curX, &curY);
 		// Find width of this string.
 		UINT16 usTotalWidth = StringPixLength ( pStr, TINYFONT1 );
@@ -2624,6 +2914,10 @@ BOOLEAN DrawCTHIndicator()
 
 			// How many bullets are left in the gun?
 			UINT32 uiBulletsLeft = pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft;
+			if (pSoldier->IsValidSecondHandBurst()) 
+			{
+				uiBulletsLeft = min( (pSoldier->inv[ SECONDHANDPOS ][0]->data.gun.ubGunShotsLeft), uiBulletsLeft );
+			}
 
 			UINT32 uiCurBullet = uiBulletsLeft;
 			while( uiCurBullet > 0 )
@@ -2878,8 +3172,17 @@ BOOLEAN DrawCTHIndicator()
 			}
 			else
 			{
-				// grey empty tick
-				BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 0, sLeft + sOffset, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				if (pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bShownAimTime, gCTHDisplay.iTargetGridNo ) && 
+					ubAllowedLevels - abs((ubAllowedLevels-(x+1))) <= GetNumberAltFireAimLevels( pSoldier, gCTHDisplay.iTargetGridNo ) )
+				{
+					// yellow empty tick
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 2, sLeft + sOffset, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
+				else
+				{
+					// grey empty tick
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 0, sLeft + sOffset, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
 			}
 		}
 
@@ -2890,22 +3193,50 @@ BOOLEAN DrawCTHIndicator()
 			INT16 sNewLeft = sLeft + (ubAimFinalOffset * (pSoldier->aiData.bShownAimTime-1));
 			if (gfDisplayFullCountRing)
 			{
-				BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 5, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bShownAimTime, gCTHDisplay.iTargetGridNo ) )
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 3, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
+				else
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 5, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
 			}
 			else
 			{
-				BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 1, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bShownAimTime, gCTHDisplay.iTargetGridNo ) )
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 3, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
+				else
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 1, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
 			}
 
 			// Tick on the right
 			sNewLeft = sLeft + (ubAimFinalOffset * (ubNumSpaces-(pSoldier->aiData.bShownAimTime-1)));
 			if (gfDisplayFullCountRing)
 			{
-				BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 5, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bShownAimTime, gCTHDisplay.iTargetGridNo ) )
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 3, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
+				else
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 5, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
 			}
 			else
 			{
-				BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 1, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bShownAimTime, gCTHDisplay.iTargetGridNo ) )
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 3, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
+				else
+				{
+					BltVideoObjectFromIndex( FRAME_BUFFER, guiCTHImage, 1, sNewLeft, sTop, VO_BLT_SRCTRANSPARENCY, NULL );
+				}
 			}
 		}
 
@@ -2950,10 +3281,10 @@ BOOLEAN DrawCTHIndicator()
 	sRight = gsVIEWPORT_END_X;
 	sBottom = gsVIEWPORT_WINDOW_END_Y;
 
-	INT16 lastY = 0;
-	INT16 diffY = 0;
-	UINT32 uiAperture = __max(2,(UINT32)iAperture);
-	UINT32 uiMaxAperture = __max(2,(UINT32)iMaxAperture);
+//	INT16 lastY = 0;
+//	INT16 diffY = 0;
+//	UINT32 uiAperture = __max(2,(UINT32)iAperture);
+//	UINT32 uiMaxAperture = __max(2,(UINT32)iDistanceAperture);
 	UINT32 uiApertureBarLength = 10;
 
 	INT32 cnt = 0;
@@ -2977,32 +3308,32 @@ BOOLEAN DrawCTHIndicator()
 	FLOAT RADIANS_IN_CIRCLE = (FLOAT)(PI * 2);
 	INT32 Circ = 0;
 
-	Circ = (INT32)((iMaxAperture * RADIANS_IN_CIRCLE) * dVerticalBias);
+	Circ = (INT32)((iDistanceAperture * RADIANS_IN_CIRCLE) * dVerticalBias);
 	if(gGameSettings.fOptions[ TOPTION_CTH_CURSOR ])
 	{
 		// Draw outer circle
 		for (INT32 iCurPoint = 0; iCurPoint < Circ; iCurPoint++)
 		{
-			curX = (INT16)(iMaxAperture * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
-			curY = (INT16)((iMaxAperture * dVerticalBias) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+			curX = (INT16)(iDistanceAperture * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+			curY = (INT16)((iDistanceAperture * dVerticalBias) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
 			INT16 firstX = curX;
 			INT16 firstY = curY;
 
 			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBar );
 
 			// Draw a border circle which is 1 point wider
-			curX = (INT16)((iMaxAperture+1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
-			curY = (INT16)(((iMaxAperture * dVerticalBias)+1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curX = (INT16)((iDistanceAperture+1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curY = (INT16)(((iDistanceAperture * dVerticalBias)+1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
 
-			if (curX != firstX || curY != firstY)
-				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
+//			if (curX != firstX || curY != firstY)
+//				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
 
 			// Draw a border circle which is 1 point narrower
-			curX = (INT16)((iMaxAperture-1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
-			curY = (INT16)(((iMaxAperture * dVerticalBias)-1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curX = (INT16)((iDistanceAperture-1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curY = (INT16)(((iDistanceAperture * dVerticalBias)-1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
 
-			if (curX != firstX || curY != firstY)
-				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
+//			if (curX != firstX || curY != firstY)
+//				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
 		}
 
 		Circ = (INT32)((iAperture * RADIANS_IN_CIRCLE) * dVerticalBias);
@@ -3017,18 +3348,18 @@ BOOLEAN DrawCTHIndicator()
 			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBar );
 
 			// Draw a border circle which is 1 point wider
-			curX = (INT16)((iAperture+1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
-			curY = (INT16)(((iAperture * dVerticalBias)+1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curX = (INT16)((iAperture+1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curY = (INT16)(((iAperture * dVerticalBias)+1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
 
-			if (curX != firstX || curY != firstY)
-				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
+//			if (curX != firstX || curY != firstY)
+//				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
 
 			// Draw a border circle which is 1 point narrower
-			curX = (INT16)((iAperture-1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
-			curY = (INT16)(((iAperture * dVerticalBias)-1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curX = (INT16)((iAperture-1) * cos((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
+//			curY = (INT16)(((iAperture * dVerticalBias)-1) * sin((iCurPoint * RADIANS_IN_CIRCLE)/Circ));
 
-			if (curX != firstX || curY != firstY)
-				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
+//			if (curX != firstX || curY != firstY)
+//				DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+curX, sStartScreenY+curY+(INT16)zOffset, usCApertureBorder );
 		}
 
 		// Aperture Crosshairs
@@ -3038,18 +3369,25 @@ BOOLEAN DrawCTHIndicator()
 			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, sStartScreenY+(INT16)zOffset, usCApertureBar );
 			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, sStartScreenY+(INT16)zOffset, usCApertureBar );
 
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY+1)+(INT16)zOffset, usCApertureBar );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY+1)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY+1)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY+1)+(INT16)zOffset, usCApertureBar );
 
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY-1)+(INT16)zOffset, usCApertureBar );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY-1)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY-1)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY-1)+(INT16)zOffset, usCApertureBar );
 
 			// Darker borders
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY+2)+(INT16)zOffset, usCApertureBorder );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY+2)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY+2)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY+2)+(INT16)zOffset, usCApertureBorder );
 
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY-2)+(INT16)zOffset, usCApertureBorder );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY-2)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY-2)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY-2)+(INT16)zOffset, usCApertureBorder );
+
+			// Darker borders
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY+1)+(INT16)zOffset, usCApertureBorder );
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY+1)+(INT16)zOffset, usCApertureBorder );
+
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+cnt, (sStartScreenY-1)+(INT16)zOffset, usCApertureBorder );
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-cnt, (sStartScreenY-1)+(INT16)zOffset, usCApertureBorder );
 
 		}
 		for (INT16 cnt = (INT16)(iAperture * dVerticalBias); cnt <= (INT16)((iAperture * dVerticalBias) + uiApertureBarLength); cnt++)
@@ -3058,18 +3396,25 @@ BOOLEAN DrawCTHIndicator()
 			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBar );
 			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBar );
 
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+1, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBar );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+1, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+1, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+1, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBar );
 
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-1, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBar );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-1, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-1, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBar );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-1, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBar );
 
 			// Darker borders
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+2, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBorder );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+2, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+2, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+2, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBorder );
 
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-2, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBorder );
-			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-2, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-2, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBorder );
+//			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-2, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBorder );
+
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+1, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBorder );
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX+1, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBorder );
+
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-1, (sStartScreenY+cnt)+(INT16)zOffset, usCApertureBorder );
+			DrawCTHPixelToBuffer( ptrBuf, uiPitch, sLeft, sTop, sRight, sBottom, sStartScreenX-1, (sStartScreenY-cnt)+(INT16)zOffset, usCApertureBorder );
+
 		}
 	}
 
@@ -3149,17 +3494,15 @@ void EndOverlayMessage( )
 }
 
 
-void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sWidth, INT16 sHeight )
+void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sWidth, INT16 sHeight, INT16 interval )
 {
 	FLOAT											dWidth, dPercentage;
-	//UINT16										usLineColor;
-
 	UINT32										uiDestPitchBYTES;
 	UINT8											*pDestBuf;
-	UINT16										usLineColor;
 	INT8											bBandage;
-
-	// Draw breath points
+	INT8											bPoisonBandage;
+	INT16		color8;
+	INT16		color16;
 
 	// Draw new size
 	pDestBuf = LockVideoSurface( FRAME_BUFFER, &uiDestPitchBYTES );
@@ -3167,91 +3510,85 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 	// region rysowania barow nad najemnikiem
 	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, gsVIEWPORT_WINDOW_START_Y, SCREEN_WIDTH, ( gsVIEWPORT_WINDOW_END_Y - gsVIEWPORT_WINDOW_START_Y ) );
 
+	// sevenfm: draw background for alt bar
+	if( gGameExternalOptions.ubShowHealthBarsOnHead > 1 )
+	{
+		DrawBar( sXPos+2, sYPos, sWidth + 2, 1 + interval*3, COLOR_BLACK, Get16BPPColor( FROMRGB( 0, 0, 0	) ), pDestBuf );
+		// draw border: light brown for stealth mode, grey for regular		
+		if(pSoldier->bStealthMode)
+		{
+			color8 = COLOR_BROWN;
+			color16 = Get16BPPColor( FROMRGB( 180, 140, 20 ) );
+		}
+		else{
+			color8 = COLOR_DKGREY;
+			color16 = Get16BPPColor( FROMRGB( 120, 120, 120 ) );
+		}
+		if ( pSoldier->ubID == gusSelectedSoldier )
+		{
+			if(gbPixelDepth==16)
+				RectangleDraw( TRUE, sXPos+1, sYPos-1, sXPos+sWidth+3, sYPos+1+interval*3, color16, pDestBuf);
+			else
+				RectangleDraw8( TRUE, sXPos+1, sYPos-1, sXPos+sWidth+3, sYPos+1+interval*3, color8, pDestBuf);
+		}
+	}
+
 	// get amt bandaged
 	bBandage = pSoldier->stats.bLifeMax - pSoldier->stats.bLife - pSoldier->bBleeding;
 
-
+	// get amount of poisoned bandage
+	bPoisonBandage = pSoldier->bPoisonSum - pSoldier->bPoisonBleeding - pSoldier->bPoisonLife;
 
 	// NOW DO BLEEDING
 	if ( pSoldier->bBleeding )
 	{
 		dPercentage = (FLOAT)( pSoldier->bBleeding +	pSoldier->stats.bLife + bBandage )/ (FLOAT)100;
 		dWidth			=	dPercentage * sWidth;
-		if(gbPixelDepth==16)
-		{
-			usLineColor = Get16BPPColor( FROMRGB( 240,	240, 20	) );
-			RectangleDraw( TRUE, sXPos + 3, sYPos + 1, (INT32)( sXPos + dWidth + 3 ), sYPos + 1, usLineColor, pDestBuf );
-		}
-		else if(gbPixelDepth==8)
-		{
-		// DB Need to change this to a color from the 8-bit standard palette
-			usLineColor = COLOR_RED;
-			RectangleDraw8( TRUE, sXPos + 3, sYPos + 1, (INT32)( sXPos + dWidth + 3 ), sYPos + 1, usLineColor, pDestBuf );
-		}
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 240,	240, 20	) ), pDestBuf );
 	}
 
+	// poisoned bleeding
+	if ( pSoldier->bPoisonBleeding )
+	{
+		dPercentage = (FLOAT)( pSoldier->stats.bLifeMax - pSoldier->bBleeding +	pSoldier->bPoisonBleeding )/ (FLOAT)100;
+		dWidth			=	dPercentage * sWidth;
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 240, 20, 240	) ), pDestBuf );
+	}
 
 	if( bBandage )
 	{
 		dPercentage = (FLOAT)( pSoldier->stats.bLife + bBandage ) / (FLOAT)100;
 		dWidth			=	dPercentage * sWidth;
-		if(gbPixelDepth==16)
-		{
-			usLineColor = Get16BPPColor( FROMRGB( 222, 132, 132 ) );
-			RectangleDraw( TRUE, sXPos + 3, sYPos + 1, (INT32)( sXPos + dWidth + 3 ), sYPos + 1, usLineColor, pDestBuf );
-		}
-		else if(gbPixelDepth==8)
-		{
-			// DB Need to change this to a color from the 8-bit standard palette
-			usLineColor = COLOR_RED;
-			RectangleDraw8( TRUE, sXPos + 3, sYPos + 1, (INT32)( sXPos + dWidth + 3 ), sYPos + 1, usLineColor, pDestBuf );
-		}
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 222, 132, 132	) ), pDestBuf );
 	}
 
+	// poisoned bandage
+	if ( bPoisonBandage )
+	{
+		dPercentage = (FLOAT)( pSoldier->stats.bLife + bPoisonBandage )/ (FLOAT)100;
+		dWidth			=	dPercentage * sWidth;
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 132, 222, 132	) ), pDestBuf );
+	}
 
 	dPercentage = (FLOAT)pSoldier->stats.bLife / (FLOAT)100;
 	dWidth			=	dPercentage * sWidth;
-	if(gbPixelDepth==16)
-	{
-		usLineColor = Get16BPPColor( FROMRGB( 200, 0, 0 ) );
-		RectangleDraw( TRUE, sXPos + 3, sYPos + 1, (INT32)( sXPos + dWidth + 3 ), sYPos + 1, usLineColor, pDestBuf );
-	}
-	else if(gbPixelDepth==8)
-	{
-	// DB Need to change this to a color from the 8-bit standard palette
-		usLineColor = COLOR_RED;
-		RectangleDraw8( TRUE, sXPos + 3, sYPos + 1, (INT32)( sXPos + dWidth + 3 ), sYPos + 1, usLineColor, pDestBuf );
-	}
+	DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 200, 0, 0	) ), pDestBuf );
 
-
+	// poisoned life
+	if ( pSoldier->bPoisonLife )
+	{
+		dPercentage = (FLOAT)( pSoldier->bPoisonLife )/ (FLOAT)100;
+		dWidth			=	dPercentage * sWidth;
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 0, 200, 0 ) ), pDestBuf );
+	}
 
 	dPercentage = (FLOAT)( pSoldier->bBreathMax ) / (FLOAT)100;
 	dWidth			=	dPercentage * sWidth;
-	if(gbPixelDepth==16)
-	{
-		usLineColor = Get16BPPColor( FROMRGB( 20, 20, 150 ) );
-		RectangleDraw( TRUE, sXPos + 3, sYPos + 4, (INT32)( sXPos + dWidth + 3 ), sYPos + 4, usLineColor, pDestBuf );
-	}
-	else if(gbPixelDepth==8)
-	{
-	// DB Need to change this to a color from the 8-bit standard palette
-		usLineColor = COLOR_BLUE;
-		RectangleDraw8( TRUE, sXPos + 3, sYPos + 4, (INT32)( sXPos + dWidth + 3 ), sYPos + 4, usLineColor, pDestBuf );
-	}
+	DrawBar( sXPos + 3, sYPos + 1 + interval, (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 20, 20, 150	) ), pDestBuf );
 
 	dPercentage = (FLOAT)( pSoldier->bBreath ) / (FLOAT)100;
 	dWidth			=	dPercentage * sWidth;
-	if(gbPixelDepth==16)
-	{
-		usLineColor = Get16BPPColor( FROMRGB( 100, 100, 220 ) );
-		RectangleDraw( TRUE, sXPos + 3, sYPos + 4, (INT32)( sXPos + dWidth + 3 ), sYPos + 4, usLineColor, pDestBuf );
-	}
-	else if(gbPixelDepth==8)
-	{
-	// DB Need to change this to a color from the 8-bit standard palette
-		usLineColor = COLOR_BLUE;
-		RectangleDraw8( TRUE, sXPos + 3, sYPos + 4, (INT32)( sXPos + dWidth + 3 ), sYPos + 4, usLineColor, pDestBuf );
-	}
+	DrawBar( sXPos + 3, sYPos + 1 + interval, (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 100, 100, 220 ) ), pDestBuf );	
 
 	/*
 	// morale
@@ -3269,6 +3606,49 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 		RectangleDraw8( TRUE, sXPos + 1, sYPos + 7, (INT32)( sXPos + dWidth + 1 ), sYPos + 7, usLineColor, pDestBuf );
 	}
 
+	*/
+
+	// draw suppression shock bar
+	if( gGameExternalOptions.ubShowHealthBarsOnHead > 1 )
+	{
+		dPercentage = (FLOAT)( __min(100, ( (FLOAT)100 * CalcEffectiveShockLevel( pSoldier ) ) / CalcSuppressionTolerance( pSoldier ) ) ) / (FLOAT)100;
+		dWidth		=	dPercentage * sWidth;
+		DrawBar( sXPos+3, sYPos+1+2*interval, (INT32)dWidth, sHeight, COLOR_ORANGE, Get16BPPColor( FROMRGB( 220, 140, 0 ) ), pDestBuf );
+	}
+
+	/*
+	BOOLEAN bDisguised = pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER);
+	BOOLEAN bStealth = pSoldier->bStealthMode;
+	// draw cover indicators
+	if( ( gGameExternalOptions.ubShowHealthBarsOnHead > 1 ) && 
+		( (gTacticalStatus.uiFlags & TURNBASED ) && (gTacticalStatus.uiFlags & INCOMBAT) || bStealth || bDisguised ) )
+	{		
+		INT8 cover = 3;		// MAX_COVER
+		BOOLEAN showCover;
+		INT32 usMapPos;
+
+		if( gGameExternalOptions.ubShowCoverIndicator ==1 ||
+			( gGameExternalOptions.ubShowCoverIndicator ==3 && (bStealth || bDisguised) ) )
+		{
+			if( GetMouseMapPos(&usMapPos) && _KeyDown(SHIFT) )
+			{
+				// draw target tile cover indicator
+				CalculateCoverForSoldier( pSoldier, usMapPos, gsInterfaceLevel, cover );
+				showCover = CoverColorCode( cover, color8, color16 );
+			}
+			else
+			{
+				// draw cover indicator
+				CalculateCoverForSoldier( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, cover );
+				showCover = CoverColorCode( cover, color8, color16 );
+				if ( color8 == COLOR_GREEN)
+					showCover = FALSE;
+			}
+
+			if(showCover)
+				DrawBar( sXPos+33, sYPos+1, 1+sHeight , (interval==3 ? 2 : 3 )*interval-1, color8, color16, pDestBuf );
+		}
+	}
 	*/
 
 	UnLockVideoSurface( FRAME_BUFFER );
@@ -3483,8 +3863,8 @@ void PopupDoorOpenMenu( BOOLEAN fClosingDoor )
 	INT32								iMenuAnchorX, iMenuAnchorY;
 	CHAR16								zDisp[ 100 ];
 
-	iMenuAnchorX = gOpenDoorMenu.sX;
-	iMenuAnchorY = gOpenDoorMenu.sY;
+	//iMenuAnchorX = gOpenDoorMenu.sX;
+	//iMenuAnchorY = gOpenDoorMenu.sY;
 
 	// Blit background!
 	//BltVideoObjectFromIndex( FRAME_BUFFER, guiBUTTONBORDER, 0, iMenuAnchorX, iMenuAnchorY, VO_BLT_SRCTRANSPARENCY, NULL );
@@ -3842,11 +4222,47 @@ void BtnDoorMenuCallback(GUI_BUTTON *btn,INT32 reason)
 		{
 			// OK, set cancle code!
 			gOpenDoorMenu.fMenuHandled = 2;
+#ifdef JA2UB			
+			//Handle someone trying to open the door in the tunnel gate`
+			HandlePlayerSayingQuoteWhenFailingToOpenGateInTunnel( gOpenDoorMenu.pSoldier, FALSE ); //Ja25 UB
+#endif
 		}
 
 		// Switch on command....
 		if ( uiBtnID == iActionIcons[ OPEN_DOOR_ICON ] )
 		{
+#ifdef JA2UB		
+			//Handle someone trying to open the door in the tunnel gate`
+			if( HandlePlayerSayingQuoteWhenFailingToOpenGateInTunnel( gOpenDoorMenu.pSoldier, TRUE ) ) //Ja25 UB
+			{
+				// OK, set cancle code!
+				gOpenDoorMenu.fMenuHandled = 2;
+			}
+			else
+			{
+				// Open door normally...
+				// Check APs
+			if ( EnoughPoints(	gOpenDoorMenu.pSoldier, APBPConstants[AP_OPEN_DOOR], APBPConstants[BP_OPEN_DOOR], FALSE ) )
+				{
+				// Set UI
+					SetUIBusy( (UINT8)gOpenDoorMenu.pSoldier->ubID );
+
+					if ( gOpenDoorMenu.fClosingDoor )
+					{
+						gOpenDoorMenu.pSoldier->ChangeSoldierState( GetAnimStateForInteraction( gOpenDoorMenu.pSoldier, TRUE, CLOSE_DOOR ), 0 , FALSE );
+					}
+					else
+					{
+						InteractWithClosedDoor( gOpenDoorMenu.pSoldier, HANDLE_DOOR_OPEN );
+					}
+				}
+				else
+				{
+					// OK, set cancel code!
+					gOpenDoorMenu.fMenuHandled = 2;
+				}
+			}
+#else
 			// Open door normally...
 			// Check APs
 			// SANDRO - changed APs for opening dorrs calc
@@ -3869,6 +4285,7 @@ void BtnDoorMenuCallback(GUI_BUTTON *btn,INT32 reason)
 				// OK, set cancel code!
 				gOpenDoorMenu.fMenuHandled = 2;
 			}
+#endif
 		}
 
 		if ( uiBtnID == iActionIcons[ BOOT_DOOR_ICON ] )
@@ -3941,6 +4358,30 @@ void BtnDoorMenuCallback(GUI_BUTTON *btn,INT32 reason)
 
 		if ( uiBtnID == iActionIcons[ EXPLOSIVE_DOOR_ICON ] )
 		{
+#ifdef JA2UB
+			//Handle someone trying to open the door in the tunnel gate`
+			if( HandlePlayerSayingQuoteWhenFailingToOpenGateInTunnel( gOpenDoorMenu.pSoldier, TRUE ) ) //Ja25 UB
+			{
+				// OK, set cancle code!
+				gOpenDoorMenu.fMenuHandled = 2;
+			}
+			else
+			{
+					// Explode
+				if ( EnoughPoints(	gOpenDoorMenu.pSoldier, APBPConstants[AP_EXPLODE_DOOR], APBPConstants[BP_EXPLODE_DOOR], FALSE ) )
+				{
+					// Set UI
+					SetUIBusy( (UINT8)gOpenDoorMenu.pSoldier->ubID );
+
+					InteractWithClosedDoor( gOpenDoorMenu.pSoldier, HANDLE_DOOR_EXPLODE );
+				}
+				else
+				{
+					// OK, set cancle code!
+					gOpenDoorMenu.fMenuHandled = 2;
+				}
+			}
+#else
 			// Explode
 			if ( EnoughPoints(	gOpenDoorMenu.pSoldier, GetAPsToBombDoor( gOpenDoorMenu.pSoldier ), APBPConstants[BP_EXPLODE_DOOR], FALSE ) ) // SANDRO
 			{
@@ -3954,6 +4395,7 @@ void BtnDoorMenuCallback(GUI_BUTTON *btn,INT32 reason)
 				// OK, set cancle code!
 				gOpenDoorMenu.fMenuHandled = 2;
 			}
+#endif
 		}
 
 		if ( uiBtnID == iActionIcons[ UNTRAP_DOOR_ICON ] )
@@ -3975,6 +4417,30 @@ void BtnDoorMenuCallback(GUI_BUTTON *btn,INT32 reason)
 
 		if ( uiBtnID == iActionIcons[ USE_CROWBAR_ICON ] )
 		{
+#ifdef JA2UB		
+			//Handle someone trying to open the door in the tunnel gate`
+			if( HandlePlayerSayingQuoteWhenFailingToOpenGateInTunnel( gOpenDoorMenu.pSoldier, TRUE ) ) //JA25 UB
+			{
+				// OK, set cancle code!
+				gOpenDoorMenu.fMenuHandled = 2;
+			}
+			else
+			{
+				// Explode
+				if ( EnoughPoints(	gOpenDoorMenu.pSoldier, APBPConstants[AP_USE_CROWBAR], APBPConstants[BP_USE_CROWBAR], FALSE ) )
+				{
+					// Set UI
+					SetUIBusy( (UINT8)gOpenDoorMenu.pSoldier->ubID );
+
+					InteractWithClosedDoor( gOpenDoorMenu.pSoldier, HANDLE_DOOR_CROWBAR );
+				}
+				else
+				{
+					// OK, set cancle code!
+					gOpenDoorMenu.fMenuHandled = 2;
+				}
+			}
+#else
 			// Explode
 			if ( EnoughPoints(	gOpenDoorMenu.pSoldier, APBPConstants[AP_USE_CROWBAR], APBPConstants[BP_USE_CROWBAR], FALSE ) )
 			{
@@ -3988,6 +4454,7 @@ void BtnDoorMenuCallback(GUI_BUTTON *btn,INT32 reason)
 				// OK, set cancle code!
 				gOpenDoorMenu.fMenuHandled = 2;
 			}
+#endif
 		}
 
 		HandleOpenDoorMenu( );
@@ -4207,11 +4674,14 @@ BOOLEAN AddTopMessage( UINT8 ubType, STR16 pzString )
 
 	fFound = TRUE;
 	cnt = 0;
-		
+
+	// WANNE: Disabled AI count on turnbar, because it shows different count on clients
+	/*
 	if(is_networked && gTacticalStatus.ubCurrentTeam == 1 && ubType == COMPUTER_TURN_MESSAGE){
 		//add ai count to turn bar - haydent
 		swprintf( pzString, MPClientMessage[80], NumEnemyInSector());
 	}
+	*/
 
 	if ( fFound )
 	{
@@ -4241,36 +4711,35 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 	UINT32			uiBarToUseInUpDate=0;
 	BOOLEAN			fDoLimitBar = FALSE;
 	FLOAT			dNumStepsPerEnemy, dLength, dCurSize;
-	INT16			iProgBarLength = SCREEN_WIDTH - 13;	
+	INT16			iProgBarLength; 
 	STR fn;
 	
 	memset( &VObjectDesc, 0, sizeof( VObjectDesc ) );
 	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 	
-	switch (iResolution)
+	if (iResolution >= _640x480 && iResolution < _800x600)
 	{
-		case 0:	//640
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\rect_Thin.sti";
-			else
-				fn = "INTERFACE\\rect.sti";		
-			break;			
-		case 1:	//800
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\rect_800x600Thin.sti";
-			else
-				fn = "INTERFACE\\rect_800x600.sti";			
-			break;
-		case 2:
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\rect_1024x768Thin.sti";
-			else
-				fn = "INTERFACE\\rect_1024x768.sti";
-			break;
-		default:
-			AssertMsg( 0, "Invalid resolution");
-			return;
-			break;
+		iProgBarLength = 640 - 13;
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\rect_Thin.sti";
+		else
+			fn = "INTERFACE\\rect.sti";		
+	}
+	else if (iResolution < _1024x768)
+	{
+		iProgBarLength = 800 - 13;
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\rect_800x600Thin.sti";
+		else
+			fn = "INTERFACE\\rect_800x600.sti";			
+	}
+	else
+	{
+		iProgBarLength = 1024 - 13;
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\rect_1024x768Thin.sti";
+		else
+			fn = "INTERFACE\\rect_1024x768.sti";
 	}
 
 	FilenameForBPP(fn, VObjectDesc.ImageFile);
@@ -4281,30 +4750,26 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 		AssertMsg(0, fn );	
 	}
 	
-	switch (iResolution)
+	if (iResolution >= _640x480 && iResolution < _800x600)
 	{
-		case 0:	//640
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\timebargreen_Thin.sti";
-			else
-				fn = "INTERFACE\\timebargreen.sti";
-			break;
-		case 1:	//800
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\timebargreen_800x600Thin.sti";
-			else
-				fn = "INTERFACE\\timebargreen_800x600.sti";
-			break;
-		case 2:
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\timebargreen_1024x768Thin.sti";
-			else
-				fn = "INTERFACE\\timebargreen_1024x768.sti";
-			break;
-		default:
-			AssertMsg( 0, "Invalid resolution");
-			return;
-		break;
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\timebargreen_Thin.sti";
+		else
+			fn = "INTERFACE\\timebargreen.sti";
+	}
+	else if (iResolution < _1024x768)
+	{
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\timebargreen_800x600Thin.sti";
+		else
+			fn = "INTERFACE\\timebargreen_800x600.sti";
+	}
+	else
+	{
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\timebargreen_1024x768Thin.sti";
+		else
+			fn = "INTERFACE\\timebargreen_1024x768.sti";
 	}
 
 	FilenameForBPP(fn, VObjectDesc.ImageFile);
@@ -4314,30 +4779,26 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 		AssertMsg(0, fn );	
 	}
 	
-	switch (iResolution)
+	if (iResolution >= _640x480 && iResolution < _800x600)
 	{
-		case 0:	//640
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\timebaryellow_Thin.sti";
-			else
-				fn = "INTERFACE\\timebaryellow.sti";
-			break;
-		case 1:	//800			
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\timebaryellow_800x600Thin.sti";
-			else
-				fn = "INTERFACE\\timebaryellow_800x600.sti";
-			break;
-		case 2:
-			if (gGameExternalOptions.fSmallSizeProgressbar)
-				fn = "INTERFACE\\timebaryellow_1024x768Thin.sti";
-			else
-				fn = "INTERFACE\\timebaryellow_1024x768.sti";
-			break;
-		default:
-			AssertMsg( 0, "Invalid resolution");
-			return;
-			break;
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\timebaryellow_Thin.sti";
+		else
+			fn = "INTERFACE\\timebaryellow.sti";
+	}
+	else if (iResolution < _1024x768)
+	{
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\timebaryellow_800x600Thin.sti";
+		else
+			fn = "INTERFACE\\timebaryellow_800x600.sti";
+	}
+	else
+	{
+		if (gGameExternalOptions.fSmallSizeProgressbar)
+			fn = "INTERFACE\\timebaryellow_1024x768Thin.sti";
+		else
+			fn = "INTERFACE\\timebaryellow_1024x768.sti";
 	}
 
 	FilenameForBPP(fn, VObjectDesc.ImageFile);
@@ -4358,8 +4819,8 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 		case MILITIA_INTERRUPT_MESSAGE:
 		case AIR_RAID_TURN_MESSAGE:
 
-			// Render rect into surface
-			BltVideoObjectFromIndex( uiSurface, uiBAR, 0, 0, 0, VO_BLT_SRCTRANSPARENCY, NULL );
+			// Render rect into surface	
+			BltVideoObjectFromIndex( uiSurface, uiBAR, 0, xResOffset, 0, VO_BLT_SRCTRANSPARENCY, NULL );
 
 			SetFontBackground( FONT_MCOLOR_BLACK );
 			SetFontForeground( FONT_MCOLOR_WHITE );
@@ -4369,8 +4830,8 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 
 		case PLAYER_INTERRUPT_MESSAGE:
 
-			// Render rect into surface
-			BltVideoObjectFromIndex( uiSurface, uiINTBAR, 0, 0, 0, VO_BLT_SRCTRANSPARENCY, NULL );
+			// Render rect into surface	
+			BltVideoObjectFromIndex( uiSurface, uiINTBAR, 0, xResOffset, 0, VO_BLT_SRCTRANSPARENCY, NULL );
 
 			SetFontBackground( FONT_MCOLOR_BLACK );
 			SetFontForeground( FONT_MCOLOR_WHITE );
@@ -4380,7 +4841,8 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 
 		case PLAYER_TURN_MESSAGE:
 
-			BltVideoObjectFromIndex( uiSurface, uiPLAYERBAR, 0, 0, 0, VO_BLT_SRCTRANSPARENCY, NULL );
+			// Render rect into surface	
+			BltVideoObjectFromIndex( uiSurface, uiPLAYERBAR, 0, xResOffset, 0, VO_BLT_SRCTRANSPARENCY, NULL );
 
 			SetFontBackground( FONT_MCOLOR_BLACK );
 			SetFontForeground( FONT_MCOLOR_WHITE );
@@ -4402,7 +4864,7 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 		dNumStepsPerEnemy = (FLOAT)( (FLOAT)iProgBarLength / (FLOAT)gTacticalStatus.usTactialTurnLimitMax );
 
 		// Render end peice
-		sBarX = PROG_BAR_START_X;
+		sBarX = (SCREEN_WIDTH - xResSize) / 2 + 5;
 		BltVideoObjectFromIndex( uiSurface, uiBarToUseInUpDate, 1, sBarX, PROG_BAR_START_Y, VO_BLT_SRCTRANSPARENCY, NULL );
 
 		// Determine Length
@@ -4873,24 +5335,36 @@ void DoorMenuBackregionCallback( MOUSE_REGION * pRegion, INT32 iReason )
 
 STR16 GetSoldierHealthString( SOLDIERTYPE *pSoldier )
 {
-	INT32 cnt, cntStart;
-	if( pSoldier->stats.bLife == pSoldier->stats.bLifeMax )
+	// sevenfm: show enemy health as text only when SHOW_ENEMY_HEALTH = 1
+	if ( ( gGameExternalOptions.ubShowEnemyHealth != 1 ) && (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == CREATURE_TEAM))
 	{
-		cntStart = 4;
+		return L"";
 	}
-	else
+	else	
 	{
-		cntStart = 0;
-	}
-	//Show health on others.........
-	for ( cnt = cntStart; cnt < 6; cnt ++ )
-	{
-		if ( pSoldier->stats.bLife < bHealthStrRanges[ cnt ] )
+		// Flugente: display if we are a prisoner of war
+		if ( pSoldier->bSoldierFlagMask & SOLDIER_POW )
+			return zHealthStr[ 7 ];
+
+		INT32 cnt, cntStart;
+		if( pSoldier->stats.bLife == pSoldier->stats.bLifeMax )
 		{
-			break;
+			cntStart = 4;
 		}
+		else
+		{
+			cntStart = 0;
+		}
+		//Show health on others.........
+		for ( cnt = cntStart; cnt < 6; cnt ++ )
+		{
+			if ( pSoldier->stats.bLife < bHealthStrRanges[ cnt ] )
+			{
+				break;
+			}
+		}
+		return zHealthStr[ cnt ];
 	}
-	return zHealthStr[ cnt ];
 }
 
 
@@ -5358,4 +5832,716 @@ void RenderTopmostMultiPurposeLocator( )
 
 	BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO, gbMultiPurposeLocatorFrame, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
 }
+
+void DrawBar( INT32 x, INT32 y, INT32 width, INT32 height, UINT16 color8, UINT16 color16, UINT8 *pDestBuf )
+{
+	if( width > 0 )
+	{
+		for( INT32 i=0; i < height; i++ )
+		{
+			if(gbPixelDepth==16)
+				LineDraw( TRUE, x, y+i, x+width-1, y+i, color16, pDestBuf );
+			else if(gbPixelDepth==8)
+				LineDraw8( TRUE, x, y+i, x+width-1, y+i, color8, pDestBuf );
+		}
+	}
+}
+
+BOOLEAN CoverColorCode( INT8 cover, INT16 &color8, INT16 &color16 ){
+	BOOLEAN showCover = TRUE;
+	switch(cover)
+	{
+	case 0:
+		//color8 = COLOR_RED;
+		color8 = FONT_MCOLOR_RED;
+		color16 = Get16BPPColor( FROMRGB( 220, 0, 0 ) );
+		break;
+	case 1:
+		color8 = COLOR_ORANGE;
+		color16 = Get16BPPColor( FROMRGB( 220, 140, 0 ) );
+		break;
+	case 2:
+		color8 = COLOR_YELLOW;
+		color16 = Get16BPPColor( FROMRGB( 220, 220, 0 ) );
+		break;
+	case 3:
+		color8 = COLOR_GREEN;
+		color16 = Get16BPPColor( FROMRGB( 0, 200, 0 ) );
+		break;
+	default: 
+		showCover = FALSE;
+	}
+	return showCover;
+}
+
+void DrawRankIcon( INT8 rank, INT32 baseX, INT32 baseY )
+{
+	UINT32		uiDestPitchBYTES;
+	UINT8		*pDestBuf;
+	INT16		color8;
+	INT16		color16;
+
+	pDestBuf = LockVideoSurface( FRAME_BUFFER, &uiDestPitchBYTES );
+	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, gsVIEWPORT_WINDOW_START_Y, SCREEN_WIDTH, ( gsVIEWPORT_WINDOW_END_Y - gsVIEWPORT_WINDOW_START_Y ) );
+
+	if(rank<6)
+	{
+		color8 = FONT_DKGREEN;
+		color16 = Get16BPPColor( FROMRGB( 20, 60, 20 ) );
+		//color8 = FONT_ORANGE;
+		//color16 = Get16BPPColor( FROMRGB( 160, 80, 0 ) );
+	}
+	else
+	{
+		color8 = FONT_DKRED;
+		color16 = Get16BPPColor( FROMRGB( 60, 20, 20 ) );
+	}
+
+	DrawBar( baseX+2, baseY+2, 7, 8, color8, color16, pDestBuf );
+	DrawLine( baseX+3, baseY+10, baseX+7, baseY+10, color8, color16, pDestBuf );
+	DrawLine( baseX+4, baseY+11, baseX+6, baseY+11, color8, color16, pDestBuf );
+
+	if(rank<6)
+	{
+		color8 = COLOR_GREEN;
+		color16 = Get16BPPColor( FROMRGB( 20, 80, 20 ) );
+		//color8 = FONT_YELLOW;
+		//color16 = Get16BPPColor( FROMRGB( 200, 120, 00 ) );
+	}
+	else
+	{
+		color8 = COLOR_RED;
+		color16 = Get16BPPColor( FROMRGB( 120, 20, 20 ) );
+	}
+
+	DrawLine( baseX+2, baseY+1, baseX+8, baseY+1, color8, color16, pDestBuf );
+	DrawLine( baseX+1, baseY+2, baseX+1, baseY+9, color8, color16, pDestBuf );
+	DrawLine( baseX+9, baseY+2, baseX+9, baseY+9, color8, color16, pDestBuf );
+	
+	DrawLine( baseX+1, baseY+9, baseX+4, baseY+12, color8, color16, pDestBuf );
+	DrawLine( baseX+4, baseY+12, baseX+6, baseY+12, color8, color16, pDestBuf );
+	DrawLine( baseX+6, baseY+12, baseX+9, baseY+9, color8, color16, pDestBuf );
+
+	if(rank<6)
+	{
+		//color8 = FONT_DKGREEN;
+		//color16 = Get16BPPColor( FROMRGB( 0, 40, 0 ) );
+		//color8 = COLOR_LTGREY;
+		//color16 = Get16BPPColor( FROMRGB( 120, 120, 120 ) );
+		color8 = COLOR_YELLOW;
+		color16 = Get16BPPColor( FROMRGB( 200, 200, 200 ) );
+	}
+	else
+	{
+		color8 = FONT_ORANGE;
+		color16 = Get16BPPColor( FROMRGB( 220, 140, 20 ) );
+	}
+
+	switch( rank )
+	{
+	case 1:
+		DrawLine( baseX+3, baseY+6, baseX+7, baseY+6, color8, color16, pDestBuf );
+		break;
+	case 2:
+		DrawLine( baseX+3, baseY+5, baseX+7, baseY+5, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+7, baseX+7, baseY+7, color8, color16, pDestBuf );
+		break;
+	case 3:
+		DrawLine( baseX+3, baseY+4, baseX+7, baseY+4, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+6, baseX+7, baseY+6, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+8, baseX+7, baseY+8, color8, color16, pDestBuf );
+		break;
+	case 4:
+		DrawLine( baseX+3, baseY+5, baseX+5, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+8, baseX+7, baseY+5, color8, color16, pDestBuf );
+		break;
+	case 5:
+		DrawLine( baseX+3, baseY+4, baseX+7, baseY+4, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+6, baseX+5, baseY+9, color8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+9, baseX+7, baseY+6, color8, color16, pDestBuf );
+		break;
+	case 6:
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+8, color8, color16, pDestBuf );
+		break;
+	case 7:
+		DrawLine( baseX+4, baseY+4, baseX+4, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+4, baseX+6, baseY+8, color8, color16, pDestBuf );
+		break;
+	case 8:
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+4, baseX+3, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+4, baseX+7, baseY+8, color8, color16, pDestBuf );
+		break;
+	case 9:
+		DrawLine( baseX+2, baseY+6, baseX+8, baseY+6, color8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+3, baseX+5, baseY+9, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+4, baseX+7, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+4, baseX+3, baseY+8, color8, color16, pDestBuf );
+	}
+	
+	UnLockVideoSurface( FRAME_BUFFER );
+}
+
+void DrawLine( INT32 x1, INT32 y1, INT32 x2, INT32 y2, UINT16 color8, UINT16 color16, UINT8 *pDestBuf )
+{
+	if(gbPixelDepth==16)
+		LineDraw( TRUE, x1, y1, x2, y2, color16, pDestBuf);
+	else
+		LineDraw8( TRUE, x1, y1, x2, y2, color8, pDestBuf);
+}
+
+void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLines, INT32 iBarWidth, INT32 iBarHeight )
+{
+	FLOAT		dWidth, dPercentage;
+	UINT32		uiDestPitchBYTES;
+	UINT8		*pDestBuf;
+	INT32		sHeight = 2;
+
+	pDestBuf = LockVideoSurface( FRAME_BUFFER, &uiDestPitchBYTES );
+	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, gsVIEWPORT_WINDOW_START_Y, SCREEN_WIDTH, ( gsVIEWPORT_WINDOW_END_Y - gsVIEWPORT_WINDOW_START_Y ) );
+
+	// sevenfm: draw background
+	DrawBar( sX, sY, iBarWidth + 2, iBarHeight, COLOR_BLACK, Get16BPPColor( FROMRGB( 0, 0, 0 ) ), pDestBuf );
+
+	// draw health
+	if(ubLines > 0)
+	{
+		dPercentage = (FLOAT)pSoldier->stats.bLife / (FLOAT) pSoldier->stats.bLifeMax;
+		dWidth			=	dPercentage * iBarWidth;
+		dWidth = __min (dWidth, iBarWidth);
+		DrawBar( sX + 1, sY + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 200, 0, 0	) ), pDestBuf );
+	}
+
+	// draw ap
+	if(ubLines > 1)
+	{
+		if( pSoldier->bActionPoints >0 )
+		{
+			//dPercentage = (FLOAT)pSoldier->bActionPoints / (FLOAT) ( pSoldier->bActionPoints + pSoldier->ubAPsLostToSuppression + pSoldier->u);
+			dPercentage = (FLOAT)pSoldier->bActionPoints / (FLOAT) ( pSoldier->bInitialActionPoints);
+			dWidth = dPercentage * iBarWidth;
+			dWidth = __min (dWidth, iBarWidth);
+			//DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 20, 20, 220 ) ), pDestBuf );
+			DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, COLOR_PURPLE, Get16BPPColor( FROMRGB( 110, 30, 210 ) ), pDestBuf );
+		}
+		else
+		{
+			dPercentage = (FLOAT)pSoldier->bActionPoints / (FLOAT) ( APBPConstants[AP_MIN_LIMIT] );
+			dWidth	= dPercentage * iBarWidth;
+			dWidth = __min (dWidth, iBarWidth);
+			DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, COLOR_LTGREY, Get16BPPColor( FROMRGB( 140, 140, 140	) ), pDestBuf );
+		}
+	}
+
+	// draw suppression shock
+	if( ubLines > 2 )
+	{
+		dPercentage = (FLOAT)( __min(100, ( (FLOAT)100 * CalcEffectiveShockLevel( pSoldier ) ) / CalcSuppressionTolerance( pSoldier ) ) ) / (FLOAT)100;
+		dWidth = dPercentage * iBarWidth;
+		dWidth = __min (dWidth, iBarWidth);
+		DrawBar( sX+1, sY + 1 + 2*(sHeight+1), (INT32)dWidth, sHeight, COLOR_ORANGE, Get16BPPColor( FROMRGB( 200, 120, 0 ) ), pDestBuf );
+	}
+
+	// draw morale
+	if( ubLines > 3 )
+	{
+		dPercentage = (FLOAT)( pSoldier->aiData.bAIMorale ) / (FLOAT)( MORALE_FEARLESS );
+		//dPercentage = (FLOAT)( pSoldier->aiData.bMorale ) / (FLOAT)( 100 );
+		dWidth = dPercentage * iBarWidth;
+		dWidth = __min (dWidth, iBarWidth);
+		DrawBar( sX+1, sY + 1 + 3*(sHeight+1), (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 0, 140, 0 ) ), pDestBuf );
+	}
+
+	// draw BP
+	if( ubLines > 4 )
+	{
+		dPercentage = (FLOAT)( pSoldier->bBreath ) / (FLOAT)( pSoldier->bBreathMax );
+		dWidth = dPercentage * iBarWidth;
+		dWidth = __min (dWidth, iBarWidth);
+		DrawBar( sX+1, sY + 1 + 4*(sHeight+1), (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 0, 0, 200 ) ), pDestBuf );
+	}
+
+	UnLockVideoSurface( FRAME_BUFFER );
+}
+
+void DrawItemPic(INVTYPE *pItem, INT16 sX, INT16 sY )
+{
+	UINT16			usGraphicNum;
+
+	usGraphicNum = g_bUsePngItemImages ? 0 : pItem->ubGraphicNum;	
+
+	HVOBJECT		hVObject;
+	ETRLEObject     *pTrav;
+	GetVideoObject( &hVObject, GetInterfaceGraphicForItem( pItem ) );
+	pTrav = &(hVObject->pETRLEObject[ usGraphicNum ] );
+
+	BltVideoObjectOutlineFromIndex( FRAME_BUFFER, GetInterfaceGraphicForItem( pItem ), usGraphicNum, sX - pTrav->sOffsetX, sY - pTrav->sOffsetY, Get16BPPColor( FROMRGB( 255, 255, 255 ) ), FALSE );
+}
+
+void GetItemDimensions( INVTYPE *pItem, INT16 &sWidth, INT16 &sHeight )
+{
+	HVOBJECT		hVObject;
+	ETRLEObject     *pTrav;
+	UINT16			usGraphicNum;
+
+	usGraphicNum = g_bUsePngItemImages ? 0 : pItem->ubGraphicNum;	
+	GetVideoObject( &hVObject, GetInterfaceGraphicForItem( pItem ) );
+	pTrav = &(hVObject->pETRLEObject[ usGraphicNum ] );
+
+	sWidth = (UINT32)(pTrav->usWidth);
+	sHeight = (UINT32)(pTrav->usHeight);	
+}
+
+BOOLEAN ShowExactInfo( SOLDIERTYPE* pSoldier, SOLDIERTYPE* pTargetSoldier )
+{
+	INT32 range;
+	INT32 maxExactWeaponDistance;
+
+	if( pTargetSoldier->bVisible == -1 )
+		return FALSE;
+
+	range = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, pTargetSoldier->sGridNo ) / 10;
+
+	// visible distance
+	maxExactWeaponDistance = (INT32)( pSoldier->GetMaxDistanceVisible( pTargetSoldier->sGridNo, 0, CALC_FROM_WANTED_DIR) ) / 2 ;
+
+	// apply experience level factor
+	maxExactWeaponDistance = (INT32)( maxExactWeaponDistance * ( 1 + FLOAT( EffectiveExpLevel( pSoldier ) ) / 10.0f ) ); 
+
+	if ( maxExactWeaponDistance >= range )
+		return TRUE;
+
+	return FALSE;
+}
+
+void DrawNCTHCursorItemPics( INT16 sStartScreenX, INT16 sStartScreenY  )
+{
+	// find target soldier
+	SOLDIERTYPE *pSoldier;	
+	SOLDIERTYPE		*pTargetSoldier;
+	INT32			usItemID = 0;
+	INT16			sX, sY, sWidth, sHeight;
+	INT16			sXOffset = 0;
+
+	GetSoldier( &pSoldier, gusSelectedSoldier );
+	GetSoldier( &pTargetSoldier, gusUIFullTargetID );
+
+	// zero rects
+	RightRect.left = 0;		RightRect.top = 0;		RightRect.right = 0;		RightRect.bottom = 0;
+	LeftRect.left = 0;		LeftRect.top = 0;		LeftRect.right = 0;			LeftRect.bottom = 0;
+	LeftRect2.left = 0;		LeftRect2.top = 0;		LeftRect2.right = 0;		LeftRect2.bottom = 0;
+	
+	if( gGameExternalOptions.ubAdditionalNCTHCursorInfo &&
+		gfUIBodyHitLocation &&
+		pSoldier->ubBodyType <= REGFEMALE &&
+		_KeyDown( ALT ) &&
+		ShowExactInfo( pSoldier, pTargetSoldier) )
+	{
+		// show armour
+		switch( pSoldier->bAimShotLocation )
+		{
+		case AIM_SHOT_HEAD:
+			if( pTargetSoldier->inv[HELMETPOS].exists() )
+				usItemID = pTargetSoldier->inv[HELMETPOS].usItem;
+			break;
+		case AIM_SHOT_TORSO:
+			if( pTargetSoldier->inv[VESTPOS].exists() )
+				usItemID = pTargetSoldier->inv[VESTPOS].usItem;
+			break;
+		case AIM_SHOT_LEGS:
+			if( pTargetSoldier->inv[LEGPOS].exists() )
+				usItemID = pTargetSoldier->inv[LEGPOS].usItem;
+			break;
+		}
+		if( usItemID )
+		{
+			sX = sStartScreenX+25;
+			sY = sStartScreenY-3;
+			DrawItemPic( &(Item[ usItemID ] ), sX, sY );
+			GetItemDimensions( &(Item[ usItemID ]), sWidth, sHeight );
+			RightRect.left = sX;
+			RightRect.top = sY;
+			RightRect.right = sX + sWidth;
+			RightRect.bottom = sY + sHeight;
+		}			
+
+		if( gGameExternalOptions.ubAdditionalNCTHCursorInfo > 1 )
+		{
+			// show item in hands
+			if( pSoldier->bAimShotLocation == AIM_SHOT_TORSO )
+			{
+				if( pTargetSoldier->inv[HANDPOS].exists() )
+				{
+					usItemID = pTargetSoldier->inv[HANDPOS].usItem;
+					GetItemDimensions( &(Item[ usItemID ]), sWidth, sHeight );
+					if( sWidth > 30 )
+						sXOffset = 10;
+					sX = sStartScreenX - 25 - sWidth + sXOffset;
+					sY = sStartScreenY - 3;
+					DrawItemPic(&(Item[ usItemID ] ), sX, sY );
+					LeftRect.left = sX;
+					LeftRect.top = sY;
+					LeftRect.right = sX + sWidth;
+					LeftRect.bottom = sY + sHeight;
+				}
+			}
+			// show items in head slots
+			else if( pSoldier->bAimShotLocation == AIM_SHOT_HEAD )
+			{
+				if( pTargetSoldier->inv[HEAD2POS].exists() )
+				{
+					usItemID = pTargetSoldier->inv[HEAD2POS].usItem;
+					GetItemDimensions( &(Item[ usItemID ]), sWidth, sHeight );
+					sX = sStartScreenX - 25 - sWidth;
+					sY = sStartScreenY - 3;
+					DrawItemPic(&(Item[ usItemID ] ), sX, sY );
+					LeftRect.left = sX;
+					LeftRect.top = sY;
+					LeftRect.right = sX + sWidth;
+					LeftRect.bottom = sY + sHeight;
+				}
+
+				if( pTargetSoldier->inv[HEAD1POS].exists() )
+				{					
+					usItemID = pTargetSoldier->inv[HEAD1POS].usItem;
+					GetItemDimensions( &(Item[ usItemID ]), sWidth, sHeight );					
+					sX = sStartScreenX - 25 - sWidth;
+					sY = sStartScreenY - 3;
+					if( pTargetSoldier->inv[HEAD2POS].exists() )
+						sX -= LeftRect.right - LeftRect.left;
+					DrawItemPic(&(Item[ usItemID ] ), sX, sY );
+					LeftRect2.left = sX;
+					LeftRect2.top = sY;
+					LeftRect2.right = sX + sWidth;
+					LeftRect2.bottom = sY + sHeight;
+				}
+			}
+		}
+	}
+}
+
+void GetEnemyInfoString( SOLDIERTYPE* pSelectedSoldier, SOLDIERTYPE* pTargetSoldier, BOOLEAN showExactInfo, CHAR16 *NameStr )
+{
+	UINT16 usItemID;
+
+	// if ALT pressed - show armour instead of weapon
+	if( gfUIBodyHitLocation &&
+		_KeyDown( ALT ) )
+	{						
+		SetFontForeground( FONT_YELLOW );
+		// show armour
+		usItemID = 0;
+		switch( pSelectedSoldier->bAimShotLocation )
+		{
+		case AIM_SHOT_HEAD:
+			if( pTargetSoldier->inv[HELMETPOS].exists() )
+				usItemID = pTargetSoldier->inv[HELMETPOS].usItem;
+			break;
+		case AIM_SHOT_TORSO:
+			if( pTargetSoldier->inv[VESTPOS].exists() )
+				usItemID = pTargetSoldier->inv[VESTPOS].usItem;
+			break;
+		case AIM_SHOT_LEGS:
+			if( pTargetSoldier->inv[LEGPOS].exists() )
+				usItemID = pTargetSoldier->inv[LEGPOS].usItem;
+			break;
+		}
+		if( usItemID )
+		{
+			if( showExactInfo && gGameExternalOptions.fShowEnemyExtendedInfo )
+			{	// in range, show exact armour name
+				swprintf( NameStr, L"%s", ItemNames[ usItemID ] );
+			}
+			else
+			{	// show general armour type
+				switch( pSelectedSoldier->bAimShotLocation )
+				{
+				case AIM_SHOT_HEAD:
+					swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_HELMET] );
+					//swprintf( NameStr, L"%s", L"Helmet" );
+					break;
+				case AIM_SHOT_TORSO:
+					swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_VEST] );
+					//swprintf( NameStr, L"%s", L"Vest" );
+					break;
+				case AIM_SHOT_LEGS:
+					swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_LEGGINGS] );
+					//swprintf( NameStr, L"%s", L"Leggings" );
+					break;
+				}								
+			}
+		}
+	}
+	else
+	{						
+		if( gfUIBodyHitLocation &&
+			pSelectedSoldier->bAimShotLocation == AIM_SHOT_HEAD )
+		{
+			// show face items
+			SetFontForeground( FONT_ORANGE );
+			if( pTargetSoldier->inv[HEAD1POS].exists() )
+			{
+				if(gGameExternalOptions.fShowEnemyExtendedInfo)
+				{	// show exact name
+					wcscat( NameStr, ItemNames[ pTargetSoldier->inv[HEAD1POS].usItem ] );
+				}
+				else
+				{	// show general name
+					if( Item[pTargetSoldier->inv[HEAD1POS].usItem].gasmask )
+						wcscat( NameStr, TacticalStr[ GENERAL_INFO_MASK ] );
+					else if( Item[pTargetSoldier->inv[HEAD1POS].usItem].nightvisionrangebonus || Item[pTargetSoldier->inv[HEAD1POS].usItem].cavevisionrangebonus )
+						wcscat( NameStr, TacticalStr[ GENERAL_INFO_NVG ] );
+				}				
+			}
+			if( pTargetSoldier->inv[HEAD2POS].exists() )
+			{
+				if( pTargetSoldier->inv[HEAD1POS].exists() )
+					wcscat( NameStr, L", " );
+				if(gGameExternalOptions.fShowEnemyExtendedInfo)
+				{	// show exact name
+					wcscat( NameStr, ItemNames[ pTargetSoldier->inv[HEAD2POS].usItem ] );
+				}
+				else
+				{	// show general name
+					if( Item[pTargetSoldier->inv[HEAD1POS].usItem].gasmask )
+						wcscat( NameStr, TacticalStr[ GENERAL_INFO_MASK ] );
+					else if( Item[pTargetSoldier->inv[HEAD1POS].usItem].nightvisionrangebonus || Item[pTargetSoldier->inv[HEAD1POS].usItem].cavevisionrangebonus )
+						wcscat( NameStr, TacticalStr[ GENERAL_INFO_NVG ] );
+				}
+			}
+		}
+		else
+		{
+			// show weapon
+			SetFontForeground( FONT_ORANGE );
+			if ( WeaponInHand( pTargetSoldier ) )
+			{
+				if ( showExactInfo )
+				{
+					swprintf( NameStr, L"%s", ShortItemNames[ pTargetSoldier->inv[ HANDPOS ].usItem ] );
+				}
+				else
+				{
+					// display general weapon class
+					switch( Weapon[pTargetSoldier->inv[ HANDPOS ].usItem].ubWeaponClass )
+					{
+					case HANDGUNCLASS:
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_HANDGUN] );
+						break;
+					case SMGCLASS:
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_SMG] );
+						break;
+					case RIFLECLASS:
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_RIFLE] );
+						break;
+					case MGCLASS:
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_MG] );
+						break;
+					case SHOTGUNCLASS:
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_SHOTGUN] );
+						break;
+					case KNIFECLASS:
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_KNIFE] );
+						break;
+					default:
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_HEAVY_WEAPON] );
+						break;
+					}
+				}
+			}
+			else
+			{
+				if( showExactInfo )
+				{							
+					if( pTargetSoldier->inv[ HANDPOS ].usItem )
+						swprintf( NameStr, L"%s", Item[ pTargetSoldier->inv[ HANDPOS ].usItem ].szItemName );
+					else
+						swprintf( NameStr, L"%s", gzTooltipStrings[STR_TT_NO_WEAPON] );
+				}
+				else
+				{
+					if( pTargetSoldier->inv[ HANDPOS ].usItem )
+						swprintf( NameStr, L"%s", TacticalStr[ GENERAL_INFO_ITEM ] );
+					else
+						swprintf( NameStr, L"%s", L"" );
+				}								
+			}
+		}
+	}
+}
+
+void ShowEnemyWeapon( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier )
+{
+	SOLDIERTYPE *pSelectedSoldier;
+	BOOLEAN		showExactInfo = FALSE;
+	CHAR16		NameStr[ MAX_ENEMY_NAMES_CHARS ];
+	UINT16 usTotalWidth;
+	INT32 iRange;
+	INT32 iVisibleDistance;
+
+	if ( gusSelectedSoldier != NOBODY )
+		pSelectedSoldier = MercPtrs[ gusSelectedSoldier ];
+	else
+		return;
+
+	if( gGameExternalOptions.fEnemyRank || gGameExternalOptions.fEnemyNames )
+		return;
+
+	iRange = GetRangeInCellCoordsFromGridNoDiff( pSelectedSoldier->sGridNo, pTargetSoldier->sGridNo ) / 10;
+	iVisibleDistance = (INT32)( pSelectedSoldier->GetMaxDistanceVisible( pTargetSoldier->sGridNo, 0, CALC_FROM_WANTED_DIR) ) ;
+
+	if( iRange > iVisibleDistance )
+		return;
+
+	if( !pTargetSoldier->bVisible )
+		return;
+
+	// calc max range for exact info
+	if ( gusSelectedSoldier != NOBODY )
+		showExactInfo = ShowExactInfo( pSelectedSoldier, pTargetSoldier );
+
+	// show weapon/armour/items info
+	if ( gGameExternalOptions.fShowEnemyWeapon && gTacticalStatus.ubCurrentTeam == OUR_TEAM && pTargetSoldier->ubBodyType <= REGFEMALE )
+	{
+		SetFont( TINYFONT1 );
+		SetFontBackground( FONT_MCOLOR_BLACK );		
+
+		swprintf( NameStr, L"" );
+		GetEnemyInfoString( pSelectedSoldier, pTargetSoldier, showExactInfo, NameStr );
+		usTotalWidth = StringPixLength ( NameStr, TINYFONT1 );
+		sX -= usTotalWidth/2;
+		
+		// print item name
+		gprintfdirty( sX, sY + 10, NameStr );
+		mprintf( sX, sY + 10, NameStr );
+	}
+}
+
+void ShowAdditionalInfo( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier )
+{
+	BOOLEAN		showExactInfo;
+	CHAR16		NameStr[ MAX_ENEMY_NAMES_CHARS ];
+	SOLDIERTYPE *pSelectedSoldier;
+
+	if ( gusSelectedSoldier != NOBODY )
+		pSelectedSoldier = MercPtrs[ gusSelectedSoldier ];
+	else
+		return;
+
+	if( gGameExternalOptions.fEnemyRank || gGameExternalOptions.fEnemyNames )
+		return;	
+
+	// calc max range for exact info
+	if ( gusSelectedSoldier != NOBODY )
+		showExactInfo = ShowExactInfo( pSelectedSoldier, pTargetSoldier );
+
+	sX -= StringPixLength ( L"*", TINYFONT1 );
+	if( gGameExternalOptions.fShowEnemyAwareness && gTacticalStatus.ubCurrentTeam == OUR_TEAM )
+	{
+		SetFont( TINYFONT1 );
+		SetFontBackground( FONT_MCOLOR_BLACK );
+		// show awareness sign only when in stealth mode or disguised
+		if( ( gusSelectedSoldier != NOBODY ) &&
+			( pTargetSoldier->bTeam == ENEMY_TEAM || pTargetSoldier->bTeam == CIV_TEAM && !pTargetSoldier->aiData.bNeutral ) &&
+			( MercPtrs[ gusSelectedSoldier ]->bStealthMode || MercPtrs[ gusSelectedSoldier ]->bSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) ) )
+		{
+			if( pTargetSoldier->aiData.bOppList[ MercPtrs[ gusSelectedSoldier ]->ubID ] == SEEN_CURRENTLY )
+				swprintf( NameStr, L"%s", L"*" );
+			else
+				swprintf( NameStr, L"%s", L"-" );
+
+			SetFontForeground( FONT_GRAY1 );
+			switch ( pTargetSoldier->aiData.bAlertStatus )
+			{
+			case STATUS_GREEN:							// everything's OK, no suspicion
+				SetFontForeground( FONT_GREEN );
+				break;
+			case STATUS_YELLOW:							// he or his friend heard something
+				SetFontForeground( FONT_YELLOW );
+				break;
+			case STATUS_RED:                            // has definite evidence of opponent
+				SetFontForeground( FONT_ORANGE );
+				break;
+			case STATUS_BLACK:							// currently sees an active opponent
+				SetFontForeground( FONT_DKRED );
+				break;
+			}
+
+			if ( showExactInfo )
+			{
+				// this feature is a part of 'show enemy health bar'
+				if( gGameExternalOptions.ubShowEnemyHealth > 1 )
+				{
+					gprintfdirty( sX - 15, sY, NameStr );
+					mprintf( sX - 15, sY, NameStr );	
+				}
+			}
+		}
+	}
+}
+
+void ShowEnemyHealthBar( INT16 sX, INT16 sY, SOLDIERTYPE* pSoldier )
+{
+	INT32	iBack;
+	UINT8 ubLines = gGameExternalOptions.ubShowEnemyHealth - 1;
+	INT32 iBarWidth = 24;
+	INT32 iBarHeight;
+	SOLDIERTYPE *pSelectedSoldier;
+
+	if ( gusSelectedSoldier != NOBODY )
+		pSelectedSoldier = MercPtrs[ gusSelectedSoldier ];
+	else
+		return;
+	
+	if ( pSelectedSoldier->aiData.bOppList[pSoldier->ubID] != SEEN_CURRENTLY )
+		return;
+
+	// show enemy health bar
+	if( gGameExternalOptions.ubShowEnemyHealth > 1 && gTacticalStatus.ubCurrentTeam == OUR_TEAM )
+	{
+		iBarHeight = 2 + 3 * ubLines - 1;
+		sY += 10;
+		sY -= iBarHeight;
+		sX -= iBarWidth / 2;
+
+		iBack = RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, sX, sY, (INT16)(sX + iBarWidth), (INT16)(sY + iBarHeight ) );
+		if ( iBack != -1 )
+			SetBackgroundRectFilled( iBack );
+
+		DrawEnemyHealthBar( pSoldier, sX, sY, ubLines, iBarWidth - 2, iBarHeight );
+	}
+}
+
+void ShowRankIcon( INT16 sXPos, INT16 sYPos, SOLDIERTYPE* pSoldier )
+{
+	INT32	iBack;
+	INT16 sX, sY;
+	SOLDIERTYPE *pSelectedSoldier;
+
+	if ( gusSelectedSoldier != NOBODY )
+		pSelectedSoldier = MercPtrs[ gusSelectedSoldier ];
+	else
+		return;
+	
+	if ( pSelectedSoldier->aiData.bOppList[pSoldier->ubID] != SEEN_CURRENTLY )
+		return;
+
+	if( gGameExternalOptions.ubShowEnemyRankIcon && gTacticalStatus.ubCurrentTeam == OUR_TEAM )
+		//&& (!gGameExternalOptions.fEnemyNames) && (!gGameExternalOptions.fEnemyRank))
+	{
+		sX = sXPos + 50;
+		sY = sYPos + 17;
+		if(gGameExternalOptions.fEnemyNames)
+			sY+=10;
+		if(gGameExternalOptions.fEnemyRank)
+			sY+=10;
+
+		iBack = RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, sX, sY, (INT16)(sX + 11 ), (INT16)(sY + 14 ) );
+		if ( iBack != -1 )
+			SetBackgroundRectFilled( iBack );
+
+		DrawRankIcon( pSoldier->stats.bExpLevel, sX, sY );
+	}
+}
+
 

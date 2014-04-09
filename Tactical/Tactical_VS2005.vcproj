@@ -419,6 +419,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Food.h"
+				>
+			</File>
+			<File
 				RelativePath=".\fov.h"
 				>
 			</File>
@@ -488,6 +492,10 @@
 			</File>
 			<File
 				RelativePath=".\Items.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Ja25_Tactical.h"
 				>
 			</File>
 			<File
@@ -568,6 +576,10 @@
 			</File>
 			<File
 				RelativePath=".\SkillCheck.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SkillMenu.h"
 				>
 			</File>
 			<File
@@ -749,6 +761,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Food.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\fov.cpp"
 				>
 			</File>
@@ -821,6 +837,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Ja25_Tactical.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Keys.cpp"
 				>
 			</File>
@@ -873,6 +893,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\RandomMerc.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Real Time Input.cpp"
 				>
 			</File>
@@ -886,6 +910,10 @@
 			</File>
 			<File
 				RelativePath=".\SkillCheck.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SkillMenu.cpp"
 				>
 			</File>
 			<File
@@ -997,6 +1025,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_Background.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_BurstSounds.cpp"
 				>
 			</File>
@@ -1005,11 +1037,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_Clothes.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_ComboMergeInfo.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\XML_CompatibleFaceItems.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_Drugs.cpp"
 				>
 			</File>
 			<File
@@ -1053,6 +1093,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_Food.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_HiddenNames.cpp"
 				>
 			</File>
@@ -1065,6 +1109,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_ItemAdjustments.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_Launchable.cpp"
 				>
 			</File>
@@ -1073,11 +1121,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_LBEPocketPopup.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_LoadBearingEquipment.cpp"
 				>
 			</File>
 			<File
+				RelativePath=".\XML_LoadScreenHints.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_Magazine.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_Merchants.cpp"
 				>
 			</File>
 			<File
@@ -1105,6 +1165,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_RandomItem.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_RandomStats.cpp"
 				>
 			</File>
@@ -1114,6 +1178,10 @@
 			</File>
 			<File
 				RelativePath=".\XML_SectorLoadscreens.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_SoldierProfiles.cpp"
 				>
 			</File>
 			<File
@@ -1129,7 +1197,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\XML_Taunts.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\XML_TonyInventory.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\XML_Vehicles.cpp"
 				>
 			</File>
 		</Filter>

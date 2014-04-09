@@ -356,7 +356,6 @@ UINT32	SoundPlayStreamedFile( STR pFilename, SOUNDPARMS *pParms )
 	return(SOUND_ERROR);
 }
 
-
 //*******************************************************************************
 // SoundPlayRandom
 //

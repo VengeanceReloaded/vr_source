@@ -6,14 +6,26 @@
 
 
 #define	WORLD_ITEM_DONTRENDER												0x0001
-#define	WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO				0x0002
+#define	WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO								0x0002
+
 #define WORLD_ITEM_ARMED_BOMB												0x0040
 #define WORLD_ITEM_SCIFI_ONLY												0x0080
-#define WORLD_ITEM_REALISTIC_ONLY										0x0100
+
+#define WORLD_ITEM_REALISTIC_ONLY											0x0100
 #define WORLD_ITEM_REACHABLE												0x0200
-#define WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT		0x0400
+#define WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT							0x0400
 //Kaiden: This constant is to flag items that an enemy drops when they die.
-#define	WORLD_ITEM_DROPPED_FROM_ENEMY								0x0800
+#define	WORLD_ITEM_DROPPED_FROM_ENEMY										0x0800
+
+// Flugente: when equipping militia from inventory, do not consider this item
+#define	WORLD_ITEM_TABOO_FOR_MILITIA_EQ_ELITE								0x1000
+#define	WORLD_ITEM_TABOO_FOR_MILITIA_EQ_BLUE								0x2000
+#define	WORLD_ITEM_TABOO_FOR_MILITIA_EQ_GREEN								0x4000
+
+// Flugente: when moving items via 'move items' assignment, ignore this item
+#define	WORLD_ITEM_MOVE_ASSIGNMENT_IGNORE									0x8000
+
+#define WORLD_ITEM_TABOO_FOR_MILITIA_EQ_ALL									0x7000
 
 class WORLDITEM;//dnl ch33 120909
 class _OLD_WORLDITEM;//dnl ch42 280909
@@ -90,7 +102,7 @@ public:
 #define SIZEOF_WORLDITEM_POD (offsetof(WORLDITEM, endOfPod))
 #define _OLD_SIZEOF_WORLDITEM_POD (offsetof(_OLD_WORLDITEM, endOfPod))
 
-extern WORLDITEM		*gWorldItems;
+extern std::vector<WORLDITEM> gWorldItems;//dnl ch75 261013
 extern UINT32				guiNumWorldItems;
 
 INT32 AddItemToWorld( INT32 sGridNo, OBJECTTYPE *pObject, UINT8 ubLevel, UINT16 usFlags, INT8 bRenderZHeightAboveLevel, INT8 bVisible, INT8 soldierID );
@@ -117,7 +129,13 @@ extern UINT32 guiNumWorldBombs;
 extern INT32 AddBombToWorld( INT32 iItemIndex );
 extern void FindPanicBombsAndTriggers( void );
 extern INT32 FindWorldItemForBombInGridNo( INT32 sGridNo, INT8 bLevel);
+extern INT32 FindWorldItemForBuriedBombInGridNo( INT32 sGridNo, INT8 bLevel);
 
-void RefreshWorldItemsIntoItemPools( WORLDITEM * pItemList, INT32 iNumberOfItems );
+// Flugente: is there a planted tripwire at this gridno? fKnown = TRUE: only return true if we know of that one already
+extern INT32 FindWorldItemForTripwireInGridNo( INT32 sGridNo, INT8 bLevel, BOOLEAN fKnown = TRUE );
+
+void ResizeWorldItems(void);//dnl ch75 271013
+void RefreshWorldItemsIntoItemPools( std::vector<WORLDITEM>& pItemList, INT32 iNumberOfItems );//dnl ch75 271013
+void CoolDownWorldItems( );			// Flugente: Cool/decay down all items in this sector
 
 #endif

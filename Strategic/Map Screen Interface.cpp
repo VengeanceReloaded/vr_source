@@ -53,6 +53,9 @@
 	#include "Air Raid.h"
 	#include "Queen Command.h"
 	#include "Render Fun.h"
+	#include "Food.h"
+	#include "Personnel.h"
+	#include "mapscreen.h"
 #endif
 
 #include "connect.h"
@@ -75,8 +78,6 @@ extern UINT8 maxNumberOfMercVisibleInStrategyList = 0;	// WANNE: Max merc displa
 // WDS - make number of mercenaries, etc. be configurable
 // number of LINKED LISTS for sets of leave items (each slot holds an unlimited # of items)
 #define NUM_LEAVE_LIST_SLOTS CODE_MAXIMUM_NUMBER_OF_PLAYER_SLOTS
-
-#define SELECTED_CHAR_ARROW_X			1	//8
 
 #define SIZE_OF_UPDATE_BOX 20
 
@@ -233,6 +234,7 @@ BOOLEAN fShowMapScreenMovementList = FALSE;
 MapScreenCharacterSt gCharactersList[ CODE_MAXIMUM_NUMBER_OF_PLAYER_SLOTS+1];
 
 extern MOUSE_REGION gCharInfoHandRegion;
+extern MOUSE_REGION gCharInfoFaceRegion;
 MOUSE_REGION	gMapStatusBarsRegion;
 
 SGPPoint MovePosition={450, 100 };
@@ -340,6 +342,13 @@ SGPPoint FacilityAssignmentPosition={220,150};
 SGPPoint RepairPosition={160,150};
 SGPRect RepairDimensions={0,0,80,80};
 
+SGPPoint SnitchPosition={160,150};
+SGPRect SnitchDimensions={0,0,80,80};
+SGPPoint SnitchTogglePosition={320,150};
+SGPRect SnitchToggleDimensions={0,0,80,80};
+SGPPoint SnitchSectorPosition={320,150};
+SGPRect SnitchSectorDimensions={0,0,80,80};
+
 //lal
 SGPPoint MilitiaControlPosition={120,150};
 SGPRect MilitiaControlDimensions={0,0,100,95};
@@ -364,6 +373,11 @@ SGPPoint OrigMilitiaControlPosition = { 120, 150 }; //lal
 SGPPoint OrigFacilityPosition = { 160, 150 }; // HEADROCK HAM 3.6
 SGPPoint OrigFacilityAssignmentPosition = { 220,150 }; // HEADROCK HAM 3.6
 //SGPPoint OrigTalkToAllPosition = { 160, 150 };
+SGPPoint OrigSnitchPosition={160,150};
+SGPPoint OrigSnitchTogglePosition={320,150};
+SGPPoint OrigSnitchSectorPosition={320,150};
+
+SQUAD_NAMES	SquadNames[20];
 
 //extern BOOLEAN fMapExitDueToMessageBox;
 
@@ -849,7 +863,7 @@ INT16 GetRefreshHeightForMercList( void )
 	INT16 yHeight = ( INT16 )( ( ( giMAXIMUM_NUMBER_OF_PLAYER_SLOTS + 1 ) * ( Y_SIZE + 2 ) ) + 1 );
 
 	// WANNE: Get maximum refresh height depending on the resolution!
-	if (iResolution == 0)
+	if (iResolution >= _640x480 && iResolution < _800x600)
 	{
 		if (!is_networked)
 		{
@@ -861,9 +875,8 @@ INT16 GetRefreshHeightForMercList( void )
 			if (yHeight > 131)
 				yHeight = 131;
 		}
-
 	}
-	else if (iResolution == 1)
+	else if (iResolution < _1024x768)
 	{
 		if (!is_networked)
 		{
@@ -876,7 +889,7 @@ INT16 GetRefreshHeightForMercList( void )
 				yHeight = 249;
 		}
 	}
-	else if (iResolution == 2)
+	else
 	{
 		if (!is_networked)
 		{
@@ -914,7 +927,18 @@ void RestoreBackgroundForAssignmentGlowRegionList( void )
 		{
 			ForceUpDateOfBox( ghTrainingBox );
 		}
-
+		else if( fShowSnitchMenu == TRUE )
+		{
+			ForceUpDateOfBox( ghSnitchBox );
+			if( fShowSnitchToggleMenu == TRUE )
+			{
+				ForceUpDateOfBox( ghSnitchToggleBox );
+			}
+			else if( fShowSnitchSectorMenu == TRUE )
+			{
+				ForceUpDateOfBox( ghSnitchSectorBox );
+			}
+		}
 	}
 
 	if( fDisableDueToBattleRoster )
@@ -927,7 +951,7 @@ void RestoreBackgroundForAssignmentGlowRegionList( void )
 		INT16 yHeight = GetRefreshHeightForMercList();
 
 		// restore background
-		RestoreExternBackgroundRect( 66, Y_START - 1, 118 + 1 - 67, yHeight );
+		RestoreExternBackgroundRect( 66 + xResOffset, Y_START - 1, 118 + 1 - 67, yHeight );
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -957,7 +981,7 @@ void RestoreBackgroundForDestinationGlowRegionList( void )
 		INT16 yHeight = GetRefreshHeightForMercList();
 
 		// restore background
-		RestoreExternBackgroundRect( 182, Y_START - 1, 217 + 1 - 182, yHeight );
+		RestoreExternBackgroundRect( 182 + xResOffset, Y_START - 1, 217 + 1 - 182, yHeight );
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -987,7 +1011,7 @@ void RestoreBackgroundForContractGlowRegionList( void )
 		INT16 yHeight = GetRefreshHeightForMercList();
 
 		// restore background
-		RestoreExternBackgroundRect( 222, Y_START - 1, 250 + 1 - 222, yHeight ) ;
+		RestoreExternBackgroundRect( 222 + xResOffset, Y_START - 1, 250 + 1 - 222, yHeight ) ;
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -1021,7 +1045,7 @@ void RestoreBackgroundForSleepGlowRegionList( void )
 		INT16 yHeight = GetRefreshHeightForMercList();
 
 		// restore background
-		RestoreExternBackgroundRect( 123, Y_START - 1, 142 + 1 - 123, yHeight ) ;
+		RestoreExternBackgroundRect( 123 + xResOffset, Y_START - 1, 142 + 1 - 123, yHeight ) ;
 
 		// ARM: not good enough! must reblit the whole panel to erase glow chunk restored by help text disappearing!!!
 		fTeamPanelDirty = TRUE;
@@ -1279,7 +1303,7 @@ INT32 DoMapMessageBoxWithRect( UINT8 ubStyle, const STR16 zString, UINT32 uiExit
 
 INT32 DoMapMessageBox( UINT8 ubStyle,	STR16 zString, UINT32 uiExitScreen, UINT16 usFlags, MSGBOX_CALLBACK ReturnCallback )
 {
-	SGPRect CenteringRect= {0, 0, SCREEN_WIDTH, INV_INTERFACE_START_Y };
+	SGPRect CenteringRect= {0 + xResOffset, 0, SCREEN_WIDTH - xResOffset, INV_INTERFACE_START_Y };
 
 	// reset the highlighted line
 	giHighLine = -1;
@@ -1411,6 +1435,8 @@ void HandleDisplayOfSelectedMercArrows( void )
 	HVOBJECT hHandle;
 	UINT8 ubCount = 0;
 
+	UINT16 selectedCharArrowX = xResOffset + 1;
+
 	// blit an arrow by the name of each merc in a selected list
 	if( bSelectedInfoChar == -1 )
 	{
@@ -1438,7 +1464,7 @@ void HandleDisplayOfSelectedMercArrows( void )
 	sYPosition = Y_START+( ( bSelectedInfoChar - FIRSTmercTOdisplay ) * ( Y_SIZE + 2 ) ) - 1;
 
 	GetVideoObject( &hHandle, guiSelectedCharArrow );
-	BltVideoObject( guiSAVEBUFFER , hHandle, 0,SELECTED_CHAR_ARROW_X, sYPosition , VO_BLT_SRCTRANSPARENCY,NULL );
+	BltVideoObject( guiSAVEBUFFER , hHandle, 0,selectedCharArrowX, sYPosition , VO_BLT_SRCTRANSPARENCY,NULL );
 
 	// now run through the selected list of guys, an arrow for each
 	
@@ -1454,7 +1480,7 @@ void HandleDisplayOfSelectedMercArrows( void )
 				sYPosition = Y_START+( ubCount * ( Y_SIZE + 2) ) - 1;
 
 				GetVideoObject( &hHandle, guiSelectedCharArrow );
-				BltVideoObject( guiSAVEBUFFER , hHandle, 0,SELECTED_CHAR_ARROW_X, sYPosition , VO_BLT_SRCTRANSPARENCY,NULL );
+				BltVideoObject( guiSAVEBUFFER , hHandle, 0,selectedCharArrowX, sYPosition , VO_BLT_SRCTRANSPARENCY,NULL );
 			}
 		}
 	}
@@ -1615,18 +1641,32 @@ void HandleLeavingOfEquipmentInCurrentSector( UINT32 uiMercId )
 		}
 	}
 
-	for( UINT32 iCounter = 0; iCounter < Menptr[ uiMercId ].inv.size(); iCounter++ )
+	UINT32 invsize = Menptr[ uiMercId ].inv.size();
+	UINT32 uiFoundItems = 0;
+	Inventory invTemporaryBeforeDrop;
+
+	if( Menptr[ uiMercId ].sSectorX != gWorldSectorX || Menptr[ uiMercId ].sSectorY != gWorldSectorY || Menptr[ uiMercId ].bSectorZ != gbWorldSectorZ )
 	{
-		// slot found,
-		// check if actual item
-		if(	Menptr[ uiMercId ].inv[ iCounter ].exists() == true )
+		for( UINT32 iCounter = 0; iCounter < invsize; ++iCounter )
 		{
-			if( Menptr[ uiMercId ].sSectorX != gWorldSectorX || Menptr[ uiMercId ].sSectorY != gWorldSectorY || Menptr[ uiMercId ].bSectorZ != gbWorldSectorZ )
+			// slot found,
+			// check if actual item
+			if(	Menptr[ uiMercId ].inv[ iCounter ].exists() == true )
 			{
-				// Set flag for item...
-				AddItemsToUnLoadedSector( Menptr[ uiMercId ].sSectorX,	Menptr[ uiMercId ].sSectorY, Menptr[ uiMercId ].bSectorZ , sGridNo, 1, &( Menptr[ uiMercId ].inv[ iCounter ]) , Menptr[ uiMercId ].pathing.bLevel, WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO | WORLD_ITEM_REACHABLE, 0, 1, FALSE );
+				invTemporaryBeforeDrop[uiFoundItems] = Menptr[ uiMercId ].inv[ iCounter ];
+				uiFoundItems++;
 			}
-			else
+		}
+		// anv: add all items at once (less file operations = less lag)
+		AddItemsToUnLoadedSector( Menptr[ uiMercId ].sSectorX,	Menptr[ uiMercId ].sSectorY, Menptr[ uiMercId ].bSectorZ , sGridNo, uiFoundItems, &(invTemporaryBeforeDrop[0]) , Menptr[ uiMercId ].pathing.bLevel, WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO | WORLD_ITEM_REACHABLE, 0, 1, FALSE );
+	}
+	else
+	{
+		for( UINT32 iCounter = 0; iCounter < invsize; ++iCounter )
+		{
+			// slot found,
+			// check if actual item
+			if(	Menptr[ uiMercId ].inv[ iCounter ].exists() == true )
 			{
 				AddItemToPool( sGridNo, &( Menptr[ uiMercId ].inv[ iCounter ] ) , 1, Menptr[ uiMercId ].pathing.bLevel, WORLD_ITEM_REACHABLE, 0 );
 			}
@@ -1634,7 +1674,6 @@ void HandleLeavingOfEquipmentInCurrentSector( UINT32 uiMercId )
 	}
 
 	DropKeysInKeyRing( MercPtrs[ uiMercId ], sGridNo, MercPtrs[ uiMercId ]->pathing.bLevel, 1, FALSE, 0, FALSE );
-
 }
 
 
@@ -1744,14 +1783,15 @@ void HandleEquipmentLeftInDrassen( UINT32 uiSlotIndex )
 
 	while( pItem )
 	{
-		if( gWorldSectorX	!= BOBBYR_SHIPPING_DEST_SECTOR_X || gWorldSectorY != BOBBYR_SHIPPING_DEST_SECTOR_Y || gbWorldSectorZ != BOBBYR_SHIPPING_DEST_SECTOR_Z )
+		if( gWorldSectorX	!= AIRPORT_X || gWorldSectorY != AIRPORT_Y || gbWorldSectorZ != 0 )
 		{
 			// given this slot value, add to sector item list
-			AddItemsToUnLoadedSector( BOBBYR_SHIPPING_DEST_SECTOR_X, BOBBYR_SHIPPING_DEST_SECTOR_Y, BOBBYR_SHIPPING_DEST_SECTOR_Z, 10433, 1, &( pItem->object ) , 0, WORLD_ITEM_REACHABLE, 0, 1, FALSE );
+			AddItemsToUnLoadedSector( AIRPORT_X, AIRPORT_Y, 0, 
+				gModSettings.iAirportDropOff, 1, &( pItem->object ) , 0, WORLD_ITEM_REACHABLE, 0, 1, FALSE ); //10433
 		}
 		else
 		{
-			AddItemToPool( 10433, &( pItem->object ), 1, 0, WORLD_ITEM_REACHABLE, 0 );
+			AddItemToPool( gModSettings.iAirportDropOff, &( pItem->object ), 1, 0, WORLD_ITEM_REACHABLE, 0 ); //10433
 		}
 		pItem = pItem->pNext;
 	}
@@ -1880,7 +1920,8 @@ INT32 SetUpDropItemListForMerc( UINT32 uiMercId )
 		return( -1 );
 	}
 
-	for( UINT32 iCounter = 0; iCounter < Menptr[ uiMercId ].inv.size(); iCounter++ )
+	UINT32 invsize = Menptr[ uiMercId ].inv.size();
+	for( UINT32 iCounter = 0; iCounter < invsize; ++iCounter )
 	{
 		// slot found,
 		// check if actual item
@@ -1915,177 +1956,17 @@ void SetUpMercAboutToLeaveEquipment( UINT32 ubProfileId, UINT32 uiSlotIndex )
 
 }
 
-
-/*
-BOOLEAN RemoveItemFromLeaveIndex( MERC_LEAVE_ITEM *pItem, UINT32 uiSlotIndex )
-{
-	MERC_LEAVE_ITEM *pCurrentItem = NULL;
-
-	Assert( uiSlotIndex < NUM_LEAVE_LIST_SLOTS );
-
-	if( pItem == NULL )
-	{
-		return( FALSE );
-	}
-
-	// item is head of list?
-//ARM: THIS DOESN'T MAKE SENSE, pCurrentItem is always NULL at this stage!
-	if( pItem == pCurrentItem )
-	{
-		gpLeaveListHead[ uiSlotIndex ] = pCurrentItem->pNext;
-		MemFree( pItem );
-		pItem = NULL;
-		return( TRUE );
-	}
-
-	// in the body
-	while( ( pCurrentItem->pNext != pItem ) && ( pCurrentItem->pNext != NULL ) )
-	{
-		pCurrentItem = pCurrentItem->pNext;
-	}
-
-	// item not found
-	if( pCurrentItem->pNext == NULL )
-	{
-		return( FALSE );
-	}
-
-	// set to next after next
-	pCurrentItem->pNext = pCurrentItem->pNext->pNext;
-
-	// free space and null ptr
-	MemFree( pItem );
-	pItem = NULL;
-
-	return( TRUE );
-}
-*/
-
-
-
 void HandleGroupAboutToArrive( void )
 {
 	// reblit map to change the color of the "people in motion" marker
 	fMapPanelDirty = TRUE;
 
-	// ARM - commented out - don't see why this is needed
-//	fTeamPanelDirty = TRUE;
-//	fCharacterInfoPanelDirty = TRUE;
-
 	return;
 }
 
-
-/*
-void HandleMapScreenUpArrow( void )
-{
-	INT32 iValue = 0;
-	INT32 iHighLine = 0;
-
-	// check state and update
-	if( fShowAssignmentMenu == TRUE )
-	{
-		if( GetBoxShadeFlag( ghAssignmentBox, iValue ) == FALSE )
-		{
-			if( iHighLine ==	0)
-			{
-				iHighLine = ( INT32 )GetNumberOfLinesOfTextInBox( ghAssignmentBox );
-			}
-			else
-			{
-				iHighLine++;
-			}
-		}
-	}
-	else
-	{
-		if( ( giHighLine == 0 ) || ( giHighLine	== -1 ) )
-		{
-			giHighLine = GetNumberOfCharactersOnPlayersTeam( ) - 1;
-			fTeamPanelDirty = TRUE;
-		}
-		else
-		{
-			giHighLine--;
-			fTeamPanelDirty = TRUE;
-		}
-
-	}
-}
-
-
-void HandleMapScreenDownArrow( void )
-{
-	INT32 iValue = 0;
-	INT32 iHighLine = 0;
-
-	// check state and update
-	if( fShowContractMenu == TRUE )
-	{
-		if( iHighLine == ( INT32 )GetNumberOfLinesOfTextInBox( ghContractBox ) - 1 )
-		{
-			iHighLine = 0;
-		}
-		else
-		{
-			iHighLine++;
-		}
-
-		HighLightBoxLine( ghContractBox, iHighLine );
-	}
-	else if( fShowAssignmentMenu == TRUE )
-	{
-		if( GetBoxShadeFlag( ghAssignmentBox, iValue ) == FALSE )
-		{
-			if( iHighLine == ( INT32 )GetNumberOfLinesOfTextInBox( ghAssignmentBox ) - 1 )
-			{
-				iHighLine = 0;
-			}
-			else
-			{
-				iHighLine--;
-			}
-		}
-	}
-	else
-	{
-		if( ( giHighLine == GetNumberOfCharactersOnPlayersTeam( ) - 1 ) || ( giHighLine	== -1 ) )
-		{
-			giHighLine = 0;
-			fTeamPanelDirty = TRUE;
-		}
-		else
-		{
-			giHighLine++;
-			fTeamPanelDirty = TRUE;
-		}
-
-	}
-}
-
-
-INT32 GetNumberOfCharactersOnPlayersTeam( void )
-{
-	INT32 iNumberOfPeople = 0, iCounter = 0;
-
-	for(iCounter = 0; iCounter < CODE_MAXIMUM_NUMBER_OF_PLAYER_SLOTS; iCounter++ )
-	{
-		if( gCharactersList[ iCounter ].fValid == TRUE )
-		{
-			iNumberOfPeople++;
-		}
-	}
-
-	return( iNumberOfPeople );
-}
-*/
-
-
 void CreateMapStatusBarsRegion( void )
 {
-
-	// create the status region over the bSelectedCharacter info region, to get quick rundown of merc's status
-	MSYS_DefineRegion( &gMapStatusBarsRegion, BAR_INFO_X - 3, BAR_INFO_Y - 42,(INT16)( BAR_INFO_X + 17), (INT16)(BAR_INFO_Y ), MSYS_PRIORITY_HIGH + 5,
+	MSYS_DefineRegion( &gMapStatusBarsRegion, BAR_INFO_X + xResOffset - 3, BAR_INFO_Y - 42,(INT16)( BAR_INFO_X + xResOffset + 17), (INT16)(BAR_INFO_Y ), MSYS_PRIORITY_HIGH + 5,
 							MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );
 
 	return;
@@ -2094,7 +1975,6 @@ void CreateMapStatusBarsRegion( void )
 
 void RemoveMapStatusBarsRegion( void )
 {
-
 	// remove the bSelectedInfoCharacter helath, breath and morale bars info region
 	MSYS_RemoveRegion( &gMapStatusBarsRegion );
 
@@ -2103,10 +1983,9 @@ void RemoveMapStatusBarsRegion( void )
 
 void UpdateCharRegionHelpText( void )
 {
-	CHAR16 sString[ 128 ];
+	CHAR16 sString[ 128 ], sTemp[ 20 ];
 	CHAR16 pMoraleStr[ 128 ];
 	SOLDIERTYPE *pSoldier = NULL;
-
 
 	if( ( bSelectedInfoChar != -1 ) && ( gCharactersList[ bSelectedInfoChar ].fValid == TRUE ) )
 	{
@@ -2135,10 +2014,49 @@ void UpdateCharRegionHelpText( void )
 				{
 					// person (health/energy/morale)
 					GetMoraleString( pSoldier, pMoraleStr );
-					swprintf( sString, L"%s: %d/%d, %s: %d/%d, %s: %s",
-													pMapScreenStatusStrings[ 0 ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax,
-													pMapScreenStatusStrings[ 1 ], pSoldier->bBreath, pSoldier->bBreathMax,
-													pMapScreenStatusStrings[ 2 ], pMoraleStr );
+
+					if ( gGameOptions.fFoodSystem )
+					{
+						if ( pSoldier->bPoisonSum )
+						{
+							INT8 bPoisonBandaged = pSoldier->bPoisonSum - pSoldier->bPoisonBleeding - pSoldier->bPoisonLife;
+							swprintf( sString, L"%s: %d/%d, %s: %d/%d/%d - %d, %s: %d/%d, %s: %s, %s: %d%s, %s: %d%s",
+															pMapScreenStatusStrings[ 0 ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax,
+															pMapScreenStatusStrings[ 5 ], pSoldier->bPoisonBleeding, bPoisonBandaged, pSoldier->bPoisonLife, pSoldier->bPoisonSum,
+															pMapScreenStatusStrings[ 1 ], pSoldier->bBreath, pSoldier->bBreathMax,															
+															pMapScreenStatusStrings[ 2 ], pMoraleStr,
+															pMapScreenStatusStrings[ 6 ], (INT32)(100*(pSoldier->bDrinkLevel - FOOD_MIN) / FOOD_HALF_RANGE), sSpecialCharacters[0],
+															pMapScreenStatusStrings[ 7 ], (INT32)(100*(pSoldier->bFoodLevel - FOOD_MIN) / FOOD_HALF_RANGE), sSpecialCharacters[0] );
+						}
+						else
+						{
+							swprintf( sString, L"%s: %d/%d, %s: %d/%d, %s: %s, %s: %d%s, %s: %d%s",
+															pMapScreenStatusStrings[ 0 ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax,
+															pMapScreenStatusStrings[ 1 ], pSoldier->bBreath, pSoldier->bBreathMax,
+															pMapScreenStatusStrings[ 2 ], pMoraleStr,
+															pMapScreenStatusStrings[ 6 ], (INT32)(100*(pSoldier->bDrinkLevel - FOOD_MIN) / FOOD_HALF_RANGE), sSpecialCharacters[0],
+															pMapScreenStatusStrings[ 7 ], (INT32)(100*(pSoldier->bFoodLevel - FOOD_MIN) / FOOD_HALF_RANGE), sSpecialCharacters[0] );
+						}
+					}
+					else
+					{
+						if ( pSoldier->bPoisonSum )
+						{
+							INT8 bPoisonBandaged = pSoldier->bPoisonSum - pSoldier->bPoisonBleeding - pSoldier->bPoisonLife;
+							swprintf( sString, L"%s: %d/%d, %s: %d/%d/%d - %d, %s: %d/%d, %s: %s",
+															pMapScreenStatusStrings[ 0 ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax,
+															pMapScreenStatusStrings[ 5 ], pSoldier->bPoisonBleeding, bPoisonBandaged, pSoldier->bPoisonLife, pSoldier->bPoisonSum,
+															pMapScreenStatusStrings[ 1 ], pSoldier->bBreath, pSoldier->bBreathMax,
+															pMapScreenStatusStrings[ 2 ], pMoraleStr );
+						}
+						else
+						{
+							swprintf( sString, L"%s: %d/%d, %s: %d/%d, %s: %s",
+															pMapScreenStatusStrings[ 0 ], pSoldier->stats.bLife, pSoldier->stats.bLifeMax,
+															pMapScreenStatusStrings[ 1 ], pSoldier->bBreath, pSoldier->bBreathMax,
+															pMapScreenStatusStrings[ 2 ], pMoraleStr );
+						}
+					}
 				}
 			}
 			else
@@ -2154,6 +2072,84 @@ void UpdateCharRegionHelpText( void )
 
 		SetRegionFastHelpText( &gMapStatusBarsRegion, sString );
 
+		// Buggler: skills/traits tooltip on merc portrait
+		if( ( pSoldier->stats.bLife != 0 ) && !AM_A_ROBOT( pSoldier ) && !IsVehicle( pSoldier ) )
+		{
+			// clear pStr value
+			swprintf( sString, L"");
+
+			if (gGameOptions.fNewTraitSystem) // SANDRO - old/new traits check
+			{
+				UINT8 ubTempSkillArray[30];
+				INT8 bNumSkillTraits = 0;
+
+				// lets rearrange our skills to a temp array
+				// we also get the number of lines (skills) to be displayed 
+				for ( UINT8 ubCnt = 1; ubCnt < NUM_SKILLTRAITS_NT; ubCnt++ )
+				{
+					if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 2 )
+					{
+						ubTempSkillArray[bNumSkillTraits] = (ubCnt + NEWTRAIT_MERCSKILL_EXPERTOFFSET);
+						bNumSkillTraits++;
+					}
+					else if ( ProfileHasSkillTrait( pSoldier->ubProfile, ubCnt ) == 1 )
+					{
+						ubTempSkillArray[bNumSkillTraits] = ubCnt;
+						bNumSkillTraits++;
+					}
+				}
+
+				if ( bNumSkillTraits == 0 )
+				{
+					swprintf( sString, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+				}
+				else
+				{
+					for ( UINT8 ubCnt = 0; ubCnt < bNumSkillTraits; ubCnt++ )
+					{
+						swprintf( sTemp, L"%s\n", gzMercSkillTextNew[ ubTempSkillArray[ubCnt] ] );
+						wcscat( sString, sTemp );
+					}
+				}
+			}
+			else
+			{
+				INT8 bSkill1 = 0, bSkill2 = 0; 	
+				bSkill1 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[0];
+				bSkill2 = gMercProfiles[ pSoldier->ubProfile ].bSkillTraits[1];
+
+				if ( bSkill1 == 0 && bSkill2 == 0 )
+				{
+					swprintf( sString, L"%s", pPersonnelScreenStrings[ PRSNL_TXT_NOSKILLS ] );
+				}
+				else
+				{
+					//if the 2 skills are the same, add the '(expert)' at the end
+					if( bSkill1 == bSkill2 )
+					{
+						swprintf( sString, L"%s %s", gzMercSkillText[bSkill1], gzMercSkillText[EXPERT] );
+					}
+					else
+					{
+						//Display the first skill
+						if( bSkill1 != 0 )
+						{
+							swprintf( sString, L"%s\n", gzMercSkillText[bSkill1] );
+						}
+						if( bSkill2 != 0 )
+						{
+							swprintf( sTemp, L"%s", gzMercSkillText[bSkill2] );
+							wcscat( sString, sTemp );
+						}
+					}
+				}
+			}
+			SetRegionFastHelpText( &gCharInfoFaceRegion, sString );
+		}
+		else
+		{
+			SetRegionFastHelpText( &gCharInfoFaceRegion, L"" );
+		}
 
 		// update CONTRACT button help text
 		if ( CanExtendContractForCharSlot( bSelectedInfoChar ) )
@@ -2314,6 +2310,14 @@ void UpdateMapScreenAssignmentPositions( void )
 		SetBoxPosition( ghRepairBox, pPoint );
 	}
 
+	if( fShowMoveItemMenu )
+	{
+		GetBoxPosition( ghMoveItemBox, &pPoint);
+		pPoint.iY = giBoxY + ( GetFontHeight( MAP_SCREEN_FONT ) + 2 ) * ASSIGN_MENU_MOVE_ITEMS;
+
+		SetBoxPosition( ghMoveItemBox, pPoint );
+	}
+
 	// HEADROCK HAM 3.6: Facility Menu
 	if( fShowFacilityMenu )
 	{
@@ -2464,6 +2468,12 @@ INT32 GetNumberOfPeopleInCharacterList( void )
 BOOLEAN ValidSelectableCharForNextOrPrev( INT32 iNewCharSlot )
 {
 	BOOLEAN fHoldingItem = FALSE;
+
+	// not in popup
+	if ( InItemStackPopup( ) || InSectorStackPopup( ) || InKeyRingPopup( ) )
+	{
+		return( FALSE );
+	}
 
 	// if holding an item
 	if ( ( gMPanelRegion.Cursor == EXTERN_CURSOR ) || gpItemPointer || fMapInventoryItem )
@@ -3898,11 +3908,17 @@ void AddStringsToMoveBox( void )
 		// add this squad, now add all the grunts in it
 		if( fSquadIsMoving[ iCount ] )
 		{
-			swprintf( sString, L"*%s*", pSquadMenuStrings[iSquadMovingList[ iCount ] ] );
+			if ( gGameExternalOptions.fUseXMLSquadNames )
+				swprintf( sString, L"*%s*", SquadNames[ iSquadMovingList[ iCount ] ].squadname );
+			else
+				swprintf( sString, L"*%s*", pSquadMenuStrings[iSquadMovingList[ iCount ] ] );
 		}
 		else
 		{
-			swprintf( sString, L"%s", pSquadMenuStrings[iSquadMovingList[ iCount ] ] );
+			if ( gGameExternalOptions.fUseXMLSquadNames )
+				swprintf( sString, L"%s", SquadNames[ iSquadMovingList[ iCount ] ].squadname );
+			else
+				swprintf( sString, L"%s", pSquadMenuStrings[iSquadMovingList[ iCount ] ] );
 		}
 		AddMonoString(&hStringHandle, sString );
 
@@ -3932,11 +3948,13 @@ void AddStringsToMoveBox( void )
 		// add this vehicle
 		if( fVehicleIsMoving[ iCount ] )
 		{
-			swprintf( sString, L"*%s*", pVehicleStrings[ pVehicleList[ iVehicleMovingList[ iCount ] ].ubVehicleType ] );
+		//	swprintf( sString, L"*%s*", pVehicleStrings[ pVehicleList[ iVehicleMovingList[ iCount ] ].ubVehicleType ] );
+			swprintf( sString, L"*%s*", gNewVehicle[ pVehicleList[ iVehicleMovingList[ iCount ] ].ubVehicleType ].NewVehicleStrings );
 		}
 		else
 		{
-			swprintf( sString, L"%s", pVehicleStrings[ pVehicleList[ iVehicleMovingList[ iCount ]	].ubVehicleType ] );
+		//	swprintf( sString, L"%s", pVehicleStrings[ pVehicleList[ iVehicleMovingList[ iCount ]	].ubVehicleType ] );
+			swprintf( sString, L"%s", gNewVehicle[ pVehicleList[ iVehicleMovingList[ iCount ]	].ubVehicleType ].NewVehicleStrings);
 		}
 		AddMonoString(&hStringHandle, sString );
 
@@ -5519,15 +5537,41 @@ void RenderSoldierSmallFaceForUpdatePanel( INT32 iIndex, INT32 iX, INT32 iY )
 	ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+36, iStartY, iX+37, iY+29, Get16BPPColor( FROMRGB( 107, 107, 57 ) ) );
 	ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+37, iStartY, iX+38, iY+29, Get16BPPColor( FROMRGB( 222, 181, 115 ) ) );
 
+	if ( pSoldier->bPoisonBleeding )
+	{
+		// poisoned bleeding in purple
+		iStartY = iY + 29 - 27*(pSoldier->stats.bLifeMax - pSoldier->bBleeding + pSoldier->bPoisonBleeding)/100;
+		ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+36, iStartY, iX+37, iY+29, Get16BPPColor( FROMRGB( 107, 57, 107 ) ) );
+		ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+37, iStartY, iX+38, iY+29, Get16BPPColor( FROMRGB( 222, 115, 181 ) ) );
+	}
+
 	//pink one for bandaged.
-	iStartY += 27*pSoldier->bBleeding/100;
+	iStartY = iY + 29 - 27*(pSoldier->stats.bLifeMax - pSoldier->bBleeding)/100;
 	ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+36, iStartY, iX+37, iY+29, Get16BPPColor( FROMRGB( 156, 57, 57 ) ) );
 	ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+37, iStartY, iX+38, iY+29, Get16BPPColor( FROMRGB( 222, 132, 132 ) ) );
+
+	// get amount of poisoned bandage
+	INT8 bPoisonBandage = pSoldier->bPoisonSum - pSoldier->bPoisonBleeding - pSoldier->bPoisonLife;
+	if ( bPoisonBandage )
+	{
+		// poisoned bandage in bright green
+		iStartY = iY + 29 - 27*(pSoldier->stats.bLife +  bPoisonBandage)/100;
+		ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+36, iStartY, iX+37, iY+29, Get16BPPColor( FROMRGB( 57, 156, 57 ) ) );
+		ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+37, iStartY, iX+38, iY+29, Get16BPPColor( FROMRGB( 132, 222, 132 ) ) );
+	}
 
 	//red one for actual health
 	iStartY = iY + 29 - 27*pSoldier->stats.bLife/100;
 	ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+36, iStartY, iX+37, iY+29, Get16BPPColor( FROMRGB( 107, 8, 8 ) ) );
 	ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+37, iStartY, iX+38, iY+29, Get16BPPColor( FROMRGB( 206, 0, 0 ) ) );
+
+	// poisoned life
+	if ( pSoldier->bPoisonLife )
+	{
+		iStartY = iY + 29 - 27*pSoldier->bPoisonLife/100;
+		ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+36, iStartY, iX+37, iY+29, Get16BPPColor( FROMRGB( 8, 107, 8 ) ) );
+		ColorFillVideoSurfaceArea( guiSAVEBUFFER, iX+37, iStartY, iX+38, iY+29, Get16BPPColor( FROMRGB( 0, 206, 0 ) ) );
+	}
 
 	//BREATH BAR
 	iStartY = iY + 29 - 27*pSoldier->bBreathMax/100;
@@ -5614,6 +5658,8 @@ void SetTixaAsFound( void )
 {
 	// set the town of Tixa as found by the player
 	fFoundTixa = TRUE;
+	gfHiddenTown[ TIXA ] = TRUE;
+	gfDrawHiddenTown[ TIXA ] = TRUE; 
 	fMapPanelDirty = TRUE;
 }
 
@@ -5621,6 +5667,8 @@ void SetOrtaAsFound( void )
 {
 	// set the town of Orta as found by the player
 	fFoundOrta = TRUE;
+	gfHiddenTown[ ORTA ] = TRUE;
+	gfDrawHiddenTown[ ORTA ] = TRUE; 
 	fMapPanelDirty = TRUE;
 }
 
@@ -5691,14 +5739,14 @@ void CreateDestroyInsuranceMouseRegionForMercs( BOOLEAN fCreate )
 
 	if( ( fCreated == FALSE ) && ( fCreate == TRUE ) )
 	{
-		MSYS_DefineRegion( &gContractIconRegion, CHAR_ICON_X, CHAR_ICON_CONTRACT_Y, CHAR_ICON_X + CHAR_ICON_WIDTH, CHAR_ICON_CONTRACT_Y + CHAR_ICON_HEIGHT,
+		MSYS_DefineRegion( &gContractIconRegion, CHAR_ICON_X + xResOffset, CHAR_ICON_CONTRACT_Y, CHAR_ICON_X + xResOffset + CHAR_ICON_WIDTH, CHAR_ICON_CONTRACT_Y + CHAR_ICON_HEIGHT,
 						MSYS_PRIORITY_HIGH - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );
 
-		MSYS_DefineRegion( &gInsuranceIconRegion, CHAR_ICON_X, CHAR_ICON_CONTRACT_Y + CHAR_ICON_SPACING, CHAR_ICON_X + CHAR_ICON_WIDTH, CHAR_ICON_CONTRACT_Y + CHAR_ICON_SPACING + CHAR_ICON_HEIGHT,
+		MSYS_DefineRegion( &gInsuranceIconRegion, CHAR_ICON_X + xResOffset, CHAR_ICON_CONTRACT_Y + CHAR_ICON_SPACING, CHAR_ICON_X + xResOffset + CHAR_ICON_WIDTH, CHAR_ICON_CONTRACT_Y + CHAR_ICON_SPACING + CHAR_ICON_HEIGHT,
 						MSYS_PRIORITY_HIGH - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );
 
-		MSYS_DefineRegion( &gDepositIconRegion, CHAR_ICON_X, CHAR_ICON_CONTRACT_Y + ( 2 * CHAR_ICON_SPACING ), CHAR_ICON_X + CHAR_ICON_WIDTH, CHAR_ICON_CONTRACT_Y + ( 2 * CHAR_ICON_SPACING ) + CHAR_ICON_HEIGHT,
-						MSYS_PRIORITY_HIGH - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );
+		MSYS_DefineRegion( &gDepositIconRegion, CHAR_ICON_X + xResOffset, CHAR_ICON_CONTRACT_Y + ( 2 * CHAR_ICON_SPACING ), CHAR_ICON_X + xResOffset + CHAR_ICON_WIDTH, CHAR_ICON_CONTRACT_Y + ( 2 * CHAR_ICON_SPACING ) + CHAR_ICON_HEIGHT,
+						MSYS_PRIORITY_HIGH - 1, MSYS_NO_CURSOR, MSYS_NO_CALLBACK, MSYS_NO_CALLBACK );  
 
 		fCreated = TRUE;
 	}
@@ -5710,57 +5758,6 @@ void CreateDestroyInsuranceMouseRegionForMercs( BOOLEAN fCreate )
 		fCreated = FALSE;
 	}
 }
-
-
-/*
-void HandlePlayerEnteringMapScreenBeforeGoingToTactical( void )
-{
-	CHAR16 sString[ 256 ];
-
-	if( !( AnyMercsHired( ) ) )
-	{
-		// no mercs hired inform player they must hire mercs
-		swprintf( sString, pMapScreenJustStartedHelpText[ 0 ] );
-		DoMapMessageBox( MSG_BOX_BASIC_STYLE, sString, MAP_SCREEN, MSG_BOX_FLAG_OK, DoneHandlePlayerFirstEntryToMapScreen );
-
-	}
-	else
-	{
-		// player has mercs hired, tell them to time compress to get things underway
-		swprintf( sString, pMapScreenJustStartedHelpText[ 1 ] );
-		fShowMapScreenHelpText = TRUE;
-	}
-
-
-
-	// now inform the player
-
-	if( fShowMapScreenHelpText )
-	{
-		fShowMapScreenHelpText = FALSE;
-		SetUpShutDownMapScreenHelpTextScreenMask( );
-		fShowMapScreenHelpText = TRUE;
-	}
-
-	return;
-}
-
-
-void DoneHandlePlayerFirstEntryToMapScreen(	UINT8 bExitValue )
-{
-	static BOOLEAN fFirstTime = TRUE;
-
-	if( bExitValue == MSG_BOX_RETURN_OK )
-	{
-		if( fFirstTime == TRUE )
-		{
-			fFirstTime = FALSE;
-			fShowMapScreenHelpText = TRUE;
-		}
-	}
-}
-*/
-
 
 BOOLEAN HandleTimeCompressWithTeamJackedInAndGearedToGo( void )
 {
@@ -5802,8 +5799,8 @@ BOOLEAN HandleTimeCompressWithTeamJackedInAndGearedToGo( void )
 			return( FALSE );
 		}
 
-		gubPBSectorX = gGameExternalOptions.ubDefaultArrivalSectorX;
-		gubPBSectorY = gGameExternalOptions.ubDefaultArrivalSectorY;
+		gubPBSectorX = (UINT8)gGameExternalOptions.ubDefaultArrivalSectorX;
+		gubPBSectorY = (UINT8)gGameExternalOptions.ubDefaultArrivalSectorY;
 	}
 	gubPBSectorZ = 0;	
 
@@ -5826,10 +5823,12 @@ BOOLEAN HandleTimeCompressWithTeamJackedInAndGearedToGo( void )
 	FadeInGameScreen( );
 
 	SetUpShutDownMapScreenHelpTextScreenMask( );
-
+#ifdef JA2UB
+//no ja25 UB
+#else
 	// Add e-mail message
-	AddEmail(ENRICO_CONGRATS,ENRICO_CONGRATS_LENGTH,MAIL_ENRICO, GetWorldTotalMin(), -1, -1);
-
+	AddEmail(ENRICO_CONGRATS,ENRICO_CONGRATS_LENGTH,MAIL_ENRICO, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT);
+#endif
 
 	return( TRUE );
 }
@@ -5940,12 +5939,19 @@ BOOLEAN NotifyPlayerWhenEnemyTakesControlOfImportantSector( INT16 sSectorX, INT1
 
 	if( fContested && bTownId )
 	{
+#ifdef JA2UB
+	// no UB
+#else	
 		if( bTownId == SAN_MONA )
 		{ //San Mona isn't important.
 			return( TRUE );
 		}
+#endif			
 		swprintf( sStringB, pMapErrorString[ 25 ], sString );
 
+#ifdef JA2UB		
+		HandleDisplayingOfPlayerLostDialogue( );
+#endif
 		// put up the message informing the player of the event
 		DoScreenIndependantMessageBox( sStringB, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
 		return( TRUE );
@@ -6153,10 +6159,12 @@ BOOLEAN CanCharacterMoveInStrategic( SOLDIERTYPE *pSoldier, INT8 *pbErrorNumber 
 	if ( ( pSoldier->sSectorX == 12 ) && ( pSoldier->sSectorY == MAP_ROW_L ) && ( pSoldier->bSectorZ == 0 ) &&
 			( !pSoldier->flags.fBetweenSectors ) && gMercProfiles[ ELDIN ].bMercStatus != MERC_IS_DEAD )
 	{
-		UINT8	ubRoom, cnt;
+		//DBrot: More Rooms
+		UINT8	/*ubRoom,*/ cnt;
+		UINT16 usRoom;
 		SOLDIERTYPE * pSoldier2;
 
-		if ( InARoom( pSoldier->sGridNo, &ubRoom ) && ubRoom >= 22 && ubRoom <= 41 )
+		if ( InARoom( pSoldier->sGridNo, &usRoom ) && usRoom >= 22 && usRoom <= 41 )
 		{
 
 			cnt = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
@@ -6353,14 +6361,20 @@ BOOLEAN CanEntireMovementGroupMercIsInMove( SOLDIERTYPE *pSoldier, INT8 *pbError
 
 void ReportMapScreenMovementError( INT8 bErrorNumber )
 {
-	if ( bErrorNumber == -99 )
+	CHAR16 sString[ 1024 ];
+	
+	switch( bErrorNumber )
 	{
-		// - 99 is a special message # indicating a customized message
-		DoMapMessageBox( MSG_BOX_BASIC_STYLE, gsCustomErrorString, MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
-	}
-	else
-	{
-		DoMapMessageBox( MSG_BOX_BASIC_STYLE, pMapErrorString[ bErrorNumber ], MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
+		case -99:
+			// - 99 is a special message # indicating a customized message
+			DoMapMessageBox( MSG_BOX_BASIC_STYLE, gsCustomErrorString, MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
+			break;
+		case 8:
+			swprintf( sString, pMapErrorString[ 8 ], pCountryNames[COUNTRY_NAME] );
+			DoMapMessageBox( MSG_BOX_BASIC_STYLE, sString, MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
+			break;
+		default:
+			DoMapMessageBox( MSG_BOX_BASIC_STYLE, pMapErrorString[ bErrorNumber ], MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
 	}
 }
 

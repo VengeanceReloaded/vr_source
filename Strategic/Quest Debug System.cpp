@@ -30,7 +30,6 @@
 	#include	"dialogue control.h"
 	//#include	"Soldier Control.h"
 	#include	"overhead.h"
-	#include	"AimMembers.h"
 	#include	"MessageBoxScreen.h"
 	#include	"Stdio.h"
 	#include	"english.h"
@@ -1169,7 +1168,7 @@ void		ExitQuestDebugSystem()
 
 
 	//Create the clock mouse region
-	CreateMouseRegionForPauseOfClock( CLOCK_REGION_START_X, CLOCK_REGION_START_Y );
+	CreateMouseRegionForPauseOfClock( INTERFACE_CLOCK_X, INTERFACE_CLOCK_Y );
 
 	giHaveSelectedNPC = gNpcListBox.sCurSelectedItem;
 	giHaveSelectedItem = gItemListBox.sCurSelectedItem;
@@ -1311,7 +1310,7 @@ void		GetUserInput()
 	GetCursorPos(&MousePos);
 	ScreenToClient(ghWindow, &MousePos); // In window coords!
 
-	while( DequeueEvent( &Event ) )
+	while( DequeueSpecificEvent(&Event, KEY_DOWN|KEY_UP|KEY_REPEAT) )
 	{
 		if( !HandleTextInput( &Event ) && Event.usEvent == KEY_DOWN )
 		{
@@ -3180,11 +3179,13 @@ void CreateDestroyDisplayNPCInventoryPopup( UINT8 ubAction )
 				DrawTextToScreen( gMercProfiles[ gNpcListBox.sCurSelectedItem ].zNickname, QUEST_DBS_NPC_INV_POPUP_X, QUEST_DBS_NPC_INV_POPUP_Y+20, QUEST_DBS_NPC_INV_POPUP_WIDTH, QUEST_DBS_FONT_TITLE, QUEST_DBS_COLOR_SUBTITLE, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
 
 				usPosY = QUEST_DBS_NPC_INV_POPUP_Y + 40;
-				for( i=0; i<pSoldier->inv.size(); i++)
+
+				UINT16 invsize = pSoldier->inv.size();
+				for( i=0; i<invsize; ++i)
 				{
-					if (pSoldier->inv[i].exists() == false) {
+					if (pSoldier->inv[i].exists() == false)
 						continue;
-					}
+
 //					if ( !LoadItemInfo( pSoldier->inv[ i ].usItem, zItemName, zItemDesc ) )
 //						Assert(0);
 						wcscpy( zItemName, ShortItemNames[ pSoldier->inv[ i ].usItem ] );
@@ -3674,7 +3675,7 @@ INT16	IsMercInTheSector( UINT16 usMercID )
 		return( FALSE );
 
 	UINT8					cnt;
-	for ( cnt=0; cnt <= TOTAL_SOLDIERS; cnt++ )
+	for ( cnt=0; cnt < TOTAL_SOLDIERS; cnt++ )
 	{
 		//if the merc is active
 		if( Menptr[ cnt ].ubProfile == usMercID )
@@ -3692,7 +3693,7 @@ void RefreshAllNPCInventory()
 {
 	UINT16	usCnt;
 	UINT16	usItemCnt;
-	UINT16		usItem;
+	UINT16	usItem;
 
 	for ( usCnt=0; usCnt < TOTAL_SOLDIERS; usCnt++ )
 	{
@@ -3705,7 +3706,8 @@ void RefreshAllNPCInventory()
 			if ( gProfilesRPC[Menptr[ usCnt ].ubProfile].ProfilId == Menptr[ usCnt ].ubProfile || gProfilesNPC[Menptr[ usCnt ].ubProfile].ProfilId == Menptr[ usCnt ].ubProfile || gProfilesVehicle[Menptr[ usCnt ].ubProfile].ProfilId == Menptr[ usCnt ].ubProfile )
 			{
 				//refresh the mercs inventory
-				for ( usItemCnt = 0; usItemCnt< Menptr[ usCnt ].inv.size(); usItemCnt++ )
+				UINT16 invsize = Menptr[ usCnt ].inv.size();
+				for ( usItemCnt = 0; usItemCnt< invsize; ++usItemCnt )
 				{
 					if ( gMercProfiles[ Menptr[ usCnt ].ubProfile ].inv[ usItemCnt ] != NOTHING )
 					{

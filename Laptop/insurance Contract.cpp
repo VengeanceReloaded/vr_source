@@ -25,8 +25,14 @@
 	#include "Strategic Status.h"
 	#include "Assignments.h"
 	#include "Map Screen Interface.h"
+	#include "Interface.h"				// added by Flugente
 #endif
 #include <vector>
+
+#ifdef JA2UB
+#include "ub_config.h"
+#include "quests.h"
+#endif
 
 #define		INS_CTRCT_ORDER_GRID_WIDTH					132
 #define		INS_CTRCT_ORDER_GRID_HEIGHT					216
@@ -1183,6 +1189,9 @@ INT32	CalculateInsuranceContractCost( INT32 iLength, UINT8 ubMercID )
 	// calculate the overall insurability risk factor for this merc by combining all the subfactors
 	flRiskFactor = flSkillFactor * flFitnessFactor * flExpFactor * flSurvivalFactor;
 
+	// Flugente: backgrounds
+	flRiskFactor = flRiskFactor * (100 + pSoldier->GetBackgroundValue(BG_PERC_INSURANCE)) / 100;
+
 	// restrict the overall factor to within reasonable limits
 	if (flRiskFactor < MIN_INSURANCE_RATIO)
 	{
@@ -1361,12 +1370,30 @@ void StartInsuranceInvestigation( UINT8	ubPayoutID )
 	if (gStrategicStatus.ubInsuranceInvestigationsCnt == 0)
 	{
 		// first offense
-		AddEmailWithSpecialData( INSUR_SUSPIC, INSUR_SUSPIC_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID );
+#ifdef JA2UB
+// no UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.LaptopLinkInsurance == TRUE )
+			AddEmailWithSpecialData( 173, INSUR_SUSPIC_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_INSURANCE_COMPANY_EMAIL_JA2_EDT, TYPE_E_INSURANCE_L4 );
+	}
+#else
+		AddEmailWithSpecialData( INSUR_SUSPIC, INSUR_SUSPIC_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 	}
 	else
 	{
 		// subsequent offense
-		AddEmailWithSpecialData( INSUR_SUSPIC_2, INSUR_SUSPIC_2_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID );
+#ifdef JA2UB
+// no UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.LaptopLinkInsurance == TRUE )
+			AddEmailWithSpecialData( 179, INSUR_SUSPIC_2_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_INSURANCE_COMPANY_EMAIL_JA2_EDT, TYPE_E_INSURANCE_L5 );
+	}
+#else
+		AddEmailWithSpecialData( INSUR_SUSPIC_2, INSUR_SUSPIC_2_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 	}
 
 	if ( gMercProfiles[ LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID ].ubSuspiciousDeath == VERY_SUSPICIOUS_DEATH )
@@ -1394,11 +1421,29 @@ void EndInsuranceInvestigation( UINT8	ubPayoutID )
 	if ( gMercProfiles[ LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID ].ubSuspiciousDeath == VERY_SUSPICIOUS_DEATH )
 	{
 		// fraud, no payout!
-		AddEmailWithSpecialData( INSUR_1HOUR_FRAUD, INSUR_1HOUR_FRAUD_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID );
+#ifdef JA2UB
+// no UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.LaptopLinkInsurance == TRUE )
+			AddEmailWithSpecialData( 211, INSUR_1HOUR_FRAUD_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_INSURANCE_COMPANY_EMAIL_JA2_EDT, TYPE_E_INSURANCE_L2 );
+	}		
+#else
+		AddEmailWithSpecialData( INSUR_1HOUR_FRAUD, INSUR_1HOUR_FRAUD_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 	}
 	else
 	{
-		AddEmailWithSpecialData( INSUR_INVEST_OVER, INSUR_INVEST_OVER_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID );
+#ifdef JA2UB
+// No UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.LaptopLinkInsurance == TRUE )
+			AddEmailWithSpecialData( 176, INSUR_INVEST_OVER_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_INSURANCE_COMPANY_EMAIL_JA2_EDT, TYPE_E_INSURANCE_L6 );
+	}
+#else
+		AddEmailWithSpecialData( INSUR_INVEST_OVER, INSUR_INVEST_OVER_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 
 		// only now make a payment (immediately)
 		InsuranceContractPayLifeInsuranceForDeadMerc( ubPayoutID );
@@ -1427,7 +1472,16 @@ void InsuranceContractPayLifeInsuranceForDeadMerc( UINT8 ubPayoutID )
 	if( gMercProfiles[ LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID ].ubSuspiciousDeath == 0 )
 	{
 		//Add an email telling the user that he received an insurance payment
-		AddEmailWithSpecialData( INSUR_PAYMENT, INSUR_PAYMENT_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID );
+#ifdef JA2UB
+// no UB
+	if( gubQuest[ QUEST_FIX_LAPTOP ] == QUESTDONE || gGameUBOptions.LaptopQuestEnabled == FALSE )
+	{
+		if ( gGameUBOptions.LaptopLinkInsurance == TRUE )
+			AddEmailWithSpecialData( 170, INSUR_PAYMENT_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_INSURANCE_COMPANY_EMAIL_JA2_EDT, TYPE_E_INSURANCE_L3 );
+	}
+#else
+		AddEmailWithSpecialData( INSUR_PAYMENT, INSUR_PAYMENT_LENGTH, INSURANCE_COMPANY, GetWorldTotalMin(), LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].iPayOutPrice, LaptopSaveInfo.pLifeInsurancePayouts[ ubPayoutID ].ubMercID, TYPE_EMAIL_EMAIL_EDT, TYPE_E_NONE );
+#endif
 	}
 
 	LaptopSaveInfo.ubNumberLifeInsurancePayoutUsed --;

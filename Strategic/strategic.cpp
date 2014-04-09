@@ -8,7 +8,6 @@
 	#include "Assignments.h"
 	#include "Interface Control.h"
 	#include "Overhead.h"
-	#include "Music Control.h"
 	#include "Soldier Profile.h"
 	#include "Dialogue Control.h"
 	#include "personnel.h"
@@ -16,6 +15,13 @@
 	#include "Isometric Utils.h"
 	#include "Vehicles.h"
 	#include "Game Clock.h"
+	#include "CampaignStats.h"		// added by Flugente
+#endif
+
+#ifdef JA2UB
+#else
+	// anv: for playable Speck
+	#include "mercs.h"
 #endif
 
 StrategicMapElement StrategicMap[MAP_WORLD_X*MAP_WORLD_Y];
@@ -85,7 +91,7 @@ BOOLEAN HandleStrategicDeath( SOLDIERTYPE *pSoldier )
 
 		StopTimeCompression();
 	}
-
+	
 	return( TRUE );
 }
 
@@ -117,6 +123,27 @@ void HandleSoldierDeadComments( SOLDIERTYPE *pSoldier )
 					TacticalCharacterDialogue( pTeamSoldier, QUOTE_BUDDY_TWO_KILLED );
 					break;
 				case 2:
+					// buddy #3 died!
+					if( pTeamSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+						TacticalCharacterDialogue( pTeamSoldier, QUOTE_AIM_BUDDY_THREE_KILLED );
+					else
+						TacticalCharacterDialogue( pTeamSoldier, QUOTE_NON_AIM_BUDDY_THREE_KILLED );
+					break;
+				case 3:
+					// buddy #4 died!
+					if( pTeamSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+						TacticalCharacterDialogue( pTeamSoldier, QUOTE_AIM_BUDDY_FOUR_KILLED );
+					else
+						TacticalCharacterDialogue( pTeamSoldier, QUOTE_NON_AIM_BUDDY_FOUR_KILLED );
+					break;
+				case 4:
+					// buddy #5 died!
+					if( pTeamSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC )
+						TacticalCharacterDialogue( pTeamSoldier, QUOTE_AIM_BUDDY_FIVE_KILLED );
+					else
+						TacticalCharacterDialogue( pTeamSoldier, QUOTE_NON_AIM_BUDDY_FIVE_KILLED );
+					break;
+				case 5:
 					// learn to like buddy died!
 					TacticalCharacterDialogue( pTeamSoldier, QUOTE_LEARNED_TO_LIKE_MERC_KILLED );
 					break;
@@ -124,6 +151,14 @@ void HandleSoldierDeadComments( SOLDIERTYPE *pSoldier )
 					break;
 				}
 			}
+
+#ifdef JA2UB
+#else
+			// anv: handle Speck witnessing his employee death
+			if( pTeamSoldier->ubProfile == SPECK_PLAYABLE && pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC )
+				HandleSpeckWitnessingEmployeeDeath( pSoldier );
+#endif
+
 		}
 
 

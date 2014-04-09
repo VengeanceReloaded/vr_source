@@ -12,14 +12,12 @@
 	#include "opplist.h"
 	#include "ai.h"
 	#include "font control.h"
-	#include "sys globals.h"
 	#include "Animation COntrol.h"
 	#include "los.h"
 	#include "fov.h"
 	#include "dialogue control.h"
 	#include "lighting.h"
 	#include "environment.h"
-	#include "Points.h"
 	#include "interface dialogue.h"
 	#include "message.h"
 	#include "soldier profile.h"
@@ -52,6 +50,17 @@
 	#include "Explosion Control.h"//dnl ch40 200909
 #endif
 
+#ifdef JA2UB
+#include "Ja25_Tactical.h"
+#endif
+
+#include "Music Control.h"
+
+#include "connect.h"
+#include "../ModularizedTacticalAI/include/Plan.h"
+#include "../ModularizedTacticalAI/include/PlanFactoryLibrary.h"
+#include "../ModularizedTacticalAI/include/AbstractPlanFactory.h"
+
 //rain
 //#define VIS_DIST_DECREASE_PER_RAIN_INTENSITY 20
 //end rain
@@ -62,12 +71,12 @@ extern void SetSoldierAniSpeed( SOLDIERTYPE *pSoldier );
 // HEADROCK HAM 3.6: Moved to header
 //void MakeBloodcatsHostile( void );
 
-void OurNoise( UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume,	UINT8 ubNoiseType );
-void TheirNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType );
-void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubBaseVolume, UINT8 ubNoiseType);
+void OurNoise( UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume,	UINT8 ubNoiseType, STR16 zNoiseMessage );
+void TheirNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType, STR16 zNoiseMessage = NULL );
+void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubBaseVolume, UINT8 ubNoiseType, STR16 zNoiseMessage = NULL );
 UINT8 CalcEffVolume(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT8 ubNoiseType, UINT8 ubBaseVolume, UINT8 bCheckTerrain, UINT8 ubTerrType1, UINT8 ubTerrType2);
 void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume, UINT8 ubNoiseType, UINT8 *ubSeen);
-void TellPlayerAboutNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume, UINT8 ubNoiseType, UINT8 ubNoiseDir );
+void TellPlayerAboutNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume, UINT8 ubNoiseType, UINT8 ubNoiseDir,  STR16 zNoiseMessage = NULL );
 void OurTeamSeesSomeone( SOLDIERTYPE * pSoldier, INT8 bNumReRevealed, INT8 bNumNewEnemies );
 
 void IncrementWatchedLoc( UINT8 ubID, INT32 sGridNo, INT8 bLevel );
@@ -79,6 +88,7 @@ void HandleManNoLongerSeen( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pOpponent, INT
 // The_Bob - real time sneaking code 01/06/09
 extern void CancelItemPointer(void);
 extern BOOLEAN NobodyAlerted(void);
+extern void ShowRadioLocator( UINT8 ubID, UINT8 ubLocatorSpeed );
 //#define TESTOPPLIST
 
 // for ManSeesMan()
@@ -101,6 +111,11 @@ extern BOOLEAN NobodyAlerted(void);
 BOOLEAN		gfPlayerTeamSawCreatures = FALSE;
 BOOLEAN	gfPlayerTeamSawJoey			= FALSE;
 BOOLEAN	gfMikeShouldSayHi				= FALSE;
+
+#ifdef JA2UB
+//JA25 UB
+BOOLEAN   gfMorrisShouldSayHi				 = FALSE;
+#endif
 
 UINT8			gubBestToMakeSighting[BEST_SIGHTING_ARRAY_SIZE];
 UINT8			gubBestToMakeSightingSize = 0;
@@ -237,7 +252,8 @@ INT8 gbSmellStrength[3] =
 UINT16 gsWhoThrewRock = NOBODY;
 
 // % values of sighting distance at various light levels
-
+//DBrot: use gGameExternalOptions.ubBrightnessVisionMod instead
+/*
 INT8 gbLightSighting[1][SHADE_MIN+1] =
 {
 { // human
@@ -258,7 +274,7 @@ INT8 gbLightSighting[1][SHADE_MIN+1] =
 	17,
 	9
 }
-};
+};*/
 /*
 {
 { // human
@@ -320,8 +336,8 @@ INT16 AdjustMaxSightRangeForEnvEffects( SOLDIERTYPE *pSoldier, INT8 bLightLevel,
 {
 	INT16 sNewDist = 0;
 
-	sNewDist = sDistVisible * gbLightSighting[ 0 ][ bLightLevel ] / 100;
-
+	//sNewDist = sDistVisible * gbLightSighting[ 0 ][ bLightLevel ] / 100;
+	sNewDist = sDistVisible * gGameExternalOptions.ubBrightnessVisionMod[ bLightLevel ] / 100;
 	// Adjust it based on weather...
 	if ( guiEnvWeather & ( WEATHER_FORECAST_SHOWERS | WEATHER_FORECAST_THUNDERSHOWERS ) )
 	{
@@ -434,7 +450,7 @@ void ReevaluateBestSightingPosition( SOLDIERTYPE * pSoldier, INT8 bInterruptDuel
 		{
 			for ( ubLoop = 0; ubLoop < gubBestToMakeSightingSize; ubLoop++ )
 			{
-				if ( (gubBestToMakeSighting[ ubLoop ] == NOBODY) || (bInterruptDuelPts > MercPtrs[ gubBestToMakeSighting[ ubLoop ] ]->aiData.bInterruptDuelPts ) )
+				if ( pSoldier->RecognizeAsCombatant(gubBestToMakeSighting[ ubLoop ])  && (gubBestToMakeSighting[ ubLoop ] == NOBODY) || (bInterruptDuelPts > MercPtrs[ gubBestToMakeSighting[ ubLoop ] ]->aiData.bInterruptDuelPts ) )
 				{
 					if ( gubBestToMakeSighting[ gubBestToMakeSightingSize - 1 ] != NOBODY )
 					{
@@ -497,36 +513,43 @@ void HandleBestSightingPositionInRealtime( void )
 			if (gubBestToMakeSighting[ 1 ] == NOBODY)
 			{	// The_Bob - real time sneaking code 01/06/09
 				// if real time sneaking conditions are met...
-				// this is now in the preferences window - SANDRO
+				// this is now in the preferences window - SANDRO				
 				if (gGameSettings.fOptions[TOPTION_ALLOW_REAL_TIME_SNEAK] && MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam == OUR_TEAM && NobodyAlerted() )
-					{
-						// get rid of the item under cursor (we gotta react FAST)
-						CancelItemPointer();
-						// select (and center screen on) the merc who saw the enemy
-						// HEADROCK HAM 3.6: A much-requested toggle.
-						if (gusSelectedSoldier != (UINT16)MercPtrs[gubBestToMakeSighting[ 0 ]]->ubID &&
-							!gGameExternalOptions.fNoAutoFocusChangeInRealtimeSneak)
-							SelectSoldier (MercPtrs[gubBestToMakeSighting[ 0 ]]->ubID, false, true);
-						// if not quiet, emit a message warning the player
-						if (!gGameExternalOptions.fQuietRealTimeSneak)
-							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_RTM_ENEMIES_SPOOTED]);
+				{
+					// get rid of the item under cursor (we gotta react FAST)
+					CancelItemPointer();
+					// select (and center screen on) the merc who saw the enemy
+					// HEADROCK HAM 3.6: A much-requested toggle.
+					if (gusSelectedSoldier != (UINT16)MercPtrs[gubBestToMakeSighting[ 0 ]]->ubID &&
+						!gGameExternalOptions.fNoAutoFocusChangeInRealtimeSneak)
+						SelectSoldier (MercPtrs[gubBestToMakeSighting[ 0 ]]->ubID, false, true);
+					// if not quiet, emit a message warning the player
+					if (!gGameExternalOptions.fQuietRealTimeSneak)
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_RTM_ENEMIES_SPOOTED]);
 
-						return;	// and do nothing
-					}
+					return;	// and do nothing
+				}
+				else if ( MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam != OUR_TEAM && MercPtrs[gubBestToMakeSighting[ 0 ]]->aiData.bOppCnt > 0 )
+				{
+					// otherwise, simply award the turn to the team that saw the enemy first
+					EnterCombatMode( MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam );
+				}
 				else
 					// otherwise, simply award the turn to the team that saw the enemy first
 					EnterCombatMode( MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam );
 			}
 			else
 			{
+
+
 				// if 1st and 2nd on same team, or 1st and 3rd on same team, or there IS no 3rd, award turn to 1st
-				if (	( MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam == MercPtrs[gubBestToMakeSighting[ 1 ]]->bTeam ) ||
+				if (  /*MercPtrs[gubBestToMakeSighting[ 0 ]]->aiData.bOppCnt > 0 &&*/ ( MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam == MercPtrs[gubBestToMakeSighting[ 1 ]]->bTeam ) ||
 							( (gubBestToMakeSighting[ 2 ] == NOBODY) || ( MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam == MercPtrs[gubBestToMakeSighting[ 2 ]]->bTeam ) )
 					)
 				{
 					EnterCombatMode( MercPtrs[gubBestToMakeSighting[ 0 ]]->bTeam );
 				}
-				else // give turn to 2nd best but interrupt to 1st
+				else //if ( MercPtrs[gubBestToMakeSighting[ 1 ]]->aiData.bOppCnt > 0 ) // give turn to 2nd best but interrupt to 1st
 				{
 					DebugMsg( TOPIC_JA2, DBG_LEVEL_3, "Entering combat mode: turn for 2nd best, int for best" );
 
@@ -751,6 +774,11 @@ void CheckHostileOrSayQuoteList( void )
 					{
 						gTacticalStatus.fCivGroupHostile[ pSoldier->ubCivilianGroup ] = CIV_GROUP_HOSTILE;
 					}
+
+					// reevaluate sight - we might already see people that weren't enemies until now
+					ManLooksForOtherTeams(pSoldier);
+
+					pSoldier->aiData.bAlertStatus = STATUS_RED;
 				}
 			}
 
@@ -785,17 +813,17 @@ void CheckHostileOrSayQuoteList( void )
 
 void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 {
- UINT32 uiLoop;
- SOLDIERTYPE *pThem;
- INT8			bTempNewSituation;
+	UINT32 uiLoop;
+	SOLDIERTYPE *pThem;
+	INT8			bTempNewSituation;
 
- if (!pSoldier->bActive || !pSoldier->bInSector || pSoldier->flags.uiStatusFlags & SOLDIER_DEAD )
- {
-	// I DON'T THINK SO!
-	return;
- }
+	if (!pSoldier->bActive || !pSoldier->bInSector || pSoldier->flags.uiStatusFlags & SOLDIER_DEAD )
+	{
+		// I DON'T THINK SO!
+		return;
+	}
 
- gubSightFlags = ubSightFlags;
+	gubSightFlags = ubSightFlags;
 
 	if ( gubBestToMakeSightingSize != BEST_SIGHTING_ARRAY_SIZE_ALL_TEAMS_LOOK_FOR_ALL )
 	{
@@ -813,7 +841,7 @@ void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 		InitSightArrays();
 	}
 
-	for ( uiLoop = 0; uiLoop < NUM_WATCHED_LOCS; uiLoop++ )
+	for ( uiLoop = 0; uiLoop < NUM_WATCHED_LOCS; ++uiLoop )
 	{
 		gfWatchedLocHasBeenIncremented[ pSoldier->ubID ][ uiLoop ] = FALSE;
 	}
@@ -827,7 +855,6 @@ void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 	// if we've been told to make this soldier look (& others look back at him)
 	if (ubSightFlags & SIGHT_LOOK)
 	{
-
 		// if this soldier's under our control and well enough to look
 		if (pSoldier->stats.bLife >= OKLIFE )
 		{
@@ -858,7 +885,8 @@ void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 	// if we've been told that interrupts are possible as a result of sighting
 	if ((gTacticalStatus.uiFlags & TURNBASED) && 
 		(gTacticalStatus.uiFlags & INCOMBAT) && 
-		(ubSightFlags & SIGHT_INTERRUPT))
+		(ubSightFlags & SIGHT_INTERRUPT) && 
+		(!gGameOptions.fImprovedInterruptSystem || (gGameOptions.fImprovedInterruptSystem && gGameExternalOptions.fAllowInstantInterruptsOnSight) )	)
 	{
 		ResolveInterruptsVs( pSoldier, SIGHTINTERRUPT );
 	}
@@ -886,9 +914,15 @@ void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 			RadioSightings(pSoldier,EVERYBODY, MILITIA_TEAM);
 #endif*/
 //ddd{
-if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa) 
-RadioSightings(pSoldier,EVERYBODY, MILITIA_TEAM);
-				
+			if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
+				RadioSightings(pSoldier,EVERYBODY, MILITIA_TEAM);
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+			//haydent
+			if(is_networked &&  pSoldier->bSide == 0 && pSoldier->bTeam != OUR_TEAM)
+				RadioSightings(pSoldier,EVERYBODY, OUR_TEAM);
+#endif
+
 //ddd}
 			// if it's our local player's merc
 			if (PTR_OURTEAM)
@@ -909,7 +943,6 @@ RadioSightings(pSoldier,EVERYBODY, MILITIA_TEAM);
 		pSoldier->bNewOppCnt = 0;
 		pSoldier->pathing.bNeedToLook = FALSE;
 
-
 // Temporary for opplist synching - disable random order radioing
 #ifndef RECORDOPPLIST
 		// if this soldier's NOT on our team (MAY be under our control, though!)
@@ -917,11 +950,10 @@ RadioSightings(pSoldier,EVERYBODY, MILITIA_TEAM);
 			OurTeamRadiosRandomlyAbout(pSoldier->ubID);	// radio about him only
 #endif
 
-
 		// all non-humans under our control would now radio, if they were allowed
 		// to radio automatically (but they're not).	So just nuke new opp cnt
 		// NEW: under LOCALOPPLIST, humans on other teams now also radio in here
-		for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+		for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
 		{
 			pThem = MercSlots[ uiLoop ];
 
@@ -948,12 +980,11 @@ RadioSightings(pSoldier,EVERYBODY, MILITIA_TEAM);
 				else if ( gGameOptions.ubDifficultyLevel >= DIF_LEVEL_MEDIUM )
 				{
 					// don't allow admins to radio
-					if ( pThem->bTeam == ENEMY_TEAM && gTacticalStatus.Team[ ENEMY_TEAM ].bAwareOfOpposition && pThem->ubSoldierClass != 	SOLDIER_CLASS_ADMINISTRATOR )
+					if ( pThem->bTeam == ENEMY_TEAM && gTacticalStatus.Team[ ENEMY_TEAM ].bAwareOfOpposition && pThem->ubSoldierClass != SOLDIER_CLASS_ADMINISTRATOR )
 					{
 						RadioSightings(pThem,EVERYBODY, pThem->bTeam );
 					}
 				}
-
 
 				pThem->bNewOppCnt = 0;
 				pThem->pathing.bNeedToLook = FALSE;
@@ -1044,11 +1075,11 @@ INT16 TeamNoLongerSeesMan( UINT8 ubTeam, SOLDIERTYPE *pOpponent, UINT8 ubExclude
 
 	bLoop = gTacticalStatus.Team[ubTeam].bFirstID;
 
- // look for all mercs on the same team, check opplists for this soldier
-	for (pMate = MercPtrs[bLoop]; bLoop <= gTacticalStatus.Team[ubTeam].bLastID; bLoop++,pMate++)
+	// look for all mercs on the same team, check opplists for this soldier
+	for (pMate = MercPtrs[bLoop]; bLoop <= gTacticalStatus.Team[ubTeam].bLastID; ++bLoop,pMate++)
 	{
-	// if this "teammate" is me, myself, or I (whom we want to exclude)
-	if (bLoop == ubExcludeID)
+		// if this "teammate" is me, myself, or I (whom we want to exclude)
+		if (bLoop == ubExcludeID)
 	 continue;			// skip to next teammate, I KNOW I don't see him...
 
 	// if this merc is not on the same team
@@ -1145,29 +1176,30 @@ INT16 MaxNormalDistanceVisible( void )
 
 INT16 SOLDIERTYPE::GetMaxDistanceVisible(INT32 sGridNo, INT8 bLevel, int calcAsType)
 {
-	if (sGridNo == -1) {
+	if (sGridNo == NOWHERE)
+	{
 		return MaxNormalDistanceVisible();
 	}
-	if (bLevel == -1) {
+
+	if (bLevel == -1)
+	{
 		bLevel = this->pathing.bLevel;
 	}
 
-	if (calcAsType == CALC_FROM_ALL_DIRS) {
+	if (calcAsType == CALC_FROM_ALL_DIRS)
+	{
 		return DistanceVisible( this, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, sGridNo, bLevel );
 	}
-	else {
-		return DistanceVisible( this, (SoldierHasLimitedVision(this) ? this->pathing.bDesiredDirection : DIRECTION_IRRELEVANT), DIRECTION_IRRELEVANT, sGridNo, bLevel );
-	}
+
+	return DistanceVisible( this, (SoldierHasLimitedVision(this) ? this->pathing.bDesiredDirection : DIRECTION_IRRELEVANT), DIRECTION_IRRELEVANT, sGridNo, bLevel );
 }
 
 INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir, INT32 sSubjectGridNo, INT8 bLevel )
 {
 	INT16	sDistVisible;
 	INT8	bLightLevel;
-	SOLDIERTYPE * pSubject;
 	BOOLEAN sideViewLimit = FALSE;
-
-	pSubject = SimpleFindSoldier( sSubjectGridNo, bLevel );
+	SOLDIERTYPE* pSubject = SimpleFindSoldier( sSubjectGridNo, bLevel );
 
 	if (pSoldier->flags.uiStatusFlags & SOLDIER_MONSTER)
 	{
@@ -1175,6 +1207,7 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 		{
 			return( FALSE );
 		}
+
 		return( DistanceSmellable( pSoldier, pSubject ) );
 	}
 
@@ -1198,7 +1231,6 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 	}
 	else
 	{
-
 		if (pSoldier->sGridNo == sSubjectGridNo)
 		{
 			// looking up or down or two people accidentally in same tile... don't want it to be 0!
@@ -1206,19 +1238,24 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 		}
 		else
 		{
+			// Flugente: no need to calculate this multiple times
+			BOOLEAN fLimitedVision = SoldierHasLimitedVision(pSoldier);
+
 			// Lesh: added this
-			if( SoldierHasLimitedVision(pSoldier) )
+			if( fLimitedVision )
 			{
 				bSubjectDir = (INT8) GetDirectionToGridNoFromGridNo( pSoldier->sGridNo, sSubjectGridNo );
 			}
-			if (bFacingDir == DIRECTION_IRRELEVANT) {
+
+			if (bFacingDir == DIRECTION_IRRELEVANT)
+			{
 				bFacingDir = pSoldier->ubDirection;
 			}
 
 			sDistVisible = gbLookDistance[bFacingDir][bSubjectDir];
 
 			// Lesh: and this
-			if ( (sDistVisible == 0) && (SoldierHasLimitedVision(pSoldier)) )
+			if ( (sDistVisible == 0) && fLimitedVision )
 				return(0);
 
 			if ( sDistVisible != STRAIGHT )
@@ -1266,7 +1303,7 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 	// valid map references then use the ambient light level instead.	
 	if ( TileIsOutOfBounds( sSubjectGridNo ) )
 	{
-			DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("113/UC Warning! Tried to detect the light level when character %ls[%d] looks at a location outside of the valid map (gridno %d). Assigning default %d",
+		DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("113/UC Warning! Tried to detect the light level when character %ls[%d] looks at a location outside of the valid map (gridno %d). Assigning default %d",
 				pSoldier->name, pSoldier->ubID, pSoldier->sGridNo, ubAmbientLightLevel));
 
 		bLightLevel = ubAmbientLightLevel;
@@ -1294,20 +1331,20 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 
 		// HEADROCK HAM 3.2: Further reduce sightrange for cowering characters.
 		// SANDRO - this calls many sub-functions over and over, we should at least skip this for civilians and such  
-		if ((gGameExternalOptions.ubCoweringReducesSightRange == 1 || gGameExternalOptions.ubCoweringReducesSightRange == 2) &&
-			IS_MERC_BODY_TYPE(pSoldier) && (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == gbPlayerNum) )
+		// Flugente: we can check for more conditions before calculating suppression tolerance
+		if ( (gGameExternalOptions.ubCoweringReducesSightRange == 1 || gGameExternalOptions.ubCoweringReducesSightRange == 2) &&
+			IS_MERC_BODY_TYPE(pSoldier) && (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == gbPlayerNum) && 
+			gGameExternalOptions.ubMaxSuppressionShock > 0 && sDistVisible > 0 )
 		{
 			INT8 bTolerance = CalcSuppressionTolerance( pSoldier );
 
 			// Make sure character is cowering.
-			if ( pSoldier->aiData.bShock >= bTolerance && gGameExternalOptions.ubMaxSuppressionShock > 0 && 
-				sDistVisible > 0 )
+			if ( pSoldier->aiData.bShock >= bTolerance )
 			{
 				sDistVisible = __max(1,(sDistVisible * (gGameExternalOptions.ubMaxSuppressionShock - pSoldier->aiData.bShock)) / gGameExternalOptions.ubMaxSuppressionShock);
 			}
 		}
 	}
-
 
 	// give one step better vision for people with nightops
 	// old/new traits check - SANDRO
@@ -1326,7 +1363,7 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 	{
 		sDistVisible += NightBonusScale( UVGOGGLES_BONUS, bLightLevel);
 	}
-	else if (	AM_A_ROBOT( pSoldier ) )
+	else if ( AM_A_ROBOT( pSoldier ) )
 	{
 		sDistVisible += NightBonusScale( NIGHTSIGHTGOGGLES_BONUS, bLightLevel);
 	}
@@ -1338,8 +1375,9 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 		if ( TANK(pSoldier) && sDistVisible > 0 && pSubject)
 		{
 			sDistVisible = __max( sDistVisible + 5, pSubject->GetMaxDistanceVisible(pSoldier->sGridNo, pSoldier->pathing.bLevel) );
-	}
-		else {
+		}
+		else
+		{
 			sDistVisible = __max( sDistVisible + 5, pSoldier->GetMaxDistanceVisible() );
 		}
 #endif
@@ -1392,18 +1430,29 @@ void EndMuzzleFlash( SOLDIERTYPE * pSoldier )
 	}
 */	
 
-//ddd{
-if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)	
-{	if ( pSoldier->bTeam != gbPlayerNum && pSoldier->bTeam != MILITIA_TEAM )
-		pSoldier->bVisible = 0; // indeterminate state
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+//haydent
+if(is_networked &&  pSoldier->bSide == 0)
+{
+	//stay visible
 }
 else
+#endif
 {
-	if ( pSoldier->bTeam != gbPlayerNum )
-		pSoldier->bVisible = 0; // indeterminate state
-}
-//ddd}
-	
+	if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)	
+	{	if ( pSoldier->bTeam != gbPlayerNum && pSoldier->bTeam != MILITIA_TEAM )
+			pSoldier->bVisible = 0; // indeterminate state
+	}
+	else
+	{
+		if ( pSoldier->bTeam != gbPlayerNum )
+			pSoldier->bVisible = 0; // indeterminate state
+	}
+}//haydent
+
+
+
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
 		pOtherSoldier = MercSlots[ uiLoop ];
@@ -1444,6 +1493,13 @@ else
 							pSoldier->bVisible = TRUE; // yes, still seen
 					}
 					//ddd}
+
+					
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+					//haydent
+					if(is_networked &&  pOtherSoldier->bSide == 0 && pOtherSoldier->bTeam != OUR_TEAM)
+						pSoldier->bVisible = TRUE; // yes, still seen
+#endif
 				}
 			}
 		}
@@ -1487,8 +1543,6 @@ void TurnOffTeamsMuzzleFlashes( UINT8 ubTeam )
 INT8 DecideHearing( SOLDIERTYPE * pSoldier )
 {
 	// calculate the hearing value for the merc...
-
-	INT8		bSlot;
 	INT8		bHearing;
 
 	if ( TANK( pSoldier ) )
@@ -1512,6 +1566,8 @@ INT8 DecideHearing( SOLDIERTYPE * pSoldier )
 	{
 		if (HAS_SKILL_TRAIT( pSoldier, NIGHT_OPS_NT ))
 			bHearing += gSkillTraitValues.ubNOHearingRangeBonus;
+		if (HAS_SKILL_TRAIT( pSoldier, SNITCH_NT ))
+			bHearing += gSkillTraitValues.ubSNTHearingRangeBonus;
 	}
 	else
 	{
@@ -1519,14 +1575,7 @@ INT8 DecideHearing( SOLDIERTYPE * pSoldier )
 			bHearing += 1 * NUM_SKILL_TRAITS( pSoldier, NIGHTOPS_OT );
 	}
 
-	//bSlot = FindObj( pSoldier, EXTENDEDEAR );
-	//if ( bSlot == HEAD1POS || bSlot == HEAD2POS)
-	bSlot = FindHearingAid(pSoldier);
-	if ( bSlot != -1 )
-	{
-		// at 81-100% adds +5, at 61-80% adds +4, at 41-60% adds +3, etc.
-		bHearing += GetHearingRangeBonus(pSoldier);	// pSoldier->inv[bSlot][0]->data.objectStatus / 20 + 1;
-	}
+	bHearing += pSoldier->GetHearingBonus();
 
 	// adjust for dark conditions
 	switch ( ubAmbientLightLevel )
@@ -1738,7 +1787,7 @@ void HandleManNoLongerSeen( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pOpponent, INT
 {
 	// if neither side is neutral AND
 	// if this soldier is an opponent (fights for different side)
-	if (pSoldier->bActive && pOpponent->bActive && !CONSIDERED_NEUTRAL( pOpponent, pSoldier ) && !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide))
+	if (pSoldier->bActive && pOpponent->bActive && !CONSIDERED_NEUTRAL( pOpponent, pSoldier ) && !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide) && pSoldier->RecognizeAsCombatant(pOpponent->ubID) )
 	{
 		RemoveOneOpponent(pSoldier);
 	}
@@ -1757,9 +1806,11 @@ void HandleManNoLongerSeen( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pOpponent, INT
 
 	if ( (pSoldier->ubCivilianGroup == KINGPIN_CIV_GROUP) && (pOpponent->bTeam == gbPlayerNum ) )
 	{
-		UINT8 ubRoom;
+		//DBrot: More Rooms
+		//UINT8 ubRoom;
+		UINT16 usRoom;
 
-		if ( InARoom( pOpponent->sGridNo, &ubRoom ) && IN_BROTHEL( ubRoom ) && ( IN_BROTHEL_GUARD_ROOM( ubRoom ) ) )
+		if ( InARoom( pOpponent->sGridNo, &usRoom ) && IN_BROTHEL( usRoom ) && ( IN_BROTHEL_GUARD_ROOM( usRoom ) ) )
 		{
 			// unauthorized!
 			// make guard run to block guard room
@@ -1803,17 +1854,28 @@ void HandleManNoLongerSeen( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pOpponent, INT
 				pOpponent->bVisible = 0;
 			}
 */			
-//ddd{
-if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
-{ if ( (pSoldier->bTeam == gbPlayerNum || pSoldier->bTeam == MILITIA_TEAM) && !(pOpponent->bTeam == gbPlayerNum || pOpponent->bTeam == MILITIA_TEAM ) )
-	pOpponent->bVisible = 0;
-}
-else
-{ if ( pSoldier->bTeam == gbPlayerNum && pOpponent->bTeam != gbPlayerNum )
-	pOpponent->bVisible = 0;
-}
-//ddd}
 
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+			//haydent
+			if(is_networked && pSoldier->bSide == 0)
+			{
+				//stay visible
+			}
+			else
+#endif
+			{
+				if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
+				{
+					if ( (pSoldier->bTeam == gbPlayerNum || pSoldier->bTeam == MILITIA_TEAM) && !(pOpponent->bTeam == gbPlayerNum || pOpponent->bTeam == MILITIA_TEAM ) )
+						pOpponent->bVisible = 0;
+				}
+				else
+				{ 
+					if ( pSoldier->bTeam == gbPlayerNum && pOpponent->bTeam != gbPlayerNum )
+						pOpponent->bVisible = 0;
+				}
+			}//haydent
 		}
 	}
 #ifdef TESTOPPLIST
@@ -1854,12 +1916,11 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 #endif
 	return(success);
 	}
-
 */
 
- // if we're somehow looking while inactive, at base, dead or dying
- if (!pSoldier->bActive || !pSoldier->bInSector || (pSoldier->stats.bLife < OKLIFE))
- {
+	// if we're somehow looking while inactive, at base, dead or dying
+	if (!pSoldier->bActive || !pSoldier->bInSector || (pSoldier->stats.bLife < OKLIFE))
+	{
 /*
 #ifdef BETAVERSION
 	sprintf(tempstr,"ManLooksForMan: ERROR - %s is looking while inactive/at base/dead/dying.	Caller %s",
@@ -1878,14 +1939,12 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 			String("ERROR: ManLooksForMan - WE are inactive/dead etc ID %d(%S)to ID %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID) );
 #endif
 
-	return(FALSE);
+		return(FALSE);
 	}
 
-
-
- // if we're somehow looking for a guy who is inactive, at base, or already dead 
- if (!pOpponent->bActive || !pOpponent->bInSector || pOpponent->stats.bLife <= 0 || TileIsOutOfBounds(pOpponent->sGridNo))
- {
+	// if we're somehow looking for a guy who is inactive, at base, or already dead 
+	if (!pOpponent->bActive || !pOpponent->bInSector || pOpponent->stats.bLife <= 0 || TileIsOutOfBounds(pOpponent->sGridNo))
+	{
 /*
 #ifdef BETAVERSION
 	sprintf(tempstr,"ManLooksForMan: ERROR - %s looks for %s, who is inactive/at base/dead.	Caller %s",
@@ -1900,16 +1959,16 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 */
 
 #ifdef TESTOPPLIST
-	DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
+		DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
 			String("ERROR: ManLooksForMan - TARGET is inactive etc ID %d(%S)to ID %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID) );
 #endif
 
-	return(FALSE);
- }
+		return(FALSE);
+	}
 
 
- // if he's looking for a guy who is on the same team
- if (pSoldier->bTeam == pOpponent->bTeam)
+	// if he's looking for a guy who is on the same team
+	if (pSoldier->bTeam == pOpponent->bTeam)
 	{
 /*
 #ifdef BETAVERSION
@@ -1928,10 +1987,11 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 			String("ERROR: ManLooksForMan - SAME TEAM ID %d(%S)to ID %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID) );
 #endif
 
-	return(FALSE);
+		return(FALSE);
 	}
 
-	if (pSoldier->stats.bLife < OKLIFE || pSoldier->flags.fMercAsleep == TRUE )
+	// Flugente: we already checked for OKLIFE above..
+	if ( pSoldier->flags.fMercAsleep )
 	{
 		return( FALSE );
 	}
@@ -1983,54 +2043,53 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 	}
 */
 
- pPersOL = &(pSoldier->aiData.bOppList[pOpponent->ubID]);
- pbPublOL = &(gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID]);
+	pPersOL = &(pSoldier->aiData.bOppList[pOpponent->ubID]);
+	pbPublOL = &(gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID]);
 
-
- // if soldier is known about (SEEN or HEARD within last few turns)
- if (*pPersOL || *pbPublOL)
+	// if soldier is known about (SEEN or HEARD within last few turns)
+	if (*pPersOL || *pbPublOL)
 	{
-	bAware = TRUE;
+		bAware = TRUE;
 
-   // then we look for him full viewing distance in EVERY direction
+		// then we look for him full viewing distance in EVERY direction
 
-   //ADB the comment above says EVERY direction but the code used to be:
-   //sDistVisible = DistanceVisible(pSoldier, (SoldierHasLimitedVision(pSoldier) ? pSoldier->bDesiredDirection : DIRECTION_IRRELEVANT), 0, pOpponent->sGridNo, pOpponent->bLevel, pOpponent );
-   //if the code below says CALC_FROM_ALL_DIRS, then the opponent will NOT be greyed out if a merc sees him and a second merc turns away from him
-   //calcing from the wanted dir will make the opponent be greyed out, which I think is the intended effect
-   sDistVisible = pSoldier->GetMaxDistanceVisible( pOpponent->sGridNo, pOpponent->pathing.bLevel, CALC_FROM_WANTED_DIR );
-	 //if (pSoldier->ubID == 0)
+		//ADB the comment above says EVERY direction but the code used to be:
+		//sDistVisible = DistanceVisible(pSoldier, (SoldierHasLimitedVision(pSoldier) ? pSoldier->bDesiredDirection : DIRECTION_IRRELEVANT), 0, pOpponent->sGridNo, pOpponent->bLevel, pOpponent );
+		//if the code below says CALC_FROM_ALL_DIRS, then the opponent will NOT be greyed out if a merc sees him and a second merc turns away from him
+		//calcing from the wanted dir will make the opponent be greyed out, which I think is the intended effect
+		sDistVisible = pSoldier->GetMaxDistanceVisible( pOpponent->sGridNo, pOpponent->pathing.bLevel, CALC_FROM_WANTED_DIR );
+		//if (pSoldier->ubID == 0)
 		//sprintf(gDebugStr,"ALREADY KNOW: ME %d him %d val %d",pSoldier->ubID,pOpponent->ubID,pSoldier->bOppList[pOpponent->ubID]);
-  }
- else   // soldier is not currently known about
-  {
-   // distance we "see" then depends on the direction he is located from us
-   bDir = atan8(pSoldier->sX,pSoldier->sY,pOpponent->sX,pOpponent->sY);
-   // BIG NOTE: must use desdir instead of direction, since in a projected
-   // situation, the direction may still be changing if it's one of the first
-   // few animation steps when this guy's turn to do his stepped look comes up
-   sDistVisible = DistanceVisible(pSoldier,pSoldier->pathing.bDesiredDirection,bDir, pOpponent->sGridNo, pOpponent->pathing.bLevel );
-	 //if (pSoldier->ubID == 0)
-		 //sprintf(gDebugStr,"dist visible %d: my dir %d to him %d",sDistVisible,pSoldier->bDesiredDirection,bDir);
-  }
+	}
+	else   // soldier is not currently known about
+	{
+		// distance we "see" then depends on the direction he is located from us
+		bDir = atan8(pSoldier->sX,pSoldier->sY,pOpponent->sX,pOpponent->sY);
+		// BIG NOTE: must use desdir instead of direction, since in a projected
+		// situation, the direction may still be changing if it's one of the first
+		// few animation steps when this guy's turn to do his stepped look comes up
+		sDistVisible = DistanceVisible(pSoldier,pSoldier->pathing.bDesiredDirection,bDir, pOpponent->sGridNo, pOpponent->pathing.bLevel );
+		//if (pSoldier->ubID == 0)
+		//sprintf(gDebugStr,"dist visible %d: my dir %d to him %d",sDistVisible,pSoldier->bDesiredDirection,bDir);
+	}
 
- // calculate how many spaces away soldier is (using Pythagoras' theorem)
- sDistAway = PythSpacesAway(pSoldier->sGridNo,pOpponent->sGridNo);
+	// calculate how many spaces away soldier is (using Pythagoras' theorem)
+	sDistAway = PythSpacesAway(pSoldier->sGridNo,pOpponent->sGridNo);
 
 #ifdef TESTOPPLIST
 	DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3, String( "MANLOOKSFORMAN: ID %d(%S) to ID %d: sDistAway %d sDistVisible %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID,sDistAway,sDistVisible) );
 #endif
 
- // if we see close enough to see the soldier
- if (sDistAway <= sDistVisible)
-  {
-   // and we can trace a line of sight to his x,y coordinates
-   // must use the REAL opplist value here since we may or may not know of him
-   if (SoldierToSoldierLineOfSightTest(pSoldier,pOpponent,bAware,sDistVisible))
-    {
+	// if we see close enough to see the soldier
+	if (sDistAway <= sDistVisible)
+	{
+		// and we can trace a line of sight to his x,y coordinates
+		// must use the REAL opplist value here since we may or may not know of him
+		if (SoldierToSoldierLineOfSightTest(pSoldier,pOpponent,bAware,sDistVisible))
+		{
 			ManSeesMan(pSoldier,pOpponent,pOpponent->sGridNo,pOpponent->pathing.bLevel,MANLOOKSFORMAN,ubCaller);
 			bSuccess = TRUE;
-	}
+		}
 #ifdef TESTOPPLIST
 	else
 			DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3, String("FAILED LINEOFSIGHT: ID %d (%S)to ID %d Personally %d, public %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID,*pPersOL,*pbPublOL) );
@@ -2044,8 +2103,7 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 	 // (do this even if we don't have LOS, to close doors that *BREAK* LOS)
 	 RevealDoorsAlongLOS();
 */
-
- }
+	}
 
 
 
@@ -2060,36 +2118,28 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 #endif
 */
 
- // if soldier seen personally LAST time could not be seen THIS time
- if (!bSuccess && (*pPersOL == SEEN_CURRENTLY))
- {
-		HandleManNoLongerSeen( pSoldier, pOpponent, pPersOL, pbPublOL );
- }
- else
- {
-	if (!bSuccess)
+	// if soldier seen personally LAST time could not be seen THIS time
+	if (!bSuccess && (*pPersOL == SEEN_CURRENTLY))
 	{
-#ifdef TESTOPPLIST
-		DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3, String("NO LONGER VISIBLE ID %d (%S)to ID %d Personally %d, public %d success: %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID,*pPersOL,*pbPublOL,bSuccess) );
-#endif
-
-
-		// we didn't see the opponent, but since we didn't last time, we should be
-		//if (*pbPublOL)
-			//pOpponent->bVisible = TRUE;
+		HandleManNoLongerSeen( pSoldier, pOpponent, pPersOL, pbPublOL );
 	}
 #ifdef TESTOPPLIST
 	else
-		DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3, String("COOL. STILL VISIBLE ID %d (%S)to ID %d Personally %d, public %d success: %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID,*pPersOL,*pbPublOL,bSuccess) );
+	{
+		if (!bSuccess)
+		{
+			DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3, String("NO LONGER VISIBLE ID %d (%S)to ID %d Personally %d, public %d success: %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID,*pPersOL,*pbPublOL,bSuccess) );
+
+			// we didn't see the opponent, but since we didn't last time, we should be
+			//if (*pbPublOL)
+				//pOpponent->bVisible = TRUE;
+		}
+		else
+			DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3, String("COOL. STILL VISIBLE ID %d (%S)to ID %d Personally %d, public %d success: %d",pSoldier->ubID,pSoldier->name,pOpponent->ubID,*pPersOL,*pbPublOL,bSuccess) );
+	}
 #endif
-
-
-
-}
-
-
-
- return(bSuccess);
+	
+	return(bSuccess);
 }
 
 
@@ -2104,62 +2154,23 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"ManSeesMan");
 
 	if (pSoldier->ubID >= TOTAL_SOLDIERS)
-	{
-		/*
-		#ifdef BETAVERSION
-		NumMessage("ManSeesMan: ERROR - ptr->guynum = ",ptr->guynum);
-		#endif
-		*/
 		return;
-	}
-
 	if (pOpponent->ubID >= TOTAL_SOLDIERS)
-	{
-		/*
-		#ifdef BETAVERSION
-		NumMessage("ManSeesMan: ERROR - oppPtr->guynum = ",oppPtr->guynum);
-		#endif
-		*/
 		return;
-	}
-
 	// if we're somehow looking while inactive, at base, dying or already dead
 	if (!pSoldier->bActive || !pSoldier->bInSector || (pSoldier->stats.bLife < OKLIFE))
-	{
-		/*
-		#ifdef BETAVERSION
-		sprintf(tempstr,"ManSeesMan: ERROR - %s is SEEING ManSeesMan while inactive/at base/dead/dying",ExtMen[ptr->guynum].name);
-		PopMessage(tempstr);
-		#endif
-		*/
 		return;
-	}
-
 	// if we're somehow seeing a guy who is inactive, at base, or already dead
 	if (!pOpponent->bActive || !pOpponent->bInSector || pOpponent->stats.bLife <= 0)
-	{
-		/*
-		#ifdef BETAVERSION
-		sprintf(tempstr,"ManSeesMan: ERROR - %s sees %s, ManSeesMan, who is inactive/at base/dead",ExtMen[ptr->guynum].name,ExtMen[oppPtr->guynum].name);
-		PopMessage(tempstr);
-		#endif
-		*/
 		return;
-	}
-
-
 	// if we're somehow seeing a guy who is on the same team
 	if (pSoldier->bTeam == pOpponent->bTeam)
-	{
-		/*
-		#ifdef BETAVERSION
-		sprintf(tempstr,"ManSeesMan: ERROR - on SAME TEAM.  ptr->guynum = %d, oppPtr->guynum = %d",
-		ptr->guynum,oppPtr->guynum);
-		PopMessage(tempstr);
-		#endif
-		*/
 		return;
-	}
+	// Flugente: if the other guy is in med or deep water and wearing scua gear, then we cannot see him as he is submerged
+	if ( pOpponent->UsesScubaGear() )
+		return;
+	// Flugente: update our sight concerning this guy, otherwise we could get way with open attacks because this does not get updated
+	pSoldier->RecognizeAsCombatant(pOpponent->ubID);
 
 	// if we're seeing a guy we didn't see on our last chance to look for him
 	if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY)
@@ -2194,6 +2205,9 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 						switch( pSoldier->ubProfile )
 						{
 						case CARMEN:
+#ifdef JA2UB
+// no UB 
+#else
 							if (pOpponent->ubProfile == SLAY ) // 64
 							{
 								// Carmen goes to war (against Slay)
@@ -2209,17 +2223,23 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 								EnterCombatMode( pSoldier->bTeam );
 								}
 								*/
+
 							}
+#endif								
+
+							
 							break;
 						case ELDIN:
 							if ( pSoldier->aiData.bNeutral )
 							{
-								UINT8 ubRoom = 0;
+								//DBrot: More Rooms
+								//UINT8 ubRoom = 0;
+								UINT16 usRoom = 0;
 								// if player is in behind the ropes of the museum display
 								// or if alarm has gone off (status red)
-								InARoom( pOpponent->sGridNo, &ubRoom );
+								InARoom( pOpponent->sGridNo, &usRoom );
 
-								if ( ( CheckFact( FACT_MUSEUM_OPEN, 0 ) == FALSE && ubRoom >= 22 && ubRoom <= 41 ) || CheckFact( FACT_MUSEUM_ALARM_WENT_OFF, 0 ) || ( ubRoom == 39 || ubRoom == 40 ) || ( FindObj( pOpponent, CHALICE ) != NO_SLOT ) )
+								if ( ( CheckFact( FACT_MUSEUM_OPEN, 0 ) == FALSE && usRoom >= 22 && usRoom <= 41 ) || CheckFact( FACT_MUSEUM_ALARM_WENT_OFF, 0 ) || ( usRoom == 39 || usRoom == 40 ) || ( FindObj( pOpponent, CHALICE ) != NO_SLOT ) )
 								{
 									SetFactTrue( FACT_MUSEUM_ALARM_WENT_OFF );
 									AddToShouldBecomeHostileOrSayQuoteList( pSoldier->ubID );	
@@ -2264,18 +2284,10 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							}
 							break;
 							//case QUEEN:
-						// VENEGANCE
-						case ARULCAN_BUYER:
-							if ( pOpponent->ubProfile == CONMAN )
-							{
-								if ( CheckFact( FACT_CONMAN_ESCORTED_TO_BUYER, CONMAN ) == TRUE )
-								{
-									// she was rescued! yay!
-									TriggerNPCRecord( ARULCAN_BUYER, 12 );
-								}
-							}
-							break;
-						// VENGEANCE
+#ifdef JA2UB
+//Ja25
+//No Queen,Joe, or elliot
+#else
 						case JOE:
 						case ELLIOT:
 							if ( ! ( gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags2 & PROFILE_MISC_FLAG2_SAID_FIRSTSEEN_QUOTE ) )
@@ -2284,6 +2296,18 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 								{
 									TriggerNPCRecord( pSoldier->ubProfile, 4 );
 									gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags2 |= PROFILE_MISC_FLAG2_SAID_FIRSTSEEN_QUOTE;
+								}
+							}
+							break;
+#endif
+						// anv: VR quest stuff
+						case ARULCAN_BUYER:
+							if ( pOpponent->ubProfile == CONMAN )
+							{
+								if ( CheckFact( FACT_CONMAN_ESCORTED_TO_BUYER, CONMAN ) == TRUE )
+								{
+									// she was rescued! yay!
+									TriggerNPCRecord( ARULCAN_BUYER, 12 );
 								}
 							}
 							break;
@@ -2296,15 +2320,6 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 				{
 					switch( pSoldier->ubProfile )
 					{
-						/*
-						case MIKE:
-						if ( gfPlayerTeamSawMike && !( gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags2 & PROFILE_MISC_FLAG2_SAID_FIRSTSEEN_QUOTE ) )
-						{
-						InitiateConversation( pSoldier, pOpponent, NPC_INITIAL_QUOTE, 0 );
-						gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags2 |= PROFILE_MISC_FLAG2_SAID_FIRSTSEEN_QUOTE;
-						}
-						break;
-						*/
 					case IGGY:
 						if ( ! ( gMercProfiles[ pSoldier->ubProfile ].ubMiscFlags2 & PROFILE_MISC_FLAG2_SAID_FIRSTSEEN_QUOTE ) )
 						{
@@ -2313,6 +2328,42 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							gbPublicOpplist[ gbPlayerNum ][ pSoldier->ubID ] = HEARD_THIS_TURN;
 						}
 						break;
+					}
+				}
+			}
+			// Flugente: for assassins without profiles
+			else if ( pSoldier->IsAssassin() && pSoldier->bTeam == CIV_TEAM )
+			{
+				// if we are an assassin and still neutral and undercover, approach target and then become hostile
+				if ( pSoldier->aiData.bNeutral && pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+				{
+					// only if this guy isn't disguised himself!
+					if ( (pOpponent->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) == 0)
+					{
+						if ( pSoldier->ubCivilianGroup != NON_CIV_GROUP && gTacticalStatus.fCivGroupHostile[ pSoldier->ubCivilianGroup ] >= CIV_GROUP_WILL_BECOME_HOSTILE )
+						{
+							// measure distance to our opponent, only go hostile if he is close enough
+							if ( PythSpacesAway( pSoldier->sGridNo, pOpponent->sGridNo ) <= NPC_TALK_RADIUS * 2 )
+							{
+								AddToShouldBecomeHostileOrSayQuoteList( pSoldier->ubID );
+								fNotAddedToList = FALSE;
+							}
+						}
+					}
+				}
+
+				if ( fNotAddedToList )
+				{
+					// change orders, reset action!
+					if ( pSoldier->aiData.bOrders != SEEKENEMY )
+					{
+						pSoldier->aiData.bOrders = SEEKENEMY;
+						if ( pSoldier->aiData.bOppCnt == 0 )
+						{
+							// didn't see anyone before!
+							CancelAIAction( pSoldier, TRUE );
+							SetNewSituation( pSoldier );
+						}
 					}
 				}
 			}
@@ -2340,11 +2391,13 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 						}
 						else
 						{
-							UINT8 ubRoom;
+							//DBrot: More Rooms
+							//UINT8 ubRoom;
+							UINT16 usRoom;
 
 							// JA2 Gold: only go hostile if see player IN guard room
 							//if ( InARoom( pOpponent->sGridNo, &ubRoom ) && IN_BROTHEL( ubRoom ) && ( gMercProfiles[ MADAME ].bNPCData == 0 || IN_BROTHEL_GUARD_ROOM( ubRoom ) ) )
-							if ( InARoom( pOpponent->sGridNo, &ubRoom ) && IN_BROTHEL_GUARD_ROOM( ubRoom ) )
+							if ( InARoom( pOpponent->sGridNo, &usRoom ) && IN_BROTHEL_GUARD_ROOM( usRoom ) )
 							{
 								// unauthorized!
 								MakeCivHostile( pSoldier, 2 );
@@ -2355,7 +2408,7 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							}
 						}
 					}
-					// VENGEANCE - Tracona and CIA operatives go bonkers when they notice Conman
+					// anv: VR - Tracona and CIA operatives go bonkers when they notice Conman
 					if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP || pSoldier->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
 					{
 						// if Conman is in the sector and escorted, set fact that the escape has
@@ -2369,7 +2422,6 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							}
 						}
 					}
-					// /VENGANCE
 					else if ( pSoldier->ubCivilianGroup == HICKS_CIV_GROUP && CheckFact( FACT_HICKS_MARRIED_PLAYER_MERC, 0 ) == FALSE )
 					{
 						UINT32	uiTime;
@@ -2392,7 +2444,7 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							}
 						}
 					}
-					// VENGEANCE - Tracona and CIA operatives go bonkers when they notice Conman
+					// anv: VR - Tracona and CIA operatives go bonkers when they notice Conman
 					else if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP )
 					{
 						// check to see if we are looking at Conman
@@ -2411,7 +2463,16 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 		}
 		else if ( pSoldier->bTeam == gbPlayerNum )
 		{
-			if ( (pOpponent->ubProfile == MIKE) && ( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC ) && !(pSoldier->usQuoteSaidExtFlags & SOLDIER_QUOTE_SAID_EXT_MIKE) )
+#ifdef JA2UB		
+		  if( (pOpponent->ubProfile == MORRIS_UB ) &&
+					( GetNumSoldierIdAndProfileIdOfTheNewMercsOnPlayerTeam( NULL, NULL ) != 0 ) && 
+					!( pSoldier->usQuoteSaidExtFlags & SOLDIER_QUOTE_SAID_EXT_MORRIS ) && 
+					!( gMercProfiles[ MORRIS_UB ].ubMiscFlags2 & PROFILE_MISC_FLAG2_SAID_FIRSTSEEN_QUOTE ) )
+		  {
+				gfMorrisShouldSayHi = TRUE;
+		  }
+#else		  
+			if ( (pOpponent->ubProfile == MIKE) && ( pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__AIM_MERC || pSoldier->ubWhatKindOfMercAmI == MERC_TYPE__MERC ) && !(pSoldier->usQuoteSaidExtFlags & SOLDIER_QUOTE_SAID_EXT_MIKE) )
 			{
 				if (gfMikeShouldSayHi == FALSE)
 				{
@@ -2420,6 +2481,7 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 				TacticalCharacterDialogue( pSoldier, QUOTE_AIM_SEEN_MIKE );
 				pSoldier->usQuoteSaidExtFlags |= SOLDIER_QUOTE_SAID_EXT_MIKE;
 			}
+#endif
 			else if ( pOpponent->ubProfile == JOEY && gfPlayerTeamSawJoey == FALSE )
 			{
 				TacticalCharacterDialogue( pSoldier, QUOTE_SPOTTED_JOEY );
@@ -2478,15 +2540,48 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 			*/
 		}
 
-		// if both of us are not neutral, AND
-		// if this man is actually a true opponent (we're not on the same side)
-		if (!CONSIDERED_NEUTRAL( pOpponent, pSoldier ) && !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide))
+		// Flugente: reworked this to account for covert ops and assassin mechanisms
+		// if we are not neutral against this guy, we are truly opponents (we're not on the same side) and recognize him as an opponent...
+		BOOLEAN fAddAsOpponent = FALSE;
+		if ( !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide) && pSoldier->RecognizeAsCombatant(pOpponent->ubID) )
+		{
+			 // ... check wether he is not neutral against us (account for the fact that we might be covert!)
+			// if we are an NPC assassin
+			if ( pSoldier->bSoldierFlagMask & SOLDIER_ASSASSIN && pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			{
+				// check wether our opponent would see us as an opponent if we weren't covert
+				if ( !( (pSoldier->aiData.bNeutral || pSoldier->bSoldierFlagMask & SOLDIER_POW) && ( pOpponent->bTeam != CREATURE_TEAM || pOpponent->flags.uiStatusFlags & SOLDIER_VEHICLE ) ) )
+					fAddAsOpponent = TRUE;
+			}
+			else
+			{
+				// simply check wether this guy sees us as an opponent too
+				if ( !CONSIDERED_NEUTRAL( pOpponent, pSoldier ) )
+					fAddAsOpponent = TRUE;
+			}
+		}
+
+
+		if ( fAddAsOpponent )
 		{
 			AddOneOpponent(pSoldier);
 
 #ifdef TESTOPPLIST
 			DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3, String( "ManSeesMan: ID %d(%S) to ID %d NEW TO ME",pSoldier->ubID,pSoldier->name,pOpponent->ubID) );	
 #endif
+			// SANDRO - if this is an enemy guy, who was unaware of us till now, and the combat didn't started yet, throw "taunt" and indicator we have been seen
+			if ( pSoldier->aiData.bOppList[pOpponent->ubID] <= NOT_HEARD_OR_SEEN &&	pSoldier->aiData.bAlertStatus != STATUS_RED && pSoldier->aiData.bAlertStatus != STATUS_BLACK )
+			{
+				PossiblyStartEnemyTaunt( pSoldier, TAUNT_NOTICED_UNSEEN, pOpponent );
+			}
+			// anv: we're already in fight, but we still can say hi to new enemy
+			else if ( pSoldier->aiData.bOppList[pOpponent->ubID] <= NOT_HEARD_OR_SEEN )
+			{
+				PossiblyStartEnemyTaunt( pSoldier, TAUNT_SAY_HI, pOpponent );
+			}
+
+			ShowRadioLocator( pSoldier->ubID, 1 );
+
 
 			// if we also haven't seen him earlier this turn
 			if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN)
@@ -2507,8 +2602,6 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 						SetFactTrue( FACT_FIRST_BATTLE_BEING_FOUGHT );
 					}
 				}
-
-
 			}
 			else
 			{
@@ -2524,6 +2617,10 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
          (gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID] != sOppGridNo))
 			{
 				SetNewSituation( pSoldier );  // force the looker to re-evaluate
+				// anv: simulate informing buddies about detected enemy's position
+				if(gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY)
+					PossiblyStartEnemyTaunt( pSoldier, TAUNT_INFORM_ABOUT, pOpponent );
+
 			}
 			else
 			{
@@ -2600,6 +2697,13 @@ else
 	if (PTR_OURTEAM && (pOpponent->bVisible <= 0))
 	SEE_MENT = TRUE;
 }
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+	//haydent
+	if((is_networked &&  pSoldier->bSide == 0 && pSoldier->bTeam != OUR_TEAM) && (pOpponent->bVisible <= 0))
+		SEE_MENT = TRUE;
+#endif
+
 //ddd}
 
 /*comm by ddd
@@ -2702,7 +2806,10 @@ if(SEE_MENT)
 		// ATE: Check stance, change to threatending
 		ReevaluateEnemyStance( pSoldier, pSoldier->usAnimState );
 	}
-
+    AI::tactical::AIInputData ai_input(AI::tactical::AIInputData::Visual(), pOpponent, sOppGridNo, bOppLevel, ubCaller, ubCaller2);
+    AI::tactical::PlanInputData plan_input((gTacticalStatus.uiFlags & TURNBASED)!=0, gTacticalStatus);
+    AI::tactical::PlanFactoryLibrary* plan_lib(AI::tactical::PlanFactoryLibrary::instance());
+    plan_lib->update_plan(pSoldier->bAIIndex, pSoldier, ai_input);
 }
 
 
@@ -2778,18 +2885,31 @@ void OtherTeamsLookForMan(SOLDIERTYPE *pOpponent)
 		pOpponent->bVisible = 0;
 	}
 */	
-//ddd{
-if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
-{	
-	if ((pOpponent->bTeam != gbPlayerNum && pOpponent->bTeam != MILITIA_TEAM) && (pOpponent->bVisible >= 0 && pOpponent->bVisible < 2) && pOpponent->stats.bLife)
-		pOpponent->bVisible = 0;
+
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+//haydent
+if(is_networked &&  pOpponent->bSide == 0)
+{
+	//stay visible
 }
 else
+#endif
 {
-if ((pOpponent->bTeam != gbPlayerNum) && (pOpponent->bVisible >= 0 && pOpponent->bVisible < 2) && pOpponent->stats.bLife)
-pOpponent->bVisible = 0;
-}
-//ddd}
+
+	if(gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
+	{	
+		if ((pOpponent->bTeam != gbPlayerNum && pOpponent->bTeam != MILITIA_TEAM) && (pOpponent->bVisible >= 0 && pOpponent->bVisible < 2) && pOpponent->stats.bLife)
+			pOpponent->bVisible = 0;
+	}
+	else
+	{
+	if ((pOpponent->bTeam != gbPlayerNum) && (pOpponent->bVisible >= 0 && pOpponent->bVisible < 2) && pOpponent->stats.bLife)
+		pOpponent->bVisible = 0;
+	}
+
+}//haydent
+
 #ifdef TESTOPPLIST
 	DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
 			String("OTHERTEAMSLOOKFORMAN ID %d(%S) team %d side %d",pOpponent->ubID,pOpponent->name,pOpponent->bTeam,pOpponent->bSide ));
@@ -2954,9 +3074,12 @@ IAN COMMENTED THIS OUT MAY 1997 - DO WE NEED THIS?
 		if (pOpponent)
 		{
 			// check to see if OPPONENT considers US neutral
-			if ( (pOpponent->aiData.bOppList[ubTarget] == SEEN_CURRENTLY) && !pOpponent->aiData.bNeutral && !CONSIDERED_NEUTRAL( pOpponent, pSoldier ) && (pSoldier->bSide != pOpponent->bSide) )
+			if ( (pOpponent->aiData.bOppList[ubTarget] == SEEN_CURRENTLY) && !pOpponent->aiData.bNeutral && (pSoldier->bSide != pOpponent->bSide) )
 			{
-				RemoveOneOpponent(pOpponent);
+				// Flugente: we consider enemies to be neutral if they are prisoners of war (otherwise the AI would kill prisoners). Bu as we want to remove them, we have to account for that
+				// we also move RecognizeAsCombatant to be the last condition checked, because it is the most computationally expensive one
+				if ( ( !CONSIDERED_NEUTRAL( pOpponent, pSoldier ) || pSoldier->bSoldierFlagMask & SOLDIER_POW ) && pOpponent->RecognizeAsCombatant(pSoldier->ubID) )
+					RemoveOneOpponent(pOpponent);
 			}
 			UpdatePersonal(pOpponent,ubTarget,NOT_HEARD_OR_SEEN,NOWHERE,0);
 			gbSeenOpponents[ubLoop][ubTarget] = FALSE;
@@ -3027,13 +3150,13 @@ void UpdatePublic(UINT8 ubTeam, UINT8 ubID, INT8 bNewOpplist, INT32 sGridNo, INT
  // if team has been told about a guy the team was completely unaware of
  if (ubTeamMustLookAgain)
 	{
-	// then everyone on team who's not aware of guynum must look for him
-	cnt = gTacticalStatus.Team[ubTeam].bFirstID;
+		// then everyone on team who's not aware of guynum must look for him
+		cnt = gTacticalStatus.Team[ubTeam].bFirstID;
 
-	for (pSoldier = MercPtrs[cnt]; cnt <= gTacticalStatus.Team[ubTeam].bLastID; cnt++,pSoldier++)
-	{
-	 // if this soldier is active, in this sector, and well enough to look
-	 if (pSoldier->bActive && pSoldier->bInSector && (pSoldier->stats.bLife >= OKLIFE) && !( pSoldier->flags.uiStatusFlags & SOLDIER_GASSED ) )
+		for (pSoldier = MercPtrs[cnt]; cnt <= gTacticalStatus.Team[ubTeam].bLastID; ++cnt, pSoldier++)
+		{
+			// if this soldier is active, in this sector, and well enough to look
+			if (pSoldier->bActive && pSoldier->bInSector && (pSoldier->stats.bLife >= OKLIFE) && !( pSoldier->flags.uiStatusFlags & SOLDIER_GASSED ) )
 	 {
 		// if soldier isn't aware of guynum, give him another chance to see
 		if (pSoldier->aiData.bOppList[ubID] == NOT_HEARD_OR_SEEN)
@@ -3062,24 +3185,19 @@ void UpdatePersonal(SOLDIERTYPE *pSoldier, UINT8 ubID, INT8 bNewOpplist, INT32 s
 {
 	/*
 #ifdef RECORDOPPLIST
- fprintf(OpplistFile,"UpdatePersonal - for %d about %d to %d (was %d) at g%d\n",
-		ptr->guynum,guynum,newOpplist,ptr->opplist[guynum],gridno);
+	fprintf(OpplistFile,"UpdatePersonal - for %d about %d to %d (was %d) at g%d\n",	ptr->guynum,guynum,newOpplist,ptr->opplist[guynum],gridno);
 #endif
-
 	*/
-
-
-
- // if new opplist is more up-to-date, or we are just wiping it for some reason
- if ((gubKnowledgeValue[pSoldier->aiData.bOppList[ubID] - OLDEST_HEARD_VALUE][bNewOpplist - OLDEST_HEARD_VALUE] > 0) ||
-	 (bNewOpplist == NOT_HEARD_OR_SEEN))
+	
+	// if new opplist is more up-to-date, or we are just wiping it for some reason
+	if ((gubKnowledgeValue[pSoldier->aiData.bOppList[ubID] - OLDEST_HEARD_VALUE][bNewOpplist - OLDEST_HEARD_VALUE] > 0) || (bNewOpplist == NOT_HEARD_OR_SEEN))
 	{
-	pSoldier->aiData.bOppList[ubID] = bNewOpplist;
+		pSoldier->aiData.bOppList[ubID] = bNewOpplist;
 	}
 
- // always update the gridno, no matter what
- gsLastKnownOppLoc[pSoldier->ubID][ubID] = sGridNo;
- gbLastKnownOppLevel[pSoldier->ubID][ubID] = bLevel;
+	// always update the gridno, no matter what
+	gsLastKnownOppLoc[pSoldier->ubID][ubID] = sGridNo;
+	gbLastKnownOppLevel[pSoldier->ubID][ubID] = bLevel;
 }
 
 
@@ -3276,8 +3394,17 @@ void BetweenTurnsVisibilityAdjustments(void)
 	{
 		if (pSoldier->bActive && pSoldier->bInSector && pSoldier->stats.bLife)
 		{
-			//ddd{
 			BOOLEAN SEE_MENT = FALSE;
+
+#ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
+		if(is_networked &&  pSoldier->bSide == 0)//haydent
+		{
+			//stay visible
+		}
+		else
+#endif
+		{
+			
 			if (gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
 			{if (!PTR_OURTEAM && pSoldier->bTeam != MILITIA_TEAM)
 			SEE_MENT = TRUE;
@@ -3285,7 +3412,9 @@ void BetweenTurnsVisibilityAdjustments(void)
 			else
 			{ if (!PTR_OURTEAM) SEE_MENT = TRUE;
 			}
-			//ddd}
+
+		}//haydent
+			
 /*comm by ddd
 #ifdef WE_SEE_WHAT_MILITIA_SEES_AND_VICE_VERSA
 			if (!PTR_OURTEAM && pSoldier->bTeam != MILITIA_TEAM)
@@ -3293,6 +3422,7 @@ void BetweenTurnsVisibilityAdjustments(void)
 			if (!PTR_OURTEAM)
 #endif
 				*/
+
 			if(SEE_MENT)
 			{
 				// check if anyone on our team currently sees him (exclude NOBODY)
@@ -3315,12 +3445,14 @@ void SaySeenQuote( SOLDIERTYPE *pSoldier, BOOLEAN fSeenCreature, BOOLEAN fVirgin
 	UINT8				ubNumEnemies = 0;
 	UINT8				ubNumAllies = 0;
 	UINT32			cnt;
-
+#ifdef JA2UB
+//Ja25 No meanwhiles
+#else
 	if ( AreInMeanwhile( ) )
 	{
 		return;
 	}
-
+#endif
 	// Check out for our under large fire quote
 	if ( !(pSoldier->usQuoteSaidFlags & SOLDIER_QUOTE_SAID_IN_SHIT ) )
 	{
@@ -3361,7 +3493,7 @@ void SaySeenQuote( SOLDIERTYPE *pSoldier, BOOLEAN fSeenCreature, BOOLEAN fVirgin
 		{
 			// Say quote!
 			TacticalCharacterDialogue( pSoldier, QUOTE_IN_TROUBLE_SLASH_IN_BATTLE );
-
+			//pSoldier->ubLastEnemyAttackingProvokingQuote = 
 			pSoldier->usQuoteSaidFlags |= SOLDIER_QUOTE_SAID_IN_SHIT;
 
 			return;
@@ -3440,20 +3572,25 @@ void SaySeenQuote( SOLDIERTYPE *pSoldier, BOOLEAN fSeenCreature, BOOLEAN fVirgin
 		}
 		else
 		{
+			// Flugente: no quotes on seeing enemy when covert
+			if ( (pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) ) == 0 )
+			{
 #ifdef ENGLISH
-			if ( Random( 100 ) < 30 )
-			{
-				pSoldier->DoMercBattleSound( BATTLE_SOUND_ENEMY );
-			}
-			else
-			{
-				TacticalCharacterDialogue( pSoldier, QUOTE_SEE_ENEMY );
-			}
+				if ( Random( 100 ) < 30 )
+				{
+					pSoldier->DoMercBattleSound( BATTLE_SOUND_ENEMY );
+				}
+				else
+				{
+					TacticalCharacterDialogue( pSoldier, QUOTE_SEE_ENEMY );
+					//pSoldier->ubLastEnemyDetectedProvokingQuote = pSoldier->aiData.ubCaller;
+				}
 #else
-	//ddd TacticalCharacterDialogue( pSoldier, QUOTE_SEE_ENEMY );
-		if(Chance(gGameExternalOptions.iChanceSayAnnoyingPhrase) )
-			TacticalCharacterDialogue( pSoldier, QUOTE_SEE_ENEMY );
+				//ddd TacticalCharacterDialogue( pSoldier, QUOTE_SEE_ENEMY );
+				if(Chance(gGameExternalOptions.iChanceSayAnnoyingPhrase) )
+					TacticalCharacterDialogue( pSoldier, QUOTE_SEE_ENEMY );
 #endif
+			}
 		}
 	}
 }
@@ -3481,31 +3618,35 @@ void OurTeamSeesSomeone( SOLDIERTYPE * pSoldier, INT8 bNumReRevealed, INT8 bNumN
 		// How will this feel?
 		if ( pSoldier->bTeam == gbPlayerNum )
 		{
-			// STOP IF WE WERE MOVING....
-			/// Speek up!
-			if ( bNumReRevealed > 0 && bNumNewEnemies == 0 )
+			// Flugente: disguised mercs do not alert us if they see an enemy, as otherwise one has to continously give them new orders
+			if ( !(pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) )
 			{
-				pSoldier->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+				// STOP IF WE WERE MOVING....
+				/// Speek up!
+				if ( bNumReRevealed > 0 && bNumNewEnemies == 0 )
+				{
+					pSoldier->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+				}
+				else
+				{
+					SaySeenQuote( pSoldier, gfPlayerTeamSawCreatures, FALSE, gfPlayerTeamSawJoey );
+				}
+
+				pSoldier->HaultSoldierFromSighting( TRUE );
+
+				if ( gTacticalStatus.fEnemySightingOnTheirTurn )
+				{
+					// Locate to our guy, then slide to enemy
+					LocateSoldier( pSoldier->ubID, SETLOCATOR );
+
+					// Now slide to other guy....
+					SlideTo( NOWHERE, gTacticalStatus.ubEnemySightingOnTheirTurnEnemyID, NOBODY ,SETLOCATOR);
+
+				}
+
+				// Unset User's turn UI
+				UnSetUIBusy( pSoldier->ubID );
 			}
-			else
-			{
-				SaySeenQuote( pSoldier, gfPlayerTeamSawCreatures, FALSE, gfPlayerTeamSawJoey );
-			}
-
-			pSoldier->HaultSoldierFromSighting( TRUE );
-
-			if ( gTacticalStatus.fEnemySightingOnTheirTurn )
-			{
-				// Locate to our guy, then slide to enemy
-				LocateSoldier( pSoldier->ubID, SETLOCATOR );
-
-				// Now slide to other guy....
-				SlideTo( NOWHERE, gTacticalStatus.ubEnemySightingOnTheirTurnEnemyID, NOBODY ,SETLOCATOR);
-
-			}
-
-			// Unset User's turn UI
-			UnSetUIBusy( pSoldier->ubID );
 		}
 	}
 
@@ -3516,6 +3657,12 @@ void OurTeamSeesSomeone( SOLDIERTYPE * pSoldier, INT8 bNumReRevealed, INT8 bNumN
 		// If we are NOT in any music mode...
 		if ( GetMusicMode() == MUSIC_NONE )
 		{
+			#ifdef NEWMUSIC
+			GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalBattle[gbWorldSectorZ];
+			if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalBattle[gbWorldSectorZ] != -1 )
+				SetMusicModeID( MUSIC_TACTICAL_BATTLE, MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalBattle[gbWorldSectorZ] );
+			else
+			#endif
 			SetMusicMode( MUSIC_TACTICAL_BATTLE );
 		}
 	}
@@ -3573,12 +3720,12 @@ DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
  // hang a pointer to the start of this guy's opponents in the public opplist
  pbPublOL = &(gbPublicOpplist[ubTeamToRadioTo][start]);
 
- pOpponent = MercPtrs[start];
+	pOpponent = MercPtrs[start];
 
- // loop through every one of this guy's opponents
- for (iLoop = start; iLoop < end; iLoop++,pOpponent++,pPersOL++,pbPublOL++)
+	// loop through every one of this guy's opponents
+	for (iLoop = start; iLoop < end; ++iLoop,pOpponent++,pPersOL++,pbPublOL++)
 	{
-	fContactSeen = FALSE;
+		fContactSeen = FALSE;
 
 #ifdef TESTOPPLIST
 	DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
@@ -3704,11 +3851,11 @@ DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
 
 				// if he has publicly not been seen now, or anytime during this turn
 				if ((*pbPublOL != SEEN_CURRENTLY) && (*pbPublOL != SEEN_THIS_TURN))
-					{
-					// chalk up another "revealed" enemy
-					revealedEnemies++;
-						fContactSeen = TRUE;
-					}
+						{
+							// chalk up another "revealed" enemy
+							++revealedEnemies;
+							fContactSeen = TRUE;
+						}
 					else
 					{
 						if ( MercPtrs[0]->stats.bLife < 10 )
@@ -3924,13 +4071,13 @@ void DebugSoldierPage1( )
 		SetFontShade(LARGEFONT1, FONT_SHADE_GREEN);
 		gprintf( 200, LINE_HEIGHT * ubLine, L"Agility:");
 		SetFontShade(LARGEFONT1, FONT_SHADE_NEUTRAL);
-		gprintf( 350, LINE_HEIGHT * ubLine, L"%d ( %d )", pSoldier->stats.bAgility, EffectiveAgility( pSoldier ) );
+		gprintf( 350, LINE_HEIGHT * ubLine, L"%d ( %d )", pSoldier->stats.bAgility, EffectiveAgility( pSoldier, FALSE ) );
 		ubLine++;
 
 		SetFontShade(LARGEFONT1, FONT_SHADE_GREEN);
 		gprintf( 200, LINE_HEIGHT * ubLine, L"Dexterity:");
 		SetFontShade(LARGEFONT1, FONT_SHADE_NEUTRAL);
-		gprintf( 350, LINE_HEIGHT * ubLine, L"%d( %d )", pSoldier->stats.bDexterity, EffectiveDexterity( pSoldier ) );
+		gprintf( 350, LINE_HEIGHT * ubLine, L"%d( %d )", pSoldier->stats.bDexterity, EffectiveDexterity( pSoldier, FALSE ) );
 		ubLine++;
 
 		SetFontShade(LARGEFONT1, FONT_SHADE_GREEN);
@@ -4221,7 +4368,10 @@ void DebugSoldierPage2( )
 		SetFontColors(COLOR1);
 		mprintf( 0, LINE_HEIGHT * ubLine, L"GRIDNO:");
 		SetFontColors(COLOR2);
-		mprintf( 150, LINE_HEIGHT * ubLine, L"%d", usMapPos );
+		//dnl ch85 060214
+		INT16 sX, sY;
+		ConvertGridNoToXY(usMapPos, &sX, &sY);
+		mprintf( 150, LINE_HEIGHT * ubLine, L"%d (%d,%d)", usMapPos, sX, sY );
 		ubLine++;
 
 		if ( gpWorldLevelData[ usMapPos ].uiFlags & MAPELEMENT_MOVEMENT_RESERVED )
@@ -4273,12 +4423,12 @@ void DebugSoldierPage2( )
 			ubLine++;
 		}
 
-		if (gubWorldRoomInfo[ usMapPos ] != NO_ROOM )
+		if (gusWorldRoomInfo[ usMapPos ] != NO_ROOM )
 		{
 			SetFontColors(COLOR2);
 			mprintf( 0, LINE_HEIGHT * ubLine, L"Room Number" );
 			SetFontColors(COLOR2);
-			mprintf( 150, LINE_HEIGHT * ubLine, L"%d", gubWorldRoomInfo[ usMapPos ] );
+			mprintf( 150, LINE_HEIGHT * ubLine, L"%d", gusWorldRoomInfo[ usMapPos ] );
 			ubLine++;
 		}
 
@@ -4719,6 +4869,11 @@ void DebugSoldierPage4( )
 			case SOLDIER_CLASS_REG_MILITIA:			gprintf( 320, LINE_HEIGHT * ubLine, L"(Reg Militia)" );		break;
 			case SOLDIER_CLASS_ELITE_MILITIA:		gprintf( 320, LINE_HEIGHT * ubLine, L"(Elite Militia)" );	break;
 			case SOLDIER_CLASS_MINER:						gprintf( 320, LINE_HEIGHT * ubLine, L"(Miner)" );					break;
+
+#ifdef ENABLE_ZOMBIES
+			case SOLDIER_CLASS_ZOMBIE:						gprintf( 320, LINE_HEIGHT * ubLine, L"(Zombie)" );					break;
+#endif
+
 			default:	break; //don't care (don't write anything)
 		}
 		ubLine++;
@@ -5178,9 +5333,9 @@ void DebugSoldierPage4( )
 
 UINT8 MovementNoise( SOLDIERTYPE *pSoldier )
 {
- INT32	iStealthSkill, iRoll;
- UINT8	ubMaxVolume, ubVolume, ubBandaged, ubEffLife;
- INT8		bInWater = FALSE;
+	INT32	iStealthSkill, iRoll;
+	UINT8	ubMaxVolume, ubVolume, ubBandaged, ubEffLife;
+	INT8		bInWater = FALSE;
 
 	if ( pSoldier->bTeam == ENEMY_TEAM )
 	{
@@ -5189,7 +5344,7 @@ UINT8 MovementNoise( SOLDIERTYPE *pSoldier )
 
 	// CHANGED BY SANDRO - LET'S MAKE THE STEALTH BASED ON AGILITY LIKE IT SHOULD BE
 	//iStealthSkill = 20 + 4 * EffectiveExpLevel( pSoldier ) + ((EffectiveDexterity( pSoldier ) * 4) / 10); // 24-100
-	iStealthSkill = 20 + 4 * EffectiveExpLevel( pSoldier ) + ((EffectiveAgility( pSoldier ) * 4) / 10); // 24-100
+	iStealthSkill = 20 + 4 * EffectiveExpLevel( pSoldier ) + ((EffectiveAgility( pSoldier, FALSE ) * 4) / 10); // 24-100
 
 	// big bonus for those "extra stealthy" mercs
 	if ( pSoldier->ubBodyType == BLOODCAT )
@@ -5206,8 +5361,9 @@ UINT8 MovementNoise( SOLDIERTYPE *pSoldier )
 		iStealthSkill += 25 * NUM_SKILL_TRAITS( pSoldier, STEALTHY_OT );
 	}
 
-	if ( GetWornStealth(pSoldier) > 0 )
-		iStealthSkill += GetWornStealth(pSoldier) / 2;
+	INT16 wornstealth = GetWornStealth(pSoldier);
+	if ( wornstealth > 0 )
+		iStealthSkill += wornstealth / 2;
 
 
  //NumMessage("Base Stealth = ",stealthSkill);
@@ -5351,19 +5507,18 @@ UINT8 DoorOpeningNoise( SOLDIERTYPE *pSoldier )
 	{
 		ubDoorNoise = DOOR_NOISE_VOLUME;
 	}
+
 	if ( MovementNoise( pSoldier ) )
 	{
 		// failed any stealth checks
 		return( ubDoorNoise );
 	}
-	else
-	{
-		// succeeded in being stealthy!
-		return( 0 );
-	}
+
+	// succeeded in being stealthy!
+	return( 0 );
 }
 
-void MakeNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType )
+void MakeNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType,  STR16 zNoiseMessage )
 {
 	EV_S_NOISE	SNoise;
 
@@ -5373,6 +5528,8 @@ void MakeNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType,
 	SNoise.ubTerrType = ubTerrType;
 	SNoise.ubVolume = ubVolume;
 	SNoise.ubNoiseType = ubNoiseType;
+	swprintf( SNoise.zNoiseMessage, L"%s", zNoiseMessage );
+	//SNoise.zNoiseMessage = zNoiseMessage;
 
 	if ( gTacticalStatus.ubAttackBusyCount )
 	{
@@ -5384,8 +5541,7 @@ void MakeNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType,
 		// AddGameEvent( S_NOISE, 0, &SNoise );
 
 		// now call directly
-		OurNoise( SNoise.ubNoiseMaker, SNoise.sGridNo, SNoise.bLevel, SNoise.ubTerrType, SNoise.ubVolume, SNoise.ubNoiseType );
-
+		OurNoise( SNoise.ubNoiseMaker, SNoise.sGridNo, SNoise.bLevel, SNoise.ubTerrType, SNoise.ubVolume, SNoise.ubNoiseType, SNoise.zNoiseMessage );
 	}
 
 /*
@@ -5459,15 +5615,11 @@ void MakeNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType,
 }
 
 
-void OurNoise( UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType )
+void OurNoise( UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume, UINT8 ubNoiseType, STR16 zNoiseMessage )
 {
-	SOLDIERTYPE *pSoldier;
-
-
 #ifdef BYPASSNOISE
 	return;
 #endif
-
 
 #ifdef BETAVERSION
 	tempstr = String("OurNoise: ubNoiseType = %s, ubNoiseMaker = %d, ubNoiseMode = %d, sGridNo = %d, ubVolume = %d",
@@ -5481,24 +5633,21 @@ void OurNoise( UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType,
 #endif
 
 	// see if anyone actually hears this noise, sees ubNoiseMaker, etc.
-	ProcessNoise(ubNoiseMaker, sGridNo, bLevel, ubTerrType,	ubVolume,	ubNoiseType);
+	ProcessNoise(ubNoiseMaker, sGridNo, bLevel, ubTerrType,	ubVolume,	ubNoiseType, zNoiseMessage );
 
 	if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) && (ubNoiseMaker < TOTAL_SOLDIERS) && !gfDelayResolvingBestSightingDueToDoor )
 	{
-		pSoldier = MercPtrs[ubNoiseMaker];
-
 		// interrupts are possible, resolve them now (we're in control here)
 		// (you can't interrupt NOBODY, even if you hear the noise)
 
-		ResolveInterruptsVs(pSoldier,NOISEINTERRUPT);
+		ResolveInterruptsVs(MercPtrs[ubNoiseMaker],NOISEINTERRUPT);
 	}
-
 }
 
 
 
 void TheirNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubVolume,
-	UINT8 ubNoiseType )
+	UINT8 ubNoiseType, STR16 zNoiseMessage )
 {
 //	SOLDIERTYPE *pSoldier;
 
@@ -5521,7 +5670,7 @@ void TheirNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType
 #endif
 
 	// see if anyone actually hears this noise, sees noiseMaker, etc.
-	ProcessNoise(ubNoiseMaker,sGridNo,bLevel,ubTerrType,ubVolume,ubNoiseType);
+	ProcessNoise(ubNoiseMaker,sGridNo,bLevel,ubTerrType,ubVolume,ubNoiseType,zNoiseMessage);
 
 	// if noiseMaker is SOMEBODY
 	if (ubNoiseMaker < TOTAL_SOLDIERS)
@@ -5559,7 +5708,7 @@ void TheirNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType
 
 
 
-void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubBaseVolume, UINT8 ubNoiseType)
+void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrType, UINT8 ubBaseVolume, UINT8 ubNoiseType, STR16 zNoiseMessage )
 {
 	SOLDIERTYPE *pSoldier;
 	UINT8 bLoop, bTeam;
@@ -5681,7 +5830,7 @@ void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrTy
 
 			if (gTacticalStatus.Team[bTeam].bHuman)
 			{
-				if (gbPublicOpplist[bTeam][ubNoiseMaker] == SEEN_CURRENTLY)
+				if (gbPublicOpplist[bTeam][ubNoiseMaker] == SEEN_CURRENTLY && ubNoiseType != NOISE_VOICE)
 				{
 					continue;
 				}
@@ -5749,6 +5898,12 @@ void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrTy
 				}
 				*/
 
+				// anv: special exception: we want to report enemy taunt, because of text content
+				if ( ubNoiseType == NOISE_VOICE )
+				{
+					bTellPlayer = TRUE;
+				}
+
 				if ( MercPtrs[ ubNoiseMaker ]->stats.bLife == 0 )
 				{
 					// this guy is dead (just dying) so don't report to player
@@ -5795,7 +5950,11 @@ void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrTy
 					// ChrisL: Crows will fly away if they hear any noise
 					if ( !( pSoldier->aiData.bNeutral && ubNoiseType == NOISE_GUNFIRE ) && pSoldier->ubBodyType != CROW )
 					{
-						continue;		// then who cares whether he can also hear the guy?
+						// anv: we want to report taunt even if we see noisemaker
+						if(ubNoiseType != NOISE_VOICE)
+						{
+							continue;		// then who cares whether he can also hear the guy?
+						}
 					}
 				}
 
@@ -5945,7 +6104,7 @@ void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrTy
 				{
 					// the merc that heard it the LOUDEST is the one to comment
 					// should add level to this function call
-					TellPlayerAboutNoise(MercPtrs[ubHeardLoudestBy],ubNoiseMaker,sGridNo,bLevel,ubLoudestEffVolume,ubNoiseType, ubLoudestNoiseDir);
+					TellPlayerAboutNoise(MercPtrs[ubHeardLoudestBy],ubNoiseMaker,sGridNo,bLevel,ubLoudestEffVolume,ubNoiseType, ubLoudestNoiseDir, zNoiseMessage);
 
 					if ( ubNoiseType == NOISE_MOVEMENT)
 					{
@@ -6041,7 +6200,8 @@ UINT8 CalcEffVolume(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT8 ubN
 	if ( gTacticalStatus.uiFlags & INCOMBAT )
 	{
 		// ATE: Funny things happen to ABC stuff if bNewSituation set....
-		if ( gTacticalStatus.ubCurrentTeam == pSoldier->bTeam )
+		// anv: added exception to NOISE_VOICE
+		if ( gTacticalStatus.ubCurrentTeam == pSoldier->bTeam && ubNoiseType != NOISE_VOICE )
 		{
 			return( 0 );
 		}
@@ -6185,14 +6345,12 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 	INT8		bDirection;
 	BOOLEAN fMuzzleFlash = FALSE;
 
-//	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "%d hears noise from %d (%d/%d) volume %d", pSoldier->ubID, ubNoiseMaker, sGridNo, bLevel, ubVolume ) );
-
-
 	if ( pSoldier->ubBodyType == CROW )
 	{
 		CrowsFlyAway( pSoldier->bTeam );
 		return;
 	}
+//	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "%d hears noise from %d (%d/%d) volume %d", pSoldier->ubID, ubNoiseMaker, sGridNo, bLevel, ubVolume ) );
 
 	// "Turn head" towards the source of the noise and try to see what's there
 
@@ -6254,11 +6412,12 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 				bSourceSeen = TRUE;
 
 				// if this sounds like a door opening/closing (could also be a crate)
-				if (ubNoiseType == NOISE_CREAKING)
+				// Flugente: unused check
+				/*if (ubNoiseType == NOISE_CREAKING)
 				{
 					// then look around and update ALL doors that have secretly changed
 					//LookForDoors(pSoldier,AWARE);
-				}
+				}*/
 			}
 		}
 
@@ -6501,9 +6660,13 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 			}
 		}
 	}
+    AI::tactical::AIInputData ai_input(AI::tactical::AIInputData::Auditive(), ubNoiseMaker, sGridNo, bLevel, ubVolume, ubNoiseType);
+    AI::tactical::PlanInputData plan_input((gTacticalStatus.uiFlags & TURNBASED)!=0, gTacticalStatus);
+    AI::tactical::PlanFactoryLibrary* plan_lib(AI::tactical::PlanFactoryLibrary::instance());
+    plan_lib->update_plan(pSoldier->bAIIndex, pSoldier, ai_input);
 }
 
-void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume, UINT8 ubNoiseType, UINT8 ubNoiseDir )
+void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume, UINT8 ubNoiseType, UINT8 ubNoiseDir, STR16 zNoiseMessage )
 {
 	UINT8 ubVolumeIndex;
 
@@ -6536,7 +6699,47 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 		#endif
 	}
 
-	if ( bLevel == pSoldier->pathing.bLevel || ubNoiseType == NOISE_EXPLOSION || ubNoiseType == NOISE_SCREAM || ubNoiseType == NOISE_ROCK_IMPACT || ubNoiseType == NOISE_GRENADE_IMPACT )
+	// anv: special treatment of NOISE_VOICE - also display taunt message
+	if( ubNoiseType == NOISE_VOICE )
+	{
+		// information about direction etc. only displayed if we don't see noise maker
+		if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] != SEEN_CURRENTLY && pSoldier->aiData.bOppList[ubNoiseMaker] != SEEN_CURRENTLY )
+		{
+			if( bLevel == pSoldier->pathing.bLevel && ubNoiseType == NOISE_VOICE )
+			{
+				ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, pNewNoiseStr[ubNoiseType], pSoldier->name, pNoiseVolStr[ubVolumeIndex], pDirectionStr[ubNoiseDir] );
+			}
+			else if ( bLevel > pSoldier->pathing.bLevel )
+			{
+				// from above!
+				ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, pNewNoiseStr[ubNoiseType], pSoldier->name, pNoiseVolStr[ubVolumeIndex], gzLateLocalizedString[6] );
+			}
+			else
+			{
+				// from below!
+				ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, pNewNoiseStr[ubNoiseType], pSoldier->name, pNoiseVolStr[ubVolumeIndex], gzLateLocalizedString[7] );
+			}
+		}
+		if( ubVolumeIndex > 0 ) // definite noise - we're able to recognize words
+		{
+			// do we know who said that?
+			if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] == SEEN_CURRENTLY || pSoldier->aiData.bOppList[ubNoiseMaker] == SEEN_CURRENTLY )
+			{
+				if(  gTauntsSettings.fTauntShowPopupBox == TRUE )
+					ShowTauntPopupBox( MercPtrs[ubNoiseMaker], zNoiseMessage );
+				if(  gTauntsSettings.fTauntShowInLog == TRUE )
+					ScreenMsg( FONT_GRAY2, MSG_INTERFACE, L"%s: %s", MercPtrs[ubNoiseMaker]->GetName(), zNoiseMessage );
+			}
+			else
+			{
+				if( gTauntsSettings.fTauntShowPopupBox == TRUE && gTauntsSettings.fTauntShowPopupBoxIfHeard == TRUE )
+					ShowTauntPopupBox( MercPtrs[ubNoiseMaker], zNoiseMessage );
+				if( gTauntsSettings.fTauntShowInLog == TRUE && gTauntsSettings.fTauntShowInLogIfHeard == TRUE )
+					ScreenMsg( FONT_GRAY2, MSG_INTERFACE, L"%s: %s", pTauntUnknownVoice[0], zNoiseMessage );
+			}
+		}
+	}
+	else if ( bLevel == pSoldier->pathing.bLevel || ubNoiseType == NOISE_EXPLOSION || ubNoiseType == NOISE_SCREAM || ubNoiseType == NOISE_ROCK_IMPACT || ubNoiseType == NOISE_GRENADE_IMPACT )
 	{
 		ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, pNewNoiseStr[ubNoiseType], pSoldier->name, pNoiseVolStr[ubVolumeIndex], pDirectionStr[ubNoiseDir] );
 	}
@@ -6554,7 +6757,11 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 	// if the quote was faint, say something
 	if (ubVolumeIndex == 0)
 	{
+#ifdef JA2UB
+//Ja25 No meanwhiles
+#else
 		if ( !AreInMeanwhile( ) && !( gTacticalStatus.uiFlags & ENGAGED_IN_CONV) && pSoldier->ubTurnsUntilCanSayHeardNoise == 0)
+#endif
 		{
 			TacticalCharacterDialogue( pSoldier, QUOTE_HEARD_SOMETHING );
 			if ( gTacticalStatus.uiFlags & INCOMBAT )
@@ -6716,7 +6923,7 @@ void DecayIndividualOpplist(SOLDIERTYPE *pSoldier)
 	if (pSoldier->stats.bLife < OKLIFE)
 	{
 		// must make sure that public opplist is kept to match...
-		for ( uiLoop = 0; uiLoop < TOTAL_SOLDIERS; uiLoop++ )
+		for ( uiLoop = 0; uiLoop < TOTAL_SOLDIERS; ++uiLoop )
 		{
 			if ( pSoldier->aiData.bOppList[ uiLoop ] == SEEN_CURRENTLY )
 			{
@@ -6731,7 +6938,7 @@ void DecayIndividualOpplist(SOLDIERTYPE *pSoldier)
 	}
 
 	// man looks for each of his opponents WHO IS CURRENTLY SEEN
-	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
 	{
 		pOpponent = MercSlots[ uiLoop ];
 
@@ -6744,20 +6951,19 @@ void DecayIndividualOpplist(SOLDIERTYPE *pSoldier)
 				continue;
 			}
 
-		pPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
+			pPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
 
-	 // if this opponent is seen currently
-	 if (*pPersOL == SEEN_CURRENTLY)
-		{
+			 // if this opponent is seen currently
+			 if (*pPersOL == SEEN_CURRENTLY)
+			{
 				// they are NOT visible now!
 				(*pPersOL)++;
-				if (!CONSIDERED_NEUTRAL( pOpponent, pSoldier ) && !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide))
+				if (!CONSIDERED_NEUTRAL( pOpponent, pSoldier ) && !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide) && pSoldier->RecognizeAsCombatant(pOpponent->ubID) )
 				{
 					RemoveOneOpponent(pSoldier);
 				}
-
+			}
 		}
-	}
 	}
 }
 
@@ -7014,7 +7220,7 @@ void RecalculateOppCntsDueToBecomingNeutral( SOLDIERTYPE * pSoldier )
 			pOpponent = MercSlots[uiLoop];
 
 			// for every active, living soldier on ANOTHER team
-			if (pOpponent && pOpponent->stats.bLife && !pOpponent->aiData.bNeutral && (pOpponent->bTeam != pSoldier->bTeam) && !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide) )
+			if (pOpponent && pOpponent->stats.bLife && !pOpponent->aiData.bNeutral && (pOpponent->bTeam != pSoldier->bTeam) && !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide) && pSoldier->RecognizeAsCombatant(pOpponent->ubID) )
 			{
 				if ( pOpponent->aiData.bOppList[pSoldier->ubID] == SEEN_CURRENTLY )
 				{
@@ -7124,46 +7330,49 @@ void NoticeUnseenAttacker( SOLDIERTYPE * pAttacker, SOLDIERTYPE * pDefender, INT
 		}
 	}
 
-	if ( StandardInterruptConditionsMet( pDefender, pAttacker->ubID, bOldOppList ) )
+	if ( !gGameOptions.fImprovedInterruptSystem || (gGameOptions.fImprovedInterruptSystem && gGameExternalOptions.fAllowInstantInterruptsOnSight) )
 	{
-		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("INTERRUPT: NoticeUnseenAttacker, standard conditions are met; defender %d, attacker %d", pDefender->ubID, pAttacker->ubID ) );
-
-		// calculate the interrupt duel points
-		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, "Calculating int duel pts for defender in NUA" );
-		pDefender->aiData.bInterruptDuelPts = CalcInterruptDuelPts( pDefender, pAttacker->ubID, FALSE);
-	}
-	else
-	{
-		pDefender->aiData.bInterruptDuelPts = NO_INTERRUPT;
-	}
-
-	// say quote
-
-	if (pDefender->aiData.bInterruptDuelPts != NO_INTERRUPT)
-	{
-		// check for possible interrupt and handle control change if it happens
-		// this code is basically ResolveInterruptsVs for 1 man only...
-
-		// calculate active soldier's dueling pts for the upcoming interrupt duel
-		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, "Calculating int duel pts for attacker in NUA" );
-		pAttacker->aiData.bInterruptDuelPts = CalcInterruptDuelPts( pAttacker, pDefender->ubID, FALSE );
-		if ( InterruptDuel( pDefender, pAttacker ) )
+		if ( StandardInterruptConditionsMet( pDefender, pAttacker->ubID, bOldOppList ) )
 		{
-			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("INTERRUPT: NoticeUnseenAttacker, defender pts %d, attacker pts %d, defender gets interrupt", pDefender->aiData.bInterruptDuelPts, pAttacker->aiData.bInterruptDuelPts ) );
-			AddToIntList( pAttacker->ubID, FALSE, TRUE);
-			AddToIntList( pDefender->ubID, TRUE, TRUE);
-			DoneAddingToIntList( pDefender, TRUE, SIGHTINTERRUPT );
-		}
-		// either way, clear out both sides' duelPts fields to prepare next duel
-		pDefender->aiData.bInterruptDuelPts = NO_INTERRUPT;
-		#ifdef DEBUG_INTERRUPTS
-			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Resetting int pts for %d in NUA", pDefender->ubID ) );
-		#endif
-		pAttacker->aiData.bInterruptDuelPts = NO_INTERRUPT;
-		#ifdef DEBUG_INTERRUPTS
-			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Resetting int pts for %d in NUA", pAttacker->ubID ) );
-		#endif
+			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("INTERRUPT: NoticeUnseenAttacker, standard conditions are met; defender %d, attacker %d", pDefender->ubID, pAttacker->ubID ) );
 
+			// calculate the interrupt duel points
+			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, "Calculating int duel pts for defender in NUA" );
+			pDefender->aiData.bInterruptDuelPts = CalcInterruptDuelPts( pDefender, pAttacker->ubID, FALSE);
+		}
+		else
+		{
+			pDefender->aiData.bInterruptDuelPts = NO_INTERRUPT;
+		}
+
+		// say quote
+
+		if (pDefender->aiData.bInterruptDuelPts != NO_INTERRUPT)
+		{
+			// check for possible interrupt and handle control change if it happens
+			// this code is basically ResolveInterruptsVs for 1 man only...
+
+			// calculate active soldier's dueling pts for the upcoming interrupt duel
+			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, "Calculating int duel pts for attacker in NUA" );
+			pAttacker->aiData.bInterruptDuelPts = CalcInterruptDuelPts( pAttacker, pDefender->ubID, FALSE );
+			if ( InterruptDuel( pDefender, pAttacker ) )
+			{
+				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("INTERRUPT: NoticeUnseenAttacker, defender pts %d, attacker pts %d, defender gets interrupt", pDefender->aiData.bInterruptDuelPts, pAttacker->aiData.bInterruptDuelPts ) );
+				AddToIntList( pAttacker->ubID, FALSE, TRUE);
+				AddToIntList( pDefender->ubID, TRUE, TRUE);
+				DoneAddingToIntList( pDefender, TRUE, SIGHTINTERRUPT );
+			}
+			// either way, clear out both sides' duelPts fields to prepare next duel
+			pDefender->aiData.bInterruptDuelPts = NO_INTERRUPT;
+			#ifdef DEBUG_INTERRUPTS
+				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Resetting int pts for %d in NUA", pDefender->ubID ) );
+			#endif
+			pAttacker->aiData.bInterruptDuelPts = NO_INTERRUPT;
+			#ifdef DEBUG_INTERRUPTS
+				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Resetting int pts for %d in NUA", pAttacker->ubID ) );
+			#endif
+
+		}
 	}
 }
 
@@ -7535,8 +7744,15 @@ void MakeBloodcatsHostile( void )
 
 BOOLEAN SoldierHasLimitedVision(SOLDIERTYPE * pSoldier)
 {
-	if ( GetPercentTunnelVision(pSoldier) > 0 || ( gGameExternalOptions.gfAllowLimitedVision ) )
+	if ( gGameExternalOptions.gfAllowLimitedVision || GetPercentTunnelVision(pSoldier) > 0 )
 		return TRUE;
 	else
 		return FALSE;
 }
+
+#ifdef JA2UB
+INT32 MaxDistanceVisible( void )
+{
+	return( STRAIGHT * 2 );
+}
+#endif
