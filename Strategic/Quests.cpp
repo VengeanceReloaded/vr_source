@@ -1456,6 +1456,9 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 			// G7, Barn -> room number = 1
 			gubFact[usFact] = ( CheckNPCIsEPC( CONMAN ) && (NPCInRoom( CONMAN, 1 )) && (NPCInRoom( ARULCAN_BUYER, 1 )) );
 			break;
+		case FACT_GORDON_DEAD:
+			gubFact[usFact] = ( gMercProfiles[ GORDON_VR ].bMercStatus == MERC_IS_DEAD );
+			break;
 
 		default:
 			break;

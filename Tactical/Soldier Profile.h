@@ -255,7 +255,9 @@ enum NPCIDs
 	WAHAN = 198,
 
 	// anv: VR characters
+	GORDON_VR = 72,
 	MENDAX = 112,
+	LARISSA = 132,
 	CONMAN = 202,
 	ARULCAN_BUYER = 203,
 	CIA_BUYER = 204,
