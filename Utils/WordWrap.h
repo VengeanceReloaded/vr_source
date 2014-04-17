@@ -44,6 +44,7 @@ typedef struct _WRAPPEDSTRING
 WRAPPED_STRING * LineWrap(UINT32 ulFont, UINT16 usLineWidthPixels, UINT16 *pusLineWidthIfWordIsWiderThenWidth, STR16 pString, ...);
 
 UINT16 DisplayWrappedString(UINT16 usPosX, UINT16 usPosY, UINT16 usWidth, UINT8 ubGap, UINT32 uiFont, UINT8 ubColor, STR16 pString, UINT8 ubBackGroundColor, BOOLEAN fDirty, UINT32 ulFlags);
+UINT16 DisplayWrappedAndCutDownString(UINT16 usPosX, UINT16 usPosY, UINT16 usWidth, UINT8 ubGap, UINT32 uiFont, UINT8 ubColor, STR16 pString, UINT8 ubBackGroundColor, BOOLEAN fDirty, UINT32 uiFlags, UINT16 uiMaxLines);
 
 UINT16 DeleteWrappedString(WRAPPED_STRING *pWrappedString);
 void CleanOutControlCodesFromString(STR16 pSourceString, STR16 pDestString);

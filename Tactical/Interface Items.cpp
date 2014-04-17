@@ -7049,7 +7049,29 @@ void RenderItemDescriptionBox( )
 			}
 			SetFontShadow( ShadowColor );
 
-			DisplayWrappedString( gItemDescTextRegions[0].sLeft, gItemDescTextRegions[0].sTop, gItemDescTextRegions[0].sRight - gItemDescTextRegions[0].sLeft, 2, ITEMDESC_FONT, ForegroundColor,  gzItemDesc, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED);
+			//DisplayWrappedString( gItemDescTextRegions[0].sLeft, gItemDescTextRegions[0].sTop, gItemDescTextRegions[0].sRight - gItemDescTextRegions[0].sLeft, 2, ITEMDESC_FONT, ForegroundColor,  gzItemDesc, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED);
+			// anv: make sure too long descriptions won't go out of box
+			if( guiCurrentScreen == MAP_SCREEN )
+			{
+				if( UsingEDBSystem() == TRUE )
+					DisplayWrappedAndCutDownString( gItemDescTextRegions[0].sLeft, gItemDescTextRegions[0].sTop, gItemDescTextRegions[0].sRight - gItemDescTextRegions[0].sLeft, 2, ITEMDESC_FONT, ForegroundColor,  gzItemDesc, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED, 9);
+				else
+					DisplayWrappedAndCutDownString( gItemDescTextRegions[0].sLeft, gItemDescTextRegions[0].sTop, gItemDescTextRegions[0].sRight - gItemDescTextRegions[0].sLeft, 2, ITEMDESC_FONT, ForegroundColor,  gzItemDesc, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED, 6);
+			}
+			else
+			{
+				if( UsingNewInventorySystem() == TRUE )
+				{
+					DisplayWrappedAndCutDownString( gItemDescTextRegions[0].sLeft, gItemDescTextRegions[0].sTop, gItemDescTextRegions[0].sRight - gItemDescTextRegions[0].sLeft, 2, ITEMDESC_FONT, ForegroundColor,  gzItemDesc, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED, 9);
+				}
+				else
+				{
+					if ( Item[ gpItemDescObject->usItem ].usItemClass & IC_GUN )
+						DisplayWrappedAndCutDownString( gItemDescTextRegions[0].sLeft, gItemDescTextRegions[0].sTop, gItemDescTextRegions[0].sRight - gItemDescTextRegions[0].sLeft, 2, ITEMDESC_FONT, ForegroundColor,  gzItemDesc, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED, 3);
+					else
+						DisplayWrappedAndCutDownString( gItemDescTextRegions[0].sLeft, gItemDescTextRegions[0].sTop, gItemDescTextRegions[0].sRight - gItemDescTextRegions[0].sLeft, 2, ITEMDESC_FONT, ForegroundColor,  gzItemDesc, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED, 5);
+				}
+			}
 
 			/////////// DISPLAY CONDITION
 			ForegroundColor = 6;
