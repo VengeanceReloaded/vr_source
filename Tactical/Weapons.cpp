@@ -3199,6 +3199,11 @@ BOOLEAN UseBlade( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 	//	FreeUpAttacker( (UINT8) pSoldier->ubID );
 	// }
 
+	// anv: melee attack noise
+	UINT16 usUBItem = pSoldier->GetUsedWeaponNumber( &pSoldier->inv[ pSoldier->ubAttackingHand ] );
+	UINT8 ubVolume = Weapon[ usUBItem ].ubAttackVolume;
+	MakeNoise( pSoldier->ubID, pSoldier->sGridNo, pSoldier->pathing.bLevel, pSoldier->bOverTerrainType, ubVolume, NOISE_UNKNOWN );
+
 	// possibly reduce monster smell
 	if ( pSoldier->aiData.bMonsterSmell > 0 && Random( 5 ) == 0 )
 	{
@@ -3322,7 +3327,7 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 			fFailure=FALSE;
 
 			// Flugente: if we are disguised and try to steal from a conscious enemy, there is a chance that he notices us and we lose our disguise. If he can see us this always happens
-			if ( !fSoldierCollapsed && pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			if ( !fSoldierCollapsed && pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 			{
 				BOOLEAN fUncovered = FALSE;
 
@@ -3880,6 +3885,11 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 		}
 	}
 
+	// anv: hth (inluding blunt weapons) attack noise
+	UINT16 usUBItem = pSoldier->GetUsedWeaponNumber( &pSoldier->inv[ pSoldier->ubAttackingHand ] );
+	UINT8 ubVolume = Weapon[ usUBItem ].ubAttackVolume;
+	MakeNoise( pSoldier->ubID, pSoldier->sGridNo, pSoldier->pathing.bLevel, pSoldier->bOverTerrainType, ubVolume, NOISE_UNKNOWN );
+
 	// possibly reduce monster smell (gunpowder smell)
 	if ( pSoldier->aiData.bMonsterSmell > 0 && Random( 5 ) == 0 )
 	{
@@ -4022,6 +4032,12 @@ BOOLEAN UseThrown( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 	DeductPoints( pSoldier, sAPCost, 0 );
 	RemoveObjs( &(pSoldier->inv[ HANDPOS ] ), 1 );
 	*/
+
+	// anv: knife throw attack noise
+	UINT16 usUBItem = pSoldier->GetUsedWeaponNumber( &pSoldier->inv[ pSoldier->ubAttackingHand ] );
+	UINT8 ubVolume = Weapon[ usUBItem ].ubAttackVolume;
+	MakeNoise( pSoldier->ubID, pSoldier->sGridNo, pSoldier->pathing.bLevel, pSoldier->bOverTerrainType, ubVolume, NOISE_UNKNOWN );
+
 	return( TRUE );
 }
 
@@ -4233,6 +4249,11 @@ BOOLEAN UseLauncher( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 		// done, if bursting, increment
 		pSoldier->bDoBurst++;
 	}
+	
+	// anv: launcher attack noise
+	UINT16 usUBItem = pSoldier->GetUsedWeaponNumber( &pSoldier->inv[ pSoldier->ubAttackingHand ] );
+	UINT8 ubVolume = Weapon[ usUBItem ].ubAttackVolume;
+	MakeNoise( pSoldier->ubID, pSoldier->sGridNo, pSoldier->pathing.bLevel, pSoldier->bOverTerrainType, ubVolume, NOISE_UNKNOWN );
 
 	return( TRUE );
 }
@@ -9365,9 +9386,9 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, BULLET *pBullet, SOLDIERTYPE * pTarget,
 		if ( gGameExternalOptions.fZombieOnlyHeadShotsPermanentlyKill && pTarget->stats.bLife > 0 )
 		{
 			if ( ubHitLocation == AIM_SHOT_HEAD  )
-				pTarget->bSoldierFlagMask |= SOLDIER_HEADSHOT;
+				pTarget->usSoldierFlagMask |= SOLDIER_HEADSHOT;
 			else
-				pTarget->bSoldierFlagMask &= ~SOLDIER_HEADSHOT;
+				pTarget->usSoldierFlagMask &= ~SOLDIER_HEADSHOT;
 		}
 	}
 #endif
@@ -9481,7 +9502,7 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, BULLET *pBullet, SOLDIERTYPE * pTarget,
 		// this is intended to work on darts, but it is possible on any ammo
 		if ( AmmoTypes[ubAmmoType].ammoflag & AMMO_NEUROTOXIN )
 		{			
-			pTarget->bSoldierFlagMask |= SOLDIER_DRUGGED;
+			pTarget->usSoldierFlagMask |= SOLDIER_DRUGGED;
 
 			// Add lifedamage effects
 			pTarget->AddDrugValues( DRUG_TYPE_LIFEDAMAGE, Drug[DRUG_TYPE_LIFEDAMAGE].ubDrugEffect, Drug[DRUG_TYPE_LIFEDAMAGE].ubDrugTravelRate, Drug[DRUG_TYPE_LIFEDAMAGE].ubDrugSideEffect );
@@ -10249,7 +10270,7 @@ INT32 HTHImpact( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pTarget, INT32 iHitBy, BO
 		// set a flag if this was a headshot, unset if it wasn't. Thus we can determine if this was a headshot kill (only if life > 0, ignore if already dead)
 		if ( gGameExternalOptions.fZombieOnlyHeadShotsPermanentlyKill && pTarget->stats.bLife > 0 )
 		{
-			pTarget->bSoldierFlagMask |= SOLDIER_HEADSHOT;
+			pTarget->usSoldierFlagMask |= SOLDIER_HEADSHOT;
 		}
 	}
 #endif

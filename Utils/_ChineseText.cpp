@@ -1857,6 +1857,12 @@ STR16 pAssignmentStrings[] =
 	L"战俘", // Prisoner of war - captured
 	L"伤员", // patient in a hospital
 	L"空车",	// Vehicle is empty
+	L"Snitch",	// facility: undercover prisoner (snitch)		// TODO.Translate
+	L"Propag.",	// facility: spread propaganda
+	L"Propag.",	// facility: spread propaganda (globally)
+	L"Rumours",	// facility: gather information
+	L"Propag.",	// spread propaganda
+	L"Rumours",	// gather information
 };
 
 
@@ -6653,6 +6659,26 @@ STR16 New113Message[] =
 	L"AP不够！需要%d，你只有%d。",	//L"Insufficient AP Points! Cost %d, you have %d.",
 	L"提示: %s",
 	L"Player strength: %d - Enemy strength: %6.0f",		// TODO.Translate Surrender values to be printed, if DISPLAY_SURRENDER_VALUES = TRUE
+
+	L"Cannot use skill!",				// TODO.Translate
+	L"Cannot build while enemies are in this sector!",
+	L"Cannot spot that location!",
+	L"Incorrect GridNo for firing artillery!",
+	L"Radio frequencies are jammed. No communication possible!",
+	L"Radio action failed!",
+	L"Not enough mortar shells in sector to start a barrage!",
+	L"No signal shell item found in Items.xml!",
+	L"No mortars found, cannot commence barrage!",
+	L"Already jamming signal, no need to do so again!",
+	L"Already listening for nearby sounds, no need to do so again!",
+	L"Already trying to spot, no need to do so again!",
+	L"Already scanning for jam signals, no need to do so again!",
+	L"%s could not apply %s to %s.",
+	L"%s orders reinforcements from %s.",
+	L"%s radio set is out of energy.",
+	L"a working radio set",
+	L"a binocular",
+	L"patience",
 };
 
 STR16 New113HAMMessage[] = 
@@ -7220,6 +7246,11 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"训练领导",
 	L"训练爆破",
 	L"审讯俘虏", //L"Interrogate Prisoners",
+	L"Undercover Snitch",		// TODO.Translate
+	// 36-40
+	L"Spread Propaganda",
+	L"Spread Propaganda",	// spread propaganda (globally)
+	L"Gather Rumours",
 };
 STR16 Additional113Text[]=
 {
@@ -8384,7 +8415,7 @@ STR16	szCampaignHistoryDetail[]=
 	L"在交战大规模升级过程中，双方都部署了坦克。",
 	L"%s部署了%d辆坦克，%d辆坦克在激烈的交火中被摧毁。",
 	L"据称双方都部署了狙击手。",
-	L"未经证实的消息称有%s名狙击手参与了交火。"
+	L"未经证实的消息称有%s名狙击手参与了交火。",
 	L"This sector is of huge strategic importance, as it houses one of the handful of anti-air missile batteries the %s army posesses. Aerial photographs show extensive damage to the command center. This will leave the airspace above %s undefended for the time being.",
 	L"The situation on the ground has gotten even more confusing, as it seems rebel infighting has reached a new level. We now have confirmation that rebel militia engaed in active combat with foreign mercenaries.",
 	L"The royalists position seems more precarious than previously thought. Reports of a split surfaced, with amry personnel opening fire on each other.",

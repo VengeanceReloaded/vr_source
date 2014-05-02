@@ -2335,10 +2335,10 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 			else if ( pSoldier->IsAssassin() && pSoldier->bTeam == CIV_TEAM )
 			{
 				// if we are an assassin and still neutral and undercover, approach target and then become hostile
-				if ( pSoldier->aiData.bNeutral && pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+				if ( pSoldier->aiData.bNeutral && pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 				{
 					// only if this guy isn't disguised himself!
-					if ( (pOpponent->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) == 0)
+					if ( (pOpponent->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) == 0)
 					{
 						if ( pSoldier->ubCivilianGroup != NON_CIV_GROUP && gTacticalStatus.fCivGroupHostile[ pSoldier->ubCivilianGroup ] >= CIV_GROUP_WILL_BECOME_HOSTILE )
 						{
@@ -2547,10 +2547,10 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 		{
 			 // ... check wether he is not neutral against us (account for the fact that we might be covert!)
 			// if we are an NPC assassin
-			if ( pSoldier->bSoldierFlagMask & SOLDIER_ASSASSIN && pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			if ( pSoldier->usSoldierFlagMask & SOLDIER_ASSASSIN && pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 			{
 				// check wether our opponent would see us as an opponent if we weren't covert
-				if ( !( (pSoldier->aiData.bNeutral || pSoldier->bSoldierFlagMask & SOLDIER_POW) && ( pOpponent->bTeam != CREATURE_TEAM || pOpponent->flags.uiStatusFlags & SOLDIER_VEHICLE ) ) )
+				if ( !( (pSoldier->aiData.bNeutral || pSoldier->usSoldierFlagMask & SOLDIER_POW) && ( pOpponent->bTeam != CREATURE_TEAM || pOpponent->flags.uiStatusFlags & SOLDIER_VEHICLE ) ) )
 					fAddAsOpponent = TRUE;
 			}
 			else
@@ -3078,7 +3078,7 @@ IAN COMMENTED THIS OUT MAY 1997 - DO WE NEED THIS?
 			{
 				// Flugente: we consider enemies to be neutral if they are prisoners of war (otherwise the AI would kill prisoners). Bu as we want to remove them, we have to account for that
 				// we also move RecognizeAsCombatant to be the last condition checked, because it is the most computationally expensive one
-				if ( ( !CONSIDERED_NEUTRAL( pOpponent, pSoldier ) || pSoldier->bSoldierFlagMask & SOLDIER_POW ) && pOpponent->RecognizeAsCombatant(pSoldier->ubID) )
+				if ( ( !CONSIDERED_NEUTRAL( pOpponent, pSoldier ) || pSoldier->usSoldierFlagMask & SOLDIER_POW ) && pOpponent->RecognizeAsCombatant(pSoldier->ubID) )
 					RemoveOneOpponent(pOpponent);
 			}
 			UpdatePersonal(pOpponent,ubTarget,NOT_HEARD_OR_SEEN,NOWHERE,0);
@@ -3573,7 +3573,7 @@ void SaySeenQuote( SOLDIERTYPE *pSoldier, BOOLEAN fSeenCreature, BOOLEAN fVirgin
 		else
 		{
 			// Flugente: no quotes on seeing enemy when covert
-			if ( (pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) ) == 0 )
+			if ( (pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) ) == 0 )
 			{
 #ifdef ENGLISH
 				if ( Random( 100 ) < 30 )
@@ -3619,7 +3619,7 @@ void OurTeamSeesSomeone( SOLDIERTYPE * pSoldier, INT8 bNumReRevealed, INT8 bNumN
 		if ( pSoldier->bTeam == gbPlayerNum )
 		{
 			// Flugente: disguised mercs do not alert us if they see an enemy, as otherwise one has to continously give them new orders
-			if ( !(pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) )
+			if ( !(pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) )
 			{
 				// STOP IF WE WERE MOVING....
 				/// Speek up!

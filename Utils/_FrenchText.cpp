@@ -1775,10 +1775,10 @@ CHAR16 pCountryNames[][MAX_TOWN_NAME_LENGHT] =
 {
 #ifdef JA2UB
 	L"Tracona",
-	L"Traconian",
+	L"traconien(ne)",  // TODO.Translate //A voir fini (to see finished)
 #else
 	L"Arulco",
-	L"Arulcaine",
+	L"arulcain(e)",  // TODO.Translate //A voir fini (to see finished)
 #endif
 };
 
@@ -1861,6 +1861,12 @@ STR16 pAssignmentStrings[] =
 	L"Capturé(e)", // Prisoner of war - captured
 	L"Hôpital", // patient in a hospital 
 	L"Vide",	// Vehicle is empty
+	L"Infiltré",	// facility: undercover prisoner (snitch)
+	L"Propag.",	// facility: spread propaganda
+	L"Propag.",	// facility: spread propaganda (globally)
+	L"Rumeur",	// facility: gather information
+	L"Propag.",	// spread propaganda
+	L"Rumeur",	// gather information
 };
 
 
@@ -2007,7 +2013,7 @@ STR16 pLongAssignmentStrings[] =
 	L"Infiltré", // facility: undercover prisoner (snitch) // TODO.Translate //A voir fini (to see finished)
 	L"Répandre une propagande", // facility: spread propaganda // TODO.Translate //A voir fini (to see finished)
 	L"Faire de la propagande", // facility: spread propaganda (globally) // TODO.Translate //A voir fini (to see finished)
-	L"Récolter les rumeurs ",	 // facility: gather rumours // TODO.Translate //A voir fini (to see finished)
+	L"Récolter les rumeurs",	 // facility: gather rumours // TODO.Translate //A voir fini (to see finished)
 	L"Propagande", // spread propaganda
 	L"Rumeurs", // gather information 
 };
@@ -2237,8 +2243,8 @@ STR16 pSnitchToggleMenuDescStrings[] =
 STR16 pSnitchSectorMenuStrings[] =
 {
 	// sector assignments
-	L"Fait de la propagande",
-	L"Récolte les rumeurs",
+	L"Fait de la propagande",   // TODO.Translate //A voir fini (to see finished)
+	L"Récolte les rumeurs",   // TODO.Translate //A voir fini (to see finished)
 	L"Annuler",
 };
 
@@ -4429,10 +4435,10 @@ STR16 pWebPagesTitles[] =
 	L"Morgue McGillicutty",
 	L"",
 	L"URL introuvable.",
-	L"%s conseil de presse : Bilan du conflit",
-	L"%s conseil de presse : Rapports",
-	L"%s conseil de presse : Dernières Nouvelles",
-	L"%s conseil de presse : À propos de nous",
+	L"%s, conseil de presse : Bilan du conflit",   // TODO.Translate //A voir fini (to see finished)
+	L"%s, conseil de presse : Rapports",   // TODO.Translate //A voir fini (to see finished)
+	L"%s, conseil de presse : Dernières Nouvelles",   // TODO.Translate //A voir fini (to see finished)
+	L"%s, conseil de presse : À propos de nous",   // TODO.Translate //A voir fini (to see finished)
 	L"Bobby Ray : Dernières commandes",
 	L"Encyclopédie",
 	L"Encyclopédie : Données",
@@ -5821,7 +5827,7 @@ STR16	gzGIOScreenText[] =
 	
 	L"Nouv. syst. chance de toucher",
 	L"Syst. amélioré d'interruption",
-	L"Surchauffe de l'arme",
+	L"Passif des mercenaires",
 	L"Système alimentaire",
 	L"Stock de Bobby Ray",
 };
@@ -6647,7 +6653,7 @@ STR16 New113Message[] =
 	L"La chirurgie sur %s est finie.",
 	L"%s est touché(e) au torse et perd un maximum de points de vie !",
 	L"%s est touché(e) au torse et perd %d points de vie !",
-	L"%s is blinded by the blast!",	// TODO.Translate
+	L"%s est devenu(e) aveugle par le souffle de l'explosion !",
 	L"%s a regagné 1 point sur les %s perdus",
 	L"%s a regagné %d points sur les %s perdus",
 	L"Vos compétences de reconnaissance vous ont empêchés d'être pris en embuscade par l'ennemi !",
@@ -6659,6 +6665,26 @@ STR16 New113Message[] =
 	L"PA insuffisant ! Coût %d et vous avez %d.",
 	L"Astuce : %s",
 	L"Moral du joueur : %d - Moral de l'ennemi : %6.0f",		// Surrender values to be printed, if DISPLAY_SURRENDER_VALUES = TRUE
+
+	L"Cannot use skill!",				// TODO.Translate
+	L"Cannot build while enemies are in this sector!",
+	L"Cannot spot that location!",
+	L"Incorrect GridNo for firing artillery!",
+	L"Radio frequencies are jammed. No communication possible!",
+	L"Radio action failed!",
+	L"Not enough mortar shells in sector to start a barrage!",
+	L"No signal shell item found in Items.xml!",
+	L"No mortars found, cannot commence barrage!",
+	L"Already jamming signal, no need to do so again!",
+	L"Already listening for nearby sounds, no need to do so again!",
+	L"Already trying to spot, no need to do so again!",
+	L"Already scanning for jam signals, no need to do so again!",
+	L"%s could not apply %s to %s.",
+	L"%s orders reinforcements from %s.",
+	L"%s radio set is out of energy.",
+	L"a working radio set",
+	L"a binocular",
+	L"patience",
 };
 
 STR16 New113HAMMessage[] = 
@@ -7223,6 +7249,11 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"Entraîneur Commandement",
 	L"Entraîneur Explosif",
 	L"Interroger prisonnier",	// added by Flugente
+	L"Infiltré",
+	// 36-40
+	L"Répand une propagande",
+	L"Fait de la propagande",	// spread propaganda (globally)
+	L"Collecte les rumeurs",
 };
 STR16 Additional113Text[]=
 {
@@ -7969,7 +8000,7 @@ STR16	szCovertTextStr[]=
 	L"%s a un(e) %s suspect(e) !",
 	L"%s a un(e) %s considéré(e) comme du matériel militaire !",
 	L"%s transporte trop d'armes !",
-	L"%s a un(e) %s trop avancé(e) pour un soldat %s !",
+	L"%s a un(e) %s trop avancé(e) pour un soldat %s !",  // TODO.Translate //A voir fini (to see finished)
 	L"%s a un(e) %s avec trop d'accessoires !",
 	L"%s a été repéré(e) en train de commettre des activités douteuses !",
 	L"%s ne ressemble pas à un civil !",
@@ -8338,14 +8369,14 @@ STR16	szSoldierClassName[]=
 
 STR16	szCampaignHistoryWebSite[]=
 {
-	L"Conseil de presse d'%s",
-	L"Ministère de l'information d'%s",
-	L"Mouvement révolutionnaire d'%s",
+	L"%s : Conseil de presse",
+	L"%s : Ministère de l'information",
+	L"%s : Mouvement révolutionnaire",
 	L"The Times International",
 	L"International Times",
 	L"RIS (Renseignements Internationaux Spécialisés)",
 
-	L"Recueille les articles de presse d'%s",
+	L"Recueille les articles de presse sur %s",
 	L"Nous sommes une source d'information neutre. Nous collectons différents articles d'actualité venant d'%s. Nous ne jugeons pas ces sources, nous nous contentons de les publier, pour que vous puissiez vous faire votre avis. Nous faisons paraitre des articles de différentes sources, venant :",
 	
 	L"Bilan du conflit",
@@ -8384,8 +8415,8 @@ STR16	szCampaignHistoryDetail[]=
 	L"L'escalade du conflit s'aggrave ; les deux camps ont déployés des chars.",
 	L"Il y avait %d chars pour renforcer %s. %d d'entre eux ont été détruits dans des combats acharnés.",
 	L"Les deux camps avaient des tireurs d'élite.",
-	L"Des sources non vérifiées indiquent que %s tireurs d'élite ont été impliqués dans le combat."
-	L"Ce secteur a une très grande importance stratégique, car il abrite l'une des rares batteries de missiles sol-air que l'armée %s possède. Des photographies aériennes montrent les dégâts du centre de commande. Ça laissera l'espace aérien d'%s sans défense pour le moment.",
+	L"Des sources non vérifiées indiquent que des tireurs d'élite de %s ont été impliqués dans le combat.",
+	L"Ce secteur a une très grande importance stratégique, car il abrite l'une des rares batteries de missiles sol-air que l'armée %s possède. Des photographies aériennes montrent les dégâts du centre de commande. Ça laissera l'espace aérien %s sans défense pour le moment.",  // TODO.Translate //A voir fini (to see finished)
 	L"La situation sur le terrain est devenue encore plus confuse, car il semble que le combat des rebelles a pris un nouveau virage. On a maintenant la confirmation qu'une milice rebelle s'est engagée activement avec les mercenaires étrangers.",
 	L"La position des royalistes semble plus précaire qu'on ne le pensait. Des rapports d'une scission au sein de l'armée ont fait surface, impliquant des échanges de feu au sein même du personnel militaire.",
 };
@@ -8484,9 +8515,9 @@ STR16   szTacticalInventoryDialogString[]=
 {
         L"Manipulations de l'inventaire",
 
-        L"LVN/LdS",
+        L"LVN",
         L"Recharger",
-        L"Stocker",
+        L"Réunir o.",
         L"",
 
         L"Trier",

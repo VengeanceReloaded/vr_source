@@ -2152,6 +2152,12 @@ BOOLEAN InitializeSMPanel(	)
 		// full cursor - disable, from item pickup
 		EnableSMPanelButtons( FALSE, TRUE );
 	}
+	
+	if( INTERFACE_START_X > 0 )
+	{
+		ColorFillVideoSurfaceArea( FRAME_BUFFER, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0 );
+		ColorFillVideoSurfaceArea( guiSAVEBUFFER, 0, INV_INTERFACE_START_Y, SCREEN_WIDTH, SCREEN_HEIGHT, 0 );
+	}
 
 	return( TRUE );
 }
@@ -2925,6 +2931,40 @@ void RenderSMPanel( BOOLEAN *pfDirty )
 		if ((gpSMCurrentMerc->snowCamo + gpSMCurrentMerc->wornSnowCamo) > 0 )
 		{
 			swprintf( pStrCamo, L"\n%d/%d%s %s", gpSMCurrentMerc->snowCamo, gpSMCurrentMerc->wornSnowCamo, L"%", gzMiscItemStatsFasthelp[ 24 ] );
+			wcscat( pStr, pStrCamo);
+			swprintf( pStrCamo, L"" );
+		}
+		
+		// anv: display stealth together with camo
+		INT16 wornstealth = GetWornStealth(gpSMCurrentMerc) - gpSMCurrentMerc->GetBackgroundValue(BG_PERC_STEALTH);
+		INT16 bonusstealth = gpSMCurrentMerc->GetBackgroundValue(BG_PERC_STEALTH);
+		if ( gpSMCurrentMerc->ubBodyType == BLOODCAT )
+		{
+			bonusstealth += 50;
+		}
+		// SANDRO - new/old traits
+		else if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( gpSMCurrentMerc, STEALTHY_NT ))
+		{
+			bonusstealth += gSkillTraitValues.ubSTBonusToMoveQuietly;
+		}
+		else if ( !gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( gpSMCurrentMerc, STEALTHY_OT ))
+		{
+			bonusstealth += 25 * NUM_SKILL_TRAITS( gpSMCurrentMerc, STEALTHY_OT );
+		}
+
+		if ( bonusstealth != 0 || wornstealth!= 0 )
+		{
+			CHAR16 pStrBonusStealth[400];
+			CHAR16 pStrWornStealth[400];
+			if( bonusstealth < 0 )
+				swprintf( pStrBonusStealth, L"%d", bonusstealth );
+			else
+				swprintf( pStrBonusStealth, L"+%d", bonusstealth );
+			if( wornstealth < 0 )
+				swprintf( pStrWornStealth, L"%d", wornstealth );
+			else
+				swprintf( pStrWornStealth, L"+%d", wornstealth );
+			swprintf( pStrCamo, L"\n%s/%s %s", pStrBonusStealth, pStrWornStealth, gzMiscItemStatsFasthelp[ 25 ] );
 			wcscat( pStr, pStrCamo);
 			swprintf( pStrCamo, L"" );
 		}
@@ -4186,7 +4226,7 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 		}
 
 		// Flugente: we have to recheck our flashlights, as we changed items
-		//gpSMCurrentMerc->bSoldierFlagMask |= SOLDIER_REDOFLASHLIGHT;
+		//gpSMCurrentMerc->usSoldierFlagMask |= SOLDIER_REDOFLASHLIGHT;
 		gpSMCurrentMerc->HandleFlashLights();
 	}
 	else if (iReason & MSYS_CALLBACK_REASON_RBUTTON_DWN)

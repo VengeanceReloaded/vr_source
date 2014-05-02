@@ -893,7 +893,7 @@ INT32 HandleItem( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT16 usHa
 	{
 		// See if we can get there to stab
 		sActionGridNo =	FindAdjacentGridEx( pSoldier, sGridNo, &ubDirection, &sAdjustedGridNo, TRUE, FALSE );
-		if ( sActionGridNo != -1 )
+		if ( sActionGridNo != -1 && IsCuttableWireFenceAtGridNo( sGridNo ) )
 		{
 			// Calculate AP costs...
 			sAPCost = GetAPsToCutFence( pSoldier );
@@ -939,7 +939,7 @@ INT32 HandleItem( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT16 usHa
 				return( ITEM_HANDLE_NOAPS );
 			}
 		}
-		else
+		else if( sActionGridNo == -1 )
 		{
 			return( ITEM_HANDLE_CANNOT_GETTO_LOCATION );
 		}
@@ -4933,7 +4933,7 @@ void StartTacticalFunctionSelectionMessageBox( SOLDIERTYPE * pSoldier, INT32 sGr
 	wcscpy( gzUserDefinedButton[2], TacticalStr[ CLEAN_ONE_GUN_STR ] );
 	wcscpy( gzUserDefinedButton[3], TacticalStr[ CLEAN_ALL_GUNS_STR ] );
 	
-	if ( gpTempSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+	if ( gpTempSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
        wcscpy( gzUserDefinedButton[1], TacticalStr[ TAKE_OFF_DISGUISE_STR ] );
 	else
        wcscpy( gzUserDefinedButton[1], TacticalStr[ TAKE_OFF_CLOTHES_STR ] );
@@ -4950,7 +4950,7 @@ void StartTacticalFunctionSelectionMessageBox( SOLDIERTYPE * pSoldier, INT32 sGr
 	}
 
 	// if disguised, allow testing our disguise
-	if ( gpTempSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+	if ( gpTempSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 		wcscpy( gzUserDefinedButton[6], TacticalStr[ SPY_SELFTEST_STR ] );
 	else
 		wcscpy( gzUserDefinedButton[6], TacticalStr[ UNUSED_STR ] );
@@ -5177,7 +5177,7 @@ void TacticalFunctionSelectionMessageBoxCallBack( UINT8 ubExitValue )
 			break;
 		case 7:
 			// test our disguise
-			if ( gpTempSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			if ( gpTempSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 				gpTempSoldier->SpySelfTest();
 			break;
 		default:
@@ -6434,7 +6434,7 @@ UINT8 StealItems(SOLDIERTYPE* pSoldier,SOLDIERTYPE* pOpponent, UINT8* ubIndexRet
 					//	- remove the 'steal from teammember' stuff from the usual stealing stuff, and add it as a new action (like handcuffing), complete with building the steal-sub-menu and everything
 					//	- or introduce a flag that prohibits teammembers from 'reaction-firing' on us. Set it upon stealing (here) and remove it after the steal menu is closed
 					// or simplicity reasons, I will do #2 here. Until it breaks, then I'll be forced to do #1.
-					pSoldier->bSoldierFlagMask |= SOLDIER_ACCESSTEAMMEMBER;
+					pSoldier->usSoldierFlagMask |= SOLDIER_ACCESSTEAMMEMBER;
 
 					// if we are Nails, don't allow taking our vest
 					if ( pOpponent->ubProfile == 34 && i == VESTPOS )

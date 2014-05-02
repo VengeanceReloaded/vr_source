@@ -732,7 +732,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 				{
 					if (usRoom == BOXING_RING)
 					{
-						for ( ubLoop = 0; ubLoop < NUM_BOXERS; ubLoop++ )
+						for ( ubLoop = 0; ubLoop < NUM_BOXERS; ++ubLoop )
 						{
 							if (pSoldier->ubID == gubBoxerID[ ubLoop ])
 							{
@@ -757,8 +757,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 							if (pTeamSoldier->flags.uiStatusFlags & SOLDIER_PCUNDERAICONTROL)
 								pTeamSoldier->flags.uiStatusFlags &= (~SOLDIER_PCUNDERAICONTROL);
 
-							if (pTeamSoldier->flags.uiStatusFlags & SOLDIER_BOXER)
-								pTeamSoldier->flags.uiStatusFlags &= (~SOLDIER_BOXER);
+							pTeamSoldier->DeleteBoxingFlag( );
 						}
 
 						if (pSoldier->bTeam == gbPlayerNum || CountPeopleInBoxingRing() == 0)
@@ -885,7 +884,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 	}
 
 //ddd{
-	if( !(pSoldier->bSoldierFlagMask & SOLDIER_RAISED_REDALERT) && gGameExternalOptions.bNewTacticalAIBehavior && pSoldier->bTeam == ENEMY_TEAM )
+	if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && gGameExternalOptions.bNewTacticalAIBehavior && pSoldier->bTeam == ENEMY_TEAM )
 	{
 		if ( !(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
 		{
@@ -922,7 +921,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 		// Flugente: if we see one of our buddies in handcuffs, its a clear sign of enemy activity!
 		if ( gGameExternalOptions.fAllowPrisonerSystem && pSoldier->bTeam == ENEMY_TEAM && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition )
 		{
-			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW );
+			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW, TRUE );
 
 			if ( ubPerson != NOBODY )
 			{	
@@ -1532,7 +1531,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		// Flugente: if we see one of our buddies captured, it is a clear sign of enemy activity!
 		if ( gGameExternalOptions.fAllowPrisonerSystem && pSoldier->bTeam == ENEMY_TEAM )
 		{
-			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW );
+			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW, TRUE );
 
 			if ( ubPerson != NOBODY )
 			{
@@ -1565,7 +1564,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 						}
 					}
 				}
-				else if ( !(pSoldier->bSoldierFlagMask & SOLDIER_RAISED_REDALERT) && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition )
+				else if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition )
 				{
 					// raise alarm!
 					return( AI_ACTION_RED_ALERT );
@@ -2633,7 +2632,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					}
 				}
 				// frequencies are clear, lets call for help
-				else if ( !(pSoldier->bSoldierFlagMask & SOLDIER_RAISED_REDALERT) )
+				else if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) )
 				{
 					// raise alarm!
 					return( AI_ACTION_RED_ALERT );
@@ -2819,7 +2818,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		// Flugente: if we see one of our buddies captured, it is a clear sign of enemy activity!
 		if ( gGameExternalOptions.fAllowPrisonerSystem && pSoldier->bTeam == ENEMY_TEAM )
 		{
-			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW );
+			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW, TRUE );
 
 			if ( ubPerson != NOBODY )
 			{
@@ -2951,7 +2950,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 	// if we're a computer merc, and we have the action points remaining to RADIO
 	// (we never want NPCs to choose to radio if they would have to wait a turn)
-	if ( !(pSoldier->bSoldierFlagMask & SOLDIER_RAISED_REDALERT) && !fCivilian && (pSoldier->bActionPoints >= APBPConstants[AP_RADIO]) && (gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) )
+	if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && !fCivilian && (pSoldier->bActionPoints >= APBPConstants[AP_RADIO]) && (gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) )
 	{
 
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: checking to radio red alert");
@@ -4447,7 +4446,7 @@ INT16 ubMinAPCost;
 				}
 			}
 			// frequencies are clear, lets call for help
-			else if ( !(pSoldier->bSoldierFlagMask & SOLDIER_RAISED_REDALERT) )
+			else if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) )
 			{
 				// raise alarm!
 				return( AI_ACTION_RED_ALERT );
@@ -5830,7 +5829,7 @@ L_NEWAIM:
 	// (we never want NPCs to choose to radio if they would have to wait a turn)
 	// and we're not swimming in deep water, and somebody has called for spotters
 	// and we see the location of at least 2 opponents
-	if ( !(pSoldier->bSoldierFlagMask & SOLDIER_RAISED_REDALERT) && (gTacticalStatus.ubSpottersCalledForBy != NOBODY) && (pSoldier->bActionPoints >= APBPConstants[AP_RADIO]) &&
+	if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && (gTacticalStatus.ubSpottersCalledForBy != NOBODY) && (pSoldier->bActionPoints >= APBPConstants[AP_RADIO]) &&
 		(pSoldier->aiData.bOppCnt > 1) && !fCivilian &&
 		(gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) && !bInDeepWater)
 	{
@@ -5969,7 +5968,7 @@ L_NEWAIM:
 	// RADIO RED ALERT: determine %chance to call others and report contact
 	////////////////////////////////////////////////////////////////////////////
 
-	if ( !(pSoldier->bSoldierFlagMask & SOLDIER_RAISED_REDALERT) && pSoldier->bTeam == MILITIA_TEAM && (pSoldier->bActionPoints >= APBPConstants[AP_RADIO]) && (gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) )
+	if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && pSoldier->bTeam == MILITIA_TEAM && (pSoldier->bActionPoints >= APBPConstants[AP_RADIO]) && (gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) )
 	{
 
 		// if there hasn't been an initial RED ALERT yet in this sector

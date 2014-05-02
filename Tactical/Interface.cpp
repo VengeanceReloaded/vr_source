@@ -1889,7 +1889,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	SetFontBackground( FONT_MCOLOR_BLACK );
 	
 	BOOLEAN bInCombat = gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT;
-	BOOLEAN bStealth = pSoldier->bStealthMode || pSoldier->bSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER );
+	BOOLEAN bStealth = pSoldier->bStealthMode || pSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER );
 	// sevenfm: for mercs use name color as cover indicator
 	// only use color when there is enemy in sector
 	if( pSoldier->bTeam == OUR_TEAM &&
@@ -3617,7 +3617,7 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 	}
 
 	/*
-	BOOLEAN bDisguised = pSoldier->bSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER);
+	BOOLEAN bDisguised = pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER);
 	BOOLEAN bStealth = pSoldier->bStealthMode;
 	// draw cover indicators
 	if( ( gGameExternalOptions.ubShowHealthBarsOnHead > 1 ) && 
@@ -5343,7 +5343,7 @@ STR16 GetSoldierHealthString( SOLDIERTYPE *pSoldier )
 	else	
 	{
 		// Flugente: display if we are a prisoner of war
-		if ( pSoldier->bSoldierFlagMask & SOLDIER_POW )
+		if ( pSoldier->usSoldierFlagMask & SOLDIER_POW )
 			return zHealthStr[ 7 ];
 
 		INT32 cnt, cntStart;
@@ -6443,7 +6443,7 @@ void ShowAdditionalInfo( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier )
 		// show awareness sign only when in stealth mode or disguised
 		if( ( gusSelectedSoldier != NOBODY ) &&
 			( pTargetSoldier->bTeam == ENEMY_TEAM || pTargetSoldier->bTeam == CIV_TEAM && !pTargetSoldier->aiData.bNeutral ) &&
-			( MercPtrs[ gusSelectedSoldier ]->bStealthMode || MercPtrs[ gusSelectedSoldier ]->bSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) ) )
+			( MercPtrs[ gusSelectedSoldier ]->bStealthMode || MercPtrs[ gusSelectedSoldier ]->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) ) )
 		{
 			if( pTargetSoldier->aiData.bOppList[ MercPtrs[ gusSelectedSoldier ]->ubID ] == SEEN_CURRENTLY )
 				swprintf( NameStr, L"%s", L"*" );

@@ -1889,7 +1889,7 @@ UINT8 GetTownSectorsUnderControl( INT8 bTownId )
 					( StrategicMap[ usSector ].fEnemyControlled == FALSE ) &&
 					( NumEnemiesInSector( ( INT16 )iCounterA, ( INT16 )iCounterB ) == 0 ) )
 			{
-				ubSectorsControlled++;
+				++ubSectorsControlled;
 			}
 		}
 	}
