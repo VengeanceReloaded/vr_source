@@ -234,6 +234,22 @@ INT8 HireMerc( MERC_HIRE_STRUCT *pHireMerc)
 	}
 #endif
 
+	// anv: VR - every merc arriving by air will land with parachute in his equipment
+	{
+		// OK, give this item to our merc!
+		// make an objecttype
+		CreateItem(2409, 100, &gTempObject);
+		// Give it
+		fReturn = AutoPlaceObject( MercPtrs[iNewIndex], &gTempObject, FALSE );
+		// CHRISL: This condition should resolve the issue of the letter not being issued to the first merc
+		if(!fReturn && (UsingNewInventorySystem() == true))
+		{
+			(MercPtrs[iNewIndex]->inv[NUM_INV_SLOTS-2]) = gTempObject;
+			fReturn=TRUE;
+		}
+		Assert( fReturn );
+	}
+
 	//record how long the merc will be gone for
 	pMerc->bMercStatus = (UINT8)pHireMerc->iTotalContractLength;
 
