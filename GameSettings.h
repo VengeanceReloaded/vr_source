@@ -1202,6 +1202,9 @@ typedef struct
 
 	//legion by Jazz
 	BOOLEAN fIndividualHiddenPersonNames;
+
+	// Flugente: display NPCs we know of in a different colour on the sector and radar map
+	BOOLEAN fKnownNPCsUseDifferentColour;
 	
 	//SAveGame Slot by Jazz
 	BOOLEAN fSaveGameSlot;

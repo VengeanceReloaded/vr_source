@@ -6356,11 +6356,11 @@ void ItemDescAttachmentsCallback( MOUSE_REGION * pRegion, INT32 iReason )
 
 			Object2 = *pAttachment;
 			gfItemDescObjectIsAttachment = TRUE;
-			InternalInitItemDescriptionBox( &Object2, gsInvDescX, gsInvDescY, 0, gpItemDescSoldier );
+			//InternalInitItemDescriptionBox( &Object2, gsInvDescX, gsInvDescY, 0, gpItemDescSoldier );
+			InternalInitItemDescriptionBox( pAttachment, gsInvDescX, gsInvDescY, 0, gpItemDescSoldier );
 
 			if ( fShopkeeperItem )
-			{
-				pShopKeeperItemDescObject = &Object2;
+			{				pShopKeeperItemDescObject = &Object2;
 				StartSKIDescriptionBox( );
 			}
 		}
@@ -6926,7 +6926,7 @@ void RenderItemDescriptionBox( )
 			{
 				OBJECTTYPE *gpComparedItemDescObject;
 				BOOLEAN fComparisonMode = FALSE;
-				if( _KeyDown( ALT ) && gfCheckForCursorOverMapSectorInventoryItem )
+				if( _KeyDown( CTRL ) && gfCheckForCursorOverMapSectorInventoryItem )
 				{
 					gpComparedItemDescObject = &pInventoryPoolList[ ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ) + iCurrentlyHighLightedItem].object;// = pInventoryPoolList[ iCurrentSlot + iFirstSlotOnPage ].object;
 					if( gpComparedItemDescObject != NULL )
@@ -7414,7 +7414,7 @@ void RenderItemDescriptionBox( )
 			{
 				OBJECTTYPE *gpComparedItemDescObject;
 				BOOLEAN fComparisonMode = FALSE;
-				if( _KeyDown( ALT ) && gfCheckForCursorOverMapSectorInventoryItem )
+				if( _KeyDown( CTRL ) && gfCheckForCursorOverMapSectorInventoryItem )
 				{
 					gpComparedItemDescObject = &pInventoryPoolList[ ( iCurrentInventoryPoolPage * MAP_INVENTORY_POOL_SLOT_COUNT ) + iCurrentlyHighLightedItem].object;// = pInventoryPoolList[ iCurrentSlot + iFirstSlotOnPage ].object;
 					if( gpComparedItemDescObject != NULL )

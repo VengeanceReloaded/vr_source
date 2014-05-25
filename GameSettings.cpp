@@ -1375,6 +1375,9 @@ void LoadGameExternalOptions()
 	//legion by Jazz
 	gGameExternalOptions.fIndividualHiddenPersonNames		= iniReader.ReadBoolean("Tactical Gameplay Settings","INDIVIDUAL_HIDDEN_PERSON_NAMES", FALSE);
 
+	// Flugente
+	gGameExternalOptions.fKnownNPCsUseDifferentColour		= iniReader.ReadBoolean("Tactical Gameplay Settings", "KNOWN_NPCS_DIFFERENT_MAPCOLOUR", FALSE );
+
 	//Enemy Names by Jazz
 	gGameExternalOptions.fEnemyNames						= iniReader.ReadBoolean("Tactical Gameplay Settings","INDIVIDUAL_ENEMY_NAMES",FALSE);	
 	
@@ -1388,7 +1391,6 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubShowEnemyRankIcon				= iniReader.ReadInteger("Tactical Gameplay Settings","SHOW_ENEMY_RANK_ICON", 0, 0, 2);
 
 	// Flugente: soldier profiles
-
 	if (!is_networked)
 		gGameExternalOptions.fSoldierProfiles_Enemy			= iniReader.ReadBoolean("Tactical Gameplay Settings", "SOLDIER_PROFILES_ENEMY", TRUE);
 	else
@@ -1802,7 +1804,7 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ADMIN]		= iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_ADMIN",	80, 30, 1000);
 	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_REGULAR]	= iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_REGULAR", 100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ADMIN], 1000);
 	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ELITE]		= iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_ELITE",   100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_REGULAR], 1000);
-	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_SPECIAL]	= iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_SPECIAL", 100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ELITE], 1000);
+	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_OFFICER]    = iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_SPECIAL", 100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ELITE], 1000 );
 		
 	// CHRISL: Determine how Skyrider should handle landing in enemy occupied sectors
 	gGameExternalOptions.ubSkyriderHotLZ					= iniReader.ReadInteger("Strategic Gameplay Settings", "ALLOW_SKYRIDER_HOT_LZ", 0, 0, 3);
@@ -2521,7 +2523,7 @@ void LoadSkillTraitsExternalSettings()
 	// anv: SNITCH
 	gSkillTraitValues.ubSNTBaseChance							= iniReader.ReadInteger("Snitch","BASE_CHANCE",  50, 0, 100);
 	gSkillTraitValues.fSNTMercOpinionAboutSnitchBonusModifier	= iniReader.ReadFloat("Snitch","MERC_OPINION_ABOUT_SNITCH_MODIFIER", 0.5, 0.0, 10.0);
-	gSkillTraitValues.fSNTSnitchOpinionAboutMercBonusModifier	= iniReader.ReadFloat("Snitch","SNITCH_OPINION_ABOUT_MERC_MODIFIER", 0.2, 0.0, 10.0);
+	gSkillTraitValues.fSNTSnitchOpinionAboutMercBonusModifier	= iniReader.ReadFloat("Snitch","SNITCH_OPINION_ABOUT_MERC_MODIFIER", 0.2f, 0.0f, 10.0f);
 	gSkillTraitValues.fSNTSnitchLeadershipBonusModifer	= iniReader.ReadFloat("Snitch","SNITCH_LEADERSHIP_BONUS_MODIFIER", 0.5, 0.0, 10.0);
 	gSkillTraitValues.bSNTSociableMercBonus						= iniReader.ReadInteger("Snitch","SOCIABLE_MERC_BONUS",  10, -100, 100);
 	gSkillTraitValues.bSNTLonerMercBonus					= iniReader.ReadInteger("Snitch","LONER_MERC_BONUS",  -10, -100, 100);
@@ -2775,6 +2777,11 @@ void LoadItemSettings()
 
 	// -------------- WEAPON MODIFIERS ----------------
 	// weapon overheating modifiers
+	// --------- NOT GUNS (e.g Tank Cannon!) ----------
+	gItemSettings.fOverheatJamThresholdModifierGun[NOT_GUN]		= iniReader.ReadFloat  ("Weapon Settings","OVERHEATING_JAM_THRESHOLD_NOT_GUN_MODIFIER", 1.0f, 0.1f, 10.0f);
+	gItemSettings.fOverheatDamageThresholdModifierGun[NOT_GUN]	= iniReader.ReadFloat  ("Weapon Settings","OVERHEATING_DAMAGE_THRESHOLD_NOT_GUN_MODIFIER", 1.0f, 0.1f, 10.0f);
+	gItemSettings.fOverheatTemperatureModifierGun[NOT_GUN]		= iniReader.ReadFloat  ("Weapon Settings","OVERHEATING_TEMPERATURE_NOT_GUN_MODIFIER", 1.0f, 0.1f, 10.0f);
+	gItemSettings.fOverheatCooldownModifierGun[NOT_GUN]			= iniReader.ReadFloat  ("Weapon Settings","OVERHEATING_COOLDOWN_NOT_GUN_MODIFIER", 1.0f, 0.1f, 10.0f);
 	// --------- PISTOLS ----------
 	gItemSettings.fOverheatJamThresholdModifierGun[GUN_PISTOL]		= iniReader.ReadFloat  ("Weapon Settings","OVERHEATING_JAM_THRESHOLD_PISTOL_MODIFIER", 1.0f, 0.1f, 10.0f);
 	gItemSettings.fOverheatDamageThresholdModifierGun[GUN_PISTOL]	= iniReader.ReadFloat  ("Weapon Settings","OVERHEATING_DAMAGE_THRESHOLD_PISTOL_MODIFIER", 1.0f, 0.1f, 10.0f);
@@ -2822,6 +2829,7 @@ void LoadItemSettings()
 	gItemSettings.fOverheatCooldownModifierLauncher					= iniReader.ReadFloat  ("Weapon Settings","OVERHEATING_COOLDOWN_LAUNCHER_MODIFIER", 1.0f, 0.1f, 10.0f);
 
 	// weapon range modifiers
+	gItemSettings.fRangeModifierGun[NOT_GUN]						= iniReader.ReadFloat  ("Weapon Settings","RANGE_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fRangeModifierGun[GUN_PISTOL]						= iniReader.ReadFloat  ("Weapon Settings","RANGE_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fRangeModifierGun[GUN_M_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","RANGE_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fRangeModifierGun[GUN_SMG]						= iniReader.ReadFloat  ("Weapon Settings","RANGE_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2837,6 +2845,7 @@ void LoadItemSettings()
 
 	// weapon damage modifiers
 	// ----------- GUNS -----------
+	gItemSettings.fDamageModifierGun[NOT_GUN]						= iniReader.ReadFloat  ("Weapon Settings","DAMAGE_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fDamageModifierGun[GUN_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","DAMAGE_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fDamageModifierGun[GUN_M_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","DAMAGE_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fDamageModifierGun[GUN_SMG]						= iniReader.ReadFloat  ("Weapon Settings","DAMAGE_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2851,6 +2860,7 @@ void LoadItemSettings()
 	gItemSettings.fDamageModifierTentacle							= iniReader.ReadFloat  ("Weapon Settings","DAMAGE_TENTACLE_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// APs needed for a single attack modifiers
+	gItemSettings.fShotsPer4TurnsModifierGun[NOT_GUN]				= iniReader.ReadFloat  ("Weapon Settings","SP4T_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fShotsPer4TurnsModifierGun[GUN_PISTOL]			= iniReader.ReadFloat  ("Weapon Settings","SP4T_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fShotsPer4TurnsModifierGun[GUN_M_PISTOL]			= iniReader.ReadFloat  ("Weapon Settings","SP4T_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fShotsPer4TurnsModifierGun[GUN_SMG]				= iniReader.ReadFloat  ("Weapon Settings","SP4T_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2866,6 +2876,7 @@ void LoadItemSettings()
 	gItemSettings.fShotsPer4TurnsModifierThrowKnife					= iniReader.ReadFloat  ("Weapon Settings","SP4T_THROWKNIFE_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// Burst AP modifiers
+	gItemSettings.fBurstAPModifierGun[NOT_GUN]						= iniReader.ReadFloat  ("Weapon Settings","BURST_AP_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fBurstAPModifierGun[GUN_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","BURST_AP_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fBurstAPModifierGun[GUN_M_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","BURST_AP_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fBurstAPModifierGun[GUN_SMG]						= iniReader.ReadFloat  ("Weapon Settings","BURST_AP_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2876,6 +2887,7 @@ void LoadItemSettings()
 	gItemSettings.fBurstAPModifierGun[GUN_SHOTGUN]					= iniReader.ReadFloat  ("Weapon Settings","BURST_AP_SHOTGUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// Auto Fire AP modifiers
+	gItemSettings.fAFShotsPer5APModifierGun[NOT_GUN]				= iniReader.ReadFloat  ("Weapon Settings","AF_SP5AP_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAFShotsPer5APModifierGun[GUN_PISTOL]				= iniReader.ReadFloat  ("Weapon Settings","AF_SP5AP_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAFShotsPer5APModifierGun[GUN_M_PISTOL]			= iniReader.ReadFloat  ("Weapon Settings","AF_SP5AP_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAFShotsPer5APModifierGun[GUN_SMG]				= iniReader.ReadFloat  ("Weapon Settings","AF_SP5AP_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2886,6 +2898,7 @@ void LoadItemSettings()
 	gItemSettings.fAFShotsPer5APModifierGun[GUN_SHOTGUN]			= iniReader.ReadFloat  ("Weapon Settings","AF_SP5AP_SHOTGUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// AP to Reload modifiers
+	gItemSettings.fAPtoReloadModifierGun[NOT_GUN]					= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAPtoReloadModifierGun[GUN_PISTOL]				= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAPtoReloadModifierGun[GUN_M_PISTOL]				= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAPtoReloadModifierGun[GUN_SMG]					= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2897,6 +2910,7 @@ void LoadItemSettings()
 	gItemSettings.fAPtoReloadModifierLauncher						= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_LAUNCHER_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// AP to re-chamber/pump modifiers
+	gItemSettings.fAPtoReloadManuallyModifierGun[NOT_GUN]			= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_MAN_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAPtoReloadManuallyModifierGun[GUN_PISTOL]		= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_MAN_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAPtoReloadManuallyModifierGun[GUN_M_PISTOL]		= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_MAN_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fAPtoReloadManuallyModifierGun[GUN_SMG]			= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_MAN_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2908,6 +2922,7 @@ void LoadItemSettings()
 	gItemSettings.fAPtoReloadManuallyModifierLauncher				= iniReader.ReadFloat  ("Weapon Settings","AP_RELOAD_MAN_LAUNCHER_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// max distance for messy death modifiers
+	gItemSettings.fDistMessyModifierGun[NOT_GUN]					= iniReader.ReadFloat  ("Weapon Settings","DIST_MESSY_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fDistMessyModifierGun[GUN_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","DIST_MESSY_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fDistMessyModifierGun[GUN_M_PISTOL]				= iniReader.ReadFloat  ("Weapon Settings","DIST_MESSY_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fDistMessyModifierGun[GUN_SMG]					= iniReader.ReadFloat  ("Weapon Settings","DIST_MESSY_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2918,6 +2933,7 @@ void LoadItemSettings()
 	gItemSettings.fDistMessyModifierGun[GUN_SHOTGUN]				= iniReader.ReadFloat  ("Weapon Settings","DIST_MESSY_SHOTGUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// weapon handling modifiers
+	gItemSettings.fHandlingModifierGun[NOT_GUN]						= iniReader.ReadFloat  ("Weapon Settings","HANDLING_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fHandlingModifierGun[GUN_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","HANDLING_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fHandlingModifierGun[GUN_M_PISTOL]				= iniReader.ReadFloat  ("Weapon Settings","HANDLING_MP_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fHandlingModifierGun[GUN_SMG]						= iniReader.ReadFloat  ("Weapon Settings","HANDLING_SMG_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -2929,6 +2945,9 @@ void LoadItemSettings()
 	gItemSettings.fHandlingModifierLauncher							= iniReader.ReadFloat  ("Weapon Settings","HANDLING_LAUNCHER_MODIFIER", 1.0f, 0.1f, 5.0f);
 
 	// weapon recoil modifiers
+	// --------- NOT GUNS ----------
+	gItemSettings.fRecoilXModifierGun[NOT_GUN]					= iniReader.ReadFloat  ("Weapon Settings","RECOILX_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
+	gItemSettings.fRecoilYModifierGun[NOT_GUN]					= iniReader.ReadFloat  ("Weapon Settings","RECOILY_NOT_GUN_MODIFIER", 1.0f, 0.1f, 5.0f);
 	// --------- PISTOLS ----------
 	gItemSettings.fRecoilXModifierGun[GUN_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","RECOILX_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
 	gItemSettings.fRecoilYModifierGun[GUN_PISTOL]					= iniReader.ReadFloat  ("Weapon Settings","RECOILY_PISTOL_MODIFIER", 1.0f, 0.1f, 5.0f);
@@ -3244,7 +3263,7 @@ void LoadCTHConstants()
 	gGameCTHConstants.SCOPE_EFFECTIVENESS_MINIMUM_SNIPER = iniReader.ReadInteger("General", "SCOPE_EFFECTIVENESS_MINIMUM_SNIPER", 100, 0, 100);
 	gGameCTHConstants.SIDE_FACING_DIVISOR				= iniReader.ReadFloat("General", "SIDE_FACING_DIVISOR", 2.0, 1.0f, 10.0f);
 	// HEADROCK HAM 5: Basic chance to lose condition point when firing
-	gGameCTHConstants.BASIC_RELIABILITY_ODDS			= iniReader.ReadInteger("General", "BASIC_RELIABILITY_ODDS", 15, 0, 100);
+	gGameCTHConstants.BASIC_RELIABILITY_ODDS			= iniReader.ReadInteger("General", "BASIC_RELIABILITY_ODDS", 15, 0, 10000);
 
 	////////////////////////////////////////////////////////////
 	// Coefficients for factors affecting Base CTH

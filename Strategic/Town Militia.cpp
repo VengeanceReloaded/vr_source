@@ -691,25 +691,25 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Militia2");
 		if (IsMilitiaTrainableFromSoldiersSectorMaxed( pSoldier, REGULAR_MILITIA )
 		&& (gGameExternalOptions.gfTrainVeteranMilitia)
 		&& (GetWorldDay( ) >= gGameExternalOptions.guiTrainVeteranMilitiaDelay))
-	{
-		giTotalCostOfTraining = (iMilitiaTrainingCost*gGameExternalOptions.iVeteranCostModifier) * iNumberOfSectors;
-		Assert( giTotalCostOfTraining > 0 );
-		gfAreWePromotingRegular = TRUE;
-	}
-	else if (IsMilitiaTrainableFromSoldiersSectorMaxed( pSoldier, GREEN_MILITIA ))
-	{
-		giTotalCostOfTraining = (iMilitiaTrainingCost*gGameExternalOptions.iRegularCostModifier) * iNumberOfSectors;
-		Assert( giTotalCostOfTraining > 0 );
-		gfAreWePromotingGreen = TRUE;
-	}
-		// Normal training.
-	else
-	{
-		giTotalCostOfTraining = iMilitiaTrainingCost * iNumberOfSectors;
-		Assert( giTotalCostOfTraining > 0 );
+		{
+			giTotalCostOfTraining = (iMilitiaTrainingCost*gGameExternalOptions.iVeteranCostModifier) * iNumberOfSectors;
+			Assert( giTotalCostOfTraining > 0 );
+			gfAreWePromotingRegular = TRUE;
 		}
+		else if (IsMilitiaTrainableFromSoldiersSectorMaxed( pSoldier, GREEN_MILITIA ))
+		{
+			giTotalCostOfTraining = (iMilitiaTrainingCost*gGameExternalOptions.iRegularCostModifier) * iNumberOfSectors;
+			Assert( giTotalCostOfTraining > 0 );
+			gfAreWePromotingGreen = TRUE;
+		}
+		// Normal training.
+		else
+		{
+			giTotalCostOfTraining = iMilitiaTrainingCost * iNumberOfSectors;
+			Assert( giTotalCostOfTraining > 0 );
+		}
+		gfAreWeTrainingMobile = FALSE;
 	}
-
 	// Mobile
 	else 
 	{
@@ -1032,6 +1032,7 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Militia3");
 		{
 			giTotalCostOfTraining = (iMilitiaTrainingCost);
 		}
+		gfAreWeTrainingMobile = FALSE;
 	}
 
 	// can player afford to continue training?
@@ -1935,7 +1936,7 @@ UINT8 FindBestMilitiaTrainingLeadershipInSector ( INT16 sMapX, INT16 sMapY, INT8
 				if ( gGameOptions.fNewTraitSystem ) // SANDRO - old/new traits
 				{
 					// -10% penalty for untrained mercs
-					usTrainerEffectiveLeadership = (usTrainerEffectiveLeadership * (100 - gSkillTraitValues.bSpeedModifierTrainingMilitia) / 100);
+					usTrainerEffectiveLeadership = (usTrainerEffectiveLeadership * (100 + gSkillTraitValues.bSpeedModifierTrainingMilitia) / 100);
 
 					if (HAS_SKILL_TRAIT( pCheckedTrainer, TEACHING_NT ))
 					{

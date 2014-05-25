@@ -3519,6 +3519,7 @@ STR16 pwTownInfoStrings[] =
 	L"Civilian Training",				// 10 // state of civilian training in town
 	L"Militia", 					// the state of the trained civilians in the town
 	L"Mobile Training",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town
+	L"Prisoners",				// Flugente: display number of prisoners
 };
 
 // Mine strings
@@ -6829,6 +6830,8 @@ STR16 NewInvMessage[] =
 	L"Are you sure you want to sell all sector items?",
 	L"Are you sure you want to delete all sector items?",
 	L"Cannot climb while wearing a backpack",
+	L"All backpacks dropped",
+	L"All owned backpacks picked up",
 };
 
 // WANNE - MP: Multiplayer messages
@@ -8063,10 +8066,10 @@ STR16	szFoodTextStr[]=
 
 STR16	szPrisonerTextStr[]=
 {
-	L"%d elites, %d regulars and %d admins were interrogated.",
+	L"%d officers, %d elites, %d regulars and %d admins were interrogated.",
 	L"%d prisoners paid ransom money.",
 	L"%d prisoners revealed enemy positions.",
-	L"%d elites, %d regulars and %d admins joined our cause.",
+	L"%d officers, %d elites, %d regulars and %d admins joined our cause.",
 	L"Prisoners start a massive riot in %s!",
 	L"%d prisoners were sent to %s!",
 	L"Prisoners have been released!",

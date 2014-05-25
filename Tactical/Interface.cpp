@@ -1907,16 +1907,15 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 		{
 			// target tile cover
 			CalculateCoverForSoldier( pSoldier, usMapPos, gsInterfaceLevel, cover );
-			showCover = CoverColorCode( cover, color8, color16 );
-			SetFontForeground( (UINT8)color8 );
 		}
 		else
 		{
 			// merc's cover
-			CalculateCoverForSoldier( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, cover );
-			showCover = CoverColorCode( cover, color8, color16 );
-			SetFontForeground( (UINT8)color8 );
+			CalculateCoverForSoldier( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, cover );			
 		}
+
+		showCover = CoverColorCode( cover, color8, color16 );
+		SetFontForeground( (UINT8)color8 );
 	}
 	else
 	{
@@ -1958,7 +1957,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 			mprintf( sX, sY, NameStr );
 			fRaiseName = TRUE;
 		}
-		else if ( pSoldier->bTeam == gbPlayerNum &&	pSoldier->bAssignment < ON_DUTY && pSoldier->bAssignment != CurrentSquad() && !(	pSoldier->flags.uiStatusFlags & SOLDIER_MULTI_SELECTED ) )
+		else if ( pSoldier->bTeam == gbPlayerNum &&	pSoldier->bAssignment < ON_DUTY && pSoldier->bAssignment != CurrentSquad() && !( pSoldier->flags.uiStatusFlags & SOLDIER_MULTI_SELECTED ) )
 		{
 			if ( gGameExternalOptions.fUseXMLSquadNames )
 				swprintf( NameStr, SquadNames[ pSoldier->bAssignment ].squadname );
@@ -1989,80 +1988,29 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 
 		if ( fDoName )
 		{
-			if ( fRaiseName )
+			//legion2 jazz
+			if ( pSoldier->ubBodyType == ROBOTNOWEAPON && pSoldier->bTeam == ENEMY_TEAM )
 			{
-				//legion2 jazz
-				if (pSoldier->ubBodyType == ROBOTNOWEAPON && pSoldier->bTeam == ENEMY_TEAM )
-				{
-					swprintf( NameStr, zGrod[0] );
-				}
-				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-				{
-					swprintf( NameStr,L"???" );
-				}
-				else
-				{
-					swprintf( NameStr, L"%s", pSoldier->name );
-				}
-		  
-				//Legion	
-				if (pSoldier->ubBodyType == TANK_NE || pSoldier->ubBodyType == TANK_NW)
-				{
-				  swprintf( NameStr, gNewVehicle[164].NewVehicleStrings );
-					//swprintf( NameStr, pVehicleStrings[4] );
-				}
-				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-				{
-					swprintf( NameStr,L"???" );
-				}
-				else
-				{
-					swprintf( NameStr, L"%s", pSoldier->name );
-				}	
-				//-------
-		
-				//swprintf( NameStr, L"%s", pSoldier->name );
-				FindFontCenterCoordinates( sXPos, (INT16)( sYPos - 10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-				gprintfdirty( sX, sY, NameStr );
-				mprintf( sX, sY, NameStr );
+				swprintf( NameStr, zGrod[0] );
+			}
+			//Legion	
+			else if ( pSoldier->ubBodyType == TANK_NE || pSoldier->ubBodyType == TANK_NW )
+			{
+				swprintf( NameStr, gNewVehicle[164].NewVehicleStrings );
+			}
+			else if ( zHiddenNames[pSoldier->ubProfile].Hidden == TRUE )
+			{
+				swprintf( NameStr, L"???" );
 			}
 			else
 			{
-				//legion Jazz 
-				if (pSoldier->ubBodyType == ROBOTNOWEAPON && pSoldier->bTeam == ENEMY_TEAM )
-				{
-					swprintf( NameStr, zGrod[0] );
-				}
-				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-				{
-					swprintf( NameStr,L"???" );
-				}
-				else
-				{
-					swprintf( NameStr, L"%s", pSoldier->name );
-				}
-		
-				//Legion	
-				if (pSoldier->ubBodyType == TANK_NE || pSoldier->ubBodyType == TANK_NW)
-				{
-					//swprintf( NameStr, pVehicleStrings[4] );
-					swprintf( NameStr, gNewVehicle[164].NewVehicleStrings );
-				}
-				else if (zHiddenNames[pSoldier->ubProfile].Hidden == TRUE) 
-				{
-					swprintf( NameStr,L"???" );
-				}
-				else
-				{
-					wprintf( NameStr, L"%s", pSoldier->name );
-				}
-				//---------------
-			
-				//swprintf( NameStr, L"%s", pSoldier->name );
-				FindFontCenterCoordinates( sXPos, sYPos, (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-				gprintfdirty( sX, sY, NameStr );
-				mprintf( sX, sY, NameStr );
+				swprintf( NameStr, L"%s", pSoldier->name );
 			}
+
+			INT16 sNameY = fRaiseName ? sYPos - 10 : sYPos;
+			FindFontCenterCoordinates( sXPos, sNameY, (INT16)(80), 1, NameStr, TINYFONT1, &sX, &sY );
+			gprintfdirty( sX, sY, NameStr );
+			mprintf( sX, sY, NameStr );
 		}
 
 //		if ( pSoldier->ubProfile < FIRST_RPC || pSoldier->ubProfile >= GASTON || RPC_RECRUITED( pSoldier ) || AM_AN_EPC( pSoldier ) || ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
@@ -2137,7 +2085,6 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 						DrawBarsInUIBox( pSoldier,	(INT16)(sXPos -1), (INT16)(sYPos ), 16, 1, 3 );
 					}
 				}
-
 			}
 		}
 		else // ( pSoldier->ubProfile < FIRST_RPC || pSoldier->ubProfile >= GASTON ||
@@ -2174,9 +2121,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 						if ( gGameExternalOptions.fSoldierProfiles_Enemy && pSoldier->usSoldierProfile )
 						{					
 							swprintf(NameStr, pSoldier->GetName());
-							
-							SetFont( TINYFONT1 );
-							SetFontBackground( FONT_MCOLOR_BLACK );
+
 							SetFontForeground( FONT_YELLOW );
 
 							FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
@@ -2192,9 +2137,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 									if ( pSoldier->sSectorX == zEnemyName[iCounter2].SectorX && pSoldier->sSectorY == zEnemyName[iCounter2].SectorY )
 									{
 										swprintf(NameStr, zEnemyName[iCounter2].szCurGroup);
-				
-										SetFont( TINYFONT1 );
-										SetFontBackground( FONT_MCOLOR_BLACK );
+
 										SetFontForeground( FONT_YELLOW );
 					
 										//legion2
@@ -2216,9 +2159,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 									if ( zEnemyRank[iCounter2].Stats == 0 && pSoldier->stats.bExpLevel == zEnemyRank[iCounter2].ExpLevel )  
 									{
 										swprintf(NameStr, zEnemyRank[iCounter2].szCurRank);
-							
-										SetFont( TINYFONT1 );
-										SetFontBackground( FONT_MCOLOR_BLACK );
+
 										SetFontForeground( FONT_YELLOW );
 								
 										//legion2
@@ -2237,9 +2178,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 					{
 						// get a proper chaos name							
 						swprintf(NameStr, pSoldier->GetName());
-							
-						SetFont( TINYFONT1 );
-						SetFontBackground( FONT_MCOLOR_BLACK );
+
 						SetFontForeground( FONT_YELLOW );
 
 						FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
@@ -2251,9 +2190,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 						if (zCivGroupName[pSoldier->ubCivilianGroup].Enabled == 1)
 						{	
 							swprintf(NameStr, zCivGroupName[pSoldier->ubCivilianGroup].szCurGroup);
-							
-							SetFont( TINYFONT1 );
-							SetFontBackground( FONT_MCOLOR_BLACK );
+
 							SetFontForeground( FONT_YELLOW );
 								
 							//legion2
@@ -2275,15 +2212,15 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 			// sevenfm: fix for overlapping with SHOW_ENEMY_WEAPON feature
 			if( !gGameExternalOptions.fShowEnemyWeapon || !gfUIFullTargetFound )
 			{
-			SetFont( TINYFONT1 );
-			SetFontBackground( FONT_MCOLOR_BLACK );
-			SetFontForeground( FONT_YELLOW );
+				SetFont( TINYFONT1 );
+				SetFontBackground( FONT_MCOLOR_BLACK );
+				SetFontForeground( FONT_YELLOW );
 
-			swprintf( NameStr, gzLateLocalizedString[ 15 ] );
+				swprintf( NameStr, gzLateLocalizedString[ 15 ] );
 				FindFontCenterCoordinates( sXPos, (INT16)(sYPos + 10), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-			gprintfdirty( sX, sY, NameStr );
-			mprintf( sX, sY, NameStr );
-		}
+				gprintfdirty( sX, sY, NameStr );
+				mprintf( sX, sY, NameStr );
+			}
 		}
 
 		pStr = GetSoldierHealthString( pSoldier );
@@ -2292,7 +2229,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 		extern void SoldierTooltip(SOLDIERTYPE*);
 		//if ( gGameExternalOptions.gfAllowSoldierToolTips ) // changed by SANDRO
 		if ( gGameSettings.fOptions[TOPTION_ALLOW_SOLDIER_TOOLTIPS] )
-		 SoldierTooltip(pSoldier);
+			SoldierTooltip(pSoldier);
 
 		SetFont( TINYFONT1 );
 		SetFontBackground( FONT_MCOLOR_BLACK );
@@ -2311,8 +2248,6 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 				swprintf(NameStr, pSoldier->name);
 							
 				// Display name
-				SetFont( TINYFONT1 );
-				SetFontBackground( FONT_MCOLOR_BLACK );
 				SetFontForeground( FONT_MCOLOR_WHITE );
 								
 				//legion2
@@ -2329,9 +2264,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 				{
 					// get a proper chaos name							
 					swprintf(NameStr, pSoldier->GetName());
-							
-					SetFont( TINYFONT1 );
-					SetFontBackground( FONT_MCOLOR_BLACK );
+
 					SetFontForeground( FONT_YELLOW );
 
 					FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
@@ -2347,9 +2280,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 							if ( pSoldier->sSectorX == zEnemyName[iCounter2].SectorX && pSoldier->sSectorY == zEnemyName[iCounter2].SectorY )
 							{
 								swprintf(NameStr, zEnemyName[iCounter2].szCurGroup);
-							
-								SetFont( TINYFONT1 );
-								SetFontBackground( FONT_MCOLOR_BLACK );
+
 								SetFontForeground( FONT_YELLOW );
 								
 								//legion2
@@ -2362,6 +2293,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 						}
 					}
 				}
+
 				if (gGameExternalOptions.fEnemyRank == TRUE)
 				{
 					for( iCounter2 = 1; iCounter2 < 11; ++iCounter2 )
@@ -2372,14 +2304,11 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 							{
 								swprintf(NameStr, zEnemyRank[iCounter2].szCurRank);
 
-								SetFont( TINYFONT1 );
-								SetFontBackground( FONT_MCOLOR_BLACK );
 								SetFontForeground( FONT_YELLOW );
 
 								// need to adjust sYPos because default position already occupied by the name
 								if ( gGameExternalOptions.fSoldierProfiles_Enemy && pSoldier->usSoldierProfile || gGameExternalOptions.fEnemyNames )
 									FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 10 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
-
 								// use default position for text
 								else
 									FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
@@ -2401,15 +2330,13 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 				ShowEnemyHealthBar( sX, sY, pSoldier );				
 				ShowAdditionalInfo( sX, sY, pSoldier );
 				ShowRankIcon( sXPos, sYPos, pSoldier );
-					}
+			}
 			// Flugente: soldier profiles
 			else if ( pSoldier->bTeam == MILITIA_TEAM && gGameExternalOptions.fSoldierProfiles_Militia && pSoldier->usSoldierProfile )
 			{
-				// get a proper chaos name							
+				// get a proper name							
 				swprintf(NameStr, pSoldier->GetName());
-							
-				SetFont( TINYFONT1 );
-				SetFontBackground( FONT_MCOLOR_BLACK );
+
 				SetFontForeground( FONT_YELLOW );
 
 				FindFontCenterCoordinates( sXPos, (INT16)( sYPos + 20 ), (INT16)(80 ), 1, NameStr, TINYFONT1, &sX, &sY );
@@ -2421,9 +2348,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 				if (zCivGroupName[pSoldier->ubCivilianGroup].Enabled == 1)
 				{	
 					swprintf(NameStr, zCivGroupName[pSoldier->ubCivilianGroup].szCurGroup);
-							
-					SetFont( TINYFONT1 );
-					SetFontBackground( FONT_MCOLOR_BLACK );
+
 					SetFontForeground( FONT_YELLOW );
 								
 					//legion2
@@ -2431,6 +2356,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 					gprintfdirty( sX, sY, NameStr );
 					mprintf( sX, sY, NameStr );
 				}
+
 				// sevenfm: show weapon name and additional info
 				FindFontCenterCoordinates( sXPos, (INT16)( sYPos ), (INT16)(80 ), 1, L"", TINYFONT1, &sX, &sY );
 				ShowEnemyWeapon( sX, sY, pSoldier );

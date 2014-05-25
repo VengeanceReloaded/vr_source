@@ -3231,11 +3231,9 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 							DisplayRangeToTarget( MercPtrs[ gusSelectedSoldier ], usGridNo );
 						}
 
-						#ifdef JA2TESTVERSION
-							CHAR16	zOutputString[512];
-							swprintf( zOutputString, L"gridno: %d", usGridNo);
-							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, zOutputString );
-						#endif
+						CHAR16	zOutputString[512];
+						swprintf( zOutputString, L"%s: %d", pUpdateMapInfoText[19], usGridNo);
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, zOutputString );
 					}
 				}
 				break;
@@ -3244,7 +3242,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				if( fCtrl && UsingNewInventorySystem() == true )
 				{
 					HandleTBPickUpBackpacks();
-						}
+				}
 				SeperateItems();
 				if( fCtrl )
 					StackAndSort( TRUE );
@@ -3306,7 +3304,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				if( fCtrl )
 				{
 					HandleTBToggleFormation();
-					}
+				}
 				else if ( gGameSettings.fOptions[TOPTION_GL_BURST_CURSOR] )
 				{
 					gGameSettings.fOptions[TOPTION_GL_BURST_CURSOR] = FALSE;
@@ -5705,7 +5703,7 @@ void ChangeCurrentSquad( INT32 iSquad )
 		{
 			for( cnt2 = 0; cnt2 < NUMBER_OF_SOLDIERS_PER_SQUAD; cnt2++ )
 			{
-				if ( Squad[ cnt ][ cnt2 ] != NULL && Squad[ cnt ][ cnt2 ]->bInSector && OK_INTERRUPT_MERC( Squad[ cnt ][ cnt2 ] ) && OK_CONTROLLABLE_MERC( Squad[ cnt ][ cnt2 ] ) && !(Squad[ cnt ][ cnt2 ]->flags.uiStatusFlags & SOLDIER_VEHICLE) )
+				if ( Squad[ cnt ][ cnt2 ] != NULL && Squad[ cnt ][ cnt2 ]->bInSector && OK_INTERRUPT_MERC( Squad[ cnt ][ cnt2 ] ) && OK_CONTROLLABLE_MERC( Squad[ cnt ][ cnt2 ] ) )
 				{
 					cnt3++;
 					break;
@@ -7666,6 +7664,7 @@ void HandleTBDropBackpacks( void )
 		}
 		fCharacterInfoPanelDirty = TRUE;
 		fInterfacePanelDirty = DIRTYLEVEL2;
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_ALL_DROP] );
 	}
 }
 void HandleTBPickUpBackpacks( void )
@@ -7681,6 +7680,7 @@ void HandleTBPickUpBackpacks( void )
 				ChangeDropPackStatus(pTeamSoldier, FALSE);
 			}
 		}
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_ALL_PICKUP] );
 	}
 }
 void HandleTBSoldierRun( void )

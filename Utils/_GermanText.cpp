@@ -3516,6 +3516,7 @@ STR16 pwTownInfoStrings[] =
 	L"Zivilistentraining",				// 10 // state of civilian training in town
 	L"Miliz", 					// the state of the trained civilians in the town
 	L"Mobile M. Training",				// HEADROCK HAM 3.6: The stat of Mobile militia training in town
+	L"Prisoners",				// Flugente: display number of prisoners	// TODO.Translate
 };
 
 // Mine strings
@@ -6655,6 +6656,8 @@ STR16 NewInvMessage[] =
 	L"Sind Sie sicher, dass Sie alle Gegenstände im Sektor verkaufen wollen?",
 	L"Sind Sie sicher, dass Sie alle Gegenstände im Sektor löschen wollen?",
 	L"Kann nicht beim Tragen eines Rucksacks klettern",
+	L"All backpacks dropped",	// TODO.Translate
+	L"All owned backpacks picked up",
 };
 
 // WANNE - MP: Multiplayer messages
@@ -7897,10 +7900,10 @@ STR16	szFoodTextStr[]=
 
 STR16	szPrisonerTextStr[]=
 {
-	L"%d Elite-, %d Reguläre und %d Hilfssoldaten wurden verhört.",
+	L"%d Offiziere, %d Elite-, %d Reguläre und %d Hilfssoldaten wurden verhört.",
 	L"%d Gefangene wurden gegen Lösegeld freigelassen.",
 	L"%d Gefangene haben uns Truppenstandorte verraten.",
-	L"%d Elite-, %d Reguläre und %d Hilfssoldaten laufen zu uns über.",
+	L"%d Offiziere, %d Elite-, %d Reguläre und %d Hilfssoldaten laufen zu uns über.",
 	L"Gefangenenaufstand in %s!",
 	L"%d Gefangene wurden nach %s geschickt!",
 	L"Gefangene freigelassen!",

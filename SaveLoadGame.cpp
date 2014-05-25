@@ -144,6 +144,7 @@
 #include "connect.h"
 #include "Map Screen Interface Map Inventory.h"//dnl ch51 081009
 #include "Sys Globals.h"//dnl ch74 201013
+#include "Ambient Control.h"		// added by Flugente for HandleNewSectorAmbience(...)
 
 /////////////////////////////////////////////////////
 //
@@ -489,7 +490,10 @@ typedef struct
 	UINT8		ubHelicopterHoverTime;
 	UINT8		ubHelicopterTimeToFullRefuel;
 
-	UINT8		ubFiller[273];		//This structure should be 1588 bytes
+	// Buggler: New global variable that tracks money earned for facility use.
+	INT32 iTotalEarnedForFacilityOperationsToday;
+
+	UINT8		ubFiller[266];		//This structure should be 1588 bytes
 
 } GENERAL_SAVE_INFO;
 
@@ -4663,6 +4667,9 @@ BOOLEAN LoadSavedGame( int ubSavedGameID )
 		LoadGameFilePosition( FileGetPos( hFile ), "Strategic Events" );
 	#endif
 
+	// anv: we need to rebuild ambient sounds now, as those added when loading tileset are removed
+	// in LoadStrategicEventsFromSavedGame
+	HandleNewSectorAmbience( gTilesets[ giCurrentTilesetID ].ubAmbientID );
 
 	uiRelEndPerc += 0;
 	SetRelativeStartAndEndPercentage( 0, uiRelStartPerc, uiRelEndPerc, L"Laptop Info" );
@@ -8186,6 +8193,7 @@ BOOLEAN SaveGeneralInfo( HWFILE hFile )
 	sGeneralInfo.fMikeShouldSayHi								= gfMikeShouldSayHi;
 
 	// HEADROCK HAM 3.6: Save new global variable for facility costs
+	sGeneralInfo.iTotalEarnedForFacilityOperationsToday = giTotalEarnedForFacilityOperationsToday;
 	sGeneralInfo.iTotalOwedForFacilityOperationsToday = giTotalOwedForFacilityOperationsToday;
 
 	// HEADROCK HAM 3.6: Save Skyrider Costs Modifier
@@ -8460,6 +8468,7 @@ BOOLEAN LoadGeneralInfo( HWFILE hFile )
 		numBytesRead = ReadFieldByField(hFile, &sGeneralInfo.ubHelicopterSeriousRepairsSoFar, sizeof(sGeneralInfo.ubHelicopterSeriousRepairsSoFar), sizeof(UINT8), numBytesRead);
 		numBytesRead = ReadFieldByField(hFile, &sGeneralInfo.ubHelicopterHoverTime, sizeof(sGeneralInfo.ubHelicopterHoverTime), sizeof(UINT8), numBytesRead);
 		numBytesRead = ReadFieldByField(hFile, &sGeneralInfo.ubHelicopterTimeToFullRefuel, sizeof(sGeneralInfo.ubHelicopterTimeToFullRefuel), sizeof(UINT8), numBytesRead);
+		numBytesRead = ReadFieldByField(hFile, &sGeneralInfo.iTotalEarnedForFacilityOperationsToday, sizeof(sGeneralInfo.iTotalEarnedForFacilityOperationsToday), sizeof(INT32), numBytesRead);
 		numBytesRead = ReadFieldByField(hFile, &sGeneralInfo.ubFiller, sizeof(sGeneralInfo.ubFiller), sizeof(UINT8), numBytesRead);
 	} else {
 		numBytesRead = ReadFieldByField(hFile, &sGeneralInfo.HiddenNames, sizeof(sGeneralInfo.HiddenNames), sizeof(BOOLEAN), numBytesRead);
@@ -8742,6 +8751,7 @@ BOOLEAN LoadGeneralInfo( HWFILE hFile )
 	gfMikeShouldSayHi				= sGeneralInfo.fMikeShouldSayHi;
 
 	// HEADROCK HAM 3.6: Load new global variable for facility costs
+	giTotalEarnedForFacilityOperationsToday = sGeneralInfo.iTotalEarnedForFacilityOperationsToday;
 	giTotalOwedForFacilityOperationsToday = sGeneralInfo.iTotalOwedForFacilityOperationsToday;
 
 	// HEADROCK HAM 3.6: Load Skyrider Costs Modifier

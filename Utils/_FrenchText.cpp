@@ -3525,6 +3525,7 @@ STR16 pwTownInfoStrings[] =
 	L"Formation ",				// 10 // state of civilian training in town
 	L"Milice ", 					// the state of the trained civilians in the town
 	L"Formation mobile ",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town
+	L"Prisoners",				// Flugente: display number of prisoners	// TODO.Translate
 };
 
 // Mine strings
@@ -6603,11 +6604,11 @@ STR16 gzTooltipStrings[] =
 	L"%s|Compétence 1 : %s\n",
 	L"%s|Compétence 2 : %s\n", 
 	L"%s|Compétence 3 : %s\n",
-    // Additional suppression effects - sevenfm	
-    L"%s|P|A perdu(s) en raison de |S|uppression : %d\n",
-    L"%s|Tolérance de |Suppression : %d\n",
-    L"|Niveau |effectif du |C|hoc : %d\n",
-    L"%s|Moral de l'|I|A : %d\n",
+    // Additional suppression effects - sevenfm		// TODO.Translate
+    L"%s|A|Ps lost due to |S|uppression: %d\n",
+    L"%s|Suppression |Tolerance: %d\n",
+    L"%s|Effective |S|hock |Level: %d\n",
+    L"%s|A|I |Morale: %d\n",
 };
 
 STR16 New113Message[] =
@@ -6835,6 +6836,8 @@ STR16 NewInvMessage[] =
 	L"Êtes-vous sûr de vouloir vendre tous les articles du secteur ?",
 	L"Êtes-vous sûr de vouloir supprimer tous les articles du secteur ?",
 	L"Ne peut pas escalader avec un sac à dos",
+	L"All backpacks dropped",	// TODO.Translate
+	L"All owned backpacks picked up",
 };
 
 // WANNE - MP: Multiplayer messages
@@ -8064,10 +8067,10 @@ STR16	szFoodTextStr[]=
 
 STR16	szPrisonerTextStr[]=
 {
-	L"Prisonnier(s) ayant été interrogé(s) : %d élite(s), %d régulier(s) et %d administratif(s).",   // TODO.Translate. A voir définition (to see finished, definition)
+	L"%d officers, %d elites, %d regulars and %d admins were interrogated.",	// TODO.Translate
 	L"Prisonnier(s) ayant payé une rançon : %d.",   // TODO.Translate. A voir définition (to see finished, definition)
 	L"Prisonnier(s) ayant révélé les positions ennemies : %d.",   // TODO.Translate. A voir définition (to see finished, definition)
-	L"Prisonnier(s) ayant rejoint notre cause : %d élite(s), %d régulier(s) et %d administratif(s).",  // TODO.Translate. A voir définition (to see finished, definition)
+	L"%d officers, %d elites, %d regulars and %d admins joined our cause.",		// TODO.Translate
 	L"Prisonnier(s) ayant commencé une émeute : %s !",   // TODO.Translate. A voir définition (to see finished, definition)
 	L"Prisonnier(s) envoyé(s) en %s : %d !",   // TODO.Translate. A voir définition (to see finished, definition)
 	L"Prisonnier(s) libéré(s) !",

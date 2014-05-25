@@ -3521,6 +3521,7 @@ STR16 pwTownInfoStrings[] =
 	L"民兵训练度",		// 10 // state of civilian training in town
 	L"民兵",			// the state of the trained civilians in the town
 	L"巡逻民兵",	// L"Mobile Training",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town
+	L"Prisoners",				// Flugente: display number of prisoners	// TODO.Translate
 };
 
 // Mine strings
@@ -6832,6 +6833,8 @@ STR16 NewInvMessage[] =
 	L"你确定要变卖该地区所有物品吗？",
 	L"你确定要销毁该地区所有物品吗？",
 	L"装备大背包后无法爬上房顶",
+	L"All backpacks dropped",	// TODO.Translate
+	L"All owned backpacks picked up",
 };
 
 // WANNE - MP: Multiplayer messages
@@ -8066,10 +8069,10 @@ STR16	szFoodTextStr[]=
 
 STR16	szPrisonerTextStr[]=
 {
-	L"%d 精英, %d 正规军 和 %d 长官被审问.",	//L"%d elites, %d regulars and %d amins were interrogated.",
+	L"%d officers, %d elites, %d regulars and %d admins were interrogated.",	// TODO.Translate
 	L"%d 名俘虏已支付赎金", //L"%d prisoners paid ransom money.",
 	L"%d 名俘虏已供出同伙位置", //L"%d prisoners revealed enemy positions.",
-	L"%d 精英, %d 正规军 and %d 长官加入我们.",	//L"%d elites, %d regulars and %d amins joined our cause.",
+	L"%d officers, %d elites, %d regulars and %d admins joined our cause.",		// TODO.Translate
 	L"俘虏掀起大规模暴动！在 %s 监狱！", //L"Prisoners start a massive riot in %s!",
 	L"俘虏被押送前往 %s 监狱", //L"The army now occupies the prison in %s, the prisoners were freed!",
 	L"俘虏已被释放！", //L"Prisoners have been released!",

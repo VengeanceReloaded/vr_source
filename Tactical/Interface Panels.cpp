@@ -4389,7 +4389,8 @@ BOOLEAN ChangeDropPackStatus(SOLDIERTYPE *pSoldier, BOOLEAN newStatus)
 								iRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, gWorldItems[wi].sGridNo );
 								if(gWorldItems[wi].sGridNo == pSoldier->sGridNo)	// standing on pack - pickup regardless
 								{
-									sAPCost = 0;
+									// Buggler: pickup should cost the same as manually picking it up
+									//sAPCost = 0;
 									break;
 								}
 								else if(iRange < 26 && !(gTacticalStatus.uiFlags & INCOMBAT))	// should mean anything within 2 diagonal tiles while not in combat
@@ -4448,7 +4449,7 @@ BOOLEAN ChangeDropPackStatus(SOLDIERTYPE *pSoldier, BOOLEAN newStatus)
 			//	have a CTD, so lets resolve that here.
 			if(Item[gWorldItems[wi].object.usItem].usItemClass != IC_LBEGEAR)
 				gWorldItems[wi].soldierID = -1;
-			if(gWorldItems[wi].soldierID == pSoldier->ubID && gWorldItems[wi].object.exists() == true && Item[gWorldItems[wi].object.usItem].usItemClass == IC_LBEGEAR && LoadBearingEquipment[Item[gWorldItems[wi].object.usItem].ubClassIndex].lbeClass == BACKPACK)
+			if(gWorldItems[wi].soldierID == pSoldier->ubID && gWorldItems[wi].fExists == TRUE && Item[gWorldItems[wi].object.usItem].usItemClass == IC_LBEGEAR && LoadBearingEquipment[Item[gWorldItems[wi].object.usItem].ubClassIndex].lbeClass == BACKPACK)
 			{
 				for (int x = 0; x < gWorldItems[wi].object.ubNumberOfObjects; ++x) {
 					// Is the item we dropped in this sector and does it have an active LBENODE flag?
@@ -4737,7 +4738,7 @@ void BtnDropPackCallback(GUI_BUTTON *btn,INT32 reason)
 		if ( _KeyDown( SHIFT ) )
 		{
 			INT8 bAssignment = gpSMCurrentMerc->bAssignment;
-			for(int x=0; x<18; x++)
+			for( int x = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; x <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; x++ )
 			{
 				/* Is DropPackFlag currently false and is there something in the backpack pocket?  If so, we haven't
 				dropped a pack yet and apparently want to*/
@@ -5934,6 +5935,12 @@ void RenderTEAMPanel( BOOLEAN fDirty )
 			}
 
 		}
+		else
+		{
+			// anv: for unoccupied slots clear tooltips
+			SetRegionFastHelpText( &(gTEAM_FaceRegions[ cnt ]), L"" );
+			SetRegionFastHelpText( &(gTEAM_BarsRegions[ cnt ]), L"" );
+		}
 	}
 
 	UpdateTEAMPanel( );
@@ -6333,6 +6340,11 @@ void MercFacePanelCallback( MOUSE_REGION * pRegion, INT32 iReason )
 		return;
 	}
 
+	// anv: did we click on empty panel?
+	if ( !gTeamPanel[ ubID ].fOccupied )
+	{
+		return;
+	}
 
 	// Now use soldier ID values
 	ubSoldierID = gTeamPanel[ ubID ].ubID;
