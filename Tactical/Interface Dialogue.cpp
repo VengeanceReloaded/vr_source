@@ -4511,6 +4511,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				SayQuoteFromEverybodyNearbyMercInSector( pSoldier->sGridNo, 10, QUOTE_POST_NOT_SMART );
 				break;
 			case NPC_ACTION_MENDAX_LEAVES_FOR_GOOD:
+				SetFactTrue( FACT_MENDAX_SPARED );
 				gMercProfiles[ ubTargetNPC ].ubMiscFlags2 |= PROFILE_MISC_FLAG2_LEFT_COUNTRY;
 				break;
 			case NPC_ACTION_DWIGHT_GIVES_SAMPLE_TO_RAJIV:

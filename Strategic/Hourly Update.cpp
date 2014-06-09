@@ -36,6 +36,8 @@
 #include "Vehicles.h"
 #include "Map Screen Helicopter.h" 
 
+#include "email.h" 
+
 void HourlyQuestUpdate();
 void HourlyLarryUpdate();
 void HourlyStealUpdate();	// Flugente: certain characters might steal equipment (backgrounds)
@@ -56,6 +58,8 @@ void HourlyHelicopterRepair();
 #endif
 
 void HourlyGatheringInformation();
+
+void HourlyWeeklyLeaks();
 
 void UpdateRegenCounters( void );
 
@@ -119,6 +123,8 @@ CHAR16	zString[128];
 	HourlySnitchUpdate();
 
 	HourlyGatheringInformation();
+
+	HourlyWeeklyLeaks();
 
 #ifdef JA2UB
 // no UB
@@ -719,6 +725,104 @@ void HourlyGatheringInformation()
 		if( ( pSoldier->bActive ) && ( pSoldier->bAssignment == SNITCH_GATHER_RUMOURS || pSoldier->bAssignment == FACILITY_GATHER_RUMOURS ) )
 		{
 			HandleGatheringInformationBySoldier( pSoldier );
+		}
+	}
+}
+
+void HourlyWeeklyLeaks()
+{
+	BOOLEAN fEmailSent = FALSE;
+	if( !gubFact[ FACT_MENDAX_SPARED ] || gMercProfiles[ MENDAX ].bMercStatus == MERC_IS_DEAD )
+	{
+		return;
+	}
+
+	for ( UINT8 ubCounter = 1; ubCounter < 11 && !fEmailSent; ubCounter++ )
+	{
+		switch( ubCounter )
+		{
+			case 1:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_1_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_1, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_1_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 2:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_2_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_2, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_2_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 3:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_3_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_3, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_3_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 4:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_4_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_4, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_4_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 5:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_5_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_5, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_5_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 6:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_6_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_6, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_6_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 7:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_7_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_7, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_7_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 8:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_8_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_8, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_8_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 9:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_9_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_9, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_9_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			case 10:
+				if( !gubFact[ FACT_WEEKLY_LEAKS_10_SENT ] )
+				{
+					AddEmail( WEEKLY_LEAKS_10, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_WEEKLY_LEAKS_10_SENT );
+					fEmailSent = TRUE;
+				}
+				break;
+			default:
+			break;
 		}
 	}
 }

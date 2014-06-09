@@ -6047,7 +6047,7 @@ void PreProcessEmail( EmailPtr pMail )
 				if( pString[ 0 ] == 0 )
 				{
 					// on last page
-					fOnLastPageFlag = TRUE;
+					//fOnLastPageFlag = TRUE;
 				}
 
 				if( ( iYPositionOnPage + IanWrappedStringHeight(0, 0, MESSAGE_WIDTH, MESSAGE_GAP,

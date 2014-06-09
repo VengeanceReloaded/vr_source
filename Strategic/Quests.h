@@ -12,7 +12,7 @@
 #define MAX_QUESTS								255
 #define MAX_OLD_QUESTS							30
 #define MAX_FACTS								65536
-#define	NUM_FACTS								600			//If you increase this number, add entries to the fact text list in QuestText.c
+#define	NUM_FACTS								700			//If you increase this number, add entries to the fact text list in QuestText.c
 
 
 #define MAP_ROW_A		1
@@ -615,6 +615,17 @@ enum Facts
 	FACT_FAKE_SAMPLE_SOLD_TO_CIA,//				582
 	FACT_FAKE_SAMPLE_SOLD_TO_TRACONA,//			583
 	FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE,//		584
+	FACT_MENDAX_SPARED = 						590,
+	FACT_WEEKLY_LEAKS_1_SENT = 					591,
+	FACT_WEEKLY_LEAKS_2_SENT,
+	FACT_WEEKLY_LEAKS_3_SENT,
+	FACT_WEEKLY_LEAKS_4_SENT,
+	FACT_WEEKLY_LEAKS_5_SENT,
+	FACT_WEEKLY_LEAKS_6_SENT,
+	FACT_WEEKLY_LEAKS_7_SENT,
+	FACT_WEEKLY_LEAKS_8_SENT,
+	FACT_WEEKLY_LEAKS_9_SENT,
+	FACT_WEEKLY_LEAKS_10_SENT,
 
 } ;
 //**	END FACTS *************************
