@@ -402,11 +402,12 @@ void HourlyLarryUpdate()
 				{
 
 					// anv: snitches stop mercs from getting wasted
+					BOOLEAN fSnitchStoppedBehaviour = FALSE;
 					for( INT32 cnt2 = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; cnt2 <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; ++cnt2 )
 					{					
-						pOtherSoldier = MercPtrs[ cnt ];
+						pOtherSoldier = MercPtrs[ cnt2 ];
 						// note - snitches stop others, but can get wasted themselves (if they have drug use specifically set in background...)
-						if( pOtherSoldier && !pOtherSoldier->flags.fBetweenSectors && pOtherSoldier->bActive && pOtherSoldier->bInSector && !pOtherSoldier->flags.fMercAsleep && pSoldier->ubProfile != pOtherSoldier->ubProfile )
+						if( pOtherSoldier && !pOtherSoldier->flags.fBetweenSectors && pOtherSoldier->bActive && !pOtherSoldier->flags.fMercAsleep && pSoldier->ubProfile != pOtherSoldier->ubProfile )
 						{
 							if ( ProfileHasSkillTrait( pOtherSoldier->ubProfile, SNITCH_NT ) && !( pSoldier->usSoldierFlagMask2 & SOLDIER_PREVENT_MISBEHAVIOUR_OFF ) )
 							{
@@ -429,12 +430,18 @@ void HourlyLarryUpdate()
 										// merc is not amused by being prevented
 										HandleMoraleEvent( pSoldier, MORALE_PREVENTED_MISBEHAVIOUR, pSoldier->sSectorX, pSoldier->sSectorX, pSoldier->bSectorZ );
 										// also here would be a place for dynamic relationship decrease between them
+
+										fSnitchStoppedBehaviour = TRUE;
 										continue;
 									}
 								}
 							}
 						}
 					}
+
+					if ( fSnitchStoppedBehaviour )
+						continue;
+
 					if ( pSoldier->ubProfile == LARRY_DRUNK )
 					{
 						// NB store all drunkenness info in LARRY_NORMAL profile (to use same values)
@@ -531,11 +538,12 @@ void HourlyStealUpdate()
 				if ( Chance(50) )
 				{
 					// anv: snitches prevent scrounging in the same sector
+					BOOLEAN fSnitchStoppedBehaviour = FALSE;
 					for( INT32 cnt2 = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; cnt2 <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; ++cnt2 )
 					{					
-						pOtherSoldier = MercPtrs[ cnt ];
+						pOtherSoldier = MercPtrs[ cnt2 ];
 						// note - snitches stop others, but can scrounge themselves (if they have scrounging specifically set in background...)
-						if( pOtherSoldier && !pOtherSoldier->flags.fBetweenSectors && pOtherSoldier->bActive && pOtherSoldier->bInSector && !pOtherSoldier->flags.fMercAsleep && pSoldier->ubProfile != pOtherSoldier->ubProfile )
+						if( pOtherSoldier && !pOtherSoldier->flags.fBetweenSectors && pOtherSoldier->bActive && !pOtherSoldier->flags.fMercAsleep && pSoldier->ubProfile != pOtherSoldier->ubProfile )
 						{
 							if ( ProfileHasSkillTrait( pOtherSoldier->ubProfile, SNITCH_NT ) && !( pSoldier->usSoldierFlagMask2 & SOLDIER_PREVENT_MISBEHAVIOUR_OFF ) )
 							{
@@ -558,12 +566,19 @@ void HourlyStealUpdate()
 										// merc is not amused by being prevented
 										HandleMoraleEvent( pSoldier, MORALE_PREVENTED_MISBEHAVIOUR, pSoldier->sSectorX, pSoldier->sSectorX, pSoldier->bSectorZ );
 										// also here would be a place for dynamic relationship decrease between them
+
+										fSnitchStoppedBehaviour = TRUE;
+
 										continue;
 									}
 								}
 							}
 						}
 					}
+
+					if ( fSnitchStoppedBehaviour )
+						continue;
+
 					// we loop over this sector's inventory and look for something shiny. We will pick it up if we hae enough space in our inventory
 					// open sector inv
 					UINT32 uiTotalNumberOfRealItems = 0;

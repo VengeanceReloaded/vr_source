@@ -533,7 +533,7 @@ STR16 iEditorMercsToolbarText[] =
  L"删除", //L"DELETE",
  L"删除当前选中佣兵(|D|e|l)", //L"Delete currently selected merc (|D|e|l)",
  L"下一个", //20 //L"NEXT",
- L"定位下一个佣兵(|S|p|a|c|e)\n定位上一个佣兵(|S|h|i|f|t+|S|p|a|c|e)", //L"Find next merc (|S|p|a|c|e)\nFind previous merc (|S|h|i|f|t+|S|p|a|c|e)",
+ L"定位下一个佣兵(|S|p|a|c|e)\n定位上一个佣兵(|C|t|r|l+|S|p|a|c|e)", //L"Find next merc (|S|p|a|c|e)\nFind previous merc (|C|t|r|l+|S|p|a|c|e)",
  L"选择优先级", //L"Toggle priority existance",
  L"选择此人是否可以开关门", //L"Toggle whether or not placement\nhas access to all doors",
  
@@ -708,8 +708,8 @@ STR16 iEditorTaskbarInternalText[]=
 	L"\n|./|,:切换width:xx选项大小\n \n|P|g|U|p/|P|g|D|n:智能模式选择前/后一个模板", //Buildings fasthelp text //L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method",
 	L"|C|t|r|l+|/:光标处放置新物品\n|/:光标下放置同样物品", //Items fasthelp text //L"|S|p|a|c|e: Select next item\n \n|C|t|r|l+|/: Place new item under mouse cursor\n|/: Place same item under mouse cursor",
 	L"|1-|9:设置路标 \n|C|t|r|l+|C/|C|t|r|l+|V:复制/粘贴佣兵", //Mercs fasthelp text //L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc",
-	L"|C|t|r|l+|G:转到某格\n \n|I:查看小地图\n|J:切换房顶绘制\n|K:显示房顶标记\n|S|h|i|f|t+|L:显示地图边界\n|S|h|i|f|t+|T:显示树顶\n|U:切换地图高度\n \n|./|,:切换width:xx选项大小", //Map Info fasthelp text //L"|C|t|r|l+|G: Go to grid no\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions",
-	L"|C|t|r|l+|N:创造新地图\n \n|F|5:显示总信息/大地图\n|F|1|0:移除所有光源\n|F|1|1:取消修改\n|F|1|2:清空所有\n \n|S|h|i|f|t+|R:随机放置选定数量的物品", //Options fasthelp text //L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)",
+	L"|C|t|r|l+|G:转到某格\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I:查看小地图\n|J:切换房顶绘制\n|K:显示房顶标记\n|S|h|i|f|t+|L:显示地图边界\n|S|h|i|f|t+|T:显示树顶\n|U:切换地图高度\n \n|./|,:切换width:xx选项大小", //Map Info fasthelp text //L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions",	// TODO.Translate
+	L"|C|t|r|l+|N:创造新地图\n \n|F|5:显示总信息/大地图\n|F|1|0:移除所有光源\n|F|1|1:取消修改\n|F|1|2:清空所有\n \n|S|h|i|f|t+|R:随机放置选定数量的物品\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version", //Options fasthelp text //L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version",	// TODO.Translate
 };
 
 //Editor Taskbar Utils.cpp
@@ -1762,8 +1762,8 @@ CHAR16 Message[][STRING_LENGTH] =
 	L"%s不能被添加到任何附件槽。",
 	L"这个口袋装不下了", //L"There's not enough space for this pocket.",
 
-	L"%s has repaired the %s as much as possible.", // TODO.Translate
-	L"%s has repaired %s's %s as much as possible.",
+	L"%s竭尽可能地修理了%s。",
+	L"%s竭尽可能地修理了%s的%s。",
 };
 
 // the country and its noun in the game
@@ -1857,12 +1857,12 @@ STR16 pAssignmentStrings[] =
 	L"战俘", // Prisoner of war - captured
 	L"伤员", // patient in a hospital
 	L"空车",	// Vehicle is empty
-	L"Snitch",	// facility: undercover prisoner (snitch)		// TODO.Translate
-	L"Propag.",	// facility: spread propaganda
-	L"Propag.",	// facility: spread propaganda (globally)
-	L"Rumours",	// facility: gather information
-	L"Propag.",	// spread propaganda
-	L"Rumours",	// gather information
+	L"告发",	// facility: undercover prisoner (snitch)
+	L"造谣",	// facility: spread propaganda
+	L"造谣",	// facility: spread propaganda (globally)
+	L"谣言",	// facility: gather information
+	L"造谣",	// spread propaganda
+	L"谣言",	// gather information
 };
 
 
@@ -3329,17 +3329,17 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
     L"危险",
     L"非常危险！",
 
-    L"Mask",			// TODO.Translate
-    L"NVG",
-    L"Item",
+    L"面具",
+    L"夜视仪",
+    L"物品",
         
-    L"This feature works only with New Inventory System",
-    L"No item in your main hand",
-    L"Nowhere to place item from main hand",
-    L"No defined item for this quick slot",
-    L"No free hand for new item",
-    L"Item not found",
-    L"Cannot take item to main hand",
+    L"这一功能只能通过新物品携带系统实现",
+    L"主手上没有物品",
+    L"主手上的物品无处可放",
+    L"便捷槽位无可放置物品",
+    L"没有空手来拿新物品",
+    L"未发现物品",
+    L"无法把物品转移到主手上",
 };
 STR16 pSpareMendax[] =
 {
@@ -3521,7 +3521,7 @@ STR16 pwTownInfoStrings[] =
 	L"民兵训练度",		// 10 // state of civilian training in town
 	L"民兵",			// the state of the trained civilians in the town
 	L"巡逻民兵",	// L"Mobile Training",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town
-	L"Prisoners",				// Flugente: display number of prisoners	// TODO.Translate
+	L"囚犯",				// Flugente: display number of prisoners
 };
 
 // Mine strings
@@ -6638,48 +6638,48 @@ STR16 New113Message[] =
 	L"发现敌人！", // this should be enough - SANDRO
 	//////////////////////////////////////////////////////////////////////////////////////
 	// These added by SANDRO
-	L"%s 偷窃成功！",// L"%s was successful on stealing!",
-	L"%s 没有足够的行动点来偷取所有所选物品。",// L"%s had not enough action points to steal all selected items.",
+	L"%s偷窃成功！",// L"%s was successful on stealing!",
+	L"%s没有足够的行动点来偷取所有所选物品。",// L"%s had not enough action points to steal all selected items.",
 	L"是否在包扎前对 %s 实施手术？（可回复 %i 生命。）",// L"Do you want to make surgery on %s before bandaging? (You can heal about %i Health.)",
 	L"是否对 %s 实施手术？（可回复 %i 生命。）",// L"Do you want to make surgery on %s? (You can heal about %i Health.)",
 	L"是否进行必要的手术？（%i 个伤者）",// L"Do you wish to make necessary surgeries first? (%i patient(s))",
 	L"是否在该伤者身上进行手术？",// L"Do you wish to make the surgery on this patient first?",
 	L"在包扎前是否进行手术？",// L"Apply first aid automatically with necessary surgeries or without them?",
-	L"%s 手术完毕。",// L"Surgery on %s finished.",
-	L"%s 胸部中弹，失去1点生命上限！",// L"%s is hit in the chest and loses a point of maximum health!",
-	L"%s 胸部中弹，失去 %d 点生命上限！",// L"%s is hit in the chest and loses %d points of maximum health!",
-	L"%s is blinded by the blast!",	// TODO.Translate
-	L"%s 重获1点失去的 %s",// L"%s has regained one point of lost %s",
-	L"%s 重获 %d 点失去的 %s",// L"%s has regained %d points of lost %s",
+	L"%s手术完毕。",// L"Surgery on %s finished.",
+	L"%s胸部中弹，失去1点生命上限！",// L"%s is hit in the chest and loses a point of maximum health!",
+	L"%s胸部中弹，失去 %d 点生命上限！",// L"%s is hit in the chest and loses %d points of maximum health!",
+	L"爆炸让%s失明了！",
+	L"%s重获1点失去的 %s",// L"%s has regained one point of lost %s",
+	L"%s重获%d点失去的 %s",// L"%s has regained %d points of lost %s",
 	L"你的侦察能力避免了敌人的偷袭！",// L"Your scouting skills prevented you to be ambushed by the enemy!",
 	L"多亏了你的侦查技能，你成功的避开了大群血猫！",// L"Thanks to your scouting skills you have successfuly avoided a pack of bloodcats!",
-	L"%s 命根子中弹，痛苦的倒下了！",// L"%s is hit to groin and falls down in pain!",	
+	L"%s命根子中弹，痛苦的倒下了！",// L"%s is hit to groin and falls down in pain!",	
 	//////////////////////////////////////////////////////////////////////////////////////
 	L"注意: 敌人尸体被发现!!!",
 	L"%s [%d rnds]\n%s %1.1f %s",		
 	L"AP不够！需要%d，你只有%d。",	//L"Insufficient AP Points! Cost %d, you have %d.",
 	L"提示: %s",
-	L"Player strength: %d - Enemy strength: %6.0f",		// TODO.Translate Surrender values to be printed, if DISPLAY_SURRENDER_VALUES = TRUE
+	L"玩家力量: %d - 敌人力量: %6.0f",		//Surrender values to be printed, if DISPLAY_SURRENDER_VALUES = TRUE
 
-	L"Cannot use skill!",				// TODO.Translate
-	L"Cannot build while enemies are in this sector!",
-	L"Cannot spot that location!",
-	L"Incorrect GridNo for firing artillery!",
-	L"Radio frequencies are jammed. No communication possible!",
-	L"Radio action failed!",
-	L"Not enough mortar shells in sector to start a barrage!",
-	L"No signal shell item found in Items.xml!",
-	L"No mortars found, cannot commence barrage!",
-	L"Already jamming signal, no need to do so again!",
-	L"Already listening for nearby sounds, no need to do so again!",
-	L"Already trying to spot, no need to do so again!",
-	L"Already scanning for jam signals, no need to do so again!",
-	L"%s could not apply %s to %s.",
-	L"%s orders reinforcements from %s.",
-	L"%s radio set is out of energy.",
-	L"a working radio set",
-	L"a binocular",
-	L"patience",
+	L"无法使用技能！",
+	L"敌人在该分区时无法建造！",
+	L"看不到那个地方！",
+	L"无法发射炮弹，不是合理的区域定位！",
+	L"无线电波段遭到干扰。无法通讯！",
+	L"无线电操作失败！",
+	L"迫击炮弹不足，无法在分区发动密集轰炸！",
+	L"Items.xml里没有定义信号弹物品！",
+	L"未发现迫击炮，无法执行密集轰炸！",
+	L"干扰信号成功，不需要重复操作！",
+	L"正在监听周围声音，无需重复操作！",
+	L"正在观察，无需重复操作！",
+	L"正在扫描干扰信号，无需重复操作！",
+	L"%s没办法把%s用在%s上。",
+	L"%s指示%s前来支援。",
+	L"%s无线电设备没电了。",
+	L"正在工作的无线电设备。",
+	L"望远镜",
+	L"病人",
 };
 
 STR16 New113HAMMessage[] = 
@@ -6833,8 +6833,8 @@ STR16 NewInvMessage[] =
 	L"你确定要变卖该地区所有物品吗？",
 	L"你确定要销毁该地区所有物品吗？",
 	L"装备大背包后无法爬上房顶",
-	L"All backpacks dropped",	// TODO.Translate
-	L"All owned backpacks picked up",
+	L"所有人的背包已放下",
+	L"所有人已背起所属的背包",
 };
 
 // WANNE - MP: Multiplayer messages
@@ -7249,11 +7249,11 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"训练领导",
 	L"训练爆破",
 	L"审讯俘虏", //L"Interrogate Prisoners",
-	L"Undercover Snitch",		// TODO.Translate
+	L"便衣揭发",
 	// 36-40
-	L"Spread Propaganda",
-	L"Spread Propaganda",	// spread propaganda (globally)
-	L"Gather Rumours",
+	L"传播谣言",
+	L"传播谣言",	// spread propaganda (globally)
+	L"搜集谣言",
 };
 STR16 Additional113Text[]=
 {
@@ -8069,10 +8069,10 @@ STR16	szFoodTextStr[]=
 
 STR16	szPrisonerTextStr[]=
 {
-	L"%d officers, %d elites, %d regulars and %d admins were interrogated.",	// TODO.Translate
+	L"审讯了%d军官，%d精英士兵，%d普通士兵和%d巡逻官。",
 	L"%d 名俘虏已支付赎金", //L"%d prisoners paid ransom money.",
 	L"%d 名俘虏已供出同伙位置", //L"%d prisoners revealed enemy positions.",
-	L"%d officers, %d elites, %d regulars and %d admins joined our cause.",		// TODO.Translate
+	L"%d军官，%d精英士兵，%d普通士兵和%d巡逻官加入了我方。",
 	L"俘虏掀起大规模暴动！在 %s 监狱！", //L"Prisoners start a massive riot in %s!",
 	L"俘虏被押送前往 %s 监狱", //L"The army now occupies the prison in %s, the prisoners were freed!",
 	L"俘虏已被释放！", //L"Prisoners have been released!",
@@ -8090,7 +8090,7 @@ STR16	szMTATextStr[]=
 	L"拆除掩体", //L"removing a fortification",
 	L"填满沙包", //L"filling sandbags",
 	L"%s必须停止%s", //L"%s had to stop %s.",
-    L"The selected barricade cannot be built in this sector",		// TODO.Translate
+    L"所选的路障无法再该分区建造",
 };
 
 STR16	szInventoryArmTextStr[]=
@@ -8175,7 +8175,7 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%％最大准确度(CTH)\n", //L" %s%d%% max CTH\n",
 	L" %s%d夜晚听力范围\n", //L" %s%d hearing range during the night\n",
 	L" %s%d白天听力范围\n", //L" %s%d hearing range during the day\n",
-	L" %s%d effectivity at disarming traps\n",	// TODO.Translate
+	L" %s%d解除陷阱效率\n",
  
 	L" %s%d%％友好对话效果\n", //L" %s%d%% effectiveness to friendly approach\n",
 	L" %s%d%％直接对话效果\n", //L" %s%d%% effectiveness to direct approach\n",
@@ -8407,9 +8407,9 @@ STR16	szCampaignHistoryDetail[]=
 	L"南方",
 	L"西方",
 	L"和",
-	L"an unknown location",	// TODO.Translate
+	L"未知地区",
 
-	L"Buildings in the sector were damaged.",	// TODO.Translate
+	L"该分区的建筑遭到了破坏。",
 	L"In the fighting, buildings in the sector were damaged, and %d civilians were killed and %d wounded.",
 	L"在战斗中，%s和%s呼叫了支援。",
 	L"在战斗中，%s呼叫了支援。",
@@ -8419,9 +8419,9 @@ STR16	szCampaignHistoryDetail[]=
 	L"%s部署了%d辆坦克，%d辆坦克在激烈的交火中被摧毁。",
 	L"据称双方都部署了狙击手。",
 	L"未经证实的消息称有%s名狙击手参与了交火。",
-	L"This sector is of huge strategic importance, as it houses one of the handful of anti-air missile batteries the %s army posesses. Aerial photographs show extensive damage to the command center. This will leave the airspace above %s undefended for the time being.",
-	L"The situation on the ground has gotten even more confusing, as it seems rebel infighting has reached a new level. We now have confirmation that rebel militia engaed in active combat with foreign mercenaries.",
-	L"The royalists position seems more precarious than previously thought. Reports of a split surfaced, with amry personnel opening fire on each other.",
+	L"这一分区战略意义十分重大，它拥有%s军队的大量地对空导弹设备。空中侦察摄影给指挥中心带来严重的伤害。这将导致从此途径%s的航班无法受到保护。",
+	L"地面情况更加不明朗，看起来反抗军混战达到了新的高度。我们已经确认了反抗军民兵部队同国外佣兵一起组织了主动进攻。",
+	L"保皇党在当地的地位比之前预期的更加糟糕。报告显示出现了内部分歧，军方人员互相火并。",
 };
 
 STR16	szCampaignHistoryTimeString[]=
@@ -8516,22 +8516,22 @@ STR16	szCampaignHistoryWebpageString[]=
 
 STR16   szTacticalInventoryDialogString[]=
 {
-        L"Inventory Manipulations",
+        L"操作背包",
 
-        L"NVG",
-        L"Reload All",
-        L"Move",			// TODO.Translate
+        L"夜视仪",
+        L"全部装弹",
+        L"移动",
         L"",
 
-        L"Sort",
-        L"Merge",
-        L"Separate",
-        L"Organize",
+        L"分类",
+        L"合并",
+        L"分离",
+        L"整理",
 
-        L"Crates",
-        L"Boxes",
-        L"Drop B/P",
-        L"Pickup B/P",
+        L"箱",
+        L"盒",
+        L"放下B/P",
+        L"捡起B/P",
 
         L"",
         L"",
@@ -8541,35 +8541,35 @@ STR16   szTacticalInventoryDialogString[]=
 
 STR16   szTacticalCoverDialogString[]=
 {
-        L"Cover Display Mode",
+        L"显示掩护模式",
 
-        L"Off",
-        L"Enemy",
-        L"Merc",
-        L"",
-
-        L"",
-        L"",
-        L"",
+        L"关闭",
+        L"敌人",
+        L"佣兵",
         L"",
 
-        L"Traps",
-        L"Network",
-        L"Detector",
+        L"",
+        L"",
+        L"",
         L"",
 
-        L"Net A",
-        L"Net B",
-        L"Net C",
-        L"Net D",
+        L"陷阱",
+        L"绊线网",
+        L"检测器",
+        L"",
+
+        L"A网",
+        L"B网",
+        L"C网",
+        L"D网",
 };
 
 STR16   szTacticalCoverDialogPrintString[]=
 {
         
-        L"Turning off cover/traps display",
-        L"Showing danger zones",
-        L"Showing merc view",
+        L"关闭掩护/陷阱显示模式",
+        L"显示危险区域",
+        L"显示佣兵视野",
         L"",
 
         L"",
@@ -8577,15 +8577,15 @@ STR16   szTacticalCoverDialogPrintString[]=
         L"",
         L"",
 
-        L"Display trap network",
-        L"Display trap network colouring",
-        L"Display nearby traps",
+        L"显示绊线网络",
+        L"显示绊线网络颜色",
+        L"显示附近的陷阱",
         L"",
 
-        L"Display trap network A",
-        L"Display trap network B",
-        L"Display trap network C",
-        L"Display trap network D",
+        L"显示绊线网络A",
+        L"显示绊线网络B",
+        L"显示绊线网络C",
+        L"显示绊线网络D",
 };
 
 // WANNE: Some Chinese specific strings that needs to be in unicode!

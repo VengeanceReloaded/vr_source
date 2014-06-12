@@ -411,12 +411,7 @@ void BeginCivQuote( SOLDIERTYPE *pCiv, UINT16 ubCivQuoteID, UINT16 ubEntryID, IN
 		return;
 	}
 
-#ifdef TAIWANESE
-	swprintf( gzCivQuote, L"%s", zQuote );
-#else
 	swprintf( gzCivQuote, L"\"%s\"", zQuote );
-#endif
-
 
 	if ( ubCivQuoteID == CIV_QUOTE_HINT )
 	{
@@ -1058,8 +1053,13 @@ BOOLEAN LoadCivQuotesFromLoadGameFile( HWFILE hFile )
 //--------------------------------------------------------------
 
 // anv: start enemy taunt with probabilty depending on taunt settings
-void PossiblyStartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTarget )
+void PossiblyStartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, UINT32 uiTargetID )
 {
+	SOLDIERTYPE *pTarget = NULL;
+	if( uiTargetID != NOBODY )
+	{
+		pTarget = MercPtrs[uiTargetID];
+	}
 	if (is_networked)	// No taunts in multiplayer
 		return;
 
@@ -1913,11 +1913,8 @@ void StartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTar
 		{
 			swprintf( sTauntText, zApplicableTaunts[ iChosenTaunt ].szText );
 		}
-#ifdef TAIWANESE
-		swprintf( gzTauntQuote, L"%s", sTauntText );
-#else
+
 		swprintf( gzTauntQuote, L"\"%s\"", sTauntText );
-#endif
 
 		// block this enemy from taunting for a time being
 		uiTauntFinishTimes[pCiv->ubID] = GetJA2Clock() + min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( gzTauntQuote ) + gTauntsSettings.sModDelay ) ); 

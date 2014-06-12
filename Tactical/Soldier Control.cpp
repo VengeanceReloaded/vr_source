@@ -3421,7 +3421,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 							usNewState = SWAT_BACKWARDS;
 						else
 							usNewState = SWAT_BACKWARDS_NOTHING;
-						// движение назад вприсядку с ножом ;)
+                        // move backward crouching, with a knife
 						if( this->inv[ HANDPOS ].exists() == true && 
 							//(this->ubBodyType == BIGMALE || this->ubBodyType == REGFEMALE )&&
 							(Item[ usItem ].usItemClass == IC_BLADE || Item[ usItem ].usItemClass == IC_THROWING_KNIFE)   )
@@ -3435,7 +3435,7 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 					}
 				}
 			}
-			//***08.12.2008*** добавлена анимация переката -стырено ;) ddd
+			//***08.12.2008*** added roll animation ;) ddd			
 			else if( usNewState == CRAWLING 
 				&& this->ubDirection == 
 				gPurpendicularDirection[ this->ubDirection ][ this->pathing.usPathingData
@@ -4637,12 +4637,12 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 		}
                    */
 
-		//dddokno{ ???????
+		//ddd window{ ???????
 		//if ( IsOknoFencePresentAtGridno( sNewGridNo ) )
 		//{
 		//	this->sZLevelOverride = TOPMOST_Z_LEVEL;
 		//}
-		//dddokno}
+		//ddd window}
 		
 		// Add/ remove tree if we are near it
 		// CheckForFullStructures( this );
@@ -5319,7 +5319,7 @@ UINT16 SOLDIERTYPE::GetMoveStateBasedOnStance( UINT8 ubStanceHeight )
 		else
 		{
 			//***ddd
-			// т.к. пока отрисован 1 бодитайп, остальные добавить
+			// only 1 bodytime is ready (drawn) currently, the rest need to be added
 			UINT16 usItem = this->inv[ HANDPOS ].usItem;
 			if( this->inv[ HANDPOS ].exists() == true && 
 				//(this->ubBodyType == BIGMALE || this->ubBodyType == REGFEMALE )&&
@@ -5942,30 +5942,30 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 				}
 			}
 			DecayIndividualOpplist( this );
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_BLINDED, MercPtrs[ubAttackerID]);
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_DEAFENED, MercPtrs[ubAttackerID]);
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_BLINDED, ubAttackerID );
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_DEAFENED, ubAttackerID );
 			break;
 
 		case FIRE_WEAPON_BLINDED:
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_BLINDED, MercPtrs[ubAttackerID]);
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_BLINDED, ubAttackerID );
 			break;
 
 		case FIRE_WEAPON_DEAFENED:
 			//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Soldier is deafened" );		
 			this->bDeafenedCounter = bDeafValue;
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_DEAFENED, MercPtrs[ubAttackerID]);
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_DEAFENED, ubAttackerID );
 			break;
 		};
 
 		if ( usWeaponIndex == STRUCTURE_EXPLOSION )
 		{
 			ubReason = TAKE_DAMAGE_STRUCTURE_EXPLOSION;
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_STRUCTURE_EXPLOSION, MercPtrs[ubAttackerID]);
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_STRUCTURE_EXPLOSION, ubAttackerID );
 		}
 		else
 		{
 			ubReason = TAKE_DAMAGE_EXPLOSION;
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_EXPLOSION, MercPtrs[ubAttackerID]);
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_EXPLOSION, ubAttackerID );
 		}
 	}
 	else
@@ -6295,13 +6295,13 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 		SoldierGotHitGunFire( this, usWeaponIndex, sDamage, bDirection, sRange, ubAttackerID, ubSpecial, ubHitLocation );
 		if( Item[ usWeaponIndex ].usItemClass & IC_GUN )
 		{
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_GUNFIRE, MercPtrs[ubAttackerID] );
-			PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_GUNFIRE, this );
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_GUNFIRE, ubAttackerID );
+			PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_GUNFIRE, this->ubID );
 		}
 		else
 		{
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_THROWING_KNIFE, MercPtrs[ubAttackerID] );
-			PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_THROWING_KNIFE, this );
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_THROWING_KNIFE, ubAttackerID );
+			PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_THROWING_KNIFE, this->ubID );
 		}
 	}
 	if ( Item[ usWeaponIndex ].usItemClass & IC_BLADE )
@@ -6315,12 +6315,12 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 		SoldierGotHitExplosion( this, usWeaponIndex, sDamage, bDirection, sRange, ubAttackerID, ubSpecial, ubHitLocation );
 		if( Item[ usWeaponIndex ].usItemClass & IC_EXPLOSV || ubReason == TAKE_DAMAGE_EXPLOSION )
 		{
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_EXPLOSION, MercPtrs[ubAttackerID] );
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_EXPLOSION, ubAttackerID );
 			//PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_EXPLOSION, this );
 		}
 		else if(Item[ usWeaponIndex ].usItemClass & IC_TENTACLES)
 		{
-			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_TENTACLES, MercPtrs[ubAttackerID] );
+			PossiblyStartEnemyTaunt( this, TAUNT_GOT_HIT_TENTACLES, ubAttackerID );
 			//PossiblyStartEnemyTaunt( MercPtrs[ubAttackerID], TAUNT_HIT_TENTACLES, this );
 		}
 	}
@@ -14198,13 +14198,31 @@ BOOLEAN	SOLDIERTYPE::IsWeaponMounted( void )
 		// for some nefarious reason, trees also have height 2, so we have to check for that too...
 		STRUCTURE * pStructure = FindStructure( nextGridNoinSight, STRUCTURE_TREE );
 
-		if (!pStructure)
+		if ( !pStructure )
 		{
 			// for some reason I find EXTREMELY FRUSTRATING, we might get a heigth of 2 on a totally empty tile... so we check if we could occupy the tile
 			if ( !IsLocationSittable( nextGridNoinSight, 0 ) )
-				// resting our gun on people would be rude - only allow if nobody is there
-				if( WhoIsThere2( nextGridNoinSight, 0 ) == NOBODY )
-					applybipod = TRUE;	
+			{
+				// resting our gun on people is allowed sometimes
+				UINT usPersonID = WhoIsThere2( nextGridNoinSight, this->pathing.bLevel );
+				if ( usPersonID == NOBODY )
+					applybipod = TRUE;
+				else
+				{
+					SOLDIERTYPE* pSoldier = MercPtrs[usPersonID];
+
+					// if the other person is an ally and prone
+					if ( this->bSide == pSoldier->bSide && gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_PRONE )
+					{
+						// if we are facing the other guy in a 90 degree angle, we can mount our gun on his back
+						// Once merc's relationship allows angering mercs through actions of others, add a penalty here
+						if ( this->ubDirection == gTwoCCDirection[pSoldier->ubDirection] || this->ubDirection == gTwoCDirection[pSoldier->ubDirection] )
+						{
+							applybipod = TRUE;
+						}
+					}
+				}
+			}
 		}
 	}
 	else if ( adjacenttileheight == 4 && (gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_CROUCH || (gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_STAND && (gAnimControl[ this->usAnimState ].uiFlags &(ANIM_ALT_WEAPON_HOLDING))))) 
@@ -14243,13 +14261,26 @@ BOOLEAN	SOLDIERTYPE::IsWeaponMounted( void )
 		// for some nefarious reason, trees also have height 2, so we have to check for that too...
 		STRUCTURE * pStructure = FindStructure( nextGridNoinSight, STRUCTURE_TREE );
 
-		if (!pStructure)
+		if ( !pStructure )
 		{
 			// for some reason I find EXTREMELY FRUSTRATING, we might get a heigth of 2 on a totally empty tile... so we check if we could occupy the tile
 			if ( !IsLocationSittable( nextGridNoinSight, 0 ) )
-				// resting our gun on people would be rude - only allow if nobody is there
-				if( WhoIsThere2( nextGridNoinSight, 0 ) == NOBODY )
-					applybipod = TRUE;	
+			{
+				// resting our gun on people is allowed sometimes
+				UINT usPersonID = WhoIsThere2( nextGridNoinSight, this->pathing.bLevel );
+				if ( usPersonID == NOBODY )
+					applybipod = TRUE;
+				else
+				{
+					SOLDIERTYPE* pSoldier = MercPtrs[usPersonID];
+
+					// if the other person is an ally and prone
+					if ( this->bSide == pSoldier->bSide && gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_CROUCH )
+					{
+						applybipod = TRUE;
+					}
+				}
+			}
 		}
 	}
 	

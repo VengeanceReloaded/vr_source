@@ -205,6 +205,7 @@ extern INT16 ITEMDESC_START_Y;
 BOOLEAN gfMouseLockedOnBorder = FALSE;
 extern int iWindowedMode;
 
+extern OBJECTTYPE *gpItemDescObject;
 extern BOOLEAN gfInItemStackPopup;
 extern BOOLEAN gfInKeyRingPopup;
 
@@ -1219,7 +1220,7 @@ void GetTBMousePositionInput( UINT32 *puiNewEvent )
 					if ( MercPtrs[ gusUIFullTargetID ]->bTeam != gbPlayerNum )
 					{
 						fOnValidGuy = TRUE;
-						//ddd сброс флажка, отвечающего за режим прицеливания\регулировки очереди (прицельная очередь) 
+						//ddd turn off flag that indicates aim/autofire mode adjustment (aimed burst/auto)
 						brstmode = 0;
 					}
 					else
@@ -2220,8 +2221,14 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				// go to next tab in enhanced description box
 				if( ( fCtrl ) && InItemDescriptionBox( ) && gGameSettings.fOptions[ TOPTION_ENHANCED_DESC_BOX ] == TRUE )
 				{			
-					if ( gubDescBoxPage < 2 )
+					if ( (Item[ gpItemDescObject->usItem ].usItemClass & IC_WEAPON || Item[ gpItemDescObject->usItem ].usItemClass & IC_PUNCH) 
+						&& gubDescGenPage == 0 && gubDescBoxPage == 1 )
 					{
+						gubDescGenPage = 1;
+					}
+					else if ( gubDescBoxPage < 2 )
+					{
+						gubDescGenPage = 0;
 						gubDescBoxPage++;
 					}
 					else
@@ -5841,7 +5848,7 @@ void ToggleMercsNeverQuit()
 }
 #endif
 
-
+// silversurfer: This function handles switching between prone, crouching and standing stance. Running is handled in function HandleTBSoldierRun().
 void HandleStanceChangeFromUIKeys( UINT8 ubAnimHeight )
 {
 	// If we have multiple guys selected, make all change stance!
@@ -5860,7 +5867,24 @@ void HandleStanceChangeFromUIKeys( UINT8 ubAnimHeight )
 			{
 				if ( pSoldier->flags.uiStatusFlags & SOLDIER_MULTI_SELECTED )
 				{
-					UIHandleSoldierStanceChange( pSoldier->ubID, ubAnimHeight );
+					// silversurfer: If we decide to stand up or press "s" again while we are standing we should reset movement to walk mode.
+					// If we want to run we have to press "r" which is handled elsewhere.
+					if ( ubAnimHeight == ANIM_STAND )
+					{
+						if ( pSoldier->usUIMovementMode != WALKING && pSoldier->usUIMovementMode != RUNNING && pSoldier->usUIMovementMode != WALKING_WEAPON_RDY && pSoldier->usUIMovementMode != WALKING_DUAL_RDY && pSoldier->usUIMovementMode != WALKING_ALTERNATIVE_RDY )
+						{
+							UIHandleSoldierStanceChange( pSoldier->ubID, ANIM_STAND );
+							pSoldier->flags.fUIMovementFast = 0;
+						}
+						else
+						{
+							pSoldier->flags.fUIMovementFast = 0;
+							pSoldier->usUIMovementMode = WALKING;
+							gfPlotNewMovement = TRUE;
+						}
+					}
+					else
+						UIHandleSoldierStanceChange( pSoldier->ubID, ubAnimHeight );
 				}
 			}
 		}
@@ -5868,7 +5892,28 @@ void HandleStanceChangeFromUIKeys( UINT8 ubAnimHeight )
 	else
 	{
 		if( gusSelectedSoldier != NOBODY )
-			UIHandleSoldierStanceChange( (UINT8)gusSelectedSoldier, ubAnimHeight );
+		{
+			pSoldier = MercPtrs[ (UINT8)gusSelectedSoldier ];
+
+			// silversurfer: If we decide to stand up or press "s" again while we are standing we should reset movement to walk mode.
+			// If we want to run we have to press "r" which is handled elsewhere.
+			if ( ubAnimHeight == ANIM_STAND )
+			{
+				if ( pSoldier->usUIMovementMode != WALKING && pSoldier->usUIMovementMode != RUNNING && pSoldier->usUIMovementMode != WALKING_WEAPON_RDY && pSoldier->usUIMovementMode != WALKING_DUAL_RDY && pSoldier->usUIMovementMode != WALKING_ALTERNATIVE_RDY )
+				{
+					UIHandleSoldierStanceChange( pSoldier->ubID, ANIM_STAND );
+					pSoldier->flags.fUIMovementFast = 0;
+				}
+				else
+				{
+					pSoldier->flags.fUIMovementFast = 0;
+					pSoldier->usUIMovementMode = WALKING;
+					gfPlotNewMovement = TRUE;
+				}
+			}
+			else
+				UIHandleSoldierStanceChange( pSoldier->ubID, ubAnimHeight );
+		}
 	}
 }
 
@@ -6671,7 +6716,7 @@ void SwapMercPortraits ( SOLDIERTYPE *pSoldier, INT8 bDirection )
 	UINT8 ubGroupID = pSoldier->ubGroupID;
 	INT8 bOldPosition = GetTeamSlotFromPlayerID ( MercPtrs[ ubSourceMerc ]->ubID );
 	INT8 bNewPosition = bOldPosition + bDirection;
-	SOLDIERTYPE TempMercPtr = *MercPtrs[ ubSourceMerc ];
+	SOLDIERTYPE *TempMercPtr = MercPtrs[ ubSourceMerc ];
 
 	// check if new position is occupied by another merc? we won't replace an empty slot
 	if ( gTeamPanel[ bNewPosition ].fOccupied && gTeamPanel[ bNewPosition ].ubID != NOBODY )
@@ -6684,8 +6729,8 @@ void SwapMercPortraits ( SOLDIERTYPE *pSoldier, INT8 bDirection )
 		FACETYPE TempFace = gFacesData[ iSourceFace ];
 
 		// swap the data
-		*MercPtrs[ ubSourceMerc ] = *MercPtrs[ ubTargetMerc ];
-		*MercPtrs[ ubTargetMerc ] = TempMercPtr; 
+		MercPtrs[ ubSourceMerc ] = MercPtrs[ ubTargetMerc ];
+		MercPtrs[ ubTargetMerc ] = TempMercPtr; 
 		// also swap face data, otherwise face gear, opp count etc won't update
 		gFacesData[ iSourceFace ] = gFacesData[ iTargetFace ];
 		gFacesData[ iTargetFace ] = TempFace;

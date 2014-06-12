@@ -356,7 +356,7 @@ DropDownBase::DrawTopEntry()
 
 	SetFontShadow(NO_SHADOW);
 
-	DrawTextToScreen( mEntryVector[mSelectedEntry].second, musStartX+CITY_NAME_OFFSET, (UINT16)(musStartY+7), 0, DEF_DROPDOWN_FONT, FONT_BLACK, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED	);;
+	DrawTextToScreen( mEntryVector[mSelectedEntry].second, musStartX+CITY_NAME_OFFSET, (UINT16)(musStartY+7), 0, DEF_DROPDOWN_FONT, FONT_BLACK, FONT_MCOLOR_BLACK, FALSE, LEFT_JUSTIFIED );
 
 	SetFontShadow(DEFAULT_SHADOW);
 }
@@ -468,7 +468,7 @@ DropDownBase::SelectDropDownRegionCallBack(MOUSE_REGION * pRegion, INT32 iReason
 	else if (iReason & MSYS_CALLBACK_REASON_LBUTTON_UP)
 	{
 		UINT8 ubSelected = (UINT8)MSYS_GetRegionUserData( pRegion, 0 );
-		mSelectedEntry = min(ubSelected + mFirstShownEntry, mEntryVector.size() -1) ;
+		mSelectedEntry = min(ubSelected + mFirstShownEntry, max(0, mEntryVector.size() -1) );
 
 		Destroy_Drop();
 	}
@@ -508,6 +508,8 @@ DropDownBase::SelectUpDownArrowOnScrollAreaRegionCallBack(MOUSE_REGION * pRegion
 		DrawTopEntry();
 		DrawSelectedCity();
 		DrawGoldRectangle();
+
+		SetRefresh( );
 	}
 }
 
@@ -536,10 +538,10 @@ DropDownBase::SelectScrollAreaDropDownMovementCallBack(MOUSE_REGION * pRegion, I
 			}
 			else if( mFirstShownEntry + ubCityNum > mSelectedEntry )
 			{
-				mSelectedEntry = min(mFirstShownEntry + ubCityNum, mEntryVector.size() - 1);
+				mSelectedEntry = min( mFirstShownEntry + ubCityNum, max( 0, mEntryVector.size( ) - 1 ) );
 
 				if ( ubCityNum == mNumDisplayedEntries - 1 )
-					mFirstShownEntry = min(mFirstShownEntry + 1, mEntryVector.size() - 1);
+					mFirstShownEntry = min( mFirstShownEntry + 1, max( 0, mEntryVector.size( ) - 1 ) );
 			}
 			
 			InvalidateRegion(pRegion->RegionTopLeftX, pRegion->RegionTopLeftY, pRegion->RegionBottomRightX, pRegion->RegionBottomRightY);
@@ -602,6 +604,26 @@ DropDownBase::SelectScrollAreaDropDownRegionCallBack(MOUSE_REGION * pRegion, INT
 		DrawTopEntry();
 		DrawSelectedCity();
 		DrawGoldRectangle();
+	}
+}
+
+/*
+* If aKey exists among our keys, set it as the current one
+*/
+void
+DropDownBase::SetSelectedEntryKey( INT16 aKey )
+{
+	UINT8 cnt = 0;
+	std::vector<std::pair<INT16, STR16> >::iterator itend = mEntryVector.end( );
+	for ( std::vector<std::pair<INT16, STR16> >::iterator it = mEntryVector.begin( ); it != itend; ++it )
+	{
+		if ( (*it).first == aKey )
+		{
+			mSelectedEntry = cnt;
+			return;
+		}
+
+		++cnt;
 	}
 }
 

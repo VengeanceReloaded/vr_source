@@ -959,10 +959,10 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				//CODE: BEGINHOPFENCE
 				// MOVE TWO FACGIN GRIDNOS
 				sNewGridNo = NewGridNo( pSoldier->sGridNo, (UINT16)( DirectionInc( pSoldier->ubDirection ) ) );
-				//dddokno{
+				//ddd window{
 					if ( gubWorldMovementCosts[ sNewGridNo ][ (UINT8)pSoldier->pathing.usPathingData[ pSoldier->pathing.usPathIndex ] ][ pSoldier->pathing.bLevel ] == TRAVELCOST_FENCE )
 						sNewGridNo = NewGridNo( sNewGridNo, (UINT16)( DirectionInc( pSoldier->ubDirection ) ) );
-				//dddokno}
+				//ddd window}
 
 				//comm by ddd
 				//sNewGridNo = NewGridNo( sNewGridNo, (UINT16)( DirectionInc( pSoldier->ubDirection ) ) );
@@ -3788,17 +3788,17 @@ BOOLEAN HandleSoldierDeath( SOLDIERTYPE *pSoldier , BOOLEAN *pfMadeCorpse )
 		if(pKillerSoldier != NULL)
 		{
 			if( pSoldier->usAnimState == JFK_HITDEATH )
-				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_HEAD_POP, pSoldier );
+				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_HEAD_POP, pSoldier->ubID );
 			else if( Item[pKillerSoldier->usAttackingWeapon].usItemClass & IC_GUN )
-				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_GUNFIRE, pSoldier );
+				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_GUNFIRE, pSoldier->ubID );
 			else if( Item[pKillerSoldier->usAttackingWeapon].usItemClass & IC_BLADE )
-				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_BLADE, pSoldier );
+				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_BLADE, pSoldier->ubID );
 			else if( Item[pKillerSoldier->usAttackingWeapon].usItemClass & IC_PUNCH )
-				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_HTH, pSoldier );
+				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_HTH, pSoldier->ubID );
 			else if( Item[pKillerSoldier->usAttackingWeapon].usItemClass & IC_THROWING_KNIFE )
-				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_THROWING_KNIFE, pSoldier );
+				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL_THROWING_KNIFE, pSoldier ->ubID);
 			else
-				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL, pSoldier );
+				PossiblyStartEnemyTaunt( pKillerSoldier, TAUNT_KILL, pSoldier->ubID );
 		}
 
 		// Cancel services here...

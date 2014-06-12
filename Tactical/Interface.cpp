@@ -121,7 +121,7 @@ INT32		giMenuAnchorX, giMenuAnchorY;
 //#define PROG_BAR_START_Y			2
 
 //**ddd{ 
-//поставить дефайн в 0 если использовать большой прогресс бар
+//assign 0 to define if using large progress bar
 //#define fSmallSizeProgressbar 1
 INT32 HEIGHT_PROGRESSBAR, PROG_BAR_START_Y;
 //ddd}
@@ -6470,4 +6470,24 @@ void ShowRankIcon( INT16 sXPos, INT16 sYPos, SOLDIERTYPE* pSoldier )
 	}
 }
 
+// Flugente: check a profile for a background flag without using SOLDIERTYPE
+BOOLEAN	HasBackgroundFlag( UINT8 usProfile, UINT64 aFlag )
+{
+	if ( gGameOptions.fBackGround && usProfile != NO_PROFILE )
+	{
+		if ( zBackground[gMercProfiles[usProfile].usBackground].uiFlags & aFlag )
+			return TRUE;
+	}
 
+	return FALSE;
+}
+
+INT16 GetBackgroundValue( UINT8 usProfile, UINT16 aNr )
+{
+	if ( gGameOptions.fBackGround && usProfile != NO_PROFILE )
+	{
+		return zBackground[gMercProfiles[usProfile].usBackground].value[aNr];
+	}
+
+	return 0;
+}

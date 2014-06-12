@@ -3262,12 +3262,7 @@ BOOLEAN DisplayTalkingMercFaceForVideoPopUp(INT32	iFaceIndex)
 
 void DisplayTextForMercFaceVideoPopUp(STR16 pString)
 {
-
-#ifdef TAIWANESE
-	swprintf( gsTalkingMercText, L"%s", pString );
-#else
 	swprintf( gsTalkingMercText, L"\"%s\"", pString );
-#endif
 
 	//Set the minimum time for the dialogue text to be present
 	usAimMercSpeechDuration =	wcslen( gsTalkingMercText ) * AIM_TEXT_SPEECH_MODIFIER;

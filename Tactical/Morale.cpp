@@ -961,6 +961,7 @@ void HandleMoraleEvent( SOLDIERTYPE *pSoldier, INT8 bMoraleEvent, INT16 sMapX, I
 		case MORALE_BAD_EQUIPMENT:
 		case MORALE_OWED_MONEY:
 		case MORALE_PLAYER_INACTIVE_DAYS:
+		case MORALE_PREVENTED_MISBEHAVIOUR:
 			Assert( pSoldier );
 			HandleMoraleEventForSoldier( pSoldier, bMoraleEvent );
 			break;
@@ -1727,50 +1728,26 @@ INT8	SoldierRelation( SOLDIERTYPE* pSoldierA, SOLDIERTYPE* pSoldierB)
 
 	// some people care about how distuingished other people are. Malus if on different ends of the spectrum, a small bonus if on the same and its really important to the person
 	// also give a malus if the other person is a slob or snob and we are average but care extremely (we don't like people who behave differently)
-	switch ( gMercProfiles[ pSoldierB->ubProfile ].bRefinement )
+	// if we don't care, doesn't matter
+	if ( pProfile->bRefinementCareLevel == CARELEVEL_NONE )
 	{
-	case REFINEMENT_SLOB:
-		{
-			if ( pProfile->bRefinement == REFINEMENT_AVERAGE )
-			{
-				if ( pProfile->bRefinementCareLevel == CARELEVEL_EXTREME )
-					bOpinion -= gGameExternalOptions.sMoraleModRefinement;
-			}
-			if ( pProfile->bRefinement == REFINEMENT_SLOB )
-			{
-				if ( pProfile->bRefinementCareLevel == CARELEVEL_EXTREME )
-					bOpinion += gGameExternalOptions.sMoraleModRefinement;
-			}
-			else if ( pProfile->bRefinement == REFINEMENT_SNOB )
-			{
-				if ( pProfile->bRefinementCareLevel == CARELEVEL_SOME )
-					bOpinion -= gGameExternalOptions.sMoraleModRefinement;
-				else if ( pProfile->bRefinementCareLevel == CARELEVEL_EXTREME )
-					bOpinion -= gGameExternalOptions.sMoraleModRefinement * 2;
-			}
-		}
-		break;
-	case REFINEMENT_SNOB:
-		{
-			if ( pProfile->bRefinement == REFINEMENT_AVERAGE )
-			{
-				if ( pProfile->bRefinementCareLevel == CARELEVEL_EXTREME )
-					bOpinion -= gGameExternalOptions.sMoraleModRefinement;
-			}
-			if ( pProfile->bRefinement == REFINEMENT_SNOB )
-			{
-				if ( pProfile->bRefinementCareLevel == CARELEVEL_EXTREME )
-					bOpinion += gGameExternalOptions.sMoraleModRefinement;
-			}
-			else if ( pProfile->bRefinement == REFINEMENT_SLOB )
-			{
-				if ( pProfile->bRefinementCareLevel == CARELEVEL_SOME )
-					bOpinion -= gGameExternalOptions.sMoraleModRefinement;
-				else if ( pProfile->bRefinementCareLevel == CARELEVEL_EXTREME )
-					bOpinion -= gGameExternalOptions.sMoraleModRefinement * 2;
-			}
-		}
-		break;
+		// nothing to do...
+	}
+	// if we care somewhat, malus on slob/snob
+	else if ( pProfile->bRefinementCareLevel == CARELEVEL_SOME )
+	{
+		if ( pProfile->bRefinement * gMercProfiles[pSoldierB->ubProfile].bRefinement == 2 )
+			bOpinion -= gGameExternalOptions.sMoraleModRefinement;
+	}
+	// if we care extremely, reward for similarity, malus otherwise
+	else //if( pProfile->bRefinementCareLevel == CARELEVEL_EXTREME )
+	{
+		if ( pProfile->bRefinement * gMercProfiles[pSoldierB->ubProfile].bRefinement == 2 )
+			bOpinion -= 2 * gGameExternalOptions.sMoraleModRefinement;
+		else if ( pProfile->bRefinement * gMercProfiles[pSoldierB->ubProfile].bRefinement == 0 )
+			bOpinion -= gGameExternalOptions.sMoraleModRefinement;
+		else
+			bOpinion += gGameExternalOptions.sMoraleModRefinement;
 	}
 
 	// some people hate other nationalities (do not mix up with racism, which uses bRace)
