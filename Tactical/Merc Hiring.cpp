@@ -238,7 +238,7 @@ INT8 HireMerc( MERC_HIRE_STRUCT *pHireMerc)
 	{
 		// OK, give this item to our merc!
 		// make an objecttype
-		CreateItem(2409, 100, &gTempObject);
+		CreateItem(3001, 100, &gTempObject);
 		// Give it
 		fReturn = AutoPlaceObject( MercPtrs[iNewIndex], &gTempObject, FALSE );
 		// CHRISL: This condition should resolve the issue of the letter not being issued to the first merc
