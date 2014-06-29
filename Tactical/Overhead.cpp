@@ -3566,7 +3566,7 @@ void HandleNPCTeamMemberDeath( SOLDIERTYPE *pSoldierOld )
             case JIM:
             case JACK:
             case OLAF:
-            case RAY:
+            //case RAY:
             case OLGA:
             case TYRONE:
                 MakeRemainingAssassinsTougher();

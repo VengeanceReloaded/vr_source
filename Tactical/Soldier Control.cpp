@@ -15984,6 +15984,10 @@ BOOLEAN		SOLDIERTYPE::UsesScubaGear()
 // Flugente: are we an assassin?
 BOOLEAN		SOLDIERTYPE::IsAssassin()
 {
+	// anv: VR - Colonel Ayala uses Ray's old index
+	if (  this->ubProfile == COLONEL )
+		return FALSE;
+
 	// kingpin's hitmen are assassins
 	if ( this->ubProfile >= JIM && this->ubProfile <= TYRONE )
 		return TRUE;

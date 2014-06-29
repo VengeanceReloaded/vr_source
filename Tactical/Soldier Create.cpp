@@ -806,6 +806,11 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 			{
 				Soldier.aiData.bNeutral = FALSE;
 			}
+			// anv: VR - Colonel Ayala is hostile
+			else if( Soldier.ubProfile == COLONEL )
+			{
+				Soldier.aiData.bNeutral = FALSE;
+			}
 			else if (Soldier.ubCivilianGroup != NON_CIV_GROUP)
 			{
 				if ( gTacticalStatus.fCivGroupHostile[ Soldier.ubCivilianGroup ] == CIV_GROUP_HOSTILE )

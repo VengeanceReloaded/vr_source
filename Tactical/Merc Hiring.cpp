@@ -215,7 +215,9 @@ INT8 HireMerc( MERC_HIRE_STRUCT *pHireMerc)
 		{
 			// OK, give this item to our merc!
 			// make an objecttype
-			CreateItem(LETTER, 100, &gTempObject);
+			//CreateItem(LETTER, 100, &gTempObject);
+			// anv: VR - mission briefing instead of letter
+			CreateItem(3030, 100, &gTempObject);
 			// Give it
 			fReturn = AutoPlaceObject( MercPtrs[iNewIndex], &gTempObject, FALSE );
 			// CHRISL: This condition should resolve the issue of the letter not being issued to the first merc
@@ -238,7 +240,7 @@ INT8 HireMerc( MERC_HIRE_STRUCT *pHireMerc)
 	{
 		// OK, give this item to our merc!
 		// make an objecttype
-		CreateItem(3001, 100, &gTempObject);
+		CreateItem(3001, Random(10) + 10, &gTempObject);
 		// Give it
 		fReturn = AutoPlaceObject( MercPtrs[iNewIndex], &gTempObject, FALSE );
 		// CHRISL: This condition should resolve the issue of the letter not being issued to the first merc
