@@ -6083,11 +6083,12 @@ BOOLEAN HandleTalkInit(	)
 			// ATE: if our own guy...
 			if ( pTSoldier->bTeam == gbPlayerNum && !AM_AN_EPC( pTSoldier ) )
 			{
-				if ( pTSoldier->ubProfile == DIMITRI )
-				{
-					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[ 32 ], pTSoldier->GetName() );
-					return( FALSE );
-				}
+				// anv: VR - Frazzler *is* Dimitri and he has those lines
+				//if ( pTSoldier->ubProfile == DIMITRI )
+				//{
+				//	ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[ 32 ], pTSoldier->GetName() );
+				//	return( FALSE );
+				//}
 
 				// Randomize quote to use....
 
