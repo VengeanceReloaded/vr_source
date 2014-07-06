@@ -338,6 +338,18 @@ static void BuildLoadscreenFilename(std::string& dst, const char* path, int reso
 	if (path)
 		dst.append(path);
 
+	switch (resolution)
+	{
+		case 1:
+			dst.append("_800x600");
+			break;
+		case 2:
+			dst.append("_1024x768");
+			break;
+		default:
+			break;
+	}
+
 	if (ext)
 	{
 		dst.append(".");
@@ -425,9 +437,23 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 
 		std::string strImage;
 
-		BuildLoadscreenFilename(strImage, imagePath.c_str(), 0, imageFormat.c_str());
+		BuildLoadscreenFilename(strImage, imagePath.c_str(), iResolution, imageFormat.c_str());
 		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
-		
+
+		if ( !FileExists(vs_desc.ImageFile) )
+		{
+			std::string strImage("LOADSCREENS\\");
+			
+			BuildLoadscreenFilename(strImage, LoadScreenNames[1], iResolution, imageFormat.c_str());
+
+			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+		}
+
+		if ( !FileExists(vs_desc.ImageFile) )
+		{
+			BuildLoadscreenFilename(strImage, LoadScreenNames[1], 0, imageFormat.c_str());
+			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+		}	
 		
 		if ( !FileExists(vs_desc.ImageFile) )
 		{
@@ -444,14 +470,28 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 
 		if (LOADINGSCREEN_NOTHING <= ubLoadScreenID && ubLoadScreenID <= LOADINGSCREEN_NIGHTBALIME)
 		{
-			BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
+			BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], iResolution, "sti");
 		}
 		else
 		{
 			// for some reason the heli screen is the default
-			BuildLoadscreenFilename(strImage, LoadScreenNames[0], 0, "sti");
+			BuildLoadscreenFilename(strImage, LoadScreenNames[0], iResolution, "sti");
 		}
 		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
+
+		if ( !FileExists(vs_desc.ImageFile) )
+		{
+			if (LOADINGSCREEN_NOTHING <= ubLoadScreenID && ubLoadScreenID <= LOADINGSCREEN_NIGHTBALIME)
+			{
+				BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
+			}
+			else
+			{
+				// for some reason the heli screen is the default
+				BuildLoadscreenFilename(strImage, LoadScreenNames[0], 0, "sti");
+			}
+			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+		}
 	}
 
 
