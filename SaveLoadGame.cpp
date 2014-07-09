@@ -6284,9 +6284,11 @@ BOOLEAN LoadSavedGame( int ubSavedGameID )
 	//now change the savegame format so that temp files are saved and loaded correctly
 	guiCurrentSaveGameVersion = SAVE_GAME_VERSION;
 
-	// Flugente: should not be needed anymore
+	// silversurfer: added additional check to only remove the flags when there is no boxing activity going on at the moment.
 	// WANNE: This should fix the bug if any merc are still under PC control. This could happen after boxing in SAN MONA.
-	/*SOLDIERTYPE	*pTeamSoldier;
+	if ( gTacticalStatus.bBoxingState == NOT_BOXING )
+	{
+		SOLDIERTYPE	*pTeamSoldier;
 	for (INT8 bLoop=gTacticalStatus.Team[gbPlayerNum].bFirstID; bLoop <= gTacticalStatus.Team[gbPlayerNum].bLastID; bLoop++)
 	{
 		pTeamSoldier=MercPtrs[bLoop]; 
@@ -6295,7 +6297,8 @@ BOOLEAN LoadSavedGame( int ubSavedGameID )
 			pTeamSoldier->flags.uiStatusFlags &= (~SOLDIER_PCUNDERAICONTROL);
 
 		pTeamSoldier->DeleteBoxingFlag();
-	}*/
+		}
+	}
 
 	return( TRUE );
 }

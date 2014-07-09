@@ -2901,12 +2901,13 @@ void SendReinforcementsForGarrison( INT32 iDstGarrisonID, UINT16 usDefencePoints
 	Ensure_RepairedGarrisonGroup( &gGarrisonGroup, &giGarrisonArraySize );	/* added NULL fix, 2007-03-03, Sgt. Kolja */
 	ValidateWeights( 8 );
 
-	if( gGarrisonGroup[ iDstGarrisonID ].ubSectorID == SEC_B13 ||
+	/*if( gGarrisonGroup[ iDstGarrisonID ].ubSectorID == SEC_B13 ||
 		gGarrisonGroup[ iDstGarrisonID ].ubSectorID == SEC_C13 ||
 		gGarrisonGroup[ iDstGarrisonID ].ubSectorID == SEC_D13 )
 	{
 		pSector = NULL;
-	}
+	}*/
+
 	pSector = &SectorInfo[ gGarrisonGroup[ iDstGarrisonID ].ubSectorID ];
 	//Determine how many units the garrison needs.
 	iReinforcementsRequested = GarrisonReinforcementsRequested( iDstGarrisonID, &ubNumExtraReinforcements );
@@ -5519,7 +5520,7 @@ void RequestHighPriorityGarrisonReinforcements( INT32 iGarrisonID, UINT8 ubSoldi
 	ubBestDist = 255;
 	iBestIndex = -1;
 
- Ensure_RepairedGarrisonGroup( &gGarrisonGroup, &giGarrisonArraySize );	/* added NULL fix, 2007-03-03, Sgt. Kolja */
+	Ensure_RepairedGarrisonGroup( &gGarrisonGroup, &giGarrisonArraySize );	/* added NULL fix, 2007-03-03, Sgt. Kolja */
 
 	for( i = 0; i < giPatrolArraySize; i++ )
 	{
@@ -5539,6 +5540,8 @@ void RequestHighPriorityGarrisonReinforcements( INT32 iGarrisonID, UINT8 ubSoldi
 	}
 	ubDstSectorX = (UINT8)SECTORX( gGarrisonGroup[ iGarrisonID ].ubSectorID );
 	ubDstSectorY = (UINT8)SECTORY( gGarrisonGroup[ iGarrisonID ].ubSectorID );
+	
+	/* // Comment code calling reinforcements from patrol groups as they will not be replenished subsequently
 	if( iBestIndex != -1 )
 	{ //Send the group to the garrison
 		pGroup = GetGroup( gPatrolGroup[ iBestIndex ].ubGroupID );
@@ -5615,19 +5618,24 @@ void RequestHighPriorityGarrisonReinforcements( INT32 iGarrisonID, UINT8 ubSoldi
 		}
 	}
 	else
-	{ //There are no groups that have enough troops.	Send a new force from the palace instead.
-		pGroup = CreateNewEnemyGroupDepartingFromSector( SECTOR( gModSettings.ubSAISpawnSectorX, gModSettings.ubSAISpawnSectorY ), 0, ubSoldiersRequested, 0 );
-		pGroup->ubMoveType = ONE_WAY;
-		pGroup->pEnemyGroup->ubIntention = REINFORCEMENTS;
-		gGarrisonGroup[ iGarrisonID ].ubPendingGroupID = pGroup->ubGroupID;
-		pGroup->ubOriginalSector = (UINT8)SECTOR( ubDstSectorX, ubDstSectorY );
+	*/
+	{ //There are no groups that have enough troops. Send a new force from the palace instead.
+		if ( giReinforcementPool > 0 )
+		{
+			pGroup = CreateNewEnemyGroupDepartingFromSector( SECTOR( gModSettings.ubSAISpawnSectorX, gModSettings.ubSAISpawnSectorY ), 
+				0, min( ubSoldiersRequested, giReinforcementPool ), 0 );
+			pGroup->ubMoveType = ONE_WAY;
+			pGroup->pEnemyGroup->ubIntention = REINFORCEMENTS;
+			gGarrisonGroup[ iGarrisonID ].ubPendingGroupID = pGroup->ubGroupID;
+			pGroup->ubOriginalSector = (UINT8)SECTOR( ubDstSectorX, ubDstSectorY );
 
-		//Madd: unlimited reinforcements?
-		if ( !gfUnlimitedTroops )
-			giReinforcementPool -= (INT32)ubSoldiersRequested;
+			//Madd: unlimited reinforcements?
+			if ( !gfUnlimitedTroops )
+				giReinforcementPool -= (INT32)min( ubSoldiersRequested, giReinforcementPool );
 
-		MoveSAIGroupToSector( &pGroup, gGarrisonGroup[ iGarrisonID ].ubSectorID, EVASIVE, REINFORCEMENTS );
-		ValidateGroup( pGroup );
+			MoveSAIGroupToSector( &pGroup, gGarrisonGroup[ iGarrisonID ].ubSectorID, EVASIVE, REINFORCEMENTS );
+			ValidateGroup( pGroup );
+		}
 	}
 }
 

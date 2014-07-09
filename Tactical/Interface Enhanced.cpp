@@ -59,6 +59,8 @@
 	#include "Food.h"	// added by Flugente
 #endif
 
+#include "Multi Language Graphic Utils.h"
+
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
@@ -1363,7 +1365,8 @@ BOOLEAN InternalInitEnhancedDescBox()
 
 		// HEADROCK HAM 4: Advanced Icons
 		VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
-		strcpy( VObjectDesc.ImageFile, "INTERFACE\\ItemInfoAdvancedIcons.STI" );
+		GetMLGFilename( VObjectDesc.ImageFile, MLG_ITEMINFOADVANCEDICONS );	// WANNE: Now the icons are for multi-language
+		//strcpy( VObjectDesc.ImageFile, "INTERFACE\\ItemInfoAdvancedIcons.STI" );
 		CHECKF( AddVideoObject( &VObjectDesc, &guiItemInfoAdvancedIcon ) );
 
 		// Flugente: added icons for WH40K
@@ -3250,7 +3253,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 			|| GetObjectModifier( gpItemDescSoldier, gpItemDescObject, ANIM_CROUCH, ITEMMODIFIER_COUNTERFORCEMAX ) != 0 
 			|| GetObjectModifier( gpItemDescSoldier, gpItemDescObject, ANIM_PRONE, ITEMMODIFIER_COUNTERFORCEMAX ) != 0 )
 		{
-			if( UsingNewCTHSystem() == true && Item[gpItemDescObject->usItem].usItemClass == IC_GUN )
+			if( UsingNewCTHSystem() == true ) //&& Item[gpItemDescObject->usItem].usItemClass == IC_GUN )
 			{
 				if (cnt >= sFirstLine && cnt < sLastLine)
 				{
@@ -5335,7 +5338,7 @@ void DrawAdvancedStats( OBJECTTYPE * gpItemDescObject )
 		|| GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_CROUCH, ITEMMODIFIER_COUNTERFORCEMAX ) != 0 
 		|| GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_PRONE, ITEMMODIFIER_COUNTERFORCEMAX ) != 0 ) ) )
 	{
-		if( UsingNewCTHSystem() == true && Item[gpItemDescObject->usItem].usItemClass == IC_GUN )
+		if( UsingNewCTHSystem() == true ) //&& Item[gpItemDescObject->usItem].usItemClass == IC_GUN )
 		{
 			if (cnt >= sFirstLine && cnt < sLastLine)
 			{
@@ -6848,7 +6851,7 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 				// Print base value
 				DrawPropertyValueInColour( iHandlingValue, ubNumLine, 1, fComparisonMode, FALSE, TRUE );
 				// Print modifier
-				DrawPropertyValueInColour( iHandlingModifier, ubNumLine, 2, fComparisonMode, TRUE, TRUE );
+				DrawPropertyValueInColour( iHandlingModifier, ubNumLine, 2, fComparisonMode, TRUE, FALSE );
 				// Print final value
 				DrawPropertyValueInColour( iFinalHandlingValue, ubNumLine, 3, fComparisonMode, FALSE, TRUE, FONT_MCOLOR_WHITE );
 			}
@@ -6866,11 +6869,11 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 				// Get Final Gun Handling value
 				UINT16 iComparedFinalHandlingValue =  iComparedHandlingValue + iComparedHandlingModifier;
 				// Print difference in base value
-				DrawPropertyValueInColour( iComparedHandlingValue - iHandlingValue, ubNumLine, 1, fComparisonMode, FALSE, TRUE );
+				DrawPropertyValueInColour( iComparedHandlingValue - iHandlingValue, ubNumLine, 1, fComparisonMode, FALSE, FALSE );
 				// Print difference in modifier
-				DrawPropertyValueInColour( iComparedHandlingModifier - iHandlingModifier, ubNumLine, 2, fComparisonMode, TRUE, TRUE );
+				DrawPropertyValueInColour( iComparedHandlingModifier - iHandlingModifier, ubNumLine, 2, fComparisonMode, TRUE, FALSE );
 				// Print difference in final value
-				DrawPropertyValueInColour( iComparedFinalHandlingValue - iFinalHandlingValue, ubNumLine, 3, fComparisonMode, FALSE, TRUE );
+				DrawPropertyValueInColour( iComparedFinalHandlingValue - iFinalHandlingValue, ubNumLine, 3, fComparisonMode, FALSE, FALSE );
 			}
 		}
 		else if( fComparisonMode && UsingNewCTHSystem() == TRUE && 
@@ -8709,7 +8712,7 @@ void DrawAmmoValues( OBJECTTYPE * gpItemDescObject, int shotsLeft )
 			if( !fComparisonMode )
 			{
 				// Print base value
-				DrawPropertyValueInColourFloat( fArmourImpactReduction, ubNumLine, 1, fComparisonMode, FALSE, TRUE, 0, 1.0f, 2 );
+				DrawPropertyValueInColourFloat( fArmourImpactReduction, ubNumLine, 1, fComparisonMode, FALSE, FALSE, 0, 1.0f, 2 );
 				// Print modifier
 				DrawPropertyTextInColour( L"--", ubNumLine, 2 );
 				// Print final value
@@ -8757,11 +8760,11 @@ void DrawAmmoValues( OBJECTTYPE * gpItemDescObject, int shotsLeft )
 				// Get base Tumbling
 				FLOAT fComparedFinalAfterArmourImpactReduction = fComparedAfterArmourImpactReduction;
 				// Print difference in base value
-				DrawPropertyValueInColourFloat( fComparedAfterArmourImpactReduction - fAfterArmourImpactReduction, ubNumLine, 1, fComparisonMode, FALSE, FALSE, 0, 0.0f, 2 );
+				DrawPropertyValueInColourFloat( fComparedAfterArmourImpactReduction - fAfterArmourImpactReduction, ubNumLine, 1, fComparisonMode, FALSE, TRUE, 0, 0.0f, 2 );
 				// Print difference in modifier
 				DrawPropertyTextInColour( L"=", ubNumLine, 2 );
 				// Print difference in final value
-				DrawPropertyValueInColourFloat( fComparedFinalAfterArmourImpactReduction - fFinalAfterArmourImpactReduction, ubNumLine, 3, fComparisonMode, FALSE, FALSE, 0, 0.0f, 2 );
+				DrawPropertyValueInColourFloat( fComparedFinalAfterArmourImpactReduction - fFinalAfterArmourImpactReduction, ubNumLine, 3, fComparisonMode, FALSE, TRUE, 0, 0.0f, 2 );
 			}
 		}
 
@@ -11231,8 +11234,8 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 		iComparedModifier[1] = GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_CROUCH, ITEMMODIFIER_COUNTERFORCEMAX );
 		iComparedModifier[2] = GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_PRONE, ITEMMODIFIER_COUNTERFORCEMAX );
 	}
-	if ( ((iModifier[0] != 0 || iModifier[1] != 0 || iModifier[2] != 0) && UsingNewCTHSystem() == true && Item[gpItemDescObject->usItem].usItemClass == IC_GUN ) ||
-		( fComparisonMode && (iComparedModifier[0] != 0 || iComparedModifier[1] != 0 || iComparedModifier[2] != 0) && UsingNewCTHSystem() == true && Item[gpComparedItemDescObject->usItem].usItemClass == IC_GUN ) )
+	if ( ((iModifier[0] != 0 || iModifier[1] != 0 || iModifier[2] != 0) && UsingNewCTHSystem() == true /*&& Item[gpItemDescObject->usItem].usItemClass == IC_GUN*/ ) ||
+		( fComparisonMode && (iComparedModifier[0] != 0 || iComparedModifier[1] != 0 || iComparedModifier[2] != 0) && UsingNewCTHSystem() == true /*&& Item[gpComparedItemDescObject->usItem].usItemClass == IC_GUN*/ ) )
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
 		{
