@@ -1417,9 +1417,6 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.iQuickItem8						= iniReader.ReadInteger("Tactical Interface Settings", "QUICK_ITEM_8", 0, -100, MAXITEMS);
 	gGameExternalOptions.iQuickItem9						= iniReader.ReadInteger("Tactical Interface Settings", "QUICK_ITEM_9", 0, -100, MAXITEMS);
 	gGameExternalOptions.iQuickItem0						= iniReader.ReadInteger("Tactical Interface Settings", "QUICK_ITEM_0", 0, -100, MAXITEMS);
-
-	// New setting to change stamina
-	gGameExternalOptions.uStaminaHit						= iniReader.ReadInteger("Tactical Interface Settings", "STAMINA_HIT", 10000);
 	
 	// Alternative system for aiming - progressive method depending on marksmanship of Merc
 	gGameExternalOptions.bAltAimEnabled						= iniReader.ReadBoolean("Tactical Interface Settings","ALT_AIMING_ENABLED",FALSE);
@@ -1804,7 +1801,7 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ADMIN]		= iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_ADMIN",	80, 30, 1000);
 	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_REGULAR]	= iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_REGULAR", 100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ADMIN], 1000);
 	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ELITE]		= iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_ELITE",   100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_REGULAR], 1000);
-	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_OFFICER]    = iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_SPECIAL", 100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ELITE], 1000 );
+	gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_OFFICER]    = iniReader.ReadInteger("Strategic Gameplay Settings","PRISONER_INTERROGATION_POINTS_OFFICER", 100, gGameExternalOptions.ubPrisonerInterrogationPoints[PRISONER_ELITE], 1000 );
 		
 	// CHRISL: Determine how Skyrider should handle landing in enemy occupied sectors
 	gGameExternalOptions.ubSkyriderHotLZ					= iniReader.ReadInteger("Strategic Gameplay Settings", "ALLOW_SKYRIDER_HOT_LZ", 0, 0, 3);

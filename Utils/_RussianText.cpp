@@ -2893,7 +2893,7 @@ STR16		gzWeaponStatsFasthelpTactical[ 33 ] =
 	L"|R|e|p|a|i|r |E|a|s|e\n \nDetermines how difficult it is to repair\nthis weapon and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only special NPCs can\nrepair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
 };
 
-STR16		gzMiscItemStatsFasthelp[ 34 ] =
+STR16		gzMiscItemStatsFasthelp[ 35 ] =
 {
 	L"Модификатор размера предмета\n(чем меньше, тем лучше)",		//Item Size Modifier (Lower is better)
 	L"Модификатор надёжности",						//Reliability Modifier
@@ -2929,6 +2929,7 @@ STR16		gzMiscItemStatsFasthelp[ 34 ] =
 	L"Модификатор диапазона\nвидимости в пещере",
 	L"Сужение сектора обзора\n(чем меньше, тем лучше)",		//Tunnel Vision Percentage (Lower is better)
 	L"Минимальная эффективная\nдальность оптики",				//Minimum Range for Aiming Bonus
+	L"Hold |C|t|r|l to compare items", // item compare help text // TODO.Translate
 };
 
 // HEADROCK: End new tooltip text
@@ -7258,9 +7259,9 @@ STR16 gzFacilityAssignmentStrings[]=
 STR16 Additional113Text[]=
 {
 	L"Для запуска Jagged Alliance 2 v1.13 в оконном режиме требуется установить 16-битное качество цветопередачи экрана",
+	L"Jagged Alliance 2 v1.13 fullscreen mode requires to run at your desktop resolution (%d x %d) or less.",	// TODO.Translate
 
 	// WANNE: Savegame slots validation against INI file 	// TODO.Translate
-	L"Internal error in reading %s slots from Savegame: Number of slots in Savegame (%d) differs from defined slots in ja2_options.ini settings (%d)",
 	L"Mercenary (MAX_NUMBER_PLAYER_MERCS) / Vehicle (MAX_NUMBER_PLAYER_VEHICLES)", 
 	L"Enemy (MAX_NUMBER_ENEMIES_IN_TACTICAL)", 
 	L"Creature (MAX_NUMBER_CREATURES_IN_TACTICAL)", 

@@ -700,7 +700,7 @@ extern CHAR16		gWeaponStatsDesc[][ 19 ];
 // HEADROCK: Added externs for Item Description Box icon and stat tooltips
 // Note that I've inflated some of these to 20 to avoid issues.
 extern STR16		gzWeaponStatsFasthelpTactical[ 33 ];
-extern STR16		gzMiscItemStatsFasthelp[ 34 ];
+extern STR16		gzMiscItemStatsFasthelp[ 35 ];
 // HEADROCK HAM 4: New tooltip texts
 extern STR16		gzUDBButtonTooltipText[ 3 ];
 extern STR16		gzUDBHeaderTooltipText[ 4 ];
@@ -2515,6 +2515,12 @@ extern STR16 gszMPMapscreenText[];
 enum
 {
 	ADDTEXT_16BPP_REQUIRED,
+	ADDTEXT_LOWERRES_REQUIRED,
+	ERROR_MAX_MERCSVEHICLES,
+	ERROR_MAX_ENEMIES,
+	ERROR_MAX_CREATURES,
+	ERROR_MAX_MILITIA,
+	ERROR_MAX_CIVILIANS,
 };
 extern STR16 Additional113Text[];
 extern STR16 ranks[];

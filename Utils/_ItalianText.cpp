@@ -2887,7 +2887,7 @@ STR16		gzWeaponStatsFasthelpTactical[ 33 ] =
 	L"|R|e|p|a|i|r |E|a|s|e\n \nDetermines how difficult it is to repair\nthis weapon and who can fully repair it.\n \ngreen = Anybody can repair it.\n \nyellow = Only special NPCs can\nrepair it beyond repair threshold.\n \nred = This item can't be repaired.\n \nHigher is better.",
 };
 
-STR16		gzMiscItemStatsFasthelp[ 34 ] =
+STR16		gzMiscItemStatsFasthelp[ 35 ] =
 {
 	L"Item Size Modifier (Lower is better)", // 0
 	L"Reliability Modifier",
@@ -2923,6 +2923,7 @@ STR16		gzMiscItemStatsFasthelp[ 34 ] =
 	L"Cave Vision Range Modifier",
 	L"Tunnel Vision Percentage (Lower is better)",
 	L"Minimum Range for Aiming Bonus",
+	L"Hold |C|t|r|l to compare items", // item compare help text
 };
 
 // HEADROCK: End new tooltip text
@@ -7258,10 +7259,10 @@ STR16 gzFacilityAssignmentStrings[]=
 STR16 Additional113Text[]=
 {
 	L"Jagged Alliance 2 v1.13 modalità finestra richiede una profondità di colore di 16bpp o meno.",
+	L"Jagged Alliance 2 v1.13 fullscreen mode requires to run at your desktop resolution (%d x %d) or less.",	// TODO.Translate
 
 	// TODO.Translate
 	// WANNE: Savegame slots validation against INI file
-	L"Internal error in reading %s slots from Savegame: Number of slots in Savegame (%d) differs from defined slots in ja2_options.ini settings (%d)",
 	L"Mercenary (MAX_NUMBER_PLAYER_MERCS) / Vehicle (MAX_NUMBER_PLAYER_VEHICLES)", 
 	L"Enemy (MAX_NUMBER_ENEMIES_IN_TACTICAL)", 
 	L"Creature (MAX_NUMBER_CREATURES_IN_TACTICAL)", 

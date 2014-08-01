@@ -559,7 +559,7 @@ STR16 iEditorMercsToolbarText[] =
  L"SOLO RUSÉ",
  L"SOUTIEN RUSÉ",
  
- L"Sélectionné le mercenaire pour faire face à %s",
+ L"Placez mercenaire face à %s",	// Max 30 characters
  
  L"Trouvé",
  L"MAUVAIS", //40
@@ -2897,7 +2897,7 @@ STR16		gzWeaponStatsFasthelpTactical[ 33 ] =
 	L"|F|a|c|i|l|i|t|é |d|e |r|é|p|a|r|a|t|i|o|n\n \nDétermine la difficulté à réparer une arme\net qui peut la réparer complètement.\n \nVert = N'importe qui peut la réparer.\n \nJaune = Seuls des PNJ spécialisés peuvent la\nréparer au-delà du seuil de réparation.\n \nRouge = L'arme ne peut pas être réparée.\n \nValeur élevée recommandée.",
 };
 
-STR16		gzMiscItemStatsFasthelp[ 34 ] =
+STR16		gzMiscItemStatsFasthelp[ 35 ] =
 {
 	L"Facteur d'encombrement (Valeur faible recommandée)", // 0
 	L"Facteur de fiabilité",
@@ -2933,6 +2933,7 @@ STR16		gzMiscItemStatsFasthelp[ 34 ] =
 	L"Facteur de portée visuelle cave",
 	L"Pourcentage d'effet tunnel (Valeur faible recommandée)",
 	L"Portée minimale pour bonus de visée",
+	L"Maintenez |C|T|R|L pour comparer les objets", // item compare help text
 };
 
 // HEADROCK: End new tooltip text
@@ -7262,9 +7263,9 @@ STR16 gzFacilityAssignmentStrings[]=
 STR16 Additional113Text[]=
 {
 	L"Jagged Alliance 2 v1.13 mode fenêtré exige une profondeur de couleur de 16 bit ou moins.",
+	L"Jagged Alliance 2 v1.13 mode plein écran nécessite pour fonctionner la résolution du bureau de votre ordinateur (%d x %d) ou moins.",
 
 	// WANNE: Savegame slots validation against INI file
-	L"Erreur interne en lisant %s emplacements depuis la sauvegarde : Le nombre d'emplacements dans la sauvegarde (%d) diffère des emplacements définis dans les paramètres de ja2_options.ini (%d)",
 	L"Mercenaires (MAX_NUMBER_PLAYER_MERCS) / Véhicule (MAX_NUMBER_PLAYER_VEHICLES)", 
 	L"Ennemis (MAX_NUMBER_ENEMIES_IN_TACTICAL)", 
 	L"Créatures (MAX_NUMBER_CREATURES_IN_TACTICAL)", 
