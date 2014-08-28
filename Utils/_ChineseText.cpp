@@ -674,7 +674,7 @@ STR16 iEditorOptionsToolbarText[]=
 	L"退出编辑模式", //L"Leave Editor mode",
 	L"退出游戏(|A|l|t+|X)", //L"Exit game (|A|l|t+|X)",
 	L"编辑雷达图", //L"Create radar map",
-	L"是否按照原版JA2的地图格式保存 \n该选项只对原版大小的地图有效，地图格数不应超过25600个", //L"When checked, the map will be saved in original JA2 map format.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",
+	L"是否按照原版JA2的地图格式保存 Items with ID > 350 will be lost. \n该选项只对原版大小的地图有效，地图格数不应超过25600个", //L"When checked, the map will be saved in original JA2 map format.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",	// TODO.Translate
 	L"是否自动根据选择的行列数多少来放大地图", //L"When checked and you load a map, the map will be enlarged automatically depending on the selected Rows and Cols.",
 };
 
@@ -706,9 +706,9 @@ STR16 iEditorTaskbarInternalText[]=
 	L"选项", //L"Options",
 	L"\n|./|,:切换width:xx选项大小\n \n|P|g|U|p/|P|g|D|n:智能模式选择前/后一个模板", //Terrain fasthelp text //L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method",
 	L"\n|./|,:切换width:xx选项大小\n \n|P|g|U|p/|P|g|D|n:智能模式选择前/后一个模板", //Buildings fasthelp text //L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method",
-	L"|C|t|r|l+|/:光标处放置新物品\n|/:光标下放置同样物品", //Items fasthelp text //L"|S|p|a|c|e: Select next item\n \n|C|t|r|l+|/: Place new item under mouse cursor\n|/: Place same item under mouse cursor",
+	L"|S|p|a|c|e: 选择后一个物品\n|C|t|r|l+|S|p|a|c|e: 选择前一个物品\n \n|/:光标下放置同样物品\n|C|t|r|l+|/:光标处放置新物品", //Items fasthelp text //L"|S|p|a|c|e: Select next item\n|C|t|r|l+|S|p|a|c|e: Select previous item\n \n|/: Place same item under mouse cursor\n|C|t|r|l+|/: Place new item under mouse cursor",
 	L"|1-|9:设置路标 \n|C|t|r|l+|C/|C|t|r|l+|V:复制/粘贴佣兵", //Mercs fasthelp text //L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc",
-	L"|C|t|r|l+|G:转到某格\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I:查看小地图\n|J:切换房顶绘制\n|K:显示房顶标记\n|S|h|i|f|t+|L:显示地图边界\n|S|h|i|f|t+|T:显示树顶\n|U:切换地图高度\n \n|./|,:切换width:xx选项大小", //Map Info fasthelp text //L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions",	// 
+	L"|C|t|r|l+|G:转到某格\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I:查看小地图\n|J:切换房顶绘制\n|K:显示房顶标记\n|S|h|i|f|t+|L:显示地图边界\n|S|h|i|f|t+|T:显示树顶\n|U:切换地图高度\n \n|./|,:切换width:xx选项大小", //Map Info fasthelp text //L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions",	// TODO.Translate
 	L"|C|t|r|l+|N:创造新地图\n \n|F|5:显示总信息/大地图\n|F|1|0:移除所有光源\n|F|1|1:取消修改\n|F|1|2:清空所有\n \n|S|h|i|f|t+|R:随机放置选定数量的物品\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version", //Options fasthelp text //L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version",	// 
 };
 
@@ -3650,7 +3650,7 @@ STR16 pMapScreenInvenButtonHelpText[] =
 	L"|L|e|f|t |C|l|i|c|k: 切换是否显示套装包\n|R|i|g|h|t |C|l|i|c|k: 只显示套装包", // HEADROCK HAM 5: Filter Button
 	// 16 - 20
 	L"|L|e|f|t |C|l|i|c|k: 切换是否显示杂项物品\n|R|i|g|h|t |C|l|i|c|k: 只显示杂项物品", // HEADROCK HAM 5: Filter Button
-	L"|L|e|f|t |C|l|i|c|k: 切换搬运中的物品", // Flugente: move item display
+	L"切换搬运中的物品", // Flugente: move item display
 };
 
 STR16 pMapScreenBottomFastHelp[] =
@@ -4175,6 +4175,8 @@ STR16 pHistoryHeaders[] =
 	L"事件",	// the event label
 };
 
+// Externalized to "TableData\History.xml"
+/*
 // various history events
 // THESE STRINGS ARE "HISTORY LOG" STRINGS AND THEIR LENGTH IS VERY LIMITED.
 // PLEASE BE MINDFUL OF THE LENGTH OF THESE STRINGS. ONE WAY TO "TEST" THIS
@@ -4283,6 +4285,7 @@ STR16 pHistoryStrings[] =
 	L"Saved Enrico Chivaldori in Melino Palace.",
 	L"Gained access to Tracona territory.",
 };
+*/
 
 STR16 pHistoryLocations[] =
 {
@@ -5663,7 +5666,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"打开时，使用公制系统，否则使用英制系统。",
 
 	//Merc Lighted movement
-	L"打开时，佣兵移动时会照亮地表（关闭这个选项会使游戏的显示速度变快）。",
+	L"打开时，佣兵移动时会照亮地表（关闭这个选项会使游戏的显示速度变快）。(|C|t|r|l+|A|l|t+|G)",
 
 	//Smart cursor
 	L"打开时，光标移动到佣兵身上时会高亮显示佣兵。",
@@ -5672,13 +5675,13 @@ STR16	zOptionsScreenHelpText[] =
 	L"打开时，光标靠近门时会自动定位到门上。",
 
 	//glow items
-	L"打开时，物品会不断的闪烁。(|I)",
+	L"打开时，物品会不断的闪烁。(|C|t|r|l+|A|l|t+|I)",
 
 	//toggle tree tops
 	L"打开时，显示树冠。(|T)",
 
 	//toggle wireframe
-	L"打开时，显示未探明的墙的轮廓。(|W)",
+	L"打开时，显示未探明的墙的轮廓。(|C|t|r|l+|A|l|t+|W)",
 
 	L"打开时，移动时的光标为3D式样。(|H|o|m|e)",
 
@@ -5698,7 +5701,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"打开时，游戏将在玩家回合后自动存盘",
 	L"打开时，Skyrider保持沉默。",
 	L"打开时，使用物品及武器的“增强描述框”（EDB）。",
-	L"打开时，在战术画面内存在敌军时，将一直处于回合制模式直至该地区所有敌军被消灭（可以通过快捷键 (|C|t|r|l+|S|h|i|f|t+|A|l|t+|T) 来控制打开或关闭强制回合制模式）",
+	L"打开时，在战术画面内存在敌军时，将一直处于回合制模式直至该地区所有敌军被消灭（可以通过快捷键 (|C|t|r|l+|T) 来控制打开或关闭强制回合制模式）",
 	L"打开时，显示各属性的增长进度。", // L"When ON, shows character progress towards gaining levels.", //ham3.6
 	L"打开时, 战略地图将会根据探索状态显示不同的着色。",
 	L"打开时, 当你射击时会显示间隔子弹图像。",
@@ -5718,7 +5721,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"打开时，会直接显示该区域最后一个敌人的大致位置。",
 	L"打开时，在区域物品栏界面，右键点击装有物品的携行具时可直接显示包含的物品。",
 	L"打开时，反转鼠标滚轮方向。",
-	L"当选择了多个佣兵，他们在前进时会保持彼此的间距。(|C|t|r|l+|S|h|i|f|t+|G)",	// L"When multiple mercs are selected, they will try to keep their relative distances while moving. (|C|t|r|l+|S|h|i|f|t+|G)",
+	L"当选择了多个佣兵，他们在前进时会保持彼此的间距。(|G)",	// L"When multiple mercs are selected, they will try to keep their relative distances while moving. (|C|t|r|l+|S|h|i|f|t+|G)",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"强制 Bobby Ray 出货",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",
@@ -6963,8 +6966,8 @@ STR16 MPClientMessage[] =
 STR16 gszMPEdgesText[] =
 {
 	L"北", //L"N",
-	L"南", //L"S",
 	L"东", //L"E",
+	L"南", //L"S",
 	L"西", //L"W",
 	L"中", //L"C",	// "C"enter
 };

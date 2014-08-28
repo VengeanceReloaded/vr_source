@@ -6686,7 +6686,7 @@ bool TryToPlaceInSlot(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, bool fNewItem, in
 	}
 
 	if (bSlot == SECONDHANDPOS) {
-		if (pSoldier->inv[HANDPOS].exists() == true) {
+		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[ HANDPOS ].usItem].twohanded) {
 			return false;
 		}
 	}
@@ -6698,39 +6698,18 @@ bool TryToPlaceInSlot(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, bool fNewItem, in
 	return false;
 }
 
-bool PlaceInAnySlot(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, bool fNewItem, int bExcludeSlot)
+bool PlaceInAnySlot(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, bool fNewItem, int bExcludeSlot, bool fStackOrSingleSlot)
 {
-	//first, try to STACK the item
-	//try to STACK in any slot
-	for(int bSlot = BODYPOSSTART; bSlot < BIGPOCKSTART; bSlot++) {
-		if (bSlot != bExcludeSlot && TryToStackInSlot(pSoldier, pObj, bSlot) == true) {
-			return true;
-		}
-	}
-
-	if (FitsInSmallPocket(pObj) == true) {
-		//try to STACK in small pockets
-		for(int bSlot = SMALLPOCKSTART; bSlot < SMALLPOCKFINAL; bSlot++) {
-			if (bSlot != bExcludeSlot && TryToStackInSlot(pSoldier, pObj, bSlot) == true) {
-				return true;
-			}
-		}
-	}
-
-	//try to STACK in big pockets, and possibly medium pockets
-	int bigPocketEnd = (UsingNewInventorySystem() == true) ? MEDPOCKFINAL : BIGPOCKFINAL;
-	for(int bSlot = BIGPOCKSTART; bSlot < bigPocketEnd; bSlot++) {
-		if (bSlot != bExcludeSlot && TryToStackInSlot(pSoldier, pObj, bSlot) == true) {
-			return true;
-		}
-	}
+	UINT8 ubInitialNumberOfObjects = pObj->ubNumberOfObjects;
 
 	//now try to PLACE
 	//try to PLACE in any body slot
 	for(int bSlot = BODYPOSSTART; bSlot < BIGPOCKSTART; bSlot++) {
-		if (bSlot != bExcludeSlot && TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, BODYPOSFINAL) == true) {
+		if (bSlot != bExcludeSlot && TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, BODYPOSFINAL) == true)
 			return true;
-		}
+		
+		if(pObj->ubNumberOfObjects < ubInitialNumberOfObjects && fStackOrSingleSlot)
+			return true;
 	}
 
 	if(UsingNewInventorySystem() == true)
@@ -6742,46 +6721,61 @@ bool PlaceInAnySlot(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, bool fNewItem, int 
 		UINT8	lCapacity=0;
 		UINT8	capacity=0;
 		int		bSlot;
-		//Start with active big pockets
-		sPocket=PickPocket(pSoldier, SMALLPOCKSTART, SMALLPOCKFINAL, pObj->usItem, pObj->ubNumberOfObjects, &sCapacity, bExcludeSlot);
-		//Next search active medium pockets
-		mPocket=PickPocket(pSoldier, MEDPOCKSTART, MEDPOCKFINAL, pObj->usItem, pObj->ubNumberOfObjects, &mCapacity, bExcludeSlot);
-		//Lastly search active small pockets
-		lPocket=PickPocket(pSoldier, BIGPOCKSTART, BIGPOCKFINAL, pObj->usItem, pObj->ubNumberOfObjects, &lCapacity, bExcludeSlot);
-		//Finally, compare the three pockets we've found and return the pocket that is most logical to use
-		capacity = min(sCapacity, mCapacity);
-		capacity = min(lCapacity, capacity);
-		if(capacity == 254) {	//no pocket found
-			return false;
+		
+		for( UINT8 i = 0; i < ubInitialNumberOfObjects; i++)
+		{
+			// pocket may not accomodate entire stack
+			for( UINT8 ubCurrentObjects = pObj->ubNumberOfObjects; ubCurrentObjects > 0; ubCurrentObjects--)
+			{
+				//Start with active small pockets
+				sPocket=PickPocket(pSoldier, SMALLPOCKSTART, SMALLPOCKFINAL, pObj->usItem, ubCurrentObjects, &sCapacity, bExcludeSlot);
+				//Next search active medium pockets
+				mPocket=PickPocket(pSoldier, MEDPOCKSTART, MEDPOCKFINAL, pObj->usItem, ubCurrentObjects, &mCapacity, bExcludeSlot);
+				//Lastly search active big pockets
+				lPocket=PickPocket(pSoldier, BIGPOCKSTART, BIGPOCKFINAL, pObj->usItem, ubCurrentObjects, &lCapacity, bExcludeSlot);
+				//Finally, compare the three pockets we've found and return the pocket that is most logical to use
+				capacity = min(sCapacity, mCapacity);
+				capacity = min(lCapacity, capacity);
+				
+				// pocket can fit slot
+				if(capacity != 254)
+					break;
+			}
+
+			if(capacity == 254)	//no pocket found
+				return false;
+			else if(capacity == sCapacity)
+				bSlot = sPocket;
+			else if(capacity == mCapacity)
+				bSlot = mPocket;
+			else if(capacity == lCapacity)
+				bSlot = lPocket;
+			
+			if(TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, NUM_INV_SLOTS) == true || fStackOrSingleSlot)
+				return true;
 		}
-		else if(capacity == sCapacity) {
-			bSlot = sPocket;
-		}
-		else if(capacity == mCapacity) {
-			bSlot = mPocket;
-		}
-		else if(capacity == lCapacity) {
-			bSlot = lPocket;
-		}
-		if(TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, NUM_INV_SLOTS) == true)
-			return true;
 	}
 	else
 	{
 		if (FitsInSmallPocket(pObj) == true) {
 			//try to PLACE in small pockets
 			for(int bSlot = SMALLPOCKSTART; bSlot < SMALLPOCKFINAL; bSlot++) {
-				if (bSlot != bExcludeSlot && TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, NUM_INV_SLOTS) == true) {
+				if (bSlot != bExcludeSlot && TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, NUM_INV_SLOTS) == true)
 					return true;
-				}
+
+				if(pObj->ubNumberOfObjects < ubInitialNumberOfObjects && fStackOrSingleSlot)
+					return true;
 			}
 		}
 
 		//try to PLACE in big pockets, and possibly medium pockets
+		int bigPocketEnd = (UsingNewInventorySystem() == true) ? MEDPOCKFINAL : BIGPOCKFINAL;
 		for(int bSlot = BIGPOCKSTART; bSlot < bigPocketEnd; bSlot++) {
-			if (bSlot != bExcludeSlot && TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, bigPocketEnd) == true) {
+			if (bSlot != bExcludeSlot && TryToPlaceInSlot(pSoldier, pObj, fNewItem, bSlot, bigPocketEnd) == true)
 				return true;
-			}
+
+			if(pObj->ubNumberOfObjects < ubInitialNumberOfObjects && fStackOrSingleSlot)
+				return true;
 		}
 	}
 
@@ -6951,7 +6945,7 @@ BOOLEAN AutoPlaceObjectToWorld(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT8 b
 }
 
 // CHRISL: Function needed for LBENODE
-BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNewItem, INT8 bExcludeSlot )
+BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNewItem, INT8 bExcludeSlot, BOOLEAN fStackOrSingleSlot )
 {
 	INVTYPE	* pItem;
 	UINT32			packCombo, backCombo;
@@ -6962,10 +6956,41 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 	//Pulmu bugfix		
 	//ADB ubWeight has been removed, see comments in OBJECTTYPE
 	//pObj->ubWeight = CalculateObjectWeight( pObj);
+	
+	UINT8 ubInitialNumberOfObjects = pObj->ubNumberOfObjects;
+	
+	//first, try to STACK the item
+	//try to STACK in any slot
+	for(int bSlot = BODYPOSSTART; bSlot < BIGPOCKSTART; bSlot++) {
+		if (bSlot != bExcludeSlot && TryToStackInSlot(pSoldier, pObj, bSlot) == true) {
+			return true;
+		}
+	}
+
+	if (FitsInSmallPocket(pObj) == true) {
+		//try to STACK in small pockets
+		for(int bSlot = SMALLPOCKSTART; bSlot < SMALLPOCKFINAL; bSlot++) {
+			if (bSlot != bExcludeSlot && TryToStackInSlot(pSoldier, pObj, bSlot) == true) {
+				return true;
+			}
+		}
+	}
+
+	//try to STACK in big pockets, and possibly medium pockets
+	int bigPocketEnd = (UsingNewInventorySystem() == true) ? MEDPOCKFINAL : BIGPOCKFINAL;
+	for(int bSlot = BIGPOCKSTART; bSlot < bigPocketEnd; bSlot++) {
+		if (bSlot != bExcludeSlot && TryToStackInSlot(pSoldier, pObj, bSlot) == true) {
+			return true;
+		}
+	}
+
+	if(pObj->ubNumberOfObjects < ubInitialNumberOfObjects && fStackOrSingleSlot)
+		return true;
+	
+	// then overrides to the standard system: put guns in hand, armour on body (if slot empty)
 	pItem = &(Item[pObj->usItem]);
 	int lbeClass;
 
-	// Overrides to the standard system: put guns in hand, armour on body (if slot empty)
 	switch (pItem->usItemClass)
 	{
 		case IC_GUN:
@@ -6978,7 +7003,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			{
 				// put the one-handed weapon in the guy's hand...
 				PlaceObject( pSoldier, HANDPOS, pObj, fNewItem );
-				if ( pObj->exists() == false )
+				if ( pObj->exists() == false || fStackOrSingleSlot )
 				{
 					return( TRUE );
 				}
@@ -6987,7 +7012,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			{
 				// put the one-handed weapon in the guy's 2nd hand...
 				PlaceObject( pSoldier, SECONDHANDPOS, pObj, fNewItem );
-				if ( pObj->exists() == false )
+				if ( pObj->exists() == false || fStackOrSingleSlot )
 				{
 					return( TRUE );
 				}
@@ -7004,7 +7029,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 						if(pSoldier->inv[GUNSLINGPOCKPOS].exists() == false)	// Long Gun use Gun Sling
 						{
 							PlaceObject( pSoldier, GUNSLINGPOCKPOS, pObj, fNewItem );
-							if (pObj->exists() == false)
+							if (pObj->exists() == false || fStackOrSingleSlot)
 								return( TRUE );
 						}
 						break;
@@ -7013,7 +7038,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 						if(pSoldier->inv[KNIFEPOCKPOS].exists() == false)	// Knife
 						{
 							PlaceObject( pSoldier, KNIFEPOCKPOS, pObj, fNewItem );
-							if (pObj->exists() == false)
+							if (pObj->exists() == false || fStackOrSingleSlot)
 								return( TRUE );
 						}
 						break;
@@ -7028,7 +7053,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 					{
 						// put on the armour!
 						PlaceObject( pSoldier, VESTPOS, pObj, fNewItem );
-						if ( pObj->exists() == false )
+						if ( pObj->exists() == false || fStackOrSingleSlot )
 						{
 							return( TRUE );
 						}
@@ -7049,7 +7074,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 						// put on the armour!
 						PlaceObject( pSoldier, LEGPOS, pObj, fNewItem );
 					}
-					if ( pObj->exists() == false )
+					if ( pObj->exists() == false || fStackOrSingleSlot )
 					{
 						return( TRUE );
 					}
@@ -7059,7 +7084,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 					{
 						// put on the armour!
 						PlaceObject( pSoldier, HELMETPOS, pObj, fNewItem );
-						if ( pObj->exists() == false )
+						if ( pObj->exists() == false || fStackOrSingleSlot )
 						{
 							return( TRUE );
 						}
@@ -7074,7 +7099,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			if ( (pSoldier->inv[HEAD1POS].exists() == false) && CompatibleFaceItem( pObj->usItem, pSoldier->inv[HEAD2POS].usItem ) )
 			{
 				PlaceObject( pSoldier, HEAD1POS, pObj, fNewItem );
-				if ( pObj->exists() == false )
+				if ( pObj->exists() == false || fStackOrSingleSlot )
 				{
 					return( TRUE );
 				}
@@ -7082,7 +7107,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			else if ( (pSoldier->inv[HEAD2POS].exists() == false) && CompatibleFaceItem( pObj->usItem, pSoldier->inv[HEAD1POS].usItem ) )
 			{
 				PlaceObject( pSoldier, HEAD2POS, pObj, fNewItem );
-				if ( pObj->exists() == false )
+				if ( pObj->exists() == false || fStackOrSingleSlot )
 				{
 					return( TRUE );
 				}
@@ -7098,19 +7123,19 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			{
 				if (pSoldier->inv[LTHIGHPOCKPOS].exists() == false) {
 					PlaceObject( pSoldier, LTHIGHPOCKPOS, pObj, fNewItem );
-					if(pObj->exists() == false)
+					if(pObj->exists() == false || fStackOrSingleSlot)
 						return( TRUE );
 				}
 				if (pSoldier->inv[RTHIGHPOCKPOS].exists() == false) {
 					PlaceObject( pSoldier, RTHIGHPOCKPOS, pObj, fNewItem );
-					if(pObj->exists() == false)
+					if(pObj->exists() == false || fStackOrSingleSlot)
 						return( TRUE );
 				}
 			}
 			else if(pSoldier->inv[VESTPOCKPOS].exists() == false && lbeClass == VEST_PACK)	// Vest pack
 			{
 				PlaceObject( pSoldier, VESTPOCKPOS, pObj, fNewItem );
-				if(pObj->exists() == false)
+				if(pObj->exists() == false || fStackOrSingleSlot)
 					return( TRUE );
 			}
 			else if(pSoldier->inv[CPACKPOCKPOS].exists() == false && lbeClass == COMBAT_PACK)	// Combat pack
@@ -7121,7 +7146,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 				if((pSoldier->inv[BPACKPOCKPOS].exists() == true && packCombo != 0 && (backCombo & packCombo)) || pSoldier->inv[BPACKPOCKPOS].exists() == false)
 				{
 					PlaceObject( pSoldier, CPACKPOCKPOS, pObj, fNewItem );
-					if(pObj->exists() == false)
+					if(pObj->exists() == false || fStackOrSingleSlot)
 						return( TRUE );
 				}
 			}
@@ -7139,7 +7164,7 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 						pSoldier->flags.DropPackFlag = FALSE;
 						pSoldier->flags.ZipperFlag = FALSE;
 						RenderBackpackButtons(ACTIVATE_BUTTON);	/* CHRISL: Needed for new inventory backpack buttons */
-						if(pObj->exists() == false)
+						if(pObj->exists() == false || fStackOrSingleSlot)
 							return( TRUE );
 					}
 				//}
@@ -7149,9 +7174,9 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			break;
 	}
 
-	if (PlaceInAnySlot(pSoldier, pObj, (fNewItem == TRUE), bExcludeSlot) == true) {
+	if (PlaceInAnySlot(pSoldier, pObj, (fNewItem == TRUE), bExcludeSlot, fStackOrSingleSlot) == true)
 		return TRUE;
-	}
+
 	return( FALSE );
 }
 

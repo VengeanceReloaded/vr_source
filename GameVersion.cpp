@@ -15,9 +15,9 @@
 #ifdef JA2EDITOR
 	
 	#ifdef JA2UB
-		CHAR16 zVersionLabel[256]		= { L"Unfinished Business - Map Editor v1.13.7082 (2014 Beta Build)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Unfinished Business - Map Editor v1.13.7435 (2014 Official Release)" }; 
 	#else
-		CHAR16 zVersionLabel[256]		= { L"Map Editor v1.13.7082 (2014 Beta Build)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Map Editor v1.13.7435 (2014 Official Release)" }; 
 	#endif
 
 // ------------------------------
@@ -27,11 +27,11 @@
 
 	//DEBUG BUILD VERSION	
 	#ifdef JA2UB
-		CHAR16 zVersionLabel[256]		= { L"Debug: Unfinished Business - v1.13.7082 (2014 Beta Build)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Debug: Unfinished Business - v1.13.7435 (2014 Official Release)" }; 
 	#elif defined (JA113DEMO)
-		CHAR16 zVersionLabel[256]		= { L"Debug: JA2 Demo - v1.13.7082 (2014 Beta Build)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Debug: Jagged Alliance 2 Demo - v1.13.7435 (2014 Official Release)" }; 
 	#else
-		CHAR16 zVersionLabel[256]		= { L"Debug: v1.13.7082 (2014 Beta Build)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Debug: Jagged Alliance 2 v1.13.7435 (2014 Official Release)" }; 
 	#endif
 
 #elif defined CRIPPLED_VERSION
@@ -46,16 +46,16 @@
 
 	//RELEASE BUILD VERSION	
 	#ifdef JA2UB
-		CHAR16		zVersionLabel[256]		= { L"Release Unfinished Business - v1.13.7082 (2014 Beta Build)" };
+		CHAR16		zVersionLabel[256]		= { L"Unfinished Business - v1.13.7435 (2014 Official Release)" };
 	#elif defined (JA113DEMO)
-		CHAR16		zVersionLabel[256]		= { L"Release JA2 Demo - v1.13.7082 (2014 Beta Build)" };
+		CHAR16		zVersionLabel[256]		= { L"Jagged Alliance 2 Demo - v1.13.7435 (2014 Official Release)" };
 	#else
-		CHAR16		zVersionLabel[256]		= { L"Release v1.13.7082 (2014 Beta Build)" };
+		CHAR16		zVersionLabel[256]		= { L"Jagged Alliance 2 v1.13.7435 (2014 Official Release)" };
 	#endif
 
 #endif
 										
-CHAR8		czVersionNumber[16]	= { "Build 14.03.18" };		//YY.MM.DD
+CHAR8		czVersionNumber[16]	= { "Build 14.08.27" };		//YY.MM.DD
 CHAR16		zTrackingNumber[16]	= { L"Z" };
 	
 // SAVE_GAME_VERSION is defined in header, change it there

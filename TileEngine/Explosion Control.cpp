@@ -1990,6 +1990,9 @@ BOOLEAN DishOutGasDamage( SOLDIERTYPE * pSoldier, EXPLOSIVETYPE * pExplosive, IN
 			// Already affected by burnable gas this turn. Lower damage value by ini setting.
 			fGasDamageModifier = gItemSettings.fDamageHealthMoveModifierExplosive;
 			fGasBreathDamageModifier = gItemSettings.fDamageBreathMoveModifierExplosive;
+			// modify damage values
+			sWoundAmt *= fGasDamageModifier;
+			sBreathAmt *= fGasBreathDamageModifier;
 			//return( fRecompileMovementCosts );
 		}
 	}
@@ -4215,7 +4218,7 @@ void DecayBombTimers( void )
 				for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)							// ... for all items in our inventory ...
 			    {
 					// ... if Item is a bomb ...
-					if (pSoldier->inv[bLoop].exists() == true && ( Item[pSoldier->inv[bLoop].usItem].usItemClass & (IC_BOMB) ) )
+					if (pSoldier->inv[bLoop].exists() == true && ( Item[pSoldier->inv[bLoop].usItem].usItemClass & (IC_BOMB|IC_GRENADE) ) )
 					{
 						OBJECTTYPE * pObj = &(pSoldier->inv[bLoop]);					// ... get pointer for this item ...
 

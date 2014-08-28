@@ -673,7 +673,7 @@ STR16 iEditorOptionsToolbarText[]=
 	L"Leave Editor mode",
 	L"Exit game (|A|l|t+|X)",
 	L"Create radar map",
-	L"When checked, the map will be saved in original JA2 map format.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",
+	L"When checked, the map will be saved in original JA2 map format. Items with ID > 350 will be lost.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",
 	L"When checked and you load a map, the map will be enlarged automatically depending on the selected Rows and Cols.",
 };
 
@@ -705,7 +705,7 @@ STR16 iEditorTaskbarInternalText[]=
 	L"Options",
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Terrain fasthelp text
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Buildings fasthelp text
-	L"|S|p|a|c|e: Select next item\n \n|C|t|r|l+|/: Place new item under mouse cursor\n|/: Place same item under mouse cursor", //Items fasthelp text
+	L"|S|p|a|c|e: Select next item\n|C|t|r|l+|S|p|a|c|e: Select previous item\n \n|/: Place same item under mouse cursor\n|C|t|r|l+|/: Place new item under mouse cursor", //Items fasthelp text
 	L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc", //Mercs fasthelp text
 	L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions", //Map Info fasthelp text
 	L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version", //Options fasthelp text
@@ -3644,7 +3644,7 @@ STR16 pMapScreenInvenButtonHelpText[] =
 	L"|L|e|f|t |C|l|i|c|k: Toggle Kits\n|R|i|g|h|t |C|l|i|c|k: Show only Kits", // HEADROCK HAM 5: Filter Button
 	// 16 - 20
 	L"|L|e|f|t |C|l|i|c|k: Toggle Misc. Items\n|R|i|g|h|t |C|l|i|c|k: Show only Misc. Items", // HEADROCK HAM 5: Filter Button
-	L"|L|e|f|t |C|l|i|c|k: Toggle Move Item Display", // Flugente: move item display	// TODO.Translate
+	L"Toggle Move Item Display", // Flugente: move item display	// TODO.Translate
 };
 
 STR16 pMapScreenBottomFastHelp[] =
@@ -4166,6 +4166,8 @@ STR16 pHistoryHeaders[] =
 	L"Evento", 			// the event label
 };
 
+// Externalized to "TableData\History.xml"
+/*
 // various history events
 // THESE STRINGS ARE "HISTORY LOG" STRINGS AND THEIR LENGTH IS VERY LIMITED.
 // PLEASE BE MINDFUL OF THE LENGTH OF THESE STRINGS. ONE WAY TO "TEST" THIS
@@ -4274,6 +4276,7 @@ STR16 pHistoryStrings[] =
 	L"Saved Enrico Chivaldori in Melino Palace.",
 	L"Gained access to Tracona territory.",
 };
+*/
 
 STR16 pHistoryLocations[] =
 {
@@ -5648,7 +5651,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Se attivata, utilizza il sistema metrico di misurazione; altrimenti ricorre al sistema britannico.",
 
 	//Merc Lighted movement
-	L"Se attivata, il mercenario mostrerà il terreno su cui cammina. Disattivatela per un aggiornamento più veloce.",
+	L"Se attivata, il mercenario mostrerà il terreno su cui cammina. Disattivatela per un aggiornamento più veloce. (|C|t|r|l+|A|l|t+|G)",
 
 	//Smart cursor
 	L"Se attivata, muovendo il cursore vicino ai vostri mercenari li evidenzierà automaticamente.",
@@ -5657,13 +5660,13 @@ STR16	zOptionsScreenHelpText[] =
 	L"Se attivata, muovendo il cursore vicino a una porta farà posizionare automaticamente il cursore sopra di questa.",
 
 	//glow items 
-	L"Se attivata, l'opzione evidenzierà gli |Oggetti automaticamente.",
+	L"Se attivata, l'opzione evidenzierà gli Oggetti automaticamente. (|C|t|r|l+|A|l|t+|I)",
 
 	//toggle tree tops
-	L"Se attivata, mostra le |fronde degli alberi.",
+	L"Se attivata, mostra le fronde degli alberi. (|T)",
 
 	//toggle wireframe
-	L"Se attivata, visualizza le |Strutture dei muri nascosti.",
+	L"Se attivata, visualizza le |Strutture dei muri nascosti. (|C|t|r|l+|A|l|t+|W)",
 
 	L"Se attivata, il cursore di movimento verrà mostrato in 3D. (|H|o|m|e)",
 
@@ -5683,7 +5686,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"When ON, game will be saved in 2 alternate save slots after each players turn.",
 	L"When ON, Skyrider will not talk anymore.",
 	L"When ON, enhanced descriptions will be shown for items and weapons.",
-	L"When ON and enemy present, Turn Base mode persists untill sector is free (|C|t|r|l+|S|h|i|f|t+|A|l|t+|T).",	// add forced turn mode
+	L"When ON and enemy present, Turn Base mode persists untill sector is free (|C|t|r|l+|T).",	// add forced turn mode
 	L"When ON, shows character progress towards gaining levels.",	// TODO.Translate
 	L"When ON, the Strategic Map will be colored differently based on exploration.",
 	L"When ON, alternate bullet graphics will be shown when you shoot.", // TODO.Translate
@@ -5703,7 +5706,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"When ON, approximate locations of the last enemies in the sector are highlighted.",  // TODO.Translate
 	L"When ON, show the contents of an LBE item, otherwise show the regular NAS interface.", // TODO.Translate
 	L"When ON, inverts mouse wheel directions.",		// TODO.Translate
-	L"When multiple mercs are selected, they will try to keep their relative distances while moving. (|C|t|r|l+|S|h|i|f|t+|G)",	// TODO.Translate
+	L"When ON and multiple mercs are selected, they will try to keep their relative distances while moving. (|G)",	// TODO.Translate
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Force all pending Bobby Ray shipments",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",
@@ -6010,10 +6013,10 @@ STR16 pMessageStrings[] =
 	L"Nessuna descrizione", //Save slots that don't have a description.
 	L"Partita salvata.",
 	L"Partita salvata.",
-	L"Salvataggio rapido", //The name of the quicksave file (filename, text reference)
-	L"Partita salvata",	//The name of the normal savegame file, such as SaveGame01, SaveGame02, etc.
-	L"salv.",				//The 3 character dos extension (represents sav)
-	L"..\\Partite salvate", //The name of the directory where games are saved.
+	L"QuickSave", //The name of the quicksave file (filename, text reference)
+	L"SaveGame",	//The name of the normal savegame file, such as SaveGame01, SaveGame02, etc.
+	L"sav",				//The 3 character dos extension (represents sav)
+	L"..\\SavedGames", //The name of the directory where games are saved.
 	L"Giorno",
 	L"Mercenari",
 	L"Slot vuoto", //An empty save game slot
@@ -6962,8 +6965,8 @@ STR16 MPClientMessage[] =
 STR16 gszMPEdgesText[] =
 {
 	L"N",
-	L"S",
 	L"E",
+	L"S",
 	L"W",
 	L"C",	// "C"enter
 };

@@ -678,7 +678,7 @@ STR16 iEditorOptionsToolbarText[]=
 	L"Quitter le mode éditeur",
 	L"Quitter le jeu (|A|L|T+|X)",
 	L"Créer un carte de radar",
-	L"Une fois la carte vérifiée, elle sera sauvée sous le format original JA2.\nCette option est seulement valable sur les cartes de taille \"normale\" qui ne font pas référence aux nombre de réseaux (ex : réseau de sortie) > 25600.",
+	L"Une fois la carte vérifiée, elle sera sauvée sous le format original JA2. Les objets avec l'ID > 350 seront perdus.\nCette option est seulement valable sur les cartes de taille \"normale\" qui ne font pas référence aux nombre de réseaux (ex : réseau de sortie) > 25600.",
 	L"Une fois la carte vérifiée et chargée, elle sera élargie automatiquement selon les rangées et colonnes choisies.",
 };
 
@@ -710,7 +710,7 @@ STR16 iEditorTaskbarInternalText[]=
 	L"Options",
 	L"|./|, : Cycle entre les dimensions 'largeur : xx'\n|P|g |U|p/|P|g |D|n : case précédente/suivante pour l(es)'objet(s) sélectionné(s)/en méthode intelligente", //Terrain fasthelp text
 	L"|./|, : Cycle entre les dimensions 'largeur : xx'\n|P|g |U|p/|P|g |D|n : case précédente/suivante pour l(es)'objet(s) sélectionné(s)/en méthode intelligente", //Buildings fasthelp text
-	L"|E|S|P|A|C|E : Sélectionne l'objet suivant\n \n|C|T|R|L+|/ : Place le nouveau objet sous le curseur de la souris\n|/ : Place le même objet sous le curseur de la souris", //Items fasthelp text
+	L"|E|S|P|A|C|E : Sélectionne l'objet suivant\n|C|T|R|L+|E|S|P|A|C|E : Sélectionne l'objet précédent\n \n|/ : Place le même objet sous le curseur de la souris\n|C|T|R|L+|/ : Place le nouveau objet sous le curseur de la souris", //Items fasthelp text
 	L"|1-|9 : Pose de waypoints\n|C|T|R|L+|C/|C|T|R|L+|V : Copie/colle mercenaire", //Mercs fasthelp text
 	L"|C|T|R|L+|G : Va à la case\n|M|A|J : fait défiler la carte au-delà de ses limites\n \n|I : (dés)active la carte vue de dessus\n|J : (dés)active l'affichage des terrains élevés\n|K : (dés)active les marqueurs de terrain élevé\n|M|A|J+|L : (dés)active les points d'angle de la carte\n|M|A|J+|T : (dés)active les feuillages\n|U : (dés)active la montée du monde\n \n|./|, : Cycle entre les dimensions 'largeur : xx'", //Map Info fasthelp text
 	L"|C|T|R|L+|N : Crée une nouvelle carte\n \n|F|5 : Montre le résumé des informations/Carte du monde\n|F|1|0 : Retire toutes les lumières\n|F|1|1 : recule les horaires\n|F|1|2 : Efface les horaires\n \n|M|A|J+|R : (dés)active les placements aléatoires basés sur la quantité du/des objet(s) sélectionné(s)\n \nOptions en ligne de commande\n|-|F|A|I|R|E|C|A|R|T|E|S : Génère la carte de type radar\n|-|F|A|I|R|E|C|A|R|T|E|S|C|N|V : Génère la carte de type radar ainsi que le couvert pour la dernière version", //Options fasthelp text
@@ -3656,7 +3656,7 @@ STR16 pMapScreenInvenButtonHelpText[] =
 	L"|C|l|i|c |G|. : Avec/sans kits\n|C|l|i|c |D|. : Voir que les kits", // HEADROCK HAM 5: Filter Button
 	// 16 - 20
 	L"|C|l|i|c |G|. : Avec/sans objets divers\n|C|l|i|c |D|. : Voir que les objets divers", // HEADROCK HAM 5: Filter Button
-	L"|C|l|i|c |G|. : Pour afficher ou non les objets déplacés.", // Flugente: move item display
+	L"Pour afficher ou non les objets déplacés.", // Flugente: move item display
 };
 
 STR16 pMapScreenBottomFastHelp[] =
@@ -4186,6 +4186,8 @@ STR16 pHistoryHeaders[] =
 	L"Événement", 			// the event label
 };
 
+/*
+// Externalized to "TableData\History.xml"
 // various history events
 // THESE STRINGS ARE "HISTORY LOG" STRINGS AND THEIR LENGTH IS VERY LIMITED.
 // PLEASE BE MINDFUL OF THE LENGTH OF THESE STRINGS. ONE WAY TO "TEST" THIS
@@ -4294,6 +4296,7 @@ STR16 pHistoryStrings[] =
 	L"Saved Enrico Chivaldori in Melino Palace.",
 	L"Gained access to Tracona territory.",
 };
+*/
 
 STR16 pHistoryLocations[] =
 {
@@ -4438,10 +4441,10 @@ STR16 pWebPagesTitles[] =
 	L"Morgue McGillicutty",
 	L"",
 	L"URL introuvable.",
-	L"%s, conseil de presse : Bilan du conflit",   // TODO.Translate //A voir fini (to see finished)
-	L"%s, conseil de presse : Rapports",   // TODO.Translate //A voir fini (to see finished)
-	L"%s, conseil de presse : Dernières Nouvelles",   // TODO.Translate //A voir fini (to see finished)
-	L"%s, conseil de presse : À propos de nous",   // TODO.Translate //A voir fini (to see finished)
+	L"%s, conseil de presse : Bilan du conflit",
+	L"%s, conseil de presse : Rapports",
+	L"%s, conseil de presse : Dernières nouvelles",
+	L"%s, conseil de presse : À propos de nous",
 	L"Bobby Ray : Dernières commandes",
 	L"Encyclopédie",
 	L"Encyclopédie : Données",
@@ -5674,7 +5677,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Activez cette option pour que le jeu utilise le système métrique.",
 
 	//Merc Lighted movement
-	L"Activez cette option pour éclairer les environs des mercenaires. (|G)\nDésactivez-la, si votre machine n'est pas suffisamment puissante.",
+	L"Activez cette option pour éclairer les environs des mercenaires. (|C|T|R|L+|A|L|T+|G)\nDésactivez-la, si votre machine n'est pas suffisamment puissante.",
 
 	//Smart cursor
 	L"Activez cette option pour que le curseur se positionne directement sur un mercenaire quand il est à proximité.",
@@ -5683,13 +5686,13 @@ STR16	zOptionsScreenHelpText[] =
 	L"Activez cette option pour que le curseur se positionne directement sur une porte quand il est à proximité.",
 
 	//glow items 
-	L"Activez cette option pour mettre les objets en évidence. (|I)",
+	L"Activez cette option pour mettre les objets en évidence. (|C|T|R|L+|A|L|T+||I)",
 
 	//toggle tree tops
 	L"Activez cette option pour afficher la cime des arbres. (|T)",
 
 	//toggle wireframe
-	L"Activez cette option pour afficher les murs en fil de fer. (|W)",
+	L"Activez cette option pour afficher les murs en fil de fer. (|C|T|R|L+|A|L|T+||W)",
 
 	L"Activez cette option pour afficher le curseur toit. (|Début)",
 
@@ -5709,7 +5712,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Si activé, le jeu est sauvegardé à chaque nouveau tour du joueur.",
 	L"Si activé, les confirmations insistantes de Skyrider cessent.",
 	L"Si activé, l'EDB sera affiché pour les armes et objets.",
-	L"Si cette option est activée et que des ennemis sont présents,\nle mode tour par tour est actif tant qu'il reste \ndes ennemis dans le secteur (|C|T|R|L+|M|A|J+|A|L|T+|T).",	// add forced turn mode
+	L"Si cette option est activée et que des ennemis sont présents,\nle mode tour par tour est actif tant qu'il reste \ndes ennemis dans le secteur (|C|T|R|L+|T).",	// add forced turn mode
 	L"Si activé, affiche une barre de progression sur chaque compétence",
 	L"Si activé, la carte stratégique sera colorée différemment selon l'exploration.",
 	L"Si activé, le graphisme des tirs alternatifs sera affiché quand vous tirerez.",
@@ -5728,7 +5731,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Si activé, la zone où se trouve le reste des ennemis dans le secteur, est mis en évidence.",
 	L"Si activé, montre le contenu d'un élément LBE quand la fenêtre de description est ouverte.",
 	L"Si activé, inverse le sens de la molette de la souris.",
-	L"Lorsque plusieurs mercenaires sont sélectionnés, ils vont garder leurs distances en se déplaçant. (|C|T|R|L+|M|A|J|+|G)",
+	L"Lorsque plusieurs mercenaires sont sélectionnés, ils vont garder leurs distances en se déplaçant. (|G)",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Forcer tous les envois en attente de Bobby Ray",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",
@@ -6030,8 +6033,8 @@ STR16 pMessageStrings[] =
 	L"Sans description", //Save slots that don't have a description.
 	L"Partie sauvegardée.",
 	L"Partie sauvegardée.",
-	L"Sauvegarde rapide", //The name of the quicksave file (filename, text reference)
-	L"Partie",	//The name of the normal savegame file, such as SaveGame01, SaveGame02, etc.
+	L"QuickSave", //The name of the quicksave file (filename, text reference)
+	L"SaveGame",	//The name of the normal savegame file, such as SaveGame01, SaveGame02, etc.
 	L"sav",				//The 3 character dos extension (represents sav)
 	L"..\\SavedGames", //The name of the directory where games are saved.
 	L"Jour",
@@ -6148,10 +6151,10 @@ STR16 pMessageStrings[] =
 	L"Emplacement fin-tour vide #",	// 98	// The message box, when doing auto save
 	L"Cet emplacement est réservé pour les sauvegardes fin-tour et peut être activé/désactivé dans l'écran option.", //99	// The text, when the user clicks on the save screen on an auto save
 	// Mouse tooltips
-	L"Saverapide.sav",	// 100
-	L"AutoSaveJeu%02d.sav",	// 101
+	L"QuickSave.sav",	// 100
+	L"AutoSaveGame%02d.sav",	// 101
 	L"Auto%02d.sav",	// 102
-	L"SaveJeu%02d.sav", //103
+	L"SaveGame%02d.sav", //103
 	// Lock / release mouse in windowed mode (window boundary)
 	L"Verrouiller le curseur pour qu'il reste dans la fenêtre.",			// 104
 	L"Libérer le curseur pour qu'il se déplace hors de la fenêtre.",			// 105
@@ -6684,7 +6687,7 @@ STR16 New113Message[] =
 	L"Balayage des fréquences déjà en cours, inutile d'en lancer un autre !",
 	L"%s n'a pas pu appliquer %s à %s.",
 	L"%s demande des renforts depuis %s.",
-	L"%s a épuisé la batterie de sa radio.",   // TODO.Translate //A voir fini (to see finished)
+	L"%s a épuisé la batterie de sa radio.",
 	L"une radio",
 	L"des jumelles",
 	L"de la patience",
@@ -6838,7 +6841,7 @@ STR16 NewInvMessage[] =
 	L"Êtes-vous sûr de vouloir vendre tous les articles du secteur ?",
 	L"Êtes-vous sûr de vouloir supprimer tous les articles du secteur ?",
 	L"Ne peut pas escalader avec un sac à dos",
-	L"Tous les sacs à dos sont posés à terre",	// TODO.Translate
+	L"Tous les sacs à dos sont posés à terre",
 	L"Tous les sacs à dos sont ramassés",
 };
 
@@ -6969,8 +6972,8 @@ STR16 MPClientMessage[] =
 STR16 gszMPEdgesText[] =
 {
 	L"N",
-	L"S",
 	L"E",
+	L"S",
 	L"O",
 	L"C",	// "C"enter
 };
@@ -8005,7 +8008,7 @@ STR16	szCovertTextStr[]=
 	L"%s a un(e) %s suspect(e) !",
 	L"%s a un(e) %s considéré(e) comme du matériel militaire !",
 	L"%s transporte trop d'armes !",
-	L"%s a un(e) %s trop avancé(e) pour un soldat %s !",  // TODO.Translate //A voir fini (to see finished)
+	L"%s a un(e) %s trop avancé(e) pour un soldat %s !",
 	L"%s a un(e) %s avec trop d'accessoires !",
 	L"%s a été repéré(e) en train de commettre des activités douteuses !",
 	L"%s ne ressemble pas à un civil !",
@@ -8069,12 +8072,12 @@ STR16	szFoodTextStr[]=
 
 STR16	szPrisonerTextStr[]=
 {
-	L"Prisonnier(s) ayant été interrogé(s) : %d officiers, %d élite(s), %d régulier(s) et %d administratif(s).",   // TODO.Translate. A voir définition (to see finished, definition)
+	L"Prisonnier(s) ayant été interrogé(s) : %d officiers, %d élite(s), %d régulier(s) et %d administratif(s).",
 	L"Prisonnier(s) ayant payé une rançon : %d.", 
 	L"Prisonnier(s) ayant révélé les positions ennemies : %d.",
-	L"Prisonnier(s) ayant rejoint notre cause : %d officiers, %d élite(s), %d régulier(s) et %d administratif(s).",  // TODO.Translate. A voir définition (to see finished, definition)
-	L"Prisonnier(s) ayant commencé une émeute en %s !",   // TODO.Translate. A voir définition (to see finished, definition)
-	L"%d prisonnier(s) envoyé(s) en %s !",   // TODO.Translate. A voir définition (to see finished, definition)
+	L"Prisonnier(s) ayant rejoint notre cause : %d officiers, %d élite(s), %d régulier(s) et %d administratif(s).",
+	L"Prisonnier(s) ayant commencé une émeute en %s !",
+	L"%d prisonnier(s) envoyé(s) en %s !",
 	L"Prisonnier(s) libéré(s) !",
 	L"L'armée a délivré la prison en %s et les prisonniers ont été libérés !",
 	L"L'ennemi refuse de se rendre !",

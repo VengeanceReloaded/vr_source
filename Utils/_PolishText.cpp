@@ -681,7 +681,7 @@ STR16 iEditorOptionsToolbarText[]=
 	L"Wyjdź z trybu edycji do trybu gry",
 	L"Wyjdź z trybu edycji (|A|l|t+|X)",
 	L"Utwórz mapę radaru",
-	L"Kiedy zaznaczone, mapa będzie zapisana w oryginalnym formacie JA2.\nTa opcja jest ważna przy normalnych wielkoŚciach map, których numery siatki nie są (siatki wyjŚcia) > 25600.",
+	L"Kiedy zaznaczone, mapa będzie zapisana w oryginalnym formacie JA2. Items with ID > 350 will be lost.\nTa opcja jest ważna przy normalnych wielkoŚciach map, których numery siatki nie są (siatki wyjŚcia) > 25600.",	// TODO.Translate
 	L"Kiedy zaznaczone, wczytana mapa lub nowa, będzie powiększona automatycznie do wybranych rozmiarów.",
 };
 
@@ -713,7 +713,7 @@ STR16 iEditorTaskbarInternalText[]=
 	L"Opcje",
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Terrain fasthelp text // TODO.Translate
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Buildings fasthelp text // TODO.Translate
-	L"|S|p|a|c|e: Select next item\n \n|C|t|r|l+|/: Place new item under mouse cursor\n|/: Place same item under mouse cursor", //Items fasthelp text // TODO.Translate
+	L"|S|p|a|c|e: Select next item\n|C|t|r|l+|S|p|a|c|e: Select previous item\n \n|/: Place same item under mouse cursor\n|C|t|r|l+|/: Place new item under mouse cursor", //Items fasthelp text
 	L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc", //Mercs fasthelp text // TODO.Translate
 	L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions", //Map Info fasthelp text
 	L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version", //Options fasthelp text
@@ -3658,7 +3658,7 @@ STR16 pMapScreenInvenButtonHelpText[] =
 	L"|L|e|f|t |C|l|i|c|k: Toggle Kits\n|R|i|g|h|t |C|l|i|c|k: Show only Kits", // HEADROCK HAM 5: Filter Button
 	// 16 - 20
 	L"|L|e|f|t |C|l|i|c|k: Toggle Misc. Items\n|R|i|g|h|t |C|l|i|c|k: Show only Misc. Items", // HEADROCK HAM 5: Filter Button
-	L"|L|e|f|t |C|l|i|c|k: Toggle Move Item Display", // Flugente: move item display	// TODO.Translate
+	L"Toggle Move Item Display", // Flugente: move item display	// TODO.Translate
 };
 
 STR16 pMapScreenBottomFastHelp[] =
@@ -4182,6 +4182,8 @@ STR16 pHistoryHeaders[] =
 	L"Zdarzenie", 			// the event label
 };
 
+// Externalized to "TableData\History.xml"
+/*
 // various history events
 // THESE STRINGS ARE "HISTORY LOG" STRINGS AND THEIR LENGTH IS VERY LIMITED.
 // PLEASE BE MINDFUL OF THE LENGTH OF THESE STRINGS. ONE WAY TO "TEST" THIS
@@ -4290,6 +4292,7 @@ STR16 pHistoryStrings[] =
 	L"Uratowana Enrico Chivaldori w pałacu w Melino.",
 	L"Otrzymano dostęp na terytorium Tracony.",
 };
+*/
 
 STR16 pHistoryLocations[] =
 {
@@ -5670,7 +5673,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Jeśli WŁĄCZONE, gra będzie używała systemu metrycznego.",
 
 	//Merc Lighted movement
-	L"Jeśli WŁĄCZONE, teren wokół najemnika będzie oświetlony podczas ruchu. Może spowolnić działanie gry.",
+	L"Jeśli WŁĄCZONE, teren wokół najemnika będzie oświetlony podczas ruchu. Może spowolnić działanie gry. ( |C|t|r|l+|A|l|t+|G )",
 
 	//Smart cursor
 	L"Jeśli WŁĄCZONE, kursor będzie automatycznie ustawiał się na najemnikach gdy znajdzie się w ich pobliżu.",
@@ -5679,13 +5682,13 @@ STR16	zOptionsScreenHelpText[] =
 	L"Jeśli WŁĄCZONE, kursor będzie automatycznie ustawiał się na drzwiach gdy znajdzie się w ich pobliżu.",
 
 	//glow items 
-	L"Jeśli WŁĄCZONE, przedmioty będą pulsować. ( |I )",
+	L"Jeśli WŁĄCZONE, przedmioty będą pulsować. ( |C|t|r|l+|A|l|t+|I )",
 
 	//toggle tree tops
 	L"Jeśli WŁĄCZONE, wyświetlane będą korony drzew. ( |T )",
 
 	//toggle wireframe
-	L"Jeśli WŁĄCZONE, wyświetlane będą zarysy niewidocznych ścian. ( |W )",
+	L"Jeśli WŁĄCZONE, wyświetlane będą zarysy niewidocznych ścian. ( |C|t|r|l+|A|l|t+|W )",
 
 	L"Jeśli WŁĄCZONE, kursor ruchu wyświetlany będzie w 3D. (|H|o|m|e)",
 
@@ -5705,7 +5708,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Jeśli WŁĄCZONE, gra będzie zapisywana każdorazowo po zakończeniu tury gracza.",
 	L"Jeśli WŁĄCZONE, Skyrider nie będzie nic mówił.",
 	L"Jeśli WŁĄCZONE, gra będzie obciążała procesor w mniejszym stopniu.",
-	L"Jeśli WŁĄCZONE i wróg jest obecny, \ntryb turowy jest włączony, \ndopóki sektor nie zostanie oczyszczony (|C|t|r|l+|S|h|i|f|t+|A|l|t+|T).",	// add forced turn mode
+	L"Jeśli WŁĄCZONE i wróg jest obecny, \ntryb turowy jest włączony, \ndopóki sektor nie zostanie oczyszczony (|C|t|r|l+|T).",	// add forced turn mode
 	L"Jeśli WŁĄCZONE, pokazuje postęp w doświadczeniu postaci.",
 	L"When ON, the Strategic Map will be colored differently based on exploration.",
 	L"Jeśli WŁĄCZONE, zastępuje starą animację pocisku nową.",
@@ -5725,7 +5728,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"When ON, approximate locations of the last enemies in the sector are highlighted.",  // TODO.Translate
 	L"When ON, show the contents of an LBE item, otherwise show the regular NAS interface.", // TODO.Translate
 	L"When ON, inverts mouse wheel directions.",		// TODO.Translate
-	L"When multiple mercs are selected, they will try to keep their relative distances while moving. (|C|t|r|l+|S|h|i|f|t+|G)",	// TODO.Translate
+	L"When ON and multiple mercs are selected, they will try to keep their relative distances while moving. (|G)",	// TODO.Translate
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Wymuś wszystkie oczekiwane dostawy od Bobby Ray's.",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",
@@ -6029,7 +6032,7 @@ STR16 pMessageStrings[] =
 	L"Brak opisu", //Save slots that don't have a description.
 	L"Gra zapisana.",
 	L"Gra zapisana.",
-	L"Szybki zapis", //10	The name of the quicksave file (filename, text reference)
+	L"QuickSave", //10	The name of the quicksave file (filename, text reference)
 	L"SaveGame",	//The name of the normal savegame file, such as SaveGame01, SaveGame02, etc.
 	L"sav",				//The 3 character dos extension (represents sav)
 	L"..\\SavedGames", //The name of the directory where games are saved.
@@ -6975,8 +6978,8 @@ STR16 MPClientMessage[] =
 STR16 gszMPEdgesText[] =
 {
 	L"Pn", //- Północ
-	L"Pd", //- Południe
 	L"W", //- Wschód
+	L"Pd", //- Południe
 	L"Z", //- Zachód
 	L"C",   // "C" - Centralny
 };

@@ -697,7 +697,7 @@ STR16 iEditorOptionsToolbarText[]=
 	L"Leave Editor mode",
 	L"Exit game (|A|l|t+|X)",
 	L"Create radar map",
-	L"When checked, the map will be saved in original JA2 map format.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",
+	L"When checked, the map will be saved in original JA2 map format. Items with ID > 350 will be lost.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",
 	L"When checked and you load a map, the map will be enlarged automatically depending on the selected Rows and Cols.",
 };
 
@@ -729,7 +729,7 @@ STR16 iEditorTaskbarInternalText[]=
 	L"Options",
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Terrain fasthelp text
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Buildings fasthelp text
-	L"|S|p|a|c|e: Select next item\n \n|C|t|r|l+|/: Place new item under mouse cursor\n|/: Place same item under mouse cursor", //Items fasthelp text
+	L"|S|p|a|c|e: Select next item\n|C|t|r|l+|S|p|a|c|e: Select previous item\n \n|/: Place same item under mouse cursor\n|C|t|r|l+|/: Place new item under mouse cursor", //Items fasthelp text
 	L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc", //Mercs fasthelp text
 	L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions", //Map Info fasthelp text
 	L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version", //Options fasthelp text
@@ -3638,7 +3638,7 @@ STR16 pMapScreenInvenButtonHelpText[] =
 	L"|L|i|n|k|e|r |K|l|i|c|k: Ein-/Ausblenden von Ausrüstung\n|R|e|c|h|t|e|r |K|l|i|c|k: Nur Ausrüstung anzeigen", // HEADROCK HAM 5: Filter Button
 	// 16 - 20
 	L"|L|i|n|k|e|r |K|l|i|c|k: Ein-/Ausblenden von anderen Gegenständen\n|R|e|c|h|t|e|r |K|l|i|c|k: Nur andere Gegenstände anzeigen", // HEADROCK HAM 5: Filter Button
-	L"|L|i|n|k|e|r |K|l|i|c|k: Ein-/Ausblenden von zu bewegenden Gegenständen", // Flugente: move item display
+	L"Ein-/Ausblenden von zu bewegenden Gegenständen", // Flugente: move item display
 };
 
 STR16 pMapScreenBottomFastHelp[] =
@@ -4128,6 +4128,8 @@ STR16 pHistoryHeaders[] =
 	L"Ereignis", 			// the event label
 };
 
+// Externalized to "TableData\History.xml"
+/*
 // various history events
 // THESE STRINGS ARE "HISTORY LOG" STRINGS AND THEIR LENGTH IS VERY LIMITED.
 // PLEASE BE MINDFUL OF THE LENGTH OF THESE STRINGS. ONE WAY TO "TEST" THIS
@@ -4236,6 +4238,7 @@ STR16 pHistoryStrings[] =
 	L"Saved Enrico Chivaldori in Melino Palace.",
 	L"Gained access to Tracona territory.",
 };
+*/
 
 STR16 pHistoryLocations[] =
 {
@@ -5506,7 +5509,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Mit dieser Option wird im Spiel das metrische anstelle des imperialen Maßsystems verwendet (z.B. Meter und Kilogramm).",
 
 	//Merc Lighted movement
-	L"Diese Funktion beleuchtet für den Spieler die Umgebung des Söldners - auch beim Bewegen (|G). AUSgeschaltet erhöht sich die Bildwiederholrate.",
+	L"Diese Funktion beleuchtet für den Spieler die Umgebung des Söldners - auch beim Bewegen (|C|t|r|l+|A|l|t+|G). AUSgeschaltet erhöht sich die Bildwiederholrate.",
 
 	//Smart cursor
 	L"Wenn diese Funktion aktiviert ist, springt der Cursor immer automatisch auf Söldner in seiner direkten Nähe.",
@@ -5515,13 +5518,13 @@ STR16	zOptionsScreenHelpText[] =
 	L"Wenn diese Funktion aktiviert ist, springt der Cursor automatisch auf Türen in direkter Nähe des Mauszeigers.",
 
 	//glow items
-	L"Wenn diese Funktion aktiviert ist, haben Gegenstände am Boden zur besseren Sichtbarkeit einen pulsierenden Rahmen (|I).",
+	L"Wenn diese Funktion aktiviert ist, haben Gegenstände am Boden zur besseren Sichtbarkeit einen pulsierenden Rahmen (|C|t|r|l+|A|l|t+|I).",
 
 	//toggle tree tops
 	L"Mit der Deaktivierung dieser Funktion lassen sich Baumkronen ausblenden um bessere Sicht auf das Geschehen zu ermöglichen (|T).",
 
 	//toggle wireframe
-	L"Wenn diese Funktion aktiviert ist, werden Drahtgitter verborgener Wände gezeigt um z.B. perspektivisch verdeckte Fenster zu erkennen (|W).",
+	L"Wenn diese Funktion aktiviert ist, werden Drahtgitter verborgener Wände gezeigt um z.B. perspektivisch verdeckte Fenster zu erkennen (|C|t|r|l+|A|l|t+|W).",
 
 	L"Wenn diese Funktion aktiviert ist, wird der Bewegungs-Cursor in 3D angezeigt (|H|o|m|e).",
 	
@@ -5541,7 +5544,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Wenn diese Funktion aktiviert ist, wird nach jeder Runde automatisch abwechselnd in zwei speziellen Autosave-Spielständen gespeichert.",
 	L"Wenn diese Funktion aktiviert ist, wird Skyrider nichts mehr sagen. Verwenden Sie diese Option, wenn er Ihnen auf die Nüsse geht.",
 	L"Wenn diese Funktion aktiviert ist, werden erweiterte Beschreibungen und Werte zu den Waffen und Gegenständen angezeigt.",
-	L"Wenn diese Funktion aktiviert ist und noch Gegner im Sektor sind, bleibt das Spiel im Runden-Modus, bis alle Feinde tot sind (|C|t|r|l+|S|h|i|f|t+|A|l|t+|T).",
+	L"Wenn diese Funktion aktiviert ist und noch Gegner im Sektor sind, bleibt das Spiel im Runden-Modus, bis alle Feinde tot sind (|C|t|r|l+|T).",
 	L"Wenn diese Funktion aktiviert ist, werden die Söldnerwerte visuell mit ihrem Trainingsfortschritt unterlegt.",
 	L"Wenn diese Funktion aktiviert ist, wird die Strategische Karte entsprechend Ihres Erkundungsfortschrittes unterschiedlich eingefärbt.",
 	L"Wenn diese Funktion aktiviert ist, werden geschossene Projektile visuell mit Tracer-Effekten dargestellt.",
@@ -5561,7 +5564,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Wenn diese Funktion aktiviert ist, wird die ungefähre Postion der verbleibenden Feinde auf der Übersichtskarte schraffiert",
 	L"Wenn diese Funktion aktiviert ist, wird in der erweiterten Beschreibung von Tashen statt den Anbauteilen deren Inhalt angezeigt.",
 	L"Wenn diese Funktion aktiviert ist, wird die Mausradrichtung umgekehrt",
-	L"Wenn diese Funktion aktiviert ist und mehrere Sölnder ausgewählt sind, werden sich diese in Formation (in relativen Abständen zueinander) bewegen. (|C|t|r|l+|S|h|i|f|t+|G)",
+	L"Wenn diese Funktion aktiviert ist und mehrere Sölnder ausgewählt sind, werden sich diese in Formation (in relativen Abständen zueinander) bewegen. (|G)",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Force all pending Bobby Ray shipments",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",
@@ -5860,9 +5863,9 @@ STR16 pMessageStrings[] =
 	L"Spiel gespeichert",	
 	L"Spiel gespeichert",	
 	L"QuickSave",		//10		//The name of the quicksave file (filename, text reference)
-	L"Spielstand",				//The name of the normal savegame file, such as SaveGame01, SaveGame02, etc.
+	L"SaveGame",				//The name of the normal savegame file, such as SaveGame01, SaveGame02, etc.
 	L"sav",					//The 3 character dos extension (represents sav)
-	L"..\\Spielstände",			//The name of the directory where games are saved.
+	L"..\\SavedGames",			//The name of the directory where games are saved.
 	L"Tag",
 	L"Söldner",
 	L"Leere Spiel Position",				//An empty save game slot
@@ -5944,7 +5947,7 @@ STR16 pMessageStrings[] =
 	L"Sie können %ss Tagessold von %s nicht zahlen",	//first %s is the mercs name, the second is a string containing the salary
 	L"Abbruch",			// 70
 	L"%s kann alleine nicht gehen.",
-	L"Spielstand namens Spielstand249.sav kreiert. Wenn nötig, in Spielstand01 - Spielstand10 umbennen und über die Option 'Laden' aufrufen.",
+	L"Spielstand namens SaveGame249.sav kreiert. Wenn nötig, in SaveGame01 - SaveGame10 umbennen und über die Option 'Laden' aufrufen.",
 	L"%s hat %s getrunken.",
 	L"Paket in Drassen angekommen.",
 	L"%s kommt am %d. um ca. %s am Zielort an (Sektor %s).", //first %s is mercs name(OK), next is the sector location and name where they will be arriving in, lastely is the day an the time of arrival       !!!7 It should be like this: first one is merc (OK), next is day of arrival (OK) , next is time of the day for ex. 07:00 (not OK, now it is still sector), next should be sector (not OK, now it is still time of the day)	//LOOTF - is this still valid? I assume it's not.
@@ -5961,7 +5964,7 @@ STR16 pMessageStrings[] =
 	L"Verlasse Kampfmodus",
 	L"Erzwungener Rundenmodus ist aktiv, gehe in Kampfmodus",
 	L"Spiel erfolgreich in Position End Turn Auto Save gespeichert.",
-	L"..\\Spielstände\\MP_Spielstände",			//The name of the directory where games are saved.
+	L"..\\SavedGames\\MP_SavedGames",			//The name of the directory where games are saved.
 	L"Client",
 	
 	L"Sie können nicht altes Inventar und neues Attachment System gleichzeitig verwenden.",
@@ -5976,9 +5979,9 @@ STR16 pMessageStrings[] =
 	L"Dieser Platz ist reserviert für Spielstände am Ende eines Spieler Zuges. Dies kann ein/ausgeschaltet werden in den Spieleinstellungen.", //99	// The text, when the user clicks on the save screen on an auto save
 	// Mouse tooltips
 	L"QuickSave.sav",	// 100
-	L"AutoSpielstand%02d.sav",	// 101
+	L"AutoSaveGame%02d.sav",	// 101
 	L"Auto%02d.sav",	// 102
-	L"Spielstand%02d.sav", //103
+	L"SaveGame%02d.sav", //103
 	// Lock / release mouse in windowed mode (window boundary)
 	L"Mausberech begrenzen, damit Mauscursor innerhalb des Spielfensters bleibt.",	// 104
 	L"Mausbereich wieder freigeben, um uneingeschränkte Mausbewebung zu erhalten.",	// 105
@@ -6788,8 +6791,8 @@ STR16 MPClientMessage[] =
 STR16 gszMPEdgesText[] =
 {
 	L"N",
-	L"S",
 	L"O",
+	L"S",
 	L"W",
 	L"M",	// "C"enter
 };

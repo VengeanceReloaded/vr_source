@@ -258,7 +258,7 @@ extern STR16 pFilesTitle[];
 extern STR16 pFilesSenderList[];
 extern STR16 pHistoryLocations[];
 //extern STR16 pHistoryAlternateStrings[];
-extern STR16 pHistoryStrings[];
+//extern STR16 pHistoryStrings[];		// Externalized to "TableData\History.xml"
 extern STR16 pHistoryHeaders[];
 extern STR16 pHistoryTitle[];
 extern STR16 pShowBookmarkString[];
@@ -2245,8 +2245,8 @@ extern STR16	gzMPCScreenText[];
 enum
 {
 	MP_EDGE_NORTH,
-	MP_EDGE_SOUTH,
 	MP_EDGE_EAST,
+	MP_EDGE_SOUTH,
 	MP_EDGE_WEST,
 	MP_EDGE_CENTER,
 	MAX_EDGES,
