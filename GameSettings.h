@@ -803,6 +803,8 @@ typedef struct
 
 	// for small progress bar
 	BOOLEAN fSmallSizeProgressbar;
+	// anv: hide stuff on roof when below it (fans and other crap)
+	BOOLEAN fHideStucturesOnRoofWhenBelowIt;
 	//enable ext mouse key
 	BOOLEAN bAltAimEnabled;	
 	BOOLEAN bAimedBurstEnabled;

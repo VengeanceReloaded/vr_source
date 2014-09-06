@@ -999,6 +999,9 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fSmallSizeProgressbar				= iniReader.ReadBoolean("Graphics Settings", "SMALL_SIZE_PB", FALSE);
 	// *** ddd - END
 	
+	// anv: hide stuff on roof when below it (fans and other crap)
+	gGameExternalOptions.fHideStucturesOnRoofWhenBelowIt	= iniReader.ReadBoolean("Graphics Settings", "HIDE_STRUCTURES_ON_ROOF_WHEN_BELOW_IT", TRUE);
+
 	//################# Sound Settings #################
 	
 	gGameExternalOptions.guiWeaponSoundEffectsVolume		= iniReader.ReadInteger("Sound Settings","WEAPON_SOUND_EFFECTS_VOLUME", 0, 0, 1000 /*1000 = 10x?*/);

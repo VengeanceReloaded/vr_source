@@ -34,6 +34,8 @@
 	#include "EditorItems.h"
 #endif
 
+#include "input.h"
+
 BOOLEAN PasteHigherTextureFromRadius( INT32 iMapIndex, UINT32 uiNewType, UINT8 ubRadius );
 BOOLEAN PasteExistingTexture( INT32 iMapIndex, UINT16 usIndex );
 BOOLEAN PasteExistingTextureFromRadius( INT32 iMapIndex, UINT16 usIndex, UINT8 ubRadius );
@@ -252,6 +254,23 @@ void PasteDebris( INT32 iMapIndex )
 	{
 		AddToUndoList( iMapIndex );
 
+		// anv: add anything on the roof, cause why not
+		if ( _KeyDown(17) )
+		{
+			// Add debris to the world
+			usUseIndex = pSelList[ iCurBank ].usIndex;
+			usUseObjIndex = (UINT16)pSelList[ iCurBank ].uiObject;
+
+			// Add to onroof section!
+			AddOnRoofToTail( iMapIndex, (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) );
+
+			if ( gTileDatabase[ (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].sBuddyNum != -1 )
+			{
+				AddOnRoofToTail( iMapIndex, gTileDatabase[ (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].sBuddyNum );
+			}
+			return;
+		}
+
 		// Remove any debris that is currently at this map location
 		if ( gpWorldLevelData[ iMapIndex ].pObjectHead != NULL )
 		{
@@ -376,7 +395,7 @@ void PasteSingleWallCommon( INT32 iMapIndex )
 		usUseObjIndex = (UINT16)pSelList[ iCurBank ].uiObject;
 
 		// TEMP STUFF FOR ONROOF THINGS!
-		if ( (usUseObjIndex >= FIRSTONROOF) && (usUseObjIndex <= SECONDONROOF ) )
+		if ( ( (usUseObjIndex >= FIRSTONROOF) && (usUseObjIndex <= SECONDONROOF ) ) || _KeyDown(17) )
 		{
 			// WANNE: Disabled the next line, because if makes placing sandbags on rooftops impossible!
 			//dnl Remove all onroof things before placing new one to avoid stacking problems of same element
@@ -581,6 +600,24 @@ void PasteStructureCommon( INT32 iMapIndex )
 			fDoPaste = TRUE;
 		}
 */
+
+		// anv: add anything on the roof, cause why not
+		if ( _KeyDown(17) )
+		{
+			// Add debris to the world
+			usUseIndex = pSelList[ iCurBank ].usIndex;
+			usUseObjIndex = (UINT16)pSelList[ iCurBank ].uiObject;
+
+			// Add to onroof section!
+			AddOnRoofToTail( iMapIndex, (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) );
+
+			if ( gTileDatabase[ (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].sBuddyNum != -1 )
+			{
+				AddOnRoofToTail( iMapIndex, gTileDatabase[ (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].sBuddyNum );
+			}
+			return;
+		}
+
 		if ( /*fDoPaste &&*/ iMapIndex < 0x80000000 )
 		{
 			iRandSelIndex = GetRandomSelection( );
