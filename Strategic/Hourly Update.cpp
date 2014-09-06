@@ -752,11 +752,28 @@ void HourlyWeeklyLeaks()
 		return;
 	}
 
-	for ( UINT8 ubCounter = 1; ubCounter < 11 && !fEmailSent; ubCounter++ )
+	for ( UINT8 ubCounter = 1; ubCounter < 13 && !fEmailSent; ubCounter++ )
 	{
 		switch( ubCounter )
 		{
 			case 1:
+				if( gubFact[ FACT_CONMAN_SAMPLE_SOLD_TO_BUYER ] && !gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && GetWorldHour == 0 )
+				{
+					AddEmail( SAMPLE_BUYER_FARMER_CHEATED, DEMAND_MONEY_BACK_LENGTH, SAMPLE_FARMER_BUYER, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_BUYER_WANTS_MONEY_BACK );
+					//fEmailSent = TRUE;
+				}
+				break;
+			case 2:
+				if( gubFact[ FACT_FAKE_SAMPLE_SOLD_TO_CIA ] && !gubFact[ FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE ] && GetWorldHour == 0 )
+				{
+					AddEmail( SAMPLE_BUYER_CIA_CHEATED, DEMAND_MONEY_BACK_LENGTH, SAMPLE_CIA_BUYER, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+					SetFactTrue( FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE );
+					//fEmailSent = TRUE;
+				}
+				break;
+
+			case 3:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_1_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_1, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -764,7 +781,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 2:
+			case 4:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_2_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_2, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -772,7 +789,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 3:
+			case 5:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_3_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_3, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -780,7 +797,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 4:
+			case 6:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_4_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_4, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -788,7 +805,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 5:
+			case 7:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_5_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_5, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -796,7 +813,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 6:
+			case 8:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_6_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_6, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -804,7 +821,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 7:
+			case 9:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_7_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_7, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -812,7 +829,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 8:
+			case 10:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_8_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_8, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -820,7 +837,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 9:
+			case 11:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_9_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_9, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
@@ -828,7 +845,7 @@ void HourlyWeeklyLeaks()
 					fEmailSent = TRUE;
 				}
 				break;
-			case 10:
+			case 12:
 				if( !gubFact[ FACT_WEEKLY_LEAKS_10_SENT ] )
 				{
 					AddEmail( WEEKLY_LEAKS_10, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );

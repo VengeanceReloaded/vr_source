@@ -4532,34 +4532,144 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					INT8 bInvPos;
 
 					// Look for item....
-					bInvPos = FindObj( pSoldier, 2424 );
+					bInvPos = FindObj( pSoldier, 3028 );
 					AssertMsg( bInvPos != NO_SLOT, "Interface Dialogue.C:	Gift item does not exist in NPC." );
 					SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bInvPos ] ), bInvPos );
 				}
 				break;
 			case NPC_ACTION_RAJIV_GIVES_MONEY_TO_DWIGHT:
-				// based on NPC_ACTION_FATIMA_GIVE_LETTER
-				// Delete menu, give item to megual
+				// should change to split up cash
 				DeleteTalkingMenu( );
-				// Get pointer for Rajiv
-				pSoldier = FindSoldierByProfileID( ARULCAN_BUYER, FALSE );
-				// Get pointer for Dwight
-				pSoldier2 = FindSoldierByProfileID( CONMAN, FALSE );
-				// Give item!
-				if ( !pSoldier || !pSoldier2 )
-				{
-					return;
-				}
-				// Look for money....
-				{
-					INT8 bInvPos;
+				pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
 
-					// Look for item....
-					bInvPos = FindObj( pSoldier, 219 );
-					AssertMsg( bInvPos != NO_SLOT, "Interface Dialogue.C:	Gift item does not exist in NPC." );
-					SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bInvPos ] ), bInvPos );
+				if ( pSoldier )
+				{
+					INT32		sNearestPC;
+					UINT8		ubID;
+					INT8		bMoneySlot;
+					INT8		bEmptySlot;
+
+					pSoldier2 = FindSoldierByProfileID( CONMAN, FALSE );
+
+					if (pSoldier2)
+					{
+						bEmptySlot = FindObj( pSoldier, NOTHING );
+
+						// have to separate out money from Darren's stash equal to the amount of the bet
+						// times 2 (returning the player's money, after all!)
+
+						CreateMoney( 20000, &(pSoldier->inv[ bEmptySlot ] ) );
+						SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bEmptySlot ] ), bEmptySlot );
+					}
+
 				}
 				break;
+			case NPC_ACTION_DWIGHT_GIVES_FIRST_HALF_TO_PLAYER:
+				// should change to split up cash
+				DeleteTalkingMenu( );
+				pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
+
+				if ( pSoldier )
+				{
+					INT32		sNearestPC;
+					UINT8		ubID;
+					INT8		bMoneySlot;
+					INT8		bEmptySlot;
+
+					sNearestPC = ClosestPC( pSoldier, NULL );
+					
+					if (!TileIsOutOfBounds(sNearestPC))
+					{
+						ubID = WhoIsThere2( sNearestPC, 0 );
+						if (ubID != NOBODY)
+						{
+							pSoldier2 = MercPtrs[ ubID ];
+						}
+					}
+
+					if (pSoldier2)
+					{
+						//bMoneySlot = FindObjClass( pSoldier, IC_MONEY );
+						bEmptySlot = FindObj( pSoldier, NOTHING );
+
+						// have to separate out money from Darren's stash equal to the amount of the bet
+						// times 2 (returning the player's money, after all!)
+						CreateMoney( 10000, &(pSoldier->inv[ bEmptySlot ] ) );
+						SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bEmptySlot ] ), bEmptySlot );
+					}
+
+				}
+				break;
+			case NPC_ACTION_DWIGHT_GIVES_MOST_OF_SECOND_HALF_TO_PLAYER:
+				// should change to split up cash
+				DeleteTalkingMenu( );
+				pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
+
+				if ( pSoldier )
+				{
+					INT32		sNearestPC;
+					UINT8		ubID;
+					INT8		bMoneySlot;
+					INT8		bEmptySlot;
+
+					sNearestPC = ClosestPC( pSoldier, NULL );
+					
+					if (!TileIsOutOfBounds(sNearestPC))
+					{
+						ubID = WhoIsThere2( sNearestPC, 0 );
+						if (ubID != NOBODY)
+						{
+							pSoldier2 = MercPtrs[ ubID ];
+						}
+					}
+
+					if (pSoldier2)
+					{
+
+						bEmptySlot = FindObj( pSoldier, NOTHING );
+						// have to separate out money from Darren's stash equal to the amount of the bet
+						// times 2 (returning the player's money, after all!)
+						CreateMoney( 9000, &(pSoldier->inv[ bEmptySlot ] ) );
+						SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bEmptySlot ] ), bEmptySlot );
+					}
+
+				}
+				break;
+			case NPC_ACTION_DWIGHT_GIVES_BACK_REST_OF_MONEY:
+				// should change to split up cash
+				DeleteTalkingMenu( );
+				pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
+
+				if ( pSoldier )
+				{
+					INT32		sNearestPC;
+					UINT8		ubID;
+					INT8		bMoneySlot;
+					INT8		bEmptySlot;
+
+					sNearestPC = ClosestPC( pSoldier, NULL );
+					
+					if (!TileIsOutOfBounds(sNearestPC))
+					{
+						ubID = WhoIsThere2( sNearestPC, 0 );
+						if (ubID != NOBODY)
+						{
+							pSoldier2 = MercPtrs[ ubID ];
+						}
+					}
+
+					if (pSoldier2)
+					{
+						bEmptySlot = FindObj( pSoldier, NOTHING );
+
+						// have to separate out money from Darren's stash equal to the amount of the bet
+						// times 2 (returning the player's money, after all!)
+						CreateMoney( 575, &(pSoldier->inv[ bEmptySlot ] ) );
+						SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bEmptySlot ] ), bEmptySlot );
+					}
+
+				}
+				break;	
 			// /VENGEANCE
 						break;
 
