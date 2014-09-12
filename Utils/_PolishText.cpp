@@ -2209,6 +2209,16 @@ STR16 pTraitSkillsDenialStrings[] =
 	L" - possession by a demon",
 };
 
+STR16 pSkillMenuStrings[] =	// TODO.Translate
+{
+	L"Militia",
+	L"Other Squads",
+	L"Cancel",
+	L"%d Militia",
+
+	L"All Militia",
+};
+
 STR16 pSnitchMenuStrings[] =
 {
 	// snitch

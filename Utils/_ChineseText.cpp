@@ -1752,8 +1752,8 @@ CHAR16 Message[][STRING_LENGTH] =
 	L"%s 的丛林迷彩油已经耗竭失效了。",
 	L"%s 的丛林迷彩油已经冲刷失效了。",
 	
-	L"%s 的城市伪装迷彩油已经耗竭失效了。",
-	L"%s 的城市伪装迷彩油已经冲刷失效了。",
+	L"%s 的城市迷彩油已经耗竭失效了。",
+	L"%s 的城市迷彩油已经冲刷失效了。",
 	
 	L"%s 的雪地迷彩油已经耗竭失效了。",
 	L"%s 的雪地迷彩油已经冲刷失效了。",
@@ -2200,6 +2200,15 @@ STR16 pTraitSkillsDenialStrings[] =
 	L" - 恶魔的财产", //L" - posession by a demon"
 };
 
+STR16 pSkillMenuStrings[] =	// TODO.Translate
+{
+	L"Militia",
+	L"Other Squads",
+	L"Cancel",
+	L"%d Militia",
+
+	L"All Militia",
+};
 
 STR16 pSnitchMenuStrings[] =
 {

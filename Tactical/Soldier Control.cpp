@@ -15052,7 +15052,7 @@ BOOLEAN		SOLDIERTYPE::LooksLikeACivilian( void )
 						checkslot = VESTPOCKPOS;
 						break;
 					case 4:
-						if ( bLoop == 23 ||  bLoop == 35 ||  bLoop == 36 ||  bLoop == 37 ||  bLoop == 38 )
+						if ( bLoop == MEDPOCK3POS ||  bLoop == SMALLPOCK11POS ||  bLoop == SMALLPOCK12POS ||  bLoop == SMALLPOCK13POS ||  bLoop == SMALLPOCK14POS )
 							checkslot = LTHIGHPOCKPOS;
 						else
 							checkslot = RTHIGHPOCKPOS;
@@ -15231,7 +15231,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook )
 						checkslot = VESTPOCKPOS;
 						break;
 					case 4:
-						if ( bLoop == 23 ||  bLoop == 35 ||  bLoop == 36 ||  bLoop == 37 ||  bLoop == 38 )
+						if ( bLoop == MEDPOCK3POS ||  bLoop == SMALLPOCK11POS ||  bLoop == SMALLPOCK12POS ||  bLoop == SMALLPOCK13POS ||  bLoop == SMALLPOCK14POS )
 							checkslot = LTHIGHPOCKPOS;
 						else
 							checkslot = RTHIGHPOCKPOS;
@@ -15703,7 +15703,7 @@ BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
 		return TRUE;
 
 	// check for for vehicles and creatures... weird things happen
-	if ( IsVehicle(pSoldier) || IsVehicle(this) || pSoldier->bTeam	== CREATURE_TEAM || this->bTeam	== CREATURE_TEAM )
+	if ( IsVehicle( pSoldier ) || pSoldier->bTeam == CREATURE_TEAM || this->bTeam == CREATURE_TEAM )
 		return TRUE;
 		
 	// if from same team, do not uncover

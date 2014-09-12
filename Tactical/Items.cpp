@@ -6607,13 +6607,14 @@ BOOLEAN PlaceObject( SOLDIERTYPE * pSoldier, INT8 bPos, OBJECTTYPE * pObj )
 
 		else if (IsSlotAnLBESlot(bPos) == true && Item[pObj->usItem].usItemClass == IC_LBEGEAR)
 		{
-			/*CHRISL: If we're trying to swap LBE items between IC pockets, we have to be careful that items are moved
-			into active pockets or that an LBENODE is properly created.*/
+			/* Buggler: Code commented due to weird results when swapping filled LBE items that has pockets of the same size
+			//CHRISL: If we're trying to swap LBE items between IC pockets, we have to be careful that items are moved
+			into active pockets or that an LBENODE is properly created.
 			if(pObj->HasAnyActiveLBEs(pSoldier) == false && !(_KeyDown(SHIFT))){
 				std::vector<INT8> LBESlots;
 				GetLBESlots(bPos, LBESlots);
 				MoveItemsToActivePockets(pSoldier, LBESlots, bPos, pObj);
-			}
+			}*/
 			pInSlot->MoveThisObjectTo(gTempObject, -1, pSoldier, bPos);
 			pObj->MoveThisObjectTo(*pInSlot, -1, pSoldier, bPos);
 			//CHRISL: We need to make sure there are no items left in pObj or we'll lose them
@@ -9023,6 +9024,8 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			{
 				pSoldier->bCamo = 0;
 				camoWoreOff = TRUE;
+				// ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_CAMMO_WASHED_OFF], pSoldier->GetName() );
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_JUNGLE_WASHED_OFF], pSoldier->GetName() );
 			}
 		}
 		if ( pSoldier->urbanCamo > 0 )
@@ -9051,6 +9054,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			{
 				pSoldier->urbanCamo = 0;
 				camoWoreOff = TRUE;
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_URBAN_WASHED_OFF], pSoldier->GetName() );
 			}
 		}
 		if ( pSoldier->desertCamo > 0 )
@@ -9079,6 +9083,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			{
 				pSoldier->desertCamo = 0;
 				camoWoreOff = TRUE;
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_DESERT_WASHED_OFF], pSoldier->GetName() );
 			}
 		}
 		if ( pSoldier->snowCamo > 0 )
@@ -9107,6 +9112,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			{
 				pSoldier->snowCamo = 0;
 				camoWoreOff = TRUE;
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_SNOW_WASHED_OFF], pSoldier->GetName() );
 			}
 		}
 	}
@@ -9122,7 +9128,11 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			//	pSoldier->bCamo = __max( 0, pSoldier->bCamo - 1 );
 
 			if ( (pSoldier->bCamo)== 0)
+			{
 				camoWoreOff = TRUE;
+				// ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_CAMMO_WASHED_OFF], pSoldier->GetName() );
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_JUNGLE_WASHED_OFF], pSoldier->GetName() );
+			}
 		}
 		if ( pSoldier->urbanCamo > 0 )
 		{
@@ -9132,7 +9142,10 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			//	pSoldier->urbanCamo = __max( 0, pSoldier->urbanCamo - 1);
 			
 			if ( (pSoldier->urbanCamo)== 0)
+			{
 				camoWoreOff = TRUE;
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_URBAN_WASHED_OFF], pSoldier->GetName() );
+			}
 		}
 		if ( pSoldier->desertCamo > 0 )
 		{
@@ -9142,7 +9155,10 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			//	pSoldier->desertCamo = __max( 0, pSoldier->desertCamo - 1);
 			
 			if ( (pSoldier->desertCamo)== 0)
+			{
 				camoWoreOff = TRUE;
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_DESERT_WASHED_OFF], pSoldier->GetName() );
+			}
 		}
 		if ( pSoldier->snowCamo > 0 )
 		{
@@ -9152,7 +9168,10 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 			//	pSoldier->snowCamo = __max( 0, pSoldier->snowCamo - 1);
 			
 			if ( (pSoldier->snowCamo)== 0)
+			{
 				camoWoreOff = TRUE;
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_SNOW_WASHED_OFF], pSoldier->GetName() );
+			}
 		}	
 	}
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -9164,30 +9183,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 		{
 			pSoldier->CreateSoldierPalettes( );
 		}
-	//	ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_CAMMO_WASHED_OFF], pSoldier->GetName() );
-	
-			if ( pSoldier->bCamo <= 0 )
-			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_JUNGLE_WASHED_OFF], pSoldier->GetName() );
-			}
-			else if ( pSoldier->urbanCamo <= 0 )
-			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_URBAN_WASHED_OFF], pSoldier->GetName() );
-			}
-			else if ( pSoldier->snowCamo <= 0 )
-			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_SNOW_WASHED_OFF], pSoldier->GetName() );
-			}
-			else if ( pSoldier->desertCamo <= 0 )
-			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_DESERT_WASHED_OFF], pSoldier->GetName() );
-			}
 	}
-
-
-
-
-
 
 	if ( pSoldier->bTeam == gbPlayerNum && pSoldier->aiData.bMonsterSmell > 0 )
 	{
@@ -15151,7 +15147,7 @@ BOOLEAN	GetFirstClothesItemWithSpecificData( UINT16* pusItem, PaletteRepID aPalV
 	return( FALSE );
 }
 
-#define RANDOM_ITEM_MAX_NUMBER 1000
+#define RANDOM_ITEM_MAX_NUMBER 2000
 #define RANDOM_TABOO_MAX		 50
 #define	RANDOM_XML_LENGTH		 10
 
