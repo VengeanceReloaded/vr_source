@@ -604,18 +604,34 @@ void PasteStructureCommon( INT32 iMapIndex )
 		// anv: add anything on the roof, cause why not
 		if ( _KeyDown(17) )
 		{
-			// Add debris to the world
-			usUseIndex = pSelList[ iCurBank ].usIndex;
-			usUseObjIndex = (UINT16)pSelList[ iCurBank ].uiObject;
-
-			// Add to onroof section!
-			AddOnRoofToTail( iMapIndex, (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) );
-
-			if ( gTileDatabase[ (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].sBuddyNum != -1 )
+			if ( /*fDoPaste &&*/ iMapIndex < 0x80000000 )
 			{
-				AddOnRoofToTail( iMapIndex, gTileDatabase[ (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].sBuddyNum );
+				iRandSelIndex = GetRandomSelection( );
+				if ( iRandSelIndex == -1 )
+				{
+					return;
+				}
+
+				AddToUndoList( iMapIndex );
+
+				usUseIndex = pSelList[ iRandSelIndex ].usIndex;
+				usUseObjIndex = (UINT16)pSelList[ iRandSelIndex ].uiObject;
+
+				// Check with Structure Database (aka ODB) if we can put the object here!
+				fOkayToAdd = OkayToAddStructureToWorld( iMapIndex, 1, gTileDatabase[ (gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].pDBStructureRef, INVALID_STRUCTURE_ID );
+				if ( fOkayToAdd || (gTileDatabase[ (gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) ].pDBStructureRef == NULL) )
+				{
+					//dnl Remove existing structure before adding the same, seems to solve problem with stacking but still need test to be sure that is not removed something what should stay
+					RemoveStruct( iMapIndex, (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) );//dnl
+					// Actual structure info is added by the functions below
+					AddOnRoofToTail( iMapIndex, (UINT16)(gTileTypeStartIndex[ usUseObjIndex ] + usUseIndex) );
+					// For now, adjust to shadows by a hard-coded amount,
+
+					// Add mask if in long grass
+					//GetLandHeadType( iMapIndex, &fHeadType	);
+				}
+				return;
 			}
-			return;
 		}
 
 		if ( /*fDoPaste &&*/ iMapIndex < 0x80000000 )
