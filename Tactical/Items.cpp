@@ -84,7 +84,7 @@ extern OBJECTTYPE		*gpItemDescOrigAttachmentObject;
 extern OBJECTTYPE		gCloneItemDescObject;
 extern BOOLEAN			fShowMapInventoryPool;
 extern UINT32 guiCurrentItemDescriptionScreen;
-extern BOOLEAN AutoPlaceObjectInInventoryStash( OBJECTTYPE *pItemPtr, INT32 sGridNo );
+extern BOOLEAN AutoPlaceObjectInInventoryStash( OBJECTTYPE *pItemPtr, INT32 sGridNo, INT8 ubLevel );
 // HEADROCK HAM 5: Also need these to trigger Map Inventory changes appropriately.
 extern BOOLEAN fMapInventoryZoom;
 // HEADROCK HAM 5: And this, for checking whether an item is in the pool.
@@ -5769,7 +5769,7 @@ void RemoveProhibitedAttachments(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj, UINT16
 								if(sGridNo != NOWHERE)
 								{
 									if(guiCurrentItemDescriptionScreen == MAP_SCREEN && fShowMapInventoryPool)
-										AutoPlaceObjectInInventoryStash(&(*iter), sGridNo);
+										AutoPlaceObjectInInventoryStash(&(*iter), sGridNo, ubLevel);
 									else
 										AddItemToPool(sGridNo, &(*iter), 1, ubLevel, WORLD_ITEM_REACHABLE, 0);
 								}
@@ -6924,6 +6924,7 @@ BOOLEAN AutoPlaceObjectToWorld(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT8 b
 				if( pInventoryPoolList[i].bVisible == 1 && pInventoryPoolList[i].fExists == TRUE && pInventoryPoolList[i].usFlags & WORLD_ITEM_REACHABLE )
 				{
 					sGridNo = pInventoryPoolList[i].sGridNo;
+					bLevel = pInventoryPoolList[i].ubLevel;
 					break;
 				}
 			}
@@ -6934,7 +6935,7 @@ BOOLEAN AutoPlaceObjectToWorld(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT8 b
 		}
 		
 		fMapPanelDirty = TRUE;
-		return( AutoPlaceObjectInInventoryStash(pObj, sGridNo) );
+		return( AutoPlaceObjectInInventoryStash(pObj, sGridNo, bLevel) );
 	}
 	else
 	{
@@ -7003,19 +7004,19 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			if (pSoldier->inv[HANDPOS].exists() == false)
 			{
 				// put the one-handed weapon in the guy's hand...
-				PlaceObject( pSoldier, HANDPOS, pObj, fNewItem );
-				if ( pObj->exists() == false || fStackOrSingleSlot )
+				if( PlaceObject( pSoldier, HANDPOS, pObj, fNewItem ) )
 				{
-					return( TRUE );
+					if ( pObj->exists() == false || fStackOrSingleSlot )
+						return( TRUE );
 				}
 			}
 			else if ( !(Item[pSoldier->inv[HANDPOS].usItem].twohanded ) && pSoldier->inv[SECONDHANDPOS].exists() == false)
 			{
 				// put the one-handed weapon in the guy's 2nd hand...
-				PlaceObject( pSoldier, SECONDHANDPOS, pObj, fNewItem );
-				if ( pObj->exists() == false || fStackOrSingleSlot )
+				if( PlaceObject( pSoldier, SECONDHANDPOS, pObj, fNewItem ) )
 				{
-					return( TRUE );
+					if ( pObj->exists() == false || fStackOrSingleSlot )
+						return( TRUE );
 				}
 			}
 			// two-handed objects are best handled in the main loop for large objects,
@@ -7029,18 +7030,22 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 					case IC_GUN:
 						if(pSoldier->inv[GUNSLINGPOCKPOS].exists() == false)	// Long Gun use Gun Sling
 						{
-							PlaceObject( pSoldier, GUNSLINGPOCKPOS, pObj, fNewItem );
-							if (pObj->exists() == false || fStackOrSingleSlot)
-								return( TRUE );
+							if( PlaceObject( pSoldier, GUNSLINGPOCKPOS, pObj, fNewItem ) )
+							{
+								if (pObj->exists() == false || fStackOrSingleSlot)
+									return( TRUE );
+							}
 						}
 						break;
 					case IC_THROWING_KNIFE:
 					case IC_BLADE:
 						if(pSoldier->inv[KNIFEPOCKPOS].exists() == false)	// Knife
 						{
-							PlaceObject( pSoldier, KNIFEPOCKPOS, pObj, fNewItem );
-							if (pObj->exists() == false || fStackOrSingleSlot)
-								return( TRUE );
+							if( PlaceObject( pSoldier, KNIFEPOCKPOS, pObj, fNewItem ) )
+							{
+								if (pObj->exists() == false || fStackOrSingleSlot)
+									return( TRUE );
+							}
 						}
 						break;
 				}
@@ -7053,10 +7058,10 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 					if (pSoldier->inv[VESTPOS].exists() == false)
 					{
 						// put on the armour!
-						PlaceObject( pSoldier, VESTPOS, pObj, fNewItem );
-						if ( pObj->exists() == false || fStackOrSingleSlot )
+						if( PlaceObject( pSoldier, VESTPOS, pObj, fNewItem ) )
 						{
-							return( TRUE );
+							if ( pObj->exists() == false || fStackOrSingleSlot )
+								return( TRUE );
 						}
 					}
 					break;
@@ -7073,21 +7078,21 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 					if (pSoldier->inv[LEGPOS].exists() == false)
 					{
 						// put on the armour!
-						PlaceObject( pSoldier, LEGPOS, pObj, fNewItem );
-					}
-					if ( pObj->exists() == false || fStackOrSingleSlot )
-					{
-						return( TRUE );
+						if( PlaceObject( pSoldier, LEGPOS, pObj, fNewItem ) )
+						{
+							if ( pObj->exists() == false || fStackOrSingleSlot )
+								return( TRUE );
+						}
 					}
 					break;
 				case ARMOURCLASS_HELMET:
 					if (pSoldier->inv[HELMETPOS].exists() == false)
 					{
 						// put on the armour!
-						PlaceObject( pSoldier, HELMETPOS, pObj, fNewItem );
-						if ( pObj->exists() == false || fStackOrSingleSlot )
+						if( PlaceObject( pSoldier, HELMETPOS, pObj, fNewItem ) )
 						{
-							return( TRUE );
+							if ( pObj->exists() == false || fStackOrSingleSlot )
+								return( TRUE );
 						}
 					}
 					break;
@@ -7099,18 +7104,18 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 		case IC_FACE:
 			if ( (pSoldier->inv[HEAD1POS].exists() == false) && CompatibleFaceItem( pObj->usItem, pSoldier->inv[HEAD2POS].usItem ) )
 			{
-				PlaceObject( pSoldier, HEAD1POS, pObj, fNewItem );
-				if ( pObj->exists() == false || fStackOrSingleSlot )
+				if( PlaceObject( pSoldier, HEAD1POS, pObj, fNewItem ) )
 				{
-					return( TRUE );
+					if ( pObj->exists() == false || fStackOrSingleSlot )
+						return( TRUE );
 				}
 			}
 			else if ( (pSoldier->inv[HEAD2POS].exists() == false) && CompatibleFaceItem( pObj->usItem, pSoldier->inv[HEAD1POS].usItem ) )
 			{
-				PlaceObject( pSoldier, HEAD2POS, pObj, fNewItem );
-				if ( pObj->exists() == false || fStackOrSingleSlot )
+				if( PlaceObject( pSoldier, HEAD2POS, pObj, fNewItem ) )
 				{
-					return( TRUE );
+					if ( pObj->exists() == false || fStackOrSingleSlot )
+						return( TRUE );
 				}
 			}
 			break;
@@ -7122,22 +7127,30 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 			lbeClass = LoadBearingEquipment[pItem->ubClassIndex].lbeClass;
 			if(lbeClass == THIGH_PACK)	// Thigh pack
 			{
-				if (pSoldier->inv[LTHIGHPOCKPOS].exists() == false) {
-					PlaceObject( pSoldier, LTHIGHPOCKPOS, pObj, fNewItem );
-					if(pObj->exists() == false || fStackOrSingleSlot)
-						return( TRUE );
+				if (pSoldier->inv[LTHIGHPOCKPOS].exists() == false)
+				{
+					if( PlaceObject( pSoldier, LTHIGHPOCKPOS, pObj, fNewItem ) )
+					{
+						if(pObj->exists() == false || fStackOrSingleSlot)
+							return( TRUE );
+					}
 				}
-				if (pSoldier->inv[RTHIGHPOCKPOS].exists() == false) {
-					PlaceObject( pSoldier, RTHIGHPOCKPOS, pObj, fNewItem );
-					if(pObj->exists() == false || fStackOrSingleSlot)
-						return( TRUE );
+				if (pSoldier->inv[RTHIGHPOCKPOS].exists() == false)
+				{
+					if( PlaceObject( pSoldier, RTHIGHPOCKPOS, pObj, fNewItem ) )
+					{
+						if(pObj->exists() == false || fStackOrSingleSlot)
+							return( TRUE );
+					}
 				}
 			}
 			else if(pSoldier->inv[VESTPOCKPOS].exists() == false && lbeClass == VEST_PACK)	// Vest pack
 			{
-				PlaceObject( pSoldier, VESTPOCKPOS, pObj, fNewItem );
-				if(pObj->exists() == false || fStackOrSingleSlot)
-					return( TRUE );
+				if( PlaceObject( pSoldier, VESTPOCKPOS, pObj, fNewItem ) )
+				{
+					if(pObj->exists() == false || fStackOrSingleSlot)
+						return( TRUE );
+				}
 			}
 			else if(pSoldier->inv[CPACKPOCKPOS].exists() == false && lbeClass == COMBAT_PACK)	// Combat pack
 			{
@@ -7146,9 +7159,11 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 				//DBrot: changed to bitwise comparison
 				if((pSoldier->inv[BPACKPOCKPOS].exists() == true && packCombo != 0 && (backCombo & packCombo)) || pSoldier->inv[BPACKPOCKPOS].exists() == false)
 				{
-					PlaceObject( pSoldier, CPACKPOCKPOS, pObj, fNewItem );
-					if(pObj->exists() == false || fStackOrSingleSlot)
-						return( TRUE );
+					if( PlaceObject( pSoldier, CPACKPOCKPOS, pObj, fNewItem ) )
+					{
+						if(pObj->exists() == false || fStackOrSingleSlot)
+							return( TRUE );
+					}
 				}
 			}
 			else if(pSoldier->inv[BPACKPOCKPOS].exists() == false && lbeClass == BACKPACK)	// Backpack
@@ -7161,12 +7176,14 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 					//DBrot: changed to bitwise comparison
 					if((pSoldier->inv[CPACKPOCKPOS].exists() == true && backCombo != 0 && (backCombo & packCombo)) || pSoldier->inv[CPACKPOCKPOS].exists() == false)
 					{
-						PlaceObject( pSoldier, BPACKPOCKPOS, pObj, fNewItem );
-						pSoldier->flags.DropPackFlag = FALSE;
-						pSoldier->flags.ZipperFlag = FALSE;
-						RenderBackpackButtons(ACTIVATE_BUTTON);	/* CHRISL: Needed for new inventory backpack buttons */
-						if(pObj->exists() == false || fStackOrSingleSlot)
-							return( TRUE );
+						if( PlaceObject( pSoldier, BPACKPOCKPOS, pObj, fNewItem ) )
+						{
+							pSoldier->flags.DropPackFlag = FALSE;
+							pSoldier->flags.ZipperFlag = FALSE;
+							RenderBackpackButtons(ACTIVATE_BUTTON);	/* CHRISL: Needed for new inventory backpack buttons */
+							if(pObj->exists() == false || fStackOrSingleSlot)
+								return( TRUE );
+						}
 					}
 				//}
 			}
@@ -10142,8 +10159,7 @@ INT16 GetGearAPBonus( SOLDIERTYPE * pSoldier )
 		{
 			OBJECTTYPE* pObj = &pSoldier->inv[j];
 
-			attachmentList::iterator iterend = (*pObj)[0]->attachments.begin();
-			for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter) 
+			for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
 			{
 				if(iter->exists())
 				{

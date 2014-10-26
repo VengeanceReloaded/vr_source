@@ -661,7 +661,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 		{
 			DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("AddPlacementToWorld: set quest overrides"));
 			// quest-related overrides
-			if ( gWorldSectorX == 5 && gWorldSectorY == MAP_ROW_C )
+			if ( gWorldSectorX == gModSettings.ubPornShopTonySectorX && gWorldSectorY == gModSettings.ubPornShopTonySectorY && gbWorldSectorZ == gModSettings.ubPornShopTonySectorZ )
 			{
 				//DBrot: More rooms
 				//UINT8	ubRoom;
@@ -673,7 +673,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 					if (tempDetailedPlacement.ubProfile == NO_PROFILE)
 					{//dnl!!!
 						// these guys should be guarding Tony!
-						tempDetailedPlacement.sInsertionGridNo = 13531 +
+						tempDetailedPlacement.sInsertionGridNo = gModSettings.iPornShopEntranceGridNo +
 							(INT16) ( PreRandom( 8 ) * ( PreRandom( 1 ) ? -1 : 1)
 							+ PreRandom( 8 ) * ( PreRandom( 1 ) ? -1 : 1) * WORLD_ROWS );
 
@@ -694,7 +694,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 					else if (tempDetailedPlacement.ubProfile == BILLY )
 					{//dnl!!!
 						// billy should now be able to roam around
-						tempDetailedPlacement.sInsertionGridNo = 13531 +
+						tempDetailedPlacement.sInsertionGridNo = gModSettings.iPornShopEntranceGridNo +
 							(INT16) ( PreRandom( 30 ) * ( PreRandom( 1 ) ? -1 : 1)
 							+ PreRandom( 30 ) * ( PreRandom( 1 ) ? -1 : 1) * WORLD_ROWS );
 						tempDetailedPlacement.bOrders = SEEKENEMY;
@@ -714,7 +714,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 #ifdef JA2UB
 //Ja25: no queen
 #else
-			else if ( !gfInMeanwhile && gWorldSectorX == 3 && gWorldSectorY == 16 && !gbWorldSectorZ )
+			else if ( !gfInMeanwhile && gWorldSectorX == gMercProfiles[ QUEEN ].sSectorX && gWorldSectorY == gMercProfiles[ QUEEN ].sSectorY && gbWorldSectorZ == gMercProfiles[ QUEEN ].bSectorZ )
 			{ //Special civilian setup for queen's palace.
 				if( gubFact[ FACT_QUEEN_DEAD ] )
 				{
@@ -727,7 +727,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 				{
 					if( gfUseAlternateQueenPosition && tempDetailedPlacement.ubProfile == QUEEN )
 					{
-						tempDetailedPlacement.sInsertionGridNo = 11448;//dnl!!!
+						tempDetailedPlacement.sInsertionGridNo = gModSettings.iQueenAlternateGridNo;//dnl!!!
 					}
 					if( tempDetailedPlacement.ubCivilianGroup != QUEENS_CIV_GROUP )
 					{ //The free civilians aren't added if queen is alive
@@ -746,7 +746,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 					return( TRUE );
 				}
 			}
-			else if ( gWorldSectorX == 13 && gWorldSectorY == MAP_ROW_C && gbWorldSectorZ == 0 )
+			else if ( gWorldSectorX == gMercProfiles[ DOREEN ].sSectorX && gWorldSectorY == gMercProfiles[ DOREEN ].sSectorY && gbWorldSectorZ == gMercProfiles[ DOREEN ].bSectorZ )
 			{
 				if ( CheckFact( FACT_KIDS_ARE_FREE, 0 ) )
 				{
@@ -1449,6 +1449,26 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 				curr->pBasicPlacement->bTeam = MILITIA_TEAM;
 				curr->pBasicPlacement->bOrders = STATIONARY;
 				curr->pBasicPlacement->bAttitude = (INT8) Random( MAXATTITUDES );
+				// silversurfer: Replace body type. Militia tanks are not allowed.
+				if( curr->pBasicPlacement->fDetailedPlacement )
+				{
+					if( curr->pDetailedPlacement->bBodyType == TANK_NE || curr->pDetailedPlacement->bBodyType == TANK_NW )
+					{
+						curr->pBasicPlacement->bBodyType = PreRandom( REGFEMALE + 1 );
+						// check for better spot next to the tank so the militia doesn't get stuck in the tank
+						INT32 iNewSpot = FindNearestPassableSpot( curr->pBasicPlacement->usStartingGridNo );
+						if(  iNewSpot != NOWHERE)
+							curr->pBasicPlacement->usStartingGridNo = iNewSpot;
+					}
+				}
+				else if( curr->pBasicPlacement->bBodyType == TANK_NE || curr->pBasicPlacement->bBodyType == TANK_NW )
+				{
+					curr->pBasicPlacement->bBodyType = PreRandom( REGFEMALE + 1 );
+					// check for better spot next to the tank so the militia doesn't get stuck in the tank
+					INT32 iNewSpot = FindNearestPassableSpot( curr->pBasicPlacement->usStartingGridNo );
+					if(  iNewSpot != NOWHERE)
+						curr->pBasicPlacement->usStartingGridNo = iNewSpot;
+				}
 				if( curr->pDetailedPlacement )
 				{ //delete the detailed placement information.
 					delete( curr->pDetailedPlacement );
@@ -1489,7 +1509,7 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 
 	//we now have the numbers of available slots for each soldier class, so loop through three times
 	//and randomly choose some (or all) of the matching slots to fill.	This is done randomly.
-	// Flugente: changed the order of the classes, as we want to ahve elites first (relevant if militia takes equipment from the sector)
+	// Flugente: changed the order of the classes, as we want to have elites first (relevant if militia takes equipment from the sector)
 	UINT8 reorder[3];
 	reorder[0] = SOLDIER_CLASS_ELITE;
 	reorder[1] = SOLDIER_CLASS_ARMY;
@@ -1605,6 +1625,15 @@ void AddSoldierInitListMilitia( UINT8 ubNumGreen, UINT8 ubNumRegs, UINT8 ubNumEl
 				curr->pBasicPlacement->bTeam = MILITIA_TEAM;
 				curr->pBasicPlacement->bOrders = STATIONARY;
 				curr->pBasicPlacement->bAttitude = (INT8) Random( MAXATTITUDES );
+				// silversurfer: Replace body type. Militia tanks are not allowed.
+				if( curr->pBasicPlacement->bBodyType == TANK_NE || curr->pBasicPlacement->bBodyType == TANK_NW )
+				{
+					curr->pBasicPlacement->bBodyType = PreRandom( REGFEMALE + 1 );
+					// check for better spot next to the tank so the militia doesn't get stuck in the tank
+					INT32 iNewSpot = FindNearestPassableSpot( curr->pBasicPlacement->usStartingGridNo );
+					if(  iNewSpot != NOWHERE)
+						curr->pBasicPlacement->usStartingGridNo = iNewSpot;
+				}
 				if( curr->pDetailedPlacement )
 				{ //delete the detailed placement information.
 					delete( curr->pDetailedPlacement );

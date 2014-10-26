@@ -4614,6 +4614,10 @@ void StructureHit( INT32 iBullet, UINT16 usWeaponIndex, INT16 bWeaponStatus, UIN
 		if ( ubAttackerID != NOBODY )
 			pSoldier = MercPtrs[ ubAttackerID ];
 
+		UINT8 usDirection = DIRECTION_IRRELEVANT;
+		if ( pSoldier )
+			usDirection = (UINT8)GetDirectionToGridNoFromGridNo( pSoldier->sGridNo, sGridNo );
+
                  // marke added one 'or' to get this working with HE ammo
 		if ( Item[usWeaponIndex].rocketlauncher || (pObj && AmmoTypes[ (*pObj)[0]->data.gun.ubGunAmmoType].explosionSize > 1 ))
 		{
@@ -4625,15 +4629,21 @@ void StructureHit( INT32 iBullet, UINT16 usWeaponIndex, INT16 bWeaponStatus, UIN
 			{
 				if ( Item[usWeaponIndex].singleshotrocketlauncher )
 				{
-					// HEADROCK HAM 5 TODO: C1!!!
-					IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, C1, (INT8)( sZPos >= WALL_HEIGHT ) );
+					if ( Item[usWeaponIndex].usBuddyItem != 0 && Item[Item[usWeaponIndex].usBuddyItem].usItemClass & IC_EXPLOSV )
+					{
+						IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, Item[usWeaponIndex].usBuddyItem, (INT8)(sZPos >= WALL_HEIGHT), usDirection );
+					}
+					else
+					{
+						IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, C1, (INT8)(sZPos >= WALL_HEIGHT), usDirection );
+				}
 				}
 				// changed too to use 2 flag to determine
 				else if ( ubAttackerID != NOBODY && !Item[usWeaponIndex].singleshotrocketlauncher && Item[usWeaponIndex].rocketlauncher)
 					//there shouldn't be a way to enter here with an UnderBarrel weapon, so retaining original code :JMich
 				{
 					DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("StructureHit: RPG7 item: %d, Ammo: %d",pAttacker->inv[HANDPOS].usItem , pAttacker->inv[HANDPOS][0]->data.gun.usGunAmmoItem ) );
-					IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, pAttacker->inv[pAttacker->ubAttackingHand ][0]->data.gun.usGunAmmoItem , (INT8)( sZPos >= WALL_HEIGHT ) );
+					IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, pAttacker->inv[pAttacker->ubAttackingHand][0]->data.gun.usGunAmmoItem, (INT8)(sZPos >= WALL_HEIGHT), usDirection );
 					
 					//This is just to make multishot launchers work in semi auto. It's not really a permanent solution because it still doesn't allow autofire, but it will do for now.
 					OBJECTTYPE * pLaunchable = FindLaunchableAttachment( &(pAttacker->inv[pAttacker->ubAttackingHand ]), pAttacker->inv[pAttacker->ubAttackingHand ].usItem );
@@ -4649,7 +4659,7 @@ void StructureHit( INT32 iBullet, UINT16 usWeaponIndex, INT16 bWeaponStatus, UIN
 				else if ( AmmoTypes[(*pObj)[0]->data.gun.ubGunAmmoType].explosionSize > 1)
 				{
 					// re-routed the Highexplosive value to define exposion type
-					IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, AmmoTypes[ (*pObj)[0]->data.gun.ubGunAmmoType].highExplosive , (INT8)( sZPos >= WALL_HEIGHT ) );
+					IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, AmmoTypes[(*pObj)[0]->data.gun.ubGunAmmoType].highExplosive, (INT8)(sZPos >= WALL_HEIGHT), usDirection );
 					// pSoldier->inv[pSoldier->ubAttackingHand ][0]->data.gun.usGunAmmoItem = NONE;
 				}
 			}
@@ -4667,7 +4677,7 @@ void StructureHit( INT32 iBullet, UINT16 usWeaponIndex, INT16 bWeaponStatus, UIN
 			//FreeUpAttacker( ubAttackerID );
 
 			// HEADROCK HAM 5 TODO: Tank shell!!
-			IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, TANK_SHELL, (INT8)( sZPos >= WALL_HEIGHT ) );
+			IgniteExplosion( ubAttackerID, CenterX( sGridNo ), CenterY( sGridNo ), 0, sGridNo, TANK_SHELL, (INT8)(sZPos >= WALL_HEIGHT), usDirection );
 			//FreeUpAttacker( (UINT8) ubAttackerID );
 
 			// Moved here to keep ABC >0 as long as possible
@@ -9834,7 +9844,7 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, BULLET *pBullet, SOLDIERTYPE * pTarget,
 									if (pTarget->name[0] && pTarget->bVisible == TRUE)
 									{
 										// make stat RED for a while...
-										pTarget->timeChanges.uiChangeDexterityTime = GetJA2Clock();
+										pTarget->timeChanges.uiChangeHealthTime = GetJA2Clock();
 										pTarget->usValueGoneUp &= ~( HEALTH_INCREASE );
 
 										if (bStatLoss == 1)
@@ -13217,7 +13227,7 @@ FLOAT CalcNewChanceToHitAimTraitBonus(SOLDIERTYPE *pSoldier, FLOAT fAimCap, FLOA
 extern BOOLEAN	IsRoofPresentAtGridNo( INT32 sGridNo );
 
 // Flugente: fire item from A to B (intended for mortarshells and launchable grenades)
-BOOLEAN ArtilleryStrike( UINT16 usItem, UINT32 usStartingGridNo, UINT32 usTargetMapPos )
+BOOLEAN ArtilleryStrike( UINT16 usItem, UINT8 ubOwnerID, UINT32 usStartingGridNo, UINT32 usTargetMapPos )
 {
 	FLOAT				dForce, dDegrees;
 	INT16				sDestX, sDestY, sSrcX, sSrcY;
@@ -13278,8 +13288,8 @@ BOOLEAN ArtilleryStrike( UINT16 usItem, UINT32 usStartingGridNo, UINT32 usTarget
 	{
 		PlayJA2Sample( Weapon[ usItem ].sSound, RATE_11025, SoundVolume( HIGHVOLUME, usStartingGridNo ), 1, SoundDir( usStartingGridNo ) );
 	}
-	
-	INT32 iID = CreatePhysicalObject( &shellobj, -1,  dX, dY, dZ, dForceX, dForceY, dForceZ, 0, THROW_ARM_ITEM, 0, FALSE );
+		
+	INT32 iID = CreatePhysicalObject( &shellobj, -1, dX, dY, dZ, dForceX, dForceY, dForceZ, ubOwnerID, THROW_ARM_ITEM, 0, FALSE );
 
 	// OJW - 20091002 - Explosives
 	/*if (is_networked && is_client)

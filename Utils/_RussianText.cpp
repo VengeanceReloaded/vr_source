@@ -5855,6 +5855,7 @@ STR16	gzMPJScreenText[] =
 STR16 gzMPJHelpText[] =
 {
 	L"Новых игроков можно найти здесь: http://webchat.quakenet.org/?channels=ja2-multiplayer",
+	L"Можно нажать 'у', чтобы открыть окно чата внутриигровой, после того как вы были подключены к серверу.",	// TODO.Translate
 
 	L"СОЗДАТЬ ИГРУ",
 	L"Введите '127.0.0.1' в поле IP и выберите номер порта начиная с 60000.",	//Enter '127.0.0.1' for the IP and the Port number should be greater than 60000.
@@ -6906,7 +6907,7 @@ STR16 MPClientMessage[] =
 	L"%s (клиент %d - '%S') был убит %s (клиент %d - '%S')",
 	L"Клиент №%d - '%S' выкинут из игры.",
 	// 30
-	L"Принудительно дать ход клиенту. №1: <Отменить>, №2: %S, №3: %S, №4: %S",
+	L"Принудительно дать ход клиенту. №1: %S, №2: %S, №3: %S, №4: %S",
 	L"Начался ход клиента №%d",
 	L"Запрос перехода в режим реального время...",
 	L"Переход в режим реального времени.",
@@ -7267,7 +7268,7 @@ STR16 Additional113Text[]=
 {
 	L"Для запуска Jagged Alliance 2 v1.13 в оконном режиме требуется установить 16-битное качество цветопередачи экрана",
 	L"Jagged Alliance 2 v1.13 полноэкранный режим требует запуска с разрешением как на десктопе (%d x %d) или меньше.",
-
+	L"Internal error in reading %s slots from Savegame: Number of slots in Savegame (%d) differs from defined slots in ja2_options.ini settings (%d)",	// TODO.Translate
 	// WANNE: Savegame slots validation against INI file 
 	L"Наемники (MAX_NUMBER_PLAYER_MERCS) / Машины (MAX_NUMBER_PLAYER_VEHICLES)", 
 	L"Противник (MAX_NUMBER_ENEMIES_IN_TACTICAL)", 

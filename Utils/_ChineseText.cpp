@@ -5860,11 +5860,14 @@ STR16	gzMPJScreenText[] =
 STR16 gzMPJHelpText[] =
 {
 	L"访问 http://webchat.quakenet.org/?channels=ja2-multiplayer 寻找其他玩家.",  //Visit http://webchat.quakenet.org/?channels=ja2-multiplayer to find other players
+	L"您可以按“Y”，打開遊戲中的聊天窗口，之後你一直連接到服務器.",	// TODO.Translate
+	
 	L"HOST",
 	L"输入IP地址，端口号必须大于60000",  //Enter '127.0.0.1' for the IP and the Port number should be greater than 60000.
 	L"确保(UDP, TCP)端口由你的路由器转发，更多信息请看http://portforward.com",   //Be sure that the Port (UDP, TCP) is forwarded on your Router. For more information see: http://portforward.com
 	L"你必须将你的外网IP通过QQ或者什么，告诉其他玩家",   //You have to send (via IRC, ICQ, etc) your external IP (http://www.whatismyip.com) and the Port number to the other players.
 	L"点击“Host”创建一个新的局域网游戏",   //Click on 'Host' to host a new Multiplayer Game.
+	
 	L"加入",  //JOIN
 	L"主机需要发送外网IP和端口",               //The host has to send (via IRC, ICQ, etc) you the external IP and the Port number
 	L"输入主机的外网IP和端口号",  //L"Enter the external IP and the Port number from the host.",
@@ -6909,7 +6912,7 @@ STR16 MPClientMessage[] =
 	L"'%s' (客户端 %d - '%S') 已被 '%s' (客户端 %d - '%S' 杀死)",
 	L"踢出客户端 #%d - '%S'",
 	// 30
-	L"开始排序客户端号. #1: <取消>, #2: %S, #3: %S, #4: %S",
+	L"开始排序客户端号. #1: %S, #2: %S, #3: %S, #4: %S",
 	L"开始客户端 #%d",
 	L"请求即时模式...",
 	L"转回即时模式。",
@@ -7270,7 +7273,7 @@ STR16 Additional113Text[]=
 {
 	L"Jagged Alliance 2 v1.13 窗口模式需要一个16bpp或更少的颜色深度。",
 	L"Jagged Alliance 2 v1.13 全屏模式选择的分辨率不能高于系统桌面分辨率 (%d x %d)。",	// 
-	
+	L"存盘文件内部读取错误：存盘文件的“%s”数量跟 Ja2_Options.ini 设置的（$d）不一致。",	//L"Internal error in reading %s slots from Savegame: Number of slots in Savegame (%d) differs from defined slots in ja2_options.ini settings (%d)",	
 	// WANNE: Savegame slots validation against INI file
 	L"佣兵 (MAX_NUMBER_PLAYER_MERCS) / 交通工具 (MAX_NUMBER_PLAYER_VEHICLES)", 
 	L"敌人 (MAX_NUMBER_ENEMIES_IN_TACTICAL)", 

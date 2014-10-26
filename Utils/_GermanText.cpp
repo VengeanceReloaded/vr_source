@@ -5702,6 +5702,7 @@ STR16	gzMPJScreenText[] =
 STR16 gzMPJHelpText[] =
 {
 	L"Besuchen Sie http://webchat.quakenet.org/?channels=ja2-multiplayer um sich mit anderen Spielern zu treffen.",
+	L"Drücken Sie 'y' um das Chat-Fenster im Spiel zu öffnen, nachdem Sie mit dem Server verbunden sind.",
 
 	L"ERÖFFNEN",
 	L"Geben Sie '127.0.0.1' für die IP Adresse ein. Die Port Nummer sollte größer als 60000 sein.",
@@ -6735,7 +6736,7 @@ STR16 MPClientMessage[] =
 	L"'%s' (Client #%d - '%S') wurde getötet von '%s' (Client #%d - '%S')",
 	L"Werfe Client #%d - '%S' aus dem Spiel.",
 	// 30
-	L"Starte neuen Spielzug für gewählten Client. #1: <Abbruch>, #2: %S, #3: %S, #4: %S",
+	L"Starte neuen Spielzug für gewählten Client. #1: %S, #2: %S, #3: %S, #4: %S",
 	L"Starte Spielzug für Client #%d",
 	L"Anfrage auf Echtzeit-Modus...",
 	L"In Echtzeit-Modus gewechselt.",
@@ -7098,8 +7099,8 @@ STR16 gzFacilityAssignmentStrings[]=
 STR16 Additional113Text[]=
 {
 	L"Für die korrekte Arbeit im Fenster-Modus benötigt Jagged Alliance 2 v1.13 16-bit Farbmodus.", //Jagged Alliance 2 v1.13 windowed mode requires a color depth of 16bpp or less.
-	L"Jagged Alliance 2 v1.13 fullscreen mode requires to run at your desktop resolution (%d x %d) or less.",	// TODO.Translate
-
+	L"Jagged Alliance 2 v1.13 Vollbildmodus kann nur in Desktop Auflösung (%d x %d) oder niedriger laufen.",
+	L"Interner Fehler beim Auslesen der %s Slots des zu ladenden Spielstandes: Die Anzahl der Slots im Spielstand (%d) unterscheidet sich mit den definierten Slots in der Datei ja2_options.ini (%d)",
 	// WANNE: Savegame slots validation against INI file
 	L"Söldner (MAX_NUMBER_PLAYER_MERCS) / Fahrzeuge (MAX_NUMBER_PLAYER_VEHICLES)", 
 	L"Gegner (MAX_NUMBER_ENEMIES_IN_TACTICAL)", 

@@ -1370,16 +1370,19 @@ void UnusedAPsToBreath( SOLDIERTYPE * pSoldier )
 				switch( gGameOptions.ubDifficultyLevel )
 				{
 					case DIF_LEVEL_EASY:
-						sBreathPerAP *= 9/10; // -10%
+						sBreathPerAP = sBreathPerAP * 9/10; // -10%
 						break;
 					case DIF_LEVEL_MEDIUM:
-						sBreathPerAP *= 1; // normal
+						sBreathPerAP = sBreathPerAP; // normal
 						break;
 					case DIF_LEVEL_HARD:
-						sBreathPerAP *= 11/10; // +10%
+						sBreathPerAP = sBreathPerAP * 11/10; // +10%
 						break;
 					case DIF_LEVEL_INSANE:
-						sBreathPerAP *= 6/5; // +20%
+						sBreathPerAP = sBreathPerAP * 6/5; // +20%
+						break;
+						default:
+						sBreathPerAP = sBreathPerAP * 9/10; // -10%
 						break;
 				}
 			}
@@ -3337,9 +3340,11 @@ INT16 GetAPsToReadyWeapon( SOLDIERTYPE *pSoldier, UINT16 usAnimState )
 	UINT16 usItem;
 	UINT8 ubReadyAPs = 0;
 
-	if(pSoldier->bWeaponMode == WM_ATTACHED_GL || pSoldier->bWeaponMode == WM_ATTACHED_GL_BURST || pSoldier->bWeaponMode == WM_ATTACHED_GL_AUTO)//dnl ch72 250913
+	// Don't check the ready APs of an attached underbarrel launcher; the cost of raising a weapon
+	// should not change with firing mode as it creates an unfun opportunity for micro-optimization
+	/*if(pSoldier->bWeaponMode == WM_ATTACHED_GL || pSoldier->bWeaponMode == WM_ATTACHED_GL_BURST || pSoldier->bWeaponMode == WM_ATTACHED_GL_AUTO)//dnl ch72 250913
 		usItem = GetAttachedGrenadeLauncher(&pSoldier->inv[HANDPOS]);
-	else
+	else*/
 		usItem = pSoldier->inv[HANDPOS].usItem;
 
 	// If this is a dwel pistol anim
@@ -3380,8 +3385,8 @@ INT16 GetAPsToReadyWeapon( SOLDIERTYPE *pSoldier, UINT16 usAnimState )
 	}
 	else
 	{
-		// CHECK FOR RIFLE
-		if ( Item[ usItem ].usItemClass == IC_GUN )
+		// CHECK FOR RIFLE (and grenade launchers)
+		if ( Item[ usItem ].usItemClass & (IC_GUN | IC_LAUNCHER) )
 		{
 			ubReadyAPs = Weapon[ usItem ].ubReadyTime;
 

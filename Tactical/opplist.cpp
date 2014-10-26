@@ -2545,9 +2545,9 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 		BOOLEAN fAddAsOpponent = FALSE;
 		if ( !CONSIDERED_NEUTRAL( pSoldier, pOpponent ) && (pSoldier->bSide != pOpponent->bSide) && pSoldier->RecognizeAsCombatant(pOpponent->ubID) )
 		{
-			 // ... check wether he is not neutral against us (account for the fact that we might be covert!)
+			// ... check wether he is not neutral against us (account for the fact that we might be covert!)
 			// if we are an NPC assassin
-			if ( pSoldier->usSoldierFlagMask & SOLDIER_ASSASSIN && pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			if ( pSoldier->IsAssassin() && pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) )
 			{
 				// check wether our opponent would see us as an opponent if we weren't covert
 				if ( !( (pSoldier->aiData.bNeutral || pSoldier->usSoldierFlagMask & SOLDIER_POW) && ( pOpponent->bTeam != CREATURE_TEAM || pOpponent->flags.uiStatusFlags & SOLDIER_VEHICLE ) ) )

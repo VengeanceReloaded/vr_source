@@ -4800,31 +4800,36 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 			}
 		}
 
-		if ( this->bTeam == gbPlayerNum && this->bStealthMode )
+		// Flugente: award agility stat increase if we sneak upon an enemy undetected
+		// do NOT award this bonus if we are currently loading a game - otherwise one could increase agility by repeatedly saving and reloading the game
+		if ( !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME) )
 		{
-			// Merc got to a new tile by "sneaking". Did we theoretically sneak
-			// past an enemy?
-
-			if ( this->aiData.bOppCnt > 0 )		// opponents in sight
+			if ( this->bTeam == gbPlayerNum && this->bStealthMode )
 			{
-				// check each possible enemy
-				for ( cnt = 0; cnt < MAX_NUM_SOLDIERS; cnt++ )
+				// Merc got to a new tile by "sneaking". Did we theoretically sneak
+				// past an enemy?
+
+				if ( this->aiData.bOppCnt > 0 )		// opponents in sight
 				{
-					pEnemy = MercPtrs[ cnt ];
-					// if this guy is here and alive enough to be looking for us
-					if ( pEnemy->bActive && pEnemy->bInSector && ( pEnemy->stats.bLife >= OKLIFE ) )
+					// check each possible enemy
+					for ( cnt = 0; cnt < MAX_NUM_SOLDIERS; ++cnt )
 					{
-						// no points for sneaking by the neutrals & friendlies!!!
-						if ( !pEnemy->aiData.bNeutral && ( this->bSide != pEnemy->bSide ) && (pEnemy->ubBodyType != COW && pEnemy->ubBodyType != CROW) )
+						pEnemy = MercPtrs[cnt];
+						// if this guy is here and alive enough to be looking for us
+						if ( pEnemy->bActive && pEnemy->bInSector && (pEnemy->stats.bLife >= OKLIFE) )
 						{
-							// if we SEE this particular oppponent, and he DOESN'T see us... and he COULD see us...
-							if ( (this->aiData.bOppList[ cnt ] == SEEN_CURRENTLY) &&
-								pEnemy->aiData.bOppList[ this->ubID ] != SEEN_CURRENTLY &&
-								PythSpacesAway( this->sGridNo, pEnemy->sGridNo ) < pEnemy->GetMaxDistanceVisible(this->sGridNo, this->pathing.bLevel ) )
+							// no points for sneaking by the neutrals & friendlies!!!
+							if ( !pEnemy->aiData.bNeutral && (this->bSide != pEnemy->bSide) && (pEnemy->ubBodyType != COW && pEnemy->ubBodyType != CROW) )
 							{
-								// AGILITY (5):  Soldier snuck 1 square past unaware enemy
-								StatChange( this, AGILAMT, 5, FALSE );
-								// Keep looping, we'll give'em 1 point for EACH such enemy!
+								// if we SEE this particular oppponent, and he DOESN'T see us... and he COULD see us...
+								if ( (this->aiData.bOppList[cnt] == SEEN_CURRENTLY) &&
+									pEnemy->aiData.bOppList[this->ubID] != SEEN_CURRENTLY &&
+									PythSpacesAway( this->sGridNo, pEnemy->sGridNo ) < pEnemy->GetMaxDistanceVisible( this->sGridNo, this->pathing.bLevel ) )
+								{
+									// AGILITY (5):  Soldier snuck 1 square past unaware enemy
+									StatChange( this, AGILAMT, 5, FALSE );
+									// Keep looping, we'll give'em 1 point for EACH such enemy!
+								}
 							}
 						}
 					}
@@ -4834,11 +4839,6 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 
 		// Adjust speed based on terrain, etc
 		SetSoldierAniSpeed( this );
-
-	}
-	else
-	{
-		//int breakpoint = 0;
 	}
 }
 
@@ -15623,7 +15623,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 
 		// even as a soldier, we will be caught around fresh corpses
 		// assassins will not be uncovered around corpses, as the AI cannot willingly evade them... one could 'ward' against assassins by surrounding yourself with fresh corpses
-		if (distance < gSkillTraitValues.sCOCloseDetectionRangeSoldierCorpse && !(this->usSoldierFlagMask & SOLDIER_ASSASSIN) )
+		if ( distance < gSkillTraitValues.sCOCloseDetectionRangeSoldierCorpse && !this->IsAssassin() )
 		{
 			// check wether we are around a fresh corpse - this will make us much more suspicious
 			// I deem this necessary, to avoid cheap exploits by nefarious players :-)
@@ -17214,6 +17214,15 @@ BOOLEAN	SOLDIERTYPE::CanUseSkill( INT8 iSkill, BOOLEAN fAPCheck )
 	{
 		// radio operator
 	case SKILLS_RADIO_ARTILLERY:
+		if ( (!fAPCheck || EnoughPoints( this, APBPConstants[AP_RADIO], APBPConstants[BP_RADIO], FALSE )) && CanUseRadio() )
+		{
+			// we also have to check wether we can really order a strike from a sector
+			UINT32 sector = 0;
+			if ( this->CanAnyArtilleryStrikeBeOrdered( &sector ) )
+				canuse = TRUE;
+		}
+		break;
+
 	case SKILLS_RADIO_JAM:
 	case SKILLS_RADIO_SCAN_FOR_JAM:
 	case SKILLS_RADIO_LISTEN:
@@ -17326,12 +17335,12 @@ STR16	SOLDIERTYPE::PrintSkillDesc( INT8 iSkill )
 		}
 
 		switch ( iSkill )
-		{
-			// radio operator
-			case SKILLS_RADIO_ARTILLERY:
-			case SKILLS_RADIO_JAM:
-			case SKILLS_RADIO_SCAN_FOR_JAM:
-			case SKILLS_RADIO_LISTEN:
+	{
+		// radio operator
+	case SKILLS_RADIO_ARTILLERY:
+	case SKILLS_RADIO_JAM:
+	case SKILLS_RADIO_SCAN_FOR_JAM:
+	case SKILLS_RADIO_LISTEN:
 			case SKILLS_RADIO_CALLREINFORCEMENTS:
 			case SKILLS_RADIO_TURNOFF:
 				
@@ -17341,8 +17350,8 @@ STR16	SOLDIERTYPE::PrintSkillDesc( INT8 iSkill )
 				swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_TXT], New113Message[ MSG113_WORKING_RADIO_SET ] );
 				wcscat( skilldescarray, atStr );
 
-				break;
-				
+		break;
+
 			case SKILLS_SPOTTER:
 				swprintf(atStr, pTraitSkillsDenialStrings[TEXT_SKILL_DENIAL_X_AP], APBPConstants[AP_SPOTTER] );
 				wcscat( skilldescarray, atStr );
@@ -17595,7 +17604,8 @@ BOOLEAN SOLDIERTYPE::CanAnyArtilleryStrikeBeOrdered(UINT32* pSectorID)		// can a
 		if ( loopX < 1 || loopX >= MAP_WORLD_X - 1 || loopY < 1 || loopY >= MAP_WORLD_Y - 1 )
 			continue;
 		
-		if ( IsValidArtilleryOrderSector( loopX, loopY, this->bSectorZ, this->bTeam ) )
+		// as the player team can order artillery from the militia, we have to check that too.
+		if ( IsValidArtilleryOrderSector( loopX, loopY, this->bSectorZ, this->bTeam ) || (this->bTeam == gbPlayerNum && IsValidArtilleryOrderSector( loopX, loopY, this->bSectorZ, MILITIA_TEAM )) )
 		{
 			*pSectorID = (UINT32)SECTOR( loopX, loopY );
 			return TRUE;
@@ -17709,7 +17719,7 @@ BOOLEAN SOLDIERTYPE::OrderArtilleryStrike( UINT32 usSectorNr, INT32 sTargetGridN
 		// send a signal shell at first. This marks the area that the shells will come in
 		static UINT16 usSignalShellIndex = 1700;
 		if ( HasItemFlag(usSignalShellIndex, SIGNAL_SHELL) || GetFirstItemWithFlag(&usSignalShellIndex, SIGNAL_SHELL) )
-			ArtilleryStrike(usSignalShellIndex, sStartingGridNo, sTargetGridNo);
+			ArtilleryStrike( usSignalShellIndex, this->ubID + 2, sStartingGridNo, sTargetGridNo );
 		else
 		{
 			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_NO_SIGNAL_SHELL ]);
@@ -21479,39 +21489,53 @@ BOOLEAN GetRadioOperatorSignal(UINT8 usOwner, INT32* psTargetGridNo)
 BOOLEAN IsValidArtilleryOrderSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ, UINT8 bTeam )
 {
 	// is the sector valid?
-	if ( bSectorZ > 0 ||sSectorX < 1 || sSectorX >= MAP_WORLD_X - 1 || sSectorY < 1 || sSectorY >= MAP_WORLD_Y - 1 )
+	if ( bSectorZ > 0 || sSectorX < 1 || sSectorX >= MAP_WORLD_X - 1 || sSectorY < 1 || sSectorY >= MAP_WORLD_Y - 1 )
 		return FALSE;
-	
-	BOOLEAN fEnemies = (NumEnemiesInAnySector( sSectorX, sSectorY, bSectorZ )  > 0);
-	BOOLEAN fMilitia = (GetNumberOfMilitiaInSector( sSectorX, sSectorY, (INT16) bSectorZ ) > 0);
-	BOOLEAN fMercs   = (PlayerMercsInSector( (UINT8) sSectorX, (UINT8) sSectorY, (UINT8) bSectorZ ) > 0);
-	
-	SECTORINFO *pSectorInfo = &( SectorInfo[ SECTOR( sSectorX, sSectorY ) ] );
+
+	UINT16 usEnemies = (UINT16)NumEnemiesInAnySector( sSectorX, sSectorY, bSectorZ );
+	UINT16 usMilitia = (UINT16)GetNumberOfMilitiaInSector( sSectorX, sSectorY, (INT16)bSectorZ );
+	UINT16 usMercs   = (UINT16)PlayerMercsInSector( (UINT8)sSectorX, (UINT8)sSectorY, (UINT8)bSectorZ );
+
+	SECTORINFO *pSectorInfo = &(SectorInfo[SECTOR( sSectorX, sSectorY )]);
 
 	// sector must be free of members of an opposing team
 	if ( bTeam == ENEMY_TEAM )
 	{
-		if ( !fEnemies || fMilitia || fMercs )
+		if ( !usEnemies || usMilitia || usMercs )
+			return FALSE;
+
+		// there have to be enough guys here to fire at least one shot
+		if ( usEnemies < gSkillTraitValues.usVOMortarCountDivisor )
+			return FALSE;
+
+		if ( (usEnemies * gSkillTraitValues.usVOMortarPointsAdmin) < (gSkillTraitValues.usVOMortarShellDivisor * (usEnemies / gSkillTraitValues.usVOMortarCountDivisor)) )
 			return FALSE;
 
 		// cannot fire if artillery was used recently
-		if ( GetWorldTotalMin() < pSectorInfo->uiTimeAIArtillerywasOrdered + gSkillTraitValues.bVOArtillerySectorFrequency )
+		if ( GetWorldTotalMin( ) < pSectorInfo->uiTimeAIArtillerywasOrdered + gSkillTraitValues.bVOArtillerySectorFrequency )
 			return FALSE;
 	}
 	else if ( bTeam == MILITIA_TEAM )
 	{
-		if ( fEnemies || !fMilitia )
+		if ( usEnemies || !usMilitia )
+			return FALSE;
+
+		// there have to be enough guys here to fire at least one shot
+		if ( usMilitia < gSkillTraitValues.usVOMortarCountDivisor )
+			return FALSE;
+
+		if ( (usMilitia * gSkillTraitValues.usVOMortarPointsAdmin) < (gSkillTraitValues.usVOMortarShellDivisor * (usMilitia / gSkillTraitValues.usVOMortarCountDivisor)) )
 			return FALSE;
 
 		// cannot fire if artillery was used recently
-		if ( GetWorldTotalMin() < pSectorInfo->uiTimeAIArtillerywasOrdered + gSkillTraitValues.bVOArtillerySectorFrequency )
+		if ( GetWorldTotalMin( ) < pSectorInfo->uiTimeAIArtillerywasOrdered + gSkillTraitValues.bVOArtillerySectorFrequency )
 			return FALSE;
 	}
 	else if ( bTeam == OUR_TEAM )
 	{
-		if ( fEnemies || !fMercs )
+		if ( usEnemies || !usMercs )
 			return FALSE;
-				
+
 		// we can relay orders only if someone in the sector has a working radio set and a mortar
 		BOOLEAN activeradio = FALSE;
 		BOOLEAN mortarfound = FALSE;

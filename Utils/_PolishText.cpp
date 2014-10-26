@@ -5870,6 +5870,7 @@ STR16	gzMPJScreenText[] =
 STR16 gzMPJHelpText[] =
 {
 	L"Visit http://webchat.quakenet.org/?channels=ja2-multiplayer to find other players.",
+	L"You can press 'y' to open the ingame chat window, after you have been connected to the server.",	// TODO.Translate
 
 	L"HOST",
 	L"Enter '127.0.0.1' for the IP and the Port number should be greater than 60000.",
@@ -6922,7 +6923,7 @@ STR16 MPClientMessage[] =
 	L"'%s' (klient %d - '%S') zabity przez '%s' (client %d - '%S')",
 	L"Wyrzucono #%d - '%S'",
 	// 30
-	L"Zacząć turę dla klientów. #1: <Anulować>, #2: %S, #3: %S, #4: %S",
+	L"Zacząć turę dla klientów. #1: %S, #2: %S, #3: %S, #4: %S",
 	L"Początek tury dla #%d",
 	L"Żądanie trybu realtime…",
 	L"Zmieniono w tryb realtime.",
@@ -7289,7 +7290,7 @@ STR16 Additional113Text[]=
 {
 	L"Jagged Alliance 2 v1.13 trybie okienkowym wymaga głębi koloru 16-bitowego lub mniej.",
 	L"Jagged Alliance 2 v1.13 fullscreen mode requires to run at your desktop resolution (%d x %d) or less.",	// TODO.Translate
-
+	L"Internal error in reading %s slots from Savegame: Number of slots in Savegame (%d) differs from defined slots in ja2_options.ini settings (%d)",	// TODO.Translate
 	// TODO.Translate
 	// WANNE: Savegame slots validation against INI file
 	L"Mercenary (MAX_NUMBER_PLAYER_MERCS) / Vehicle (MAX_NUMBER_PLAYER_VEHICLES)", 

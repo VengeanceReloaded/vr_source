@@ -2208,12 +2208,12 @@ STR16 pTraitSkillsDenialStrings[] =
 
 STR16 pSkillMenuStrings[] =	// TODO.Translate
 {
-	L"Militia",
-	L"Other Squads",
-	L"Cancel",
-	L"%d Militia",
+	L"Milice",
+	L"Autre escouade",
+	L"Annuler",
+	L"%d miliciens",
 
-	L"All Militia",
+	L"Tous",
 };
 
 STR16 pSnitchMenuStrings[] =
@@ -3324,9 +3324,6 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"Leur reddition",
 	L"Votre reddition",
 	L"Parler",
-	L"Inspecter milice",
-	L"Rien",
-
 	
     // added by sevenfm: disarm messagebox options, messages when arming wrong bomb
     L"Désamorcer le piège",
@@ -5871,6 +5868,7 @@ STR16	gzMPJScreenText[] =
 STR16 gzMPJHelpText[] =
 {
 	L"Visiter http://webchat.quakenet.org/?channels=ja2-multiplayer pour trouver d'autres joueurs.",
+	L"Vous pouvez appuyer sur 'y' pour ouvrir la fenêtre de chat ingame, après avoir été connecté au serveur.",	// TODO.Translate
 
 	L"HÉBERGER",
 	L"Entrer '127.0.0.1' pour l'IP et un nombre plus grand que 60000 pour le port.",
@@ -7276,7 +7274,7 @@ STR16 Additional113Text[]=
 {
 	L"Jagged Alliance 2 v1.13 mode fenêtré exige une profondeur de couleur de 16 bit ou moins.",
 	L"Jagged Alliance 2 v1.13 mode plein écran nécessite pour fonctionner la résolution du bureau de votre ordinateur (%d x %d) ou moins.",
-
+	L"Erreur interne en lisant %s emplacements depuis la sauvegarde : Le nombre d'emplacements dans la sauvegarde (%d) diffère des emplacements définis dans les paramètres de ja2_options.ini (%d)",
 	// WANNE: Savegame slots validation against INI file
 	L"Mercenaires (MAX_NUMBER_PLAYER_MERCS) / Véhicule (MAX_NUMBER_PLAYER_VEHICLES)", 
 	L"Ennemis (MAX_NUMBER_ENEMIES_IN_TACTICAL)", 
@@ -7653,7 +7651,7 @@ STR16 szUDBGenSecondaryStatsTooltipText[]=
 STR16 szUDBGenSecondaryStatsExplanationsTooltipText[]=
 {
 	L"\n \nCes munitions, en mode Auto ou rafale, ont la propriété d'être\ndes des balles traçantes.\n \nLa lumière qu'apporte les balles traçantes lors d'une rafale\npermet d'avoir une meilleur précision et d'être ainsi plus\nmortel malgré le recul de l'arme.\n \nDe plus, ces balles créent un halo lumineux permettant de\nrévéler l'ennemi pendant la nuit. Cependant, elles révèlent\naussi la position du tireur à l'ennemi !\n \nLes balles traçantes désactive automatiquement le\ncache-flamme installé sur l'arme utilisé.",
-	L"\n \nCes munitions peuvent faire des dégâts aux tanks.\n \nLes munitions SANS cette propriété ne feront aucun dégât quel que\nsoit le tank.\n \nMême avec cette propriété, n'oubliez pas que la plupart des armes\nne feront que peu de dégâts, donc n'en abusez pas.",
+	L"\n \nCes munitions peuvent faire des dégâts aux chars.\n \nLes munitions SANS cette propriété ne feront aucun dégât quel que\nsoit le char.\n \nMême avec cette propriété, n'oubliez pas que la plupart des armes\nne feront que peu de dégâts, donc n'en abusez pas.",
 	L"\n \nCes munitions ignorent complètement l'armure.\n \nQuand vous tirez sur un ennemi avec une armure, cela sera comme s'il\nn'en avait pas, permettant ainsi de faire un maximum de dégâts !",
 	L"\n \nLorsque cette munition frappe une cible avec une armure,\ncette dernière se dégradera très rapidement.\n \nCeci peut potentiellement retirer l'armure de la cible !",
 	L"\n \nCette munition est exceptionnelle pour casser les serrures.\n \nTirez directement sur la serrure de la porte ou du\ncoffre pour faire de lourds dégâts sur le mécanisme.",

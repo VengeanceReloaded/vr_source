@@ -2193,6 +2193,7 @@ void BuildStashForSelectedSector( INT16 sMapX, INT16 sMapY, INT16 sMapZ )
 					uiNumberOfUnSeenItems++;
 				}
 				pipl->fExists = FALSE;
+				pipl->usFlags = 0;
 				pipl->object.usItem = NONE;
 				pipl->object.ubNumberOfObjects = 0;
 			}
@@ -2204,6 +2205,7 @@ void BuildStashForSelectedSector( INT16 sMapX, INT16 sMapY, INT16 sMapZ )
 	for(i=uiNumberOfSeenItems; i<uiNumOfSlots; i++, pipl++)
 	{
 		pipl->fExists = FALSE;
+		pipl->usFlags = 0;
 		pipl->object.usItem = NONE;
 		pipl->object.ubNumberOfObjects = 0;
 	}
@@ -2535,7 +2537,7 @@ BOOLEAN PlaceObjectInInventoryStash( OBJECTTYPE *pInventorySlot, OBJECTTYPE *pIt
 }
 
 
-BOOLEAN AutoPlaceObjectInInventoryStash( OBJECTTYPE *pItemPtr, INT32 sGridNo )
+BOOLEAN AutoPlaceObjectInInventoryStash( OBJECTTYPE *pItemPtr, INT32 sGridNo, INT8 ubLevel )
 {
 	OBJECTTYPE *pInventorySlot;
 	INT32		cnt = 0;
@@ -2563,6 +2565,7 @@ BOOLEAN AutoPlaceObjectInInventoryStash( OBJECTTYPE *pItemPtr, INT32 sGridNo )
 			{
 				pInventoryPoolList[cnt].sGridNo = sGridNo;
 				pInventoryPoolList[cnt].usFlags |= WORLD_ITEM_REACHABLE;
+				pInventoryPoolList[cnt].ubLevel = ubLevel;
 				pInventoryPoolList[cnt].bVisible = 1;
 				pInventoryPoolList[cnt].fExists = TRUE;
 			}
@@ -4940,11 +4943,15 @@ void SortSectorInventorySeparateAttachments()
 			// Iterate through stacks
 			for (int x = 0; x < pInventoryPoolList[uiLoop].object.ubNumberOfObjects; ++x) 
 			{
-				UINT8 cnt = 0, uiLoopCnt = 0;
+				UINT8 size = 0, cnt = 0, uiLoopCnt = 0;
 
-				while(pInventoryPoolList[uiLoop].object[x]->attachments.size() != cnt)
+				// Iterate backwards through attachments in order to detach grenades from underbarrel
+				// launchers before detaching the launchers (and their grenade slots) themselves.
+				// Since the size of the attachmentList remains constant under NAS but decrements by one
+				// under OAS, recheck the list size every iteration in order to calculate an rindex.
+				while((size = pInventoryPoolList[uiLoop].object[x]->attachments.size()) != cnt)
 				{
-					gTempObject = *(pInventoryPoolList[uiLoop].object[x]->GetAttachmentAtIndex(cnt));
+					gTempObject = *(pInventoryPoolList[uiLoop].object[x]->GetAttachmentAtIndex(size - 1 - cnt));
 
 					//WarmSteel - This actually still works with NAS, be it by accident
 					if (pInventoryPoolList[uiLoop].object.RemoveAttachment(&gTempObject,0,x))

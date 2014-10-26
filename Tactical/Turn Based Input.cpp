@@ -6522,13 +6522,18 @@ void SeperateItems()
 						//	from AddItemToPool, resets gWorldItems when it increases it's size.  This means
 						//	iter loses it's relationship which causes a CTD if we use this hotkey and there
 						//	aren't enough open WorldItems to accomodate all the attachments we're seperating.
-						UINT8 cnt = 0, uiLoopCnt = 0;
+						UINT8 size = 0, cnt = 0, uiLoopCnt = 0;
 						// uiLoopCnt is an extra failsafe.  I think I've already managed to eliminate the
 						//	infinite loop, but just in case, we'll use uiLoopCnt to force a break after a
 						//	certain point.
-						while(gWorldItems[uiLoop].object[x]->attachments.size() != cnt)
+
+						// Iterate backwards through attachments in order to detach grenades from underbarrel
+						// launchers before detaching the launchers (and their grenade slots) themselves.
+						// Since the size of the attachmentList remains constant under NAS but decrements by one
+						// under OAS, recheck the list size every iteration in order to calculate an rindex.
+						while((size = gWorldItems[uiLoop].object[x]->attachments.size()) != cnt)
 						{
-							gTempObject = *gWorldItems[uiLoop].object[x]->GetAttachmentAtIndex(cnt);
+							gTempObject = *gWorldItems[uiLoop].object[x]->GetAttachmentAtIndex(size - 1 - cnt);
 
 							//WarmSteel - This actually still works with NAS, be it by accident
 							if (gWorldItems[ uiLoop ].object.RemoveAttachment(&gTempObject,0,x))
@@ -6796,7 +6801,7 @@ void SwapMercPortraits ( SOLDIERTYPE *pSoldier, INT8 bDirection )
 	UINT8 ubGroupID = pSoldier->ubGroupID;
 	INT8 bOldPosition = GetTeamSlotFromPlayerID ( MercPtrs[ ubSourceMerc ]->ubID );
 	INT8 bNewPosition = bOldPosition + bDirection;
-	SOLDIERTYPE *TempMercPtr = MercPtrs[ ubSourceMerc ];
+	SOLDIERTYPE TempMenptr = Menptr[ ubSourceMerc ];
 
 	// check if new position is occupied by another merc? we won't replace an empty slot
 	if ( gTeamPanel[ bNewPosition ].fOccupied && gTeamPanel[ bNewPosition ].ubID != NOBODY )
@@ -6809,15 +6814,15 @@ void SwapMercPortraits ( SOLDIERTYPE *pSoldier, INT8 bDirection )
 		FACETYPE TempFace = gFacesData[ iSourceFace ];
 
 		// swap the data
-		MercPtrs[ ubSourceMerc ] = MercPtrs[ ubTargetMerc ];
-		MercPtrs[ ubTargetMerc ] = TempMercPtr; 
+		Menptr[ ubSourceMerc ] = Menptr[ ubTargetMerc ];
+		Menptr[ ubTargetMerc ] = TempMenptr; 
 		// also swap face data, otherwise face gear, opp count etc won't update
 		gFacesData[ iSourceFace ] = gFacesData[ iTargetFace ];
 		gFacesData[ iTargetFace ] = TempFace;
 
 		// update IDs in the data so they match array index again
-		MercPtrs[ ubSourceMerc ]->ubID = ubSourceMerc;
-		MercPtrs[ ubTargetMerc ]->ubID = ubTargetMerc;
+		Menptr[ ubSourceMerc ].ubID = ubSourceMerc;
+		Menptr[ ubTargetMerc ].ubID = ubTargetMerc;
 		gFacesData[ iSourceFace ].iID = iSourceFace;
 		gFacesData[ iTargetFace ].iID = iTargetFace;
 
@@ -6826,8 +6831,8 @@ void SwapMercPortraits ( SOLDIERTYPE *pSoldier, INT8 bDirection )
 		gFacesData[ iTargetFace ].ubSoldierID = ubTargetMerc;
 
 		// update face index in merc data
-		MercPtrs[ ubSourceMerc ]->iFaceIndex = iSourceFace;
-		MercPtrs[ ubTargetMerc ]->iFaceIndex = iTargetFace;
+		Menptr[ ubSourceMerc ].iFaceIndex = iSourceFace;
+		Menptr[ ubTargetMerc ].iFaceIndex = iTargetFace;
 
 		// update group info
 		RemovePlayerFromGroup( ubGroupID, MercPtrs[ ubSourceMerc ] );
