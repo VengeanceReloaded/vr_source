@@ -1139,11 +1139,6 @@ INT32 ChooseMapEdgepoint( UINT8 *ubStrategicInsertionCode, UINT8 lastValidICode 
 				psArray = gps1stWestEdgepointArray;
 				usArraySize = gus1stWestEdgepointArraySize;
 				break;
-			// Lion Paratroops
-			case INSERTION_CODE_CHOPPER:
-				psArray = gps1stSouthEdgepointArray;
-				usArraySize = gus1stSouthEdgepointArraySize;
-				break;
 			default:
 				AssertMsg( 0, "ChooseMapEdgepoints:	Failed to pass a valid strategic insertion code." );
 				break;
@@ -1189,9 +1184,12 @@ void ChooseMapEdgepoints( MAPEDGEPOINTINFO *pMapEdgepointInfo, UINT8 ubStrategic
 			break;
 		// Lion Paratroops
 		case INSERTION_CODE_CHOPPER:
-			psArray = gps1stSouthEdgepointArray;
-			usArraySize = gus1stSouthEdgepointArraySize;
+			InitCenterEdgepoint( ubStrategicInsertionCode == INSERTION_CODE_CENTER );
+
+			psArray = gps1stCenterEdgepointArray;
+			usArraySize = gus1stCenterEdgepointArraySize;
 			break;
+		// End Lion
 		default:
 			AssertMsg( 0, "ChooseMapEdgepoints:	Failed to pass a valid strategic insertion code." );
 			break;
