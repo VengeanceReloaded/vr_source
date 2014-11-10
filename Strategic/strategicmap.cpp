@@ -225,6 +225,13 @@ INT16 gpSamSectorY[ MAX_NUMBER_OF_SAMS ];
 // Use 3 if / orientation, 4 if \ orientation
 INT8 gbSAMGraphicList[ MAX_NUMBER_OF_SAMS ];
 
+// Lion Paratroops 24.02.2014
+UINT8	NUMBER_OF_AIRPORTS;
+
+// sectors with airport
+INT16 pAirportsList[ MAX_NUMBER_OF_AIRPORTS ];
+// End Lion
+
 INT8 gbMercIsNewInThisSector[ MAX_NUM_SOLDIERS ];
 
 
@@ -820,6 +827,237 @@ BOOLEAN WriteInSAMInfo(STR fileName)
 
 	return TRUE;
 }
+
+// Lion Paratroops 24.02.2014
+#define MAX_CHAR_DATA_LENGTH			500
+#define INVALID_AIRPORT_INDEX			-1
+
+typedef enum
+{
+	AIRPORT_ELEMENT_NONE = 0,
+	AIRPORT_ELEMENT_AIRPORT_INFO,
+	AIRPORT_ELEMENT_AIRPORT,
+	AIRPORT_ELEMENT_INDEX,
+	AIRPORT_ELEMENT_AIRPORT_SECTOR_X,
+	AIRPORT_ELEMENT_AIRPORT_SECTOR_Y,
+} AIRPORT_PARSE_STAGE;
+
+typedef struct
+{
+	UINT32	uiIndex;
+	INT16	airportSectorX;
+	INT16	airportSectorY;
+} airportInfo;
+
+typedef struct
+{
+	AIRPORT_PARSE_STAGE	curElement;
+
+	CHAR8					szCharData[MAX_CHAR_DATA_LENGTH+1];
+	airportInfo				curAirportInfo;
+	UINT32					uiRowNumber;
+	UINT32					uiHighestIndex;
+
+	UINT32					currentDepth;
+	UINT32					maxReadDepth;
+} airportParseData;
+
+static void XMLCALL
+airportStartElementHandle(void *userData, const XML_Char *name, const XML_Char **atts)
+{
+	airportParseData * pData = (airportParseData *) userData;
+
+	if(pData->currentDepth <= pData->maxReadDepth) //are we reading this element?
+	{
+
+		if(strcmp(name, "AIRPORT_INFO") == 0 && pData->curElement == AIRPORT_ELEMENT_NONE)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT_INFO;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "AIRPORT") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT_INFO)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT;
+
+			memset( &pData->curAirportInfo, 0, sizeof(airportInfo) );
+
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "airportIndex") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT)
+		{
+			pData->curElement = AIRPORT_ELEMENT_INDEX;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "airportSectorX") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT_SECTOR_X;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		else if(strcmp(name, "airportSectorY") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT_SECTOR_Y;
+			pData->maxReadDepth++; //we are not skipping this element
+		}
+		pData->szCharData[0] = '\0';
+	}
+
+	pData->currentDepth++;
+
+}
+
+static void XMLCALL
+airportCharacterDataHandle(void *userData, const XML_Char *str, int len)
+{
+	airportParseData * pData = (airportParseData *) userData;
+
+	if(pData->currentDepth <= pData->maxReadDepth && strlen(pData->szCharData) < MAX_CHAR_DATA_LENGTH)
+		strncat(pData->szCharData,str,__min((unsigned int)len,MAX_CHAR_DATA_LENGTH-strlen(pData->szCharData)));
+}
+
+static void XMLCALL
+airportEndElementHandle(void *userData, const XML_Char *name)
+{
+	airportParseData * pData = (airportParseData *) userData;
+
+	if(pData->currentDepth <= pData->maxReadDepth) //we're at the end of an element that we've been reading
+	{
+		if(strcmp(name, "AIRPORT_INFO") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT_INFO)
+		{
+			pData->curElement = AIRPORT_ELEMENT_NONE;
+
+			NUMBER_OF_AIRPORTS = pData->uiHighestIndex;
+		}
+		else if(strcmp(name, "AIRPORT") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT_INFO;
+
+			if ( pData->curAirportInfo.uiIndex != INVALID_AIRPORT_INDEX )
+			{
+				pData->curAirportInfo.uiIndex--;
+				pAirportsList	[ pData->curAirportInfo.uiIndex ] = SECTOR(pData->curAirportInfo.airportSectorX,pData->curAirportInfo.airportSectorY);
+			}
+		}
+		else if(strcmp(name, "airportIndex") == 0 && pData->curElement == AIRPORT_ELEMENT_INDEX)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT;
+
+			pData->curAirportInfo.uiIndex = atol(pData->szCharData);
+			if ( !pData->curAirportInfo.uiIndex || pData->curAirportInfo.uiIndex > MAX_NUMBER_OF_AIRPORTS )
+			{
+				pData->curAirportInfo.uiIndex = INVALID_AIRPORT_INDEX;
+			}
+			else if ( pData->curAirportInfo.uiIndex > pData->uiHighestIndex )
+			{
+				pData->uiHighestIndex = pData->curAirportInfo.uiIndex;
+			}
+		}
+		else if(strcmp(name, "airportSectorX") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT_SECTOR_X)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT;
+
+			pData->curAirportInfo.airportSectorX = (INT16) atol(pData->szCharData);
+		}
+		else if(strcmp(name, "airportSectorY") == 0 && pData->curElement == AIRPORT_ELEMENT_AIRPORT_SECTOR_Y)
+		{
+			pData->curElement = AIRPORT_ELEMENT_AIRPORT;
+
+			pData->curAirportInfo.airportSectorY = (INT16) atol(pData->szCharData);
+		}
+		pData->maxReadDepth--;
+	}
+
+	pData->currentDepth--;
+}
+
+BOOLEAN ReadInAirportInfo(STR fileName)
+{
+	HWFILE		hFile;
+	UINT32		uiBytesRead;
+	UINT32		uiFSize;
+	CHAR8 *		lpcBuffer;
+	XML_Parser	parser = XML_ParserCreate(NULL);
+
+	airportParseData pData;
+
+	// Open file
+	hFile = FileOpen( fileName, FILE_ACCESS_READ, FALSE );
+	if ( !hFile )
+		return( FALSE );
+
+	uiFSize = FileGetSize(hFile);
+	lpcBuffer = (CHAR8 *) MemAlloc(uiFSize+1);
+
+	//Read in block
+	if ( !FileRead( hFile, lpcBuffer, uiFSize, &uiBytesRead ) )
+	{
+		MemFree(lpcBuffer);
+		return( FALSE );
+	}
+
+	lpcBuffer[uiFSize] = 0; //add a null terminator
+
+	FileClose( hFile );
+
+
+	XML_SetElementHandler(parser, airportStartElementHandle, airportEndElementHandle);
+	XML_SetCharacterDataHandler(parser, airportCharacterDataHandle);
+
+
+	memset(&pData,0,sizeof(pData));
+	NUMBER_OF_AIRPORTS = 0;
+	XML_SetUserData(parser, &pData);
+
+
+    if(!XML_Parse(parser, lpcBuffer, uiFSize, TRUE))
+	{
+		CHAR8 errorBuf[511];
+
+		sprintf(errorBuf, "XML Parser Error in Airport.xml: %s at line %d", XML_ErrorString(XML_GetErrorCode(parser)), XML_GetCurrentLineNumber(parser));
+		LiveMessage(errorBuf);
+
+		MemFree(lpcBuffer);
+		return FALSE;
+	}
+
+	MemFree(lpcBuffer);
+
+	XML_ParserFree(parser);
+	
+	return TRUE;
+}
+
+BOOLEAN WriteInAirportInfo(STR fileName)
+{
+	HWFILE		hFile;
+
+	hFile = FileOpen( fileName, FILE_ACCESS_WRITE | FILE_CREATE_ALWAYS, FALSE );
+	if ( !hFile )
+		return( FALSE );
+
+	UINT32 x, y;
+	INT8 cnt;
+
+
+	FilePrintf(hFile,"<AIRPORT_INFO>\r\n");
+	for(cnt = 0; cnt < NUMBER_OF_AIRPORTS; cnt++)
+	{
+		FilePrintf(hFile,"\t<AIRPORT>\r\n");
+
+		FilePrintf(hFile,"\t\t<airportIndex>%d</airportIndex>\r\n",cnt+1);
+
+		FilePrintf(hFile,"\t\t<airportSectorX>%d</airportSectorX>\r\n",(pAirportsList[cnt]%16)+1);
+		FilePrintf(hFile,"\t\t<airportSectorY>%d</airportSectorY>\r\n",(pAirportsList[cnt]/16)+1);
+
+		FilePrintf(hFile,"\t</AIRPORT>\r\n");
+	}
+
+	FilePrintf(hFile,"</AIRPORT_INFO>\r\n");
+
+	FileClose( hFile );
+
+	return TRUE;
+}
+// End Lion
 
 
 // town externalization stuff

@@ -1272,6 +1272,15 @@ typedef struct
 	UINT8 ubChanceDeadMIAIsMIAForeverPerDay;
 	BOOLEAN fRandomizedDeathAndMIAEmails;
 
+	// Lion Paratroops 22.02.2014
+	INT32	iChanceParatroopsAttack;
+	INT32	iChanceParatroopsAttackPerDifLevel;
+	UINT8	ubSAMChanceToPreventParatroopersAttack;
+	UINT8	ubSAMNeedsStuff;
+	UINT8	ubFirstAirportBonus;
+	UINT8	ubParatroopsFirstDay;
+	// End Lion
+
 	FLOAT gMercLevelUpSalaryIncreasePercentage;
 
 	UINT8 ubChanceTonyAvailable; // silversurfer/SANDRO

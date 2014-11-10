@@ -65,6 +65,13 @@ extern	BOOLEAN		gfUseAlternateMap;
 #define SAM_4_Y 14
 */
 
+// Lion Paratroops 24.02.2014
+extern UINT8	NUMBER_OF_AIRPORTS;
+#define MAX_NUMBER_OF_AIRPORTS	20 
+
+extern INT16 pAirportsList[ MAX_NUMBER_OF_AIRPORTS ];
+// End Lion
+
 // min condition for sam site to be functional
 #define MIN_CONDITION_FOR_SAM_SITE_TO_WORK 80
 

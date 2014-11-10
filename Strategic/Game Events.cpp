@@ -104,6 +104,12 @@ CHAR16 gEventName[NUMBER_OF_EVENT_TYPES_PLUS_ONE][40]={
 	L"MERC Merc went up level email delay",
 	L"CPostalService delivery",
 	L".",
+
+	// Lion Paratroops 22.02.2014
+	L"The Paratroopers are in the air",
+	L"The Paratroopers are ready to attack",
+	// End Lion
+
 #ifdef CRIPPLED_VERSION
 	L"Crippled version end game check",
 #endif

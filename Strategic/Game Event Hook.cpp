@@ -59,6 +59,11 @@
 #include "ub_config.h"
 #endif
 
+// Lion Paratroops
+extern void PlanParatroopsAttack();
+extern void InitParatroopsAttack( UINT32 uiParam );
+extern void SendParatroops( UINT32 uiParam );
+// End Lion 
 
 #ifdef JA2BETAVERSION
 extern BOOLEAN gfMercsNeverQuit;
@@ -246,6 +251,11 @@ BOOLEAN ExecuteStrategicEvent( STRATEGICEVENT *pEvent )
 		//gets called every day at midnight.
 		case EVENT_MERC_DAILY_UPDATE:
 			MercDailyUpdate();
+			
+			// Lion Paratroops 22.02.2013
+			PlanParatroopsAttack();
+			// End Lion
+
 			break;
 		//gets when a merc is about to leave.
 		case EVENT_MERC_ABOUT_TO_LEAVE_COMMENT:
@@ -474,6 +484,16 @@ BOOLEAN ExecuteStrategicEvent( STRATEGICEVENT *pEvent )
 		case EVENT_POSTAL_SERVICE_SHIPMENT:
 			gPostalService.DeliverShipment(pEvent->uiParam);
 			break;
+
+		// Lion Paratroops 22.02.2014
+		case EVENT_PARATROOPERS_FLIGHT:
+			SendParatroops(pEvent->uiParam);
+			break;
+		case EVENT_PARATROOPERS_ATTACK:
+			InitParatroopsAttack(pEvent->uiParam);
+			break;
+		// End Lion
+
 #ifdef JA2UB			
 		//Ja25 UB	
 		case EVENT_ATTACK_INITIAL_SECTOR_IF_PLAYER_STILL_THERE:

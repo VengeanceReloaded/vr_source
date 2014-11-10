@@ -1605,7 +1605,14 @@ void AddPossiblePendingEnemiesToBattle()
 				ubInsertionCode = INSERTION_CODE_SOUTH;
 			else if( pGroup->ubSectorY > pGroup->ubPrevY )
 				ubInsertionCode = INSERTION_CODE_NORTH;
-			else
+			// Lion Paratroops
+			else if((pGroup->ubSectorY == pGroup->ubPrevY) && (pGroup->ubSectorX == pGroup->ubPrevX))
+			{
+				// Paratroops are above, so they had the same coordinates
+				ubInsertionCode = INSERTION_CODE_CHOPPER;		
+			} 
+			// End Lion
+			else 
 			{
 				// WANNE: Hack: If no valid insertion is found, get random insertion instead of Assert() error
 				UINT32 rndInsertionCode = GetRndNum(3);				
@@ -1751,6 +1758,9 @@ void AddEnemiesToBattle( GROUP *pGroup, UINT8 ubStrategicInsertionCode, UINT8 ub
 		case INSERTION_CODE_EAST:		bDesiredDirection = SOUTHWEST;										break;
 		case INSERTION_CODE_SOUTH:	bDesiredDirection = NORTHWEST;										break;
 		case INSERTION_CODE_WEST:		bDesiredDirection = NORTHEAST;										break;
+		// Lion Paratroops
+		case INSERTION_CODE_CHOPPER: bDesiredDirection = SOUTHEAST;		break;
+		// End Lion
 		default:  AssertMsg( 0, "Illegal direction passed to AddEnemiesToBattle()" );	break;
 	}
 	#ifdef JA2TESTVERSION

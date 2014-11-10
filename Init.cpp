@@ -758,6 +758,12 @@ BOOLEAN LoadExternalGameplayData(STR directoryName)
 	strcat(fileName, SAMSITESFILENAME);
 	SGP_THROW_IFFALSE(ReadInSAMInfo(fileName),SAMSITESFILENAME);
 
+	// Lion Paratroops 24.02.2014
+	strcpy(fileName, directoryName);
+	strcat(fileName, AIRPORTSFILENAME);
+	SGP_THROW_IFFALSE(ReadInAirportInfo(fileName),AIRPORTSFILENAME);
+	// End Lion
+
 	// Buggler: load helisites
 	strcpy(fileName, directoryName);
 	strcat(fileName, HELISITESFILENAME);

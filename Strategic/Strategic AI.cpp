@@ -37,6 +37,10 @@
 	#include "interface dialogue.h"
 #endif
 
+// Lion Paratroops
+#include "Strategic Town Loyalty.h"
+// End Lion
+
 #define SAI_VERSION		29
 
 /*
@@ -6622,4 +6626,407 @@ GROUP* FindPendingGroupForGarrisonSector( UINT8 ubSectorID )
 		}
 	}
 	return NULL;
+}
+
+
+//*********************************************************//
+// Lion Paratroops 22.02.2014                              //
+//                                                         //
+// These functions may use some kind of a dark majic       //
+//*********************************************************//
+
+// Count all airports enemies can use for sending paratroops
+UINT8 CountHostileAirports()
+{
+	INT8 cnt;
+	UINT8 ubHostAirports=0;
+	INT16 sX, sY;
+
+	for (cnt=0; cnt<NUMBER_OF_AIRPORTS; cnt++)
+	{
+		sX = (pAirportsList[cnt]%16)+1;
+		sY = (pAirportsList[cnt]/16)+1;
+	//	ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: Airport: %i %i %i %i Stat: %i %i", sX, sY, pAirportsList[cnt], CALCULATE_STRATEGIC_INDEX(sX, sY), ( StrategicMap[ CALCULATE_STRATEGIC_INDEX(sX, sY) ].fEnemyControlled == TRUE ), ( NumEnemiesInSector( ( INT16 )sX, ( INT16 )sX ) != 0 ));
+
+		if 	(( StrategicMap[ CALCULATE_STRATEGIC_INDEX(sX, sY) ].fEnemyControlled == TRUE ) || ( NumEnemiesInSector( ( INT16 )sX, ( INT16 )sX ) != 0 ) )
+		{
+			ubHostAirports++;
+		}
+	}
+	return (ubHostAirports);
+}
+
+extern UINT8 ubSAMControlledSectors[ MAP_WORLD_Y ][ MAP_WORLD_X ];
+
+// We plan the attacks of the coming day
+void PlanParatroopsAttack ()
+{
+	INT32	cnt, cnt2;
+	INT32	iCounterA = 0, iCounterB = 0;
+	UINT8	ubAirports, ubHostileAirports, ubParaVariants = 0; 
+	UINT16	usSector = 0;
+	INT32	iParaChance, iParaPreChance, iParaAttackTown;
+	UINT32	uiParaAttackTime, uiParaAttackHour;
+	UINT8	*pTowns;
+	
+	ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: Planning of the attacks..." );
+
+	// Checking that paratroops are turned on
+	if (gGameExternalOptions.iChanceParatroopsAttack == 0)
+		return;
+
+	// Is it too early for paratroops?
+	if (GetWorldDay( ) < gGameExternalOptions.ubParatroopsFirstDay)
+		return;
+
+	ubAirports = NUMBER_OF_AIRPORTS;
+	ubHostileAirports = CountHostileAirports();
+	
+	// If enemies controll at least on airport
+	if (ubHostileAirports == 0)
+	{
+		ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: No airports." );
+		return;
+	}
+	
+	// Analyse which cities we can attack
+	pTowns = (UINT8*)MemAlloc( sizeof( UINT8 )*NUM_TOWNS );
+	pTowns[0] = 0;
+	for (cnt=1; cnt<NUM_TOWNS; cnt++)
+	{
+		pTowns[cnt]=2;
+	}
+	
+	for( iCounterA = 0; iCounterA < ( INT32 )( MAP_WORLD_X - 1 ); iCounterA++ )
+	{
+		for( iCounterB = 0; iCounterB < ( INT32 )( MAP_WORLD_Y - 1 ); iCounterB++ )
+		{
+			usSector = (UINT16)CALCULATE_STRATEGIC_INDEX( iCounterA, iCounterB );
+
+			// Is it town
+			if ( StrategicMap[ usSector ].bNameId > 0 )
+			{
+				// Is it enemy controlled
+				if 	(( StrategicMap[ usSector ].fEnemyControlled == TRUE ) || ( NumEnemiesInSector( ( INT16 )iCounterA, ( INT16 )iCounterB ) != 0 ) )
+				{
+					pTowns[ StrategicMap[ usSector ].bNameId ] = __min(pTowns[ StrategicMap[ usSector ].bNameId ], 0);
+				}
+
+				// Is the air safe for the enemies
+				if ( StrategicMap[ CALCULATE_STRATEGIC_INDEX( iCounterA, iCounterB ) ].fEnemyAirControlled == FALSE )
+				{
+					pTowns[ StrategicMap[ usSector ].bNameId ] = __min(pTowns[ StrategicMap[ usSector ].bNameId ], 1);
+				}
+			}
+		}
+	}
+
+	for (cnt=1; cnt<NUM_TOWNS; cnt++)
+	{
+		if (pTowns[cnt] == 2)
+		{
+			ubParaVariants++;
+		}
+	}
+
+	// If we have no town to attack
+	if (ubParaVariants == 0)
+	{
+		ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: No variants." );
+		return;
+	}
+
+	// Calculate the base chance of attack
+	iParaChance = gGameExternalOptions.iChanceParatroopsAttack + (gGameOptions.ubDifficultyLevel-1)*gGameExternalOptions.iChanceParatroopsAttackPerDifLevel;
+	// Decrease chance depending on airports control
+	iParaChance = (iParaChance * (ubHostileAirports + gGameExternalOptions.ubFirstAirportBonus))/(ubAirports + gGameExternalOptions.ubFirstAirportBonus);
+
+	
+	// Now let's send as many paratroops as we can :)
+	while (iParaChance > 0)
+	{
+		if (iParaChance > PreRandom(100) )
+		{
+			// Number of attempts in choosing a city in case to pass over SAMs
+			uiParaAttackTime = 1;
+			iParaPreChance = gGameExternalOptions.ubSAMChanceToPreventParatroopersAttack;
+			while (iParaPreChance > 0)
+			{
+				uiParaAttackTime++;
+				iParaPreChance -= 24;
+			}
+
+			// Select a city which we attack, we prefer to attack cities, which are not defended by SAM's
+			for (cnt=0; cnt<uiParaAttackTime; cnt++)
+			{
+				iParaAttackTown = (INT32)PreRandom(ubParaVariants);
+				
+				for (cnt2=1; cnt2<NUM_TOWNS; cnt2++)
+				{
+					if (pTowns[cnt2] > 0)
+					{
+						if (iParaAttackTown == 0)
+						{
+							iParaAttackTown = cnt2;
+							break;
+						} else {
+							iParaAttackTown--;
+						}
+					}
+				}
+				if (pTowns[iParaAttackTown] == 2)
+				{
+					break;
+				}
+			}
+
+			// PreRandom for SAM's to make reload before air raid useless
+			iParaPreChance = PreRandom(100);
+
+			// It's more comfortable to fly at night
+			for (cnt =0; cnt<3; cnt++) 
+			{
+				uiParaAttackTime = GetWorldTotalSeconds() + Random( 60*60*24 ); // Paratroopers attack in a day
+				uiParaAttackHour = uiParaAttackTime / NUM_SEC_IN_HOUR;
+				while (uiParaAttackHour > 24)
+				{
+					uiParaAttackHour-=24;
+				}
+				if (uiParaAttackHour < 6 || uiParaAttackHour >= 20)
+					break;
+			}
+			ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: Attack is planned. City number is %i", iParaAttackTown  );
+			AddStrategicEventUsingSeconds( EVENT_PARATROOPERS_FLIGHT, uiParaAttackTime, iParaAttackTown*1000+iParaPreChance ); // Time, Town and chance
+		}
+		iParaChance -= 100;
+	}
+}
+
+void SendParatroops( UINT32 uiParam )
+{
+	UINT32	uiSAMPreChanse;
+	INT8	bCity;
+	
+	INT8	bSector;
+	INT32	iCounterA =0, iCounterB = 0;
+	UINT16	usAttackSector = 0;
+	UINT8	ubControllingSAM = 0;
+	StrategicMapElement *pSAMStrategicMap = NULL;
+
+	// Need at least one working airport
+	if( CountHostileAirports() == 0 )
+		return;
+
+	bCity = uiParam / 1000;
+	uiSAMPreChanse = uiParam - bCity*1000;
+
+	// This algoritm runs through strategic map several times (computers now are much faster then in 1998
+	// so I do not think that it is a problem, but as a result it is rather flexible and uses existing DATA files)
+	bSector = GetTownSectorSize( bCity );
+	bSector = Random(bSector);
+
+	// We select the sector to attack
+	for( iCounterA = 0; iCounterA < ( INT32 )( MAP_WORLD_X - 1 ); iCounterA++ )
+	{
+		for( iCounterB = 0; iCounterB < ( INT32 )( MAP_WORLD_Y - 1 ); iCounterB++ )
+		{
+			if(  StrategicMap[CALCULATE_STRATEGIC_INDEX( iCounterA, iCounterB )].bNameId == bCity )
+			{
+				if (bSector == 0)
+				{
+					usAttackSector= CALCULATE_STRATEGIC_INDEX( iCounterA, iCounterB );
+					ubControllingSAM = ubSAMControlledSectors[ iCounterB ][ iCounterA ];
+					break;
+				} else {
+					bSector--;
+				}
+			}
+		}
+
+		if ((bSector == 0) && ubControllingSAM)
+		{
+			break;
+		}
+	}
+
+	// Check the SAM
+	pSAMStrategicMap = &( StrategicMap[ SECTOR_INFO_TO_STRATEGIC_INDEX( pSamList[ ubControllingSAM - 1 ] ) ] );
+
+	// if we are controlling SAM site, it's in working condition and we have there enough people
+	if( ( pSAMStrategicMap->fEnemyControlled == FALSE) && ( NumEnemiesInSector( ( INT16 )iCounterA, ( INT16 )iCounterB ) == 0 ) &&
+		( pSAMStrategicMap->bSAMCondition >= MIN_CONDITION_FOR_SAM_SITE_TO_WORK ) &&
+		( PlayerMercsInSector(iCounterA, iCounterB, 0)+CountAllMilitiaInSector(iCounterA, iCounterB) >= gGameExternalOptions.ubSAMNeedsStuff))
+	{
+		if (uiSAMPreChanse >= gGameExternalOptions.ubSAMChanceToPreventParatroopersAttack)
+		{
+			ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: The paratroopers are sent to sector %i", usAttackSector );
+			AddStrategicEventUsingSeconds( EVENT_PARATROOPERS_ATTACK, GetWorldTotalSeconds()+60*(45+Random(15)), usAttackSector );
+		}
+	} else {
+		ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: The paratroopers are sent to sector %i", usAttackSector );
+		AddStrategicEventUsingSeconds( EVENT_PARATROOPERS_ATTACK, GetWorldTotalSeconds()+60*(45+Random(15)), usAttackSector );
+	}
+}
+
+extern UINT8 AddGroupToList( GROUP *pGroup );
+// Create group of the enemies in the sector
+GROUP* CreateNewEnemyGroupInTheSector( UINT32 uiSector, UINT8 ubNumAdmins, UINT8 ubNumTroops, UINT8 ubNumElites )
+{
+	GROUP *pNew;
+	AssertMsg( uiSector >= 0 && uiSector <= 255, String( "CreateNewEnemyGroup with out of range value of %d", uiSector ) );
+	pNew = (GROUP*)MemAlloc( sizeof( GROUP ) );
+	AssertMsg( pNew, "MemAlloc failure during CreateNewEnemyGroup." );
+	memset( pNew, 0, sizeof( GROUP ) );
+	pNew->pEnemyGroup = (ENEMYGROUP*)MemAlloc( sizeof( ENEMYGROUP ) );
+	AssertMsg( pNew->pEnemyGroup, "MemAlloc failure during enemy group creation." );
+	memset( pNew->pEnemyGroup, 0, sizeof( ENEMYGROUP ) );
+	// Make sure group is not bigger than allowed!
+	while (ubNumAdmins + ubNumTroops + ubNumElites > gGameExternalOptions.iMaxEnemyGroupSize)
+	{
+		if (ubNumTroops)
+		{
+			ubNumTroops--;
+		}
+		else if (ubNumAdmins)
+		{
+			ubNumAdmins--;
+		}
+		else
+		{
+			ubNumElites--;
+		}
+	}
+	pNew->pWaypoints = NULL;
+	pNew->ubPrevX = (UINT8)SECTORX( uiSector );
+	pNew->ubPrevY = (UINT8)SECTORY( uiSector );
+	pNew->ubSectorX = (UINT8)SECTORX( uiSector );
+	pNew->ubSectorY = (UINT8)SECTORY( uiSector );
+	pNew->ubOriginalSector = (UINT8)uiSector;
+	pNew->fPlayer = FALSE;
+	pNew->ubMoveType = CIRCULAR;
+	pNew->ubNextWaypointID = 0;
+	pNew->ubFatigueLevel = 100;
+	pNew->ubRestAtFatigueLevel = 0;
+	pNew->pEnemyGroup->ubNumAdmins = ubNumAdmins;
+	pNew->pEnemyGroup->ubNumTroops = ubNumTroops;
+	pNew->pEnemyGroup->ubNumElites = ubNumElites;
+	pNew->ubGroupSize = (UINT8)(ubNumAdmins + ubNumTroops + ubNumElites);
+	pNew->ubTransportationMask = FOOT;
+	pNew->fVehicle = FALSE;
+	pNew->ubCreatedSectorID = pNew->ubOriginalSector;
+	pNew->ubSectorIDOfLastReassignment = 255;
+
+	if( AddGroupToList( pNew ) )
+		return pNew;
+	return NULL;
+}
+
+void InitParatroopsAttack( UINT32 uiParam )
+{
+	UINT8 cnt;
+
+	UINT8 ubNumAirports, ubAirport;
+	INT16 ubSectorX, ubSectorY;
+
+	INT16	iSecRndX, iSecRndY, sNumElites, sGroupSize, sNumSides, sProgress;
+	GROUP	*pGroup;
+
+	// We need at least one airport again. Count them and select one
+	// Really, it is better to use a starting point far away from the country, but we'll need some special
+	// hints with the strategic map for this. So we'll better use airport. The chance that the player will
+	// capture the airport while paratroopers are flying and prevent the attack isn't to much
+	ubNumAirports = CountHostileAirports();
+	if (ubNumAirports == 0)
+	{
+		ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: No airports." );
+		return;
+	}
+
+	// We do not attack the sector we have under control. We have a chance to conquer it
+	ubSectorX = GET_X_FROM_STRATEGIC_INDEX(uiParam);
+	ubSectorY = GET_Y_FROM_STRATEGIC_INDEX(uiParam);
+	if ((StrategicMap[  uiParam ].fEnemyControlled == TRUE ) || ( NumEnemiesInSector( ubSectorX, ubSectorY ) != 0))
+	{
+		ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: Sector is enemy controlled. No attack needed!" );
+		return;
+	}
+ 	ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers: The paratroopers attack!" );
+
+/*	ubAirport = Random(ubNumAirports)+1;
+	for (cnt=0; cnt<NUMBER_OF_AIRPORTS; cnt++)
+	{
+		sX = (pAirportsList[cnt]%16)+1;
+		sY = (pAirportsList[cnt]/16)+1;
+		if 	(( StrategicMap[ SECTOR(sX, sY) ].fEnemyControlled == TRUE ) || ( NumEnemiesInSector( ( INT16 )sX, ( INT16 )sX ) != 0 ) )
+		{
+			ubAirport--;
+		}
+		if (ubAirport==0)
+			break;
+	}*/
+	
+	// If it is possible to attack now
+	if( gfWorldLoaded && gTacticalStatus.fEnemyInSector )
+	{ //Battle currently in progress, repost the event
+		AddStrategicEvent( EVENT_PARATROOPERS_ATTACK, GetWorldTotalMin() + Random( 10 ), uiParam );
+		return;
+	}
+
+	// Attack!
+	sProgress = CurrentPlayerProgressPercentage();
+	sNumElites = 3 + Random(10) + gGameOptions.ubDifficultyLevel * sProgress / 7;
+	if( sNumElites > 32) sNumElites = 30;
+
+	if( PlayerGroupsInSector( ubSectorX, ubSectorY, 0 ) )
+	{ 
+		//we have players in the sector
+		if( ubSectorX == gWorldSectorX && ubSectorY == gWorldSectorY && !gbWorldSectorZ )
+		{ 
+			//This is the currently loaded sector.
+			if( guiCurrentScreen == GAME_SCREEN )
+			{
+				//PrepareCreaturesForBattle();
+				pGroup = CreateNewEnemyGroupInTheSector((UINT32)((ubSectorY-1)*16+ubSectorX-1) , 0, 0, (UINT8)(sNumElites) );
+			}
+			else
+			{
+				pGroup = CreateNewEnemyGroupInTheSector((UINT32)((ubSectorY-1)*16+ubSectorX-1) , 0, 0, (UINT8)(sNumElites) );
+				InitPreBattleInterface( pGroup, TRUE );
+			}
+		}
+		else
+		{
+			pGroup = CreateNewEnemyGroupInTheSector((UINT32)((ubSectorY-1)*16+ubSectorX-1) , 0, 0, (UINT8)(sNumElites) );
+			InitPreBattleInterface( pGroup, TRUE );
+		}
+	}
+	else if( CountAllMilitiaInSector( ubSectorX, ubSectorY ) )
+	{ //we have militia in the sector
+		pGroup = CreateNewEnemyGroupInTheSector((UINT32)((ubSectorY-1)*16+ubSectorX-1) , 0, 0, (UINT8)(sNumElites) );
+		gfAutomaticallyStartAutoResolve = TRUE;
+		InitPreBattleInterface( pGroup, TRUE );
+	}
+	else if( !StrategicMap[ ubSectorX + MAP_WORLD_X * ubSectorY ].fEnemyControlled )
+	{ 
+		//player controlled sector. Lets change the owner
+		pGroup = CreateNewEnemyGroupInTheSector((UINT32)((ubSectorY-1)*16+ubSectorX-1) , 0, 0, (UINT8)(sNumElites) );
+		return;
+	}
+
+	InterruptTime();
+	PauseGame();
+	LockPauseState( 2 );
+/*	sProgress = CurrentPlayerProgressPercentage();
+	sNumElites = 3 + Random(10) + gGameOptions.ubDifficultyLevel * sProgress / 7;
+	if( sNumElites > 32) sNumElites = 30;
+
+	pGroup = CreateNewEnemyGroupDepartingFromSector( (UINT32)((sY-1)*16+sX-1) , 0, 0, (UINT8)(sNumElites) );
+	if(!pGroup) return;
+
+	MoveSAIGroupToSector( &pGroup, STRATEGIC_INDEX_TO_SECTOR_INFO(uiParam), DIRECT, PURSUIT );
+	DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pGroup->ubGroupID );
+	pGroup->uiTraverseTime = 5;
+	pGroup->uiArrivalTime = GetWorldTotalMin() + pGroup->uiTraverseTime;
+	AddStrategicEvent( EVENT_GROUP_ARRIVAL, pGroup->uiArrivalTime, pGroup->ubGroupID );*/
+	ScreenMsg( MSG_FONT_RED, MSG_DEBUG, L"Lion: Paratroopers are here." );
 }

@@ -1751,6 +1751,14 @@ void LoadGameExternalOptions()
 	// HEADROCK HAM 3.1: Select which mine will run out. 0 = no mine. 1 = San Mona (unused), 2 = Drassen, 3 = Alma, 4 = Cambria, 5 = Chitzena, 6 = Grumm.
 	gGameExternalOptions.bWhichMineRunsOut				= iniReader.ReadInteger("Strategic Event Settings","WHICH_MINE_SHUTS_DOWN", -1, -1, 256);
 
+	// Lion Paratroops
+	gGameExternalOptions.iChanceParatroopsAttack				= iniReader.ReadInteger("Strategic Event Settings","CHANCE_PARATROOPS_ATTACK", 100, 0, 25000);
+	gGameExternalOptions.iChanceParatroopsAttackPerDifLevel		= iniReader.ReadInteger("Strategic Event Settings","CHANCE_PARATROOPS_ATTACK_PER_DIF_LEVEL", 50, 0, 1000);
+	gGameExternalOptions.ubSAMChanceToPreventParatroopersAttack	= iniReader.ReadInteger("Strategic Event Settings","SAM_CHANCE_TO_PREVENT_PARATROOPS_ATTACK", 0, 0, 100);
+	gGameExternalOptions.ubSAMNeedsStuff						= iniReader.ReadInteger("Strategic Event Settings","SAM_NEEDS_STUFF", 0, 0, 50);
+	gGameExternalOptions.ubFirstAirportBonus					= iniReader.ReadInteger("Strategic Event Settings","FIRST_AIRPORT_BONUS", 0, 0, 10);
+	gGameExternalOptions.ubParatroopsFirstDay					= iniReader.ReadInteger("Strategic Event Settings","PARATROOPS_FIRST_DAY", 1, 0, 300);
+	// End Lion
 
 	//################# Strategic Gameplay Settings ##################
 
