@@ -999,8 +999,8 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fSmallSizeProgressbar				= iniReader.ReadBoolean("Graphics Settings", "SMALL_SIZE_PB", FALSE);
 	// *** ddd - END
 	
-	// anv: hide stuff on roof when below it (fans and other crap)
-	gGameExternalOptions.fHideStucturesOnRoofWhenBelowIt	= iniReader.ReadBoolean("Graphics Settings", "HIDE_STRUCTURES_ON_ROOF_WHEN_BELOW_IT", TRUE);
+	// anv: hide stuff on roof in explored rooms at ground level view (sandbags and other crap)
+	gGameExternalOptions.fHideExploredRoomRoofStructures	= iniReader.ReadBoolean("Graphics Settings", "HIDE_EXPLORED_ROOM_ROOF_STRUCTURES", TRUE);
 
 	//################# Sound Settings #################
 	
