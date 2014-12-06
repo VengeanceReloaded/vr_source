@@ -15688,6 +15688,10 @@ BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
 	if ( !pSoldier )
 		return TRUE;
 
+	// brutal fix: robots cannot be disguised
+	if ( AM_A_ROBOT( pSoldier ) && pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL) )
+		pSoldier->LooseDisguise( );
+
 #ifdef ENABLE_ZOMBIES
 	// zombies don't care about disguises
 	if ( IsZombie() )
@@ -15767,7 +15771,7 @@ BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
 void	SOLDIERTYPE::LooseDisguise( void )
 {	
 	// loose any covert flags
-	this->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER);
+	this->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL);
 
 	// rehandle sight for everybody
 	SOLDIERTYPE*		pSoldier;
@@ -15969,6 +15973,16 @@ BOOLEAN		SOLDIERTYPE::FreePrisoner()
 			return TRUE;
 		}
 	}
+
+	return FALSE;
+}
+
+// can this guy be handcuffed?
+BOOLEAN		SOLDIERTYPE::CanBeHandcuffed( )
+{
+	// if this is an enemy that has not already been captured, and is not a NPC, we can handcuff and thus capture him
+	if ( this->bTeam == ENEMY_TEAM && !(this->usSoldierFlagMask & SOLDIER_POW) && this->ubProfile == NO_PROFILE )
+		return TRUE;
 
 	return FALSE;
 }
@@ -19180,7 +19194,7 @@ void SOLDIERTYPE::EVENT_SoldierHandcuffPerson( INT32 sGridNo, UINT8 ubDirection 
 
 	UINT8 ubPerson = WhoIsThere2( sGridNo, this->pathing.bLevel );
 
-	if ( ubPerson != NOBODY && MercPtrs[ ubPerson ]->bTeam == ENEMY_TEAM && !(MercPtrs[ ubPerson ]->usSoldierFlagMask & SOLDIER_POW) )
+	if ( ubPerson != NOBODY && MercPtrs[ubPerson]->CanBeHandcuffed() )
 	{
 		// we found someone we can handcuff
 		SOLDIERTYPE* pSoldier =  MercPtrs[ ubPerson ];

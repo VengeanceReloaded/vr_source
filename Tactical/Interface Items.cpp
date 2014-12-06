@@ -1767,7 +1767,8 @@ INT16 pocketTypeInSlot(SOLDIERTYPE *pSoldier, INT16 sPocket){
 				: LoadBearingEquipment[Item[pSoldier->inv[icLBE[sPocket]].usItem].ubClassIndex].lbePocketIndex[icPocket[sPocket]];
 
 			break;
-		case LBE_POCKET:
+		// silversurfer: LBE slots are NOT pockets!
+/*		case LBE_POCKET:
 				if ( sPocket == VESTPOCKPOS )
 					lbePocket = 0;
 				else if ( sPocket == LTHIGHPOCKPOS )
@@ -1779,11 +1780,13 @@ INT16 pocketTypeInSlot(SOLDIERTYPE *pSoldier, INT16 sPocket){
 				else if ( sPocket == BPACKPOCKPOS )
 					lbePocket = 4;
 
+				break;*/
+
 		case OTHER_POCKET:
 
 				if ( sPocket == GUNSLINGPOCKPOS ) // Gun Sling
 					lbePocket = 1;
-				else
+				else // Knife
 					lbePocket = 2;
 			break;
 
@@ -2327,7 +2330,7 @@ POPUP * createPopupForPocket( SOLDIERTYPE *pSoldier, INT16 sPocket ){
 
 	INT16 sX, sY;
 	// get pocket type under cursor
-	INT16 lbePocket = pocketTypeInSlot(pSoldier, sPocket);
+	//INT16 lbePocket = pocketTypeInSlot(pSoldier, sPocket);
 	/*				
 	if ( lbePocket != -1 ) {
 	*/

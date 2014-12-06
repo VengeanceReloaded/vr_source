@@ -3528,6 +3528,7 @@ STR16 pwTownInfoStrings[] =
 	L"Miliz", 					// the state of the trained civilians in the town
 	L"Mobile M. Training",				// HEADROCK HAM 3.6: The stat of Mobile militia training in town
 	L"Prisoners",				// Flugente: display number of prisoners	// TODO.Translate
+	L"%d/%d - %dA %dR %dE %dO",		// TODO.Translate	// Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
 };
 
 // Mine strings
@@ -3838,6 +3839,7 @@ STR16 pTransactionText[] =
 	L"Miliz in %s ausbilden",		// initial cost to equip a town's militia
 	L"Gegenstände von %s gekauft.",	//is used for the Shop keeper interface. The dealers name will be appended to the end of the string.
 	L"%s hat Geld angelegt.",
+	L"Gegenstände an Bevölkerung verkauft",
 	L"Betriebskosten",			// HEADROCK HAM 3.6
 	L"Unterhaltskosten für Miliz",		// HEADROCK HAM 3.6
 	L"Lösegeld erpresst",	// Flugente: prisoner system
@@ -7954,7 +7956,7 @@ STR16		szBackgroundText_Flags[]=
 {
 	L" might consume drugs in inventory\n",
 	L" disregard for other backgrounds\n",
-	L" +1 level in  underground sectors\n",
+	L" +1 level in underground sectors\n",
 	L" might steal items\n",
 
 	L" +1 traplevel to planted bombs\n",

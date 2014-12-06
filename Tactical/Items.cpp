@@ -10294,9 +10294,6 @@ INT32 GetItemModifier(OBJECTTYPE* pObj, UINT8 ubRef, UINT8 usType)
 	case ITEMMODIFIER_COUNTERFORCEACCURACY:
 		iModifier += BonusReduceMore( Item[pObj->usItem].counterforceaccuracymodifier[ubRef], (*pObj)[0]->data.objectStatus );
 		break;
-	case ITEMMODIFIER_COUNTERFORCEFREQUENCY:
-		iModifier += BonusReduceMore( Item[pObj->usItem].counterforcefrequencymodifier[ubRef], (*pObj)[0]->data.objectStatus );
-		break;
 	case ITEMMODIFIER_TRACKING:
 		iModifier += BonusReduceMore( Item[pObj->usItem].targettrackingmodifier[ubRef], (*pObj)[0]->data.objectStatus );
 		break;
@@ -11545,10 +11542,10 @@ UINT8 GetPercentTunnelVision( SOLDIERTYPE * pSoldier )
 	if ((gGameExternalOptions.ubCoweringReducesSightRange == 1 || gGameExternalOptions.ubCoweringReducesSightRange == 3) &&
 		IS_MERC_BODY_TYPE(pSoldier) && (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == gbPlayerNum) )
 	{
-		INT8 bTolerance = CalcSuppressionTolerance( pSoldier );
+		
 
 		// Make sure character is cowering.
-		if ( pSoldier->aiData.bShock >= bTolerance && gGameExternalOptions.ubMaxSuppressionShock > 0 && 
+		if ( CoweringShockLevel(pSoldier) && gGameExternalOptions.ubMaxSuppressionShock > 0 && 
 			bonus < 100 )
 		{
 			// Calculates a "Flat" tunnel vision percentage

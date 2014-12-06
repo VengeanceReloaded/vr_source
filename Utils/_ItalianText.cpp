@@ -3446,7 +3446,7 @@ STR16 pHelicopterEtaStrings[] =
 	L"Skyrider",
 	L"Arrivi",
 	L"Helicopter is seriously damaged and must land in hostile territory!",	// warning that the sector the helicopter is going to use for refueling is under enemy control ->	// TODO.Translate
-	L"Helicopter will now return straight to base, do you want to drop down passengers before?"	// TODO.Translate
+	L"Helicopter will now return straight to base, do you want to drop down passengers before?",	// TODO.Translate
 	L"Remaining Fuel:",	// TODO.Translate
 	L"Dist. To Refuel Site:",	// TODO.Translate
 };
@@ -3525,6 +3525,7 @@ STR16 pwTownInfoStrings[] =
 	L"Esercito", 					// the state of the trained civilians in the town
 	L"Mobile Training",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town	// TODO.Translate
 	L"Prisoners",				// Flugente: display number of prisoners	// TODO.Translate
+	L"%d/%d - %dA %dR %dE %dO",		// TODO.Translate	// Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
 };
 
 // Mine strings
@@ -3857,6 +3858,7 @@ STR16 pTransactionText[] =
 	L"Equipaggiamento esercito in %s", // initial cost to equip a town's militia
 	L"Oggetti acquistati da%s.",	//is used for the Shop keeper interface.  The dealers name will be appended to the end of the string.
 	L"%s soldi depositati.",
+	L"Sold Item(s) to the Locals",
 	L"Facility Use", // HEADROCK HAM 3.6		// TODO.Translate
 	L"Militia upkeep", // HEADROCK HAM 3.6		// TODO.Translate
 	L"Ransom for released prisoners",	// Flugente: prisoner system TODO.Translate
@@ -4133,7 +4135,7 @@ STR16 pExtraIMPStrings[] =
 	L"With your character traits chosen, it is time to select your skills.",
 	L"To complete the process, select your attributes.",
 	L"To commence actual profiling, select portrait, voice and colors.",
-	L"Now that you have completed your appearence choice, procced to character analysis.",
+	L"Now that you have completed your appearence choice, proceed to character analysis.",
 };
 
 STR16 pFilesTitle[] =
@@ -7051,7 +7053,7 @@ STR16 pSkillTraitBeginIMPStrings[] =
 	L"On the next page, you are going to choose your skill traits according to your proffessional specialization as a mercenary. No more than two different traits or one expert trait can be selected.",
 	L"You can also choose only one or even no traits, which will give you a bonus to your attribute points as a compensation. Note that Electronics, Ambidextrous and Camouflage traits cannot be achieved at expert levels.",
 	// For new major/minor traits
-	L"Next stage is about choosing your skill traits according to your professional specialization as a mercenary. On first page you can select up to %d potential major traits, which mostly represent your main role in a team. While on second page is list of possible minor traits, which represent personal feats.",
+	L"Next stage is about choosing your skill traits according to your professional specialization as a mercenary. On first page you can select up to %d potential major traits, which mostly represent your main role in a team. While on second page is a list of possible minor traits, which represent personal feats.",
 	L"No more then %d choices altogether are possible. This means that if you choose no major traits, you can choose %d minor traits. If you choose two major traits (or one enhanced), you can then choose only %d minor trait(s)...",
 };
 STR16 sgAttributeSelectionText[] = 
@@ -8127,7 +8129,7 @@ STR16		szBackgroundText_Flags[]=
 {
 	L" might consume drugs in inventory\n",
 	L" disregard for other backgrounds\n",
-	L" +1 level in  underground sectors\n",
+	L" +1 level in underground sectors\n",
 	L" might steal items\n",
 
 	L" +1 traplevel to planted bombs\n",

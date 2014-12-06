@@ -3532,6 +3532,7 @@ STR16 pwTownInfoStrings[] =
 	L"民兵",			// the state of the trained civilians in the town
 	L"巡逻民兵",	// L"Mobile Training",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town
 	L"囚犯",				// Flugente: display number of prisoners
+	L"%d/%d - %dA %dR %dE %dO",		// TODO.Translate	// Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
 };
 
 // Mine strings
@@ -7053,7 +7054,7 @@ STR16 pSkillTraitBeginIMPStrings[] =
 	L"下一页你必须依照你作为雇佣兵的专业选择特长。注意你只能选择两种一般特长或者一种专家级特长。",
 	L"你可以只选择一个专家特长或者干脆什么也不选，作为回报你会得到额外的能力点数。注意电子、左右开弓和伪装是没有专家级的。",
 	// For new major/minor traits 用于新的主/副特长
-	L"下一步你将会为你的佣兵选择专业技能。在第一页你可以选择%d项潜在主技能，代表佣兵在你的小队里的角色，第二页你可以选择副技能，代表个人特征。", // L"Next stage is about choosing your skill traits according to your professional specialization as a mercenary. On first page you can select up to %d potential major traits, which mostly represent your main role in a team. While on second page is list of possible minor traits, which represent personal feats.",
+	L"下一步你将会为你的佣兵选择专业技能。在第一页你可以选择%d项潜在主技能，代表佣兵在你的小队里的角色，第二页你可以选择副技能，代表个人特征。", // L"Next stage is about choosing your skill traits according to your professional specialization as a mercenary. On first page you can select up to %d potential major traits, which mostly represent your main role in a team. While on second page is a list of possible minor traits, which represent personal feats.",
 	L"最多只能选择%d项。这意味着如果你没有选择主技能，你可以选择%d项副技能。如果你选择了两个主技能（或者一个加强技能），你只能再选择%d项副技能。", // L"No more then %d choices altogether are possible. This means that if you choose no major traits, you can choose %d minor traits. If you choose two major traits (or one enhanced), you can then choose only %d minor trait(s)...",
 };
 
@@ -8121,7 +8122,7 @@ STR16		szBackgroundText_Flags[]=
 {
 	L" 会消耗掉背包中的药品\n", //L" might consume drugs in inventory\n",
 	L" 蔑视其他背景的角色\n", //L" disregard for other backgrounds\n",
-	L" 在地下分区角色等级+1\n", //L" +1 level in  underground sectors\n",
+	L" 在地下分区角色等级+1\n", //L" +1 level in underground sectors\n",
 	L" 会盗窃物品\n", //L" might steal items\n",
 
 	L" 埋设炸弹的陷阱等级+1\n", //L" +1 traplevel to planted bombs\n",

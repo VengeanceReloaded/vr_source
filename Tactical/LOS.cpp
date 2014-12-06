@@ -179,7 +179,7 @@ INT32 GetSpreadPattern( OBJECTTYPE * pObj )
 	//If there are attachments, check them.  Stop on the first one with something defined.
 	//Dear God, I hate C++ iterators.  What a fugly mess. //WarmSteel - I made it even messier ;3
 	for (attachmentList::iterator iter = pObj[0][0]->attachments.begin(); iter != pObj[0][0]->attachments.end(); ++iter){
-		if( n=Item[ iter->usItem ].spreadPattern && iter->exists()){
+		if( (n=Item[ iter->usItem ].spreadPattern) && iter->exists()){
 				//An attachment has it, and it trumps everything, so return it's value.
 			return n;}
 	}
@@ -3335,7 +3335,7 @@ UINT8 CalcChanceToGetThrough( BULLET * pBullet )
 		iCurrCubesAboveLevelZ = CONVERT_HEIGHTUNITS_TO_INDEX( iCurrAboveLevelZ );
 
 		DebugLOS(String("CalcChanceToGetThrough: while pStructure"));
-		while( pStructure )
+		while ( pStructure && iNumLocalStructures < MAX_LOCAL_STRUCTURES - 1 )
 		{
 			if (pStructure->fFlags & ALWAYS_CONSIDER_HIT)
 			{
@@ -8626,76 +8626,6 @@ void LimitImpactPointToMaxAperture( FLOAT *dShotOffsetX, FLOAT *dShotOffsetY, FL
 		*dShotOffsetX *= dReductionRatio;
 		*dShotOffsetY *= dReductionRatio;
 	}
-}
-
-UINT32 CalcCounterForceFrequency(SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon)
-{
-	INT8	traitLoop;
-
-	FLOAT iCounterForceFrequency = gGameCTHConstants.RECOIL_COUNTER_FREQUENCY_AGI * EffectiveAgility(pShooter, FALSE);
-	iCounterForceFrequency += gGameCTHConstants.RECOIL_COUNTER_FREQUENCY_EXP_LEVEL * EffectiveExpLevel(pShooter) * 10;
-
-	// Average
-	FLOAT iDivisor = gGameCTHConstants.RECOIL_COUNTER_FREQUENCY_AGI + 
-						gGameCTHConstants.RECOIL_COUNTER_FREQUENCY_EXP_LEVEL;
-	iCounterForceFrequency /= iDivisor;
-
-	// SAMDRO - shooting dual bursts is somehow harder to control, unless we are ambidextrous
-	if ( pShooter->IsValidSecondHandBurst() )
-	{
-		if ( gGameOptions.fNewTraitSystem )
-		{
-			if ( !(HAS_SKILL_TRAIT( pShooter, AMBIDEXTROUS_NT )) )
-				iCounterForceFrequency = iCounterForceFrequency*9/10; // -10% 
-		}
-		else
-		{
-			if ( !(HAS_SKILL_TRAIT( pShooter, AMBIDEXT_OT )) )
-				iCounterForceFrequency = iCounterForceFrequency*9/10; // -10% 
-		}
-	}
-
-	// Bridge the gap to 100 with the help of the AUTO-WEAPONS skill
-	if(gGameOptions.fNewTraitSystem)
-		traitLoop = NUM_SKILL_TRAITS( pShooter, AUTO_WEAPONS_NT );
-	else
-		traitLoop = NUM_SKILL_TRAITS( pShooter, AUTO_WEAPS_OT );
-	for (INT32 x = 0; x < traitLoop; x++)
-	{
-		INT8 bDifference = (INT8)(100-iCounterForceFrequency);
-		bDifference = (INT8)(bDifference / gGameCTHConstants.RECOIL_COUNTER_FREQUENCY_AUTO_WEAPONS_DIVISOR);
-		iCounterForceFrequency += bDifference;
-	}
-
-	UINT8 stance = gAnimControl[ pShooter->usAnimState ].ubEndHeight;
-
-	// Flugente: new feature: if the next tile in our sight direction has a height so that we could rest our weapon on it, we do that, thereby gaining the prone boni instead. This includes bipods
-	if ( gGameExternalOptions.fWeaponResting && pShooter->IsWeaponMounted() )
-		stance = ANIM_PRONE;
-
-	// Percent Modifier from weapon and its attachments
-	FLOAT moda = (iCounterForceFrequency * GetObjectModifier( pShooter, pWeapon, stance, ITEMMODIFIER_COUNTERFORCEFREQUENCY )) / 100;
-	FLOAT modb = (iCounterForceFrequency * GetObjectModifier( pShooter, pWeapon, gAnimControl[ pShooter->usAnimState ].ubEndHeight, ITEMMODIFIER_COUNTERFORCEFREQUENCY )) / 100;
-	iCounterForceFrequency += ((gGameExternalOptions.ubProneModifierPercentage * moda + (100 - gGameExternalOptions.ubProneModifierPercentage) * modb)/100);
-
-	// Limit to 1-100.
-	iCounterForceFrequency = __min(100, iCounterForceFrequency);
-	iCounterForceFrequency = __max(1, iCounterForceFrequency);
-
-	// Invert value. Now 100 is bad, 1 is good.
-	iCounterForceFrequency = 100 - iCounterForceFrequency;
-
-	// Calculate frequency
-	UINT32 uiBulletsPer5AP = max(1,GetAutofireShotsPerFiveAPs( pWeapon ));
-	UINT32 uiCounterForceFrequency = __max(1, (UINT32)ceil((uiBulletsPer5AP * iCounterForceFrequency) / 100));
-
-	//CHRISL: For the time being, this is going to override the CFF function
-	uiBulletsPer5AP = GetAutofireShotsPerFiveAPs( pWeapon );
-	if(uiBulletsPer5AP < 1)
-		uiBulletsPer5AP = 3;
-	uiCounterForceFrequency = (UINT32)ceil((FLOAT)uiBulletsPer5AP / 2.0f);
-
-	return uiCounterForceFrequency;
 }
 
 FLOAT CalcCounterForceMax(SOLDIERTYPE *pShooter, OBJECTTYPE *pWeapon, UINT8 uiStance)

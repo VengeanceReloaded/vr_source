@@ -1094,7 +1094,6 @@ typedef struct
 	INT16 percentdropcompensationmodifier[3];
 	INT16 maxcounterforcemodifier[3];
 	INT16 counterforceaccuracymodifier[3];
-	INT16 counterforcefrequencymodifier[3];
 	INT16 targettrackingmodifier[3];
 	INT16 aimlevelsmodifier[3];
 	// HEADROCK HAM 4: New modifiers that do not require a stance array, since they affect the gun objectively, not
@@ -1710,7 +1709,7 @@ const INT16	icDefault[NUM_INV_SLOTS] =	{
 #define FIRST_HEAD_ITEM EXTENDEDEAR
 #define LAST_HEAD_ITEM SUNGOGGLES
 
-#define MAXATTACHMENTS 30000
+#define MAXATTACHMENTS 40000
 
 extern INVTYPE Item[MAXITEMS];
 extern UINT16 Attachment[MAXATTACHMENTS][4];

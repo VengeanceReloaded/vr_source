@@ -3460,7 +3460,7 @@ STR16 pHelicopterEtaStrings[] =
 	L"Skyrider",
 	L"Pasażerowie",
 	L"Helikopter został poważnie uszkodzony i musi wylądować na terenie wroga!",	// warning that the sector the helicopter is going to use for refueling is under enemy control -> 
-	L"Helikopter powróci teraz wprost do bazy, czy chcesz najpierw wysadzić pasażerów?"
+	L"Helikopter powróci teraz wprost do bazy, czy chcesz najpierw wysadzić pasażerów?",
 	L"Remaining Fuel:",	// TODO.Translate
 	L"Dist. To Refuel Site:",	// TODO.Translate
 };
@@ -3539,6 +3539,7 @@ STR16 pwTownInfoStrings[] =
 	L"Samoobrona", 					// the state of the trained civilians in the town
 	L"Mobile Training",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town	// TODO.Translate
 	L"Prisoners",				// Flugente: display number of prisoners	// TODO.Translate
+	L"%d/%d - %dA %dR %dE %dO",		// TODO.Translate	// Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
 };
 
 // Mine strings
@@ -8144,7 +8145,7 @@ STR16		szBackgroundText_Flags[]=
 {
 	L" might consume drugs in inventory\n",
 	L" disregard for other backgrounds\n",
-	L" +1 level in  underground sectors\n",
+	L" +1 level in underground sectors\n",
 	L" might steal items\n",
 
 	L" +1 traplevel to planted bombs\n",

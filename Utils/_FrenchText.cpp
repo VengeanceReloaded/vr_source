@@ -1037,7 +1037,7 @@ STR16 pUpdateMercsInfoText[] =
 	L"Cliquez sur la case où vous voulez aller après avoir %s la porte.",
 	L"Cliquez sur la case où vous voulez aller.",
 	L"Cliquez sur la case où vous voulez dormir. Le personnage retournera automatiquement à sa position initiale lorsqu'il se lèvera.",
-	L"Cliquez sur la ESC pour annuler l'entrée de cette ligne dans le calendrier.",
+	L"Cliquez sur ESC pour annuler l'entrée de cette ligne dans le calendrier.",
 };
 
 CHAR16 pRenderMercStringsText[][100] =
@@ -1101,9 +1101,9 @@ STR16 pPerformSelectedActionText[] =
 {
 	L"Création de carte radar pour %S", //0
 	
-	L"Supprimer la carte actuelle et commencer un nouveau niveau de sous-sol ?",
-	L"Supprimer la carte actuelle et commencer un nouveau niveau de cave ?",
-	L"Supprimer la carte actuelle et commencer un nouveau niveau extérieur ?",
+	L"Supprimer la carte actuelle pour un nouveau niveau de sous-sol ?",
+	L"Supprimer la carte actuelle pour un nouveau niveau de cave ?",
+	L"Supprimer la carte actuelle pour un nouveau niveau extérieur ?",
 	
 	L" Essuyer les textures du sol ? ",
 };
@@ -3533,7 +3533,8 @@ STR16 pwTownInfoStrings[] =
 	L"Formation ",				// 10 // state of civilian training in town
 	L"Milice ", 					// the state of the trained civilians in the town
 	L"Formation mobile ",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town
-	L"Prisonniers ",				// Flugente: display number of prisoners
+	L"Prisonnier ",				// Flugente: display number of prisoners
+	L"%d/%d = %dA %dR %dÉ %dO",		//	Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
 };
 
 // Mine strings
@@ -5868,7 +5869,7 @@ STR16	gzMPJScreenText[] =
 STR16 gzMPJHelpText[] =
 {
 	L"Visiter http://webchat.quakenet.org/?channels=ja2-multiplayer pour trouver d'autres joueurs.",
-	L"Vous pouvez appuyer sur 'y' pour ouvrir la fenêtre de chat ingame, après avoir été connecté au serveur.",	// TODO.Translate
+	L"Vous pouvez appuyer sur 'y' pour ouvrir la fenêtre de chat ingame, après avoir été connecté au serveur.",
 
 	L"HÉBERGER",
 	L"Entrer '127.0.0.1' pour l'IP et un nombre plus grand que 60000 pour le port.",

@@ -3448,7 +3448,7 @@ STR16 pHelicopterEtaStrings[] =
 	L"Вертолёт",
 	L"Высадка",
 	L"Вертолет серьезно поврежден и идет на вынужденную посадку во вражеской территории!",	// warning that the sector the helicopter is going to use for refueling is under enemy control ->
-	L"Вертолет возвращается на базу, высадить сначала пассажиров?"
+	L"Вертолет возвращается на базу, высадить сначала пассажиров?",
 	L"Остаток топлива:",
 	L"Расстояние до места дозаправки:",
 };
@@ -3527,6 +3527,7 @@ STR16 pwTownInfoStrings[] =
 	L"Ополчение", 					// the state of the trained civilians in the town
 	L"Тренинг мобильных групп",		// HEADROCK HAM 3.6: The stat of Mobile militia training in town	//Mobile Training
 	L"Заключенные",					// Flugente: display number of prisoners
+	L"%d/%d - %dA %dR %dE %dO",		// TODO.Translate	// Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
 };
 
 // Mine strings
@@ -4136,7 +4137,7 @@ STR16 pExtraIMPStrings[] =
 	L"Теперь, когда формирование внешности и личных качеств завершено, укажите ваши способности.",	//With your character traits chosen, it is time to select your skills.
 	L"Для завершения выберите свои характеристики.",	//To complete the process, select your attributes.
 	L"Для начала подберите наиболее подходящее вам лицо, голос, телосложение и соответствующую расцветку.",	//To commence actual profiling, select portrait, voice and colors.
-	L"Теперь, когда вы завершили формирование своей внешности, перейдём к анализу ваших личных качеств.",	//Now that you have completed your appearence choice, procced to character analysis.
+	L"Теперь, когда вы завершили формирование своей внешности, перейдём к анализу ваших личных качеств.",	//Now that you have completed your appearence choice, proceed to character analysis.
 };
 
 STR16 pFilesTitle[] =
