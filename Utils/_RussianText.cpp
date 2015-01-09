@@ -707,8 +707,8 @@ STR16 iEditorTaskbarInternalText[]=
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Terrain fasthelp text
 	L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method", //Buildings fasthelp text
 	L"|S|p|a|c|e: Select next item\n \n|C|t|r|l+|/: Place new item under mouse cursor\n|/: Place same item under mouse cursor", //Items fasthelp text
-	L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc", //Mercs fasthelp text
-	L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions", //Map Info fasthelp text
+	L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc\n|P|g |U|p/|P|g |D|n: Toggle merc placement level", //Mercs fasthelp text
+	L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n(|t|i|l|d|e): Toggle cursor level\n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions", //Map Info fasthelp text
 	L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version", //Options fasthelp text
 };
 
@@ -2474,7 +2474,7 @@ STR16 gzMercSkillTextNew[] =
 	L"Ковбой",	//Gunslinger
 	L"Боксёр",	//Hand to Hand
 	L"Старшина",	//Deputy
-	L"Механик-электронщик",	//Technician
+	L"Механик",	//Technician
 	L"Санитар",	//Paramedic
 	// Minor traits
 	L"Ловкач",	//Ambidextrous
@@ -3441,7 +3441,7 @@ STR16 pHelicopterEtaStrings[] =
 	L"Безопасно:  ", 			// distance to travel to destination
 	L"Опасно:", 			// distance to return from destination to airport
 	L"Итого:", 		// total cost of trip by helicopter
-	L"ОВП:", 			// ETA is an acronym for "estimated time of arrival" 
+	L"РВП:", 			// ETA is an acronym for "estimated time of arrival" 
 	L"У вертолета закончилось топливо. Придется совершить посадку на вражеской территории!",	// warning that the sector the helicopter is going to use for refueling is under enemy control -> 
 	L"Пассажиры:",
 	L"Выбрать вертолет или точку высадки?",
@@ -3450,7 +3450,7 @@ STR16 pHelicopterEtaStrings[] =
 	L"Вертолет серьезно поврежден и идет на вынужденную посадку во вражеской территории!",	// warning that the sector the helicopter is going to use for refueling is under enemy control ->
 	L"Вертолет возвращается на базу, высадить сначала пассажиров?",
 	L"Остаток топлива:",
-	L"Расстояние до места дозаправки:",
+	L"Расст. до заправки:",
 };
 
 STR16 pHelicopterRepairRefuelStrings[]=
@@ -5671,7 +5671,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Если включено, то используется метрическая система мер,\nиначе будет британская.",
 
 	//Merc Lighted movement
-	L"При ходьбе карта подсвечивается вокруг бойца (|C|t|r|l+|A|l|t+|G).\nОтключите эту настройку для повышения производительности системы.",
+	L"При ходьбе карта подсвечивается вокруг бойца. Отключите эту настройку для повышения производительности системы.\nпереключить Подсветка наемника включена. (|C|t|r|l+|A|l|t+|G)",
 
 	//Smart cursor
 	L"Если включено, то перемещение курсора возле наемника\nавтоматически выбирает его.",
@@ -7268,7 +7268,7 @@ STR16 gzFacilityAssignmentStrings[]=
 STR16 Additional113Text[]=
 {
 	L"Для запуска Jagged Alliance 2 v1.13 в оконном режиме требуется установить 16-битное качество цветопередачи экрана",
-	L"Jagged Alliance 2 v1.13 полноэкранный режим требует запуска с разрешением как на десктопе (%d x %d) или меньше.",
+	L"Jagged Alliance 2 v1.13 fullscreen mode (%d x %d) is not supported by your primary screen.\nPlease either change the game resolution or use 16bpp windowed mode.",	// TODO.Translate
 	L"Internal error in reading %s slots from Savegame: Number of slots in Savegame (%d) differs from defined slots in ja2_options.ini settings (%d)",	// TODO.Translate
 	// WANNE: Savegame slots validation against INI file 
 	L"Наемники (MAX_NUMBER_PLAYER_MERCS) / Машины (MAX_NUMBER_PLAYER_VEHICLES)", 
