@@ -147,6 +147,7 @@ class OBJECTTYPE;
 class SOLDIERTYPE;
 
 extern void HandleBestSightingPositionInRealtime();
+extern void UpdateFastForwardMode( SOLDIERTYPE* pSoldier ); // sevenfm: to call in HandleAtNewGridNo
 
 extern UINT8    gubAICounter;
 
@@ -2690,6 +2691,9 @@ BOOLEAN HandleAtNewGridNo( SOLDIERTYPE *pSoldier, BOOLEAN *pfKeepMoving )
             gfPlotNewMovement   = TRUE;
         }
     }
+
+	// sevenfm: additional check for auto fast forwarding
+	UpdateFastForwardMode( pSoldier );
 
     // ATE: Put some stuff in here to not handle certain things if we are
     // trversing...
