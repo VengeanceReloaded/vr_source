@@ -2675,6 +2675,9 @@ void HandleTakeDamageDeath( SOLDIERTYPE *pSoldier, UINT8 bOldLife, UINT8 ubReaso
 
 void SetDamageDisplayCounter(SOLDIERTYPE* pSoldier);
 
+// sevenfm
+void StopCoweringAnimation( SOLDIERTYPE* pSoldier);
+
 #endif
 
 

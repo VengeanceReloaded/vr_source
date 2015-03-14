@@ -7498,7 +7498,7 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 	// Flugente: reset extra stats. Currently they only depend on drug effects, and those are reset every turn
 	this->ResetExtraStats();
 
-	// ATE: Add decay effect sfor drugs...
+	// ATE: Add decay effects for drugs...
 	//if ( fFromRealTime  ) //&& iRealTimeCounter % 300 )
 	{
 		HandleEndTurnDrugAdjustments( this );
@@ -7537,6 +7537,10 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 	{
 		// reduce the effects of any residual shock from past injuries by half
 		this->aiData.bShock /= 2;
+
+		// sevenfm: stop cowering animation if new shock level is less than needed for cowering state
+		if( !CoweringShockLevel( this ) && !this->bCollapsed && this->ubBodyType <= REGFEMALE ) 
+			StopCoweringAnimation( this );
 
 		// if this person has heard a noise that hasn't been investigated
 		if (this->aiData.sNoiseGridno != NOWHERE)
@@ -21740,6 +21744,34 @@ void SetDamageDisplayCounter(SOLDIERTYPE* pSoldier)
 		GetSoldierAnimOffsets( pSoldier, &sOffsetX, &sOffsetY );
 		pSoldier->sDamageX = sOffsetX;
 		pSoldier->sDamageY = sOffsetY;
+	}
+}
+
+void StopCoweringAnimation( SOLDIERTYPE* pSoldier)
+{
+	if ( pSoldier->usAnimState == COWERING )
+	{
+		if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND )
+		{
+			pSoldier->ubDesiredHeight = ANIM_STAND;
+			pSoldier->EVENT_InitNewSoldierAnim( END_COWER, 0, FALSE );
+			pSoldier->flags.uiStatusFlags &= (~SOLDIER_COWERING );
+		}
+		else if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH )
+		{
+			pSoldier->ubDesiredHeight = ANIM_CROUCH;
+			pSoldier->EVENT_InitNewSoldierAnim( END_COWER_CROUCHED, 0, FALSE );
+			pSoldier->flags.uiStatusFlags &= (~SOLDIER_COWERING );
+		}
+	}
+	else if( pSoldier->usAnimState == COWERING_PRONE )
+	{
+		if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE )
+		{
+			pSoldier->ubDesiredHeight = ANIM_PRONE;
+			pSoldier->EVENT_InitNewSoldierAnim( END_COWER_PRONE, 0, FALSE );
+			pSoldier->flags.uiStatusFlags &= (~SOLDIER_COWERING );
+		}
 	}
 }
 
