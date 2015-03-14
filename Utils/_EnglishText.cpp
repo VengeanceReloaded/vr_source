@@ -3259,7 +3259,7 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	// In the following message, '%s' would be replaced with a quantity of money (e.g. $200)
 	L"Do you agree to pay %s?",
 	L"Accept free medical treatment?",
-	L"Agree to marry %s?",	//Daryl
+	L"Agree to assist %s?",	//sevenfm: VR specific quest
 	L"Key Ring Panel",
 	L"You cannot do that with an EPC.",
 	L"Spare %s?",	//Krott
@@ -4220,7 +4220,7 @@ STR16 pHistoryStrings[] =
 	L"Cheat Used",
 	L"Food should be in Omerta by tomorrow",
 	//21-25
-	L"%s left team to become Daryl Hick's wife",
+	L"%s non-platonically assisted Babyface",	// sevenfm: VR specifi quest
 	L"%s's contract expired.",
 	L"%s was recruited.",
 	L"Enrico complained about lack of progress",
@@ -4241,7 +4241,7 @@ STR16 pHistoryStrings[] =
 	L"Met someone named TNT - he sells explosives.",
 	L"Ran into the famous ex-AIM merc Mike!",
 	L"Met Tony - he deals in arms.",
-	L"Got a rocket rifle from Sergeant Krott.",
+	L"Got a flamethrower from Sergeant Krott.",	// sevenfm: VR specific quest
 	L"Gave Kyle the deed to Angel's leather shop.",
 	//41-45
 	L"Madlab offered to build a robot.",
