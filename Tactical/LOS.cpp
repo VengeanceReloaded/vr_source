@@ -4269,7 +4269,9 @@ INT8 FireBulletGivenTargetNCTH( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, 
 	{
 		usBulletFlags |= BULLET_FLAG_SMALL_MISSILE;
 	}
-	else if ( usHandItem == FLAMETHROWER )
+	//else if ( usHandItem == FLAMETHROWER )
+	// sevenfm: check for flame caliber instead
+	else if ( Weapon[Item[usHandItem].ubClassIndex].ubCalibre == AMMOFLAME  )
 	{
 		usBulletFlags |= BULLET_FLAG_FLAME;
 		ubSpreadIndex = 2;
@@ -4749,7 +4751,9 @@ INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOA
 	{
 		usBulletFlags |= BULLET_FLAG_SMALL_MISSILE;
 	}
-	else if ( usHandItem == FLAMETHROWER )
+	//else if ( usHandItem == FLAMETHROWER )
+	// sevenfm: check for flame caliber instead
+	else if ( Weapon[Item[usHandItem].ubClassIndex].ubCalibre == AMMOFLAME  )
 	{
 		usBulletFlags |= BULLET_FLAG_FLAME;
 		ubSpreadIndex = 2;
@@ -5423,7 +5427,9 @@ INT8 FireBulletGivenTargetTrapOnly( SOLDIERTYPE* pThrower, OBJECTTYPE* pObj, INT
 	{
 		usBulletFlags |= BULLET_FLAG_SMALL_MISSILE;
 	}
-	else if ( pObj->usItem == FLAMETHROWER )
+	//else if ( pObj->usItem == FLAMETHROWER )
+	// sevenfm: check for flame caliber instead
+	else if ( Weapon[Item[pObj->usItem].ubClassIndex].ubCalibre == AMMOFLAME  )
 	{
 		usBulletFlags |= BULLET_FLAG_FLAME;
 		ubSpreadIndex = 2;

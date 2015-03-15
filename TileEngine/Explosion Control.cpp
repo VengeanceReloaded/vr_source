@@ -401,6 +401,13 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 			NewSmokeEffect( sGridNo, SMALL_SMOKE, 0, NOBODY );
 		}
 	}
+	// sevenfm: add light for fire effects
+	if( (NightTime() || gbWorldSectorZ) && Explosive[ Item[ usItem ].ubClassIndex ].ubType == EXPLOSV_BURNABLEGAS )
+	{
+		// add light
+		NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubDuration+1, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubRadius );
+	}
+
 }
 
 

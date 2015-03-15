@@ -6419,6 +6419,18 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 	BOOLEAN	fHeadHit = FALSE;
 	BOOLEAN	fFallenOver = FALSE;
 
+	// sevenfm: special death for flamethrower
+	if ( gGameSettings.fOptions[ TOPTION_BLOOD_N_GORE ] )
+	{
+		if ( IS_MERC_BODY_TYPE(pSoldier) && Weapon[usWeaponIndex].ubCalibre == AMMOFLAME && pSoldier->stats.bLife == 0 && gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_PRONE )
+		{
+			pSoldier->DoMercBattleSound( (INT8)( BATTLE_SOUND_HIT1 + Random( 2 ) ) );
+
+			pSoldier->EVENT_InitNewSoldierAnim( CHARIOTS_OF_FIRE, 0 , FALSE );
+			return;
+		}
+	}
+
 	// MAYBE CHANGE TO SPECIAL ANIMATION BASED ON VALUE SET BY DAMAGE CALCULATION CODE
 	// ALL THESE ONLY WORK ON STANDING PEOPLE
 	if (!(pSoldier->flags.uiStatusFlags & SOLDIER_MONSTER) && gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND)

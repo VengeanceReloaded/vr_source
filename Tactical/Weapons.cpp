@@ -50,6 +50,8 @@
 	#include "LOS.h" // HEADROCK HAM 4: Required for new shooting mechanism. Alternately, maybe move the functions to LOS.h.
 	#include "Campaign Types.h"	// added by Flugente
 	#include "CampaignStats.h"	// added by Flugente
+	#include "LightEffects.h"	// sevenfm: for flamethrower light effect
+	#include "Game Clock.h"		// sevenfm
 #endif
 
 //forward declarations of common classes to eliminate includes
@@ -4385,6 +4387,16 @@ BOOLEAN DoSpecialEffectAmmoMiss( UINT8 ubAttackerID, UINT16 usWeaponIndex, INT32
 		}
 
 		return( TRUE );
+	}
+	else if ( ubAmmoType == AMMO_FLAME && ubAttackerID != NOBODY && MercPtrs[ ubAttackerID ]->bTargetLevel == 0 )
+	{
+
+		NewSmokeEffect( sGridNo, AmmoTypes[ubAmmoType].highExplosive, 0, ubAttackerID );
+		if( (NightTime() || gbWorldSectorZ) )
+		{
+			// add light
+			NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ AmmoTypes[ubAmmoType].highExplosive ].ubClassIndex ].ubDuration+1, (UINT8)Explosive[ Item[ AmmoTypes[ubAmmoType].highExplosive ].ubClassIndex ].ubRadius + 1 );
+		}
 	}
 	else if ( AmmoTypes[ubAmmoType].monsterSpit )
 	{
