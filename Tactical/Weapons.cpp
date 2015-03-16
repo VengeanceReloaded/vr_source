@@ -4388,7 +4388,8 @@ BOOLEAN DoSpecialEffectAmmoMiss( UINT8 ubAttackerID, UINT16 usWeaponIndex, INT32
 
 		return( TRUE );
 	}
-	else if ( ubAmmoType == AMMO_FLAME && ubAttackerID != NOBODY && MercPtrs[ ubAttackerID ]->bTargetLevel == 0 )
+	// sevenfm: add small flame when using flamethrower
+	else if ( ubAmmoType == AMMO_FLAME && ubAttackerID != NOBODY && MercPtrs[ ubAttackerID ]->bTargetLevel == 0 && AmmoTypes[ubAmmoType].highExplosive != 0 )
 	{
 
 		NewSmokeEffect( sGridNo, AmmoTypes[ubAmmoType].highExplosive, 0, ubAttackerID );

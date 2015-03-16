@@ -4260,7 +4260,7 @@ STR16 pHistoryStrings[] =
 	L"Received donation from rich guy in Malino.",
 	L"Met a junkyard dealer named Jake.",
 	L"Some bum gave us an electronic keycard.",
-	L"Bribed Walter to unlock the door to the basement.",
+	L"Bribed Guard to unlock the door to the prisoners.",
 	//56-60
 	L"If Dave has gas, he'll provide free fillups.",
 	L"Greased Pablo's palms.",
