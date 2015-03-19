@@ -8632,7 +8632,6 @@ INT8 CheckItemForDamage( UINT16 usItem, INT32 iMaxDamage )
 	return( bDamage );
 }
 
-//BOOLEAN CheckForChainReaction( UINT16 usItem, INT16 bStatus, INT16 bDamage, BOOLEAN fOnGround )
 BOOLEAN CheckForChainReaction( OBJECTTYPE * pObj , INT16 bStatus, INT16 bDamage, BOOLEAN fOnGround )
 {
 	INT32 iChance;
@@ -8674,12 +8673,42 @@ BOOLEAN CheckForChainReaction( OBJECTTYPE * pObj , INT16 bStatus, INT16 bDamage,
 	return( FALSE );
 }
 
-BOOLEAN DamageItem( OBJECTTYPE * pObject, INT32 iDamage, BOOLEAN fOnGround )
+// this checks specifically for action items which are just the trigger for the real item, for example a mine
+BOOLEAN CheckForChainReactionActionItem( OBJECTTYPE * pObj, INT16 bDamage)
+{
+	INT32 iChance;
+	UINT16 usItem;
+
+	// we shouldn't be here
+	if(pObj == NULL || !( pObj->usItem == ACTION_ITEM && Item[ (*pObj)[0]->data.misc.usBombItem ].usItemClass & IC_EXPLOSV ) )
+		return FALSE;
+
+	usItem = (*pObj)[0]->data.misc.usBombItem;
+
+	iChance = Explosive[Item[usItem].ubClassIndex].ubVolatility;
+	if (iChance > 0)
+	{
+
+		// Scale the base chance by the damage caused to the item
+		// (bigger the shock, bigger chance) and the condition of
+		// the item after being hit!
+		iChance = 50 + (iChance - 1) * 10;
+
+		iChance = iChance * ( 100 + ( (100 - (*pObj)[0]->data.objectStatus) + bDamage ) / 2 ) / 100;
+		if ((INT32) PreRandom( 100 ) < iChance)
+		{
+			return( TRUE );
+		}
+	}
+	return( FALSE );
+}
+
+BOOLEAN DamageItem( OBJECTTYPE * pObject, INT32 iDamage, BOOLEAN fOnGround, INT32 sGridNo = -1, INT8 bLevel = 0 )
 {
 	INT8		bLoop;
 	INT16		bDamage;
 
-	if ( (Item[pObject->usItem].damageable  || Item[ pObject->usItem ].usItemClass == IC_AMMO) && pObject->exists() == true)
+	if ( pObject->exists() == true && (Item[pObject->usItem].damageable  || Item[ pObject->usItem ].usItemClass == IC_AMMO) )
 	{
 
 		for (bLoop = 0; bLoop < pObject->ubNumberOfObjects; bLoop++)
@@ -8761,6 +8790,22 @@ BOOLEAN DamageItem( OBJECTTYPE * pObject, INT32 iDamage, BOOLEAN fOnGround )
 							++iter;
 					}
 				}
+			}
+		}
+	}
+
+	// silversurfer: Action item bombs can now be blown up as well. Happy mine field clearing! ;)
+	else if ( pObject->exists() && ( pObject->usItem == ACTION_ITEM && (*pObject)[0]->data.misc.bActionValue == ACTION_ITEM_BLOW_UP ))
+	{
+		bDamage = CheckItemForDamage( (*pObject)[0]->data.misc.usBombItem, iDamage );
+
+		if ( CheckForChainReactionActionItem( pObject, bDamage) )
+		{
+			UINT32	uiTimeStamp= GetJA2Clock();
+			for (UINT32 uiWorldBombIndex = 0; uiWorldBombIndex < guiNumWorldBombs; uiWorldBombIndex++)
+			{
+				if ( gWorldBombs[uiWorldBombIndex].fExists && gWorldItems[ gWorldBombs[uiWorldBombIndex].iItemIndex ].sGridNo == sGridNo && gWorldItems[ gWorldBombs[uiWorldBombIndex].iItemIndex ].ubLevel == bLevel )
+					AddBombToQueue( uiWorldBombIndex, uiTimeStamp );
 			}
 		}
 	}
@@ -8856,7 +8901,7 @@ BOOLEAN DamageItemOnGround( OBJECTTYPE * pObject, INT32 sGridNo, INT8 bLevel, IN
 
 	BOOLEAN			fBlowsUp;
 
-	fBlowsUp = DamageItem( pObject, iDamage, TRUE );
+	fBlowsUp = DamageItem( pObject, iDamage, TRUE, sGridNo, bLevel );
 	if ( fBlowsUp )
 	{
 		// OK, Ignite this explosion!

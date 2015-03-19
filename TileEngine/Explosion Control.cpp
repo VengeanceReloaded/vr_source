@@ -4083,6 +4083,8 @@ void HandleExplosionQueue( void )
 
 				// make sure no one thinks there is a bomb here any more!
 				CheckForBuriedBombsAndRemoveFlags( sGridNo, ubLevel);
+				gpWorldLevelData[sGridNo].uiFlags &= ~(MAPELEMENT_ENEMY_MINE_PRESENT);
+
 				// BOOM!
 
 				// bomb objects only store the SIDE who placed the bomb! :-(
@@ -5560,7 +5562,8 @@ BOOLEAN HandleAttachedExplosions(UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, IN
 
 void CheckForBuriedBombsAndRemoveFlags( INT32 sGridNo, INT8 bLevel )
 {
-	if ( FindWorldItemForBuriedBombInGridNo(sGridNo, bLevel) == -1 )
+	//if ( FindWorldItemForBuriedBombInGridNo(sGridNo, bLevel) == -1 )
+	if ( FindWorldItemForBombInGridNo(sGridNo, bLevel) == -1 )
 	{
 		// make sure no one thinks there is a bomb here any more!
 		if ( gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_PLAYER_MINE_PRESENT )
