@@ -405,7 +405,7 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 	if( (NightTime() || gbWorldSectorZ) && Explosive[ Item[ usItem ].ubClassIndex ].ubType == EXPLOSV_BURNABLEGAS )
 	{
 		// add light
-		NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubDuration+1, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubRadius );
+		NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubDuration+2, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubRadius +1 );
 	}
 
 }
@@ -2495,7 +2495,8 @@ BOOLEAN ExpAffect( INT32 sBombGridNo, INT32 sGridNo, UINT32 uiDist, UINT16 usIte
 
 			// silversurfer: Gas now only has an effect when the container had time to emit some. Initially it will do nothing.
 			// This prevents the problem that we have to suffer two times without a chance to react (1st when the grenade hits our position, 2nd when our turn starts)
-			if ( sSubsequent > 0 )
+			// sevenfm: re-enable instant damage for fire
+			if ( sSubsequent > 0 || pExplosive->ubType == 8 )
 				fRecompileMovementCosts = DishOutGasDamage( pSoldier, pExplosive, sSubsequent, fRecompileMovementCosts, sWoundAmt, sBreathAmt, ubOwner );
 			/*
 			if (!pSoldier->bActive || !pSoldier->bInSector || !pSoldier->stats.bLife || AM_A_ROBOT( pSoldier ) )
@@ -5016,6 +5017,10 @@ void FireFragments( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, UINT16 usItem, 
 
 	AssertMsg( ubFragRange > 0 , "Fragmentation data lacks range property!" );
 
+	// on some maps, the floor height is not 0 (example is Drassen D13). We have to account for that with an offset
+	INT32 gridno = GETWORLDINDEXFROMWORLDCOORDS( sY, sX );
+	UINT32 z_offset = CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[gridno].sHeight );
+
 	for (UINT16 x = 0; x < usNumFragments; ++x)
 	{
 		FLOAT dRandomX = 0;
@@ -5092,7 +5097,7 @@ void FireFragments( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, UINT16 usItem, 
 		FLOAT dStartY = (FLOAT)sY + (dRandomY * ((FLOAT)Random(4)+1.0f));
 		FLOAT dStartZ = (FLOAT)sZ + (dRandomZ * ((FLOAT)Random(4)+1.0f));
 
-		FireFragmentGivenTarget( ubOwner, dStartX, dStartY, dStartZ, dEndX, dEndY, dEndZ, usItem );
+		FireFragmentGivenTarget( ubOwner, dStartX, dStartY, dStartZ + z_offset, dEndX, dEndY, dEndZ + z_offset, usItem );
 	}
 }
 
@@ -5110,13 +5115,16 @@ void FireFragmentsTrapGun( SOLDIERTYPE* pThrower, INT32 gridno, INT16 sZ, OBJECT
 	UINT16 ubFragRange = GunRange( pObj, NULL );
 
 	// deviation arcs. A gun fired by tripping a wire isn't exactly precise
-	INT16 horizontalarc = 2;
-	INT16 verticalarc	= 2;
+	INT16 horizontalarc = 5;
+	INT16 verticalarc	= 0;
 
 	INT16 sX = CenterX(gridno);
 	INT16 sY = CenterY(gridno);
 
 	AssertMsg( ubFragRange > 0 , "Fragmentation data lacks range property!" );
+
+	// on some maps, the floor height is not 0 (example is Drassen D13). We have to account for that with an offset
+	UINT32 z_offset = CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[gridno].sHeight );
 
 	for (UINT16 x = 0; x < usNumFragments; ++x)
 	{
@@ -5178,7 +5186,7 @@ void FireFragmentsTrapGun( SOLDIERTYPE* pThrower, INT32 gridno, INT16 sZ, OBJECT
 		FLOAT dEndY = (FLOAT)(sY + (dDeltaY * dRangeMultiplier));
 		FLOAT dEndZ = (FLOAT)(sZ + (dDeltaZ * dRangeMultiplier));
 
-		FireBulletGivenTargetTrapOnly( pThrower, pObj, gridno, 150, dEndX, dEndY, dEndZ, 100 );
+		FireBulletGivenTargetTrapOnly( pThrower, pObj, gridno, 150 + z_offset, dEndX, dEndY, dEndZ + z_offset, 100 );
 	}
 }
 
@@ -5478,7 +5486,7 @@ void HandleBuddyExplosions(UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32 sG
 		}
 		else if ( Item[Item[usItem].usBuddyItem ].usItemClass & (IC_GRENADE|IC_BOMB) )
 		{
-			IgniteExplosion( ubOwner, sX, sY, sZ, sGridNo, Item[usItem].usBuddyItem, bLevel, ubDirection );						
+			IgniteExplosion( ubOwner, sX, sY, sZ, sGridNo, Item[usItem].usBuddyItem, bLevel, ubDirection );
 		}
 	}
 }

@@ -2698,6 +2698,11 @@ void HandleArmedObjectImpact( REAL_OBJECT *pObject )
 				// Add a light effect...
 
 				NewLightEffect( pObject->sGridNo, (UINT8)Explosive[Item[pObject->Obj.usItem].ubClassIndex].ubDuration , (UINT8)Explosive[Item[pObject->Obj.usItem].ubClassIndex].ubStartRadius );
+				// sevenfm: allow buddy explosion for flares (use for sound and animation)
+				if(Item[ pObject->Obj.usItem ].usBuddyItem && ( Item[Item[pObject->Obj.usItem].usBuddyItem ].usItemClass & (IC_GRENADE|IC_BOMB) ) )
+				{
+					IgniteExplosion( pObject->ubOwner, (INT16)pObject->Position.x, (INT16)pObject->Position.y, sZ, pObject->sGridNo, Item[ pObject->Obj.usItem ].usBuddyItem, GET_OBJECT_LEVEL( pObject->Position.z - CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[ pObject->sGridNo ].sHeight ) ), DIRECTION_IRRELEVANT, &pObject->Obj );
+				}
 			}
 		}
 		else if ( Item[ pObject->Obj.usItem ].usItemClass & IC_GRENADE	)

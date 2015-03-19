@@ -4870,6 +4870,9 @@ void HandleRepairBySoldier( SOLDIERTYPE *pSoldier )
 							break;
 					}
 				}
+				// quit looking if we're already out
+				if ( ubRepairPtsLeft == 0 )
+					break;
 			}
 
 			// if he fixed something of his, and now has no more of his own items to fix
@@ -4882,7 +4885,8 @@ void HandleRepairBySoldier( SOLDIERTYPE *pSoldier )
 			}
 
 			// repair items on others
-			RepairItemsOnOthers( pSoldier, &ubRepairPtsLeft );
+			if ( ubRepairPtsLeft )
+				RepairItemsOnOthers( pSoldier, &ubRepairPtsLeft );
 		}
 	}
 
