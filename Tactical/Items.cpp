@@ -1993,31 +1993,43 @@ UINT16 FindLegalGrenade(UINT16 usItem)
 {
 	UINT16	newItem = 0;
 	UINT16	usClass = Item[usItem].ubClassIndex;
-	if(UsingNewAttachmentSystem()==false)
+
+	if ( !UsingNewAttachmentSystem() )
 		return usItem;
-	for(UINT16 loop = 0; loop < MAXITEMS+1; loop++){
+
+	for ( UINT16 loop = 0; loop < MAXITEMS+1; loop++)
+	{
 		if(loop == usClass)
 			continue;
+
 		if(Explosive[usClass].ubType == Explosive[loop].ubType && Explosive[usClass].ubDamage == Explosive[loop].ubDamage
 			&& Explosive[usClass].ubStunDamage == Explosive[loop].ubStunDamage && Explosive[usClass].ubRadius == Explosive[loop].ubRadius
 			&& Explosive[usClass].ubVolume == Explosive[loop].ubVolume && Explosive[usClass].ubVolatility == Explosive[loop].ubVolatility
 			&& Explosive[usClass].ubAnimationID == Explosive[loop].ubAnimationID && Explosive[usClass].ubDuration == Explosive[loop].ubDuration
-			&& Explosive[usClass].ubStartRadius == Explosive[loop].ubStartRadius && Explosive[loop].ubMagSize == 1){
+			&& Explosive[usClass].ubStartRadius == Explosive[loop].ubStartRadius && Explosive[loop].ubMagSize == 1)
+		{
 				newItem = loop;
 				break;
 		}
+
 		if(Explosive[loop].uiIndex == 0 && loop > 0)
 			break;
 	}
-	if(newItem > 0){
-		for(UINT16 loop = 1; loop < MAXITEMS+1; loop++){
+
+	if(newItem > 0)
+	{
+		for ( UINT16 loop = 1; loop < MAXITEMS+1; loop++ )
+		{
 			if(Item[loop].uiIndex == 0)
 				break;
-			if(Item[loop].usItemClass & IC_GRENADE && Item[loop].ubClassIndex == newItem){
+
+			if(Item[loop].usItemClass & IC_GRENADE && Item[loop].ubClassIndex == newItem)
+			{
 				return Item[loop].uiIndex;
 			}
 		}
 	}
+
 	return usItem;
 }
 
@@ -4810,7 +4822,21 @@ BOOLEAN OBJECTTYPE::AttachObjectNAS( SOLDIERTYPE * pSoldier, OBJECTTYPE * pAttac
 				newItem = FindLegalGrenade(pAttachment->usItem);
 				if(newItem != pAttachment->usItem){
 					CreateItem(newItem, 100, newAttachment);
-					(*pAttachment)[0]->data.objectStatus -= (INT16)(100/Weapon[this->usItem].ubMagSize);
+
+					// sevenfm: find correct ubMagSize for UB GL
+					UINT16 ubMagSize = Weapon[this->usItem].ubMagSize;
+					if( !Item[ this->usItem ].grenadelauncher )
+					{
+						OBJECTTYPE *bAttachPos = FindAttachmentByClass( this, IC_LAUNCHER );
+						if( bAttachPos && bAttachPos->exists() )
+							ubMagSize = Weapon[bAttachPos->usItem].ubMagSize;
+					}
+					(*pAttachment)[0]->data.objectStatus -= (INT16)(100/ubMagSize);
+					// fix for 6-shot GL
+					if( (*pAttachment)[0]->data.objectStatus < ubMagSize )
+						(*pAttachment)[0]->data.objectStatus = 0;
+
+					//(*pAttachment)[0]->data.objectStatus -= (INT16)(100/Weapon[this->usItem].ubMagSize);
 					if((*pAttachment)[0]->data.objectStatus <= 0 )
 						pAttachment->RemoveObjectsFromStack(1);
 					newAttachment->MoveThisObjectTo(attachmentObject,1,pSoldier,NUM_INV_SLOTS,1);
@@ -4858,7 +4884,22 @@ BOOLEAN OBJECTTYPE::AttachObjectNAS( SOLDIERTYPE * pSoldier, OBJECTTYPE * pAttac
 				newItem = FindLegalGrenade(pAttachment->usItem);
 				if(newItem != pAttachment->usItem){
 					CreateItem(newItem, 100, newAttachment);
-					(*pAttachment)[0]->data.objectStatus -= (INT16)(100/Weapon[this->usItem].ubMagSize);
+
+					// sevenfm: find correct ubMagSize for UB GL
+					UINT16 ubMagSize = Weapon[this->usItem].ubMagSize;
+					if( !Item[ this->usItem ].grenadelauncher )
+					{
+						OBJECTTYPE *bAttachPos = FindAttachmentByClass( this, IC_LAUNCHER );
+						if( bAttachPos && bAttachPos->exists() )
+							ubMagSize = Weapon[bAttachPos->usItem].ubMagSize;
+					}
+					(*pAttachment)[0]->data.objectStatus -= (INT16)(100/ubMagSize);
+					// fix for 6-shot GL
+					if( (*pAttachment)[0]->data.objectStatus < ubMagSize )
+						(*pAttachment)[0]->data.objectStatus = 0;
+
+					//(*pAttachment)[0]->data.objectStatus -= (INT16)(100/Weapon[this->usItem].ubMagSize);
+						
 					if((*pAttachment)[0]->data.objectStatus <= 0 )
 						pAttachment->RemoveObjectsFromStack(1);
 					newAttachment->MoveThisObjectTo(attachmentObject,1,pSoldier,NUM_INV_SLOTS,1);
