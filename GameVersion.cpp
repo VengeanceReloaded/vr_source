@@ -17,7 +17,7 @@
 	#ifdef JA2UB
 		CHAR16 zVersionLabel[256]		= { L"Unfinished Business - Map Editor v1.13.7609 (2014 Official Release)" }; 
 	#else
-		CHAR16 zVersionLabel[256]		= { L"Map Editor v1.13.7609 (2014 Official Release)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Map Editor Vengeance: Reloaded 1.13.7609+" }; 
 	#endif
 
 // ------------------------------
@@ -31,7 +31,7 @@
 	#elif defined (JA113DEMO)
 		CHAR16 zVersionLabel[256]		= { L"Debug: Jagged Alliance 2 Demo - v1.13.7609 (2014 Official Release)" }; 
 	#else
-		CHAR16 zVersionLabel[256]		= { L"Debug: Jagged Alliance 2 v1.13.7609 (2014 Official Release)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Debug: JA2 Vengeance: Reloaded 1.13.7609+" }; 
 	#endif
 
 #elif defined CRIPPLED_VERSION
@@ -50,12 +50,12 @@
 	#elif defined (JA113DEMO)
 		CHAR16		zVersionLabel[256]		= { L"Jagged Alliance 2 Demo - v1.13.7609 (2014 Official Release)" };
 	#else
-		CHAR16		zVersionLabel[256]		= { L"Jagged Alliance 2 v1.13.7609 (2014 Official Release)" };
+		CHAR16		zVersionLabel[256]		= { L"JA2 Vengeance: Reloaded 1.13.7609+" };
 	#endif
 
 #endif
 										
-CHAR8		czVersionNumber[16]	= { "Build 14.10.24" };		//YY.MM.DD
+CHAR8		czVersionNumber[16]	= { "Build 15.03.22" };		//YY.MM.DD
 CHAR16		zTrackingNumber[16]	= { L"Z" };
 	
 // SAVE_GAME_VERSION is defined in header, change it there
