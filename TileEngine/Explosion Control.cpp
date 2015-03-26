@@ -407,7 +407,6 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 		// add light
 		NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubDuration+2, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubRadius +1 );
 	}
-
 }
 
 
@@ -5562,8 +5561,8 @@ BOOLEAN HandleAttachedExplosions(UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, IN
 
 void CheckForBuriedBombsAndRemoveFlags( INT32 sGridNo, INT8 bLevel )
 {
-	//if ( FindWorldItemForBuriedBombInGridNo(sGridNo, bLevel) == -1 )
-	if ( FindWorldItemForBombInGridNo(sGridNo, bLevel) == -1 )
+	if ( FindWorldItemForBuriedBombInGridNo(sGridNo, bLevel) == -1 )
+	//if ( FindWorldItemForBombInGridNo(sGridNo, bLevel) == -1 )
 	{
 		// make sure no one thinks there is a bomb here any more!
 		if ( gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_PLAYER_MINE_PRESENT )

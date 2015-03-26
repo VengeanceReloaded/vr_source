@@ -957,7 +957,7 @@ BOOLEAN SaveCurrentSectorsInformationToTempItemFile( )
 	//Save the Blood, smell and the revealed status for map elements
 	SaveBloodSmellAndRevealedStatesFromMapToTempFile();
 
-	// sevenfm
+	// sevenfm: commented out to prevent bug with player mine flag not being removed
 	SaveMineFlagFromMapToTempFile();
 
 	// handle all reachable before save

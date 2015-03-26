@@ -4477,6 +4477,17 @@ INT32 GetBPCostForRecoilkick( SOLDIERTYPE * pSoldier )
 				break;
 		}
 	}
+
+	// sevenfm: rocket launchers should not produce much recoil kick
+	if( Item[pSoldier->inv[pSoldier->ubAttackingHand].usItem].rocketlauncher )
+	{
+		iKickPower /= 4;
+	}
+	// sevenfm: flamethrower should not produce much recoil kick
+	if ( Weapon[Item[pSoldier->inv[pSoldier->ubAttackingHand].usItem].ubClassIndex].ubCalibre == AMMOFLAME  )
+	{
+		iKickPower /= 4;
+	}
 	
 	// adjust by predefined ini setting
 	iKickPower = (iKickPower * gGameExternalOptions.ubEnergyCostForWeaponRecoilKick / 100);

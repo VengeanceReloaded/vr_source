@@ -43,6 +43,8 @@ void AddObjectFromMapTempFileToMap( INT32 uiMapIndex, UINT16 usIndex );
 void AddBloodOrSmellFromMapTempFileToMap( MODIFY_MAP *pMap );
 // sevenfm
 void AddMineFlagFromMapTempFileToMap( MODIFY_MAP *pMap );
+void RemoveMineFlagFromMap( INT32 usGridNo );
+
 void SetSectorsRevealedBit( UINT32	usMapIndex );
 void SetMapRevealedStatus();
 void DamageStructsFromMapTempFile( MODIFY_MAP * pMap );
@@ -453,10 +455,6 @@ BOOLEAN LoadAllMapChangesFromMapTempFileAndApplyThem( )
 			case SLM_BLOOD_SMELL:
 				AddBloodOrSmellFromMapTempFileToMap( pMap );
 				break;
-// sevenfm
-			case SLM_MINE_PRESENT:
-				AddMineFlagFromMapTempFileToMap( pMap );
-				break;
 			case SLM_DAMAGED_STRUCT:
 				DamageStructsFromMapTempFile( pMap );
 				break;
@@ -504,6 +502,13 @@ BOOLEAN LoadAllMapChangesFromMapTempFileAndApplyThem( )
 				SaveModifiedMapStructToMapTempFile( pMap, gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
 				break;
 #endif
+			// sevenfm
+			case SLM_MINE_PRESENT:
+				AddMineFlagFromMapTempFileToMap( pMap );
+				break;
+			case SLM_REMOVE_MINE_PRESENT:
+				RemoveMineFlagFromMap( pMap->usGridNo );
+				break;
 			default:
 				AssertMsg( 0, "ERROR!	Map Type not in switch when loading map changes from temp file");
 				break;
@@ -688,6 +693,16 @@ void SaveMineFlagFromMapToTempFile()
 		}
 	}
 }
+void RemoveMineFlagFromMapTempFile( INT32 usGridNo)
+{
+	MODIFY_MAP Map;
+
+	memset( &Map, 0, sizeof( MODIFY_MAP ) );
+	Map.usGridNo	= usGridNo;
+	Map.ubType			= SLM_REMOVE_MINE_PRESENT;
+	SaveModifiedMapStructToMapTempFile( &Map, gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
+}
+
 void SaveBloodSmellAndRevealedStatesFromMapToTempFile()
 {
 	MODIFY_MAP Map;
@@ -812,7 +827,10 @@ void AddMineFlagFromMapTempFileToMap( MODIFY_MAP *pMap )
 {
 	gpWorldLevelData[ pMap->usGridNo ].uiFlags |= MAPELEMENT_PLAYER_MINE_PRESENT;
 }
-
+void RemoveMineFlagFromMap( INT32 usGridNo )
+{
+	gpWorldLevelData[ usGridNo ].uiFlags &= ~(MAPELEMENT_PLAYER_MINE_PRESENT);
+}
 
 BOOLEAN SaveRevealedStatusArrayToRevealedTempFile( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ )
 {
