@@ -396,11 +396,20 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 	// sevenfm: add smoke effect if not in room and not underground, only for normal explosions
 	if(!InARoom( sGridNo, &tmp ) && !gbWorldSectorZ && gGameExternalOptions.bAddSmokeAfterExplosion)
 	{
-		if( Explosive[ Item[ usItem ].ubClassIndex ].ubType == 0 )
+		if( Explosive[ Item[ usItem ].ubClassIndex ].ubType == 0 && Item[ usItem ].usBuddyItem == 0 && Explosive[ Item[ usItem ].ubClassIndex ].ubDamage > 20  )
 		{
-			NewSmokeEffect( sGridNo, SMALL_SMOKE, 0, NOBODY );
+			SOLDIERTYPE* pTarget = SimpleFindSoldier(sGridNo, bLevel);
+			if( pTarget && ( pTarget->ubBodyType == TANK_NE || pTarget->ubBodyType == TANK_NW ) )
+			{
+				// do not add smoke effect when firing at tanks
+			}
+			else
+			{
+				NewSmokeEffect( sGridNo, SMALL_SMOKE, 0, NOBODY );
+			}
 		}
 	}
+
 	// sevenfm: add light for fire effects
 	if( (NightTime() || gbWorldSectorZ) && Explosive[ Item[ usItem ].ubClassIndex ].ubType == EXPLOSV_BURNABLEGAS )
 	{

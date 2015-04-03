@@ -11683,13 +11683,56 @@ BOOLEAN HasThermalOptics( SOLDIERTYPE * pSoldier )
 	}
 
 	// Snap: check only attachments on a raised weapon!
-	if ( usingGunScope == true )
+	/*if ( usingGunScope == true )
 	{
 		OBJECTTYPE* pObj = &pSoldier->inv[HANDPOS];
 		if (pObj->exists() == true) {
 			for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
 				if ( Item[iter->usItem].thermaloptics && iter->exists() )
 					return TRUE;
+			}
+		}
+	}*/
+	if ( usingGunScope == true )
+	{
+		OBJECTTYPE* pObj = &pSoldier->inv[HANDPOS];
+		if(pObj->exists())
+		{
+			// sevenfm: check for scope mode
+			if ( gGameExternalOptions.fScopeModes && pSoldier && Item[pObj->usItem].usItemClass == IC_GUN )
+			{
+				std::map<INT8, OBJECTTYPE*> ObjList;
+				GetScopeLists(pObj, ObjList);
+
+				// only use scope mode if gun is in hand, otherwise an error might occur!
+				if ( (&pSoldier->inv[HANDPOS]) == pObj && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+				{
+					if(Item[ObjList[pSoldier->bScopeMode]->usItem].thermaloptics)
+					{
+						/*if( Item[ObjList[pSoldier->bScopeMode]->usItem].needsbatteries )
+						{
+							// check for batteries
+							OBJECTTYPE* pBatteries = FindAttachedBatteries( pObj );
+							if ( pBatteries )
+							{
+								// doesn't work without batteries!
+								return TRUE;
+							}
+						}
+						else
+						{*/
+							return TRUE;
+						//}					
+					}					
+				}
+			}
+			else
+			{
+				for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter)
+				{
+					if ( Item[iter->usItem].thermaloptics && iter->exists() )
+						return TRUE;
+				}
 			}
 		}
 	}
