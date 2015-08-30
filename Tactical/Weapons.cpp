@@ -69,6 +69,7 @@ extern INT8 gbCurrentRainIntensity;
 
 // sevenfm: this global variable is needed to correctly set default number of bullets for autofire
 extern BOOLEAN gfAutofireInitBulletNum;
+extern char szSoundEffects[MAX_SAMPLES][255];	// sevenfm: for playing last sound
 
 extern SECTOR_EXT_DATA	SectorExternalData[256][4];	// added by Flugente
 
@@ -1823,7 +1824,7 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 
 				if( noisefactor < gGameExternalOptions.gubMaxPercentNoiseSilencedSound || Weapon[ usUBItem ].ubAttackVolume <= 10 )
 				{
-					// Pick sound file baed on how many bullets we are going to fire...
+					// Pick sound file based on how many bullets we are going to fire...
 					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sSilencedBurstSound ], bShotsToFire );
 
 					// Try playing sound...
@@ -1831,7 +1832,7 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 				}
 				else
 				{
-					// Pick sound file baed on how many bullets we are going to fire...
+					// Pick sound file basd on how many bullets we are going to fire...
                     // Lesh: changed next line
 					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sBurstSound ], bShotsToFire );
 
@@ -1883,23 +1884,45 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 				INT32 uiSound;
 
 				uiSound = Weapon [ usUBItem ].silencedSound ;
-				//if ( Weapon[ usItemNum ].ubCalibre == AMMO9 || Weapon[ usItemNum ].ubCalibre == AMMO38 || Weapon[ usItemNum ].ubCalibre == AMMO57 )
-				//{
-				//	uiSound = S_SILENCER_1;
-				//}
-				//else
-				//{
-				//	uiSound = S_SILENCER_2;
-				//}
-
-				PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
-
+				
+				// sevenfm: for the last silenced round - play silenced burst 0 sound
+				if( Weapon[ usUBItem ].sSilencedBurstSound && 
+					!pSoldier->IsValidSecondHandShot( ) &&
+					(*pObjHand)[0]->data.gun.ubGunShotsLeft == 1 )					
+				{					
+					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sSilencedBurstSound ], 0 );
+					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					{
+						// play default sound
+						PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+					}
+				}
+				else
+				{
+					PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+				}
 			}
 			else
 			{
 				INT8 volume = HIGHVOLUME;
 				if ( noisefactor < 100 ) volume = (volume * noisefactor) / 100;
-				PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+
+				// sevenfm: for the last round - play burst 0 sound
+				if( Weapon[ usUBItem ].sBurstSound && 
+					!pSoldier->IsValidSecondHandShot( ) &&
+					(*pObjHand)[0]->data.gun.ubGunShotsLeft == 1 )					
+				{					
+					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sBurstSound ], 0 );
+					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					{
+						// play default sound
+						PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+					}
+				}
+				else
+				{
+					PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+				}
 			}
 		}
 	}
@@ -2479,23 +2502,45 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 				INT32 uiSound;
 
 				uiSound = Weapon [ usUBItem ].silencedSound ;
-				//if ( Weapon[ usItemNum ].ubCalibre == AMMO9 || Weapon[ usItemNum ].ubCalibre == AMMO38 || Weapon[ usItemNum ].ubCalibre == AMMO57 )
-				//{
-				//	uiSound = S_SILENCER_1;
-				//}
-				//else
-				//{
-				//	uiSound = S_SILENCER_2;
-				//}
-
-				PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
-
+				
+				// sevenfm: for the last silenced round - play silenced burst 0 sound
+				if( Weapon[ usUBItem ].sSilencedBurstSound && 
+					!pSoldier->IsValidSecondHandShot( ) &&
+					(*pObjUsed)[0]->data.gun.ubGunShotsLeft == 1 )					
+				{					
+					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sSilencedBurstSound ], 0 );
+					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					{
+						// play default sound
+						PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+					}
+				}
+				else
+				{
+					PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+				}
 			}
 			else
 			{
 				INT8 volume = HIGHVOLUME;
 				if ( noisefactor < 100 ) volume = (volume * noisefactor) / 100;
-				PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+
+				// sevenfm: for the last round - play burst 0 sound
+				if( Weapon[ usUBItem ].sBurstSound && 
+					!pSoldier->IsValidSecondHandShot( ) &&
+					(*pObjUsed)[0]->data.gun.ubGunShotsLeft == 1 )					
+				{					
+					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sBurstSound ], 0 );
+					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					{
+						// play default sound
+						PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+					}
+				}
+				else
+				{
+					PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+				}				
 			}
 		}
 	}
