@@ -6800,6 +6800,23 @@ BOOLEAN BuildFortification( INT32 sGridNo, UINT32 flag )
 					break;
 				}
 			}
+			// sevenfm: r7938 fix
+			else if ( gTilesets[0].TileSurfaceFilenames[uiType][0] )
+			{
+				if( (flag & CONCERTINA) != 0 )
+				{
+					if ( (_strnicmp(gTilesets[ 0 ].TileSurfaceFilenames[ uiType ], "spot_1.sti", 10) == 0) )
+					{
+						usUseObjIndex = uiType;
+						break;
+					}
+				}
+				else if( (_strnicmp(gTilesets[ 0 ].TileSurfaceFilenames[ uiType ], "sandbag.sti", 11) == 0) )
+				{
+					usUseObjIndex = uiType;
+					break;
+				}
+			}
 		}
 
 		if ( !usUseObjIndex )

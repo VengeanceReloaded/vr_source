@@ -15236,6 +15236,11 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook )
 					;
 				else
 				{
+					// sevenfm: r7799 fix
+					// if we're not that close, we wont even see this, so don't check
+					if ( !fCloselook )
+						continue;
+
 					// item will be detected if someone looks - check for the LBE item that gave us this slot. If that one is covert, this item is also covert
 					UINT8 checkslot = 0;
 					switch (uiNIVSlotType[bLoop])
@@ -15316,8 +15321,9 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook )
 					
 									++numberofattachments;
 
+									// sevenfm: r7799 fix
 									// no ordinary soldier is allowed that many attachments -> not covert
-									if ( numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
+									if ( fCloselook && numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
 									{
 										ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName );
 										return TRUE;
@@ -15381,8 +15387,9 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook )
 									}
 								}
 
+								// sevenfm: r7799 fix
 								// no ordinary soldier is allowed that many attachments > not covert
-								if ( numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
+								if ( fCloselook && numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
 								{
 									ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName );
 									return TRUE;
@@ -19468,16 +19475,21 @@ void SOLDIERTYPE::EVENT_SoldierApplyItemToPerson( INT32 sGridNo, UINT8 ubDirecti
 					}
 					else if ( Item[ usItem ].usItemClass == IC_BOMB )
 					{
-						success = AutoPlaceObjectAnywhere( pSoldier, pObj, FALSE );
+						// sevenfm: r7842 fix
+						//success = AutoPlaceObjectAnywhere( pSoldier, pObj, FALSE );
+						success = AutoPlaceObject( pSoldier, pObj, FALSE );
 					}
 
-					this->DoMercBattleSound( BATTLE_SOUND_COOL1 );
+					// sevenfm: r7842 fix
+					//this->DoMercBattleSound( BATTLE_SOUND_COOL1 );
 				}
 
 				DeductPoints( this, GetAPsToApplyItem( this, sGridNo ), APBPConstants[BP_APPLYITEM], AFTERACTION_INTERRUPT );
 
 				if ( !success )
 					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_COULD_NOT_APPLY ], this->GetName(), Item[usItem].szLongItemName, pSoldier->GetName() );
+				else	// sevenfm: r7842 fix
+					this->DoMercBattleSound( BATTLE_SOUND_COOL1 );
 			}
 			else
 			{

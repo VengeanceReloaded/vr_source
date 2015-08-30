@@ -184,6 +184,8 @@ void TriggerEndOfBoxingRecord( SOLDIERTYPE * pSoldier )
 	}
 
 	SetBoxingState( NOT_BOXING );
+	// sevenfm: r7738 fix
+	ClearAllBoxerFlags();
 }
 
 UINT8 CountPeopleInBoxingRing( void )

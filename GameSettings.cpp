@@ -1357,7 +1357,9 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.iMovementEffectOnAiming			= (float)iniReader.ReadDouble("Tactical Gameplay Settings","CTH_PENALTY_FOR_TARGET_MOVEMENT", 1.5, 0.0, 255.0);
 
 	// HEADROCK HAM 3.3: Externalized maximum possible penalty for hitting a moving target. JA2 Default = 30.
-	gGameExternalOptions.usMaxCTHPenaltyForMovingTarget		= iniReader.ReadInteger("Tactical Gameplay Settings","MAX_CTH_PENALTY_FOR_TARGET_MOVEMENT", 30, 0, 300);
+	// sevenfm: r7878 fix
+	//gGameExternalOptions.usMaxCTHPenaltyForMovingTarget		= iniReader.ReadInteger("Tactical Gameplay Settings","MAX_CTH_PENALTY_FOR_TARGET_MOVEMENT", 30, 0, 300);
+	gGameExternalOptions.usMaxCTHPenaltyForMovingTarget		= iniReader.ReadInteger("Tactical Gameplay Settings","MAX_CTH_PENALTY_FOR_MOVING_TARGET", 30, 0, 300);
 
 	// HEADROCK HAM 3.2: Critical Headshots may cause blindness. Rolls 1 to X change of being blinded. 0 = disabled.
 	gGameExternalOptions.ubChanceBlindedByHeadshot			= iniReader.ReadInteger("Tactical Gameplay Settings","CHANCE_BLINDED_BY_HEADSHOT", 0, 0, 100);
@@ -2716,10 +2718,11 @@ void LoadModSettings(){
 	//[Balime]
 
 	//[Meduna]
-	gModSettings.ubQueenBasementSectorX = iniReader.ReadInteger("San Mona", "QUEEN_BASEMENT_SECTOR_X", 3);
-	gModSettings.ubQueenBasementSectorY = iniReader.ReadInteger("San Mona", "QUEEN_BASEMENT_SECTOR_Y", 16);
-	gModSettings.ubQueenBasementSectorZ = iniReader.ReadInteger("San Mona", "QUEEN_BASEMENT_SECTOR_Z", 1);
-	gModSettings.iQueenAlternateGridNo = iniReader.ReadInteger("San Mona", "QUEEN_ALTERNATE_GRIDNO", 11448);
+	// sevenfm: r7976 fix
+	gModSettings.ubQueenBasementSectorX = iniReader.ReadInteger("Meduna", "QUEEN_BASEMENT_SECTOR_X", 3);
+	gModSettings.ubQueenBasementSectorY = iniReader.ReadInteger("Meduna", "QUEEN_BASEMENT_SECTOR_Y", 16);
+	gModSettings.ubQueenBasementSectorZ = iniReader.ReadInteger("Meduna", "QUEEN_BASEMENT_SECTOR_Z", 1);
+	gModSettings.iQueenAlternateGridNo = iniReader.ReadInteger("Meduna", "QUEEN_ALTERNATE_GRIDNO", 11448);
 
 	//[Chitzena]
 

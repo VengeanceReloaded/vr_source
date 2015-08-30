@@ -460,8 +460,9 @@ void NewDest(SOLDIERTYPE *pSoldier, INT32 usGridNo)
 BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier)
 {
 	INT16	bMinPointsNeeded = 0;
-	INT8 bAPForStandUp = 0;
-	INT8 bAPToLookAtWall = ( FindDirectionForClimbing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) == pSoldier->ubDirection ) ? 0 : 1;
+	// sevenfm: r7972 fix
+	//INT8 bAPForStandUp = 0;
+	//INT8 bAPToLookAtWall = ( FindDirectionForClimbing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) == pSoldier->ubDirection ) ? 0 : 1;
 
 	//NumMessage("AffordableAction - Guy#",pSoldier->ubID);
 
@@ -551,17 +552,23 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier)
 			break;
 
 		case AI_ACTION_CLIMB_ROOF:
-			// SANDRO - improved this a bit
-			if (pSoldier->pathing.bLevel == 0)
+			// sevenfm: r7972 fix
 			{
-				if( PTR_CROUCHED ) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
-				if( PTR_PRONE ) bAPForStandUp = GetAPsCrouch(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE);
-				bMinPointsNeeded = GetAPsToClimbRoof( pSoldier, FALSE ) + bAPForStandUp + bAPToLookAtWall;
-			}
-			else
-			{
-				if( !PTR_CROUCHED ) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
-				bMinPointsNeeded = GetAPsToClimbRoof( pSoldier, TRUE ) + bAPForStandUp + bAPToLookAtWall;
+				INT8 bAPForStandUp = 0;
+				INT8 bAPToLookAtWall = (FindDirectionForClimbing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) == pSoldier->ubDirection) ? 0 : GetAPsToLook( pSoldier );
+
+				// SANDRO - improved this a bit
+				if (pSoldier->pathing.bLevel == 0)
+				{
+					if( PTR_CROUCHED ) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
+					else if( PTR_PRONE ) bAPForStandUp = GetAPsCrouch(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE);
+					bMinPointsNeeded = GetAPsToClimbRoof( pSoldier, FALSE ) + bAPForStandUp + bAPToLookAtWall;
+				}
+				else
+				{
+					if( !PTR_CROUCHED ) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
+					bMinPointsNeeded = GetAPsToClimbRoof( pSoldier, TRUE ) + bAPForStandUp + bAPToLookAtWall;
+				}
 			}
 			break;
 
@@ -2331,10 +2338,14 @@ INT32 CalcManThreatValue( SOLDIERTYPE *pEnemy, INT32 sMyGrid, UINT8 ubReduceForC
 		iThreatValue += EffectiveExpLevel(pEnemy); // SANDRO - find precise effective exp level
 
 		// ADD man's total action points (10-35)
-		iThreatValue += pEnemy->CalcActionPoints();
+		// sevenfm: r7810 fix
+		//iThreatValue += pEnemy->CalcActionPoints();
+		iThreatValue += 25 * pEnemy->CalcActionPoints() / APBPConstants[AP_MAXIMUM];
 
 		// ADD 1/2 of man's current action points (4-17)
-		iThreatValue += (pEnemy->bActionPoints / 2);
+		// sevenfm: r7810 fix
+		//iThreatValue += (pEnemy->bActionPoints / 2);
+		iThreatValue += 25 * pEnemy->bActionPoints / APBPConstants[AP_MAXIMUM] / 2;
 
 		// ADD 1/10 of man's current health (0-10)
 		iThreatValue += (pEnemy->stats.bLife / 10);
@@ -3008,10 +3019,14 @@ INT32 CalcStraightThreatValue( SOLDIERTYPE *pEnemy )
 		iThreatValue += EffectiveExpLevel(pEnemy); // SANDRO - find precise effective exp level
 
 		// ADD man's total action points (10-35)
-		iThreatValue += pEnemy->CalcActionPoints();
+		// sevenfm: r7810 fix
+		//iThreatValue += pEnemy->CalcActionPoints();
+		iThreatValue += 25 * pEnemy->CalcActionPoints() / APBPConstants[AP_MAXIMUM];
 
 		// ADD 1/2 of man's current action points (4-17)
-		iThreatValue += (pEnemy->bActionPoints / 2);
+		// sevenfm: r7810 fix
+		//iThreatValue += (pEnemy->bActionPoints / 2);
+		iThreatValue += 25 * pEnemy->bActionPoints / APBPConstants[AP_MAXIMUM] / 2;
 
 		// ADD 1/10 of man's current health (0-10)
 		iThreatValue += (pEnemy->stats.bLife / 10);

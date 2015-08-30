@@ -3253,7 +3253,7 @@ void EvaluateQueenSituation()
 	INT32 i, iRandom;
 	INT32 iWeight;
 	UINT32 uiOffset;
-	UINT16 usDefencePoints;
+	UINT16 usDefencePoints = 0;
 	INT32 iOrigRequestPoints;
 	INT32 iSumOfAllWeights = 0;
 
@@ -4068,8 +4068,15 @@ BOOLEAN LoadStrategicAI( HWFILE hFile )
 						pGroup->ubSectorY != gWorldSectorY ||
 						gbWorldSectorZ )
 				{
+					// sevenfm: r7876 fix
+					UINT8 groupid = pGroup->ubGroupID;
+
 					RepollSAIGroup( pGroup );
-					ValidateGroup( pGroup );
+					// it is possible that the group gets destroyed in between, so recheck on that
+					pGroup = GetGroup( groupid );
+
+					if ( pGroup )
+						ValidateGroup( pGroup );
 				}
 			}
 		}
@@ -6100,7 +6107,7 @@ void ReassignAIGroup( GROUP **pGroup )
 {
 	INT32 i, iRandom;
 	INT32 iWeight;
-	UINT16 usDefencePoints;
+	UINT16 usDefencePoints = 0;
 	INT32 iReloopLastIndex = -1;
 	UINT8 ubSectorID;
 
@@ -6223,7 +6230,11 @@ void ReassignAIGroup( GROUP **pGroup )
 			}
 		}
 	}
-	TransferGroupToPool( pGroup );
+
+	// sevenfm: r7895 fix
+	//TransferGroupToPool( pGroup );
+	// Flugente: at least have them walk back correctly instead of just having them vanish
+	SendGroupToPool( pGroup );
 }
 
 //When an enemy AI group is eliminated by the player, apply a grace period in which the

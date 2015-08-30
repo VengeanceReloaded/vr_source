@@ -4070,8 +4070,12 @@ void HandleExplosionQueue( void )
 				// determine gridno to attack - smoke signal required. Otherwise, it is assumed the radio operator ordered the bombing of his OWN position
 				// if we cannot even find a radio operator, all bets are off - target a random gridno
 				// the usual +/- 2 shenanigans
-				UINT16 usOwner = max( 0, (*pObj)[0]->data.misc.ubBombOwner - 2 );
-				INT32 sTargetGridNo = -1;
+				// sevenfm: r7818 fix
+				UINT16 usOwner = NOBODY;
+				if ( (*pObj)[0]->data.misc.ubBombOwner > 1 )
+					usOwner = (*pObj)[0]->data.misc.ubBombOwner - 2;
+
+				INT32 sTargetGridNo = NOWHERE;
 				if ( GetRandomSignalSmokeGridNo( &sTargetGridNo ) || GetRadioOperatorSignal( usOwner, &sTargetGridNo ) || (sTargetGridNo = RandomGridNo( )) )
 				{
 					for ( UINT8 i = 0; i < cnt; ++i)

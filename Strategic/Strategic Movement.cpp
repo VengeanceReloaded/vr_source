@@ -2974,6 +2974,7 @@ INT32 CalculateTravelTimeOfGroup( GROUP *pGroup )
 {
 	INT32 iDelta;
 	UINT32 uiEtaTime = 0;
+	INT32 i = 0;	// sevenfm: r7876 fix
 	WAYPOINT *pNode = NULL;
 	WAYPOINT pCurrent, pDest;
 	// check if valid group
@@ -2985,6 +2986,20 @@ INT32 CalculateTravelTimeOfGroup( GROUP *pGroup )
 
 	// set up next node
 	pNode = pGroup->pWaypoints;
+
+	// sevenfm: r7876 fix, r7962 fix
+	// Flugente: start with the next waypoint we travel to, not the first one in the list
+	i = pGroup->ubNextWaypointID;
+	while ( i-- )
+	{
+		//Traverse through the waypoint list to the next waypoint ID
+		if( !pNode )
+			return uiEtaTime;
+		pNode = pNode->next;
+	}
+	if ( !pNode )
+		return uiEtaTime;
+	// end fix
 
 	// now get the delta in current sector and next sector
 	iDelta = ( INT32 )( SECTOR( pGroup->ubSectorX, pGroup->ubSectorY ) - SECTOR( pGroup->ubNextX, pGroup->ubNextY ) );

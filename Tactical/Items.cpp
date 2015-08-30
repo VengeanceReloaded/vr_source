@@ -2685,9 +2685,13 @@ BOOLEAN TwoHandedItem( UINT16 usItem )
 BOOLEAN ValidLaunchable( UINT16 usLaunchable, UINT16 usItem )
 {
 	INT32 iLoop = 0;
+
+	// sevenfm: r7829 fix
+	// Flugente: as this would cause launchers to happily launch attachments around the landscape, we really have to check the list of launchables
+	// if a modder decides to define launchables via attachment points, slap him and tell him not to do that
 	//Madd: Common Attachment Framework
-	if ( IsAttachmentPointAvailable(usItem, usLaunchable) )
-		return TRUE;
+	//if ( IsAttachmentPointAvailable(usItem, usLaunchable) )
+		//return TRUE;
 
 	//DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("ValidLaunchable: launchable=%d, item=%d",usLaunchable,usItem));
 	// look for the section of the array pertaining to this launchable item...
@@ -8241,7 +8245,8 @@ BOOLEAN ArmBomb( OBJECTTYPE * pObj, INT8 bSetting )
 	if ( (*pObj).fFlags & OBJECT_DISABLED_BOMB )
 		(*pObj).fFlags &= ~(OBJECT_DISABLED_BOMB);
 
-	(*pObj).fFlags |= OBJECT_ARMED_BOMB;
+	(*pObj).fFlags |= OBJECT_ARMED_BOMB;		
+	(*pObj).fFlags |= OBJECT_KNOWN_TO_BE_TRAPPED;	// sevenfm: r7811 fix
 	(*pObj)[0]->data.misc.usBombItem = pObj->usItem;
 	return( TRUE );
 }
@@ -10456,19 +10461,23 @@ INT32 GetObjectModifier( SOLDIERTYPE* pSoldier, OBJECTTYPE *pObj, UINT8 ubStance
 INT32 GetAimLevelsTraitModifier( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj )
 {
 	INT8 ubSkillModifier = 0;
+	// sevenfm: r7854 fix
+	INT8 iCTHSystem = UsingNewCTHSystem() ? -1 : 1;	// silversurfer: NCTH benefits from reduced levels, OCTH benefits from increased levels
 
 	if( gGameOptions.fNewTraitSystem )
 	{
 		if ( Weapon[Item[pObj->usItem].ubClassIndex].ubWeaponType == GUN_PISTOL || Weapon[Item[pObj->usItem].ubClassIndex].ubWeaponType == GUN_M_PISTOL )
-			ubSkillModifier -= gSkillTraitValues.ubGSAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, GUNSLINGER_NT );
+			ubSkillModifier += gSkillTraitValues.ubGSAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, GUNSLINGER_NT ) * iCTHSystem;
 		else if ( Weapon[Item[pObj->usItem].ubClassIndex].ubWeaponType == GUN_SHOTGUN )
-			ubSkillModifier -= gSkillTraitValues.ubRAAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, RANGER_NT );
-		else
-			ubSkillModifier -= gSkillTraitValues.ubSNAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT );
+			ubSkillModifier += gSkillTraitValues.ubRAAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ) * iCTHSystem;
+		else if ( Weapon[Item[pObj->usItem].ubClassIndex].ubWeaponType == GUN_RIFLE )
+			ubSkillModifier += __max( (gSkillTraitValues.ubRAAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ) / 2.0f), gSkillTraitValues.ubSNAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT ) ) * iCTHSystem;
+		else if ( Weapon[Item[pObj->usItem].ubClassIndex].ubWeaponType == GUN_SN_RIFLE )
+			ubSkillModifier += gSkillTraitValues.ubSNAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT ) * iCTHSystem;
 	}
 	else
 	{
-		ubSkillModifier -= NUM_SKILL_TRAITS( pSoldier, PROF_SNIPER_OT );
+		ubSkillModifier += NUM_SKILL_TRAITS( pSoldier, PROF_SNIPER_OT ) * iCTHSystem;
 	}
 
 	return (INT32)ubSkillModifier;
@@ -14707,6 +14716,10 @@ BOOLEAN OBJECTTYPE::TransformObject( SOLDIERTYPE * pSoldier, UINT8 ubStatusIndex
 
 		// Test the parent now. See whether all attachments are still valid on it.
 		ReInitMergedItem(pSoldier, pParent, pParent->usItem, ubStatusIndex);
+
+		// sevenfm: r7855 fix
+		// Flugente: sometimes gpItemDescObject gets corrupted during ReInitMergedItem(...), so we have to repair that here
+		gpItemDescObject = &gCloneItemDescObject;
 
 		gpItemDescOrigAttachmentObject = NULL;
 

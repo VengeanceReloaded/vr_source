@@ -5174,21 +5174,23 @@ BOOLEAN InRange( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 	 OBJECTTYPE							*pObj;
 	 DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("InRange"));
 
+	 // sevenfm: r7979 fix
+	 if ( !pSoldier )
+		 return FALSE;
+
 	 // Flugente: check for underbarrel weapons and use that object if necessary
 	 pObj = pSoldier->GetUsedWeapon( &pSoldier->inv[HANDPOS] );
 
-	 usInHand = (*pObj).usItem;
-	 INVTYPE* pItemInHand = &Item[ usInHand ];
-
-	 if ( pItemInHand->usItemClass == IC_GUN || pItemInHand->usItemClass == IC_THROWING_KNIFE || (pItemInHand->rocketlauncher && !pItemInHand->singleshotrocketlauncher))
+	 // sevenfm: r7979 fix
+	 if ( Item[pObj->usItem].usItemClass & (IC_GUN | IC_THROWING_KNIFE | IC_LAUNCHER) )
 	 {
 		 // Determine range
 		 sRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sGridNo );
 
-		 if ( pItemInHand->usItemClass == IC_THROWING_KNIFE )
+		 if ( Item[pObj->usItem].usItemClass & (IC_THROWING_KNIFE) )
 		 {
 			 // NB CalcMaxTossRange returns range in tiles, not in world units
-		 	 if ( sRange <= CalcMaxTossRange( pSoldier, usInHand, TRUE ) * CELL_X_SIZE )
+		 	 if ( sRange <= CalcMaxTossRange( pSoldier, pObj->usItem, TRUE ) * CELL_X_SIZE )
 			 {
 				 return( TRUE );
 			 }
@@ -7165,7 +7167,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	{
 		// penalty for amount that enemy has moved
 		// HEADROCK HAM B2.6: Externalized the value
-		iPenalty = __min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), 30 );
+		// sevenfm: r7878 fix
+		//iPenalty = __min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), 30 );
+		iPenalty = __min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), gGameExternalOptions.usMaxCTHPenaltyForMovingTarget );
+
 		///////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - fearless characters do not even take their head down no matter what
 		if ( gGameOptions.fNewTraitSystem && pTarget->ubProfile != NO_PROFILE )
@@ -11314,13 +11319,15 @@ INT32 CalcMaxTossRange( SOLDIERTYPE * pSoldier, UINT16 usItem, BOOLEAN fArmed, O
 	//MM: So instead, let's look at the soldier's hand, and check his gun for an underbarrel GL
 	if ( fArmed )
 	{
-		OBJECTTYPE *pObj = NULL;
-		pObj = pSoldier->GetUsedWeapon( &pSoldier->inv[pSoldier->ubAttackingHand] );
+		// sevenfm: r7979 fix
+		OBJECTTYPE *pObj = pSoldier->GetUsedWeapon( &pSoldier->inv[pSoldier->ubAttackingHand] );
 		if ( pObj != NULL )
 		{
-			if (Item[pObj->usItem].usItemClass == IC_LAUNCHER)
+			if ( Item[pObj->usItem].usItemClass & IC_LAUNCHER )
+			{
 				usSubItem = pObj->usItem;
-			else if (Item[pObj->usItem].usItemClass == IC_GUN)
+			}
+			else if ( Item[pObj->usItem].usItemClass & IC_GUN )
 			{
 				usSubItem = GetAttachedGrenadeLauncher(pObj);
 			}
@@ -11332,7 +11339,7 @@ INT32 CalcMaxTossRange( SOLDIERTYPE * pSoldier, UINT16 usItem, BOOLEAN fArmed, O
 		usItem = usSubItem;
 	}
 
-	if ( Item[ usItem ].usItemClass == IC_LAUNCHER && fArmed )
+	if ( (Item[ usItem ].usItemClass & IC_LAUNCHER) && fArmed )
 	{
 		// this function returns range in tiles so, stupidly, we have to divide by 10 here
 		iRange = GetModifiedGunRange(usItem) / CELL_X_SIZE;
@@ -11340,18 +11347,18 @@ INT32 CalcMaxTossRange( SOLDIERTYPE * pSoldier, UINT16 usItem, BOOLEAN fArmed, O
 	else
 	{
 		// sevenfm: calculate total weight of object with all attachments
-		if(pObject!= NULL)
+		if( pObject )
 			itemWeight = CalculateObjectWeight(pObject);
 		else
 			itemWeight=Item[usItem].ubWeight;
-//		if ( Item[ usItem ].fFlags & ITEM_UNAERODYNAMIC )
+
 		if ( Item[ usItem ].unaerodynamic )
 		{
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcmaxtossrange: not aerodynamic");
 			iRange = 1;
 		}
 		// sevenfm: this formula should be used only for hand grenades and not launched grenades
-		else if ( Item[ usItem ].usItemClass == IC_GRENADE && Item[usItem].ubCursor == TOSSCURS)
+		else if ( (Item[ usItem ].usItemClass & IC_GRENADE) && Item[usItem].ubCursor == TOSSCURS)
 		{		
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcmaxtossrange: grenade");
 			// start with the range based on the soldier's strength and the item's weight
@@ -11381,7 +11388,7 @@ INT32 CalcMaxTossRange( SOLDIERTYPE * pSoldier, UINT16 usItem, BOOLEAN fArmed, O
 		// SANDRO - old/new traits
 		if( gGameOptions.fNewTraitSystem ) 
 		{
-			if ( (Item[ usItem ].usItemClass == IC_THROWING_KNIFE) && (HAS_SKILL_TRAIT( pSoldier, THROWING_NT )) )
+			if ( (Item[ usItem ].usItemClass & IC_THROWING_KNIFE) && (HAS_SKILL_TRAIT( pSoldier, THROWING_NT )) )
 			{
 				// better max range due to expertise
 				iRange += ((iRange * gSkillTraitValues.ubTHBladesMaxRange ) / 100);
