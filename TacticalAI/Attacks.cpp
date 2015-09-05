@@ -2297,6 +2297,12 @@ INT32 EstimateStabDamage( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent,
 	// SANDRO - damage bonus to melee trait
 	else 
 	{
+		// sevenfm: always give MELEE bonus when using bayonet
+		/*if( pSoldier->bWeaponMode == WM_ATTACHED_BAYONET )
+		{
+			iBonus += gSkillTraitValues.ubMEDamageBonusBlades; // +30% damage
+		}		
+		else */
 		if ( HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) && (gGameOptions.fNewTraitSystem) )
 		{
 			iImpact += (iImpact * (100 + gSkillTraitValues.ubMEDamageBonusBlades ) / 100); // +30% damage

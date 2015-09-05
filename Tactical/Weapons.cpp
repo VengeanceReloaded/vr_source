@@ -70,6 +70,7 @@ extern INT8 gbCurrentRainIntensity;
 // sevenfm: this global variable is needed to correctly set default number of bullets for autofire
 extern BOOLEAN gfAutofireInitBulletNum;
 extern char szSoundEffects[MAX_SAMPLES][255];	// sevenfm: for playing last sound
+void MakeCustomSoundFileName( CHAR *StrName, CHAR* StrNew, const CHAR* StrAdd);	// sevenfm: make custom sound filename
 
 extern SECTOR_EXT_DATA	SectorExternalData[256][4];	// added by Flugente
 
@@ -1885,12 +1886,11 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 
 				uiSound = Weapon [ usUBItem ].silencedSound ;
 				
-				// sevenfm: for the last silenced round - play silenced burst 0 sound
-				if( Weapon[ usUBItem ].sSilencedBurstSound && 
-					!pSoldier->IsValidSecondHandShot( ) &&
+				// sevenfm: for the last silenced round - play " LAST" sound if exists
+				if( !pSoldier->IsValidSecondHandShot( ) &&
 					(*pObjHand)[0]->data.gun.ubGunShotsLeft == 1 )					
 				{					
-					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sSilencedBurstSound ], 0 );
+					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].silencedSound], zBurstString, " LAST" );
 					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
 					{
 						// play default sound
@@ -1907,12 +1907,11 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 				INT8 volume = HIGHVOLUME;
 				if ( noisefactor < 100 ) volume = (volume * noisefactor) / 100;
 
-				// sevenfm: for the last round - play burst 0 sound
-				if( Weapon[ usUBItem ].sBurstSound && 
-					!pSoldier->IsValidSecondHandShot( ) &&
+				// sevenfm: for the last round - play " LAST" sound if exists
+				if( !pSoldier->IsValidSecondHandShot( ) &&
 					(*pObjHand)[0]->data.gun.ubGunShotsLeft == 1 )					
 				{					
-					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sBurstSound ], 0 );
+					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].sSound], zBurstString, " LAST" );
 					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
 					{
 						// play default sound
@@ -2450,7 +2449,7 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 				}
 				else
 				{
-					// Pick sound file baed on how many bullets we are going to fire...
+					// Pick sound file based on how many bullets we are going to fire...
                     // Lesh: changed next line
 					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sBurstSound ], bShotsToFire );
 
@@ -2503,12 +2502,11 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 
 				uiSound = Weapon [ usUBItem ].silencedSound ;
 				
-				// sevenfm: for the last silenced round - play silenced burst 0 sound
-				if( Weapon[ usUBItem ].sSilencedBurstSound && 
-					!pSoldier->IsValidSecondHandShot( ) &&
+				// sevenfm: for the last silenced round play " LAST" sound if exists
+				if( !pSoldier->IsValidSecondHandShot( ) &&
 					(*pObjUsed)[0]->data.gun.ubGunShotsLeft == 1 )					
 				{					
-					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sSilencedBurstSound ], 0 );
+					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].silencedSound], zBurstString, " LAST" );
 					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
 					{
 						// play default sound
@@ -2525,12 +2523,12 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 				INT8 volume = HIGHVOLUME;
 				if ( noisefactor < 100 ) volume = (volume * noisefactor) / 100;
 
-				// sevenfm: for the last round - play burst 0 sound
-				if( Weapon[ usUBItem ].sBurstSound && 
-					!pSoldier->IsValidSecondHandShot( ) &&
-					(*pObjUsed)[0]->data.gun.ubGunShotsLeft == 1 )					
+				// sevenfm: for the last round - play " LAST" sound if exists
+				if( !pSoldier->IsValidSecondHandShot( ) &&
+					(*pObjUsed)[0]->data.gun.ubGunShotsLeft == 1 )
 				{					
-					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sBurstSound ], 0 );
+					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].sSound], zBurstString, " LAST" );
+
 					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
 					{
 						// play default sound
@@ -10281,13 +10279,18 @@ INT32 HTHImpact( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pTarget, INT32 iHitBy, BO
 	// DAMAGE BONUS TO KNIFE ATTACK WITH MELEE SKILL
 	else 
 	{
-		if ( HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) && ( gGameOptions.fNewTraitSystem ))
+		// sevenfm: always give MELEE bonus when using bayonet
+		if( pSoldier->bWeaponMode == WM_ATTACHED_BAYONET )
+		{
+			iBonus += gSkillTraitValues.ubMEDamageBonusBlades; // +30% damage
+		}
+		else if ( HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) && ( gGameOptions.fNewTraitSystem ))
 		{
 			iBonus += gSkillTraitValues.ubMEDamageBonusBlades; // +30% damage
 
 			if (pSoldier->usAnimState == FOCUSED_STAB)
 			{
-				iBonus += gSkillTraitValues.usMEAimedMeleeAttackDamageBonus;  // 50% incresed damage if focused melee attack
+				iBonus += gSkillTraitValues.usMEAimedMeleeAttackDamageBonus;  // 50% increased damage if focused melee attack
 			}
 		}
 		// Enhanced Close Combat System
@@ -13389,4 +13392,20 @@ BOOLEAN ArtilleryStrike( UINT16 usItem, UINT8 ubOwnerID, UINT32 usStartingGridNo
 	//REAL_OBJECT* pObject = &( ObjectSlots[ iID ] );
 	
 	return TRUE;
+}
+
+void MakeCustomSoundFileName( CHAR *StrName, CHAR* StrNew, const CHAR* StrAdd)
+{
+	CHAR *StrDot = strrchr( StrName, '.' );
+	if( StrDot )
+	{
+		strncpy( StrNew, StrName, StrDot-StrName );
+		StrNew[StrDot-StrName] = '\0';
+		strcat( StrNew, StrAdd );
+		strcat( StrNew, StrDot );
+	}
+	else
+	{
+		strcpy( StrNew, StrName );
+	}
 }

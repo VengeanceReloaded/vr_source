@@ -12020,7 +12020,8 @@ void SOLDIERTYPE::EVENT_SoldierBeginBladeAttack( INT32 sGridNo, UINT8 ubDirectio
 					}
 					else
 					{
-						if ( Random( 50 ) > 25 )
+						// sevenfm: always use STAB attack for bayonet
+						if ( Random( 50 ) > 25 || this->bWeaponMode == WM_ATTACHED_BAYONET)
 						{
 							this->EVENT_InitNewSoldierAnim( STAB, 0 , FALSE );
 						}
