@@ -2240,6 +2240,11 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubAutoFastForwardMilitia	= iniReader.ReadInteger("Clock Settings", "AUTO_FAST_FORWARD_MILITIA", 0, 0, 2);
 	gGameExternalOptions.ubAutoFastForwardCivs		= iniReader.ReadInteger("Clock Settings", "AUTO_FAST_FORWARD_CIVS", 0, 0, 2);
 	gGameExternalOptions.ubAutoFastForwardCreatures = iniReader.ReadInteger("Clock Settings", "AUTO_FAST_FORWARD_CREATURES", 0, 0, 2);
+
+	// sevenfm: extended options
+	gGameExternalOptions.fVoiceTaunts				= iniReader.ReadBoolean("Extended Options", "VOICE_TAUNTS", true, false);
+	gGameExternalOptions.fVoiceTauntsDebugInfo		= iniReader.ReadBoolean("Extended Options", "VOICE_TAUNTS_DEBUG_INFO", true, false);
+	gGameExternalOptions.fExtraVoiceTaunts			= iniReader.ReadBoolean("Extended Options", "EXTRA_VOICE_TAUNTS", true, false);
 }
 
 

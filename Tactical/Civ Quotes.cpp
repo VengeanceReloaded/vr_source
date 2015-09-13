@@ -40,6 +40,9 @@
 #include "Campaign.h"
 #include "opplist.h"
 
+// sevenfm: for voice taunts
+#include "Sound Control.h"
+
 #define			DIALOGUE_DEFAULT_WIDTH			200
 #define			EXTREAMLY_LOW_TOWN_LOYALTY	20
 #define			HIGH_TOWN_LOYALTY						80
@@ -1273,14 +1276,17 @@ void StartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTar
 	// Flugente: zombies don't talk
 	if ( pCiv->IsZombie() )
 		return;
-#endif
+#endif	
 
-	// gCivQuoteData.bActive is checked in ShowTauntPopupBox() instead, taunt can be shown in log though!
-	// if we have a different quote on, return, this one is not important
-	//if ( gCivQuoteData.bActive )
-	//{
-	//	return;
-	//}
+	// sevenfm: play audio taunt if possible
+	if( gGameExternalOptions.fVoiceTaunts )		
+	{		
+		// try to play voice taunt, use noise if gTauntsSettings.fTauntMakeNoise is TRUE
+		PlayVoiceTaunt( pCiv, iTauntType, pTarget );
+		// block this enemy from taunting for a time being
+		uiTauntFinishTimes[pCiv->ubID] = GetJA2Clock() + min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( L"Test taunt" ) + gTauntsSettings.sModDelay ) ); 
+		return;
+	}
 
 	// anv: check all taunts, and remember those applicable
 	for(UINT16 i=0; i<num_found_taunt; i++)
@@ -1919,6 +1925,15 @@ void StartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTar
 		// block this enemy from taunting for a time being
 		uiTauntFinishTimes[pCiv->ubID] = GetJA2Clock() + min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( gzTauntQuote ) + gTauntsSettings.sModDelay ) ); 
 
+		// sevenfm: show some information about taunts
+		/*
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Index %d Value %d Type %d", 
+			zApplicableTaunts[ iChosenTaunt ].uiIndex,
+			zApplicableTaunts[ iChosenTaunt ].value,
+			iTauntType);
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s", pCiv->GetName(), gzTauntQuote );
+		*/
+
 		if( gTauntsSettings.fTauntMakeNoise == TRUE )
 			MakeNoise( pCiv->ubID, pCiv->sGridNo, pCiv->pathing.bLevel, pCiv->bOverTerrainType, gTauntsSettings.sVolume, NOISE_VOICE, gzTauntQuote );
 		else
@@ -2025,4 +2040,311 @@ void ShowTauntPopupBox( SOLDIERTYPE *pCiv, STR16 gzTauntQuote )
 	gCivQuoteData.uiDelayTime = min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( gzTauntQuote ) + gTauntsSettings.sModDelay ) );
 
 	gCivQuoteData.pCiv = pCiv;
+}
+
+/*STR VoiceTauntFileName[][4] = 
+{
+	// male, bigmale, female, militia
+
+	"dummy", "dummy", "FIRE GUN", "open_fire",	// TAUNT_FIRE_GUN
+	"45", "48", "OPEN FIRE", "take_him_out",	// TAUNT_FIRE_LAUNCHER,
+	"49", "49", "dummy", "dummy",				// TAUNT_ATTACK_BLADE,
+	"49", "49", "dummy", "dummy",				// TAUNT_ATTACK_HTH,
+
+	"45", "45", "dummy", "dummy",				// TAUNT_THROW_KNIFE,
+	"02", "03", "dummy", "dummy",				// TAUNT_THROW_GRENADE,
+
+	"41", "41", "RELOAD", "cover_me",			// TAUNT_OUT_OF_AMMO,
+	"43", "43", "+", "Auto_Reloading_2",		// TAUNT_RELOAD,
+
+	"27", "27", "dummy", "dummy",				// TAUNT_STEAL,
+
+	// AI routines
+	"49", "49", "dummy", "take_him_out",		// TAUNT_CHARGE_BLADE,
+	"49", "49", "dummy", "take_him_out",		// TAUNT_CHARGE_HTH,	
+	"36", "62", "help (i need an assist)", "take_cover",	// TAUNT_RUN_AWAY,
+	"23", "23", "+ (watch it)", "find_them",	// TAUNT_SEEK_NOISE,
+	"21", "28", "ALERT", "watch_out",			// TAUNT_ALERT,
+	"lookout", "lookout", "dummy", "what_was_that",	// TAUNT_SUSPICIOUS,
+	"21", "21", "NOTICED UNSEEN", "see_him",	// TAUNT_NOTICED_UNSEEN,
+	"hey", "hey", "SAY HI", "hey",				// TAUNT_SAY_HI,
+	"22", "22", "INFORM ABOUT", "over_here",	// TAUNT_INFORM_ABOUT,
+
+	// got_hit_xxx
+	"05", "05", "GOT HIT", "what_the",			// TAUNT_GOT_HIT,
+	"05", "05", "GOT HIT", "what_the",			// TAUNT_GOT_HIT_GUNFIRE,
+	"05", "05", "dummy", "what_the",			// TAUNT_GOT_HIT_BLADE,
+	"05", "05", "dummy", "what_the",			// TAUNT_GOT_HIT_HTH,
+	"18", "18", "dummy", "Help_5",				// TAUNT_GOT_HIT_FALLROOF,
+	"06", "06", "GOT HIT BLOODLOSS", "medic_medic", // TAUNT_GOT_HIT_BLOODLOSS,
+	"05", "05", "dummy", "Help_7",				// TAUNT_GOT_HIT_EXPLOSION,
+	"05", "05", "dummy", "help_6",				// TAUNT_GOT_HIT_GAS,
+	"05", "05", "dummy", "Help_5",				// TAUNT_GOT_HIT_TENTACLES,
+	"05", "05", "dummy", "Help_3",				// TAUNT_GOT_HIT_STRUCTURE_EXPLOSION,
+	"05", "05", "dummy", "Help_5",				// TAUNT_GOT_HIT_OBJECT,
+	"05", "05", "dummy", "what_the",			// TAUNT_GOT_HIT_THROWING_KNIFE,
+
+	"17", "17", "dummy", "Medic_9.wav",			// TAUNT_GOT_DEAFENED,
+	"50", "50", "MEDIC", "medic_medic",			// TAUNT_GOT_BLINDED,
+
+	"help", "help", "dummy", "Help_1",			// TAUNT_GOT_ROBBED,
+
+	// got_missed_xxx
+	"52", "52", "GOT MISSED", "underfire01",	// TAUNT_GOT_MISSED,
+	"52", "53", "GOT MISSED", "underfire01",	// TAUNT_GOT_MISSED_GUNFIRE,
+	"10", "10", "dummy", "underfire02",			// TAUNT_GOT_MISSED_BLADE,
+	"10", "10", "dummy", "dummy",				// TAUNT_GOT_MISSED_HTH,
+	"10", "10", "dummy", "underfire03",			// TAUNT_GOT_MISSED_THROWING_KNIFE,
+
+	// hit_xxx
+	"13", "13", "dummy", "success",				// TAUNT_HIT,
+	"13", "13", "dummy", "success",				// TAUNT_HIT_GUNFIRE,
+	"49", "49", "dummy", "dummy",				// TAUNT_HIT_BLADE,
+	"49", "49", "dummy", "dummy",				// TAUNT_HIT_HTH,
+	"47", "47", "dummy", "dummy",				// TAUNT_HIT_EXPLOSION,
+	"49", "49", "dummy", "dummy",				// TAUNT_HIT_THROWING_KNIFE,
+
+	// kill_xxx
+	"08", "08", "KILL GUNFIRE", "target_eliminate", // TAUNT_KILL,
+	"08", "08", "KILL GUNFIRE", "target_eliminate", // TAUNT_KILL_GUNFIRE,
+	"10", "10", "KILL", "EnemyBurnedToDeath1",	// TAUNT_KILL_BLADE,
+	"10", "10", "dummy", "EnemyBurnedToDeath2",	// TAUNT_KILL_HTH,
+	"10", "10", "dummy", "EnemyBurnedToDeath3",	// TAUNT_KILL_THROWING_KNIFE,
+	"09", "09", "HEAD POP", "obj_complete",		// TAUNT_HEAD_POP,
+
+	// miss_xxx
+	"dummy", "dummy", "dummy", "take_him_out",	// TAUNT_MISS,
+	"dummy", "dummy", "dummy", "take_him_out",	// TAUNT_MISS_GUNFIRE,
+	"dummy", "dummy", "dummy", "dummy",			// TAUNT_MISS_BLADE,
+	"dummy", "dummy", "dummy", "dummy",			// TAUNT_MISS_HTH,
+	"dummy", "dummy", "dummy", "take_him_out",	// TAUNT_MISS_THROWING_KNIFE,
+
+	// ripostes to merc quotes
+	"dummy", "dummy", "dummy", "dummy",			// TAUNT_RIPOSTE	
+};*/
+
+STR VoiceTauntFileName[] = 
+{
+	"FIRE_GUN",
+	"FIRE_LAUNCHER",
+	"ATTACK_BLADE",
+	"ATTACK_HTH",
+
+	"THROW_KNIFE",
+	"THROW_GRENADE",
+
+	"OUT_OF_AMMO",
+	"RELOAD",
+
+	"STEAL",
+
+	// AI routines
+	"CHARGE_BLADE",
+	"CHARGE_HTH",
+	"RUN_AWAY",
+	"SEEK_NOISE",
+	"ALERT",
+	"SUSPICIOUS",
+	"NOTICED_UNSEEN",
+	"SAY_HI",
+	"INFORM_ABOUT",
+
+	// got_hit_xxx
+	"GOT_HIT",
+	"GOT_HIT_GUNFIRE",
+	"GOT_HIT_BLADE",
+	"GOT_HIT_HTH",
+	"GOT_HIT_FALLROOF",
+	"GOT_HIT_BLOODLOSS",
+	"GOT_HIT_EXPLOSION",
+	"GOT_HIT_GAS",
+	"GOT_HIT_TENTACLES",
+	"GOT_HIT_STRUCTURE_EXPLOSION",
+	"GOT_HIT_OBJECT",
+	"GOT_HIT_THROWING_KNIFE",
+
+	"GOT_DEAFENED",
+	"GOT_BLINDED",
+
+	"GOT_ROBBED",
+
+	// got_missed_xxx
+	"GOT_MISSED",
+	"GOT_MISSED_GUNFIRE",
+	"GOT_MISSED_BLADE",
+	"GOT_MISSED_HTH",
+	"GOT_MISSED_THROWING_KNIFE",
+
+	// hit_xxx
+	"HIT",
+	"HIT_GUNFIRE",
+	"HIT_BLADE",
+	"HIT_HTH",
+	"HIT_EXPLOSION",
+	"HIT_THROWING_KNIFE",
+
+	// kill_xxx
+	"KILL",
+	"KILL_GUNFIRE",
+	"KILL_BLADE",
+	"KILL_HTH",
+	"KILL_THROWING_KNIFE",
+	"HEAD_POP",
+
+	// miss_xxx
+	"MISS",
+	"MISS_GUNFIRE",
+	"TAUNT_MISS_BLADE",
+	"MISS_HTH",
+	"MISS_THROWING_KNIFE",
+
+	// ripostes to merc quotes
+	"RIPOSTE"
+};
+
+// sevenfm: voice taunts
+BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTarget )
+{
+	CHAR8 filename[1024];
+	CHAR8 filenameExtra[1024];
+	CHAR16 noise[1024];
+	CHAR8 buf[1024];
+
+	if( !gGameExternalOptions.fVoiceTaunts )
+	{
+		return FALSE;
+	}
+
+	// show some information about taunts
+	if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+	{			
+		ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Soldier [%d] TauntType %d", pCiv->ubID, iTauntType );
+	}
+
+	// cannot taunt when dead or collapsed
+	if( pCiv->stats.bLife < OKLIFE || pCiv->bCollapsed || pCiv->bBreathCollapsed)
+	{
+		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+		{			
+			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad soldier state" );
+		}
+		return FALSE;
+	}
+
+	strcpy(filename, "Voice");
+
+	if( !pCiv )
+	{
+		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+		{			
+			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad soldier pointer" );
+		}
+		return FALSE;
+	}
+	if( iTauntType < TAUNT_FIRE_GUN || iTauntType > TAUNT_RIPOSTE )
+	{
+		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+		{
+			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad taunt" );
+		}
+		return FALSE;
+	}
+
+	if( pCiv->ubBodyType == REGFEMALE && pCiv->bTeam == MILITIA_TEAM )
+	{
+		strcat( filename, "\\MilitiaFemale\\");
+	}
+	else if( pCiv->ubBodyType == REGFEMALE )
+	{
+		strcat( filename, "\\Female\\");
+	}
+	else if( pCiv->bTeam == MILITIA_TEAM )
+	{
+		strcat( filename, "\\Militia\\");
+	}
+	else if( pCiv->ubBodyType == BIGMALE )
+	{
+		strcat( filename, "\\Bigmale\\");
+		sprintf(buf, "%02d", 1+ pCiv->ubID % 2);
+		strcat( filename, buf);
+		strcat( filename, "\\");
+	}
+	else if( pCiv->ubBodyType == REGMALE || pCiv->ubBodyType == STOCKYMALE )
+	{
+		strcat( filename, "\\Male\\");
+		sprintf(buf, "%02d", 1 + pCiv->ubID % 7);
+		strcat( filename, buf);
+		strcat( filename, "\\");
+	}
+	else
+	{
+		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+		{			
+			ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Taunt: incorrect bodytype" );
+		}
+		return FALSE;
+	}
+	
+	strcat( filename, VoiceTauntFileName[iTauntType] );
+
+	// make a filename for extra taunt (1..4)
+	if( gGameExternalOptions.fExtraVoiceTaunts )
+	{
+		strcpy( filenameExtra, filename );
+		sprintf(buf, " %d", 1 + Random(4));
+		strcat( filenameExtra, buf );
+		strcat( filenameExtra, ".ogg");
+	}
+
+	strcat( filename, ".ogg");
+
+	// if extra taunt exists, replace filename with filenameExtra
+	if( gGameExternalOptions.fExtraVoiceTaunts && FileExists(filenameExtra) )
+	{
+		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+		{
+			ScreenMsg(FONT_GREEN, MSG_INTERFACE, L"Use extra taunt");
+		}		
+		strcpy( filename, filenameExtra );
+	}
+
+	// log taunt file names
+	if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+	{
+		FILE	*OutFile;
+		if ((OutFile = fopen("VoiceTauntLog.txt", "a+t")) != NULL)
+		{ 
+			fprintf(OutFile, "Soldier [%d] TauntType %d %s\n",
+				pCiv->ubID,
+				iTauntType,
+				filename );
+			fclose(OutFile);
+		}
+
+		// show some information about taunts	
+		mbstowcs( noise, filename, strlen(filename)+1 );
+		ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
+	}
+
+	if( gTauntsSettings.fTauntMakeNoise == TRUE )
+	{
+		// convert char to char16
+		mbstowcs( noise, filename, strlen(filename)+1 );
+		// use filename as taunt text, play sound later
+		MakeNoise( pCiv->ubID, pCiv->sGridNo, pCiv->pathing.bLevel, pCiv->bOverTerrainType, gTauntsSettings.sVolume, NOISE_VOICE, noise );
+	}
+	else
+	{
+		// play voice taunt
+		if(PlayJA2SampleFromFile( filename, RATE_11025, SoundVolume( HIGHVOLUME, pCiv->sGridNo ), 1, SoundDir( pCiv->sGridNo ) ) == SOUND_ERROR)
+		{
+			if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+			{			
+				ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Failed to play taunt" );
+			}
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 }

@@ -6722,20 +6722,43 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 		}
 		if( ubVolumeIndex > 0 ) // definite noise - we're able to recognize words
 		{
-			// do we know who said that?
-			if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] == SEEN_CURRENTLY || pSoldier->aiData.bOppList[ubNoiseMaker] == SEEN_CURRENTLY )
+			CHAR8 filename[1024];
+			
+			if( gGameExternalOptions.fVoiceTauntsDebugInfo )
 			{
-				if(  gTauntsSettings.fTauntShowPopupBox == TRUE )
-					ShowTauntPopupBox( MercPtrs[ubNoiseMaker], zNoiseMessage );
-				if(  gTauntsSettings.fTauntShowInLog == TRUE )
-					ScreenMsg( FONT_GRAY2, MSG_INTERFACE, L"%s: %s", MercPtrs[ubNoiseMaker]->GetName(), zNoiseMessage );
+				ScreenMsg(FONT_ORANGE, MSG_INTERFACE, zNoiseMessage);
+			}			
+
+			// convert wchar to char			
+			wcstombs(filename, zNoiseMessage, wcslen(zNoiseMessage)+1);
+			// sevenfm: play voice taunt (check that noise string is a filename)
+			if( gGameExternalOptions.fVoiceTaunts &&
+				strlen(filename) != 0 &&
+				strstr(filename, "Voice\\") != NULL)				
+			{
+				UINT32 playResult = PlayJA2SampleFromFile( filename, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+				if( playResult == SOUND_ERROR && gGameExternalOptions.fVoiceTauntsDebugInfo )
+				{
+					ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Noise: Failed to play taunt" );
+				}
 			}
 			else
 			{
-				if( gTauntsSettings.fTauntShowPopupBox == TRUE && gTauntsSettings.fTauntShowPopupBoxIfHeard == TRUE )
-					ShowTauntPopupBox( MercPtrs[ubNoiseMaker], zNoiseMessage );
-				if( gTauntsSettings.fTauntShowInLog == TRUE && gTauntsSettings.fTauntShowInLogIfHeard == TRUE )
-					ScreenMsg( FONT_GRAY2, MSG_INTERFACE, L"%s: %s", pTauntUnknownVoice[0], zNoiseMessage );
+				// do we know who said that?
+				if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] == SEEN_CURRENTLY || pSoldier->aiData.bOppList[ubNoiseMaker] == SEEN_CURRENTLY )
+				{
+					if(  gTauntsSettings.fTauntShowPopupBox == TRUE )
+						ShowTauntPopupBox( MercPtrs[ubNoiseMaker], zNoiseMessage );
+					if(  gTauntsSettings.fTauntShowInLog == TRUE )
+						ScreenMsg( FONT_GRAY2, MSG_INTERFACE, L"%s: %s", MercPtrs[ubNoiseMaker]->GetName(), zNoiseMessage );
+				}
+				else
+				{
+					if( gTauntsSettings.fTauntShowPopupBox == TRUE && gTauntsSettings.fTauntShowPopupBoxIfHeard == TRUE )
+						ShowTauntPopupBox( MercPtrs[ubNoiseMaker], zNoiseMessage );
+					if( gTauntsSettings.fTauntShowInLog == TRUE && gTauntsSettings.fTauntShowInLogIfHeard == TRUE )
+						ScreenMsg( FONT_GRAY2, MSG_INTERFACE, L"%s: %s", pTauntUnknownVoice[0], zNoiseMessage );
+				}
 			}
 		}
 	}

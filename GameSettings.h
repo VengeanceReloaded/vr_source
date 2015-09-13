@@ -1440,6 +1440,11 @@ typedef struct
 	BOOLEAN fHelicopterReturnToBaseIsNotFree;
 	BOOLEAN fPaySkyriderInBase;
 
+	// sevenfm: extended options
+	BOOLEAN fVoiceTaunts;
+	BOOLEAN fVoiceTauntsDebugInfo;
+	BOOLEAN fExtraVoiceTaunts;
+
 } GAME_EXTERNAL_OPTIONS;
 
 typedef struct
