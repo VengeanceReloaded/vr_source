@@ -1284,7 +1284,7 @@ void StartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTar
 		// try to play voice taunt, use noise if gTauntsSettings.fTauntMakeNoise is TRUE
 		PlayVoiceTaunt( pCiv, iTauntType, pTarget );
 		// block this enemy from taunting for a time being
-		uiTauntFinishTimes[pCiv->ubID] = GetJA2Clock() + min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( L"Test taunt" ) + gTauntsSettings.sModDelay ) ); 
+		uiTauntFinishTimes[pCiv->ubID] = GetJA2Clock() + min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( L"You're the disease and I'm the cure!" ) + gTauntsSettings.sModDelay ) ); 
 		return;
 	}
 
@@ -2041,87 +2041,6 @@ void ShowTauntPopupBox( SOLDIERTYPE *pCiv, STR16 gzTauntQuote )
 
 	gCivQuoteData.pCiv = pCiv;
 }
-
-/*STR VoiceTauntFileName[][4] = 
-{
-	// male, bigmale, female, militia
-
-	"dummy", "dummy", "FIRE GUN", "open_fire",	// TAUNT_FIRE_GUN
-	"45", "48", "OPEN FIRE", "take_him_out",	// TAUNT_FIRE_LAUNCHER,
-	"49", "49", "dummy", "dummy",				// TAUNT_ATTACK_BLADE,
-	"49", "49", "dummy", "dummy",				// TAUNT_ATTACK_HTH,
-
-	"45", "45", "dummy", "dummy",				// TAUNT_THROW_KNIFE,
-	"02", "03", "dummy", "dummy",				// TAUNT_THROW_GRENADE,
-
-	"41", "41", "RELOAD", "cover_me",			// TAUNT_OUT_OF_AMMO,
-	"43", "43", "+", "Auto_Reloading_2",		// TAUNT_RELOAD,
-
-	"27", "27", "dummy", "dummy",				// TAUNT_STEAL,
-
-	// AI routines
-	"49", "49", "dummy", "take_him_out",		// TAUNT_CHARGE_BLADE,
-	"49", "49", "dummy", "take_him_out",		// TAUNT_CHARGE_HTH,	
-	"36", "62", "help (i need an assist)", "take_cover",	// TAUNT_RUN_AWAY,
-	"23", "23", "+ (watch it)", "find_them",	// TAUNT_SEEK_NOISE,
-	"21", "28", "ALERT", "watch_out",			// TAUNT_ALERT,
-	"lookout", "lookout", "dummy", "what_was_that",	// TAUNT_SUSPICIOUS,
-	"21", "21", "NOTICED UNSEEN", "see_him",	// TAUNT_NOTICED_UNSEEN,
-	"hey", "hey", "SAY HI", "hey",				// TAUNT_SAY_HI,
-	"22", "22", "INFORM ABOUT", "over_here",	// TAUNT_INFORM_ABOUT,
-
-	// got_hit_xxx
-	"05", "05", "GOT HIT", "what_the",			// TAUNT_GOT_HIT,
-	"05", "05", "GOT HIT", "what_the",			// TAUNT_GOT_HIT_GUNFIRE,
-	"05", "05", "dummy", "what_the",			// TAUNT_GOT_HIT_BLADE,
-	"05", "05", "dummy", "what_the",			// TAUNT_GOT_HIT_HTH,
-	"18", "18", "dummy", "Help_5",				// TAUNT_GOT_HIT_FALLROOF,
-	"06", "06", "GOT HIT BLOODLOSS", "medic_medic", // TAUNT_GOT_HIT_BLOODLOSS,
-	"05", "05", "dummy", "Help_7",				// TAUNT_GOT_HIT_EXPLOSION,
-	"05", "05", "dummy", "help_6",				// TAUNT_GOT_HIT_GAS,
-	"05", "05", "dummy", "Help_5",				// TAUNT_GOT_HIT_TENTACLES,
-	"05", "05", "dummy", "Help_3",				// TAUNT_GOT_HIT_STRUCTURE_EXPLOSION,
-	"05", "05", "dummy", "Help_5",				// TAUNT_GOT_HIT_OBJECT,
-	"05", "05", "dummy", "what_the",			// TAUNT_GOT_HIT_THROWING_KNIFE,
-
-	"17", "17", "dummy", "Medic_9.wav",			// TAUNT_GOT_DEAFENED,
-	"50", "50", "MEDIC", "medic_medic",			// TAUNT_GOT_BLINDED,
-
-	"help", "help", "dummy", "Help_1",			// TAUNT_GOT_ROBBED,
-
-	// got_missed_xxx
-	"52", "52", "GOT MISSED", "underfire01",	// TAUNT_GOT_MISSED,
-	"52", "53", "GOT MISSED", "underfire01",	// TAUNT_GOT_MISSED_GUNFIRE,
-	"10", "10", "dummy", "underfire02",			// TAUNT_GOT_MISSED_BLADE,
-	"10", "10", "dummy", "dummy",				// TAUNT_GOT_MISSED_HTH,
-	"10", "10", "dummy", "underfire03",			// TAUNT_GOT_MISSED_THROWING_KNIFE,
-
-	// hit_xxx
-	"13", "13", "dummy", "success",				// TAUNT_HIT,
-	"13", "13", "dummy", "success",				// TAUNT_HIT_GUNFIRE,
-	"49", "49", "dummy", "dummy",				// TAUNT_HIT_BLADE,
-	"49", "49", "dummy", "dummy",				// TAUNT_HIT_HTH,
-	"47", "47", "dummy", "dummy",				// TAUNT_HIT_EXPLOSION,
-	"49", "49", "dummy", "dummy",				// TAUNT_HIT_THROWING_KNIFE,
-
-	// kill_xxx
-	"08", "08", "KILL GUNFIRE", "target_eliminate", // TAUNT_KILL,
-	"08", "08", "KILL GUNFIRE", "target_eliminate", // TAUNT_KILL_GUNFIRE,
-	"10", "10", "KILL", "EnemyBurnedToDeath1",	// TAUNT_KILL_BLADE,
-	"10", "10", "dummy", "EnemyBurnedToDeath2",	// TAUNT_KILL_HTH,
-	"10", "10", "dummy", "EnemyBurnedToDeath3",	// TAUNT_KILL_THROWING_KNIFE,
-	"09", "09", "HEAD POP", "obj_complete",		// TAUNT_HEAD_POP,
-
-	// miss_xxx
-	"dummy", "dummy", "dummy", "take_him_out",	// TAUNT_MISS,
-	"dummy", "dummy", "dummy", "take_him_out",	// TAUNT_MISS_GUNFIRE,
-	"dummy", "dummy", "dummy", "dummy",			// TAUNT_MISS_BLADE,
-	"dummy", "dummy", "dummy", "dummy",			// TAUNT_MISS_HTH,
-	"dummy", "dummy", "dummy", "take_him_out",	// TAUNT_MISS_THROWING_KNIFE,
-
-	// ripostes to merc quotes
-	"dummy", "dummy", "dummy", "dummy",			// TAUNT_RIPOSTE	
-};*/
 
 STR VoiceTauntFileName[] = 
 {
