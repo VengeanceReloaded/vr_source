@@ -1925,15 +1925,6 @@ void StartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTar
 		// block this enemy from taunting for a time being
 		uiTauntFinishTimes[pCiv->ubID] = GetJA2Clock() + min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( gzTauntQuote ) + gTauntsSettings.sModDelay ) ); 
 
-		// sevenfm: show some information about taunts
-		/*
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Index %d Value %d Type %d", 
-			zApplicableTaunts[ iChosenTaunt ].uiIndex,
-			zApplicableTaunts[ iChosenTaunt ].value,
-			iTauntType);
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s", pCiv->GetName(), gzTauntQuote );
-		*/
-
 		if( gTauntsSettings.fTauntMakeNoise == TRUE )
 			MakeNoise( pCiv->ubID, pCiv->sGridNo, pCiv->pathing.bLevel, pCiv->bOverTerrainType, gTauntsSettings.sVolume, NOISE_VOICE, gzTauntQuote );
 		else
@@ -2128,6 +2119,7 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	CHAR8 filenameExtra[1024];
 	CHAR16 noise[1024];
 	CHAR8 buf[1024];
+	INT32 iRandomTaunt = 0;
 
 	if( !gGameExternalOptions.fVoiceTaunts )
 	{
@@ -2207,11 +2199,16 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	strcat( filename, VoiceTauntFileName[iTauntType] );
 
 	// make a filename for extra taunt (1..4)
+	// if random number is 0, use default taunt
 	if( gGameExternalOptions.fExtraVoiceTaunts )
 	{
+		iRandomTaunt = Random(5);
 		strcpy( filenameExtra, filename );
-		sprintf(buf, " %d", 1 + Random(4));
-		strcat( filenameExtra, buf );
+		if( iRandomTaunt > 0 )
+		{
+			sprintf(buf, " %d", iRandomTaunt);
+			strcat( filenameExtra, buf );
+		}
 		strcat( filenameExtra, ".ogg");
 	}
 
@@ -2245,6 +2242,8 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 		ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
 	}
 
+	// gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa
+	// INT8 DecideHearing( SOLDIERTYPE * pSoldier )
 	if( gTauntsSettings.fTauntMakeNoise == TRUE )
 	{
 		// convert char to char16

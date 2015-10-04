@@ -5992,7 +5992,8 @@ void ProcessNoise(UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubTerrTy
 						break;
 					case MILITIA_TEAM:
 						// if the noisemaker is militia and still on our side, ignore noise if we're listening
-						if ( pSoldier->bTeam == OUR_TEAM && MercPtrs[ ubNoiseMaker ]->bSide == 0 )
+						// sevenfm: allow taunts from militia
+						if ( pSoldier->bTeam == OUR_TEAM && MercPtrs[ ubNoiseMaker ]->bSide == 0 && ubNoiseType != NOISE_VOICE)
 						{
 							continue;
 						}
