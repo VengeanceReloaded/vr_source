@@ -6704,7 +6704,10 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 	if( ubNoiseType == NOISE_VOICE )
 	{
 		// information about direction etc. only displayed if we don't see noise maker
-		if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] != SEEN_CURRENTLY && pSoldier->aiData.bOppList[ubNoiseMaker] != SEEN_CURRENTLY )
+		// sevenfm: don't show noise messages from militia (if on our side)
+		if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] != SEEN_CURRENTLY &&
+			pSoldier->aiData.bOppList[ubNoiseMaker] != SEEN_CURRENTLY &&
+			!(ubNoiseMaker != NOBODY && MercPtrs[ubNoiseMaker]->bTeam == MILITIA_TEAM && MercPtrs[ubNoiseMaker]->bSide == 0))
 		{
 			if( bLevel == pSoldier->pathing.bLevel && ubNoiseType == NOISE_VOICE )
 			{
@@ -6801,14 +6804,9 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 
 
 	//DIGICRAB: Loud Sound Locator
-	//show a locator for very loud noises if we are in PLATINUM mode and have an extended ear
-	//Madd: if(gGameOptions.ubGameStyle == STYLE_PLATINUM && ubVolumeIndex >= 2)
+	//show a locator for very loud noises if we have an extended ear
 	if(ubVolumeIndex >= 2)
 	{
-//		INT8 bSlot;
-
-		//bSlot = FindObj( pSoldier, EXTENDEDEAR );
-		//if ( bSlot == HEAD1POS || bSlot == HEAD2POS)
 		if ( FindHearingAid(pSoldier) )
 			BeginMultiPurposeLocator(sGridNo, bLevel, (INT8)((gTacticalStatus.uiFlags & TURNBASED) && ( gTacticalStatus.uiFlags & INCOMBAT )));
 	}

@@ -1078,8 +1078,7 @@ void PossiblyStartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, UINT32 ui
 	}
 	// is enemy blocked from taunting at the moment?
 	if( uiTauntFinishTimes[pCiv->ubID] > GetJA2Clock() )
-	{
-		
+	{		
 		return;
 	}
 	// check if generated person
@@ -1088,8 +1087,15 @@ void PossiblyStartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, UINT32 ui
 		return;
 	}
 	// only enemies and militia taunt
-	if( ( !( pCiv->bTeam == ENEMY_TEAM ) && !( pCiv->bTeam == MILITIA_TEAM ) )
+	// sevenfm: allow voice taunts for Kingpin faction
+	/*if( ( !( pCiv->bTeam == ENEMY_TEAM ) && !( pCiv->bTeam == MILITIA_TEAM ) )
 		&& ( !( pCiv->bTeam == ENEMY_TEAM ) && !( pCiv->bTeam == MILITIA_TEAM ) ) )
+	{
+		return;
+	}*/
+	if( pCiv->bTeam != ENEMY_TEAM &&
+		pCiv->bTeam != MILITIA_TEAM &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ))
 	{
 		return;
 	}
@@ -2137,7 +2143,7 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	{
 		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
 		{			
-			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad soldier state" );
+			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad soldier state (dying or collapsed)" );
 		}
 		return FALSE;
 	}
@@ -2172,6 +2178,10 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	else if( pCiv->bTeam == MILITIA_TEAM )
 	{
 		strcat( filename, "\\Militia\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP )
+	{
+		strcat( filename, "\\Kingpin\\");
 	}
 	else if( pCiv->ubBodyType == BIGMALE )
 	{
@@ -2242,8 +2252,6 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 		ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
 	}
 
-	// gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa
-	// INT8 DecideHearing( SOLDIERTYPE * pSoldier )
 	if( gTauntsSettings.fTauntMakeNoise == TRUE )
 	{
 		// convert char to char16
