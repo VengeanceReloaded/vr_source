@@ -308,6 +308,7 @@ BOOLEAN ProcessImplicationsOfPCAttack( SOLDIERTYPE * pSoldier, SOLDIERTYPE ** pp
 INT32 FindAdjacentPunchTarget( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pTargetSoldier, INT32 * psAdjustedTargetGridNo, UINT8 * pubDirection );
 SOLDIERTYPE * CivilianGroupMemberChangesSides( SOLDIERTYPE * pAttacked );
 void CivilianGroupChangesSides( UINT8 ubCivilianGroup );
+void CivilianGroupChangesSidesToFriendly( UINT8 ubCivilianGroup ); // anv: VR
 void CycleVisibleEnemies( SOLDIERTYPE *pSrcSoldier );
 void CycleVisibleEnemiesBackward( SOLDIERTYPE *pSrcSoldier );
 UINT8 CivilianGroupMembersChangeSidesWithinProximity( SOLDIERTYPE * pAttacked );

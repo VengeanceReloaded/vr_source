@@ -4099,19 +4099,14 @@ void MakeCivHostile( SOLDIERTYPE *pSoldier, INT8 bNewSide )
                 }
             }
         }
-		// anv: VR - Tracona and CIA operatives go bonkers when they notice Conman
-		if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP || pSoldier->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
+		// anv: VR - tie operatives and their leaders group (one-sided)
+		if ( pSoldier->ubCivilianGroup == CIA_STANLEY_GROUP )
 		{
-			// if Conman is in the sector and escorted, set fact that the escape has
-			// been noticed
-			if ( gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS )
-			{
-				SOLDIERTYPE * pConman = FindSoldierByProfileID( CONMAN, FALSE );
-				if ( pConman && pConman->bActive && pConman->bInSector )
-				{
-					SetFactTrue( FACT_CONMAN_NOTICED );
-				}
-			}
+			CivilianGroupChangesSides(CIA_OPERATIVES_GROUP);
+		}
+		if ( pSoldier->ubCivilianGroup == TRACONA_DRAGON_GROUP )
+		{
+			CivilianGroupChangesSides(TRACONA_OPERATIVES_GROUP);
 		}
 
         if (pSoldier->ubProfile == BILLY)
@@ -4312,6 +4307,28 @@ void CivilianGroupChangesSides( UINT8 ubCivilianGroup )
        TriggerFriendWithHostileQuote( ubFirstProfile );
        }
      */
+}
+
+void CivilianGroupChangesSidesToFriendly( UINT8 ubCivilianGroup )
+{
+    // change civ group side due to external event (wall blowing up)
+    INT32                                       cnt;
+    SOLDIERTYPE *                       pSoldier;
+
+	gTacticalStatus.fCivGroupHostile[ ubCivilianGroup ] = CIV_GROUP_NEUTRAL;
+
+    // now change sides for anyone on the civ team
+    cnt = gTacticalStatus.Team[ CIV_TEAM ].bFirstID;
+    for ( pSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ CIV_TEAM ].bLastID; cnt++ ,pSoldier++)
+    {
+        if (pSoldier->bActive && pSoldier->bInSector && pSoldier->stats.bLife)
+        {
+            if ( pSoldier->ubCivilianGroup == ubCivilianGroup && pSoldier->ubBodyType != COW )
+            {
+				SetSoldierNeutral(pSoldier);
+            }
+        }
+    }
 }
 
 void HickCowAttacked( SOLDIERTYPE * pNastyGuy, SOLDIERTYPE * pTarget )

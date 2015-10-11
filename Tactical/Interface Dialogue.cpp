@@ -4669,7 +4669,83 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					}
 
 				}
-				break;	
+				break;
+			case NPC_ACTION_CIA_BUYER_TO_PLAYER:
+				// should change to split up cash
+				DeleteTalkingMenu( );
+				pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
+
+				if ( pSoldier )
+				{
+					INT32		sNearestPC;
+					UINT8		ubID;
+					INT8		bMoneySlot;
+					INT8		bEmptySlot;
+
+					sNearestPC = ClosestPC( pSoldier, NULL );
+					
+					if (!TileIsOutOfBounds(sNearestPC))
+					{
+						ubID = WhoIsThere2( sNearestPC, 0 );
+						if (ubID != NOBODY)
+						{
+							pSoldier2 = MercPtrs[ ubID ];
+						}
+					}
+
+					if (pSoldier2)
+					{
+						//bMoneySlot = FindObjClass( pSoldier, IC_MONEY );
+						bEmptySlot = FindObj( pSoldier, NOTHING );
+
+						// have to separate out money from Darren's stash equal to the amount of the bet
+						// times 2 (returning the player's money, after all!)
+						CreateMoney( 10000, &(pSoldier->inv[ bEmptySlot ] ) );
+						SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bEmptySlot ] ), bEmptySlot );
+					}
+
+					CivilianGroupChangesSidesToFriendly( CIA_OPERATIVES_GROUP );
+					CivilianGroupChangesSidesToFriendly( CIA_STANLEY_GROUP );
+				}
+				break;
+			case NPC_ACTION_TRACONIAN_BUYER_TO_PLAYER:
+				// should change to split up cash
+				DeleteTalkingMenu( );
+				pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
+
+				if ( pSoldier )
+				{
+					INT32		sNearestPC;
+					UINT8		ubID;
+					INT8		bMoneySlot;
+					INT8		bEmptySlot;
+
+					sNearestPC = ClosestPC( pSoldier, NULL );
+					
+					if (!TileIsOutOfBounds(sNearestPC))
+					{
+						ubID = WhoIsThere2( sNearestPC, 0 );
+						if (ubID != NOBODY)
+						{
+							pSoldier2 = MercPtrs[ ubID ];
+						}
+					}
+
+					if (pSoldier2)
+					{
+						//bMoneySlot = FindObjClass( pSoldier, IC_MONEY );
+						bEmptySlot = FindObj( pSoldier, NOTHING );
+
+						// have to separate out money from Darren's stash equal to the amount of the bet
+						// times 2 (returning the player's money, after all!)
+						CreateMoney( 10000, &(pSoldier->inv[ bEmptySlot ] ) );
+						SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bEmptySlot ] ), bEmptySlot );
+					}
+
+					CivilianGroupChangesSidesToFriendly( TRACONA_OPERATIVES_GROUP );
+					CivilianGroupChangesSidesToFriendly( TRACONA_DRAGON_GROUP );
+				}
+				break;
 			// /VENGEANCE
 						break;
 

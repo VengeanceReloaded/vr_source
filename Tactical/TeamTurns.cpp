@@ -56,6 +56,9 @@
 #include "GameSettings.h"
 #include "Reinforcement.h"
 #include "fresh_header.h"
+// anv: VR
+#include "Quests.h"
+
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
@@ -513,6 +516,25 @@ void BeginTeamTurn( UINT8 ubTeam )
 	//rain
 	if( !LightningEndOfTurn( ubTeam ) )return;
 	//end rain
+
+	// anv: VR - loudhailer
+	if( ubTeam == ENEMY_TEAM && CheckFact( FACT_CONMAN_NOTICED, CONMAN ) && !CheckFact( FACT_CONMAN_DEAD, CONMAN ) && gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS )
+	{
+		SOLDIERTYPE	*pCIABuyer = FindSoldierByProfileID(CIA_BUYER, false);
+		if(pCIABuyer != NULL && pCIABuyer->bActive && pCIABuyer->bInSector && pCIABuyer->stats.bLife)
+		{
+			if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 8 ) )
+				TriggerNPCRecord( CIA_BUYER, 8 );
+			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 9 ) )
+				TriggerNPCRecord( CIA_BUYER, 9 );
+			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 10 ) )
+				TriggerNPCRecord( CIA_BUYER, 10 );
+			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 11 ) )
+				TriggerNPCRecord( CIA_BUYER, 11 );
+			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 12 ) )
+				TriggerNPCRecord( CIA_BUYER, 12 );
+		}
+	}
 
 	// disable for our turn and enable for other teams
 	if ( gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE] )

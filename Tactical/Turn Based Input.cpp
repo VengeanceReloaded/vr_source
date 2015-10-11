@@ -4030,6 +4030,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 						if ( INFORMATION_CHEAT_LEVEL( ) )
 						{
 						}
+						RefreshAllNPCScripts();
 					}
 					else
 					{

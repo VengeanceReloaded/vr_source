@@ -197,6 +197,7 @@ extern void NPCReachedDestination( SOLDIERTYPE * pNPC, BOOLEAN fAlreadyThere );
 extern void PCsNearNPC( UINT8 ubNPC );
 extern BOOLEAN PCDoesFirstAidOnNPC( UINT8 ubNPC );
 extern void TriggerNPCRecord( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec );
+extern BOOLEAN NPCConsiderQuoteForTrigger( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec ); // anv: VR
 extern BOOLEAN TriggerNPCWithIHateYouQuote( UINT8 ubTriggerNPC );
 
 extern void TriggerNPCRecordImmediately( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec );

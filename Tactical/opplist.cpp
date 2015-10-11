@@ -2311,6 +2311,34 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 								}
 							}
 							break;
+						// anv: VR - Tracona and CIA operatives go bonkers when they notice Conman
+						case CIA_BUYER:
+						case TRACONIAN_BUYER:
+							// if Conman is in the sector and escorted, set fact that the escape has
+							// been noticed
+							if ( pOpponent->ubProfile == CONMAN && gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS && !CheckFact( FACT_CONMAN_NOTICED, CONMAN ) )
+							{
+								SOLDIERTYPE * pConman = FindSoldierByProfileID( CONMAN, FALSE );
+								if ( pConman && pConman->bActive && pConman->bInSector )
+								{
+									// blow cover
+									pConman->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV|SOLDIER_COVERT_NPC_SPECIAL);
+
+									SetFactTrue( FACT_CONMAN_NOTICED );
+									CivilianGroupChangesSides( TRACONA_OPERATIVES_GROUP );
+									CivilianGroupChangesSides( CIA_OPERATIVES_GROUP );
+
+									SOLDIERTYPE * pTraconianBuyer = FindSoldierByProfileID( TRACONIAN_BUYER, FALSE );
+									if ( pTraconianBuyer && pTraconianBuyer->bActive && pTraconianBuyer->bInSector )
+									{
+										if ( CheckFact( FACT_TRACONA_WANTS_FAKE_SAMPLE, TRACONIAN_BUYER ) == TRUE )
+											TriggerNPCRecord( TRACONIAN_BUYER, 6 );
+										else
+											TriggerNPCRecord( TRACONIAN_BUYER, 8 );
+									}
+								}
+							}
+							break;
 						default:
 							break;
 						}
@@ -2413,12 +2441,26 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 					{
 						// if Conman is in the sector and escorted, set fact that the escape has
 						// been noticed
-						if ( gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS )
+						if ( pOpponent->ubProfile == CONMAN && gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS && !CheckFact( FACT_CONMAN_NOTICED, CONMAN ) )
 						{
 							SOLDIERTYPE * pConman = FindSoldierByProfileID( CONMAN, FALSE );
 							if ( pConman && pConman->bActive && pConman->bInSector )
 							{
+								// blow cover
+								pConman->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV|SOLDIER_COVERT_NPC_SPECIAL);
+
 								SetFactTrue( FACT_CONMAN_NOTICED );
+								CivilianGroupChangesSides( TRACONA_OPERATIVES_GROUP );
+								CivilianGroupChangesSides( CIA_OPERATIVES_GROUP );
+
+								SOLDIERTYPE * pTraconianBuyer = FindSoldierByProfileID( TRACONIAN_BUYER, FALSE );
+								if ( pTraconianBuyer && pTraconianBuyer->bActive && pTraconianBuyer->bInSector )
+								{
+									if ( CheckFact( FACT_TRACONA_WANTS_FAKE_SAMPLE, TRACONIAN_BUYER ) == TRUE )
+										TriggerNPCRecord( TRACONIAN_BUYER, 6 );
+									else
+										TriggerNPCRecord( TRACONIAN_BUYER, 8 );
+								}
 							}
 						}
 					}
@@ -2442,20 +2484,6 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 								// begin quote
 								BeginCivQuote( pSoldier, CIV_QUOTE_HICKS_SEE_US_AT_NIGHT, 0, sX, sY );
 							}
-						}
-					}
-					// anv: VR - Tracona and CIA operatives go bonkers when they notice Conman
-					else if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP )
-					{
-						// check to see if we are looking at Conman
-						if (pOpponent->ubProfile == CONMAN)
-						{
-							MakeCivHostile( pSoldier, 2 );
-							if ( ! (gTacticalStatus.uiFlags & INCOMBAT) )
-							{
-								EnterCombatMode( pSoldier->bTeam );
-							}
-							SetFactTrue( FACT_CONMAN_NOTICED );
 						}
 					}
 				}

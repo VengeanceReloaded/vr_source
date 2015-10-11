@@ -1163,7 +1163,9 @@ UINT8 NPCConsiderReceivingItemFromMerc( UINT8 ubNPC, UINT8 ubMerc, OBJECTTYPE * 
 	(*ppResultQuoteInfo) = NULL;
 	(*pubQuoteNum)			 = 0;
 
-	if ( CheckFact( FACT_NPC_IS_ENEMY, ubNPC ) && ubNPC != JOE )
+	if ( CheckFact( FACT_NPC_IS_ENEMY, ubNPC ) && ubNPC != JOE 
+		// anv: VR
+		&& ubNPC != TRACONIAN_BUYER && ubNPC != CIA_BUYER )
 	{
 		// don't accept any items when we are the player's enemy
 		return( 0 );
@@ -1980,7 +1982,9 @@ void Converse( UINT8 ubNPC, UINT8 ubMerc, INT8 bApproach, UINT32 uiApproachData 
 
 		if ( CheckFact( FACT_CURRENT_SECTOR_IS_SAFE, ubNPC ) == FALSE )
 		{
-			if ( bApproach != TRIGGER_NPC && bApproach != APPROACH_GIVEFIRSTAID && bApproach != APPROACH_DECLARATION_OF_HOSTILITY && bApproach != APPROACH_ENEMY_NPC_QUOTE )
+			if ( bApproach != TRIGGER_NPC && bApproach != APPROACH_GIVEFIRSTAID && bApproach != APPROACH_DECLARATION_OF_HOSTILITY && bApproach != APPROACH_ENEMY_NPC_QUOTE 
+				// anv: VR
+				&& !(bApproach == APPROACH_GIVINGITEM && (pNPC->ubProfile == CIA_BUYER || pNPC->ubProfile == TRACONIAN_BUYER)))
 			{
 				if ( NPCHasUnusedRecordWithGivenApproach( ubNPC, APPROACH_SECTOR_NOT_SAFE ) )
 				{
@@ -2814,6 +2818,11 @@ void TriggerNPCRecord( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec )
 		// don't do anything
 		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "WARNING: trigger of %d, record %d cannot proceed, possible error", ubTriggerNPC, ubTriggerNPCRec ) );
 	}
+}
+
+BOOLEAN NPCConsiderQuoteForTrigger( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec )
+{
+	return NPCConsiderQuote( ubTriggerNPC, 0, TRIGGER_NPC, ubTriggerNPCRec, 0, gpNPCQuoteInfoArray[ ubTriggerNPC ] );
 }
 
 void TriggerNPCRecordImmediately( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec )
