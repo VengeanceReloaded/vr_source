@@ -774,7 +774,7 @@ void HourlyWeeklyLeaks()
 				break;
 
 			case 3:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_1_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_1_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_1, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_1_SENT );
@@ -782,7 +782,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 4:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_2_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_2_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_2, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_2_SENT );
@@ -790,7 +790,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 5:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_3_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_3_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_3, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_3_SENT );
@@ -798,7 +798,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 6:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_4_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_4_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_4, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_4_SENT );
@@ -806,7 +806,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 7:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_5_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_5_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_5, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_5_SENT );
@@ -814,7 +814,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 8:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_6_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_6_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_6, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_6_SENT );
@@ -822,7 +822,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 9:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_7_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_7_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_7, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_7_SENT );
@@ -830,7 +830,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 10:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_8_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_8_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_8, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_8_SENT );
@@ -838,7 +838,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 11:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_9_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_9_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_9, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_9_SENT );
@@ -846,7 +846,7 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 12:
-				if( !gubFact[ FACT_WEEKLY_LEAKS_10_SENT ] )
+				if( !gubFact[ FACT_WEEKLY_LEAKS_10_SENT ] && GetWorldDay() % 3 == 0 && GetWorldHour == 0 )
 				{
 					AddEmail( WEEKLY_LEAKS_10, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_10_SENT );

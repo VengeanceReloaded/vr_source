@@ -308,23 +308,24 @@ BOOLEAN		EnterCreditsScreen()
 	guiGapBetweenCreditNodes = CRDT_SPACE_BN_NODES;
 	guiGapTillReadNextCredit = CRDT_SPACE_BN_NODES;
 
-	for( uiCnt=0; uiCnt < NUM_PEOPLE_IN_CREDITS; uiCnt++)
-	{
-		// Make a mouse region
-		MSYS_DefineRegion( &gCrdtMouseRegions[uiCnt], gCreditFaces[uiCnt].sX + xResOffset, gCreditFaces[uiCnt].sY + yResOffset, (INT16)(gCreditFaces[uiCnt].sX + gCreditFaces[uiCnt].sWidth + xResOffset), (INT16)(gCreditFaces[uiCnt].sY + gCreditFaces[uiCnt].sHeight + yResOffset), MSYS_PRIORITY_NORMAL,
-			CURSOR_WWW, SelectCreditFaceMovementRegionCallBack, SelectCreditFaceRegionCallBack );
+	// anv: VR
+	//for( uiCnt=0; uiCnt < NUM_PEOPLE_IN_CREDITS; uiCnt++)
+	//{
+	//	// Make a mouse region
+	//	MSYS_DefineRegion( &gCrdtMouseRegions[uiCnt], gCreditFaces[uiCnt].sX + xResOffset, gCreditFaces[uiCnt].sY + yResOffset, (INT16)(gCreditFaces[uiCnt].sX + gCreditFaces[uiCnt].sWidth + xResOffset), (INT16)(gCreditFaces[uiCnt].sY + gCreditFaces[uiCnt].sHeight + yResOffset), MSYS_PRIORITY_NORMAL,
+	//		CURSOR_WWW, SelectCreditFaceMovementRegionCallBack, SelectCreditFaceRegionCallBack );
 
 
-		// Add region
-		MSYS_AddRegion( &gCrdtMouseRegions[uiCnt] );
+	//	// Add region
+	//	MSYS_AddRegion( &gCrdtMouseRegions[uiCnt] );
 
-		MSYS_SetRegionUserData( &gCrdtMouseRegions[uiCnt], 0, uiCnt );
-	}
+	//	MSYS_SetRegionUserData( &gCrdtMouseRegions[uiCnt], 0, uiCnt );
+	//}
 
 	giCurrentlySelectedFace = -1;
 	gfPauseCreditScreen = FALSE;
 
-	InitCreditEyeBlinking();
+	//InitCreditEyeBlinking(); // anv: VR
 
 	return( TRUE );
 }
@@ -369,7 +370,7 @@ void HandleCreditScreen()
 	HandleCreditNodes();
 
 	//Handle the blinkng eyes
-	HandleCreditEyeBlinking();
+	//HandleCreditEyeBlinking(); // anv: VR
 
 	//is it time to get a new node
 	if( gCrdtLastAddedNode == NULL || ( CRDT_START_POS_Y - ( gCrdtLastAddedNode->sPosY + gCrdtLastAddedNode->sHeightOfString - 16 ) ) >= (INT16)guiGapTillReadNextCredit )
