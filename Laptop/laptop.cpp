@@ -1038,7 +1038,8 @@ INT32 EnterLaptop()
 	gfShowBookmarks=FALSE;
 	LoadBookmark( );
 
-	if (!is_networked)
+	//if (!is_networked)
+	if (!is_networked && !gGameOptions.fDieHardMode) // anv: VR - Die Hard mode - block AIM website
 		SetBookMark(AIM_BOOKMARK);
 
 #ifdef JA2UB		

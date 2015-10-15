@@ -53,6 +53,8 @@ enum
 };
 extern	STR16	gzIronManModeWarningText[];
 
+extern	STR16	gzDieHardModeWarningText[]; // anv: VR
+
 // display cover message (for tactical usually, seperated)
 // display cover terrain type info (used in cover information)
 enum

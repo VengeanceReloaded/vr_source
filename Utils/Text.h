@@ -2121,6 +2121,8 @@ enum
 	GIO_FOODSYSTEM_TITLE_TEXT,
 	GIO_BR_QUANTITY_TEXT,
 
+	GIO_DIE_HARD_TEXT,// anv: VR - Die Hard Mode
+
 	////////////////////////////////////
 	TEXT_NUM_GIO_TEXT
 };

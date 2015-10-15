@@ -5836,6 +5836,8 @@ STR16	gzGIOScreenText[] =
 	L"佣兵故事背景", //L"Merc Story Backgrounds",
 	L"生存模式与食物系统",
 	L"Bobby Ray 供货量",
+
+	L"Die Hard Mode",// anv: VR - Die Hard Mode
 };
 
 STR16	gzMPJScreenText[] =

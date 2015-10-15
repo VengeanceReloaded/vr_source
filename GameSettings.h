@@ -239,8 +239,10 @@ typedef struct
 	BOOLEAN fBackGround;				// ubFiller:	From 497 to 496
 	BOOLEAN fFoodSystem;				// ubFiler:		From 496 to 495
 	
+	BOOLEAN fDieHardMode;				// ubFiller:	From 495 to 494 anv: VR
+
 	// WANNE: Decrease this filler by 1, for each new UINT8 / BOOLEAN variable, so we can maintain savegame compatibility!!
-	UINT8	ubFiller[495];		
+	UINT8	ubFiller[494];
 
 } GAME_OPTIONS;
 

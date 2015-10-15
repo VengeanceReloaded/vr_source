@@ -500,6 +500,13 @@ STR16	gzIronManModeWarningText[]=
 	L"Wybrałeś tryb CZŁOWIEK ZE STALI. Opcja ta sprawi, że gra będzie dużo trudniejsza ponieważ nie będzie możliwości zapisywania gry podczas walki. Będzie to miało wpływ na cały przebieg rozgrywki. Czy na pewno chcesz grać w trybie CZŁOWIEK ZE STALI?",
 };
 
+// anv: VR
+STR16	gzDieHardModeWarningText[]=
+{
+	L"Wybrałeś tryb SZKLANEJ PUŁAPKI. Z tą opcją AIM i MERC nie będę oferować swoich usług - zmuszony będziesz polegać na sobie i kimkolwiek kogo zdołasz zrekrutować na miejscu. Opcja ta znacząco podnosi poziom trudności. Czy na pewno chcesz grać w trybie SZKLANEJ PUŁAPKI?",
+};
+
+
 STR16 gzDisplayCoverText[]=
 {
 	L"Cover: %d/100 %s, Brightness: %d/100",

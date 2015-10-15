@@ -497,6 +497,13 @@ STR16	gzIronManModeWarningText[]=
 	L"Hai scelto la modalità IRON MAN. Questa impostazione rende il gioco notevolmente più impegnativo, poiché non potrai salvare la partita in un settore occupato da nemici. Non potrai cambiare questa decisione nel corso della partita. Sei sicuro di voler giocare al livello IRON MAN?",
 };
 
+// anv: VR
+STR16	gzDieHardModeWarningText[]=
+{
+	L"You have chosen DIE HARD mode. With this setting AIM and MERC no longer offer their services - forcing you to rely on yourself and whomever you'll manage to recruit in Arulco. Needless to say, this setting will heavily affect the difficulty of the game. Are you sure want to play in DIE HARD mode?",
+};
+
+
 STR16 gzDisplayCoverText[]=
 {
 	L"Copertura: %d/100 %s, Luminosità: %d/100",

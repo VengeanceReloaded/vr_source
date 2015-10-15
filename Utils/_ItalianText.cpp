@@ -5827,6 +5827,8 @@ STR16	gzGIOScreenText[] =
 	L"Merc Story Backgrounds", // TODO.Translate
 	L"Food System",// TODO.Translate
 	L"Bobby Ray Quantity", // TODO.Translate
+
+	L"Die Hard Mode",// anv: VR - Die Hard Mode
 };
 
 STR16	gzMPJScreenText[] =

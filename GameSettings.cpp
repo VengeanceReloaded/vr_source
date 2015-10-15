@@ -653,6 +653,8 @@ void InitGameOptions()
 	gGameOptions.fBackGround = FALSE;
 	gGameOptions.fFoodSystem = FALSE;
 
+	gGameOptions.fDieHardMode = FALSE;// anv: VR
+
 	//CHRISL: override default inventory mode when in low res
 	if(IsNIVModeValid(true) == FALSE)
 	{

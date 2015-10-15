@@ -3273,6 +3273,7 @@ void RenderGIOSmallSelectionFrame(INT16 sX, INT16 sY)
 #define		JA2SP_USE_IIS							"IMPROVED_INTERRUPT_SYSTEM"
 #define		JA2SP_BACKGROUNDS						"BACKGROUNDS"
 #define		JA2SP_FOODSYSTEM						"FOOD_SYSTEM"
+#define		JA2SP_DIE_HARD						"DIE_HARD"
 
 
 //Difficulty settings
@@ -3376,6 +3377,7 @@ enum
 	GIO_CANCEL,
 	GIO_EXIT,
 	GIO_IRON_MAN_MODE,
+	GIO_DIE_HARD_MODE,// anv: VR
 	MP_LOAD
 };
 
@@ -3499,6 +3501,12 @@ UINT32	guiNCTHOptionToggles[ GIO_NUM_ONOFF_BUTTONS ];
 void BtnGIONCTHOffCallback(GUI_BUTTON *btn,INT32 reason);
 void BtnGIONCTHOnCallback(GUI_BUTTON *btn,INT32 reason);
 
+// anv: VR - Die Hard mode
+UINT32	guiDieHardModeTogglesImage[ GIO_NUM_ONOFF_BUTTONS ];
+UINT32	guiDieHardModeToggles[ GIO_NUM_ONOFF_BUTTONS ];
+void BtnGIODieHardModeOffCallback(GUI_BUTTON *btn,INT32 reason);
+void BtnGIODieHardModeOnCallback(GUI_BUTTON *btn,INT32 reason);
+
 // IIS
 UINT32	guiImprovedInterruptOptionTogglesImage[ GIO_NUM_ONOFF_BUTTONS ];
 UINT32	guiImprovedInterruptOptionToggles[ GIO_NUM_ONOFF_BUTTONS ];
@@ -3557,8 +3565,10 @@ BOOLEAN		DoGioMessageBox( UINT8 ubStyle, const STR16 zString, UINT32 uiExitScree
 void		DisplayMessageToUserAboutGameDifficulty();
 void		ConfirmGioDifSettingMessageBoxCallBack( UINT8 bExitValue );
 BOOLEAN		DisplayMessageToUserAboutIronManMode();
+BOOLEAN		DisplayMessageToUserAboutDieHardMode();// anv: VR
 BOOLEAN		DisplayMessageToUserAboutOIVandNASincompatibility();
 void		ConfirmGioIronManMessageBoxCallBack( UINT8 bExitValue );
+void		ConfirmGioDieHardMessageBoxCallBack( UINT8 bExitValue );// anv: VR
 
 BOOLEAN SpIniExists()
 {
@@ -3656,6 +3666,8 @@ UINT32	GameInitOptionsScreenInit( void )
 	gGameOptions.fImprovedInterruptSystem = (BOOLEAN)props.getIntProperty(JA2SP_INI_INITIAL_SECTION, JA2SP_USE_IIS, 0);
 	gGameOptions.fBackGround = (BOOLEAN)props.getIntProperty(JA2SP_INI_INITIAL_SECTION, JA2SP_BACKGROUNDS, 0);
 	gGameOptions.fFoodSystem = (BOOLEAN)props.getIntProperty(JA2SP_INI_INITIAL_SECTION, JA2SP_FOODSYSTEM, 0);
+
+	gGameOptions.fDieHardMode = (BOOLEAN)props.getIntProperty(JA2SP_INI_INITIAL_SECTION, JA2SP_DIE_HARD, 0);
 
 	// Air strikes
 	gGameOptions.fAirStrikes =  FALSE;
@@ -4163,31 +4175,60 @@ BOOLEAN		EnterGIOScreen()
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	// NCTH ON/OFF SETTING
 
-	guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ] = 	UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
-	guiNCTHOptionToggles[ GIO_BUTTON_OFF ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ], gzGIOScreenText[ GIO_DROPALL_OFF_TEXT ], GIO_TOGGLE_TEXT_FONT,
+	//guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ] = 	UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
+	//guiNCTHOptionToggles[ GIO_BUTTON_OFF ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ], gzGIOScreenText[ GIO_DROPALL_OFF_TEXT ], GIO_TOGGLE_TEXT_FONT,
+	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+	//												TEXT_CJUSTIFIED,
+	//												(GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
+	//												DEFAULT_MOVE_CALLBACK, BtnGIONCTHOffCallback);
+
+	//guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ] = UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
+	//guiNCTHOptionToggles[ GIO_BUTTON_ON ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ],  gzGIOScreenText[ GIO_DROPALL_ON_TEXT ], GIO_TOGGLE_TEXT_FONT,
+	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+	//												TEXT_CJUSTIFIED,
+	//												(GIO_NCTH_SETTING_X + 74), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
+	//												DEFAULT_MOVE_CALLBACK, BtnGIONCTHOnCallback );
+
+	//SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_OFF ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
+	//SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_ON ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
+	//MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_OFF ],0, 0 );
+	//MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_ON ],0, 1 );
+
+	//if( gGameOptions.fUseNCTH )
+	//	ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_ON ] ]->uiFlags |= BUTTON_CLICKED_ON;
+	//else
+	//	ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_OFF ] ]->uiFlags |= BUTTON_CLICKED_ON;	
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////
+	// anv: VR - DIE HARD MODE
+
+	guiDieHardModeTogglesImage[ GIO_BUTTON_OFF ] = 	UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
+	guiDieHardModeToggles[ GIO_BUTTON_OFF ] =	CreateIconAndTextButton( guiDieHardModeTogglesImage[ GIO_BUTTON_OFF ], gzGIOScreenText[ GIO_DROPALL_OFF_TEXT ], GIO_TOGGLE_TEXT_FONT,
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													TEXT_CJUSTIFIED,
 													(GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
-													DEFAULT_MOVE_CALLBACK, BtnGIONCTHOffCallback);
+													DEFAULT_MOVE_CALLBACK, BtnGIODieHardModeOffCallback);
 
-	guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ] = UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
-	guiNCTHOptionToggles[ GIO_BUTTON_ON ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ],  gzGIOScreenText[ GIO_DROPALL_ON_TEXT ], GIO_TOGGLE_TEXT_FONT,
+	guiDieHardModeTogglesImage[ GIO_BUTTON_ON ] = UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
+	guiDieHardModeToggles[ GIO_BUTTON_ON ] =	CreateIconAndTextButton( guiDieHardModeTogglesImage[ GIO_BUTTON_ON ],  gzGIOScreenText[ GIO_DROPALL_ON_TEXT ], GIO_TOGGLE_TEXT_FONT,
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													TEXT_CJUSTIFIED,
 													(GIO_NCTH_SETTING_X + 74), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
-													DEFAULT_MOVE_CALLBACK, BtnGIONCTHOnCallback );
+													DEFAULT_MOVE_CALLBACK, BtnGIODieHardModeOnCallback );
 
-	SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_OFF ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
-	SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_ON ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
-	MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_OFF ],0, 0 );
-	MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_ON ],0, 1 );
+	SpecifyButtonSoundScheme( guiDieHardModeToggles[ GIO_BUTTON_OFF ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
+	SpecifyButtonSoundScheme( guiDieHardModeToggles[ GIO_BUTTON_ON ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
+	MSYS_SetBtnUserData(guiDieHardModeToggles[ GIO_BUTTON_OFF ],0, 0 );
+	MSYS_SetBtnUserData(guiDieHardModeToggles[ GIO_BUTTON_ON ],0, 1 );
 
-	if( gGameOptions.fUseNCTH )
-		ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_ON ] ]->uiFlags |= BUTTON_CLICKED_ON;
+	if( gGameOptions.fDieHardMode )
+		ButtonList[ guiDieHardModeToggles[ GIO_BUTTON_ON ] ]->uiFlags |= BUTTON_CLICKED_ON;
 	else
-		ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_OFF ] ]->uiFlags |= BUTTON_CLICKED_ON;	
+		ButtonList[ guiDieHardModeToggles[ GIO_BUTTON_OFF ] ]->uiFlags |= BUTTON_CLICKED_ON;	
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	// IMPROVED INTERRUPT SYSTEM ON/OFF SETTING
@@ -5152,6 +5193,37 @@ void BtnGIONCTHOnCallback(GUI_BUTTON *btn,INT32 reason)
 	}
 }
 
+void BtnGIODieHardModeOffCallback(GUI_BUTTON *btn,INT32 reason)
+{
+	if (!(btn->uiFlags & BUTTON_ENABLED))
+		return;
+
+	if( reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
+	{
+		RestoreExternBackgroundRect( (GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), 230, 40 );
+
+		ButtonList[ guiDieHardModeToggles[ GIO_BUTTON_ON ] ]->uiFlags &= ~BUTTON_CLICKED_ON;
+		btn->uiFlags|=(BUTTON_CLICKED_ON);
+			
+		PlayButtonSound( guiDieHardModeToggles[ GIO_BUTTON_OFF ], BUTTON_SOUND_CLICKED_ON );
+	}
+}
+void BtnGIODieHardModeOnCallback(GUI_BUTTON *btn,INT32 reason)
+{
+	if (!(btn->uiFlags & BUTTON_ENABLED))
+		return;
+
+	if( reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
+	{
+		RestoreExternBackgroundRect( (GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), 230, 40 );
+
+		ButtonList[ guiDieHardModeToggles[ GIO_BUTTON_OFF ] ]->uiFlags &= ~BUTTON_CLICKED_ON;
+		btn->uiFlags|=(BUTTON_CLICKED_ON);
+			
+		PlayButtonSound( guiDieHardModeToggles[ GIO_BUTTON_ON ], BUTTON_SOUND_CLICKED_ON );
+	}
+}
+
 void BtnGIOImprovedInterruptOffCallback(GUI_BUTTON *btn,INT32 reason)
 {
 	if (!(btn->uiFlags & BUTTON_ENABLED))
@@ -5361,12 +5433,19 @@ BOOLEAN		ExitGIOScreen()
 	}
 	
 	// Destroy NCTH Cost setting buttons
+	//for( cnt=0; cnt<GIO_NUM_ONOFF_BUTTONS; cnt++)
+	//{
+	//	RemoveButton( guiNCTHOptionToggles[ cnt ] );
+	//	UnloadButtonImage( guiNCTHOptionTogglesImage[ cnt ] );
+	//}
+	//
+	// anv: VR - Destroy Die Hard mode setting buttons
 	for( cnt=0; cnt<GIO_NUM_ONOFF_BUTTONS; cnt++)
 	{
-		RemoveButton( guiNCTHOptionToggles[ cnt ] );
-		UnloadButtonImage( guiNCTHOptionTogglesImage[ cnt ] );
+		RemoveButton( guiDieHardModeToggles[ cnt ] );
+		UnloadButtonImage( guiDieHardModeTogglesImage[ cnt ] );
 	}
-	
+
 	// Destroy IIS Cost setting buttons
 	for( cnt=0; cnt<GIO_NUM_ONOFF_BUTTONS; cnt++)
 	{
@@ -5436,6 +5515,15 @@ void HandleGIOScreen()
 
 			case GIO_IRON_MAN_MODE:
 				DisplayMessageToUserAboutGameDifficulty();
+				break;
+
+			case GIO_DIE_HARD_MODE:
+				//if the user doesnt have IRON MAN mode selected
+				if( !DisplayMessageToUserAboutIronManMode() )
+				{
+					//Confirm the difficulty setting
+					DisplayMessageToUserAboutGameDifficulty();
+				}
 				break;
 		}
 
@@ -5558,7 +5646,9 @@ BOOLEAN		RenderGIOScreen()
 	DisplayWrappedString( (UINT16)(GIO_SQUAD_SIZE_SETTING_X+GIO_OFFSET_TO_TEXT + 1), (GIO_SQUAD_SIZE_SETTING_Y+6), GIO_SQUAD_SIZE_SETTING_WIDTH, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ iCurrentSquadSize + (GIO_SQUAD_SIZE_TITLE_TEXT + 1) ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 
 	//Display the NCTH Settings Title Text
-	DisplayWrappedString( (GIO_NCTH_SETTING_X - 6), (UINT16)(GIO_NCTH_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_NCTH_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_NCTH_TITLE_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+	//DisplayWrappedString( (GIO_NCTH_SETTING_X - 6), (UINT16)(GIO_NCTH_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_NCTH_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_NCTH_TITLE_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+	// anv: VR - Die Hard Mode
+	DisplayWrappedString( (GIO_NCTH_SETTING_X - 6), (UINT16)(GIO_NCTH_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_NCTH_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_DIE_HARD_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	//Display the Improved Interrupt System Settings Title Text
 	DisplayWrappedString( (GIO_IIS_SETTING_X - 6), (UINT16)(GIO_IIS_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_IIS_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_IIS_TITLE_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	//Display the Weapon Overheating Settings Title Text
@@ -5617,11 +5707,15 @@ void BtnGIODoneCallback(GUI_BUTTON *btn,INT32 reason)
 	{
 		btn->uiFlags &= (~BUTTON_CLICKED_ON );
 
-		//if the user doesnt have IRON MAN mode selected
-		if( !DisplayMessageToUserAboutIronManMode() )
+		// anv: VR
+		if( !DisplayMessageToUserAboutDieHardMode() )
 		{
-			//Confirm the difficulty setting
-			DisplayMessageToUserAboutGameDifficulty();
+			//if the user doesnt have IRON MAN mode selected
+			if( !DisplayMessageToUserAboutIronManMode() )
+			{
+				//Confirm the difficulty setting
+				DisplayMessageToUserAboutGameDifficulty();
+			}
 		}
 
 		InvalidateRegion(btn->Area.RegionTopLeftX, btn->Area.RegionTopLeftY, btn->Area.RegionBottomRightX, btn->Area.RegionBottomRightY);
@@ -5774,6 +5868,22 @@ UINT8	GetCurrentNCTHButtonSetting()
 	return( 0 );
 }
 
+// anv: VR - Die Hard mode
+UINT8	GetCurrentDieHardModeButtonSetting()
+{
+	UINT8	cnt;
+
+	for( cnt=0; cnt<GIO_NUM_ONOFF_BUTTONS; cnt++)
+	{
+		if( ButtonList[ guiDieHardModeToggles[ cnt ] ]->uiFlags & BUTTON_CLICKED_ON )
+		{
+			return( cnt );
+		}
+	}
+	return( 0 );
+}
+
+
 UINT8	GetCurrentIISButtonSetting()
 {
 	UINT8	cnt;
@@ -5877,6 +5987,8 @@ void DoneFadeOutForExitGameInitOptionScreen( void )
 	gGameOptions.fBackGround = GetCurrentBackGroundButtonSetting();
 	gGameOptions.fFoodSystem = GetCurrentFoodSystemButtonSetting();
 
+	// anv: VR
+	gGameOptions.fDieHardMode = GetCurrentDieHardModeButtonSetting();
 
 	//	gubGIOExitScreen = INIT_SCREEN;
 	gubGIOExitScreen = INTRO_SCREEN;
@@ -5963,6 +6075,20 @@ BOOLEAN DisplayMessageToUserAboutIronManMode()
 	return( FALSE );
 }
 
+// anv: VR
+BOOLEAN DisplayMessageToUserAboutDieHardMode()
+{
+	//if the user has selected IRON MAN mode
+	if( GetCurrentDieHardModeButtonSetting() )
+	{
+		DoGioMessageBox( MSG_BOX_BASIC_STYLE, gzDieHardModeWarningText[ 0 ], GAME_INIT_OPTIONS_SCREEN, MSG_BOX_FLAG_YESNO, ConfirmGioDieHardMessageBoxCallBack );
+
+		return( TRUE );
+	}
+
+	return( FALSE );
+}
+
 void ConfirmGioIronManMessageBoxCallBack( UINT8 bExitValue )
 {
 	if( bExitValue == MSG_BOX_RETURN_YES )
@@ -5971,11 +6097,23 @@ void ConfirmGioIronManMessageBoxCallBack( UINT8 bExitValue )
 	}
 	else
 	{
-		ButtonList[ guiGameSaveToggles[ GIO_IRON_MAN ] ]->uiFlags &= ~BUTTON_CLICKED_ON;
-		ButtonList[ guiGameSaveToggles[ GIO_CAN_SAVE ] ]->uiFlags |= BUTTON_CLICKED_ON;
+		//ButtonList[ guiGameSaveToggles[ GIO_IRON_MAN ] ]->uiFlags &= ~BUTTON_CLICKED_ON;
+		//ButtonList[ guiGameSaveToggles[ GIO_CAN_SAVE ] ]->uiFlags |= BUTTON_CLICKED_ON;
+		BtnGIOIronManOffCallback(ButtonList[ guiGameSaveToggles[ GIO_CAN_SAVE ] ], MSYS_CALLBACK_REASON_LBUTTON_DWN);
 	}
 }
 
+void ConfirmGioDieHardMessageBoxCallBack( UINT8 bExitValue )// anv: VR
+{
+	if( bExitValue == MSG_BOX_RETURN_YES )
+	{
+		gubGameOptionScreenHandler = GIO_DIE_HARD_MODE;
+	}
+	else
+	{
+		BtnGIODieHardModeOffCallback(ButtonList[ guiDieHardModeToggles[ GIO_BUTTON_OFF ] ], MSYS_CALLBACK_REASON_LBUTTON_DWN);		
+	}
+}
 void RenderGIOSmallSelectionFrame(INT16 sX, INT16 sY)
 {
 

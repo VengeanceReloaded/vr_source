@@ -500,6 +500,13 @@ STR16	gzIronManModeWarningText[]=
 	L"你选择了铁人模式。这将会游戏变得相当有挑战性，因为你无法在敌人占据的分区存档。 这个设置会影响游戏的整个进程。你确认你要在铁人模式下进行游戏吗?",
 };
 
+// anv: VR
+STR16	gzDieHardModeWarningText[]=
+{
+	L"You have chosen DIE HARD mode. With this setting AIM and MERC no longer offer their services - forcing you to rely on yourself and whomever you'll manage to recruit in Arulco. Needless to say, this setting will heavily affect the difficulty of the game. Are you sure want to play in DIE HARD mode?",
+};
+
+
 STR16 gzDisplayCoverText[]=
 {
 	L"隐蔽程度: %d/100 %s, 光亮度: %d/100",

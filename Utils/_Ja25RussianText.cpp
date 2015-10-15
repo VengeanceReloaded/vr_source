@@ -498,6 +498,13 @@ STR16	gzIronManModeWarningText[]=
 	L"Ваш выбор позволит сохраняться лишь в \"мирное время\". Проходить игру станет гораздо сложнее, так как сохраняться вы сможете только между боями. После старта игры изменить эту настройку нельзя. Вы уверены, что готовы расстаться с возможностью сохраняться в бою?",
 };
 
+// anv: VR
+STR16	gzDieHardModeWarningText[]=
+{
+	L"You have chosen DIE HARD mode. With this setting AIM and MERC no longer offer their services - forcing you to rely on yourself and whomever you'll manage to recruit in Arulco. Needless to say, this setting will heavily affect the difficulty of the game. Are you sure want to play in DIE HARD mode?",
+};
+
+
 STR16 gzDisplayCoverText[]=
 {
 	L"Укрытие: %d/100 %s, освещённость: %d/100",

@@ -3394,6 +3394,8 @@ BOOLEAN SaveGame( int ubSaveGameID, STR16 pGameDesc )
 	SaveGameHeader.sInitialGameOptions.fImprovedInterruptSystem = gGameOptions.fImprovedInterruptSystem;
 	SaveGameHeader.sInitialGameOptions.fBackGround = gGameOptions.fBackGround;
 
+	SaveGameHeader.sInitialGameOptions.fDieHardMode = gGameOptions.fDieHardMode;// anv: VR
+
 	//
 	// Save the Save Game header file
 	//

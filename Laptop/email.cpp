@@ -952,6 +952,10 @@ void AddEmail(INT32 iMessageOffset, INT32 iMessageLength, UINT8 ubSender, INT32 
 	//MessagePtr pMessageList;
 	//MessagePtr pMessage;
 	//CHAR16 pMessageString[320];
+
+	// anv: VR - Die Hard mode - block emails from MERC
+	if(iMessageOffset == MERC_INTRO && gGameOptions.fDieHardMode)
+		return;
 #ifdef JA2UB	
 
 	if ( EmailType == TYPE_EMAIL_EMAIL_EDT ) 

@@ -5843,6 +5843,8 @@ STR16	gzGIOScreenText[] =
 	L"Passif des mercenaires",
 	L"Système alimentaire",
 	L"Stock de Bobby Ray",
+
+	L"Die Hard Mode",// anv: VR - Die Hard Mode
 };
 
 STR16	gzMPJScreenText[] =

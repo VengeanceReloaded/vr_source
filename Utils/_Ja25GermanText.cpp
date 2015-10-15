@@ -500,6 +500,13 @@ STR16	gzIronManModeWarningText[]=
 	L"Sie haben sich für den Ironman-Modus entschieden. Mit dieser Einstellung können Sie das Spiel nicht speichern, wenn Feinde im Sektor sind. Sind Sie sicher, dass Sie im Ironman-Modus spielen wollen?",
 };
 
+// anv: VR
+STR16	gzDieHardModeWarningText[]=
+{
+	L"You have chosen DIE HARD mode. With this setting AIM and MERC no longer offer their services - forcing you to rely on yourself and whomever you'll manage to recruit in Arulco. Needless to say, this setting will heavily affect the difficulty of the game. Are you sure want to play in DIE HARD mode?",
+};
+
+
 STR16 gzDisplayCoverText[]=
 {
 	L"Deckung: %d/100 %s, Helligkeit: %d/100",

@@ -5835,6 +5835,8 @@ STR16	gzGIOScreenText[] =
 	L"Merc Story Backgrounds",
 	L"Food System",
 	L"Bobby Ray Quantity",
+
+	L"Die Hard Mode",// anv: VR - Die Hard Mode
 };
 
 STR16	gzMPJScreenText[] =

@@ -5831,6 +5831,8 @@ STR16	gzGIOScreenText[] =
 	L"Биография наемников",
 	L"Игра с едой",
 	L"Количество товара у Бобби Рэя",
+
+	L"Die Hard Mode",// anv: VR - Die Hard Mode
 };
 
 STR16	gzMPJScreenText[] =

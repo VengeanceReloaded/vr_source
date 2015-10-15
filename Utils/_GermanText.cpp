@@ -5679,6 +5679,8 @@ STR16 gzGIOScreenText[] =
 	L"Söldner-Hintergrundgeschichten",
 	L"Nahrungssystem",
 	L"Bobby Ray Auswahl",
+
+	L"Die Hard Mode",// anv: VR - Die Hard Mode
 };
 
 STR16	gzMPJScreenText[] =
