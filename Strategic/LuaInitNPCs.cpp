@@ -5206,6 +5206,9 @@ static int l_GetStartingCashInsane (lua_State *L)
 	
 	UINT32 val = gGameExternalOptions.iStartingCashInsane;
 	
+	if(gGameOptions.fDieHardMode) // anv: VR - Die Hard mode
+		val = gGameExternalOptions.iIMPProfileCost;
+
 	lua_pushinteger(L, val);
 	
 return 1;
@@ -5216,6 +5219,9 @@ static int l_GetStartingCashExpert (lua_State *L)
 	
 	UINT32 val = gGameExternalOptions.iStartingCashExpert;
 	
+	if(gGameOptions.fDieHardMode) // anv: VR - Die Hard mode
+		val = gGameExternalOptions.iIMPProfileCost;
+
 	lua_pushinteger(L, val);
 	
 return 1;
@@ -5226,6 +5232,9 @@ static int l_GetStartingCashExperienced (lua_State *L)
 
 	UINT32 val = gGameExternalOptions.iStartingCashExperienced;
 	
+	if(gGameOptions.fDieHardMode) // anv: VR - Die Hard mode
+		val = gGameExternalOptions.iIMPProfileCost;
+
 	lua_pushinteger(L, val);
 	
 return 1;
@@ -5236,6 +5245,9 @@ static int l_GetStartingCashNovice (lua_State *L)
 	
 	UINT32 val = gGameExternalOptions.iStartingCashNovice;
 	
+	if(gGameOptions.fDieHardMode) // anv: VR - Die Hard mode
+		val = gGameExternalOptions.iIMPProfileCost;
+
 	lua_pushinteger(L, val);
 	
 return 1;
