@@ -2852,9 +2852,11 @@ UINT8 GetActionModeCursor( SOLDIERTYPE *pSoldier )
 		else
 			ubCursor = APPLYITEMCURS;
 	}
-		
+	
 	// Now check our terrain to see if we cannot do the action now...
-	if ( WaterTooDeepForAttacks( pSoldier->sGridNo) )
+	// sevenfm: r7998 fix 
+	// WANNE.WATER: Allow shooting if we are on a "water" tile, but on level > 0
+	if ( WaterTooDeepForAttacks( pSoldier->sGridNo) && pSoldier->pathing.bLevel == 0 )
 	{
 		ubCursor = INVALIDCURS;
 	}
