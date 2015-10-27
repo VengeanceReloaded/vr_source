@@ -22,8 +22,9 @@
 	#include "environment.h"
 	#include "lighting.h"
 	#include "Soldier Create.h"
-	#include "SkillCheck.h" // added by SANDRO
-	#include "Vehicles.h" // added by silversurfer
+	#include "SkillCheck.h"		// added by SANDRO
+	#include "Vehicles.h"		// added by silversurfer
+	#include "Game Clock.h"		// added by sevenfm
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -370,6 +371,23 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 		}
 		else
 		{
+			// sevenfm: movement mode tweaks
+			if ( IS_MERC_BODY_TYPE( pSoldier ) &&
+				pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+				!InWaterGasOrSmoke( pSoldier, pSoldier->sGridNo ) &&
+				!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) )
+			{
+				// better run when flanking if have enough BP, good health and not under fire
+				if ( (pSoldier->aiData.bAction == AI_ACTION_FLANK_LEFT || pSoldier->aiData.bAction == AI_ACTION_FLANK_RIGHT ) &&
+					pSoldier->aiData.bShock == 0 &&
+					pSoldier->bBreath > 25 &&
+					pSoldier->stats.bLife > pSoldier->stats.bLifeMax/2 &&
+					!NightTime() )
+				{
+					return RUNNING;
+				}
+			}
+
 			return( MovementMode[bAction][Urgency[pSoldier->aiData.bAlertStatus][pSoldier->aiData.bAIMorale]] );
 		}
 	}
@@ -3119,4 +3137,15 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 	}
 		
 	return id;
+}
+
+// sevenfm: additional functions used for AI
+
+INT16 MaxNormalVisionDistance( void )
+{
+	if( NightTime() )
+	{
+		return gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO;
+	}
+	return gGameExternalOptions.ubStraightSightRange * 2 * STRAIGHT_RATIO;
 }

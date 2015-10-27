@@ -56,15 +56,6 @@ UINT32 guiRedSeekCounter = 0, guiRedHelpCounter = 0; guiRedHideCounter = 0;
 
 #define CENTER_OF_RING 11237//dnl!!!
 
-#define MAX_FLANKS_RED 15
-#define MAX_FLANKS_YELLOW 25
-
-#define MIN_FLANK_DIST_YELLOW 10 * STRAIGHT_RATIO
-#define MAX_FLANK_DIST_YELLOW 50 * STRAIGHT_RATIO
-
-#define MIN_FLANK_DIST_RED 10 * STRAIGHT_RATIO
-#define MAX_FLANK_DIST_RED 40 * STRAIGHT_RATIO
-
 #ifdef ENABLE_ZOMBIES
 	INT8 ZombieDecideActionGreen(SOLDIERTYPE *pSoldier);
 	INT8 ZombieDecideActionYellow(SOLDIERTYPE *pSoldier);
@@ -1906,7 +1897,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 						}
 					}
 
-					if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO || pSoldier->aiData.bAttitude == BRAVESOLO ) )
+					if ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO )
 					{
 						INT8 action = AI_ACTION_SEEK_NOISE;
 						INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sNoiseGridNo );
@@ -3297,7 +3288,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 							//}
 
 
-							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO  || pSoldier->aiData.bAttitude == BRAVESOLO )  && gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
+							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO )  && gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
 							{
 								INT8 action = AI_ACTION_SEEK_OPPONENT;
 								INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sClosestDisturbance );
@@ -7188,7 +7179,7 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 								//}
 
 
-								if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO  || pSoldier->aiData.bAttitude == BRAVESOLO )  && gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
+								if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO  )  && gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
 								{
 									INT8 action = AI_ACTION_SEEK_OPPONENT;
 									INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sClosestDisturbance );

@@ -260,7 +260,19 @@ INT8 CalcBestCTGT( SOLDIERTYPE *pSoldier, UINT8 ubOppID, INT32 sOppGridNo, INT8 
 INT8 CalcAverageCTGTForPosition( SOLDIERTYPE * pSoldier, UINT8 ubOppID, INT32 sOppGridNo, INT8 bLevel, INT32 iMyAPsLeft );
 UINT8 NumberOfTeamMatesAdjacent( SOLDIERTYPE * pSoldier, INT32 sGridNo );
 
-// Flugente: get the id of the closest soldier (coser than x tiles) of a specific team with a specific flag that we can currently see
+// Flugente: get the id of the closest soldier (closer than x tiles) of a specific team with a specific flag that we can currently see
 UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 auTeam, UINT32 aFlag, BOOLEAN fCheckSight = TRUE );
+
+// sevenfm:
+INT16 MaxNormalVisionDistance( void );
+
+#define MAX_FLANKS_RED 15
+#define MAX_FLANKS_YELLOW 25
+
+// sevenfm: limit min/max flank distance depending on sight range and time of day
+#define MIN_FLANK_DIST_YELLOW (2*MaxNormalVisionDistance()/3)
+#define MAX_FLANK_DIST_YELLOW (MaxNormalVisionDistance() + 20)
+#define MIN_FLANK_DIST_RED (2*MaxNormalVisionDistance()/3)
+#define MAX_FLANK_DIST_RED (MaxNormalVisionDistance() + 20)
 
 #endif
