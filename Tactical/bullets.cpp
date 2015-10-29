@@ -530,7 +530,7 @@ void AddMissileTrail( BULLET *pBullet, FIXEDPT qCurrX, FIXEDPT qCurrY, FIXEDPT q
 	else if ( pBullet->usFlags & ( BULLET_FLAG_FLAME ) )
 	{
 		strcpy( AniParams.zCachedFile, "TILECACHE\\FLMTHR2.STI" );
-		AniParams.sDelay							= (INT16)( 100 );
+		AniParams.sDelay							= (INT16)( 50 );
 	}
 	//else if ( pBullet->usFlags & ( BULLET_FLAG_TRACER ) )
 	// HEADROCK HAM B2.5: Created new bullet flag that tells us whether this specific bullet is a tracer.

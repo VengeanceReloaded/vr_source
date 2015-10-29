@@ -1607,7 +1607,16 @@ BOOLEAN DamageSoldierFromBlast( UINT8 ubPerson, UINT8 ubOwner, INT32 sBombGridNo
 	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Incrementing Attack: Explosion dishing out damage, Count now %d", gTacticalStatus.ubAttackBusyCount ) );
 	DebugAttackBusy( String("Explosion dishing out damage to %d\n", pSoldier->ubID) );
 
-	sNewWoundAmt = sWoundAmt - __min( sWoundAmt, 35 ) * ArmourVersusExplosivesPercent( pSoldier ) / 100;
+	// sevenfm: phosphorus grenade ignores armour of soldiers
+	if(HasItemFlag(usItem, PHOSPHORUS_GRENADE) && !TANK( pSoldier ) && !AM_A_ROBOT( pSoldier ))
+	{
+		sNewWoundAmt = sWoundAmt * 2;
+	}	
+	else
+	{
+		sNewWoundAmt = sWoundAmt - __min( sWoundAmt, 35 ) * ArmourVersusExplosivesPercent( pSoldier ) / 100;
+	}
+	
 	if ( sNewWoundAmt < 0 )
 	{
 		sNewWoundAmt = 0;

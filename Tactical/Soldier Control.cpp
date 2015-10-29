@@ -6419,8 +6419,8 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 	BOOLEAN	fHeadHit = FALSE;
 	BOOLEAN	fFallenOver = FALSE;
 
-	// sevenfm: special death for flamethrower
-	/*if ( gGameSettings.fOptions[ TOPTION_BLOOD_N_GORE ] )
+	// sevenfm: special death animation for flamethrower
+	if ( gGameSettings.fOptions[ TOPTION_BLOOD_N_GORE ] )
 	{
 		if ( IS_MERC_BODY_TYPE(pSoldier) && Weapon[usWeaponIndex].ubCalibre == AMMOFLAME && pSoldier->stats.bLife == 0 && gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_PRONE )
 		{
@@ -6429,7 +6429,7 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 			pSoldier->EVENT_InitNewSoldierAnim( CHARIOTS_OF_FIRE, 0 , FALSE );
 			return;
 		}
-	}*/
+	}
 
 	// MAYBE CHANGE TO SPECIAL ANIMATION BASED ON VALUE SET BY DAMAGE CALCULATION CODE
 	// ALL THESE ONLY WORK ON STANDING PEOPLE
@@ -6585,10 +6585,19 @@ void SoldierGotHitExplosion( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 
 	//check for services
 	pSoldier->ReceivingSoldierCancelServices( );
 	pSoldier->GivingSoldierCancelServices( );
-
-
+	
 	if ( gGameSettings.fOptions[ TOPTION_BLOOD_N_GORE ] )
-	{
+	{	
+		// sevenfm: special flag to use burning animation more often
+		if( HasItemFlag(usWeaponIndex, PHOSPHORUS_GRENADE) &&
+			pSoldier->stats.bLife == 0 &&
+			gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_PRONE)
+		{
+			pSoldier->DoMercBattleSound( (INT8)( BATTLE_SOUND_HIT1 + Random( 2 ) ) );
+
+			pSoldier->EVENT_InitNewSoldierAnim( CHARIOTS_OF_FIRE, 0 , FALSE );
+			return;
+		}
 		if ( Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubRadius >= 3 && pSoldier->stats.bLife == 0 && gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_PRONE )
 		{
 			if ( sRange >= 2 && sRange <= 4 )

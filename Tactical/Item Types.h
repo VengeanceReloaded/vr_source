@@ -766,7 +766,11 @@ extern OBJECTTYPE gTempObject;
 #define POWER_PACK				0x08000000	//134217728	// item continously powers an item it is attached to
 
 #define SPOTTERITEM				0x10000000	//268435456	// binocular
-/*#define PLAYER_NET_2_LVL_4		0x20000000	//536870912
+
+// sevenfm: phosphorus grenade
+#define PHOSPHORUS_GRENADE		0x20000000	//536870912	// increased damage against soldiers, ignores armour
+
+/*#define PLAYER_NET_2_LVL_4	0x20000000	//536870912
 #define PLAYER_NET_3_LVL_4		0x40000000	//1073741824
 #define PLAYER_NET_4_LVL_4		0x80000000	//2147483648*/
 // ----------------------------------------------------------------

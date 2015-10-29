@@ -4334,7 +4334,28 @@ BOOLEAN DoSpecialEffectAmmoMiss( UINT8 ubAttackerID, UINT16 usWeaponIndex, INT32
 
 	memset( &AniParams, 0, sizeof( ANITILE_PARAMS ) );
 
-	if ( AmmoTypes[ubAmmoType].explosionSize == 1 )
+	// sevenfm: flamethrower effect
+	if ( ubAmmoType == AMMO_FLAME &&
+		ubAttackerID != NOBODY &&
+		MercPtrs[ ubAttackerID ]->bTargetLevel == 0 &&
+		AmmoTypes[ubAmmoType].highExplosive != 0 )
+	{
+		if(!Water(sGridNo))
+		{
+			NewSmokeEffect( sGridNo, AmmoTypes[ubAmmoType].highExplosive, 0, ubAttackerID );
+			if( (NightTime() || gbWorldSectorZ) )
+			{
+				// add light
+				NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ AmmoTypes[ubAmmoType].highExplosive ].ubClassIndex ].ubDuration+1, (UINT8)Explosive[ Item[ AmmoTypes[ubAmmoType].highExplosive ].ubClassIndex ].ubRadius + 1 );
+			}
+		}
+		
+		if ( fFreeupAttacker )
+		{
+			RemoveBullet( iBullet );
+		}
+	}
+	else if ( AmmoTypes[ubAmmoType].explosionSize == 1 )
 	{
 		if ( !fSoundOnly )
 		{
@@ -4444,17 +4465,6 @@ BOOLEAN DoSpecialEffectAmmoMiss( UINT8 ubAttackerID, UINT16 usWeaponIndex, INT32
 		}
 
 		return( TRUE );
-	}
-	// sevenfm: add small flame when using flamethrower
-	else if ( ubAmmoType == AMMO_FLAME && ubAttackerID != NOBODY && MercPtrs[ ubAttackerID ]->bTargetLevel == 0 && AmmoTypes[ubAmmoType].highExplosive != 0 )
-	{
-
-		NewSmokeEffect( sGridNo, AmmoTypes[ubAmmoType].highExplosive, 0, ubAttackerID );
-		if( (NightTime() || gbWorldSectorZ) )
-		{
-			// add light
-			NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ AmmoTypes[ubAmmoType].highExplosive ].ubClassIndex ].ubDuration+1, (UINT8)Explosive[ Item[ AmmoTypes[ubAmmoType].highExplosive ].ubClassIndex ].ubRadius + 1 );
-		}
 	}
 	else if ( AmmoTypes[ubAmmoType].monsterSpit )
 	{
@@ -4566,7 +4576,7 @@ void WeaponHit( UINT16 usSoldierID, UINT16 usWeaponIndex, INT16 sDamage, INT16 s
 			}
 		    else if ( AmmoTypes[ubAmmoType].explosionSize > 1)
 			{
-				// re-routed the Highexplosive value to define exposion type
+				// re-routed the Highexplosive value to define explosion type
 				IgniteExplosion( ubAttackerID, sXPos, sYPos, 0, GETWORLDINDEXFROMWORLDCOORDS( sYPos, sXPos ), AmmoTypes[ubAmmoType].highExplosive , pTargetSoldier->pathing.bLevel );
 				// pSoldier->inv[pSoldier->ubAttackingHand ][0]->data.gun.usGunAmmoItem = NONE;
 			}
