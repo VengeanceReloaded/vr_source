@@ -76,7 +76,7 @@
 #include "LuaInitNPCs.h"
 #include "Luaglobal.h"
 #include "Item Statistics.h"
-
+#include "physics.h" // anv: VR
 
 #ifdef JA2UB
 #include "interface Dialogue.h"
@@ -4084,11 +4084,20 @@ void HandleExplosionQueue( void )
 				if ( (*pObj)[0]->data.misc.ubBombOwner > 1 )
 					usOwner = (*pObj)[0]->data.misc.ubBombOwner - 2;
 
-				INT32 sTargetGridNo = NOWHERE;
-				if ( GetRandomSignalSmokeGridNo( &sTargetGridNo ) || GetRadioOperatorSignal( usOwner, &sTargetGridNo ) || (sTargetGridNo = RandomGridNo( )) )
+				// anv: VR - special MLRS attack in N15 and N16
+				if((*pObj)[0]->data.misc.ubBombOwner == NOBODY && gWorldSectorX == 15 && gWorldSectorY == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_MLRS_UNLOCKED, NO_PROFILE))
 				{
-					for ( UINT8 i = 0; i < cnt; ++i)
-						ArtilleryStrike( pObj->usItem, usOwner, sGridNo, sTargetGridNo );
+					for ( UINT8 i = 0; i < 8; ++i)
+						ArtilleryStrike( pObj->usItem, usOwner, sGridNo, RandomGridFromRadius( 7290, 1, 10 ) );
+				}
+				else
+				{
+					INT32 sTargetGridNo = NOWHERE;
+					if ( GetRandomSignalSmokeGridNo( &sTargetGridNo ) || GetRadioOperatorSignal( usOwner, &sTargetGridNo ) || (sTargetGridNo = RandomGridNo( )) )
+					{
+						for ( UINT8 i = 0; i < cnt; ++i)
+							ArtilleryStrike( pObj->usItem, usOwner, sGridNo, sTargetGridNo );
+					}
 				}
 
 				// not needed anymore

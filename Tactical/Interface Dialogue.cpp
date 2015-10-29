@@ -4500,6 +4500,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				AddHistoryToPlayersLog( HISTORY_ENRICO, 0, GetWorldTotalMin(), gWorldSectorX, gWorldSectorY );
 				break;
 			case NPC_ACTION_HISTORY_TRACONA_ACCESS:
+				gubFact[ FACT_MLRS_UNLOCKED ] = TRUE;
 				AddHistoryToPlayersLog( HISTORY_TRACONA_ACCESS, 0, GetWorldTotalMin(), gWorldSectorX, gWorldSectorY );
 				break;
 			case NPC_ACTION_PLAY_QUOTE_47:

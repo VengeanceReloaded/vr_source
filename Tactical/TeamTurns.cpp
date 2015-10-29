@@ -45,6 +45,7 @@
 	#include "Soldier Profile.h"
 	#include "NPC.h"
 	#include "drugs and alcohol.h"	// added by Flugente
+	#include "Map Information.h"// anv: VR
 #endif
 
 #ifdef JA2UB
@@ -506,6 +507,98 @@ void EndTurnEvents( void )
 BOOLEAN LightningEndOfTurn( UINT8 ubTeam );
 //end rain
 
+BOOLEAN SpecialOrderArtilleryStrike( UINT32 usSectorNr, UINT8 bTeam )
+{
+	// sector number is in UINT32, even though INT16 would be normal
+	INT16 sSectorX = SECTORX( (UINT8)usSectorNr );
+	INT16 sSectorY = SECTORY( (UINT8)usSectorNr );
+
+	// determine from where the shells will come
+	INT32 sStartingGridNo = gMapInformation.sNorthGridNo;
+	
+	if ( TileIsOutOfBounds(sStartingGridNo) )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_INCORRECT_GRIDNO_ARTILLERY ]);
+		return FALSE;
+	}
+
+	// if a strike is ordered from the ENEMY_TEAM or MILITIA_TEAM, the number of mortars depends on the number of enemies/militia in that sector
+	// number of waves depends on the number and quality of enemies/soldiers
+	// only HE shells will be fired this way
+	if ( bTeam == ENEMY_TEAM || bTeam == MILITIA_TEAM )
+	{
+		INT16 nummortars = 4;	// number of mortars determines size of wave (1 - 4)
+		INT16 numwaves	 = 0;	// number of waves
+		INT16 numshells  = 120;	// number of shells
+			
+		SECTORINFO *pSector = &SectorInfo[ SECTOR( sSectorX, sSectorY ) ];
+
+		if ( gSkillTraitValues.usVOMortarShellDivisor * nummortars < 1 )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_NOT_ENOUGH_MORTAR_SHELLS ]);
+			return FALSE;
+		}
+
+		numwaves = numshells / (gSkillTraitValues.usVOMortarShellDivisor * nummortars);
+
+		if ( !numwaves )
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_NOT_ENOUGH_MORTAR_SHELLS ]);
+			return FALSE;
+		}
+
+		// we just 'plant' the mortar shells as bombs. We time them so that they will be fired at the beginning of the next turn
+		// for every 'wave' of shells, we just plant one and then clone them when firing
+		// create mortar shell item
+		OBJECTTYPE shellobj;
+		CreateItem( 140, 100, &shellobj );	// 140 is mortar HE shell
+
+		shellobj.fFlags |= OBJECT_ARMED_BOMB;
+		shellobj[0]->data.misc.bDetonatorType = BOMB_TIMED;
+		shellobj[0]->data.misc.usBombItem = shellobj.usItem;
+		shellobj[0]->data.misc.ubBombOwner = NOBODY;
+		
+		// delay in RT is one turn. In TB we have to make that 2 turns, as otherwise the attack can happen instantly.
+		// Also use 2 if we are AI, otherwise the shells will fly immediately at the player's turn, giving him no chance to react (blame the way turns are handled)
+
+		shellobj[0]->data.misc.bDelay = 1;
+		if ( bTeam == ENEMY_TEAM || !(gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT) )
+			shellobj[0]->data.misc.bDelay += 1;
+
+		// now set special flags - we simply abuse the ubWireNetworkFlag
+		switch ( nummortars )
+		{
+		case 1: 
+			shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_1;
+			break;
+
+		case 2: 
+			shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_2;
+			break;
+
+		case 3: 
+			shellobj[0]->data.ubWireNetworkFlag = (ARTILLERY_STRIKE_COUNT_1|ARTILLERY_STRIKE_COUNT_2);
+			break;
+
+		case 4: 
+		default:
+			shellobj[0]->data.ubWireNetworkFlag = ARTILLERY_STRIKE_COUNT_4;
+			break;
+		}
+				
+		for (INT16 i = 0; i < numwaves; ++i)
+		{
+			AddItemToPool( sStartingGridNo, &shellobj, HIDDEN_ITEM, 1, WORLD_ITEM_ARMED_BOMB, 0 );
+
+			// if option is set, delay each wave by one turn
+			if ( gSkillTraitValues.fROArtilleryDistributedOverTurns )
+				shellobj[0]->data.misc.bDelay += 1;
+		}
+	}
+
+	return TRUE;
+}
+
 void BeginTeamTurn( UINT8 ubTeam )
 {
 	DebugMsg (TOPIC_JA2INTERRUPT,DBG_LEVEL_3,"BeginTeamTurn");
@@ -534,6 +627,12 @@ void BeginTeamTurn( UINT8 ubTeam )
 			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 12 ) )
 				TriggerNPCRecord( CIA_BUYER, 12 );
 		}
+	}
+
+	// anv: artillery strikes in N15 and N16
+	if( gWorldSectorX == 15 && gWorldSectorY == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_MLRS_UNLOCKED, NO_PROFILE) )
+	{
+		SpecialOrderArtilleryStrike(SECTOR(gWorldSectorX,gWorldSectorY), MILITIA_TEAM);
 	}
 
 	// disable for our turn and enable for other teams

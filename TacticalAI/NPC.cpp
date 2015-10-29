@@ -2448,7 +2448,13 @@ void Converse( UINT8 ubNPC, UINT8 ubMerc, INT8 bApproach, UINT32 uiApproachData 
 						// Look for item....
 						bInvPos = FindObj( pSoldier, pQuotePtr->usGiftItem );
 
-						AssertMsg( bInvPos != NO_SLOT, "NPC.C:  Gift item does not exist in NPC." );
+						// anv: instead of crashing game, just create gift item
+						// AssertMsg( bInvPos != NO_SLOT, "NPC.C:  Gift item does not exist in NPC." );
+						if( bInvPos == NO_SLOT )
+						{
+							bInvPos = FindObj( pSoldier, NOTHING );
+							CreateItem( pQuotePtr->usGiftItem, 100, &(pSoldier->inv[ bInvPos ] ) );
+						}
 
 						TalkingMenuGiveItem( ubNPC, &(pSoldier->inv[ bInvPos ] ), bInvPos );
 					}
