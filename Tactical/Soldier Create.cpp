@@ -1265,6 +1265,10 @@ BOOLEAN TacticalCopySoldierFromProfile( SOLDIERTYPE *pSoldier, SOLDIERCREATE_STR
 		//	pSoldier->snowCamo = 100;
 		//}
 	}
+	else if(ProfileHasCamouflagedTrait(pSoldier->ubProfile))
+	{
+		pSoldier->bCamo = gGameExternalOptions.bCamoKitArea;
+	}
 
 	// Flugente: if playing with the covert trait, the assassins come covert, so they are tougher to find	
 	if ( gGameExternalOptions.fAssassinsAreDisguised && gGameOptions.fNewTraitSystem && pSoldier->IsAssassin() )

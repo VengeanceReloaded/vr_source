@@ -471,6 +471,12 @@ INT32	InternalInitFace( UINT8 usMercProfileID, UINT8 ubSoldierID, UINT32 uiInitF
 		}
 	}
 
+	// anv: always show camouflaged face for guys with camouflaged trait
+	if ( ProfileHasCamouflagedTrait(usMercProfileID) )
+	{
+		sprintf( VObjectDesc.ImageFile, "FACES\\WoodCamo\\%02d.sti", iFaceFileID );
+	}
+
 	// Load
 	if( AddVideoObject( &VObjectDesc, &uiVideoObject ) == FALSE )
 	{

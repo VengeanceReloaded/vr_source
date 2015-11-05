@@ -1285,7 +1285,7 @@ void HourlyCamouflageUpdate( void )
 					// first limit camo to valid values
 					pSoldier->bCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->bCamo );
 
-					if (HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
+					if (HAS_SKILL_TRAIT( pSoldier, RANGER_NT ) && !ProfileHasCamouflagedTrait( pSoldier->ubProfile ) )
 					{
 						pSoldier->bCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
 						// pSoldier->bCamo -= (Chance(__max(0, 100 - gSkillTraitValues.ubRACamoWornountSpeedReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) ? 1 : 0 );
@@ -1293,7 +1293,7 @@ void HourlyCamouflageUpdate( void )
 					else
 						pSoldier->bCamo -= 1;	// 2
 
-					if (pSoldier->bCamo <= 0)
+					if (pSoldier->bCamo <= 0 && !ProfileHasCamouflagedTrait( pSoldier->ubProfile ) )
 					{
 						pSoldier->bCamo = 0;
 						camoWoreOff = TRUE;
@@ -1309,7 +1309,7 @@ void HourlyCamouflageUpdate( void )
 						}
 					}
 				}
-				if( pSoldier->urbanCamo > 0 )
+				if( pSoldier->urbanCamo > 0 && !ProfileHasCamouflagedTrait( pSoldier->ubProfile ) )
 				{
 					// first limit camo to valid values
 					pSoldier->urbanCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->urbanCamo );
@@ -1337,7 +1337,7 @@ void HourlyCamouflageUpdate( void )
 						}
 					}
 				}
-				if( pSoldier->desertCamo > 0 )
+				if( pSoldier->desertCamo > 0 && !ProfileHasCamouflagedTrait( pSoldier->ubProfile ) )
 				{
 					// first limit camo to valid values
 					pSoldier->desertCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->desertCamo );
@@ -1365,7 +1365,7 @@ void HourlyCamouflageUpdate( void )
 						}
 					}
 				}
-				if( pSoldier->snowCamo > 0 )
+				if( pSoldier->snowCamo > 0 &&!ProfileHasCamouflagedTrait( pSoldier->ubProfile ) )
 				{
 					// first limit camo to valid values
 					pSoldier->snowCamo = __min( gGameExternalOptions.bCamoKitArea, pSoldier->snowCamo );

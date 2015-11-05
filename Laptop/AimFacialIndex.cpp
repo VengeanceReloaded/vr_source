@@ -226,6 +226,12 @@ BOOLEAN EnterAimFacialIndex()
 				//sprintf(sTemp, "%s%02d.sti", sFaceLoc, AimMercArray[i]);
 				sprintf(sTemp, "%s%02d.sti", sFaceLoc, gAimAvailability[AimMercArray[i + START_MERC]].ProfilId );
 			}
+			// anv: always show camouflaged face for guys with camouflaged trait
+			if ( ProfileHasCamouflagedTrait(gAimAvailability[AimMercArray[i + START_MERC]].ProfilId ) )
+			{
+				sprintf(sTemp, "%s%02d.sti", "FACES\\WoodCamo\\", gAimAvailability[AimMercArray[i + START_MERC]].ProfilId );
+			}
+
 			VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
 			FilenameForBPP(sTemp, VObjectDesc.ImageFile);
 			if( !AddVideoObject(&VObjectDesc, &guiAimFiFace[i]) )

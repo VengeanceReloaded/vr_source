@@ -630,7 +630,7 @@ void BeginTeamTurn( UINT8 ubTeam )
 	}
 
 	// anv: artillery strikes in N15 and N16
-	if( gWorldSectorX == 15 && gWorldSectorY == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_MLRS_UNLOCKED, NO_PROFILE) )
+	if( (gWorldSectorX == 15 || gWorldSectorX == 16) && gWorldSectorY == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_MLRS_UNLOCKED, NO_PROFILE) )
 	{
 		SpecialOrderArtilleryStrike(SECTOR(gWorldSectorX,gWorldSectorY), MILITIA_TEAM);
 	}

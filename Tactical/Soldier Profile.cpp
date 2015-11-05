@@ -2992,3 +2992,11 @@ INT8 ProfileHasSkillTrait( INT32 ubProfileID, INT8 bSkillTrait )
 			return ( bNumTraits );
 	}
 }
+
+INT8 ProfileHasCamouflagedTrait( INT32 ubProfileID )
+{
+	if(ubProfileID == 10 || ubProfileID == 170 || ubProfileID == TEX) // anv: camouflaged in NT
+		return 1;
+	else
+		return 0;
+}

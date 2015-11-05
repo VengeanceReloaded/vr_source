@@ -449,5 +449,5 @@ void OverwriteMercOpinionsWithXMLData( UINT32 uiLoop );
 // SANDRO - added functions
 INT8 CheckMercsNearForCharTraits( UINT8 ubProfileID, INT8 bCharTraitID );
 INT8 ProfileHasSkillTrait( INT32 ubProfileID, INT8 bSkillTrait );
-
+INT8 ProfileHasCamouflagedTrait( INT32 ubProfileID );
 #endif

@@ -9106,7 +9106,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 		// silversurfer: We only allow painting the face and hands now so in medium water camo shouldn't wear off anymore.
 		// reduce camouflage by 1% //2% per tile of deep water
 		// and 0% //1% for medium water
-		if ( pSoldier->bCamo > 0 )
+		if ( pSoldier->bCamo > 0 && !ProfileHasCamouflagedTrait(pSoldier->ubProfile) )
 		{
 			if ( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ) )
 			{
@@ -9136,7 +9136,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_JUNGLE_WASHED_OFF], pSoldier->GetName() );
 			}
 		}
-		if ( pSoldier->urbanCamo > 0 )
+		if ( pSoldier->urbanCamo > 0 && !ProfileHasCamouflagedTrait(pSoldier->ubProfile) )
 		{
 			if ( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ) )
 			{
@@ -9165,7 +9165,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_URBAN_WASHED_OFF], pSoldier->GetName() );
 			}
 		}
-		if ( pSoldier->desertCamo > 0 )
+		if ( pSoldier->desertCamo > 0 && !ProfileHasCamouflagedTrait(pSoldier->ubProfile) )
 		{
 			if ( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ) )
 			{
@@ -9194,7 +9194,7 @@ void WaterDamage( SOLDIERTYPE *pSoldier )
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[STR_DESERT_WASHED_OFF], pSoldier->GetName() );
 			}
 		}
-		if ( pSoldier->snowCamo > 0 )
+		if ( pSoldier->snowCamo > 0 && !ProfileHasCamouflagedTrait(pSoldier->ubProfile) )
 		{
 			if ( HAS_SKILL_TRAIT( pSoldier, RANGER_NT ) )
 			{
