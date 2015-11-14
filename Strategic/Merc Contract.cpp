@@ -963,7 +963,23 @@ BOOLEAN StrategicRemoveMerc( SOLDIERTYPE *pSoldier )
 		AddCharacterToFiredList( pSoldier );
 		// anv: VR - Sparky
 		if( pSoldier->ubProfile == 59 && pSoldier->bAssignment != ASSIGNMENT_POW )
+		{
 			SetFactTrue(FACT_SPARKY_WAS_RECRUITED);
+			// Copy vital stats!
+			gMercProfiles[224].bAgility	= gMercProfiles[59].bAgility;
+			gMercProfiles[224].bLifeMax	= gMercProfiles[59].bLifeMax;
+			gMercProfiles[224].bAgility	= gMercProfiles[59].bAgility;
+			gMercProfiles[224].bLeadership = gMercProfiles[59].bLeadership;
+			gMercProfiles[224].bDexterity = gMercProfiles[59].bDexterity;
+			gMercProfiles[224].bStrength = gMercProfiles[59].bStrength;
+			gMercProfiles[224].bWisdom = gMercProfiles[59].bWisdom;
+			gMercProfiles[224].bExpLevel = gMercProfiles[59].bExpLevel;
+			gMercProfiles[224].bMarksmanship = gMercProfiles[59].bMarksmanship;
+			gMercProfiles[224].bMedical = gMercProfiles[59].bMedical;
+			gMercProfiles[224].bMechanical = gMercProfiles[59].bMechanical;
+			gMercProfiles[224].bExplosive = gMercProfiles[59].bExplosive;
+			gMercProfiles[224].bScientific = gMercProfiles[59].bScientific;
+		}
 	}
 
 	//The merc is leaving for some other reason
