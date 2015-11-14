@@ -484,6 +484,9 @@ BOOLEAN CanMercBeAvailableDuringInit( UINT8 ubMercToCheck )// anv: for all mercs
 #else
 	if( gConditionsForMercAvailability[ubMercToCheck].ProfilId == JOHN_MERC )
 		return ( FALSE );
+	// anv: VR - Sparky
+	else if( gConditionsForMercAvailability[ubMercToCheck].ProfilId == 224 )
+		return ( FALSE );
 #endif
 
 	return ( TRUE );
@@ -3141,7 +3144,18 @@ BOOLEAN CanMercBeAvailableYet( UINT8 ubMercToCheck )
 			return( FALSE );	
 		}	
 	}
-
+	// anv: VR - Sparky availabe at MERC after being recruited on place
+	else if( gConditionsForMercAvailability[ ubMercToCheck ].ProfilId == 224 )
+	{
+		if( CheckFact(FACT_SPARKY_WAS_RECRUITED, 224) )
+		{
+			return( TRUE );
+		}			
+		else
+		{
+			return( FALSE );
+		}
+	}
 	// anv: if JA1 natives are turned off, prevent them from being be available
 	if(gGameExternalOptions.fEnableRecruitableJA1Natives == FALSE)
 	{

@@ -4085,7 +4085,9 @@ void HandleExplosionQueue( void )
 					usOwner = (*pObj)[0]->data.misc.ubBombOwner - 2;
 
 				// anv: VR - special MLRS attack in N15 and N16
-				if((*pObj)[0]->data.misc.ubBombOwner == NOBODY && (gWorldSectorX == 15 || gWorldSectorX == 16) && gWorldSectorY == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_MLRS_UNLOCKED, NO_PROFILE))
+				if((*pObj)[0]->data.misc.ubBombOwner == NOBODY && 
+					((gWorldSectorX == 15 || gWorldSectorX == 16) && gWorldSectorY == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_MLRS_UNLOCKED, NO_PROFILE)
+					|| (gWorldSectorY == 8 || gWorldSectorY == 9) && gWorldSectorX == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_JAIME_GIVEN_TOOLS, NO_PROFILE)))
 				{
 					for ( UINT8 i = 0; i < 8; ++i)
 						ArtilleryStrike( pObj->usItem, usOwner, sGridNo, RandomGridFromRadius( 7290, 1, 10 ) );

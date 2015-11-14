@@ -961,6 +961,9 @@ BOOLEAN StrategicRemoveMerc( SOLDIERTYPE *pSoldier )
 	else if( ubHistoryCode == HISTORY_MERC_FIRED || pSoldier->bAssignment == ASSIGNMENT_POW )
 	{
 		AddCharacterToFiredList( pSoldier );
+		// anv: VR - Sparky
+		if( pSoldier->ubProfile == 59 && pSoldier->bAssignment != ASSIGNMENT_POW )
+			SetFactTrue(FACT_SPARKY_WAS_RECRUITED);
 	}
 
 	//The merc is leaving for some other reason

@@ -4514,6 +4514,16 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 			case NPC_ACTION_MENDAX_LEAVES_FOR_GOOD:
 				SetFactTrue( FACT_MENDAX_SPARED );
 				gMercProfiles[ ubTargetNPC ].ubMiscFlags2 |= PROFILE_MISC_FLAG2_LEFT_COUNTRY;
+				pSoldier = FindSoldierByProfileID( ubTargetNPC, FALSE );
+				if ( pSoldier )
+				{
+					EndAIGuysTurn( pSoldier );
+					RemoveManAsTarget( pSoldier );
+					TacticalRemoveSoldier( pSoldier->ubID );
+					gMercProfiles[ ubTargetNPC ].sSectorX = 0;
+					gMercProfiles[ ubTargetNPC ].sSectorY = 0;
+					CheckForEndOfBattle( TRUE );
+				}	
 				break;
 			case NPC_ACTION_DWIGHT_GIVES_SAMPLE_TO_RAJIV:
 				// based on NPC_ACTION_FATIMA_GIVE_LETTER
@@ -5288,7 +5298,7 @@ void DialogueMessageBoxCallBack( UINT8 ubExitValue )
 			}
 			else
 			{
-				TriggerNPCRecord( MENDAX, 9 );
+				TriggerNPCRecord( MENDAX, 10 );
 			}
 			break;
 		default:
