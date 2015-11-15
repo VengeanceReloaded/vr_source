@@ -61,6 +61,8 @@
 	#include "Map Information.h"
 #endif
 
+#include "Quests.h" // anv: VR
+
 #ifdef JA2UB
 #include "Ja25_Tactical.h"
 #include "Ja25 Strategic Ai.h"
@@ -4376,6 +4378,11 @@ BOOLEAN OBJECTTYPE::AttachObjectOAS( SOLDIERTYPE * pSoldier, OBJECTTYPE * pAttac
 					RemoveProhibitedAttachments(pSoldier, this, usResult);
 
 					this->usItem = usResult;
+
+					// anv: VR - I14, H14
+					if(this->usItem == 3039)
+						SetFactTrue(FACT_SCUD_UNLOCKED);
+
 					//AutoPlaceObject( pAttachment );
 					//ADB ubWeight has been removed, see comments in OBJECTTYPE
 					//this->ubWeight = CalculateObjectWeight( this );
@@ -5419,6 +5426,10 @@ BOOLEAN OBJECTTYPE::AttachObjectNAS( SOLDIERTYPE * pSoldier, OBJECTTYPE * pAttac
 
 				UINT16 usOldItem = this->usItem;
 				this->usItem = usResult;
+
+				// anv: VR - I14, H14
+				if(this->usItem == 3039)
+					SetFactTrue(FACT_SCUD_UNLOCKED);
 
 				//WarmSteel - Replaced this with one that also checks default attachments, otherwise you could not replace built-in bonuses with default inseperable attachments.
 				//RemoveProhibitedAttachments(pSoldier, this, usResult);
