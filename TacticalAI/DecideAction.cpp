@@ -1725,7 +1725,8 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 	else
 		tempGridNo = sNoiseGridNo;
 
-	if ( pSoldier->numFlanks > 0 && pSoldier->numFlanks < MAX_FLANKS_YELLOW )
+	if ( pSoldier->numFlanks > 0 && 
+		pSoldier->numFlanks < MAX_FLANKS_YELLOW )
 	{
 		INT16 currDir = GetDirectionFromGridNo ( tempGridNo, pSoldier );
 		INT16 origDir = pSoldier->origDir;
@@ -1735,14 +1736,15 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 			if ( origDir > currDir )
 				origDir -= 8;
 
-			if ( (currDir - origDir) >= 4 )
+			if ( (currDir - origDir) >= 4 ||
+				CountFriendsInDirection( pSoldier, tempGridNo ) == 0 )
 			{
 				pSoldier->numFlanks = MAX_FLANKS_YELLOW;
 			}
 			else
 			{
 				pSoldier->aiData.usActionData = FindFlankingSpot (pSoldier, tempGridNo , AI_ACTION_FLANK_LEFT);				
-				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData) ) //&& (currDir - origDir) < 2 )
+				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 					return AI_ACTION_FLANK_LEFT ;
 				else
 					pSoldier->numFlanks = MAX_FLANKS_YELLOW;
@@ -1753,14 +1755,15 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 			if ( origDir < currDir )
 				origDir += 8;
 
-			if ( (origDir - currDir) >= 4 )
+			if ( (origDir - currDir) >= 4 ||
+				CountFriendsInDirection( pSoldier, tempGridNo ) == 0 )
 			{
 				pSoldier->numFlanks = MAX_FLANKS_YELLOW;
 			}
 			else
 			{
 				pSoldier->aiData.usActionData = FindFlankingSpot (pSoldier, tempGridNo , AI_ACTION_FLANK_RIGHT);				
-				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))//&& (origDir - currDir) < 2 )
+				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 					return AI_ACTION_FLANK_RIGHT ;
 				else
 					pSoldier->numFlanks = MAX_FLANKS_YELLOW;
@@ -1897,7 +1900,11 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 						}
 					}
 
-					if ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO )
+					// sevenfm: check friends in noise direction
+					if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || 	pSoldier->aiData.bAttitude == CUNNINGSOLO ) &&
+						CountFriendsInDirection( pSoldier, sNoiseGridNo ) > 0 &&
+						pSoldier->aiData.bOrders > CLOSEPATROL &&
+						pSoldier->aiData.bOrders != SNIPER )
 					{
 						INT8 action = AI_ACTION_SEEK_NOISE;
 						INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sNoiseGridNo );
@@ -3040,7 +3047,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		else
 			tempGridNo = sClosestDisturbance;
 
-		if ( pSoldier->numFlanks > 0 && pSoldier->numFlanks < MAX_FLANKS_RED  && gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
+		if ( pSoldier->numFlanks > 0 &&
+			pSoldier->numFlanks < MAX_FLANKS_RED  && 
+			gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE &&
+			!pSoldier->aiData.bUnderFire )
 		{
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: continue flanking");
 			INT16 currDir = GetDirectionFromGridNo ( tempGridNo, pSoldier );
@@ -3051,7 +3061,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				if ( origDir > currDir )
 					origDir -= 8;
 
-				if ( (currDir - origDir) >= 4 )
+				if ( (currDir - origDir) >= 4 ||
+					CountFriendsInDirection( pSoldier, tempGridNo ) == 0)
 				{
 					pSoldier->numFlanks = MAX_FLANKS_RED;
 				}
@@ -3070,7 +3081,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				if ( origDir < currDir )
 					origDir += 8;
 
-				if ( (origDir - currDir) >= 4 )
+				if ( (origDir - currDir) >= 4 ||
+					CountFriendsInDirection( pSoldier, tempGridNo ) == 0 )
 				{
 					pSoldier->numFlanks = MAX_FLANKS_RED;
 				}
@@ -3288,7 +3300,11 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 							//}
 
 
-							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO )  && gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
+							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ) &&
+								gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE &&
+								CountFriendsInDirection( pSoldier, sClosestDisturbance ) > 0 &&
+								pSoldier->aiData.bOrders > CLOSEPATROL &&
+								pSoldier->aiData.bOrders != SNIPER )
 							{
 								INT8 action = AI_ACTION_SEEK_OPPONENT;
 								INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sClosestDisturbance );
@@ -4061,9 +4077,9 @@ INT16 ubMinAPCost;
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"DecideActionBlack");
 
-	// once we hit status black, reset flanking status
-	//pSoldier->numFlanks = 0;
-
+	// sevenfm: stop flanking when we see enemy
+	if( pSoldier->numFlanks < MAX_FLANKS_RED  )
+		pSoldier->numFlanks = 0;
 
 	// if we have absolutely no action points, we can't do a thing under BLACK!
 	if (!pSoldier->bActionPoints)

@@ -265,8 +265,10 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 
 // sevenfm:
 INT16 MaxNormalVisionDistance( void );
+UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
+BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier );
 
-#define MAX_FLANKS_RED 15
+#define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25
 
 // sevenfm: limit min/max flank distance depending on sight range and time of day

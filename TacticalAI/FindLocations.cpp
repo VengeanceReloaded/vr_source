@@ -2434,7 +2434,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 		return NOWHERE;
 
 	// sevenfm: no reason to limit AP, we can reach that tile in the next turn
-	gubNPCAPBudget = APBPConstants[AP_MAXIMUM];
+	gubNPCAPBudget= pSoldier->CalcActionPoints();
 
 	// stay away from the edges
 
@@ -2536,6 +2536,12 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			if ( InLightAtNight( sGridNo, pSoldier->pathing.bLevel ) )
 				continue;
 
+			// sevenfm: skip tiles too close to edge
+			if ( PythSpacesAway( FindNearestEdgePoint ( sGridNo ), sGridNo ) <= 2 )
+			{
+				continue;
+			}
+
 			// sevenfm: don't go into deep water for flanking
 			if( DeepWater( sGridNo ) )
 			{
@@ -2543,10 +2549,11 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			// sevenfm: skip water tiles (maybe add option or additional check later)
-			/*if( Water( sGridNo ) )
+			if( Water( sGridNo ) )
 			{
-				sTempDist = sTempDist/2;
-			}*/
+				continue;
+				//sTempDist = sTempDist/2;
+			}
 
 			// sevenfm: skip buildings if not in building already, because soldiers often run into buildings and stop flanking
 			if( InARoom( sGridNo, NULL ) && !InARoom(pSoldier->sGridNo, NULL) )

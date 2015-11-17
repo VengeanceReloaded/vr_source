@@ -75,8 +75,8 @@ UINT16 MovementMode[LAST_MOVEMENT_ACTION + 1][NUM_URGENCY_STATES] =
 	{WALKING,	 WALKING,  WALKING},	// AI_ACTION_SCHEDULE_MOVE
 	{WALKING,	 WALKING,  WALKING},	// AI_ACTION_WALK
 	{WALKING,	 RUNNING,  RUNNING},	// withdraw
-	{WALKING,	 SWATTING,  SWATTING},	// flank left
-	{WALKING,	 SWATTING,  SWATTING},	// flank right
+	{RUNNING,	 RUNNING,  SWATTING},	// flank left
+	{RUNNING,	 RUNNING,  SWATTING},	// flank right
 	{RUNNING,	 RUNNING,  RUNNING},	// AI_ACTION_MOVE_TO_CLIMB
 };
 
@@ -371,23 +371,6 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 		}
 		else
 		{
-			// sevenfm: movement mode tweaks
-			if ( IS_MERC_BODY_TYPE( pSoldier ) &&
-				pSoldier->aiData.bAlertStatus >= STATUS_RED &&
-				!InWaterGasOrSmoke( pSoldier, pSoldier->sGridNo ) &&
-				!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) )
-			{
-				// better run when flanking if have enough BP, good health and not under fire
-				if ( (pSoldier->aiData.bAction == AI_ACTION_FLANK_LEFT || pSoldier->aiData.bAction == AI_ACTION_FLANK_RIGHT ) &&
-					pSoldier->aiData.bShock == 0 &&
-					pSoldier->bBreath > 25 &&
-					pSoldier->stats.bLife > pSoldier->stats.bLifeMax/2 &&
-					!NightTime() )
-				{
-					return RUNNING;
-				}
-			}
-
 			return( MovementMode[bAction][Urgency[pSoldier->aiData.bAlertStatus][pSoldier->aiData.bAIMorale]] );
 		}
 	}
@@ -3149,3 +3132,36 @@ INT16 MaxNormalVisionDistance( void )
 	}
 	return gGameExternalOptions.ubStraightSightRange * 2 * STRAIGHT_RATIO;
 }
+
+// sevenfm: check friendly soldiers between me and noise gridno
+// count only friends that are active and not stationary/onguard/sniper
+UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendDir, ubMyDir;
+	UINT8 ubFriends = 0;
+
+	ubMyDir = atan8(CenterX(sTargetGridNo),CenterY(sTargetGridNo),CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo));
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];
+		ubFriendDir = atan8(CenterX(sTargetGridNo),CenterY(sTargetGridNo),CenterX(pFriend->sGridNo),CenterY(pFriend->sGridNo));
+
+		if (pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			pFriend->stats.bLife >= pFriend->stats.bLifeMax/2 &&
+			pFriend->aiData.bOrders > ONGUARD &&
+			pFriend->aiData.bOrders != SNIPER &&
+			(ubFriendDir == ubMyDir || ubFriendDir == gOneCDirection[ubMyDir] || ubFriendDir == gOneCCDirection[ubMyDir]) &&
+			PythSpacesAway( sTargetGridNo, pFriend->sGridNo) < PythSpacesAway(sTargetGridNo, pSoldier->sGridNo) )
+		{
+			ubFriends++;
+		}
+	}
+
+	return ubFriends;
+}
+
