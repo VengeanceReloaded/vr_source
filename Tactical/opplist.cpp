@@ -2336,6 +2336,8 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 										else
 											TriggerNPCRecord( TRACONIAN_BUYER, 8 );
 									}
+									else
+										TriggerNPCRecord( CONMAN, 12 );
 								}
 							}
 							break;
@@ -2461,6 +2463,8 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 									else
 										TriggerNPCRecord( TRACONIAN_BUYER, 8 );
 								}
+								else
+									TriggerNPCRecord( CONMAN, 12 );
 							}
 						}
 					}

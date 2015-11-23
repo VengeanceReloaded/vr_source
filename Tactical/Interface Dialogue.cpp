@@ -4711,7 +4711,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 						// have to separate out money from Darren's stash equal to the amount of the bet
 						// times 2 (returning the player's money, after all!)
-						CreateMoney( 10000, &(pSoldier->inv[ bEmptySlot ] ) );
+						CreateMoney( 9300, &(pSoldier->inv[ bEmptySlot ] ) );
 						SoldierGiveItem( pSoldier, pSoldier2, &(pSoldier->inv[ bEmptySlot ] ), bEmptySlot );
 					}
 
