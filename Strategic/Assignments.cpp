@@ -66,6 +66,7 @@
 	#include "Tactical Save.h"		// added by Flugente
 	#include "Campaign Types.h"		// added by Flugente
 	#include "Strategic Town Loyalty.h"
+	#include "Strategic Mines.h"	// anv: VR
 #endif
 #include <vector>
 #include <queue>
@@ -18382,9 +18383,23 @@ BOOLEAN CanCharacterFacility( SOLDIERTYPE *pSoldier, UINT8 ubFacilityType, UINT8
 		return( FALSE );
 	}
 
+	// anv: check if we don't have NPC foreman working there already
+	BOOLEAN bForemanAssignment = (ubAssignmentType == FAC_MANAGE_MINE || ubAssignmentType == FAC_MANAGE_OIL_RIG);
+	if(bForemanAssignment)
+	{
+		UINT8 ubMine = GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY );
+		UINT8 ubMinerID = GetHeadMinerProfileIdForMine(ubMine);
+		SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
+		if( pSoldier != NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
+			return( FALSE );
+	}
+	// anv: foremans can be assigned to mines no matter the skills/loyalty
+	BOOLEAN bForeman = (ubAssignmentType == FAC_MANAGE_MINE && GetBackgroundValue(pSoldier->ubProfile, BG_MINE_INCOME)) ||
+		(ubAssignmentType == FAC_MANAGE_OIL_RIG && GetBackgroundValue(pSoldier->ubProfile, BG_OIL_RIG_INCOME));
+
 	//////////////////////////////////////////
 	// Does character have sufficient skill?
-	if (pSoldier->stats.bStrength < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumStrength ||
+	if ((pSoldier->stats.bStrength < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumStrength ||
 		pSoldier->stats.bLife < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumHealth ||
 		pSoldier->stats.bWisdom < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumWisdom ||
 		pSoldier->stats.bAgility < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumAgility ||
@@ -18397,7 +18412,8 @@ BOOLEAN CanCharacterFacility( SOLDIERTYPE *pSoldier, UINT8 ubFacilityType, UINT8
 		pSoldier->stats.bExpLevel < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumLevel ||
 
 		pSoldier->aiData.bMorale < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumMorale ||
-		pSoldier->bBreathMax < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumBreath
+		pSoldier->bBreathMax < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumBreath)
+		&& !bForeman
 		)
 	{
 		// Character is lacking a stat required for this specific assignment.
@@ -18408,7 +18424,8 @@ BOOLEAN CanCharacterFacility( SOLDIERTYPE *pSoldier, UINT8 ubFacilityType, UINT8
 	// Check town loyalty
 
 	UINT8 ubTownID = GetTownIdForSector( pSoldier->sSectorX, pSoldier->sSectorY );
-	if (ubTownID != BLANK_SECTOR)
+	if (ubTownID != BLANK_SECTOR
+		&& !bForeman)
 	{
 		if (gTownLoyalty[ ubTownID ].ubRating < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumLoyaltyHere )
 		{
@@ -18679,9 +18696,29 @@ BOOLEAN CanCharacterFacilityWithErrorReport( SOLDIERTYPE *pSoldier, UINT8 ubFaci
 		return( FALSE );
 	}
 
+		
+	// anv: check if we don't have NPC foreman working there already
+	BOOLEAN bForemanAssignment = (ubAssignmentType == FAC_MANAGE_MINE || ubAssignmentType == FAC_MANAGE_OIL_RIG);
+	if(bForemanAssignment)
+	{
+		UINT8 ubMine = GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY );
+		UINT8 ubMinerID = GetHeadMinerProfileIdForMine(ubMine);
+		SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
+		if( pSoldier != NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
+		{
+			swprintf(sString, gzFacilityErrorMessage[34], pTownNames[GetTownIdForSector( pSoldier->sSectorX, pSoldier->sSectorY )]);
+			DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
+			return( FALSE );
+		}
+	}
+	// anv: foremans can be assigned to mines no matter the skills/loyalty
+	BOOLEAN bForeman = (ubAssignmentType == FAC_MANAGE_MINE && GetBackgroundValue(pSoldier->ubProfile, BG_MINE_INCOME)) ||
+		(ubAssignmentType == FAC_MANAGE_OIL_RIG && GetBackgroundValue(pSoldier->ubProfile, BG_OIL_RIG_INCOME));
+
 	//////////////////////////////////////////
 	// Skill/Condition check
-
+	if(!bForeman)
+	{
 	if (pSoldier->stats.bStrength < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumStrength)
 	{
 		swprintf(sString, gzFacilityErrorMessage[0], pSoldier->GetName());
@@ -18760,12 +18797,14 @@ BOOLEAN CanCharacterFacilityWithErrorReport( SOLDIERTYPE *pSoldier, UINT8 ubFaci
 		DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 		return( FALSE );
 	}
-	
+	}
+
 	////////////////////////////////////////
 	// Check town loyalty
 
 	UINT8 ubTownID = GetTownIdForSector( pSoldier->sSectorX, pSoldier->sSectorY );
-	if (ubTownID != BLANK_SECTOR)
+	if (ubTownID != BLANK_SECTOR
+		&& !bForeman)
 	{
 		if (gTownLoyalty[ ubTownID ].ubRating < gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].ubMinimumLoyaltyHere )
 		{
@@ -19581,6 +19620,12 @@ void FacilityAssignmentMenuBtnCallback ( MOUSE_REGION * pRegion, INT32 iReason )
 					break;
 				case FAC_GATHER_RUMOURS:
 					ChangeSoldiersAssignment( pSoldier, FACILITY_GATHER_RUMOURS );
+					break;
+				case FAC_MANAGE_MINE:
+					ChangeSoldiersAssignment( pSoldier, FACILITY_MANAGE_MINE );
+					break;
+				case FAC_MANAGE_OIL_RIG:
+					ChangeSoldiersAssignment( pSoldier, FACILITY_MANAGE_OIL_RIG );
 					break;
 			}
 			

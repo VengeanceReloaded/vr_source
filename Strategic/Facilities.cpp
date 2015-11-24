@@ -722,6 +722,9 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 	SOLDIERTYPE *pSoldier;
 	INT32 iModifier = 0;
 
+	BOOLEAN bForemanAssigned = FALSE;
+	iModifier = -20; // anv: VR - penalty for lack of foreman
+
 	UINT8 ubCounter = 0;
 	while (gCharactersList[ubCounter].fValid)
 	{
@@ -747,6 +750,21 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 			if ( CanCharacterFacility( pSoldier, ubFacilityType, ubAssignmentType ) &&
 				GetWorldTotalMin() - pSoldier->uiLastAssignmentChangeMin >= (UINT32)gGameExternalOptions.ubMinutesForAssignmentToCount )
 			{
+				// anv: VR - special mine/oil rig assignment
+				if (GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine ) // This mine is here
+				{
+					if(ubAssignmentType == FAC_MANAGE_MINE)
+					{
+						iModifier += pSoldier->GetBackgroundValue(BG_MINE_INCOME);
+						bForemanAssigned = TRUE;
+					}
+					else if(ubAssignmentType == FAC_MANAGE_OIL_RIG)
+					{
+						iModifier += pSoldier->GetBackgroundValue(BG_OIL_RIG_INCOME);
+						bForemanAssigned = TRUE;
+					}
+				}
+				else
 				if (GetFacilityModifier( FACILITY_MINE_INCOME_MOD, ubFacilityType, ubAssignmentType ) && // Facility adjusts mine income
 					(gFacilityTypes[ubFacilityType].AssignmentData[ubAssignmentType].fOnlyLocalMineAffected == 0 || // All mines affected
 					GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine ) ) // This mine is here
@@ -756,6 +774,15 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 			}
 		}
 		ubCounter++;
+	}
+
+	// anv: if we have no foreman assigned, check if NPC foreman is OK
+	if(!bForemanAssigned)
+	{
+		UINT8 ubMinerID = GetHeadMinerProfileIdForMine(ubMine);
+		SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
+		if( pSoldier!= NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
+			iModifier += pSoldier->GetBackgroundValue(BG_OIL_RIG_INCOME);
 	}
 
 	return iModifier;
@@ -777,7 +804,7 @@ INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 		bAssignment == IN_TRANSIT ||
 		bAssignment == TRAIN_TOWN ||
 		bAssignment == TRAIN_MOBILE ||
-		( bAssignment > FACILITY_REST && ( bAssignment < FACILITY_PRISON_SNITCH || bAssignment > FACILITY_GATHER_RUMOURS ) ))
+		( bAssignment > FACILITY_REST && ( bAssignment < FACILITY_PRISON_SNITCH || bAssignment > FACILITY_GATHER_RUMOURS ) && bAssignment < FACILITY_MANAGE_MINE ))
 	{
 		// Soldier is performing a distinctly NON-FACILITY assignment.
 		return (-1);
@@ -940,6 +967,12 @@ INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 			break;
 		case FACILITY_GATHER_RUMOURS:
 			bAssignmentIndex = FAC_GATHER_RUMOURS;
+			break;
+		case FACILITY_MANAGE_MINE:
+			bAssignmentIndex = FAC_MANAGE_MINE;
+			break;		
+		case FACILITY_MANAGE_OIL_RIG:
+			bAssignmentIndex = FAC_MANAGE_OIL_RIG;
 			break;
 		default:
 			bAssignmentIndex = -1;

@@ -1869,6 +1869,8 @@ STR16 pAssignmentStrings[] =
 	L"Rumeur",	// facility: gather information
 	L"Propag.",	// spread propaganda
 	L"Rumeur",	// gather information
+	L"Foreman",	// anv: VR
+	L"Foreman",	// anv: VR
 };
 
 
@@ -1963,7 +1965,9 @@ STR16 pPersonnelAssignmentStrings[] =
 	L"Fait de la propagande", // facility: spread propaganda (globally) // TODO.Translate //A voir fini (to see finished)
 	L"Collecte les rumeurs",	 // facility: gather rumours	 // TODO.Translate //A voir fini (to see finished)
 	L"Propagande",	 // spread propaganda // TODO.Translate //A voir fini (to see finished)
-	L"Rumeur",	 // gather information // TODO.Translate //A voir fini (to see finished) 
+	L"Rumeur",	 // gather information // TODO.Translate //A voir fini (to see finished)
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -2017,7 +2021,9 @@ STR16 pLongAssignmentStrings[] =
 	L"Faire de la propagande", // facility: spread propaganda (globally) // TODO.Translate //A voir fini (to see finished)
 	L"Récolter les rumeurs",	 // facility: gather rumours // TODO.Translate //A voir fini (to see finished)
 	L"Propagande", // spread propaganda
-	L"Rumeurs", // gather information 
+	L"Rumeurs", // gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -7203,6 +7209,7 @@ STR16 gzFacilityErrorMessage[]=
 	L"%s a été gravement blessé dans le secteur %s.", //<--- This is a log message string.
 	L"Il y a actuellement des prisonniers qui ont connaissance de l'identité de : %s",
 	L"%s est actuellement trop connu(e) comme indic. Attendez au moins %d heures.",
+	L"%s already has a foreman.",// anv: VR
 
 
 };
@@ -7272,6 +7279,8 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"Répand une propagande",
 	L"Fait de la propagande",	// spread propaganda (globally)
 	L"Collecte les rumeurs",
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 STR16 Additional113Text[]=
 {
@@ -8201,6 +8210,9 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%% de CDT avec des armes à feu contre les créatures\n",
 	L" %s%d%% du coût de l'assurance\n",
 	L" %s%d%% d'efficacité comme guetteur pour vos tireurs d'élite\n",
+
+	L" %s%d%% to mine income when assigned as mining foreman\n",
+	L" %s%d%% to oil rig income when assigned as drilling foreman\n",
 };
 
 STR16		szBackgroundTitleText[] =

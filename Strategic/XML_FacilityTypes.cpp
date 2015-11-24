@@ -23,7 +23,7 @@
 #endif
 
 FACILITYTYPE gFacilityTypes[ MAX_NUM_FACILITY_TYPES ];
-UINT16 NUM_FACILITY_TYPES = 0;
+UINT16 NUM_FACILITY_TYPES = 1;
 
 typedef enum
 {
@@ -491,9 +491,9 @@ facilitytypeEndElementHandle(void *userData, const XML_Char *name)
 						}
 					}
 
-					pData->curIndex = 0; // Done with this index.
-					NUM_FACILITY_TYPES++; // Count number of facility types successfully loaded into the game
+					pData->curIndex = 0; // Done with this index.	
 				}
+				NUM_FACILITY_TYPES++; // Count number of facility types successfully loaded into the game
 			}
 			else
 			{
@@ -852,7 +852,17 @@ facilitytypeEndElementHandle(void *userData, const XML_Char *name)
 			{
 				//pData->curAssignmentType = (INT16) atol(pData->szCharData);
 				pData->curAssignmentType = FAC_GATHER_RUMOURS;
-			}	
+			}
+			else if (strcmp(pData->szCharData, "MANAGE_MINE") == 0)
+			{
+				//pData->curAssignmentType = (INT16) atol(pData->szCharData);
+				pData->curAssignmentType = FAC_MANAGE_MINE;
+			}
+			else if (strcmp(pData->szCharData, "MANAGE_OIL_RIG") == 0)
+			{
+				//pData->curAssignmentType = (INT16) atol(pData->szCharData);
+				pData->curAssignmentType = FAC_MANAGE_OIL_RIG;
+			}
 			else
 			{
 				CHAR16 sErrorString[256];

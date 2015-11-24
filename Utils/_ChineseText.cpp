@@ -1863,6 +1863,8 @@ STR16 pAssignmentStrings[] =
 	L"谣言",	// facility: gather information
 	L"造谣",	// spread propaganda
 	L"谣言",	// gather information
+	L"Foreman",	// anv: VR
+	L"Foreman",	// anv: VR
 };
 
 
@@ -1958,6 +1960,8 @@ STR16 pPersonnelAssignmentStrings[] =
 	L"搜集谣言",			// facility: gather rumours	
 	L"派发传单",	// spread propaganda
 	L"搜集谣言",			// gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -2012,6 +2016,8 @@ STR16 pLongAssignmentStrings[] =
 	L"搜集谣言",			// facility: gather rumours	
 	L"派发传单",	// spread propaganda
 	L"搜集谣言",			// gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -7202,7 +7208,7 @@ STR16 gzFacilityErrorMessage[]=
 	L"%s在%s负了重伤。", //<--- This is a log message string.
 	L"现在这里有俘虏能认得出%s。", 
 	L"%s现在是人尽皆知的佣兵告发者。至少需要再等%小时。",
-
+	L"%s already has a foreman.",// anv: VR
 
 };
 
@@ -7271,6 +7277,8 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"传播谣言",
 	L"传播谣言",	// spread propaganda (globally)
 	L"搜集谣言",
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 STR16 Additional113Text[]=
 {
@@ -8203,6 +8211,9 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%％射击生物准确率(CTH)\n", //L" %s%d%% cth with firearms against creatures\n",
 	L" %s%d%％医疗保证金\n", //L" %s%d%% insurance cost\n",
 	L" %s%d%％发现狙击手的成功率\n",
+
+	L" %s%d%% to mine income when assigned as mining foreman\n",
+	L" %s%d%% to oil rig income when assigned as drilling foreman\n",
 };
 
 STR16		szBackgroundTitleText[] =

@@ -1875,6 +1875,8 @@ STR16 pAssignmentStrings[] =
 	L"Rumours",	// facility: gather information
 	L"Propag.",	// spread propaganda
 	L"Rumours",	// gather information
+	L"Foreman",	// anv: VR
+	L"Foreman",	// anv: VR
 };
 
 STR16 pMilitiaString[] =
@@ -1966,6 +1968,8 @@ STR16 pPersonnelAssignmentStrings[] =
 	L"Gathering Rumours",// TODO.Translate			// facility: gather rumours	
 	L"Spreading Propaganda",// TODO.Translate	// spread propaganda
 	L"Gathering Rumours",// TODO.Translate			// gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 // refer to above for comments
@@ -2018,6 +2022,8 @@ STR16 pLongAssignmentStrings[] =
 	L"Gather Rumours",// TODO.Translate			// facility: gather rumours	
 	L"Spread Propaganda",// TODO.Translate	// spread propaganda
 	L"Gather Rumours",// TODO.Translate			// gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 // the contract options
@@ -7028,7 +7034,7 @@ STR16 gzFacilityErrorMessage[]=
 	L"%s wurde ernsthaft im Sektor %s verletzt.", //<--- This is a log message string.
 	L"There are currently prisoners here who are aware of %s's identity.", // TODO.Translate
 	L"%s is currently well known as a mercenary snitch. Wait at least %d more hours.", // TODO.Translate
-
+	L"%s already has a foreman.",// anv: VR
 
 };
 
@@ -7098,6 +7104,8 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"Spread Propaganda",
 	L"Spread Propaganda",	// spread propaganda (globally)
 	L"Gather Rumours",
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 STR16 Additional113Text[]=
@@ -8038,6 +8046,9 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%% cth with firearms against creatures\n",
 	L" %s%d%% insurance cost\n",
 	L" %s%d%% effectiveness as spotter for fellow snipers\n",	// TODO.Translate
+
+	L" %s%d%% to mine income when assigned as mining foreman\n",
+	L" %s%d%% to oil rig income when assigned as drilling foreman\n",
 };
 
 STR16		szBackgroundTitleText[] =	// TODO.Translate

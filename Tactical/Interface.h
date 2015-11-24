@@ -187,6 +187,10 @@ enum {
 	BG_PERC_INSURANCE,
 	BG_PERC_SPOTTER,
 
+	// anv: VR
+	BG_MINE_INCOME,
+	BG_OIL_RIG_INCOME,
+
 	BG_MAX,
 };
 

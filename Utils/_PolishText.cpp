@@ -1967,6 +1967,8 @@ STR16 pPersonnelAssignmentStrings[] =
 	L"Zbiera plotki",			// facility: gather rumours	
 	L"Szerzy propagandę",	// spread propaganda
 	L"Zbiera plotki",			// gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -2021,6 +2023,8 @@ STR16 pLongAssignmentStrings[] =
 	L"Zbieraj plotki",		// facility: gather rumours	
 	L"Szerz propagandę",	// spread propaganda
 	L"Zbieraj plotki",		// gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -7218,7 +7222,7 @@ STR16 gzFacilityErrorMessage[]=
 	L"%s doznaje ciężkich obrażeń w sektorze %s", //<--- This is a log message string.
 	L"Obecni więźniowie zdają sobie sprawę, iż %s jest najemnikiem.",
 	L"%s jest obecnie powszechnie znany jako kapuś. Odczekaj przynajmniej %d godzin(ę).",
-
+	L"%s already has a foreman.",// anv: VR
 
 };
 
@@ -7287,6 +7291,8 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"Spread Propaganda",
 	L"Spread Propaganda",	// spread propaganda (globally)
 	L"Gather Rumours",
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 STR16 Additional113Text[]=
@@ -8227,6 +8233,9 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%% cth with firearms against creatures\n",
 	L" %s%d%% insurance cost\n",
 	L" %s%d%% effectiveness as spotter for fellow snipers\n",	// TODO.Translate
+
+	L" %s%d%% to mine income when assigned as mining foreman\n",
+	L" %s%d%% to oil rig income when assigned as drilling foreman\n",
 };
 
 STR16		szBackgroundTitleText[] =	// TODO.Translate

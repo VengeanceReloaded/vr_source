@@ -179,7 +179,7 @@ void MineShutdownIsPermanent( INT8 bMineIndex );
 BOOLEAN IsMineShutDown( INT8 bMineIndex );
 
 UINT8 GetHeadMinerIndexForMine( INT8 bMineIndex );
-//UINT16 GetHeadMinerProfileIdForMine( INT8 bMineIndex );
+UINT16 GetHeadMinerProfileIdForMine( INT8 bMineIndex ); // anv: VR - uncommented
 
 // Find the sector location of a mine
 void GetMineSector( UINT8 ubMineIndex, INT16 * psX, INT16 * psY );

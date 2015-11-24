@@ -739,7 +739,8 @@ INT32 PredictIncomeFromPlayerMines( BOOLEAN fIncludeFacilities )
 	for( bCounter = 0; bCounter < MAX_NUMBER_OF_MINES; bCounter++ )
 	{
 		// add up the total
-		iTotal += PredictDailyIncomeFromAMine( bCounter, fIncludeFacilities );
+		INT32 temp = PredictDailyIncomeFromAMine( bCounter, fIncludeFacilities );
+		iTotal += temp;
 	}
 
 	return( iTotal );
@@ -986,11 +987,11 @@ UINT8 GetHeadMinerIndexForMine( INT8 bMineIndex )
 	return -1;
 }
 
-
-//UINT16 GetHeadMinerProfileIdForMine( INT8 bMineIndex )
-//{
-//	return(gHeadMinerData[ GetHeadMinerIndexForMine( bMineIndex ) ].usProfileId);
-//}
+// anv: uncommented
+UINT16 GetHeadMinerProfileIdForMine( INT8 bMineIndex )
+{
+	return(gHeadMinerData[ GetHeadMinerIndexForMine( bMineIndex ) ].usProfileId);
+}
 
 
 void IssueHeadMinerQuote( INT8 bMineIndex, UINT8 ubQuoteType )

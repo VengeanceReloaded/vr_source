@@ -1863,6 +1863,8 @@ STR16 pAssignmentStrings[] =
 	L"Слухи",	// facility: gather information
 	L"Пропаганда",	// spread propaganda
 	L"Слухи",	// gather information
+	L"Foreman",	// anv: VR
+	L"Foreman",	// anv: VR
 };
 
 
@@ -1958,6 +1960,8 @@ STR16 pPersonnelAssignmentStrings[] =
 	L"Собирает слухи", 	 // facility: gather rumours	
 	L"Ведет пропаганду", // spread propaganda
 	L"Собирает слухи",   // gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -2012,6 +2016,8 @@ STR16 pLongAssignmentStrings[] =
 	L"Собирает слухи",			// facility: gather rumours	
 	L"Ведет пропаганду",		// spread propaganda
 	L"Собирает слухи",			// gather information
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -7197,7 +7203,7 @@ STR16 gzFacilityErrorMessage[]=
 	L"%s получил(а) серьёзную травму в секторе %s.",
 	L"Здесь есть пленные, которые осведомлены о личности %s.",
 	L"%s хорошо известен как доносчик. Подождите еще хотя бы %d часов.",
-
+	L"%s already has a foreman.",// anv: VR
 
 };
 
@@ -7266,6 +7272,8 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"Вести пропаганду",
 	L"Вести пропаганду",	// spread propaganda (globally)
 	L"Собирать слухи",
+	L"Mining Foreman",	// anv: VR
+	L"Drilling Foreman",	// anv: VR
 };
 STR16 Additional113Text[]=
 {
@@ -8197,6 +8205,9 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%% CTH с оружием против животных\n",
 	L" %s%d%% стоимость страховки\n",
 	L" %s%d%% эффективность наблюдателя в снайперской паре\n",
+
+	L" %s%d%% to mine income when assigned as mining foreman\n",
+	L" %s%d%% to oil rig income when assigned as drilling foreman\n",
 };
 
 STR16		szBackgroundTitleText[] =	

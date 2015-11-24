@@ -101,6 +101,8 @@ backgroundStartElementHandle(void *userData, const XML_Char *name, const XML_Cha
 				strcmp(name, "prisonguard") == 0 ||
 				strcmp(name, "betterprices_guns") == 0 ||
 				strcmp(name, "betterprices") == 0 ||
+				strcmp(name, "mine_income") == 0 ||
+				strcmp(name, "oil_rig_income") == 0 ||	
 				strcmp(name, "capitulation") == 0 ||
 				strcmp(name, "speed_run") == 0 ||
 				strcmp(name, "speed_bandaging") == 0 ||
@@ -396,6 +398,16 @@ backgroundEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curBackground.value[BG_PERC_PRICES] = min(10, max(-10, (INT16) atol(pData->szCharData) ));
+		}
+		else if(strcmp(name, "mine_income") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curBackground.value[BG_MINE_INCOME] = min(100, max(-100, (INT16) atol(pData->szCharData) ));
+		}
+		else if(strcmp(name, "oil_rig_income") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curBackground.value[BG_OIL_RIG_INCOME] = min(100, max(-100, (INT16) atol(pData->szCharData) ));
 		}
 		else if(strcmp(name, "capitulation") == 0)
 		{
