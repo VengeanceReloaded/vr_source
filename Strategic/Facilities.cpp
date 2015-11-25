@@ -723,7 +723,7 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 	INT32 iModifier = 0;
 
 	BOOLEAN bForemanAssigned = FALSE;
-	iModifier = -20; // anv: VR - penalty for lack of foreman
+	iModifier = -gGameExternalOptions.usMineNoForemanPenalty; // anv: VR - penalty for lack of foreman
 
 	UINT8 ubCounter = 0;
 	while (gCharactersList[ubCounter].fValid)

@@ -922,6 +922,9 @@ void LoadGameExternalOptions()
 	// HEADROCK HAM B1: Set % of mine income, where 100% = normal
 	gGameExternalOptions.usMineIncomePercentage		= iniReader.ReadInteger("Financial Settings","MINE_INCOME_PERCENTAGE", 100, 1, 1000);
 
+	// anv: VR - penalty for mine/rig with no foreman assigned
+	gGameExternalOptions.usMineNoForemanPenalty		= iniReader.ReadInteger("Financial Settings","MINE_NO_FOREMAN_PENALTY", 50, 0, 100);
+
 	// ALT+LMB item selling
 	gGameExternalOptions.fSellAll					= iniReader.ReadBoolean("Financial Settings","SELL_ITEMS_WITH_ALT_LMB",FALSE);
 	gGameExternalOptions.iPriceModifier				= iniReader.ReadInteger("Financial Settings","SELL_ITEMS_PRICE_MODIFIER",10, -1, 100);

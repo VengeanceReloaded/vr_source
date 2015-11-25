@@ -867,6 +867,9 @@ typedef struct
 	// HEADROCK HAM B1: Global modifier for mine income (0 is automatically turned to 1 to avoid divide-by-zero.)
 	INT16 usMineIncomePercentage;
 
+	// anv: VR - penalty for mine/rig with no foreman assigned
+	INT16 usMineNoForemanPenalty;
+
 	// HEADROCK HAM B1: Allows changing the maximum CTH possible, for any attack 0-100
 	UINT8 ubMaximumCTH;
 	

@@ -18390,8 +18390,16 @@ BOOLEAN CanCharacterFacility( SOLDIERTYPE *pSoldier, UINT8 ubFacilityType, UINT8
 		UINT8 ubMine = GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY );
 		UINT8 ubMinerID = GetHeadMinerProfileIdForMine(ubMine);
 		SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
-		if( pSoldier != NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
-			return( FALSE );
+		if( pSoldier != NULL )
+		{
+			if(pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine)
+				return( FALSE );
+		}
+		else
+		{
+			if(gMercProfiles[ubMinerID].bMercStatus == MERC_OK && GetMineIndexForSector( gMercProfiles[ubMinerID].sSectorX, gMercProfiles[ubMinerID].sSectorY ) == ubMine)
+				return( FALSE );
+		}
 	}
 	// anv: foremans can be assigned to mines no matter the skills/loyalty
 	BOOLEAN bForeman = (ubAssignmentType == FAC_MANAGE_MINE && GetBackgroundValue(pSoldier->ubProfile, BG_MINE_INCOME)) ||
@@ -18704,11 +18712,23 @@ BOOLEAN CanCharacterFacilityWithErrorReport( SOLDIERTYPE *pSoldier, UINT8 ubFaci
 		UINT8 ubMine = GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY );
 		UINT8 ubMinerID = GetHeadMinerProfileIdForMine(ubMine);
 		SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
-		if( pSoldier != NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
+		if( pSoldier != NULL )
 		{
-			swprintf(sString, gzFacilityErrorMessage[34], pTownNames[GetTownIdForSector( pSoldier->sSectorX, pSoldier->sSectorY )]);
-			DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
-			return( FALSE );
+			if(pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine)
+			{
+				swprintf(sString, gzFacilityErrorMessage[34], pTownNames[GetTownIdForSector( pSoldier->sSectorX, pSoldier->sSectorY )]);
+				DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
+				return( FALSE );
+			}
+		}
+		else
+		{
+			if(gMercProfiles[ubMinerID].bMercStatus == MERC_OK && GetMineIndexForSector( gMercProfiles[ubMinerID].sSectorX, gMercProfiles[ubMinerID].sSectorY ) == ubMine)
+			{
+				swprintf(sString, gzFacilityErrorMessage[34], pTownNames[GetTownIdForSector( gMercProfiles[ubMinerID].sSectorX, gMercProfiles[ubMinerID].sSectorY )]);
+				DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
+				return( FALSE );
+			}
 		}
 	}
 	// anv: foremans can be assigned to mines no matter the skills/loyalty
