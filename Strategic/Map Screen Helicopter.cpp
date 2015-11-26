@@ -816,7 +816,7 @@ BOOLEAN CheckIfHelicopterHasEnoughFuelToReturn( INT16 sX, INT16 sY )
 	if( !CheckForArrivalAtRefuelPoint() && fHeliReturnStraightToBase == FALSE && gHelicopterSettings.ubHelicopterDistanceWithoutRefuel - iTotalHeliDistanceSinceRefuel < DistanceToNearestRefuelPoint(sX, sY) )
 	{
 		// hovered too long, inform player heli is returning to base
-		HeliCharacterDialogue( pSkyRider, RETURN_TO_BASE );
+		HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), RETURN_TO_BASE );
 
 		// If the sector is safe
 		if ( NumEnemiesInSector( pVehicleList[ iHelicopterVehicleId ].sSectorX, pVehicleList[ iHelicopterVehicleId ].sSectorY ) == 0 )
@@ -1444,10 +1444,11 @@ void HandleHeliHoverForAMinute( void )
 			// since now heli can stay hovering longer, reminder every 10 minutes would get irritating
 			if( iTotalHeliDistanceSinceRefuel % 3 == 0 && iTotalHeliDistanceSinceRefuel < gHelicopterSettings.ubHelicopterDistanceWithoutRefuel )
 				// inform player
-				HeliCharacterDialogue( pSkyRider, HOVERING_A_WHILE );
+				HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HOVERING_A_WHILE );
 		}
 	
 	}
+	int temp = GetWorldTotalMin();
 	AddStrategicEvent( EVENT_HELICOPTER_HOVER_FOR_A_MINUTE, GetWorldTotalMin() + 1, 0 );
 }
 
@@ -2825,17 +2826,8 @@ BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY )
 
 				// everyone die die die
 				// play sound
-				if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
-				{
-					// Destroy here if we cannot play streamed sound sample....
-						SkyriderDestroyed( );
-				}
-				else
-				{
-					// otherwise it's handled in the callback
-					// remove any arrival events for the helicopter's group
-					DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
-				}
+				PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback );
+				SkyriderDestroyed( );
 
 				// mock the player
 				if(pSkyriderText[ 7 ] != NULL)
@@ -2858,37 +2850,30 @@ BOOLEAN HandleDrunkPilot( INT16 sSectorX, INT16 sSectorY )
 		INT8 ubDrunkLevel = GetDrunkLevel( GetDriver( iHelicopterVehicleId ) );
 		// it shouldn't even be called otherwise, but it's better to check
 		if( ( IsHelicopterPilotInHelicopter() == TRUE ) && ( fHelicopterIsAirBorne == TRUE ) )
-		{		
-			StopTimeCompression();
+		{	
+			 if( ubDrunkLevel == BORDERLINE || ubDrunkLevel == DRUNK || ubDrunkLevel == HUNGOVER )
+			 {
+				 if( PreRandom(100) < DRUNK_PILOT_CRASH_CHANCE )
+				 {
+					StopTimeCompression();
 
-			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
-			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_GOING_DOWN );
+					// play sound
+					// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
+					HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_GOING_DOWN );
 
-			// everyone die die die
-			// play sound
-			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
-			HeliCharacterDialogue( pSkyRider, HELI_GOING_DOWN );
+					// everyone die die die
+					// play sound
+					PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback );
+					SkyriderDestroyed( );
 
-			// everyone die die die
-			// play sound
-			if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
-			{
-				// Destroy here if we cannot play streamed sound sample....
-				SkyriderDestroyed( );
-			}
-			else
-			{
-				// otherwise it's handled in the callback
-				// remove any arrival events for the helicopter's group
-				DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
-			}
+					// mock the player
+					if(pSkyriderText[ 8 ] != NULL)
+						ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 8 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
 
-			// mock the player
-			if(pSkyriderText[ 8 ] != NULL)
-				ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 8 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
-
-			// special return code indicating heli was destroyed
-			return( TRUE );
+					// special return code indicating heli was destroyed
+					return( TRUE );
+				 }
+			 }
 		}
 	}
 	//still flying
@@ -2905,17 +2890,9 @@ BOOLEAN HandlePilotDisabledOthwerise( INT16 sSectorX, INT16 sSectorY )
 
 		// everyone die die die
 		// play sound
-		if ( PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback ) == SOUND_ERROR )
-		{
-			// Destroy here if we cannot play streamed sound sample....
-			SkyriderDestroyed( );
-		}
-		else
-		{
-			// otherwise it's handled in the callback
-			// remove any arrival events for the helicopter's group
-			DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
-		}
+		PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback );
+		SkyriderDestroyed( );
+
 		// special return code indicating heli was destroyed
 		return( TRUE );
 	}
