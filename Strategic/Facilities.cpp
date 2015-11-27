@@ -780,9 +780,12 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 	if(!bForemanAssigned)
 	{
 		UINT8 ubMinerID = GetHeadMinerProfileIdForMine(ubMine);
-		SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
-		if( pSoldier!= NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
-			iModifier += pSoldier->GetBackgroundValue(BG_OIL_RIG_INCOME);
+		if(ubMinerID != -1)
+		{
+			SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
+			if( pSoldier!= NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
+				iModifier += pSoldier->GetBackgroundValue(BG_OIL_RIG_INCOME);
+		}
 	}
 
 	return iModifier;

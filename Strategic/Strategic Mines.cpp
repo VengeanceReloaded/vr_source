@@ -990,7 +990,11 @@ UINT8 GetHeadMinerIndexForMine( INT8 bMineIndex )
 // anv: uncommented
 UINT16 GetHeadMinerProfileIdForMine( INT8 bMineIndex )
 {
-	return(gHeadMinerData[ GetHeadMinerIndexForMine( bMineIndex ) ].usProfileId);
+	UINT8 ubMinerID = GetHeadMinerIndexForMine( bMineIndex );
+	if(gHeadMinerData.size() > ubMinerID)
+		return(gHeadMinerData[ GetHeadMinerIndexForMine( bMineIndex ) ].usProfileId);
+	else
+		return -1;
 }
 
 
