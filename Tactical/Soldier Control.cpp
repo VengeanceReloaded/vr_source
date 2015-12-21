@@ -10628,10 +10628,10 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 	// check for the rest
 	for( int i = 2; i < 255 ; i++)//gBattleSndsData[ ubSoundID ].ubRandomVal; i++ )
 	{
-		sprintf( zFilename, "%s%s%d", BasicPattern, ".wav", i );
+		sprintf( zFilename, "%s%d%s", BasicPattern, i,  ".wav");
 		if( !FileExists( zFilename ) )
 		{
-			sprintf( zFilename, "%s%s%d", BasicPattern, ".ogg", i );
+			sprintf( zFilename, "%s%d%s", BasicPattern, i, ".ogg");
 			if( FileExists( zFilename ) )
 			{
 				strcpy(ExistingSndsFilesIDs[ExistingSndsFiles],zFilename);
