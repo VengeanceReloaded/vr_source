@@ -34,6 +34,8 @@ static INT8 gbDeathSongCount = 0;
 static INT32 bNothingModeSong = NOTHING_A_MUSIC;
 static INT32 bEnemyModeSong = TENSOR_A_MUSIC;
 static INT32 bBattleModeSong = BATTLE_A_MUSIC;
+static INT32 bCreepyModeSong = CREEPY_MUSIC;
+static INT32 bCreepyBattleModeSong = CREATURE_BATTLE_MUSIC;
 
 static INT32 NewSoundID = -1;
 static BOOLEAN SetSoundID = FALSE;
@@ -43,6 +45,8 @@ static INT32 gubOldMusicMode2 = 0;
 static INT8 bNothingModeSong;
 static INT8 bEnemyModeSong;
 static INT8 bBattleModeSong;
+static INT8 bCreepyModeSong;
+static INT8 bCreepyBattleModeSong;
 #endif
 
 static BOOLEAN gfUseCreatureMusic = FALSE;
@@ -62,19 +66,65 @@ CHAR8 *szMusicList[NUM_MUSIC]=
 	"MUSIC\\nothing B",
 	"MUSIC\\nothing C",
 	"MUSIC\\nothing D",
+	"MUSIC\\nothing E",
+	"MUSIC\\nothing F",
+	"MUSIC\\nothing G",
+	"MUSIC\\nothing H",
+	"MUSIC\\nothing I",
+	"MUSIC\\nothing J",
+	"MUSIC\\nothing K",
+	"MUSIC\\nothing L",
+	"MUSIC\\nothing M",
+	"MUSIC\\nothing N",
+	"MUSIC\\nothing O",
+	"MUSIC\\nothing P",
 	"MUSIC\\tensor A",
 	"MUSIC\\tensor B",
 	"MUSIC\\tensor C",
+	"MUSIC\\tensor D",
+	"MUSIC\\tensor E",
+	"MUSIC\\tensor F",
+	"MUSIC\\tensor G",
+	"MUSIC\\tensor H",
+	"MUSIC\\tensor I",
+	"MUSIC\\tensor J",
+	"MUSIC\\tensor K",
+	"MUSIC\\tensor L",
+	"MUSIC\\tensor M",
+	"MUSIC\\tensor N",
+	"MUSIC\\tensor O",
+	"MUSIC\\tensor P",
 	"MUSIC\\triumph",
 	"MUSIC\\death",
 	"MUSIC\\battle A",
-	"MUSIC\\tensor B",
+	"MUSIC\\battle B",
+	"MUSIC\\battle C",
+	"MUSIC\\battle D",
+	"MUSIC\\battle E",
+	"MUSIC\\battle F",
+	"MUSIC\\battle G",
+	"MUSIC\\battle H",
+	"MUSIC\\battle I",
+	"MUSIC\\battle J",
+	"MUSIC\\battle K",
+	"MUSIC\\battle L",
+	"MUSIC\\battle M",
+	"MUSIC\\battle N",
+	"MUSIC\\battle O",
+	"MUSIC\\battle P",
 	"MUSIC\\creepy",
+	"MUSIC\\creepy B",
+	"MUSIC\\creepy C",
+	"MUSIC\\creepy D",
 	"MUSIC\\creature battle",
+	"MUSIC\\creature battle B",
+	"MUSIC\\creature battle C",
+	"MUSIC\\creature battle D",
 	"MUSIC",
 };
 
 BOOLEAN StartMusicBasedOnMode(void);
+UINT8 GetAmountOfTracksBetween(UINT8 ubStartIndex, UINT8 ubEndIndex);
 void DoneFadeOutDueToEndMusic(void);
 void MusicStopCallback(void *pData);
 BOOLEAN MusicStop(void);
@@ -589,9 +639,18 @@ static BOOLEAN StartMusicBasedOnMode(void)
 	{
 		fFirstTime = FALSE;
 
-		bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(4));
-		bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(3));
-		bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(2));
+		// anv: check for available tracks
+		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_P_MUSIC);
+		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_P_MUSIC);
+		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_P_MUSIC);
+		ubCreepyEnemyTracks = GetAmountOfTracksBetween(CREEPY_MUSIC, CREEPY_MUSIC_D);
+		ubCreepyBattleTracks = GetAmountOfTracksBetween(CREATURE_BATTLE_MUSIC, CREATURE_BATTLE_MUSIC_D);
+
+		bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(ubNothingTracks));
+		bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(ubEnemyTracks));
+		bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(ubBattleTracks));
+		bCreepyModeSong = (INT8) (CREEPY_MUSIC + Random(ubCreepyEnemyTracks));
+		bCreepyBattleModeSong = (INT8) (CREATURE_BATTLE_MUSIC + Random(ubCreepyBattleTracks));
 	}
 
 
@@ -619,13 +678,14 @@ static BOOLEAN StartMusicBasedOnMode(void)
 				if ( NewSoundID == -1)
 				{
 					SetSoundID = FALSE;
-					MusicPlay(CREEPY_MUSIC,MUSIC_OLD_TYPE,FALSE);
+					MusicPlay(bCreepyModeSong,MUSIC_OLD_TYPE,FALSE);
 				}
 				else
 				{
 					SetSoundID = TRUE;
 					MusicPlay(NewSoundID,MUSIC_TACTICAL_CREEPY_MUSIC,TRUE);
 				}
+				bCreepyEnemySong = (INT8) (CREEPY_MUSIC + Random(ubCreepyEnemyTracks));
 			}
 			else
 			{
@@ -638,9 +698,8 @@ static BOOLEAN StartMusicBasedOnMode(void)
 				{
 					SetSoundID = TRUE;
 					MusicPlay(NewSoundID,MUSIC_TACTICAL_NOTHING,TRUE);
-				}				
-				
-				bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(4));
+				}							
+				bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(ubNothingTracks));			
 			}
 			break;
 
@@ -652,13 +711,14 @@ static BOOLEAN StartMusicBasedOnMode(void)
 				if ( NewSoundID == -1)
 				{
 					SetSoundID = FALSE;
-					MusicPlay(CREEPY_MUSIC,MUSIC_OLD_TYPE,FALSE);
-			}
-			else
-			{
+					MusicPlay(bCreepyModeSong,MUSIC_OLD_TYPE,FALSE);
+				}
+				else
+				{
 					SetSoundID = TRUE;
 					MusicPlay(NewSoundID,MUSIC_TACTICAL_ENEMYPRESENT,TRUE);
 				}
+				bCreepyEnemySong = (INT8) (CREEPY_MUSIC + Random(ubCreepyEnemyTracks));
 			}
 			else
 			{
@@ -672,7 +732,7 @@ static BOOLEAN StartMusicBasedOnMode(void)
 					SetSoundID = TRUE;
 					MusicPlay(NewSoundID,MUSIC_TACTICAL_ENEMYPRESENT,TRUE);
 				}
-				bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(3));
+				bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(ubEnemyTracks));			
 			}
 			break;
 
@@ -684,13 +744,14 @@ static BOOLEAN StartMusicBasedOnMode(void)
 				if ( NewSoundID == -1)
 				{
 					SetSoundID = FALSE;
-					MusicPlay(CREATURE_BATTLE_MUSIC,MUSIC_OLD_TYPE,FALSE);
+					MusicPlay(bCreepyBattleModeSong,MUSIC_OLD_TYPE,FALSE);
 				}
 				else
 				{
 					SetSoundID = TRUE;
 					MusicPlay(NewSoundID,MUSIC_TACTICAL_BATTLE_MUSIC,TRUE);
-				}
+				}			
+				bCreepyBattleModeSong = (INT8) (CREATURE_BATTLE_MUSIC + Random(ubCreepyBattleTracks));
 			}
 			else
 			{
@@ -698,14 +759,14 @@ static BOOLEAN StartMusicBasedOnMode(void)
 				{
 					SetSoundID = FALSE;
 					MusicPlay(bBattleModeSong,MUSIC_OLD_TYPE,FALSE);
-			}
-			else
-			{
+				}
+				else
+				{
 					SetSoundID = TRUE;
 					MusicPlay(NewSoundID,MUSIC_TACTICAL_BATTLE,TRUE);
 				}
+				bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(ubBattleTracks));
 			}
-			bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(2));
 			break;
 
 		case MUSIC_TACTICAL_VICTORY:
@@ -759,14 +820,28 @@ static BOOLEAN StartMusicBasedOnMode(void)
 static BOOLEAN StartMusicBasedOnMode(void)
 {
 	static BOOLEAN fFirstTime = TRUE;
+	static UINT8 ubNothingTracks = 0;
+	static UINT8 ubEnemyTracks = 0;
+	static UINT8 ubBattleTracks = 0;
+	static UINT8 ubCreepyEnemyTracks = 0;
+	static UINT8 ubCreepyBattleTracks = 0;
 
 	if (fFirstTime)
 	{
 		fFirstTime = FALSE;
 
-		bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(4));
-		bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(3));
-		bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(2));
+		// anv: check for available tracks
+		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_P_MUSIC);
+		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_P_MUSIC);
+		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_P_MUSIC);
+		ubCreepyEnemyTracks = GetAmountOfTracksBetween(CREEPY_MUSIC, CREEPY_MUSIC_D);
+		ubCreepyBattleTracks = GetAmountOfTracksBetween(CREATURE_BATTLE_MUSIC, CREATURE_BATTLE_MUSIC_D);
+
+		bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(ubNothingTracks));
+		bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(ubEnemyTracks));
+		bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(ubBattleTracks));
+		bCreepyModeSong = (INT8) (CREEPY_MUSIC + Random(ubCreepyEnemyTracks));
+		bCreepyBattleModeSong = (INT8) (CREATURE_BATTLE_MUSIC + Random(ubCreepyBattleTracks));
 	}
 
 
@@ -791,12 +866,13 @@ static BOOLEAN StartMusicBasedOnMode(void)
 			gbFadeSpeed = (INT8)uiMusicVolume;
 			if(gfUseCreatureMusic)
 			{
-				MusicPlay(CREEPY_MUSIC);
+				MusicPlay(bCreepyModeSong);
+				bCreepyModeSong = (INT8) (CREEPY_MUSIC + Random(ubCreepyEnemyTracks));
 			}
 			else
 			{
 				MusicPlay(bNothingModeSong);
-				bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(4));
+				bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(ubNothingTracks));		
 			}
 			break;
 
@@ -805,12 +881,13 @@ static BOOLEAN StartMusicBasedOnMode(void)
 			gbFadeSpeed = (INT8)uiMusicVolume;
 			if(gfUseCreatureMusic)
 			{
-				MusicPlay(CREEPY_MUSIC);
+				MusicPlay(bCreepyModeSong);
+				bCreepyModeSong = (INT8) (CREEPY_MUSIC + Random(ubCreepyEnemyTracks));
 			}
 			else
 			{
 				MusicPlay(bEnemyModeSong);
-				bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(3));
+				bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(ubEnemyTracks));
 			}
 			break;
 
@@ -819,13 +896,14 @@ static BOOLEAN StartMusicBasedOnMode(void)
 			gbFadeSpeed = (INT8)uiMusicVolume;
 			if(gfUseCreatureMusic)
 			{
-				MusicPlay(CREATURE_BATTLE_MUSIC);
+				MusicPlay(bCreepyBattleModeSong);
+				bCreepyBattleModeSong = (INT8) (CREATURE_BATTLE_MUSIC + Random(ubCreepyBattleTracks));
 			}
 			else
 			{
 				MusicPlay(bBattleModeSong);
+				bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(ubBattleTracks));
 			}
-			bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(2));
 			break;
 
 		case MUSIC_TACTICAL_VICTORY:
@@ -858,6 +936,31 @@ static BOOLEAN StartMusicBasedOnMode(void)
 	return TRUE;
 }
 #endif
+
+UINT8 GetAmountOfTracksBetween(UINT8 ubStartIndex, UINT8 ubEndIndex)
+{
+	UINT8 ExistingSndsFiles = 0;
+	SGPFILENAME		zFileName;
+	for( UINT8 i = ubStartIndex; i < ubEndIndex + 1; i++)
+	{
+		sprintf( zFileName, "%s.ogg", szMusicList[i] );
+		if( !FileExists( zFileName ) )
+		{
+			sprintf( zFileName, "%s.wav", szMusicList[i] );
+			if( FileExists( zFileName ) )
+			{
+				ExistingSndsFiles++;
+			}
+			else
+				break;
+		}
+		else
+		{
+			ExistingSndsFiles++;
+		}
+	}
+	return ExistingSndsFiles;
+}
 
 BOOLEAN SetMusicMode(UINT8 ubMusicMode)
 {
