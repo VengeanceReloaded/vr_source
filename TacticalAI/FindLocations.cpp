@@ -29,6 +29,7 @@
 	#include "Buildings.h"
 	#include "GameSettings.h"
 	#include "Soldier Profile.h"
+	#include "Rotting Corpses.h"	// sevenfm
 #endif
 
 
@@ -2443,7 +2444,8 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 		return NOWHERE;
 
 	// sevenfm: no reason to limit AP, we can reach that tile in the next turn
-	gubNPCAPBudget= pSoldier->CalcActionPoints();
+	//gubNPCAPBudget= pSoldier->CalcActionPoints();
+	gubNPCAPBudget= __min(pSoldier->bInitialActionPoints, iSearchRange * 3 * APBPConstants[AP_MAXIMUM] / 25);
 
 	// stay away from the edges
 
@@ -2557,11 +2559,16 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 				continue;
 			}
 
-			// sevenfm: skip water tiles (maybe add option or additional check later)
-			if( Water( sGridNo ) )
+			// sevenfm: allow water flanking only for CUNNINGSOLO soldiers
+			if( Water( sGridNo ) && pSoldier->aiData.bAttitude != CUNNINGSOLO )
 			{
 				continue;
-				//sTempDist = sTempDist/2;
+			}
+
+			// sevenfm: penalize locations near fresh corpses
+			if( GetNearestRottingCorpseAIWarning( sGridNo ) > 0 )
+			{
+				sTempDist = sTempDist / 2;
 			}
 
 			// sevenfm: skip buildings if not in building already, because soldiers often run into buildings and stop flanking
@@ -2580,6 +2587,12 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 
 			// sevenfm: penalize locations too far from noise gridno
 			if( PythSpacesAway( sGridNo, sPos) > MAX_FLANK_DIST_RED )
+			{
+				sTempDist = sTempDist / 2;
+			}
+
+			// sevenfm: try to flank closer to vision distance limit for faster flanking
+			if( PythSpacesAway( sGridNo, sPos) > sDistanceVisible + 10 )
 			{
 				sTempDist = sTempDist / 2;
 			}

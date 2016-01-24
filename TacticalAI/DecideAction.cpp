@@ -1750,8 +1750,8 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 			if ( origDir > currDir )
 				origDir -= 8;
 
-			if ( (currDir - origDir) >= 4 ||
-				CountFriendsInDirection( pSoldier, tempGridNo ) == 0 )
+			// stop flanking
+			if ( (currDir - origDir) >= MinFlankDirections(pSoldier) )
 			{
 				pSoldier->numFlanks = MAX_FLANKS_YELLOW;
 			}
@@ -1769,8 +1769,8 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 			if ( origDir < currDir )
 				origDir += 8;
 
-			if ( (origDir - currDir) >= 4 ||
-				CountFriendsInDirection( pSoldier, tempGridNo ) == 0 )
+			// stop flanking
+			if ( (origDir - currDir) >= MinFlankDirections(pSoldier) )
 			{
 				pSoldier->numFlanks = MAX_FLANKS_YELLOW;
 			}
@@ -1920,11 +1920,14 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 						}
 					}
 
-					// sevenfm: check friends in noise direction
+					// possibly start YELLOW flanking
 					if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || 	pSoldier->aiData.bAttitude == CUNNINGSOLO ) &&
-						CountFriendsInDirection( pSoldier, sNoiseGridNo ) > 0 &&
-						pSoldier->aiData.bOrders > CLOSEPATROL &&
-						pSoldier->aiData.bOrders != SNIPER )
+						pSoldier->bTeam == ENEMY_TEAM &&
+						( CountFriendsInDirection( pSoldier, sNoiseGridNo ) > 0 || NightTime() ) &&
+						( pSoldier->aiData.bOrders == SEEKENEMY ||
+						pSoldier->aiData.bOrders == FARPATROL ||
+						pSoldier->aiData.bOrders == ONCALL ||
+						pSoldier->aiData.bOrders == CLOSEPATROL && NightTime() ) )
 					{
 						INT8 action = AI_ACTION_SEEK_NOISE;
 						INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sNoiseGridNo );
@@ -1970,6 +1973,13 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 							pSoldier->origDir = GetDirectionFromGridNo ( sNoiseGridNo, pSoldier);
 							pSoldier->lastFlankSpot = sNoiseGridNo;
 							pSoldier->numFlanks++;
+							
+							// sevenfm: change orders CLOSEPATROL -> FARPATROL
+							if( pSoldier->aiData.bOrders == CLOSEPATROL )
+							{
+								pSoldier->aiData.bOrders = FARPATROL;
+							}
+
 							return(action);
 						}
 					}
@@ -2752,7 +2762,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				// check line of sight to enemy (to avoid through-walls suppression fire)
 				CheckSuppressionDirection( pSoldier, Menptr[BestShot.ubOpponent].sGridNo ) &&
 				!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
-				(pSoldier->numFlanks == 0 || pSoldier->numFlanks > MAX_FLANKS_RED) &&
+				!AICheckIsFlanking(pSoldier) &&
 				LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, MercPtrs[BestShot.ubOpponent]->sGridNo, MercPtrs[BestShot.ubOpponent]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
 				fExtraClip)
 		{
@@ -3114,8 +3124,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		else
 			tempGridNo = sClosestDisturbance;
 
+		// continue flanking
 		if ( pSoldier->numFlanks > 0 &&
-			pSoldier->numFlanks < MAX_FLANKS_RED  && 
+			pSoldier->numFlanks < MAX_FLANKS_RED && 
 			gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE &&
 			!pSoldier->aiData.bUnderFire )
 		{
@@ -3128,8 +3139,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				if ( origDir > currDir )
 					origDir -= 8;
 
-				if ( (currDir - origDir) >= 4 ||
-					CountFriendsInDirection( pSoldier, tempGridNo ) == 0)
+				// stop flanking condition
+				if ( (currDir - origDir) >= MinFlankDirections(pSoldier) ||
+					!NightTime() &&	CountFriendsInDirection( pSoldier, tempGridNo ) == 0 &&	(currDir - origDir) >= MinFlankDirections(pSoldier) / 2 )
 				{
 					pSoldier->numFlanks = MAX_FLANKS_RED;
 				}
@@ -3148,8 +3160,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				if ( origDir < currDir )
 					origDir += 8;
 
-				if ( (origDir - currDir) >= 4 ||
-					CountFriendsInDirection( pSoldier, tempGridNo ) == 0 )
+				// stop flanking condition
+				if ( (origDir - currDir) >= MinFlankDirections(pSoldier) ||
+					!NightTime() &&	CountFriendsInDirection( pSoldier, tempGridNo ) == 0 &&	(currDir - origDir) >= MinFlankDirections(pSoldier) / 2 )
 				{
 					pSoldier->numFlanks = MAX_FLANKS_RED;
 				}
@@ -3164,7 +3177,70 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				}
 			}
 		}
+		// sevenfm: when we finished flanking, try to reach lastFlankSpot position
+		// seek until we are close (DistanceVisible/2) and have line of sight to lastFlankSpot position
+		// don't seek if we have seen enemy recently or under fire or have shock
+		// don't seek if we have low AP (tired, wounded)
 		if ( pSoldier->numFlanks == MAX_FLANKS_RED )
+		{
+			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: stop flanking");
+
+			// start end flank approach with full APs
+			if( gfTurnBasedAI && pSoldier->bActionPoints < pSoldier->bInitialActionPoints )
+			{
+				return(AI_ACTION_END_TURN);
+			}
+
+			if( !TileIsOutOfBounds(tempGridNo) &&
+				!GuySawEnemyThisTurnOrBefore(pSoldier) &&
+				!pSoldier->aiData.bUnderFire &&
+				!Water(pSoldier->sGridNo) &&
+				pSoldier->bInitialActionPoints >= APBPConstants[AP_MINIMUM] &&
+				( PythSpacesAway( pSoldier->sGridNo, tempGridNo ) > MIN_FLANK_DIST_RED ||
+				!LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) ) )
+			{				
+				pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,tempGridNo,GetAPsCrouch( pSoldier, TRUE),AI_ACTION_SEEK_OPPONENT,0);
+
+				// sevenfm: avoid going into water, gas or light
+				if( !TileIsOutOfBounds(pSoldier->aiData.usActionData) &&
+					!Water(pSoldier->aiData.usActionData) &&
+					!InGas( pSoldier, pSoldier->aiData.usActionData ) &&
+					!InLightAtNight( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel ) )
+				{
+					// if soldier can be seen at new position and he cannot be seen at his current position
+					if ( LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) &&
+						!LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) )
+					{
+						// reserve APs for a possible crouch plus a shot
+						INT32 sCautiousGridNo = InternalGoAsFarAsPossibleTowards(pSoldier, tempGridNo, (INT8) (MinAPsToAttack( pSoldier, tempGridNo, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE) + GetAPsToLook(pSoldier)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
+
+						if (!TileIsOutOfBounds(sCautiousGridNo))
+						{
+							pSoldier->aiData.usActionData = sCautiousGridNo;
+							pSoldier->aiData.fAIFlags |= AI_CAUTIOUS;
+							pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
+							return(AI_ACTION_SEEK_OPPONENT);
+						}
+						return(AI_ACTION_SEEK_OPPONENT);
+					}
+					else
+					{
+						return(AI_ACTION_SEEK_OPPONENT);
+					}
+				}
+				else
+				{
+					// if we cannot advance to spot, stop trying
+					pSoldier->numFlanks++;
+				}
+			}
+			else
+			{	
+				// stop
+				pSoldier->numFlanks++;
+			}
+		}
+		/*if ( pSoldier->numFlanks == MAX_FLANKS_RED )
 		{
 			pSoldier->numFlanks += 1;
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: stop flanking");
@@ -3194,7 +3270,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				pSoldier->aiData.usActionData = FindBestNearbyCover(pSoldier,pSoldier->aiData.bAIMorale,&iDummy);
 				return AI_ACTION_TAKE_COVER ;
 			}
-		}
+		}*/
 
 
 		// if we can move at least 1 square's worth
@@ -3372,17 +3448,22 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 									}
 								}
 							}
-							//if ( fClimb && pSoldier->aiData.usActionData == sClosestDisturbance)
-							//{
-							//	return( AI_ACTION_CLIMB_ROOF );
-							//}
 
-
-							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ) &&
+							// sevenfm: possibly start RED flanking
+							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ||
+								( pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID ) && CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, 5) > 2 ) &&
+								pSoldier->bTeam == ENEMY_TEAM &&
 								gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE &&
-								CountFriendsInDirection( pSoldier, sClosestDisturbance ) > 0 &&
-								pSoldier->aiData.bOrders > CLOSEPATROL &&
-								pSoldier->aiData.bOrders != SNIPER )
+								!pSoldier->aiData.bUnderFire &&
+								pSoldier->pathing.bLevel == 0 &&
+								( pSoldier->aiData.bOrders == SEEKENEMY ||
+								pSoldier->aiData.bOrders == FARPATROL ||
+								pSoldier->aiData.bOrders == ONCALL ||
+								pSoldier->aiData.bOrders == CLOSEPATROL && NightTime() ) &&
+								!GuySawEnemyThisTurnOrBefore( pSoldier ) &&
+								pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
+								( CountFriendsInDirection( pSoldier, sClosestDisturbance ) > 1 || NightTime() ) )
+								//(CountFriendsFlankSeek(pSoldier) + 1 < CountFriendsInDirection( pSoldier, sClosestDisturbance ) || NightTime() ) ) 
 							{
 								INT8 action = AI_ACTION_SEEK_OPPONENT;
 								INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sClosestDisturbance );
@@ -3445,10 +3526,16 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 									if ( pSoldier->lastFlankSpot != sClosestDisturbance)
 										pSoldier->numFlanks=0;
 
-
 									pSoldier->origDir = GetDirectionFromGridNo ( sClosestDisturbance, pSoldier);
 									pSoldier->lastFlankSpot = sClosestDisturbance;
 									pSoldier->numFlanks++;
+
+									// sevenfm: change orders when starting to flank
+									if( pSoldier->aiData.bOrders == CLOSEPATROL )
+									{
+										pSoldier->aiData.bOrders = FARPATROL;
+									}
+
 									return(action);
 								}
 							}

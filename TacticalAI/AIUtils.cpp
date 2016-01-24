@@ -3333,3 +3333,64 @@ UINT8 CountNearbyFriendlies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDista
 	return ubFriendCount;
 }
 
+// sevenfm: determine minimum flanking directions to stop flanking depending on soldier's attitude
+UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier )
+{
+	switch(pSoldier->aiData.bAttitude)
+	{
+	case CUNNINGAID:
+	case CUNNINGSOLO:
+		return 4;		
+	}
+	return 2;
+}
+
+UINT8 CountFriendsFlankSeek( SOLDIERTYPE *pSoldier )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	UINT8 ubFlankLeft = 0;
+	UINT8 ubFlankRight = 0;
+
+	// safety check
+	if( !pSoldier ) return 0;
+
+	UINT8 ubMaxDist = VISION_RANGE / 2;
+	INT32 sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
+
+	if(TileIsOutOfBounds(sClosestOpponent))
+	{
+		return 0;
+	}
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];
+
+		if (pFriend != pSoldier && 
+			pFriend->bActive && 
+			pFriend->stats.bLife >= OKLIFE &&
+			pFriend->aiData.bAlertStatus == STATUS_RED &&
+			pFriend->aiData.bOrders > ONGUARD &&
+			pFriend->aiData.bOrders != SNIPER )
+		{
+			// check if this friend flanks around the same spot
+			if( pFriend->numFlanks > 0 && pFriend->numFlanks < MAX_FLANKS_RED &&
+				PythSpacesAway(pFriend->lastFlankSpot, sClosestOpponent) < ubMaxDist )
+			{
+				if( pFriend->flags.lastFlankLeft )
+				{
+					ubFlankLeft++;
+				}
+				else
+				{
+					ubFlankRight++;
+				}
+			}
+		}
+	}
+
+	return ubFlankLeft + ubFlankRight;
+}
