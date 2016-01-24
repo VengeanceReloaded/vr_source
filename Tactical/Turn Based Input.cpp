@@ -331,6 +331,7 @@ void HandleTBDropBackpacks( void );
 void HandleTBPickUpBackpacks( void );
 void HandleTBSoldierRun( void );
 
+void HandleTacticalReload( void );
 void HandleTacticalTakeItem( void );
 void HandleTacticalDropItem( UINT8 ubSlot );
 void HandleTacticalTakeInvItem( INT32 iType );
@@ -6872,32 +6873,32 @@ void HandleAltMouseTBWheel( void )
 {
 	if ( !( gTacticalStatus.uiFlags & ENGAGED_IN_CONV )	&&
 		( ( gsCurInterfacePanel != SM_PANEL ) || ( ButtonList[ iSMPanelButtons[ NEXTMERC_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) )
-					{
+	{
 		if ( gViewportRegion.WheelState > 0 )	// wheel up
-						{
+		{
 			if ( _KeyDown( ALT ) )				
 				if( _KeyDown( SHIFT ) )	
-							{
+				{
 					if( _KeyDown( CTRL ) )			// SHIFT+CTRL+ALT
-						HandleTBPickUpBackpacks();
+						;
 					else							// SHIFT+ALT
-						HandleTBCycleThroughKnownEnemies(); 
-							}
+						; 
+				}
 				else if ( _KeyDown( CTRL ) )		// CTRL+ALT
-					HandleTBSwapGoogles();
+					HandleTBPickUpBackpacks();
 				else								// ALT
 					HandleTBGotoHigherStance();
 			else if( _KeyDown( CTRL ) )
 			{
 				if( _KeyDown( SHIFT ) )				// SHIFT+CTRL
-					HandleTBSwapGunsling();
+					;
 				else								// CTRL
-					HandleTBSoldierRun();
+					HandleTBLocatePrevMerc();	
 			}
 			else if( _KeyDown( SHIFT ) )			// SHIFT
-				HandleTBCycleThroughVisibleEnemies();
+				HandleTBCycleThroughVisibleEnemiesBackward();
 			else									
-				HandleTBLocatePrevMerc();
+				;
 		}
 		else										// wheel down
 		{
@@ -6905,26 +6906,25 @@ void HandleAltMouseTBWheel( void )
 				if( _KeyDown( SHIFT ) )	
 				{
 					if( _KeyDown( CTRL ) )			// SHIFT+CTRL+ALT
-						HandleTBDropBackpacks();
+						;
 					else							// SHIFT+ALT
-						HandleTBCycleThroughKnownEnemiesBackward();
+						;
 				}
 				else if ( _KeyDown( CTRL ) )		// CTRL+ALT
-					HandleTBSwapSidearm();
+					HandleTBDropBackpacks();
 				else								// ALT
 					HandleTBGotoLowerStance();
 			else if( _KeyDown( CTRL ) )
 			{
 				if( _KeyDown( SHIFT ) )				// SHIFT+CTRL
-					HandleTBSwapKnife();
+					;
 				else								// CTRL
-					HandleTBSwapHands();
+					HandleTBLocateNextMerc();
 			}
 			else if( _KeyDown( SHIFT ) )			// SHIFT
-				HandleTBCycleThroughVisibleEnemiesBackward();
+				HandleTBCycleThroughVisibleEnemies();
 			else									
-				HandleTBLocateNextMerc();
-
+				;
 		}
 	}
 }
@@ -6938,23 +6938,23 @@ void HandleAltMouseTBMButton(  UINT32 *puiNewEvent  )
 		if( _KeyDown( SHIFT ) )	
 		{
 			if( _KeyDown( CTRL ) )			// SHIFT+CTRL+ALT
-				HandleTBJumpThroughWindow();
+				;
 			else							// SHIFT+ALT
 				;// reserved
 		}
 		else if ( _KeyDown( CTRL ) )		// CTRL+ALT
-			HandleTBChangeLevel();
+			HandleTacticalReload();
 		else								// ALT
 			HandleTBToggleFireMode();
 	else if( _KeyDown( CTRL ) )
 	{
 		if( _KeyDown( SHIFT ) )				// SHIFT+CTRL
-			HandleTBJump();
+			;
 		else								// CTRL
 			SetScopeMode( usMapPos );
 	}
 	else if( _KeyDown( SHIFT ) )			// SHIFT
-		HandleTBLocateSoldier();
+		HandleTacticalTransformItem();
 	else									// Button
 		HandleTBLook( puiNewEvent );
 }
@@ -6964,25 +6964,25 @@ void HandleAltMouseTBX1Button( UINT32 *puiNewEvent )
 		if( _KeyDown( SHIFT ) )	
 		{
 			if( _KeyDown( CTRL ) )		// SHIFT+CTRL+ALT
-				HandleTBToggleSneak();
+				;
 			else						// SHIFT+ALT
-				HandleTBToggleFormation();
+				;
 		}
 		else if ( _KeyDown( CTRL ) )	// CTRL+ALT
-			HandleTBSwapGoogles();
+			ToggleTrapNetworkView();
 		else							// ALT
-			HandleTBSwapKnife();
+			HandleTBSwapGunsling();
 	else if( _KeyDown( CTRL ) )
 	{
 		if( _KeyDown( SHIFT ) )			// SHIFT+CTRL
-			HandleTBEnterTurnbased();
+			;
 		else							// CTRL
-			HandleTBSwapSidearm();
+			HandleTBSwapHands();
 	}
 	else if( _KeyDown( SHIFT ) )		// SHIFT
-		HandleTBSwapGunsling();
+		;
 	else								// Button
-		HandleTBSwapHands();
+		HandleTBShowLOS();		
 }
 void HandleAltMouseTBX2Button( UINT32 *puiNewEvent )
 {
@@ -6990,25 +6990,25 @@ void HandleAltMouseTBX2Button( UINT32 *puiNewEvent )
 		if( _KeyDown( SHIFT ) )	
 		{
 			if( _KeyDown( CTRL ) )		// SHIFT+CTRL+ALT
-				HandleTBToggleTrapNetworkView();
+				;
 			else						// SHIFT+ALT
-				HandleTBReloadAll();
+				;
 		}
 		else if ( _KeyDown( CTRL ) )	// CTRL+ALT
-			HandleTBShowMines();
+			ToggleHostileTrapsView();
 		else							// ALT
-			HandleTBToggleStealthAll();
+			HandleTBToggleFormation();
 	else if( _KeyDown( CTRL ) )
 	{
 		if( _KeyDown( SHIFT ) )			// SHIFT+CTRL
-			HandleTBShowLOS();
+			;
 		else							// CTRL
-			HandleTBShowCover();
+			HandleTBJump();
 	}
 	else if( _KeyDown( SHIFT ) )		// SHIFT
-		HandleTBReload();
+		HandleTBJumpThroughWindow();
 	else								// Button
-		HandleTBToggleStealth();
+		HandleTBShowCover();
 }
 // sevenfm: these functions keep original mouse code functionality
 void HandleMouseTBWheel( void )
@@ -8214,6 +8214,35 @@ BOOLEAN FindTransformation( UINT16 usItem, TransformInfoStruct **pTransformation
 		}
 	}
 	return FALSE;
+}
+
+void HandleTacticalReload( )
+{
+	SOLDIERTYPE *pSoldier;
+	INT16 bAPs = 0;
+
+	if( gusSelectedSoldier != NOBODY )
+		pSoldier = MercPtrs[ gusSelectedSoldier ];
+	else
+		return;
+
+	// Do we have the ammo to reload?
+	// Check APs to reload...
+	bAPs = GetAPsToAutoReload( pSoldier );
+
+	if ( EnoughPoints( pSoldier, bAPs, 0,TRUE ) )
+	{
+		// OK, we have some ammo we can reload.... reload now!
+		if ( !AutoReload( pSoldier ) )
+		{
+			// Do we say we could not reload gun...?
+			pSoldier->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+			//TacticalCharacterDialogue( pSoldier, QUOTE_OUT_OF_AMMO );
+		}
+
+		// ATE: Re-examine cursor info!
+		gfUIForceReExamineCursorData = TRUE;
+	}
 }
 
 void HandleTacticalMoveItems( void )

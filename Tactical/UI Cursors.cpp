@@ -2525,9 +2525,60 @@ void HandleRightClickAdjustCursor( SOLDIERTYPE *pSoldier, INT32 usMapPos )
 						return;
 					}
 
-
 					if(usShotsLeft > pSoldier->bDoAutofire )
 					{
+						// sevenfm: improved autofire cursor
+						if( gGameExternalOptions.bAlternateMouseCommands )
+						{
+							sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+
+							if( pSoldier->bDoAutofire >= 4 )
+							{
+								// sevenfm: 2 -> 3 -> 4 -> 5 -> +5
+								UINT8 ubMaxBullets;
+
+								if( pSoldier->bDoAutofire < 5 )
+									ubMaxBullets = __min(usShotsLeft, 5);
+								else
+									ubMaxBullets = __min(usShotsLeft, pSoldier->bDoAutofire + 5);
+
+								// maximize bullets to the limits: ubMaxBullets and sMaxAPCosts
+								while( EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) &&
+										pSoldier->bDoAutofire < ubMaxBullets )
+								{
+									pSoldier->bDoAutofire++;
+									sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+								}								
+
+								// if too close to limit - use all APs
+								if( pSoldier->bDoAutofire < usShotsLeft &&
+									pSoldier->bActionPoints - sAPCosts <= APBPConstants[AP_PRONE] )
+								{
+									// maximize bullets to the limits: usShotsLeft and bActionPoints
+									while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) &&
+										pSoldier->bDoAutofire < usShotsLeft)
+									{
+										pSoldier->bDoAutofire++;
+										sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+									}									
+								}
+
+								if( !EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) )
+								{
+									pSoldier->flags.autofireLastStep = TRUE;
+								}
+
+								while( pSoldier->bDoAutofire > 0 &&
+									( !EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) || pSoldier->bDoAutofire > usShotsLeft ) )
+								{
+									pSoldier->bDoAutofire--;
+									sAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
+								}
+
+								return;
+							}
+						}
+
 						//Calculate how many bullets we need to fire to add at least one more AP
 						sAPCosts = sCurAPCosts = CalcTotalAPsToAttack( pSoldier, usMapPos, TRUE, pSoldier->aiData.bShownAimTime);
 						while(EnoughPoints( pSoldier, sAPCosts, 0, FALSE ) && sAPCosts <= sCurAPCosts && usShotsLeft > pSoldier->bDoAutofire)	//Increment the bullet count until we run out of APs or we spend the whole AP
