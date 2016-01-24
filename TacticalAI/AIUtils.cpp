@@ -24,7 +24,8 @@
 	#include "Soldier Create.h"
 	#include "SkillCheck.h"		// added by SANDRO
 	#include "Vehicles.h"		// added by silversurfer
-	#include "Game Clock.h"		// added by sevenfm
+	#include "Game Clock.h"			// sevenfm
+	#include "Rotting Corpses.h"	// sevenfm
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3203,3 +3204,132 @@ BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier )
 
 	return TRUE;
 }
+
+// count mobile friends that are in BLACK state and not in a dangerous place or have 3/4 APs or hit enemy recently
+UINT8 AICountFriendsBlack( SOLDIERTYPE *pSoldier )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+	INT32 sFriendClosestOpponent;
+
+	UINT8 ubMaxDist = VISION_RANGE / 2;
+	INT32 sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
+
+	if(TileIsOutOfBounds(sClosestOpponent))
+	{
+		return 0;
+	}
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];		
+
+		// Make sure that character is alive, not too shocked, and conscious
+		if (pFriend != pSoldier && 
+			pFriend->bActive && 
+			pFriend->stats.bLife >= OKLIFE &&			
+			pFriend->aiData.bOrders > ONGUARD &&
+			pFriend->aiData.bOrders != SNIPER )
+		{
+			sFriendClosestOpponent = ClosestKnownOpponent( pFriend, NULL, NULL );
+			if(!TileIsOutOfBounds(sFriendClosestOpponent) &&
+				PythSpacesAway( sClosestOpponent, sFriendClosestOpponent ) <= ubMaxDist &&
+				pFriend->aiData.bAlertStatus == STATUS_BLACK &&
+				( GetNearestRottingCorpseAIWarning( pFriend->sGridNo ) == 0 && !InLightAtNight(pFriend->sGridNo, pFriend->pathing.bLevel) ||
+				pFriend->bActionPoints > 3*pFriend->bInitialActionPoints/4 || 
+				pFriend->aiData.bLastAttackHit )
+				)
+			{
+				ubFriendCount++;
+			}			
+		}
+	}
+
+	return ubFriendCount;
+}
+
+// sevenfm: count nearby friend soldiers (on roof)
+UINT8 CountNearbyFriendliesOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	// safety check
+	if( !pSoldier )	return 0;
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];
+
+		if (pFriend != pSoldier && 
+			pFriend->bActive && 
+			pFriend->stats.bLife >= OKLIFE &&
+			PythSpacesAway( sGridNo, pFriend->sGridNo ) <= ubDistance &&
+			pFriend->pathing.bLevel > 0)
+		{
+			ubFriendCount++;
+		}
+	}
+
+	return ubFriendCount;
+}
+
+// sevenfm: check if suppression is possible (count friends in the fire direction)
+BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubShootingDir, ubFriendDir;
+
+	ubShootingDir = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(sTargetGridNo),CenterY(sTargetGridNo));
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];
+		ubFriendDir = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(pFriend->sGridNo),CenterY(pFriend->sGridNo));
+
+		if (pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			pSoldier->pathing.bLevel == pFriend->pathing.bLevel &&
+			ubShootingDir == ubFriendDir &&
+			PythSpacesAway( pSoldier->sGridNo, pFriend->sGridNo) < PythSpacesAway(pSoldier->sGridNo, sTargetGridNo) &&
+			CalcAverageCTGTForPosition( pSoldier, pFriend->ubID, pFriend->sGridNo, pFriend->pathing.bLevel, pSoldier->bActionPoints ) > 0 &&
+			( gAnimControl[ pFriend->usAnimState ].ubHeight != ANIM_PRONE ||
+			PythSpacesAway( pSoldier->sGridNo, pFriend->sGridNo ) <= 5 ) )
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+// sevenfm: count nearby friend soldiers
+UINT8 CountNearbyFriendlies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	// safety check
+	if( !pSoldier )
+		return 0;
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];
+		// Make sure that character is alive, not too shocked, and conscious, and of higher experience level
+		// than the character being suppressed.
+		if (pFriend != pSoldier && pFriend->bActive && pFriend->stats.bLife >= OKLIFE &&
+			PythSpacesAway( sGridNo, pFriend->sGridNo ) <= ubDistance )
+		{
+			ubFriendCount++;
+		}
+	}
+
+	return ubFriendCount;
+}
+

@@ -265,9 +265,13 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 
 // sevenfm:
 INT16 MaxNormalVisionDistance( void );
+UINT8 CountNearbyFriendlies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
 BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier );
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
+UINT8 AICountFriendsBlack( SOLDIERTYPE *pSoldier );
+UINT8 CountNearbyFriendliesOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
+BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
 
 #define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25

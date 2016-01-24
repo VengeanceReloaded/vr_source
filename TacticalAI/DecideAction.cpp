@@ -35,6 +35,8 @@
 #endif
 #include "connect.h"
 #include "Text.h"
+#include "Game Clock.h"			// sevenfm
+#include "Rotting Corpses.h"	// sevenfm
 
 //////////////////////////////////////////////////////////////////////////////
 // SANDRO - In this file, all APBPConstants[AP_CROUCH] and APBPConstants[AP_PRONE] were changed to GetAPsCrouch() and GetAPsProne()
@@ -698,6 +700,9 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionGreen, orders = %d",pSoldier->aiData.bOrders));
 
+	// sevenfm: disable stealth mode
+	pSoldier->bStealthMode = FALSE;
+
 	BOOLEAN fCivilian = (PTR_CIVILIAN && (pSoldier->ubCivilianGroup == NON_CIV_GROUP || pSoldier->aiData.bNeutral || (pSoldier->ubBodyType >= FATCIV && pSoldier->ubBodyType <= CRIPPLECIV) ) );
 	BOOLEAN fCivilianOrMilitia = PTR_CIV_OR_MILITIA;
 
@@ -1061,6 +1066,12 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 		if (pSoldier->pathing.bLevel > 0)
 		{
 			iChance = 100 - iChance;
+		}
+
+		// sevenfm: stationary/snipers should not change level
+		if ( pSoldier->aiData.bOrders == SNIPER || pSoldier->aiData.bOrders == STATIONARY )
+		{
+			iChance = 0;
 		}
 
 		if ((INT16) PreRandom(100) < iChance)
@@ -1444,6 +1455,9 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 	if ( pSoldier->IsZombie() )
 		return( ZombieDecideActionYellow(pSoldier) );
 #endif
+
+	// sevenfm: disable stealth mode
+	pSoldier->bStealthMode = FALSE;
 
 	if (fCivilian || (gGameExternalOptions.fAllNamedNpcsDecideAction && pSoldier->ubProfile != NO_PROFILE))
 	{
@@ -1855,6 +1869,12 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 			if ( pSoldier->bTeam == MILITIA_TEAM )
 				iChance -= 30;
 
+			// sevenfm: stationary/snipers should not seek
+			if ( pSoldier->aiData.bOrders == SNIPER || pSoldier->aiData.bOrders == STATIONARY )
+			{
+				iChance = 0;
+			}
+
 			if ((INT16) PreRandom(100) < iChance  )
 			{
 
@@ -2004,6 +2024,12 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 			// reduce chance if breath is down, less likely to wander around when tired
 			iChance -= (100 - pSoldier->bBreath);
+
+			// sevenfm: stationary/snipers should not help
+			if ( pSoldier->aiData.bOrders == SNIPER || pSoldier->aiData.bOrders == STATIONARY )
+			{
+				iChance = 0;
+			}
 
 			if ((INT16)PreRandom(100) < iChance)
 			{
@@ -2243,6 +2269,25 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	//INT16 ubOverallTacticalSituation = AssessTacticalSituation(pSoldier->bSide);
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("DecideActionRed: soldier orders = %d",pSoldier->aiData.bOrders));
+
+	// sevenfm: set stealth mode
+	if( (pSoldier->aiData.bAttitude == DEFENSIVE || pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ) )
+	{
+		INT32 sClosestThreat = ClosestKnownOpponent(pSoldier, NULL, NULL);
+		if( !TileIsOutOfBounds(sClosestThreat) &&
+			!( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) &&
+			!AM_A_ROBOT( pSoldier ) &&
+			!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) &&
+			!TANK( pSoldier ) &&
+			PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < DAY_VISION_RANGE &&
+			(NightTime() || InARoom(pSoldier->sGridNo, NULL) ) &&
+			!pSoldier->aiData.bUnderFire &&
+			!GuySawEnemyThisTurnOrBefore(pSoldier) &&
+			!InWaterGasOrSmoke(pSoldier, pSoldier->sGridNo) )
+		{
+			pSoldier->bStealthMode = TRUE;
+		}		
+	}
 
 	// if we have absolutely no action points, we can't do a thing under RED!
 	if ( pSoldier->bActionPoints <= 0 ) //Action points can be negative
@@ -2562,7 +2607,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		CheckIfShotPossible(pSoldier,&BestShot,FALSE);
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: is sniper shot possible? = %d, CTH = %d",BestShot.ubPossible,BestShot.ubChanceToReallyHit));
 
-		if (BestShot.ubPossible && BestShot.ubChanceToReallyHit > 50 )
+		// sevenfm: changed sniper shot min CTH to 10%
+		if (BestShot.ubPossible && BestShot.ubChanceToReallyHit > 25 )
 		{
 			// then do it!  The functions have already made sure that we have a
 			// pair of worthy opponents, etc., so we're not just wasting our time
@@ -2675,6 +2721,17 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 		CheckIfShotPossible(pSoldier,&BestShot,TRUE); //WarmSteel - No longer returns 0 when there IS actually a chance to hit.
 
+		// sevenfm: check that we have a clip to reload
+		BOOLEAN fExtraClip = FALSE;
+		if(BestShot.bWeaponIn != NO_SLOT)
+		{
+			INT8 bAmmoSlot = FindAmmoToReload( pSoldier, BestShot.bWeaponIn, NO_SLOT );
+			if (bAmmoSlot != NO_SLOT)
+			{
+				fExtraClip = TRUE;
+			}
+		}
+
 		//must have a small chance to hit and the opponent must be on the ground (can't suppress guys on the roof)
 		// HEADROCK HAM BETA2.4: Adjusted this for a random chance to suppress regardless of chance. This augments
 		// current revamp of suppression fire.
@@ -2687,7 +2744,17 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				&& pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo 
 				&& BestShot.ubChanceToReallyHit < (INT16)(PreRandom(100) - 50)  
 				&& Menptr[BestShot.ubOpponent].pathing.bLevel == 0 
-				&& pSoldier->aiData.bOrders != SNIPER )
+				&& pSoldier->aiData.bOrders != SNIPER &&
+				// sevenfm: check that we'll not shoot at our friends
+				// don't suppress if target already cowering
+				// don't suppress when flanking
+				// don't suppress if we don't have extra clip to reload
+				// check line of sight to enemy (to avoid through-walls suppression fire)
+				CheckSuppressionDirection( pSoldier, Menptr[BestShot.ubOpponent].sGridNo ) &&
+				!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
+				(pSoldier->numFlanks == 0 || pSoldier->numFlanks > MAX_FLANKS_RED) &&
+				LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, MercPtrs[BestShot.ubOpponent]->sGridNo, MercPtrs[BestShot.ubOpponent]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
+				fExtraClip)
 		{
 			// then do it!
 
@@ -3197,6 +3264,13 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				{
 					bSeekPts += -1; bHelpPts +=  0; bHidePts += +1; bWatchPts += +0;
 				}
+
+				// sevenfm: stationary/snipers should not seek/help
+				if ( pSoldier->aiData.bOrders == SNIPER || pSoldier->aiData.bOrders == STATIONARY )
+				{
+					bSeekPts = -99;
+					bHelpPts = -99;
+				}
 			}
 
 			if (!gfTurnBasedAI)
@@ -3223,7 +3297,11 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					guiRedSeekCounter++;
 #endif
 					// if there is an opponent reachable					
-					if (!TileIsOutOfBounds(sClosestDisturbance) && gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
+					// sevenfm: allow seeking in prone stance if we haven't seen enemy for several turns
+					if (!TileIsOutOfBounds(sClosestDisturbance) &&
+						( gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE ||
+						!GuySawEnemyThisTurnOrBefore(pSoldier) ||
+						AICountFriendsBlack(pSoldier) > 0) )
 					{
 						DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: seek opponent");
 						//////////////////////////////////////////////////////////////////////
@@ -3694,6 +3772,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			// note, have to change this to use the level returned from ClosestKnownOpponent
 			sDistVisible = pSoldier->GetMaxDistanceVisible(sClosestOpponent, 0, CALC_FROM_ALL_DIRS );
 
+			// sevenfm: better use increased range as we may have scope or enemy may be approaching
+			sDistVisible = 3 * sDistVisible / 2;
+
 			if ((pSoldier->ubDirection != ubOpponentDir) && (PythSpacesAway(pSoldier->sGridNo,sClosestOpponent) <= sDistVisible))
 			{
 				// set base chance according to orders
@@ -4080,6 +4161,9 @@ INT16 ubMinAPCost;
 	// sevenfm: stop flanking when we see enemy
 	if( pSoldier->numFlanks < MAX_FLANKS_RED  )
 		pSoldier->numFlanks = 0;
+
+	// sevenfm: disable stealth mode
+	pSoldier->bStealthMode = FALSE;
 
 	// if we have absolutely no action points, we can't do a thing under BLACK!
 	if (!pSoldier->bActionPoints)
@@ -4830,6 +4914,17 @@ INT16 ubMinAPCost;
 		}
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 
+		// sevenfm: check that we have a clip to reload
+		BOOLEAN fExtraClip = FALSE;
+		if(BestShot.ubPossible && BestShot.bWeaponIn != NO_SLOT)
+		{
+			INT8 bAmmoSlot = FindAmmoToReload( pSoldier, BestShot.bWeaponIn, NO_SLOT );
+			if (bAmmoSlot != NO_SLOT)
+			{
+				fExtraClip = TRUE;
+			}
+		}
+
 		//////////////////////////////////////////////////////////////////////////
 		// CHOOSE THE BEST TYPE OF ATTACK OUT OF THOSE FOUND TO BE POSSIBLE
 		//////////////////////////////////////////////////////////////////////////
@@ -4959,7 +5054,81 @@ INT16 ubMinAPCost;
 	// NB a desire of 4 or more is only achievable by brave/aggressive guys with high morale
 	UINT16 usRange = BestAttack.bWeaponIn==NO_SLOT ? 0 : GetModifiedGunRange(pSoldier->inv[BestAttack.bWeaponIn].usItem);//dnl ch69 150913
 
-	if ( (pSoldier->bActionPoints == pSoldier->bInitialActionPoints) &&
+	// sevenfm: try to climb if possible
+	INT32 sClosestThreat = ClosestKnownOpponent(pSoldier, NULL, NULL);
+
+	if( (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam== MILITIA_TEAM ) && 
+		!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER ) &&
+		ubBestAttackAction == AI_ACTION_FIRE_GUN &&
+		BestAttack.ubChanceToReallyHit < 30 &&
+		!(TileIsOutOfBounds(sClosestThreat) &&
+		PythSpacesAway(pSoldier->sGridNo, sClosestThreat) > DAY_VISION_RANGE/2) &&
+		PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*(usRange/CELL_X_SIZE)/2 &&
+		usRange >= 200 &&
+		pSoldier->pathing.bLevel == 0 &&
+		PreRandom(100) > 100 / (1+CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, 10)) &&
+		//CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, 10) > 0 &&
+		CountNearbyFriendliesOnRoof(pSoldier, pSoldier->sGridNo, 3) == 0 &&
+		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
+		pSoldier->bActionPoints > APBPConstants[AP_MINIMUM] &&
+		ubCanMove )
+	{
+		//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] BLACK check climb", pSoldier->ubID);
+		INT8 newdirection;
+		if ( FindHeigherLevel( pSoldier, pSoldier->sGridNo, pSoldier->ubDirection, &newdirection ) )
+		{
+			//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] BLACK found climb", pSoldier->ubID);
+			pSoldier->aiData.bAction = AI_ACTION_CLIMB_ROOF;
+			if ( IsActionAffordable(pSoldier) )
+			{
+				//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] BLACK climb", pSoldier->ubID);
+				//ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"new direction %d", newdirection);
+				return( AI_ACTION_CLIMB_ROOF );
+			}
+		}
+	}
+
+	UINT8 bMinRangeChangeDesire = 4;
+	if( ubBestAttackAction == AI_ACTION_FIRE_GUN &&
+		( CoweringShockLevel(MercPtrs[BestAttack.ubOpponent]) || 
+		BestAttack.ubChanceToReallyHit == 1 ) )
+	{
+		bMinRangeChangeDesire = 3;
+	}
+
+	// sevenfm: decide to advance
+	if ( (pSoldier->bActionPoints > 3*pSoldier->bInitialActionPoints/4) &&
+		(ubBestAttackAction == AI_ACTION_FIRE_GUN) && 
+		//!pSoldier->aiData.bUnderFire &&
+		pSoldier->aiData.bShock < 2 * RangeChangeDesire(pSoldier) &&
+		(pSoldier->stats.bLife >= pSoldier->stats.bLifeMax / 2) && 
+		(20 + MercPtrs[BestAttack.ubOpponent]->aiData.bShock) > BestAttack.ubChanceToReallyHit &&
+		(PythSpacesAway( pSoldier->sGridNo, BestAttack.sTarget ) > usRange / CELL_X_SIZE ||
+		CoweringShockLevel(MercPtrs[BestAttack.ubOpponent]) ||
+		CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, 5) > 0 ||
+		BestAttack.ubChanceToReallyHit == 1 ) && 
+		RangeChangeDesire( pSoldier ) >= bMinRangeChangeDesire &&
+		ubCanMove &&
+		pSoldier->aiData.bOrders > ONGUARD &&
+		pSoldier->aiData.bOrders != SNIPER &&
+		!gfHiddenInterrupt &&
+		!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) )
+	{
+		if( PreRandom( 20 + MercPtrs[BestAttack.ubOpponent]->aiData.bShock ) > BestAttack.ubChanceToReallyHit )
+		{
+			//if(fShowLog) ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] Allow cover check. Enemy %s Shock %d CTH %d", pSoldier->ubID, MercPtrs[BestAttack.ubOpponent]->GetName(), MercPtrs[BestAttack.ubOpponent]->aiData.bShock, BestAttack.ubChanceToReallyHit);
+			fAllowCoverCheck = TRUE;
+		}		
+		if ( PreRandom( MercPtrs[BestAttack.ubOpponent]->aiData.bShock + CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, 5) ) > BestAttack.ubChanceToReallyHit )
+		{
+			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"DecideActionBlack: can't hit so screw the attack");
+			//if(fShowLog) ScreenMsg(FONT_LTRED, MSG_INTERFACE, L"[%d] Screw the attack! Enemy %s Shock %d CTH %d", pSoldier->ubID, MercPtrs[BestAttack.ubOpponent]->GetName(), MercPtrs[BestAttack.ubOpponent]->aiData.bShock, BestAttack.ubChanceToReallyHit);
+			// screw the attack!
+			ubBestAttackAction = AI_ACTION_NONE;
+		}
+	}
+
+	/*if ( (pSoldier->bActionPoints == pSoldier->bInitialActionPoints) &&
 		 (ubBestAttackAction == AI_ACTION_FIRE_GUN) && 
 		 (pSoldier->aiData.bShock == 0) && 
 		 (pSoldier->stats.bLife >= pSoldier->stats.bLifeMax / 2) && 
@@ -4988,7 +5157,7 @@ INT16 ubMinAPCost;
 			}
 		}
 
-	}
+	}*/
 
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"LOOK FOR SOME KIND OF COVER BETTER THAN WHAT WE HAVE NOW");
@@ -5330,7 +5499,12 @@ L_NEWAIM:
 				}
 
 				pSoldier->bDoAutofire--;
-				if(!UsingNewCTHSystem() && pSoldier->bDoAutofire < 3 && pSoldier->aiData.bAimTime > 0 && pSoldier->inv[BestAttack.bWeaponIn][0]->data.gun.ubGunShotsLeft >= 3)//dnl ch69 130913 let try increase autofire rate for aim cost
+				// sevenfm: prefer bullets over aim (for suppression) only when soldier is under fire or has AGGRESSIVE attitude
+				if(!UsingNewCTHSystem() &&
+					pSoldier->bDoAutofire < 3 &&
+					pSoldier->aiData.bAimTime > 0 &&
+					( pSoldier->aiData.bUnderFire || pSoldier->aiData.bAttitude == AGGRESSIVE ) &&
+					pSoldier->inv[BestAttack.bWeaponIn][0]->data.gun.ubGunShotsLeft >= 3)//dnl ch69 130913 let try increase autofire rate for aim cost
 				{
 					pSoldier->aiData.bAimTime--;
 					sActualAimTime = CalcAPCostForAiming(pSoldier, BestAttack.sTarget, (INT8)pSoldier->aiData.bAimTime);
@@ -5435,6 +5609,44 @@ L_NEWAIM:
 
 			// IF WAY OUT OF EFFECTIVE RANGE TRY TO ADVANCE RESERVING ENOUGH AP FOR A SHOT IF NOT ACTED YET
 			if ((pSoldier->bActionPoints > BestAttack.ubAPCost) &&
+				(pSoldier->aiData.bShock < 2 * RangeChangeDesire(pSoldier)) && 
+				(pSoldier->stats.bLife >= pSoldier->stats.bLifeMax / 2) && 
+				// sevenfm: increased to 10-40 depending on target shock
+				(BestAttack.ubChanceToReallyHit < 10 + MercPtrs[BestAttack.ubOpponent]->aiData.bShock) &&
+				// sevenfm: advance when too far or target is cowering or hit
+				(PythSpacesAway( pSoldier->sGridNo, BestAttack.sTarget ) > usRange / (CELL_X_SIZE) ||
+				CoweringShockLevel(MercPtrs[BestAttack.ubOpponent]) ||
+				pSoldier->aiData.bLastAttackHit ) &&
+				pSoldier->aiData.bOrders > ONGUARD &&
+				pSoldier->aiData.bOrders != SNIPER &&
+				// elites should not advance
+				RangeChangeDesire(pSoldier) >= 3 + SoldierDifficultyLevel( pSoldier ) / 2 &&
+				pSoldier->aiData.bOppCnt <= 5 - SoldierDifficultyLevel( pSoldier ) &&
+				// only short range weapons
+				usRange / (CELL_X_SIZE) < DAY_VISION_RANGE
+				)
+			{
+				sClosestOpponent = Menptr[BestShot.ubOpponent].sGridNo;
+				if (!TileIsOutOfBounds(sClosestOpponent))
+				{
+					INT8 fFlags = 0;
+					BOOLEAN fForceRaiseGunCost = TRUE;
+
+					pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestOpponent, (INT8) (MinAPsToAttack( pSoldier, sClosestOpponent, ADDTURNCOST, BestAttack.ubAimTime, fForceRaiseGunCost ) + GetAPsCrouch( pSoldier, TRUE) + GetAPsToLook(pSoldier)), AI_ACTION_GET_CLOSER, fFlags );
+
+					if (!TileIsOutOfBounds(pSoldier->aiData.usActionData) &&
+						!Water(pSoldier->aiData.usActionData) &&
+						!InGas(pSoldier, pSoldier->aiData.usActionData) &&
+						LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestOpponent, BestAttack.bTargetLevel, TRUE ) )
+					{
+						pSoldier->aiData.fAIFlags |= fFlags;
+						return( AI_ACTION_GET_CLOSER );
+					}
+				}
+			}
+
+			// IF WAY OUT OF EFFECTIVE RANGE TRY TO ADVANCE RESERVING ENOUGH AP FOR A SHOT IF NOT ACTED YET
+			/*if ((pSoldier->bActionPoints > BestAttack.ubAPCost) &&
 				(pSoldier->aiData.bShock == 0) && 
 				(pSoldier->stats.bLife >= pSoldier->stats.bLifeMax / 2) && 
 				(BestAttack.ubChanceToReallyHit < 8) &&
@@ -5464,7 +5676,7 @@ L_NEWAIM:
 						return( AI_ACTION_GET_CLOSER );
 					}
 				}
-			}
+			}*/
 
 			//////////////////////////////////////////////////////////////////////////
 			// IF NOT CROUCHED & WILL STILL HAVE ENOUGH APs TO DO THIS SAME BEST

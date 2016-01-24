@@ -6676,6 +6676,12 @@ void	QueryTBWheel( UINT32 *puiNewEvent )
 	SOLDIERTYPE	*pSoldier;
 	INT32		usMapPos=0;
 
+	// sevenfm: get mouse position
+	if (!GetMouseMapPos( &usMapPos ) )
+	{
+		return;
+	}
+
 	gViewportRegion.WheelState = gViewportRegion.WheelState * ( gGameSettings.fOptions[TOPTION_INVERT_WHEEL] ? -1 : 1 );
 	// stub
 	if ( gViewportRegion.uiFlags & MSYS_MOUSE_IN_AREA )

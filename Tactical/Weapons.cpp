@@ -9141,9 +9141,17 @@ UINT32 AICalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTim
 	pSoldier->bTargetLevel = bTargetLevel;
 	pSoldier->usAnimState = usAnimState;
 	if(Item[pSoldier->usAttackingWeapon].usItemClass & IC_THROWING_KNIFE)//dnl ch70 160913
+	{
 		uiChance = CalcThrownChanceToHit(pSoldier, sGridNo, ubAimTime, ubAimPos);
+	}
 	else
-		uiChance = CalcChanceToHitGun(pSoldier, sGridNo, ubAimTime, ubAimPos);
+	{
+		// sevenfm: allow small CTH for AI for suppression fire
+		if( Weapon[ pSoldier->usAttackingWeapon ].bAutofireShotsPerFiveAP > 0 )
+			uiChance = __max(1, CalcChanceToHitGun(pSoldier, sGridNo, ubAimTime, ubAimPos));
+		else
+			uiChance = CalcChanceToHitGun(pSoldier, sGridNo, ubAimTime, ubAimPos);
+	}
 	pSoldier->usAnimState = usTrueState;
 	pSoldier->bTargetLevel = bTrueLevel;
 	if(UsingNewCTHSystem() == true && !(Item[pSoldier->usAttackingWeapon].usItemClass & IC_THROWING_KNIFE))//dnl ch70 160913
