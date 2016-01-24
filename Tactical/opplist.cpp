@@ -7514,9 +7514,8 @@ INT8 FindUnusedWatchedLoc( UINT8 ubID )
 	for ( bLoop = 0; bLoop < NUM_WATCHED_LOCS; bLoop++ )
 	{
 		// WANNE: I think this was a bug, should be != NOWHERE!
-		//if ( gsWatchedLoc[ ubID ][ bLoop ] == NOWHERE )
-
-		if (!TileIsOutOfBounds(gsWatchedLoc[ ubID ][ bLoop ]))
+		// sevenfm: the original code is ok, as we search for unused WatchedLoc which is initialized with NOWHERE value
+		if ( gsWatchedLoc[ ubID ][ bLoop ] == NOWHERE )		
 		{
 			return( bLoop );
 		}
@@ -7626,6 +7625,17 @@ void CommunicateWatchedLoc( UINT8 ubID, INT32 sGridNo, INT8 bLevel, UINT8 ubPoin
 
 	for ( ubLoop = gTacticalStatus.Team[ bTeam ].bFirstID; ubLoop < gTacticalStatus.Team[ bTeam ].bLastID; ubLoop++ )
 	{
+		// sevenfm: skip communication if friend is too far or no line of sight between
+		if ( ubLoop == ubID ||
+			MercPtrs[ ubLoop ]->bActive == FALSE ||
+			MercPtrs[ ubLoop ]->bInSector == FALSE ||
+			MercPtrs[ ubLoop ]->stats.bLife < OKLIFE ||
+			PythSpacesAway(MercPtrs[ ubID ]->sGridNo, MercPtrs[ ubLoop ]->sGridNo) > DAY_VISION_RANGE / 4 ||
+			!LocationToLocationLineOfSightTest( MercPtrs[ ubID ]->sGridNo, MercPtrs[ ubID ]->pathing.bLevel,
+			MercPtrs[ ubLoop ]->sGridNo, MercPtrs[ ubLoop ]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) )
+		{
+			continue;
+		}
 		if ( ubLoop == ubID || MercPtrs[ ubLoop ]->bActive == FALSE || MercPtrs[ ubLoop ]->bInSector == FALSE || MercPtrs[ ubLoop ]->stats.bLife < OKLIFE )
 		{
 			continue;

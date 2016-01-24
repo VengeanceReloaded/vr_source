@@ -271,10 +271,15 @@ BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier );
 #define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25
 
+// vision range defines
+#define DAY_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO * 2)
+#define NIGHT_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO )
+#define VISION_RANGE MaxNormalVisionDistance()
+
 // sevenfm: limit min/max flank distance depending on sight range and time of day
-#define MIN_FLANK_DIST_YELLOW (2*MaxNormalVisionDistance()/3)
-#define MAX_FLANK_DIST_YELLOW (MaxNormalVisionDistance() + 20)
-#define MIN_FLANK_DIST_RED (2*MaxNormalVisionDistance()/3)
-#define MAX_FLANK_DIST_RED (MaxNormalVisionDistance() + 20)
+#define MIN_FLANK_DIST_YELLOW (DAY_VISION_RANGE/2)
+#define MAX_FLANK_DIST_YELLOW (VISION_RANGE + 20)
+#define MIN_FLANK_DIST_RED (DAY_VISION_RANGE/2)
+#define MAX_FLANK_DIST_RED (VISION_RANGE + 20)
 
 #endif
