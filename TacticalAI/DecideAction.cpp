@@ -2617,7 +2617,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		CheckIfShotPossible(pSoldier,&BestShot,FALSE);
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: is sniper shot possible? = %d, CTH = %d",BestShot.ubPossible,BestShot.ubChanceToReallyHit));
 
-		// sevenfm: changed sniper shot min CTH to 10%
+		// sevenfm: changed sniper shot min CTH to 25%
 		if (BestShot.ubPossible && BestShot.ubChanceToReallyHit > 25 )
 		{
 			// then do it!  The functions have already made sure that we have a
@@ -2630,9 +2630,12 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 			pSoldier->aiData.usActionData = BestShot.sTarget;
 			//POSSIBLE STRUCTURE CHANGE PROBLEM. GOTTHARD 7/14/08
-			pSoldier->aiData.bAimTime			= BestShot.ubAimTime;
-			pSoldier->bScopeMode = BestShot.bScopeMode;
-			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_SNIPER ] );
+			pSoldier->aiData.bAimTime	= BestShot.ubAimTime;
+			pSoldier->bScopeMode		= BestShot.bScopeMode;
+			if( BestShot.ubChanceToReallyHit > 50 )
+			{
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_SNIPER ] );
+			}			
 			return(AI_ACTION_FIRE_GUN );
 		}
 		else		// snipe not possible
@@ -2646,12 +2649,12 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		// WDS - Fix problem when there is no "best shot" weapon (i.e., BestShot.bWeaponIn == NO_SLOT)
 		if (BestShot.bWeaponIn != NO_SLOT) {
 			OBJECTTYPE * gun = &pSoldier->inv[BestShot.bWeaponIn];
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: men in sector %d, ubspotters called by %d, nobody %d",gTacticalStatus.Team[pSoldier->bTeam].bMenInSector,gTacticalStatus.ubSpottersCalledForBy,NOBODY ));
-			//if ( ( ( IsScoped(gun) && GunRange(gun) > pSoldier->GetMaxDistanceVisible(BestShot.sTarget, BestShot.bTargetLevel) ) || pSoldier->aiData.bOrders == SNIPER ) &&
-			if ( ( ( IsScoped(gun) && GunRange(gun, pSoldier) > MaxNormalDistanceVisible() ) || pSoldier->aiData.bOrders == SNIPER ) && // SANDRO - added argument
+			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: men in sector %d, ubspotters called by %d, nobody %d",gTacticalStatus.Team[pSoldier->bTeam].bMenInSector,gTacticalStatus.ubSpottersCalledForBy,NOBODY ));			
+			
+			if ( GunRange(gun, pSoldier) > MaxNormalDistanceVisible() &&
+				(IsScoped(gun) || pSoldier->aiData.bOrders == SNIPER) &&
 				(gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) &&
 				(gTacticalStatus.ubSpottersCalledForBy == NOBODY))
-
 			{
 				// then call for spotters!  Uses up the rest of his turn (whatever
 				// that may be), but from now on, BLACK AI NPC may radio sightings!

@@ -27,6 +27,7 @@
 #include "Reinforcement.h"		// added by Flugente
 #include "Town Militia.h"		// added by Flugente
 #include "Queen Command.h"		// added by Flugente
+#include "Game Clock.h"			// sevenfm
 #endif
 
 // anv: for enemy taunts
@@ -212,7 +213,9 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CalcBestShot: soldier = %d, target = %d, skip guys we can't see, shootUnseen = %d, personal opplist = %d",pSoldier->ubID, pOpponent->ubID, shootUnseen, pSoldier->aiData.bOppList[pOpponent->ubID]));
 			continue;	// next opponent
 		}
-		if ((pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY && gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY)) // guys nobody sees
+		
+		if ((pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY &&
+			gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY) ) // guys nobody sees
 		{
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CalcBestShot: soldier = %d, target = %d, skip guys nobody sees, shootUnseen = %d, public opplist = %d",pSoldier->ubID, pOpponent->ubID, shootUnseen,gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID]));
 			continue;	// next opponent
@@ -999,12 +1002,6 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 		}
 		else
 		{
-			/*
-			if (bPersOL != SEEN_CURRENTLY && bPersOL != SEEN_LAST_TURN)	 // if not in sight right now
-			{
-			continue;			// next soldier
-			}
-			*/
 			if (bPersOL == SEEN_CURRENTLY)
 			{
 				// active KNOWN opponent, remember where he is so that we DO blow him up!
@@ -1013,15 +1010,6 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 			}
 			else if (bPersOL == SEEN_LAST_TURN)
 			{
-				// cheat; only allow throw if person is REALLY within 2 tiles of where last seen
-
-				// JA2Gold: UB checks were screwed up
-				/*
-				if ( pOpponent->sGridNo == gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ] )
-				{
-				continue;
-				}
-				else */
 				if ( !CloseEnoughForGrenadeToss( pOpponent->sGridNo, gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ] ) )
 				{
 					continue;
@@ -1029,46 +1017,36 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 
 				sOpponentTile[ubOpponentCnt] = gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ];
 				bOpponentLevel[ubOpponentCnt] = gbLastKnownOppLevel[ pSoldier->ubID ][ pOpponent->ubID ];
-
-				// JA2Gold: commented out
-				/*
-				if ( SpacesAway( pOpponent->sGridNo, gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ] ) > 2 )
-				{
-				continue;
-				}
-				sOpponentTile[ubOpponentCnt] = gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ];
-				bOpponentLevel[ubOpponentCnt] = gbLastKnownOppLevel[ pSoldier->ubID ][ pOpponent->ubID ];
-				*/
 			}
-			else if (bPersOL == HEARD_LAST_TURN )
+			else if (bPersOL == HEARD_LAST_TURN)
 			{
-				// cheat; only allow throw if person is REALLY within 2 tiles of where last seen
-
-				// screen out some ppl who have thrown
-				if ( PreRandom( 3 ) == 0 )
-				{
-					continue;
-				}
-
-				// Weird detail: if the opponent is in the same location then they may have closed a door on us.
-				// In which case, don't throw!
-
-				// JA2Gold: UB checks were screwed up
-				/*
-				if ( pOpponent->sGridNo == gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ] )
-				{
-				continue;
-				}
-				else
-				*/
 				if ( !CloseEnoughForGrenadeToss( pOpponent->sGridNo, gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ] ) )
 				{
 					continue;
 				}
-				if ( !Item[usGrenade].flare && !pSoldier->aiData.bUnderFire && pSoldier->aiData.bShock == 0 )
+				
+				// sevenfm: allow using of non-lethal grenades to attack heard opponents
+				BOOLEAN fSkipGrenade = TRUE;
+				if( Item[usGrenade].flare )
+				{
+					fSkipGrenade = FALSE;
+				}
+				if( usGrenade != NOTHING &&
+					pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+					( Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_STUN ||
+					Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_TEARGAS ||
+					Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_FLASHBANG && NightTime() ) )
+				{
+					fSkipGrenade = FALSE;
+				}
+				if( fSkipGrenade && !pSoldier->aiData.bUnderFire )
 				{
 					continue;
 				}
+				/*if ( !Item[usGrenade].flare && !pSoldier->aiData.bUnderFire && pSoldier->aiData.bShock == 0 )
+				{
+					continue;
+				}*/
 				sOpponentTile[ubOpponentCnt] = gsLastKnownOppLoc[ pSoldier->ubID ][ pOpponent->ubID ];
 				bOpponentLevel[ubOpponentCnt] = gbLastKnownOppLevel[ pSoldier->ubID ][ pOpponent->ubID ];
 			}
@@ -1078,7 +1056,6 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 			}
 
 		}
-
 
 		// also remember who he is (which soldier #)
 		ubOpponentID[ubOpponentCnt] = pOpponent->ubID;
@@ -1093,30 +1070,58 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 
 
 	// this is try to minimize enemies wasting their (limited) toss attacks, with the exception of break lights
-	if ( !Item[usGrenade].flare )
+	// sevenfm: don't spare non-lethal grenades
+	BOOLEAN fSpare = TRUE;
+	if( Item[usGrenade].flare )
 	{
+		fSpare = FALSE;
+	}
+	if( usGrenade != NOTHING &&
+		(Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_STUN ||
+		Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_TEARGAS ||
+		Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_FLASHBANG && NightTime() ) )
+	{
+		fSpare = FALSE;
+	}
+	// spare only when soldier is not under attack
+	// need 1/2 health for 0 difficulty, 5/6 health for max difficulty
+	// need 3 opponents for 0 difficulty, 1 opponent for max difficulty
+	if ( fSpare &&				
+		ubOpponentCnt < 3 - ubDiff / 2 &&
+		!(pSoldier->aiData.bUnderFire &&
+			pSoldier->stats.bLife < (ubDiff + 1) * pSoldier->stats.bLifeMax / (ubDiff + 2) ) )
+	{
+		return;
+	}
+	/*{
 		switch( ubDiff )
 		{
 		case 0:
+			if (ubOpponentCnt < 2 )
+			{
+				return;
+			}
+			break;
 		case 1:
 			// they won't use them until they have 2+ opponents as long as half life left
-			if ((ubOpponentCnt < 2) && (pSoldier->stats.bLife > (pSoldier->stats.bLifeMax / 2)))
+			//if ((ubOpponentCnt < 2) && (pSoldier->stats.bLife > (pSoldier->stats.bLifeMax / 2)))
+			if (ubOpponentCnt < 2)
 			{
 				return;
 			}
 			break;
 		case 2:
 			// they won't use them until they have 2+ opponents as long as 3/4 life left
-			if ((ubOpponentCnt < 2) && (pSoldier->stats.bLife > (pSoldier->stats.bLifeMax / 4) * 3 ))
+			//if ((ubOpponentCnt < 2) && (pSoldier->stats.bLife > (pSoldier->stats.bLifeMax / 4) * 3 ))
+			if (ubOpponentCnt < 2)
 			{
 				return;
 			}
 			break;
-			break;
 		default:
 			break;
 		}
-	}
+	}*/
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcbestthrow: about to initattacktype");
 	//InitAttackType(pBestThrow);	 // set all structure fields to defaults//dnl ch69 150913
@@ -1130,6 +1135,24 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 
 		// search all tiles within 2 squares of this opponent
 		ubSearchRange = MAX_TOSS_SEARCH_DIST;
+		// sevenfm: increase possible distance from opponent when opponent in a building
+		if( gpWorldLevelData[sOpponentTile[ubLoop]].ubTerrainID == FLAT_FLOOR )
+		{
+			ubSearchRange++;
+		}
+		// sevenfm: increase possible distance when throwing gas grenades
+		if( usGrenade != NOTHING &&
+			(Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_TEARGAS ||
+			Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_MUSTGAS ) )
+		{
+			ubSearchRange++;
+		}
+
+		// increase possible distance when throwing flares		
+		if( Item[usGrenade].flare )
+		{
+			ubSearchRange++;
+		}
 
 		// determine maximum horizontal limits
 		//bMaxLeft	= min(ubSearchRange,(sOpponentTile[ubLoop] % MAXCOL));
@@ -1172,45 +1195,27 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 				}
 
 				// if considering a gas/smoke grenade, check to see if there is such stuff already there!
-				if ( usGrenade )
+				// sevenfm: check that only gas grenades are limited
+				if ( usGrenade &&
+					( Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_TEARGAS ||
+					Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_MUSTGAS ||
+					Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_BURNABLEGAS ||
+					Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_SMOKE ))
 				{
-					//					if ( gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_SMOKE ||
-					//						gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & (MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS) ||
-					//						gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_MUSTARDGAS)
 					if ( gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_SMOKE ||
 						gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & (MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS | MAPELEMENT_EXT_BURNABLEGAS) ||
-						gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_MUSTARDGAS || gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_BURNABLEGAS)
+						gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_MUSTARDGAS ||
+						gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_BURNABLEGAS)
 					{
 						continue;
 					}
+				}
 
-					//switch( usGrenade )
-					//{
-					//	case SMOKE_GRENADE:
-					//	case GL_SMOKE_GRENADE:
-					//		// skip smoke
-					//		if ( gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_SMOKE )
-					//		{
-					//			continue;
-					//		}
-					//		break;
-					//	case TEARGAS_GRENADE:
-					//		// skip tear and mustard gas
-					//		if ( gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & (MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS) )
-					//		{
-					//			continue;
-					//		}
-					//		break;
-					//	case MUSTARD_GRENADE:
-					//		// skip mustard gas
-					//		if ( gpWorldLevelData[ sGridNo ].ubExtFlags[ bOpponentLevel[ubLoop] ] & MAPELEMENT_EXT_MUSTARDGAS )
-					//		{
-					//			continue;
-					//		}
-					//		break;
-					//	default:
-					//		break;
-					//}
+				// sevenfm: skip tile if target is in a room and we throw grenade outside
+				if( gpWorldLevelData[sOpponentTile[ubLoop]].ubTerrainID == FLAT_FLOOR &&
+					gpWorldLevelData[sGridNo].ubTerrainID != FLAT_FLOOR )
+				{
+					continue;
 				}
 
 				fSkipLocation = FALSE;
@@ -1346,6 +1351,16 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 				if ( EXPLOSIVE_GUN( usInHand ) )
 				{
 					ubChanceToGetThrough = AISoldierToLocationChanceToGetThrough( pSoldier, sGridNo, bOpponentLevel[ubLoop], 0 );
+					// anv: tanks shouldn't care about chance to get through - can't hit? At least we'll destroy their cover.
+					// sevenfm: elites use rocket launchers to blow up obstacles when shooting at soldiers in buildings
+					if( TANK(pSoldier) || 
+						( Item[usInHand].rocketlauncher &&
+						gpWorldLevelData[sOpponentTile[ubLoop]].ubTerrainID == FLAT_FLOOR &&
+						gpWorldLevelData[pSoldier->sGridNo].ubTerrainID != FLAT_FLOOR &&
+						pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE ) )
+					{
+						ubChanceToGetThrough = 100;
+					}
 					if ( ubChanceToGetThrough == 0)
 					{
 						continue; // next gridno
@@ -1482,7 +1497,19 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 	}
 
 	// this is try to minimize enemies wasting their (limited) toss attacks:
-	switch( ubDiff )
+	// sevenfm 80-40% depending on soldier difficulty
+	UINT8 ubMinChanceToReallyHit = 80 - 10 * ubDiff;
+	if( Item[usGrenade].flare )
+	{
+		ubMinChanceToReallyHit = 30;
+	}
+
+	if (pBestThrow->ubChanceToReallyHit < ubMinChanceToReallyHit)
+	{
+		pBestThrow->ubPossible = FALSE;
+	}
+
+	/*switch( ubDiff )
 	{
 	case 0:
 	case 1:
@@ -1503,7 +1530,7 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 		break;
 	default:
 		break;
-	}
+	}*/
 //if(pBestThrow->ubPossible)SendFmtMsg("CalcBestThrow;\r\n  ID=%d Loc=%d APs=%d Ac=%d AcData=%d Al=%d, SM=%d, LAc=%d, NAc=%d AT=%d\r\n  AP?=%d,%d,%d/%d BS=%d", pSoldier->ubID, pSoldier->sGridNo, pSoldier->bActionPoints, pSoldier->aiData.bAction, pSoldier->aiData.usActionData, pSoldier->aiData.bAlertStatus, pBestThrow->bScopeMode, pSoldier->aiData.bLastAction, pSoldier->aiData.bNextAction, pBestThrow->ubAimTime, pBestThrow->ubAPCost, CalcAPCostForAiming(pSoldier, pBestThrow->sTarget, (INT8)pBestThrow->ubAimTime), CalcTotalAPsToAttack(pSoldier, pBestThrow->sTarget, TRUE, pBestThrow->ubAimTime), CalcTotalAPsToAttack(pSoldier, pBestThrow->sTarget, FALSE, pBestThrow->ubAimTime), pBestThrow->ubStance);
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcbestthrow done");
 }
@@ -2116,6 +2143,20 @@ INT32 EstimateThrowDamage( SOLDIERTYPE *pSoldier, UINT8 ubItemPos, SOLDIERTYPE *
 	iExplosDamage = ( ( (INT32) GetModifiedExplosiveDamage( Explosive[ ubExplosiveIndex ].ubDamage, 0 ) ) * 3) / 2;
 	iBreathDamage = ( ( (INT32) GetModifiedExplosiveDamage( Explosive[ ubExplosiveIndex ].ubStunDamage, 1 ) ) * 5) / 4;
 
+	// sevenfm: IndoorModifier - increase damage inside buildings
+	if (gpWorldLevelData[sGridNo].ubTerrainID == FLAT_FLOOR	)
+	{
+		iExplosDamage += (INT32) (iExplosDamage * Explosive[ ubExplosiveIndex ].bIndoorModifier);
+	}
+
+	// sevenfm: add damage from fragments
+	if ( Explosive[ ubExplosiveIndex ].ubType == EXPLOSV_NORMAL &&
+		Explosive[ ubExplosiveIndex ].usNumFragments > 0)
+	{
+		// sevenfm: use NumFragments/10, but no more than 20 fragments
+		iExplosDamage += __min( 20, Explosive[ ubExplosiveIndex ].usNumFragments / 10 ) * Explosive[ ubExplosiveIndex ].ubFragDamage;
+	}
+
 	if ( Explosive[ ubExplosiveIndex ].ubType == EXPLOSV_TEARGAS || Explosive[ ubExplosiveIndex ].ubType == EXPLOSV_MUSTGAS )
 	{
 		// if target gridno is outdoors (where tear gas lasts only 1-2 turns)
@@ -2297,12 +2338,6 @@ INT32 EstimateStabDamage( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent,
 	// SANDRO - damage bonus to melee trait
 	else 
 	{
-		// sevenfm: always give MELEE bonus when using bayonet
-		/*if( pSoldier->bWeaponMode == WM_ATTACHED_BAYONET )
-		{
-			iBonus += gSkillTraitValues.ubMEDamageBonusBlades; // +30% damage
-		}		
-		else */
 		if ( HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) && (gGameOptions.fNewTraitSystem) )
 		{
 			iImpact += (iImpact * (100 + gSkillTraitValues.ubMEDamageBonusBlades ) / 100); // +30% damage
@@ -2987,18 +3022,24 @@ void CheckIfShotPossible(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN s
 			RearrangePocket(pSoldier, HANDPOS, pBestShot->bWeaponIn, TEMPORARILY);
 		}
 
-		//if ( (!suppressionFire && ( (IsScoped(pObj) && GunRange(pObj) > pSoldier->MaxDistanceVisible(pBestShot->sTarget, pBestShot->bTargetLevel) ) || pSoldier->bOrders == SNIPER ) ) ||
-		// HEADROCK HAM B2.4: Changed this again - weapons are no longer checked for larger magazine to allow suppressive fire, due to
-		// suppressive fire revamp.
-//		if ( (!suppressionFire && ( (IsScoped(pObj) && GunRange(pObj) > MaxNormalDistanceVisible() ) || pSoldier->aiData.bOrders == SNIPER ) ) ||
-//			(suppressionFire  && IsGunAutofireCapable(&pSoldier->inv[pBestShot->bWeaponIn] ) && GetMagSize(pObj) > 30 && (*pObj)[0]->data.gun.ubGunShotsLeft > 20 ))
 		BOOLEAN fEnableAISuppression = FALSE;
 
 		// CHRISL: Changed from a simple flag to two externalized values for more modder control over AI suppression
-		if ( ((!suppressionFire && ( (IsScoped(pObj) && GunRange(pObj, pSoldier) > MaxNormalDistanceVisible() ) || pSoldier->aiData.bOrders == SNIPER ) ) || // SANDRO - added argument to GunRange()
-			(suppressionFire  && IsGunAutofireCapable(&pSoldier->inv[pBestShot->bWeaponIn]) && GetMagSize(pObj) >= gGameExternalOptions.ubAISuppressionMinimumMagSize && (*pObj)[0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo)) )
+		if ( suppressionFire &&
+			IsGunAutofireCapable(&pSoldier->inv[pBestShot->bWeaponIn]) &&
+			GetMagSize(pObj) >= gGameExternalOptions.ubAISuppressionMinimumMagSize &&
+			(*pObj)[0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo )
+		{
 			fEnableAISuppression = TRUE;
+		}
 
+		// sevenfm: allow any soldier to shoot in RED state
+		if ( !suppressionFire &&
+			GunRange(pObj, pSoldier) > DAY_VISION_RANGE/2 )
+		{
+			fEnableAISuppression = TRUE;
+		}
+		
 		if (fEnableAISuppression)
 		{
 			// get the minimum cost to attack with this item
