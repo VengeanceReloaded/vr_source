@@ -267,6 +267,7 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 INT16 MaxNormalVisionDistance( void );
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
 BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier );
+BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 
 #define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25

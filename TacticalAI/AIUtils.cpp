@@ -135,21 +135,34 @@ BOOLEAN ConsiderProne( SOLDIERTYPE * pSoldier )
 	INT8		bOpponentLevel;
 	INT32		iRange;
 
-	if (pSoldier->aiData.bAIMorale >= MORALE_NORMAL)
+	// sevenfm: admins/green militia go prone only when wounded or under fire
+	if( pSoldier->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR ||
+		pSoldier->ubSoldierClass == SOLDIER_CLASS_GREEN_MILITIA )
+	{
+		if( pSoldier->stats.bLife > 3*pSoldier->stats.bLifeMax/4 &&
+			!pSoldier->aiData.bUnderFire )
+		{
+			return( FALSE );
+		}
+	}
+
+	// sevenfm: other soldiers also check range change desire (DEFENSIVE/CUNNING will go prone even with AI morale = 4)
+	if ( RangeChangeDesire(pSoldier) > 3 &&
+		!pSoldier->aiData.bUnderFire &&
+		pSoldier->stats.bLife > 3*pSoldier->stats.bLifeMax/4 )
 	{
 		return( FALSE );
 	}
+
 	// We don't want to go prone if there is a nearby enemy
-	ClosestKnownOpponent( pSoldier, &sOpponentGridNo, &bOpponentLevel );
-	iRange = GetRangeFromGridNoDiff( pSoldier->sGridNo, sOpponentGridNo );
-	if (iRange > 10)
-	{
-		return( TRUE );
-	}
-	else
+	sOpponentGridNo = ClosestKnownOpponent( pSoldier, NULL, NULL );
+	if( !TileIsOutOfBounds(sOpponentGridNo) && 
+		PythSpacesAway( pSoldier->sGridNo, sOpponentGridNo ) < DAY_VISION_RANGE / 2 )
 	{
 		return( FALSE );
 	}
+
+	return( TRUE );
 }
 
 UINT8 StanceChange( SOLDIERTYPE * pSoldier, INT16 ubAttackAPCost )
@@ -936,7 +949,11 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 	// for starters, try the closest one as the crow flies
 	INT32		sClosestEnemy = NOWHERE, sDistToClosestEnemy = 1000, sDistToEnemy;
 
-	*pfChangeLevel = FALSE;
+	// sevenfm: safety check
+	if ( pfChangeLevel )
+	{
+		*pfChangeLevel = FALSE;
+	}
 
 	pubNoiseVolume = &gubPublicNoiseVolume[pSoldier->bTeam];
 	pusNoiseGridNo = &gsPublicNoiseGridNo[pSoldier->bTeam];
@@ -1067,7 +1084,8 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			// get the AP cost to get to the location of the noise
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
-			if (iPathCost != 0)
+			// sevenfm: check that noise is closer than known disturbance and soldier is not flanking
+			if (iPathCost != 0 && iPathCost < iShortestPath && !AICheckIsFlanking(pSoldier))
 			{
 				if (fClimbingNecessary)
 				{
@@ -1099,7 +1117,8 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			// get the AP cost to get to the location of the noise
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
-			if (iPathCost != 0)
+			// sevenfm: check that noise is closer than known disturbance and soldier is not flanking
+			if (iPathCost != 0 && iPathCost < iShortestPath && !AICheckIsFlanking(pSoldier))
 			{
 				if (fClimbingNecessary)
 				{
@@ -1130,7 +1149,12 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 	}
 #endif
 
-	*pfChangeLevel = fClosestClimbingNecessary;
+	// sevenfm: safety check
+	if ( pfChangeLevel )
+	{
+		*pfChangeLevel = fClosestClimbingNecessary;
+	}
+
 	return(sClosestDisturbance);
 }
 
@@ -3165,3 +3189,17 @@ UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 	return ubFriends;
 }
 
+// check that soldier is flanking
+BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier )
+{
+	if( !pSoldier ) return FALSE;
+
+	if( pSoldier->aiData.bAlertStatus < STATUS_YELLOW ||
+		pSoldier->numFlanks == 0 ||
+		pSoldier->numFlanks >= MAX_FLANKS_RED )
+	{
+		return FALSE;
+	}
+
+	return TRUE;
+}

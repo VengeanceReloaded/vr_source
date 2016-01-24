@@ -692,35 +692,44 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			continue;			// next merc
 		}
 
-		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
-		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
-		pusLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpponent->ubID;
-
-		// if this opponent is unknown personally and publicly
-		if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
-		{
-			continue;			// next merc
-		}
-
 		// Special stuff for Carmen the bounty hunter
 		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
 		{
 			continue;	// next opponent
 		}
 
-		// if personal knowledge is more up to date or at least equal
-		if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) ||
-			(*pbPersOL == *pbPublOL))
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
+		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
+		pusLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpponent->ubID;
+
+		// sevenfm: use attacker
+		if( pSoldier->ubPreviousAttackerID != NOBODY && pSoldier->ubPreviousAttackerID == pOpponent->ubID )
 		{
-			// using personal knowledge, obtain opponent's "best guess" gridno
-			sThreatLoc = *pusLastLoc;
-			iThreatCertainty = ThreatPercent[*pbPersOL - OLDEST_HEARD_VALUE];
+			sThreatLoc = pOpponent->sGridNo;
+			iThreatCertainty = ThreatPercent[6];
 		}
 		else
 		{
-			// using public knowledge, obtain opponent's "best guess" gridno
-			sThreatLoc = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
-			iThreatCertainty = ThreatPercent[*pbPublOL - OLDEST_HEARD_VALUE];
+			// if this opponent is unknown personally and publicly
+			if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
+			{
+				continue;			// next merc
+			}
+
+			// if personal knowledge is more up to date or at least equal
+			if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) ||
+				(*pbPersOL == *pbPublOL))
+			{
+				// using personal knowledge, obtain opponent's "best guess" gridno
+				sThreatLoc = *pusLastLoc;
+				iThreatCertainty = ThreatPercent[*pbPersOL - OLDEST_HEARD_VALUE];
+			}
+			else
+			{
+				// using public knowledge, obtain opponent's "best guess" gridno
+				sThreatLoc = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
+				iThreatCertainty = ThreatPercent[*pbPublOL - OLDEST_HEARD_VALUE];
+			}
 		}
 
 		// calculate how far away this threat is (in adjusted pixels)
