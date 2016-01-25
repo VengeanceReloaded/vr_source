@@ -56,13 +56,13 @@ UINT16 MovementMode[LAST_MOVEMENT_ACTION + 1][NUM_URGENCY_STATES] =
 	{WALKING,	 WALKING,  WALKING }, // AI_ACTION_NONE
 
 	{WALKING,  WALKING,  WALKING }, // AI_ACTION_RANDOM_PATROL
-	{WALKING,  RUNNING,  RUNNING }, // AI_ACTION_SEEK_FRIEND
-	{WALKING,  RUNNING,  RUNNING }, // AI_ACTION_SEEK_OPPONENT
+	{RUNNING,  RUNNING,  RUNNING }, // AI_ACTION_SEEK_FRIEND
+	{RUNNING,  RUNNING,  RUNNING }, // AI_ACTION_SEEK_OPPONENT
 	{RUNNING,  RUNNING,  RUNNING }, // AI_ACTION_TAKE_COVER
 	{WALKING,  RUNNING,  RUNNING }, // AI_ACTION_GET_CLOSER
 
 	{WALKING,  WALKING,  WALKING }, // AI_ACTION_POINT_PATROL,
-	{WALKING,  RUNNING,  RUNNING }, // AI_ACTION_LEAVE_WATER_GAS,
+	{RUNNING,  RUNNING,  RUNNING }, // AI_ACTION_LEAVE_WATER_GAS,
 	{WALKING,  SWATTING,  RUNNING }, // AI_ACTION_SEEK_NOISE,
 	{RUNNING,  RUNNING,  RUNNING }, // AI_ACTION_ESCORTED_MOVE,
 	{WALKING,  RUNNING,  RUNNING }, // AI_ACTION_RUN_AWAY,
@@ -76,8 +76,8 @@ UINT16 MovementMode[LAST_MOVEMENT_ACTION + 1][NUM_URGENCY_STATES] =
 	{WALKING,	 WALKING,  WALKING},	// AI_ACTION_SCHEDULE_MOVE
 	{WALKING,	 WALKING,  WALKING},	// AI_ACTION_WALK
 	{WALKING,	 RUNNING,  RUNNING},	// withdraw
-	{RUNNING,	 RUNNING,  SWATTING},	// flank left
-	{RUNNING,	 RUNNING,  SWATTING},	// flank right
+	{RUNNING,	 RUNNING,  RUNNING},	// flank left
+	{RUNNING,	 RUNNING,  RUNNING},	// flank right
 	{RUNNING,	 RUNNING,  RUNNING},	// AI_ACTION_MOVE_TO_CLIMB
 };
 
@@ -385,6 +385,155 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 		}
 		else
 		{
+			// sevenfm: movement mode tweaks
+			INT32 sClosestThreat =	ClosestKnownOpponent( pSoldier, NULL, NULL );
+			UINT16 usRoom;
+
+			if ( IS_MERC_BODY_TYPE( pSoldier ) &&
+				pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+				!InWaterGasOrSmoke( pSoldier, pSoldier->sGridNo ) &&
+				!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) &&				
+				!TileIsOutOfBounds( sClosestThreat) &&
+				(pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM) )
+			{
+				// determine max visible distance
+				//INT16 sDistanceVisible = DistanceVisible( pSoldier, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, pSoldier->sGridNo, pSoldier->pathing.bLevel );
+				INT16 sDistanceVisible = VISION_RANGE;
+
+				// use running when in light at night (moving slowly in light at night is dangerous)
+				if( NightTime() &&
+					InLightAtNight( pSoldier->sGridNo, pSoldier->pathing.bLevel ) &&
+					!InARoom(pSoldier->sGridNo, &usRoom) &&
+					(bAction == AI_ACTION_SEEK_OPPONENT || 
+					bAction == AI_ACTION_GET_CLOSER ||
+					bAction == AI_ACTION_SEEK_FRIEND ||
+					bAction == AI_ACTION_TAKE_COVER) &&
+					pSoldier->bBreath > 25 )
+				{
+					return RUNNING;
+				}
+
+				// night crawling approach (disabled)
+				/*if( NightTime() &&
+					!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+					!InARoom(pSoldier->sGridNo, NULL) &&
+					pSoldier->aiData.bAlertStatus == STATUS_RED &&
+					!pSoldier->aiData.bUnderFire &&
+					!GuySawEnemyThisTurnOrBefore(pSoldier) &&
+					CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) == 0 &&
+					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) > 3*sDistanceVisible/4 &&
+					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&
+					AICountFriendsBlack(pSoldier) == 0 &&
+					LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, sClosestThreat, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
+					(bAction == AI_ACTION_SEEK_OPPONENT) )
+				{
+					return CRAWLING;
+				}*/
+
+				// night swatting approach (more chance for AI to sneak unseen and get interrupt)
+				if( NightTime() &&
+					!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+					pSoldier->aiData.bAlertStatus == STATUS_RED &&
+					//!pSoldier->aiData.bUnderFire &&
+					pSoldier->aiData.bShock == 0 &&
+					!GuySawEnemyThisTurnOrBefore(pSoldier) &&					
+					CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) < 3 &&
+					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&
+					AICountFriendsBlack(pSoldier) == 0 &&
+					(bAction == AI_ACTION_SEEK_OPPONENT) )
+				{					
+					return SWATTING;
+				}
+
+				// use swatting/crawling for SEEK in RED state if soldier is already crouched/prone
+				// (more chance for AI to sneak unseen and get interrupt)
+				if( (!NightTime() || !InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel)) &&
+					pSoldier->aiData.bAlertStatus == STATUS_RED &&
+					pSoldier->aiData.bShock == 0 &&
+					!GuySawEnemyThisTurnOrBefore(pSoldier) &&					
+					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&
+					RangeChangeDesire(pSoldier) < 4 &&
+					CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) < 3 &&
+					AICountFriendsBlack(pSoldier) == 0 &&
+					gAnimControl[ pSoldier->usAnimState ].ubEndHeight <= ANIM_CROUCH &&
+					(bAction == AI_ACTION_SEEK_OPPONENT) )
+				{
+					/*if( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE &&
+						!InARoom( pSoldier->sGridNo, &usRoom ) )
+					{
+						return CRAWLING;
+					}*/
+					return SWATTING;
+				}
+
+				// use SWATTING/CRAWLING when under fire
+				// (use suppression fire to slow down enemy)
+				if( pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+					pSoldier->aiData.bShock > RangeChangeDesire(pSoldier) &&
+					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&					
+					gAnimControl[ pSoldier->usAnimState ].ubEndHeight <= ANIM_CROUCH &&
+					!pSoldier->aiData.bLastAttackHit &&
+					( bAction == AI_ACTION_SEEK_OPPONENT || 
+					bAction == AI_ACTION_GET_CLOSER ||
+					bAction == AI_ACTION_SEEK_FRIEND ||
+					bAction == AI_ACTION_TAKE_COVER ) )
+				{
+					/*if( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE &&
+						!InARoom( pSoldier->sGridNo, &usRoom ) )
+						RangeChangeDesire(pSoldier) < 4 )
+					{
+						return CRAWLING;
+					}*/
+					return SWATTING;
+				}
+
+				// use SWATTING when in a room and seen enemy recently or under fire
+				// (better cover for AI hiding behind windows)
+				if ( InARoom( pSoldier->sGridNo, &usRoom ) &&
+					pSoldier->aiData.bAlertStatus >= STATUS_YELLOW &&
+					( pSoldier->aiData.bOrders == SNIPER ||
+					pSoldier->aiData.bOrders == STATIONARY ||
+					(GuySawEnemyThisTurnOrBefore(pSoldier) || pSoldier->aiData.bShock > 0 ) && RangeChangeDesire(pSoldier) < 4 ) &&
+					PythSpacesAway( pSoldier->sGridNo, sClosestThreat ) > DAY_VISION_RANGE / 4 &&
+					( bAction == AI_ACTION_SEEK_OPPONENT || 
+					bAction == AI_ACTION_GET_CLOSER ||
+					bAction == AI_ACTION_SEEK_FRIEND ||
+					bAction == AI_ACTION_TAKE_COVER ) )
+				{
+					return SWATTING;
+				}
+
+				// use swatting/crawling for snipers on roof or when under fire
+				// (better cover for AI, especially if there are sandbags on roof)
+				if( pSoldier->pathing.bLevel > 0 &&
+					pSoldier->aiData.bAlertStatus >= STATUS_YELLOW &&					
+					( pSoldier->aiData.bOrders == SNIPER ||
+					pSoldier->aiData.bOrders == STATIONARY ||
+					pSoldier->aiData.bShock > 0 && RangeChangeDesire(pSoldier) < 4 ) &&
+					PythSpacesAway( pSoldier->sGridNo, sClosestThreat ) > DAY_VISION_RANGE / 4 &&
+					( bAction == AI_ACTION_SEEK_OPPONENT || 
+					bAction == AI_ACTION_GET_CLOSER ||
+					bAction == AI_ACTION_SEEK_FRIEND ||
+					bAction == AI_ACTION_TAKE_COVER ) )
+				{
+					return SWATTING;
+				}
+
+				// use walking/swatting when flanking in realtime
+				// (better cover at night, save BP in realtime at daytime)
+				if(AICheckIsFlanking(pSoldier) && !gfTurnBasedAI)
+				{
+					if(NightTime())
+					{
+						return SWATTING;
+					}
+					if(pSoldier->bBreath < pSoldier->bBreathMax/2)
+					{
+						return WALKING;
+					}					
+				}
+			}
+
 			return( MovementMode[bAction][Urgency[pSoldier->aiData.bAlertStatus][pSoldier->aiData.bAIMorale]] );
 		}
 	}
@@ -402,6 +551,7 @@ void NewDest(SOLDIERTYPE *pSoldier, INT32 usGridNo)
 
 		// getting real movement anim for someone who is going to take cover, not just considering
 		usMovementMode = MovementMode[AI_ACTION_TAKE_COVER][Urgency[pSoldier->aiData.bAlertStatus][pSoldier->aiData.bAIMorale]];
+
 		if ( usMovementMode != SWATTING )
 		{
 			// really want to look at path, see how far we could get on path while swatting
@@ -931,13 +1081,13 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 {
 	INT32		*psLastLoc, *pusNoiseGridNo;
 	INT8		*pbLastLevel;
-	INT32 sGridNo=-1;
+	INT32		sGridNo=-1;
 	INT8		bLevel, bClosestLevel = -1;
-	BOOLEAN	fClimbingNecessary, fClosestClimbingNecessary = FALSE;
+	BOOLEAN		fClimbingNecessary, fClosestClimbingNecessary = FALSE;
 	INT32		iPathCost;
 	INT32		sClosestDisturbance = NOWHERE;
-	UINT32	uiLoop;
-	UINT32	closestConscious = NOWHERE,closestUnconscious = NOWHERE;
+	UINT32		uiLoop;
+	UINT32		closestConscious = NOWHERE,closestUnconscious = NOWHERE;
 	INT32		iShortestPath = 1000;
 	INT32		iShortestPathConscious = 1000,iShortestPathUnconscious = 1000;
 	UINT8		*pubNoiseVolume;
@@ -1086,7 +1236,10 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
 			// sevenfm: check that noise is closer than known disturbance and soldier is not flanking
-			if (iPathCost != 0 && iPathCost < iShortestPath && !AICheckIsFlanking(pSoldier))
+			//if (iPathCost != 0)
+			if (iPathCost != 0 && 
+				!AICheckIsFlanking(pSoldier) &&
+				(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath))
 			{
 				if (fClimbingNecessary)
 				{
@@ -1101,7 +1254,6 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			}
 		}
 	}
-
 
 	// if any PUBLIC "misc. noise" was also heard recently	
 	if (!TileIsOutOfBounds(*pusNoiseGridNo) && *pusNoiseGridNo != sClosestDisturbance )
@@ -1119,7 +1271,10 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
 			// sevenfm: check that noise is closer than known disturbance and soldier is not flanking
-			if (iPathCost != 0 && iPathCost < iShortestPath && !AICheckIsFlanking(pSoldier))
+			//if (iPathCost != 0)
+			if (iPathCost != 0 && 
+				!AICheckIsFlanking(pSoldier) &&
+				(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath))
 			{
 				if (fClimbingNecessary)
 				{
@@ -3394,3 +3549,33 @@ UINT8 CountFriendsFlankSeek( SOLDIERTYPE *pSoldier )
 
 	return ubFlankLeft + ubFlankRight;
 }
+
+UINT8 CountNearbyFriendliesLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	// safety check
+	if( !pSoldier )
+		return 0;
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];
+
+		if (pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			pFriend->aiData.bOrders > ONGUARD &&
+			pFriend->aiData.bOrders != SNIPER &&
+			PythSpacesAway( sGridNo, pFriend->sGridNo ) <= ubDistance &&
+			pFriend->aiData.bLastAttackHit )
+		{
+			ubFriendCount++;
+		}
+	}
+
+	return ubFriendCount;
+}
+

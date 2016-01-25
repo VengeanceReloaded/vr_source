@@ -274,6 +274,7 @@ UINT8 CountNearbyFriendliesOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 u
 BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
 UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier );
 UINT8 CountFriendsFlankSeek( SOLDIERTYPE *pSoldier );
+UINT8 CountNearbyFriendliesLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 
 #define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25

@@ -106,6 +106,9 @@ ENEMY_NAMES_VALUES zEnemyName[500];
 ENEMY_RANK_VALUES zEnemyRank[20];				// Flugente: set this to 20, which should be way enough, as there are only 10 exp levels
 CIV_NAMES_VALUES zCivGroupName[NUM_CIV_GROUPS];
 
+//jones
+extern void SoldierTooltip(SOLDIERTYPE*);
+
 // Flugente: soldier profiles
 SOLDIER_PROFILE_VALUES zSoldierProfile[6][NUM_SOLDIER_PROFILES];
 UINT16 num_found_soldier_profiles[6];	// the correct number is set on reading the xml
@@ -2202,6 +2205,8 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 						}
 					}
 				}
+				if ( gGameSettings.fOptions[TOPTION_ALLOW_SOLDIER_TOOLTIPS] )
+					SoldierTooltip(pSoldier);
 			//------------
 			}
 		}
@@ -2226,10 +2231,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 		}
 
 		pStr = GetSoldierHealthString( pSoldier );
-
-		//jones
-		extern void SoldierTooltip(SOLDIERTYPE*);
-		//if ( gGameExternalOptions.gfAllowSoldierToolTips ) // changed by SANDRO
+		
 		if ( gGameSettings.fOptions[TOPTION_ALLOW_SOLDIER_TOOLTIPS] )
 			SoldierTooltip(pSoldier);
 

@@ -26,6 +26,8 @@
 #include "soldier profile type.h"
 #include "Soldier macros.h"
 #include "Encyclopedia_new.h"	///< Encyclopedia item visibility
+#include "ai.h"					// sevenfm
+#include "AIInternals.h"		// sevenfm
 #endif
 
 //forward declarations of common classes to eliminate includes
@@ -54,6 +56,9 @@ void DrawMouseTooltip(void);
 
 #define MAX(a, b) (a > b ? a : b)
 
+// sevenfm
+STR16 gStrAlertStatus[NUM_STATUS_STATES] = { L"Green", L"Yellow", L"Red", L"Black" };
+
 void SoldierTooltip( SOLDIERTYPE* pSoldier )
 {
 	if(!pSoldier)
@@ -71,13 +76,6 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 	GetSoldierScreenRect( pSoldier,	&aRect );
 	INT16		a1,a2;
 	BOOLEAN		fDrawTooltip = FALSE;
-
-	// sevenfm: do not show tooltip if ALT is pressed for adding autofire bullets
-	// EDIT: commented this out because with default autofire bullets> 1 it will confuse players
-	//SOLDIERTYPE *pShooter;
-	//GetSoldier( &pShooter, gusSelectedSoldier );
-	//if(gfUICtHBar && pShooter && pShooter->bDoAutofire > 1)
-	//	return;
 
 	if ( gfKeyState[ALT] && pSoldier &&
 		IsPointInScreenRectWithRelative( gusMouseXPos, gusMouseYPos, &aRect, &a1, &a2 ) )
@@ -258,6 +256,14 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_EFFECTIVE_SHOCK], pStrInfo, CalcEffectiveShockLevel( pSoldier ) );
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_AI_MORALE], pStrInfo, pSoldier->aiData.bAIMorale );
 			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			// sevenfm: more AI information in debug mode
+			swprintf( pStrInfo, L"%s|Alert |Status %s\n", pStrInfo, gStrAlertStatus[pSoldier->aiData.bAlertStatus] );
+			swprintf( pStrInfo, L"%s|Range |Change |Desire %d\n", pStrInfo, RangeChangeDesire(pSoldier) );
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			// Added by SANDRO - show enemy skills
 			if ( gGameExternalOptions.fEnableSoldierTooltipTraits )

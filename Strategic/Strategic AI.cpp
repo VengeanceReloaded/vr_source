@@ -1863,7 +1863,8 @@ void HandlePlayerGroupNoticedByGarrison( GROUP *pPlayerGroup, UINT8 ubSectorID )
 
 			MoveSAIGroupToSector( &pGroup, (UINT8)SECTOR( pPlayerGroup->ubSectorX, pPlayerGroup->ubSectorY ), DIRECT, REINFORCEMENTS );
 
-			RemoveSoldiersFromGarrisonBasedOnComposition( pSector->ubGarrisonID, pGroup->ubGroupSize );
+			if ( pGroup )
+				RemoveSoldiersFromGarrisonBasedOnComposition( pSector->ubGarrisonID, pGroup->ubGroupSize );
 
 			if( pSector->ubNumTroops + pSector->ubNumElites + pSector->ubNumAdmins > iMaxEnemyGroupSize )
 			{
@@ -5087,8 +5088,11 @@ void ExecuteStrategicAIAction( UINT16 usActionCode, INT16 sSectorX, INT16 sSecto
 					ClearPreviousAIGroupAssignment( pPendingGroup );
 				}
 				//Assign the elite squad to attack the SAM site
-				pGroup->pEnemyGroup->ubIntention = REINFORCEMENTS;
-				gGarrisonGroup[ SectorInfo[ ubSectorID ].ubGarrisonID ].ubPendingGroupID = pGroup->ubGroupID;
+				if ( pGroup )
+				{
+					pGroup->pEnemyGroup->ubIntention = REINFORCEMENTS;
+					gGarrisonGroup[ SectorInfo[ ubSectorID ].ubGarrisonID ].ubPendingGroupID = pGroup->ubGroupID;
+				}
 
 				if( pPendingGroup )
 				{ //Reassign the pending group
