@@ -739,6 +739,7 @@ typedef struct
 	BOOLEAN fEnableSoldierTooltipBigSlot5;
 	BOOLEAN fEnableSoldierTooltipBigSlot6;
 	BOOLEAN fEnableSoldierTooltipBigSlot7;
+	BOOLEAN fEnableSoldierTooltipAIInfo;		// sevenfm: extended AI info
 	// ShadoWarrior: Tooltip changes (end)
 	//SCORE: UDT related
 	BOOLEAN gfAllowUDTRange;

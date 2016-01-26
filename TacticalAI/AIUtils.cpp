@@ -434,7 +434,6 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 				if( NightTime() &&
 					!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
 					pSoldier->aiData.bAlertStatus == STATUS_RED &&
-					//!pSoldier->aiData.bUnderFire &&
 					pSoldier->aiData.bShock == 0 &&
 					!GuySawEnemyThisTurnOrBefore(pSoldier) &&					
 					CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) < 3 &&
@@ -469,8 +468,9 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 				// use SWATTING/CRAWLING when under fire
 				// (use suppression fire to slow down enemy)
 				if( pSoldier->aiData.bAlertStatus >= STATUS_RED &&
-					pSoldier->aiData.bShock > RangeChangeDesire(pSoldier) &&
-					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&					
+					(pSoldier->aiData.bShock > RangeChangeDesire(pSoldier) && PythSpacesAway( pSoldier->sGridNo, sClosestThreat ) > DAY_VISION_RANGE / 2 ||
+					pSoldier->aiData.bShock > 0 && gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE && PythSpacesAway( pSoldier->sGridNo, sClosestThreat ) > DAY_VISION_RANGE / 4) &&
+					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&
 					gAnimControl[ pSoldier->usAnimState ].ubEndHeight <= ANIM_CROUCH &&
 					!pSoldier->aiData.bLastAttackHit &&
 					( bAction == AI_ACTION_SEEK_OPPONENT || 

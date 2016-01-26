@@ -1264,6 +1264,8 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fEnableSoldierTooltipBigSlot5		= iniReader.ReadBoolean("Tactical Tooltip Settings", "SOLDIER_TOOLTIP_DISPLAY_BIG_SLOT_5", TRUE);
 	gGameExternalOptions.fEnableSoldierTooltipBigSlot6		= iniReader.ReadBoolean("Tactical Tooltip Settings", "SOLDIER_TOOLTIP_DISPLAY_BIG_SLOT_6", TRUE);
 	gGameExternalOptions.fEnableSoldierTooltipBigSlot7		= iniReader.ReadBoolean("Tactical Tooltip Settings", "SOLDIER_TOOLTIP_DISPLAY_BIG_SLOT_7", TRUE);
+	
+	gGameExternalOptions.fEnableSoldierTooltipAIInfo		= iniReader.ReadBoolean("Tactical Tooltip Settings", "SOLDIER_TOOLTIP_DISPLAY_AI_INFO", FALSE);
 	// ShadoWarrior: Tooltip changes (end)
 
 	//SCORE: Settings for UDT

@@ -1926,7 +1926,6 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 						( CountFriendsInDirection( pSoldier, sNoiseGridNo ) > 0 || NightTime() ) &&
 						( pSoldier->aiData.bOrders == SEEKENEMY ||
 						pSoldier->aiData.bOrders == FARPATROL ||
-						pSoldier->aiData.bOrders == ONCALL ||
 						pSoldier->aiData.bOrders == CLOSEPATROL && NightTime() ) )
 					{
 						INT8 action = AI_ACTION_SEEK_NOISE;
@@ -3461,7 +3460,6 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 								pSoldier->pathing.bLevel == 0 &&
 								( pSoldier->aiData.bOrders == SEEKENEMY ||
 								pSoldier->aiData.bOrders == FARPATROL ||
-								pSoldier->aiData.bOrders == ONCALL ||
 								pSoldier->aiData.bOrders == CLOSEPATROL && NightTime() ) &&
 								!GuySawEnemyThisTurnOrBefore( pSoldier ) &&
 								pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
@@ -4652,6 +4650,8 @@ INT16 ubMinAPCost;
 
 	BestAttack.ubChanceToReallyHit = 0;
 
+	// sevenfm: extra clip to reload
+	BOOLEAN fExtraClip = FALSE;
 
 	// if we are able attack
 	if (bCanAttack)
@@ -5004,8 +5004,7 @@ INT16 ubMinAPCost;
 		}
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		// sevenfm: check that we have a clip to reload
-		BOOLEAN fExtraClip = FALSE;
+		// sevenfm: check that we have a clip to reload		
 		if(BestShot.ubPossible && BestShot.bWeaponIn != NO_SLOT)
 		{
 			INT8 bAmmoSlot = FindAmmoToReload( pSoldier, BestShot.bWeaponIn, NO_SLOT );
@@ -5163,16 +5162,12 @@ INT16 ubMinAPCost;
 		pSoldier->bActionPoints > APBPConstants[AP_MINIMUM] &&
 		ubCanMove )
 	{
-		//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] BLACK check climb", pSoldier->ubID);
 		INT8 newdirection;
 		if ( FindHeigherLevel( pSoldier, pSoldier->sGridNo, pSoldier->ubDirection, &newdirection ) )
 		{
-			//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] BLACK found climb", pSoldier->ubID);
 			pSoldier->aiData.bAction = AI_ACTION_CLIMB_ROOF;
 			if ( IsActionAffordable(pSoldier) )
 			{
-				//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] BLACK climb", pSoldier->ubID);
-				//ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"new direction %d", newdirection);
 				return( AI_ACTION_CLIMB_ROOF );
 			}
 		}
@@ -5593,7 +5588,9 @@ L_NEWAIM:
 				if(!UsingNewCTHSystem() &&
 					pSoldier->bDoAutofire < 3 &&
 					pSoldier->aiData.bAimTime > 0 &&
-					( pSoldier->aiData.bUnderFire || pSoldier->aiData.bAttitude == AGGRESSIVE ) &&
+					fExtraClip &&
+					!CoweringShockLevel(MercPtrs[BestAttack.ubOpponent]) &&
+					(pSoldier->aiData.bUnderFire || pSoldier->aiData.bAttitude == AGGRESSIVE) &&
 					pSoldier->inv[BestAttack.bWeaponIn][0]->data.gun.ubGunShotsLeft >= 3)//dnl ch69 130913 let try increase autofire rate for aim cost
 				{
 					pSoldier->aiData.bAimTime--;
