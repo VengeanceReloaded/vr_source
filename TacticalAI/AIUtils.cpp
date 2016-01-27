@@ -2227,41 +2227,43 @@ BOOLEAN InLightAtNight( INT32 sGridNo, INT8 bLevel )
 
 INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 {
- UINT32 uiLoop, uiLoop2;
- INT32 iOurTotalThreat = 0, iTheirTotalThreat = 0;
- INT16 sOppThreatValue, sFrndThreatValue, sMorale;
- INT32 iPercent;
- INT8	bMostRecentOpplistValue;
- INT8 bMoraleCategory;
- UINT8 *pSeenOpp; //,*friendOlPtr;
- INT8	*pbPersOL, *pbPublOL;
- SOLDIERTYPE *pOpponent,*pFriend;
+	UINT32 uiLoop, uiLoop2;
+	INT32 iOurTotalThreat = 0, iTheirTotalThreat = 0;
+	INT16 sOppThreatValue, sFrndThreatValue, sMorale;
+	INT32 iPercent;
+	INT8	bMostRecentOpplistValue;
+	INT8 bMoraleCategory;
+	UINT8 *pSeenOpp; //,*friendOlPtr;
+	INT8	*pbPersOL, *pbPublOL;
+	SOLDIERTYPE *pOpponent,*pFriend;
 
- // if army guy has NO weapons left then panic!
- if ( pSoldier->bTeam == ENEMY_TEAM )
- {
-	if ( FindAIUsableObjClass( pSoldier, IC_WEAPON ) == NO_SLOT )
+	// if army guy has NO weapons left then panic!
+	if ( pSoldier->bTeam == ENEMY_TEAM )
 	{
-		return( MORALE_HOPELESS );
+		if ( FindAIUsableObjClass( pSoldier, IC_WEAPON ) == NO_SLOT )
+		{
+			// sevenfm: instead of leaving sector, try to attack with hands/knife
+			return( MORALE_FEARLESS );
+			//return( MORALE_HOPELESS );
+		}
 	}
- }
 
- // hang pointers to my personal opplist, my team's public opplist, and my
- // list of previously seen opponents
- pSeenOpp	= (UINT8 *) &(gbSeenOpponents[pSoldier->ubID][0]);
+	// hang pointers to my personal opplist, my team's public opplist, and my
+	// list of previously seen opponents
+	pSeenOpp	= (UINT8 *) &(gbSeenOpponents[pSoldier->ubID][0]);
 
- // loop through every one of my possible opponents
- for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
- {
-	pOpponent = MercSlots[ uiLoop ];
+	// loop through every one of my possible opponents
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpponent = MercSlots[ uiLoop ];
 
-	// if this merc is inactive, at base, on assignment, dead, unconscious
-	if (!pOpponent || (pOpponent->stats.bLife < OKLIFE))
-	 continue;			// next merc
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || (pOpponent->stats.bLife < OKLIFE))
+			continue;			// next merc
 
-	// if this merc is neutral/on same side, he's not an opponent, skip him!
-	if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
-	 continue;			// next merc
+		// if this merc is neutral/on same side, he's not an opponent, skip him!
+		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+			continue;			// next merc
 
 		// Special stuff for Carmen the bounty hunter
 		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
@@ -2269,130 +2271,130 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 			continue;	// next opponent
 		}
 
-	pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
-	pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
-	pSeenOpp = (UINT8 *)gbSeenOpponents[pSoldier->ubID] + pOpponent->ubID;
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
+		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
+		pSeenOpp = (UINT8 *)gbSeenOpponents[pSoldier->ubID] + pOpponent->ubID;
 
-	// if this opponent is unknown to me personally AND unknown to my team, too
-	if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
-	{
-	 // if I have never seen him before anywhere in this sector, either
-	 if (!(*pSeenOpp))
-		continue;		// next merc
-
-	 // have seen him in the past, so he remains something of a threat
-	 bMostRecentOpplistValue = 0;		// uses the free slot for 0 opplist
-	}
-	else		 // decide which opplist is more current
-	{
-	 // if personal knowledge is more up to date or at least equal
-	 if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) || (*pbPersOL == *pbPublOL))
-		bMostRecentOpplistValue = *pbPersOL;		// use personal
-	 else
-		bMostRecentOpplistValue = *pbPublOL;		// use public
-	}
-
-	iPercent = ThreatPercent[bMostRecentOpplistValue - OLDEST_HEARD_VALUE];
-
-	sOppThreatValue = (iPercent * CalcManThreatValue(pOpponent,pSoldier->sGridNo,FALSE,pSoldier)) / 100;
-
-	//sprintf(tempstr,"Known opponent %s, opplist status %d, percent %d, threat = %d",
-	//			ExtMen[pOpponent->ubID].name,ubMostRecentOpplistValue,ubPercent,sOppThreatValue);
-	//PopMessage(tempstr);
-
-	// ADD this to their running total threatValue (decreases my MORALE)
-	iTheirTotalThreat += sOppThreatValue;
-	//NumMessage("Their TOTAL threat now = ",sTheirTotalThreat);
-
-	// NOW THE FUN PART: SINCE THIS OPPONENT IS KNOWN TO ME IN SOME WAY,
-	// ANY FRIENDS OF MINE THAT KNOW ABOUT HIM BOOST MY MORALE.	SO, LET'S GO
-	// THROUGH THEIR PERSONAL OPPLISTS AND CHECK WHICH OF MY FRIENDS KNOW
-	// SOMETHING ABOUT HIM AND WHAT THEIR THREAT VALUE TO HIM IS.
-
-	for (uiLoop2 = 0; uiLoop2 < guiNumMercSlots; uiLoop2++)
-	{
-	 pFriend = MercSlots[ uiLoop2 ];
-
-	 // if this merc is inactive, at base, on assignment, dead, unconscious
-	 if (!pFriend || (pFriend->stats.bLife < OKLIFE))
-		continue;		// next merc
-
-	 // if this merc is not on my side, then he's NOT one of my friends
-
-	 // WE CAN'T AFFORD TO CONSIDER THE ENEMY OF MY ENEMY MY FRIEND, HERE!
-	 // ONLY IF WE ARE ACTUALLY OFFICIALLY CO-OPERATING TOGETHER (SAME SIDE)
-	 if ( pFriend->aiData.bNeutral && !( pSoldier->ubCivilianGroup != NON_CIV_GROUP && pSoldier->ubCivilianGroup == pFriend->ubCivilianGroup ) )
+		// if this opponent is unknown to me personally AND unknown to my team, too
+		if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
 		{
-			continue;		// next merc
+			// if I have never seen him before anywhere in this sector, either
+			if (!(*pSeenOpp))
+				continue;		// next merc
+
+			// have seen him in the past, so he remains something of a threat
+			bMostRecentOpplistValue = 0;		// uses the free slot for 0 opplist
+		}
+		else		 // decide which opplist is more current
+		{
+			// if personal knowledge is more up to date or at least equal
+			if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) || (*pbPersOL == *pbPublOL))
+				bMostRecentOpplistValue = *pbPersOL;		// use personal
+			else
+				bMostRecentOpplistValue = *pbPublOL;		// use public
 		}
 
-		if ( pSoldier->bSide != pFriend->bSide )
-		continue;		// next merc
+		iPercent = ThreatPercent[bMostRecentOpplistValue - OLDEST_HEARD_VALUE];
 
-	 // THIS TEST IS INVALID IF A COMPUTER-TEAM IS PLAYING CO-OPERATIVELY
-	 // WITH A NON-COMPUTER TEAM SINCE THE OPPLISTS INVOLVED ARE NOT
-	 // UP-TO-DATE.	THIS SITUATION IS CURRENTLY NOT POSSIBLE IN HTH/DG.
+		sOppThreatValue = (iPercent * CalcManThreatValue(pOpponent,pSoldier->sGridNo,FALSE,pSoldier)) / 100;
 
-	 // ALSO NOTE THAT WE COUNT US AS OUR (BEST) FRIEND FOR THESE CALCULATIONS
+		//sprintf(tempstr,"Known opponent %s, opplist status %d, percent %d, threat = %d",
+		//			ExtMen[pOpponent->ubID].name,ubMostRecentOpplistValue,ubPercent,sOppThreatValue);
+		//PopMessage(tempstr);
+
+		// ADD this to their running total threatValue (decreases my MORALE)
+		iTheirTotalThreat += sOppThreatValue;
+		//NumMessage("Their TOTAL threat now = ",sTheirTotalThreat);
+
+		// NOW THE FUN PART: SINCE THIS OPPONENT IS KNOWN TO ME IN SOME WAY,
+		// ANY FRIENDS OF MINE THAT KNOW ABOUT HIM BOOST MY MORALE.	SO, LET'S GO
+		// THROUGH THEIR PERSONAL OPPLISTS AND CHECK WHICH OF MY FRIENDS KNOW
+		// SOMETHING ABOUT HIM AND WHAT THEIR THREAT VALUE TO HIM IS.
+
+		for (uiLoop2 = 0; uiLoop2 < guiNumMercSlots; uiLoop2++)
+		{
+			pFriend = MercSlots[ uiLoop2 ];
+
+			// if this merc is inactive, at base, on assignment, dead, unconscious
+			if (!pFriend || (pFriend->stats.bLife < OKLIFE))
+				continue;		// next merc
+
+			// if this merc is not on my side, then he's NOT one of my friends
+
+			// WE CAN'T AFFORD TO CONSIDER THE ENEMY OF MY ENEMY MY FRIEND, HERE!
+			// ONLY IF WE ARE ACTUALLY OFFICIALLY CO-OPERATING TOGETHER (SAME SIDE)
+			if ( pFriend->aiData.bNeutral && !( pSoldier->ubCivilianGroup != NON_CIV_GROUP && pSoldier->ubCivilianGroup == pFriend->ubCivilianGroup ) )
+			{
+				continue;		// next merc
+			}
+
+			if ( pSoldier->bSide != pFriend->bSide )
+				continue;		// next merc
+
+			// THIS TEST IS INVALID IF A COMPUTER-TEAM IS PLAYING CO-OPERATIVELY
+			// WITH A NON-COMPUTER TEAM SINCE THE OPPLISTS INVOLVED ARE NOT
+			// UP-TO-DATE.	THIS SITUATION IS CURRENTLY NOT POSSIBLE IN HTH/DG.
+
+			// ALSO NOTE THAT WE COUNT US AS OUR (BEST) FRIEND FOR THESE CALCULATIONS
 
 			// subtract HEARD_2_TURNS_AGO (which is negative) to make values start at 0 and
 			// be positive otherwise
-	 iPercent = ThreatPercent[pFriend->aiData.bOppList[pOpponent->ubID] - OLDEST_HEARD_VALUE];
+			iPercent = ThreatPercent[pFriend->aiData.bOppList[pOpponent->ubID] - OLDEST_HEARD_VALUE];
 
-	// reduce the percentage value based on how far away they are from the enemy, if they only hear him
-	if ( pFriend->aiData.bOppList[ pOpponent->ubID ] <= HEARD_LAST_TURN )
-	{
-		iPercent -= PythSpacesAway( pSoldier->sGridNo, pFriend->sGridNo ) * 2;
-		if ( iPercent <= 0 )
-		{
-			//ignore!
-			continue;
+			// reduce the percentage value based on how far away they are from the enemy, if they only hear him
+			if ( pFriend->aiData.bOppList[ pOpponent->ubID ] <= HEARD_LAST_TURN )
+			{
+				iPercent -= PythSpacesAway( pSoldier->sGridNo, pFriend->sGridNo ) * 2;
+				if ( iPercent <= 0 )
+				{
+					//ignore!
+					continue;
+				}
+			}
+
+			sFrndThreatValue = (iPercent * CalcManThreatValue(pFriend,pOpponent->sGridNo,FALSE,pSoldier)) / 100;
+
+			//sprintf(tempstr,"Known by friend %s, opplist status %d, percent %d, threat = %d",
+			//		 ExtMen[pFriend->ubID].name,pFriend->aiData.bOppList[pOpponent->ubID],ubPercent,sFrndThreatValue);
+			//PopMessage(tempstr);
+
+			// ADD this to our running total threatValue (increases my MORALE)
+			// We multiply by sOppThreatValue to PRO-RATE this based on opponent's
+			// threat value to ME personally.	Divide later by sum of them all.
+			iOurTotalThreat += sOppThreatValue * sFrndThreatValue;
 		}
-	}
 
-	 sFrndThreatValue = (iPercent * CalcManThreatValue(pFriend,pOpponent->sGridNo,FALSE,pSoldier)) / 100;
-
-	 //sprintf(tempstr,"Known by friend %s, opplist status %d, percent %d, threat = %d",
-	 //		 ExtMen[pFriend->ubID].name,pFriend->aiData.bOppList[pOpponent->ubID],ubPercent,sFrndThreatValue);
-	 //PopMessage(tempstr);
-
-	 // ADD this to our running total threatValue (increases my MORALE)
-	 // We multiply by sOppThreatValue to PRO-RATE this based on opponent's
-	 // threat value to ME personally.	Divide later by sum of them all.
-	 iOurTotalThreat += sOppThreatValue * sFrndThreatValue;
-	}
-
-	// this could get slow if I have a lot of friends...
-	//KeepInterfaceGoing();
+		// this could get slow if I have a lot of friends...
+		//KeepInterfaceGoing();
 	}
 
 
- // if they are no threat whatsoever
- if (!iTheirTotalThreat)
-	sMorale = 500;		// our morale is just incredible
- else
+	// if they are no threat whatsoever
+	if (!iTheirTotalThreat)
+		sMorale = 500;		// our morale is just incredible
+	else
 	{
-	// now divide sOutTotalThreat by sTheirTotalThreat to get the REAL value
-	iOurTotalThreat /= iTheirTotalThreat;
+		// now divide sOutTotalThreat by sTheirTotalThreat to get the REAL value
+		iOurTotalThreat /= iTheirTotalThreat;
 
-	// calculate the morale (100 is even, < 100 is us losing, > 100 is good)
-	sMorale = (INT16) ((100 * iOurTotalThreat) / iTheirTotalThreat);
+		// calculate the morale (100 is even, < 100 is us losing, > 100 is good)
+		sMorale = (INT16) ((100 * iOurTotalThreat) / iTheirTotalThreat);
 	}
 
 
- if (sMorale <= 25)				// odds 1:4 or worse
-	bMoraleCategory = MORALE_HOPELESS;
- else if (sMorale <= 50)		 // odds between 1:4 and 1:2
-	bMoraleCategory = MORALE_WORRIED;
- else if (sMorale <= 150)		// odds between 1:2 and 3:2
-	bMoraleCategory = MORALE_NORMAL;
- else if (sMorale <= 300)		// odds between 3:2 and 3:1
-	bMoraleCategory = MORALE_CONFIDENT;
- else							// odds better than 3:1
-	bMoraleCategory = MORALE_FEARLESS;
+	if (sMorale <= 25)				// odds 1:4 or worse
+		bMoraleCategory = MORALE_HOPELESS;
+	else if (sMorale <= 50)		 // odds between 1:4 and 1:2
+		bMoraleCategory = MORALE_WORRIED;
+	else if (sMorale <= 150)		// odds between 1:2 and 3:2
+		bMoraleCategory = MORALE_NORMAL;
+	else if (sMorale <= 300)		// odds between 3:2 and 3:1
+		bMoraleCategory = MORALE_CONFIDENT;
+	else							// odds better than 3:1
+		bMoraleCategory = MORALE_FEARLESS;
 
 
- switch (pSoldier->aiData.bAttitude)
+	switch (pSoldier->aiData.bAttitude)
 	{
 	case DEFENSIVE:	bMoraleCategory--; break;
 	case BRAVESOLO:	bMoraleCategory += 2; break;
@@ -2402,6 +2404,110 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 	case AGGRESSIVE:	bMoraleCategory++; break;
 	}
 
+	// sevenfm: new calculation
+
+	// make idiot administrators more aggressive
+	if ( pSoldier->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR )
+	{
+		bMoraleCategory += 2;
+	}
+
+	// if have good health
+	if( pSoldier->stats.bLife > 3*pSoldier->stats.bLifeMax/4 )
+	{
+		bMoraleCategory++;
+	}
+	// bad health
+	if( pSoldier->stats.bLife < pSoldier->stats.bLifeMax/2 )
+	{
+		bMoraleCategory--;
+	}
+	// good breath
+	if( pSoldier->bBreath > 50 )
+	{
+		bMoraleCategory++;
+	}
+	// bad breath
+	if( pSoldier->bBreath < 25 )
+	{
+		bMoraleCategory--;
+	}
+	// if not under fire - attack
+	if( !pSoldier->aiData.bUnderFire )
+	{
+		bMoraleCategory++;
+	}
+
+	// count friends that flank around the same spot
+	if( CountFriendsFlankSeek( pSoldier ) > 0 )
+	{
+		bMoraleCategory --;	
+	}
+
+	// if using short range weapon - try to get closer
+	if( AIGunRange(pSoldier) < DAY_VISION_RANGE/2 )
+	{
+		bMoraleCategory++;
+	}
+
+	// if last attack of this soldier hit enemy - increase morale
+	if( pSoldier->aiData.bLastAttackHit )
+	{
+		bMoraleCategory++;
+	}
+
+	// if some friend hit enemy - increase morale
+	if( CountNearbyFriendliesLastAttackHit(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/2 ) > 0 )
+	{
+		bMoraleCategory++;
+	}
+
+	INT8 bMaxMoraleCategory;
+
+	// sevenfm: limit morale depending on orders - snipers, stationary and guards should not charge enemy
+	switch (pSoldier->aiData.bOrders)
+	{
+	case STATIONARY:
+	case ONGUARD:
+	case SNIPER:
+		bMaxMoraleCategory = MORALE_CONFIDENT;	
+		break;
+	default:
+		bMaxMoraleCategory = MORALE_FEARLESS;
+	}
+
+	// limit morale for wounded/low breath soldiers
+	if (pSoldier->stats.bLife < pSoldier->stats.bLifeMax/2 ||
+		pSoldier->bBreath < 25)
+	{
+		bMaxMoraleCategory = __min( bMaxMoraleCategory, MORALE_CONFIDENT );	
+	}	
+
+	// limit AI morale depending on morale and suppression shock
+	if( pSoldier->aiData.bShock )
+	{
+		bMaxMoraleCategory = __min(bMaxMoraleCategory, (20 + pSoldier->aiData.bMorale - 20*__min(3, pSoldier->aiData.bShock/5)) / 20);
+	}
+
+	// apply max limit
+	bMoraleCategory = __min( bMoraleCategory, bMaxMoraleCategory );
+
+	// sevenfm: no less than MORALE_WORRIED category if we can fight
+	if( pSoldier->stats.bLife > pSoldier->stats.bLifeMax/2 &&
+		pSoldier->bBreath > 25 )
+	{
+		bMoraleCategory = __max( bMoraleCategory, MORALE_WORRIED );
+	}	
+
+	// if adjustments made it outside the allowed limits
+	if (bMoraleCategory < MORALE_HOPELESS)
+		bMoraleCategory = MORALE_HOPELESS;
+	else if (bMoraleCategory > MORALE_FEARLESS)
+		bMoraleCategory = MORALE_FEARLESS;
+
+	return(bMoraleCategory);
+
+ /*
  // make idiot administrators much more aggressive
  if ( pSoldier->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR )
  {
@@ -2453,17 +2559,6 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 	 bMoraleCategory = MORALE_FEARLESS;
 	}
 
- // if only 1/4 of side left, reduce morale
- // and do this after we've capped all those other silly values
- /*
- if ( pSoldier->bTeam == ENEMY_TEAM && gTacticalStatus.Team[ ENEMY_TEAM ].bMenInSector <= gTacticalStatus.bOriginalSizeOfEnemyForce / 4 )
- {
-	bMoraleCategory -= 2;
-	if (bMoraleCategory < MORALE_HOPELESS)
-	bMoraleCategory = MORALE_HOPELESS;
- }
- */
-
  // brave guys never get hopeless, at worst they get worried
  if (bMoraleCategory == MORALE_HOPELESS &&
 	 (pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID))
@@ -2480,7 +2575,7 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 	DebugAI (tempstr);
 #endif
 
- return(bMoraleCategory);
+ return(bMoraleCategory);*/
 }
 
 INT32 CalcManThreatValue( SOLDIERTYPE *pEnemy, INT32 sMyGrid, UINT8 ubReduceForCover, SOLDIERTYPE * pMe )
@@ -3577,5 +3672,62 @@ UINT8 CountNearbyFriendliesLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, 
 	}
 
 	return ubFriendCount;
+}
+
+// check if gun that AI can use is scoped
+BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier)
+{
+	INT8 bWeaponIn;
+	OBJECTTYPE *pObj;
+
+	if( !pSoldier ) return FALSE;
+
+	if ( TANK( pSoldier ) )
+	{
+		return FALSE;
+	}
+
+	bWeaponIn = FindAIUsableObjClass( pSoldier, IC_GUN );
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return FALSE;
+	}
+
+	pObj = &pSoldier->inv[bWeaponIn];
+
+	if( UsingNewCTHSystem() )
+	{
+		return NCTHIsScoped(pObj);
+	}
+	else
+	{
+		return IsScoped(pObj);
+	}
+}
+
+// return range for the AI gun
+UINT16 AIGunRange(SOLDIERTYPE *pSoldier)
+{
+	INT8 bWeaponIn;
+	OBJECTTYPE *pObj;
+
+	if( !pSoldier ) return 0;
+
+	if ( TANK( pSoldier ) )
+	{
+		return 0;
+	}
+
+	bWeaponIn = FindAIUsableObjClass( pSoldier, IC_GUN );
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return 0;
+	}
+
+	pObj = &pSoldier->inv[bWeaponIn];
+
+	return GunRange(pObj, pSoldier);
 }
 

@@ -2340,10 +2340,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		}
 	}
 
-
 	// determine if we happen to be in water (in which case we're in BIG trouble!)
 	bInWater = Water( pSoldier->sGridNo );
-	bInDeepWater = Water( pSoldier->sGridNo );
+	// sevenfm: changed Water() to DeepWater()
+	bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo );
 
 	// check if standing in tear gas without a gas mask on
 	bInGas = InGasOrSmoke( pSoldier, pSoldier->sGridNo );
@@ -2452,70 +2452,21 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		}
 	}
 
-
-	if ( fCivilian && !( pSoldier->ubBodyType == COW || pSoldier->ubBodyType == CRIPPLECIV ) )
+	// sevenfm: if we don't have a gun, look around for a weapon!
+	if (pSoldier->bTeam == ENEMY_TEAM &&
+		ubCanMove &&
+		!pSoldier->aiData.bNeutral &&
+		gTacticalStatus.bBoxingState == NOT_BOXING &&
+		!TANK( pSoldier ) &&
+		!AM_A_ROBOT( pSoldier ) &&
+		!InWaterGasOrSmoke(pSoldier, pSoldier->sGridNo) &&
+		FindAIUsableObjClass( pSoldier, IC_GUN ) == ITEM_NOT_FOUND)
 	{
-		if ( FindAIUsableObjClass( pSoldier, IC_WEAPON ) == ITEM_NOT_FOUND )
+		// look around for a gun...
+		pSoldier->aiData.bAction = SearchForItems( pSoldier, SEARCH_WEAPONS, pSoldier->inv[HANDPOS].usItem );
+		if(pSoldier->aiData.bAction != AI_ACTION_NONE)
 		{
-			// cower in fear!!
-			if ( pSoldier->flags.uiStatusFlags & SOLDIER_COWERING )
-			{
-				if ( gfTurnBasedAI || gTacticalStatus.fEnemyInSector ) // battle!
-				{
-					// in battle!
-					if ( pSoldier->aiData.bLastAction == AI_ACTION_COWER )
-					{
-						// do nothing
-						pSoldier->aiData.usActionData = NOWHERE;
-						return( AI_ACTION_NONE );
-					}
-					else
-					{
-						// set up next action to run away
-						pSoldier->aiData.usNextActionData = FindSpotMaxDistFromOpponents( pSoldier );						
-						if (!TileIsOutOfBounds(pSoldier->aiData.usNextActionData))
-						{
-							pSoldier->aiData.bNextAction = AI_ACTION_RUN_AWAY;
-							pSoldier->aiData.usActionData = ANIM_STAND;
-							return( AI_ACTION_STOP_COWERING );
-						}
-						else
-						{
-							return( AI_ACTION_NONE );
-						}
-					}
-				}
-				else
-				{
-					if ( pSoldier->aiData.bNewSituation == NOT_NEW_SITUATION )
-					{
-						// stop cowering, not in battle, timer expired
-						// we have to turn off whatever is necessary to stop status red...
-						pSoldier->aiData.bAlertStatus = STATUS_GREEN;
-						return( AI_ACTION_STOP_COWERING );
-					}
-					else
-					{
-						return( AI_ACTION_NONE );
-					}
-				}
-			}
-			else
-			{
-				if ( gfTurnBasedAI || gTacticalStatus.fEnemyInSector )
-				{
-					// battle - cower!!!
-					pSoldier->aiData.usActionData = ANIM_CROUCH;
-					return( AI_ACTION_COWER );
-				}
-				else // not in battle, cower for a certain length of time
-				{
-					pSoldier->aiData.bNextAction = AI_ACTION_WAIT;
-					pSoldier->aiData.usNextActionData = (UINT16) REALTIME_CIV_AI_DELAY;
-					pSoldier->aiData.usActionData = ANIM_CROUCH;
-					return( AI_ACTION_COWER );
-				}
-			}
+			return( pSoldier->aiData.bAction );
 		}
 	}
 
@@ -4013,7 +3964,6 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 	if ( ubCanMove && !pSoldier->aiData.bNeutral && (gfTurnBasedAI || pSoldier->bTeam == ENEMY_TEAM ) )
 	{
-
 		pSoldier->aiData.bAction = SearchForItems( pSoldier, SEARCH_GENERAL_ITEMS, pSoldier->inv[HANDPOS].usItem );
 
 		if (pSoldier->aiData.bAction != AI_ACTION_NONE)
@@ -4021,8 +3971,6 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			return( pSoldier->aiData.bAction );
 		}
 	}
-
-
 
 	////////////////////////////////////////////////////////////////////////////
 	// SEEK CLOSEST FRIENDLY MEDIC
@@ -4475,7 +4423,6 @@ INT16 ubMinAPCost;
 	{
 		do
 		{
-
 			bCanAttack = CanNPCAttack(pSoldier);
 			if (bCanAttack != TRUE)
 			{
@@ -4560,9 +4507,14 @@ INT16 ubMinAPCost;
 
 		if (!bCanAttack)
 		{
-			if (pSoldier->aiData.bAIMorale > MORALE_WORRIED)
+			// sevenfm: allow soldiers with no weapons to attack with hands
+			if(ubCanMove && !pSoldier->aiData.bNeutral && !fCivilian)
 			{
-				pSoldier->aiData.bAIMorale = MORALE_WORRIED;
+				pSoldier->aiData.bAIMorale = MORALE_FEARLESS;
+			}
+			else
+			{
+				pSoldier->aiData.bAIMorale = __min(pSoldier->aiData.bAIMorale, MORALE_WORRIED);
 			}
 
 			if (!fCivilian)
@@ -5589,6 +5541,7 @@ L_NEWAIM:
 					pSoldier->bDoAutofire < 3 &&
 					pSoldier->aiData.bAimTime > 0 &&
 					fExtraClip &&
+					BestAttack.ubChanceToReallyHit < 5 &&
 					!CoweringShockLevel(MercPtrs[BestAttack.ubOpponent]) &&
 					(pSoldier->aiData.bUnderFire || pSoldier->aiData.bAttitude == AGGRESSIVE) &&
 					pSoldier->inv[BestAttack.bWeaponIn][0]->data.gun.ubGunShotsLeft >= 3)//dnl ch69 130913 let try increase autofire rate for aim cost

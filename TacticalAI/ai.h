@@ -276,6 +276,9 @@ UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier );
 UINT8 CountFriendsFlankSeek( SOLDIERTYPE *pSoldier );
 UINT8 CountNearbyFriendliesLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 
+BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
+UINT16 AIGunRange(SOLDIERTYPE *pSoldier);
+
 #define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25
 
