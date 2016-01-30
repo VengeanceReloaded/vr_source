@@ -2581,6 +2581,13 @@ INT8 CanNPCAttack(SOLDIERTYPE *pSoldier)
 	}
 #endif
 
+	// sevenfm: possibly can attack with a grenade
+	INT8 bGrenadeIn = FindThrowableGrenade(pSoldier);
+	if(bGrenadeIn != NO_SLOT)
+	{
+		bCanAttack = TRUE;
+	}
+
 	return( bCanAttack );
 }
 

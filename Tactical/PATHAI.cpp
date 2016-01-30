@@ -2341,7 +2341,7 @@ bool AStarPathfinder::WantToTraverse()
 			//|| ( (pSoldier->ubSoldierClass == SOLDIER_CLASS_ARMY 
 			//		|| pSoldier->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR) 
 			//		&& (BOOLEAN)(Random( 100 ) < 50)  ))
-			//&& InLightAtNight((INT16)CurrentNode, gpWorldLevelData[ CurrentNode ].sHeight)
+			//&& InLightAtNight(NULL, (INT16)CurrentNode, gpWorldLevelData[ CurrentNode ].sHeight)
 			&& gubWorldTileInLight[CurrentNode]
 			&& gubMerkCanSeeThisTile[CurrentNode]
 			)

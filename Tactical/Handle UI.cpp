@@ -1269,13 +1269,13 @@ UINT32 UIHandleEndTurn( UI_EVENT *pUIEvent )
 			{		 
 				for(UINT32 i=0; i<(UINT32)WORLD_MAX; i+=4) 
 				{			
-					gubWorldTileInLight[i]		= InLightAtNight(i, gpWorldLevelData[ i ].sHeight);
+					gubWorldTileInLight[i]		= InLightAtNight( NULL, i, gpWorldLevelData[ i ].sHeight);
 					gubIsCorpseThere[i]			= IsCorpseAtGridNo( i, gpWorldLevelData[ i ].sHeight );
-					gubWorldTileInLight[i+1]	= InLightAtNight(i+1, gpWorldLevelData[ i+1 ].sHeight);
+					gubWorldTileInLight[i+1]	= InLightAtNight(NULL, i+1, gpWorldLevelData[ i+1 ].sHeight);
 					gubIsCorpseThere[i+1]		= IsCorpseAtGridNo( i+1, gpWorldLevelData[ i+1 ].sHeight );
-					gubWorldTileInLight[i+2]	= InLightAtNight(i+2, gpWorldLevelData[ i+2 ].sHeight);
+					gubWorldTileInLight[i+2]	= InLightAtNight(NULL, i+2, gpWorldLevelData[ i+2 ].sHeight);
 					gubIsCorpseThere[i+2]		= IsCorpseAtGridNo( i+2, gpWorldLevelData[ i+2 ].sHeight );
-					gubWorldTileInLight[i+3]	= InLightAtNight(i+3, gpWorldLevelData[ i+3 ].sHeight);
+					gubWorldTileInLight[i+3]	= InLightAtNight(NULL, i+3, gpWorldLevelData[ i+3 ].sHeight);
 					gubIsCorpseThere[i+3]		= IsCorpseAtGridNo( i+3, gpWorldLevelData[ i+3 ].sHeight );
 				}	
 			}

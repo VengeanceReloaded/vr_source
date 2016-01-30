@@ -489,7 +489,7 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	iReductionFactor = ((MAX_THREAT_RANGE - iRange) * Threat[uiThreatIndex].iCertainty) /
 		 MAX_THREAT_RANGE;
 
-	// divide by a 100 to make the numbers more managable and avoid 32-bit limit
+	// divide by a 100 to make the numbers more manageable and avoid 32-bit limit
 	iThisScale = max( iMyPosValue, iHisPosValue) / 100;
 	iThisScale = (iThisScale * iReductionFactor) / 100;
 	*iTotalScale += iThisScale;
@@ -497,7 +497,7 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 
 	// POSITIVE COVER VALUE INDICATES THE COVER BENEFITS ME, NEGATIVE RESULT
 	// MEANS IT BENEFITS THE OTHER GUY.
-	// divide by a 100 to make the numbers more managable and avoid 32-bit limit
+	// divide by a 100 to make the numbers more manageable and avoid 32-bit limit
 	iCoverValue = (iMyPosValue - iHisPosValue) / 100;
 	iCoverValue = (iCoverValue * iReductionFactor) / 100;
 
@@ -830,7 +830,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 	}
 
 	// sevenfm: check for nearby friends, add bonus/penalty
-	ubNearbyFriends = __min(5, CountNearbyFriendlies( pSoldier, pSoldier->sGridNo, 5 ));
+	ubNearbyFriends = __min(5, CountNearbyFriendlies( pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4 ));
 	iCurrentCoverValue -= ubNearbyFriends * abs(iCurrentCoverValue) / (10-ubDiff);
 
 	// sevenfm: penalize locations with fresh corpses
@@ -975,6 +975,12 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 				continue;
 			}
 
+			// sevenfm: avoid going into deep water if not in deep water already
+			if( DeepWater( sGridNo ) && !DeepWater( pSoldier->sGridNo ) )
+			{
+				continue;
+			}
+
 			iPathCost = gubAIPathCosts[AI_PATHCOST_RADIUS + sXOffset][AI_PATHCOST_RADIUS + sYOffset];
 			/*
 			// water is OK, if the only good hiding place requires us to get wet, OK
@@ -1045,7 +1051,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			}
 
 			// sevenfm: check for nearby friends in 5 radius, add bonus/penalty 10%
-			ubNearbyFriends = __min(5, CountNearbyFriendlies( pSoldier, sGridNo, 5 ));
+			ubNearbyFriends = __min(5, CountNearbyFriendlies( pSoldier, sGridNo, DAY_VISION_RANGE/4 ));
 			iCoverValue -= ubNearbyFriends * abs(iCoverValue) / (10-ubDiff);
 
 			// sevenfm: penalize locations with fresh corpses
@@ -1404,7 +1410,7 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 			}
 
 			//Madd: skip lighted spots
-			if ( InLightAtNight( sGridNo, pSoldier->pathing.bLevel ) )
+			if ( InLightAtNight( pSoldier, sGridNo, pSoldier->pathing.bLevel ) )
 				continue;
 
 			// OK, this place shows potential.	How useful is it as cover?
@@ -2593,7 +2599,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			//Madd: skip lighted spots
-			if ( InLightAtNight( sGridNo, pSoldier->pathing.bLevel ) )
+			if ( InLightAtNight( pSoldier, sGridNo, pSoldier->pathing.bLevel ) )
 				continue;
 
 			// sevenfm: skip tiles too close to edge

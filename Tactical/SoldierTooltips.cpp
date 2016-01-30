@@ -66,6 +66,7 @@ STR16 gStrSubTeam[] = {L"NON_CIV_GROUP", L"REBEL_CIV_GROUP", L"KINGPIN_CIV_GROUP
 						L"UNNAMED_CIV_GROUP_15", L"UNNAMED_CIV_GROUP_16", L"UNNAMED_CIV_GROUP_17", L"UNNAMED_CIV_GROUP_18", L"UNNAMED_CIV_GROUP_19", L"ASSASSIN_CIV_GROUP", L"POW_PRISON_CIV_GROUP",
 						L"UNNAMED_CIV_GROUP_22", L"UNNAMED_CIV_GROUP_23", L"UNNAMED_CIV_GROUP_24", L"UNNAMED_CIV_GROUP_25", L"UNNAMED_CIV_GROUP_26", L"UNNAMED_CIV_GROUP_27", L"UNNAMED_CIV_GROUP_28", L"UNNAMED_CIV_GROUP_29", L"UNNAMED_CIV_GROUP_30",
 						L"CIA_OPERATIVES_GROUP", L"TRACONA_OPERATIVES_GROUP", L"COCKEYE_THUGS", L"CIA_STANLEY_GROUP", L"TRACONA_DRAGON_GROUP"};
+STR16 gStrClass[] = {L"SOLDIER_CLASS_NONE", L"SOLDIER_CLASS_ADMINISTRATOR", L"SOLDIER_CLASS_ELITE", L"SOLDIER_CLASS_ARMY", L"SOLDIER_CLASS_GREEN_MILITIA", L"SOLDIER_CLASS_REG_MILITIA", L"SOLDIER_CLASS_ELITE_MILITIA", L"SOLDIER_CLASS_CREATURE", L"SOLDIER_CLASS_MINER", L"SOLDIER_CLASS_ZOMBIE"};
 
 void SoldierTooltip( SOLDIERTYPE* pSoldier )
 {
@@ -228,6 +229,43 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 		swprintf( pStrInfo, L"" );
 		if ( ubTooltipDetailLevel == DL_Debug )
 		{
+			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			// sevenfm: more AI information in debug mode
+			if(gGameExternalOptions.fEnableSoldierTooltipAIInfo)
+			{
+				swprintf( pStrInfo, L"%s|[ |A|I |Info |]\n", pStrInfo );
+				swprintf( pStrInfo, L"%s|Alert |Status: %s\n", pStrInfo, gStrAlertStatus[pSoldier->aiData.bAlertStatus] );
+				swprintf( pStrInfo, L"%s|Orders: %s\n", pStrInfo, gStrOrders[pSoldier->aiData.bOrders] );
+				swprintf( pStrInfo, L"%s|Attitude: %s\n", pStrInfo, gStrAttitude[pSoldier->aiData.bAttitude] );
+				swprintf( pStrInfo, L"%s|Class: %s\n", pStrInfo, gStrClass[pSoldier->ubSoldierClass] );				
+				swprintf( pStrInfo, L"%s|Team: %s\n", pStrInfo, gStrTeam[pSoldier->bTeam] );
+				if( pSoldier->bTeam == CIV_TEAM )
+				{
+					if(pSoldier->ubCivilianGroup <= TRACONA_DRAGON_GROUP)
+						swprintf( pStrInfo, L"%s|Civ |Group: %s\n", pStrInfo, gStrSubTeam[pSoldier->ubCivilianGroup] );
+					else
+						swprintf( pStrInfo, L"%s|Civ |Group: UNNAMED_CIV_GROUP_%d\n", pStrInfo, pSoldier->ubCivilianGroup );
+				}
+				if( pSoldier->aiData.bNeutral )
+				{
+					swprintf( pStrInfo, L"%s|Neutral\n", pStrInfo );
+				}			
+				swprintf( pStrInfo, L"%s|A|I |Morale/|Range |Change: %d/%d\n", pStrInfo, pSoldier->aiData.bAIMorale, RangeChangeDesire(pSoldier) );
+				swprintf( pStrInfo, L"%s \n", pStrInfo );
+			}			
+
+			// sevenfm: show additional suppression info
+			if ( gGameExternalOptions.fEnableSoldierTooltipSuppressionInfo )
+			{
+				swprintf( pStrInfo, L"%s|[ |Suppression |Info |]\n", pStrInfo );
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_SUPPRESSION_AP], pStrInfo, pSoldier->ubAPsLostToSuppression );
+				swprintf( pStrInfo, L"%s|Shock/|Tolerance: %d/%d\n", pStrInfo, pSoldier->aiData.bShock, CalcSuppressionTolerance(pSoldier) );
+				swprintf( pStrInfo, gzTooltipStrings[STR_TT_EFFECTIVE_SHOCK], pStrInfo, CalcEffectiveShockLevel( pSoldier ) );
+				swprintf( pStrInfo, L"%s|Suppression |Points: %d\n", pStrInfo, pSoldier->ubLastSuppression );				
+				swprintf( pStrInfo, L"%s \n", pStrInfo );
+			}
+			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 			// display "debug" info
 			if ( gGameExternalOptions.fEnableSoldierTooltipLocation )
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_LOCATION], pStrInfo, usSoldierGridNo );
@@ -256,38 +294,6 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 			// changed this to ubLastSuppression - it stores suppression points from last attack
 			if ( gGameExternalOptions.fEnableSoldierTooltipSuppressionPoints )
 				swprintf( pStrInfo, gzTooltipStrings[STR_TT_CAT_SUPPRESION], pStrInfo, pSoldier->ubLastSuppression );
-			// sevenfm: show additional suppression info
-			if ( gGameExternalOptions.fEnableSoldierTooltipSuppressionInfo )
-			{				 
-				swprintf( pStrInfo, gzTooltipStrings[STR_TT_SUPPRESSION_AP], pStrInfo, pSoldier->ubAPsLostToSuppression );
-				swprintf( pStrInfo, gzTooltipStrings[STR_TT_SUPPRESSION_TOLERANCE], pStrInfo, CalcSuppressionTolerance( pSoldier ) );
-				swprintf( pStrInfo, gzTooltipStrings[STR_TT_EFFECTIVE_SHOCK], pStrInfo, CalcEffectiveShockLevel( pSoldier ) );
-				swprintf( pStrInfo, gzTooltipStrings[STR_TT_AI_MORALE], pStrInfo, pSoldier->aiData.bAIMorale );
-			}
-
-			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			// sevenfm: more AI information in debug mode
-			if(gGameExternalOptions.fEnableSoldierTooltipAIInfo)
-			{
-				swprintf( pStrInfo, L"%s|Alert |Status %s\n", pStrInfo, gStrAlertStatus[pSoldier->aiData.bAlertStatus] );
-				swprintf( pStrInfo, L"%s|Orders %s\n", pStrInfo, gStrOrders[pSoldier->aiData.bOrders] );
-				swprintf( pStrInfo, L"%s|Attitude %s\n", pStrInfo, gStrAttitude[pSoldier->aiData.bAttitude] );
-				swprintf( pStrInfo, L"%s|Team %s\n", pStrInfo, gStrTeam[pSoldier->bTeam] );
-				if( pSoldier->bTeam == CIV_TEAM )
-				{
-					if(pSoldier->ubCivilianGroup <= TRACONA_DRAGON_GROUP)
-						swprintf( pStrInfo, L"%s|Civ |Group %s\n", pStrInfo, gStrSubTeam[pSoldier->ubCivilianGroup] );
-					else
-						swprintf( pStrInfo, L"%s|Civ |Group UNNAMED_CIV_GROUP_%d\n", pStrInfo, pSoldier->ubCivilianGroup );
-				}
-				if( pSoldier->aiData.bNeutral )
-				{
-					swprintf( pStrInfo, L"%s|Neutral\n", pStrInfo );
-				}			
-				swprintf( pStrInfo, L"%s|Range |Change |Desire %d\n", pStrInfo, RangeChangeDesire(pSoldier) );
-			}			
-
-			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			// Added by SANDRO - show enemy skills
@@ -531,7 +537,7 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 				fDisplayBigSlotItem = FALSE;
 			}
 		}
-		// large objects in big inventory slots info code block end
+		// large objects in big inventory slots info code block end		
 
 		pRegion->iX = gusMouseXPos;
 		pRegion->iY = gusMouseYPos;
