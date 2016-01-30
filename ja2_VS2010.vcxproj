@@ -97,8 +97,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)\bin\VS2010\</OutDir>
-    <TargetName>$(JA2Config)_$(JA2LangPrefix)_$(Configuration)</TargetName>
+    <OutDir>j:\ja2\VR\</OutDir>
+    <TargetName>ja2_debug.exe</TargetName>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'">
@@ -109,8 +109,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)\bin\VS2010\</OutDir>
-    <TargetName>$(JA2Config)_$(JA2LangPrefix)_$(Configuration)</TargetName>
+    <OutDir>j:\ja2\vr\</OutDir>
+    <TargetName>ja2</TargetName>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditor|Win32'">
