@@ -6766,7 +6766,7 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 				ScreenMsg(FONT_ORANGE, MSG_INTERFACE, zNoiseMessage);
 			}			
 
-			// convert wchar to char			
+			// convert wchar to char
 			wcstombs(filename, zNoiseMessage, wcslen(zNoiseMessage)+1);
 			// sevenfm: play voice taunt (check that noise string is a filename)
 			if( gGameExternalOptions.fVoiceTaunts &&

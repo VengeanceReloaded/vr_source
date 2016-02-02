@@ -1088,14 +1088,10 @@ void PossiblyStartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, UINT32 ui
 	}
 	// only enemies and militia taunt
 	// sevenfm: allow voice taunts for Kingpin faction
-	/*if( ( !( pCiv->bTeam == ENEMY_TEAM ) && !( pCiv->bTeam == MILITIA_TEAM ) )
-		&& ( !( pCiv->bTeam == ENEMY_TEAM ) && !( pCiv->bTeam == MILITIA_TEAM ) ) )
-	{
-		return;
-	}*/
 	if( pCiv->bTeam != ENEMY_TEAM &&
 		pCiv->bTeam != MILITIA_TEAM &&
-		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ))
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) )
 	{
 		return;
 	}
@@ -2186,6 +2182,10 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	{
 		strcat( filename, "\\Kingpin\\");
 	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP )
+	{
+		strcat( filename, "\\Hicks\\");
+	}
 	else if( pCiv->ubBodyType == BIGMALE )
 	{
 		strcat( filename, "\\Bigmale\\");
@@ -2253,6 +2253,19 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 		// show some information about taunts	
 		mbstowcs( noise, filename, strlen(filename)+1 );
 		ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
+	}
+
+	// check that taunt file exists
+	if( !FileExists(filename) )
+	{
+		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+		{			
+			mbstowcs( noise, filename, strlen(filename)+1 );
+			ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
+			ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Taunt: no file %s", noise );
+		}
+
+		return FALSE;
 	}
 
 	if( gTauntsSettings.fTauntMakeNoise == TRUE )
