@@ -2252,6 +2252,8 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fVoiceTaunts				= iniReader.ReadBoolean("Extended Options", "VOICE_TAUNTS", true, false);
 	gGameExternalOptions.fVoiceTauntsDebugInfo		= iniReader.ReadBoolean("Extended Options", "VOICE_TAUNTS_DEBUG_INFO", true, false);
 	gGameExternalOptions.fExtraVoiceTaunts			= iniReader.ReadBoolean("Extended Options", "EXTRA_VOICE_TAUNTS", true, false);
+	gGameExternalOptions.fShowNoiseLocator			= iniReader.ReadBoolean("Extended Options", "SHOW_NOISE_LOCATOR", true, false);
+	gGameExternalOptions.fShowXRayLocator			= iniReader.ReadBoolean("Extended Options", "SHOW_XRAY_LOCATOR", true, false);
 }
 
 

@@ -566,7 +566,8 @@ enum{
 // Flugente: certain skills/traits/taints add effects that require a counter, here are enums for these
 enum {
 	SOLDIER_COUNTER_RADIO_ARTILLERY,		// there is actually no need for an artillery timer, but we use one to forbid the same AI guy ordering multiple strikes at once
-	SOLDIER_COUNTER_SPOTTER,				// used to determine wether we are a spotter
+	SOLDIER_COUNTER_SPOTTER,				// used to determine whether we are a spotter
+	SOLDIER_COUNTER_WATCH,					// vision bonus from binocs
 	
 	SOLDIER_COUNTER_MAX = 20,				// enough space for fillers
 };
@@ -1827,6 +1828,9 @@ public:
 	BOOLEAN IsSpotting();
 	BOOLEAN CanSpot( INT32 sTargetGridNo = -1 );
 	BOOLEAN BecomeSpotter( INT32 sTargetGridNo );
+	// sevenfm:
+	UINT16	SpottingBonus();
+	INT16	MaxVisionBonus();
 
 	// Flugente: boxing fix: this shall be the only location where the boxing flag gets removed (easier debugging)
 	void	DeleteBoxingFlag();

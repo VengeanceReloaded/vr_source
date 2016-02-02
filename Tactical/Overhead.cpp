@@ -8045,7 +8045,10 @@ INT8 CalcSuppressionTolerance( SOLDIERTYPE * pSoldier )
     INT8        bTolerance;
 
     // Calculate basic tolerance value
-    bTolerance = pSoldier->stats.bExpLevel * 2;
+	// sevenfm: balanced suppression tolerance
+    //bTolerance = pSoldier->stats.bExpLevel * 2;
+	bTolerance = 5 + pSoldier->stats.bExpLevel;
+
     if (pSoldier->flags.uiStatusFlags & SOLDIER_PC)
     {
         // give +1 for every 10% morale from 50, for a maximum bonus/penalty of 5.
@@ -8114,14 +8117,16 @@ INT8 CalcSuppressionTolerance( SOLDIERTYPE * pSoldier )
     {
         bTolerance += pSoldier->bTilesMoved / gGameExternalOptions.ubTilesMovedPerBonusTolerancePoint;
     }
-    // HEADROCK HAM 3.6: This value has moved here. It reduces tolerance if the character is massively shocked.
-    if (gGameExternalOptions.ubCowerEffectOnSuppression != 0)
-    {
-        if (CalcEffectiveShockLevel( pSoldier ) > bTolerance)
-        {
-            bTolerance -= gGameExternalOptions.ubCowerEffectOnSuppression;
-        }
-    }
+    
+	// sevenfm: drunk people receive bonus to suppression tolerance
+	if( GetDrunkLevel( pSoldier ) == HUNGOVER )
+	{
+		//bTolerance -= 2;
+	}
+	else
+	{
+		bTolerance += GetDrunkLevel( pSoldier ) * 2;
+	}
 
     // SANDRO - STOMP traits - squadleader's bonus to suppression tolerance
     if ( gGameOptions.fNewTraitSystem && IS_MERC_BODY_TYPE(pSoldier) && 
@@ -8140,6 +8145,16 @@ INT8 CalcSuppressionTolerance( SOLDIERTYPE * pSoldier )
 
 	// Flugente: add personal bonus to suppresion tolerance
 	bTolerance = (bTolerance * (100 + pSoldier->GetSuppressionResistanceBonus() ) / 100);
+
+	// HEADROCK HAM 3.6: This value has moved here. It reduces tolerance if the character is massively shocked.
+	// sevenfm: moved to the end of calculation
+	if (gGameExternalOptions.ubCowerEffectOnSuppression != 0)
+	{
+		if (CalcEffectiveShockLevel( pSoldier ) > bTolerance)
+		{
+			bTolerance -= gGameExternalOptions.ubCowerEffectOnSuppression;
+		}
+	}
 
     bTolerance = __max(bTolerance, gGameExternalOptions.ubSuppressionToleranceMin);
     bTolerance = __min(bTolerance, gGameExternalOptions.ubSuppressionToleranceMax);
@@ -10651,3 +10666,4 @@ BOOLEAN CoweringShockLevel( SOLDIERTYPE * pSoldier )
 
 	return FALSE;
 }
+

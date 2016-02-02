@@ -1450,6 +1450,8 @@ typedef struct
 	BOOLEAN fVoiceTaunts;
 	BOOLEAN fVoiceTauntsDebugInfo;
 	BOOLEAN fExtraVoiceTaunts;
+	BOOLEAN fShowNoiseLocator;
+	BOOLEAN fShowXRayLocator;
 
 } GAME_EXTERNAL_OPTIONS;
 

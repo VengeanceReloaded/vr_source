@@ -26,6 +26,7 @@
 	#include "Vehicles.h"		// added by silversurfer
 	#include "Game Clock.h"			// sevenfm
 	#include "Rotting Corpses.h"	// sevenfm
+	#include "wcheck.h"				// sevenfm
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3438,6 +3439,8 @@ UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 	UINT8 ubFriendDir, ubMyDir;
 	UINT8 ubFriends = 0;
 
+	CHECKF(pSoldier);
+
 	ubMyDir = atan8(CenterX(sTargetGridNo),CenterY(sTargetGridNo),CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo));
 
 	// Run through each friendly.
@@ -3465,7 +3468,7 @@ UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 // check that soldier is flanking
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier )
 {
-	if( !pSoldier ) return FALSE;
+	CHECKF(pSoldier);
 
 	if( pSoldier->aiData.bAlertStatus < STATUS_YELLOW ||
 		pSoldier->numFlanks == 0 ||
@@ -3481,10 +3484,11 @@ BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier )
 // this is mostly used to check at night if we can cross dangerous area (in light at night or fresh corpses)
 UINT8 AICountFriendsBlack( SOLDIERTYPE *pSoldier )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
 	INT32 sFriendClosestOpponent;
-
 	UINT8 ubMaxDist = VISION_RANGE / 2;
 	INT32 sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
 
@@ -3524,6 +3528,8 @@ UINT8 AICountFriendsBlack( SOLDIERTYPE *pSoldier )
 // this is used to check if we should use cautious move or run to help friends in fight
 UINT8 AICountFriendsInCombatSameSpot( SOLDIERTYPE *pSoldier )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
 	INT32 sFriendClosestOpponent;
@@ -3575,11 +3581,10 @@ UINT8 AICountFriendsInCombatSameSpot( SOLDIERTYPE *pSoldier )
 // sevenfm: count nearby friend soldiers (on roof)
 UINT8 CountNearbyFriendliesOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
-
-	// safety check
-	if( !pSoldier )	return 0;
 
 	// Run through each friendly.
 	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
@@ -3602,6 +3607,8 @@ UINT8 CountNearbyFriendliesOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 u
 // sevenfm: check if suppression is possible (count friends in the fire direction)
 BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubShootingDir, ubFriendDir;
 
@@ -3633,12 +3640,10 @@ BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 // sevenfm: count nearby friend soldiers
 UINT8 CountNearbyFriendlies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
-
-	// safety check
-	if( !pSoldier )
-		return 0;
 
 	// Run through each friendly.
 	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
@@ -3659,6 +3664,8 @@ UINT8 CountNearbyFriendlies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDista
 // sevenfm: determine minimum flanking directions to stop flanking depending on soldier's attitude
 UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier )
 {
+	CHECKF(pSoldier);
+
 	switch(pSoldier->aiData.bAttitude)
 	{
 	case CUNNINGAID:
@@ -3670,14 +3677,13 @@ UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier )
 
 UINT8 CountFriendsFlankSameSpot( SOLDIERTYPE *pSoldier )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
 
 	UINT8 ubFlankLeft = 0;
 	UINT8 ubFlankRight = 0;
-
-	// safety check
-	if( !pSoldier ) return 0;
 
 	UINT8 ubMaxDist = VISION_RANGE / 2;
 	INT32 sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
@@ -3720,12 +3726,10 @@ UINT8 CountFriendsFlankSameSpot( SOLDIERTYPE *pSoldier )
 
 UINT8 CountNearbyFriendliesLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
-
-	// safety check
-	if( !pSoldier )
-		return 0;
 
 	// Run through each friendly.
 	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
@@ -3750,10 +3754,10 @@ UINT8 CountNearbyFriendliesLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, 
 // check if gun that AI can use is scoped
 BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier)
 {
+	CHECKF(pSoldier);
+
 	INT8 bWeaponIn;
 	OBJECTTYPE *pObj;
-
-	if( !pSoldier ) return FALSE;
 
 	if ( TANK( pSoldier ) )
 	{
@@ -3782,10 +3786,10 @@ BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier)
 // return range for the AI gun
 UINT16 AIGunRange(SOLDIERTYPE *pSoldier)
 {
+	CHECKF(pSoldier);
+
 	INT8 bWeaponIn;
 	OBJECTTYPE *pObj;
-
-	if( !pSoldier ) return 0;
 
 	if ( TANK( pSoldier ) )
 	{
@@ -3807,11 +3811,10 @@ UINT16 AIGunRange(SOLDIERTYPE *pSoldier)
 // sevenfm: count nearby friend soldiers - only soldiers who had contact with enemy recently
 UINT8 CountNearbyFriendliesContact( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
-
-	// safety check
-	if( !pSoldier )	return 0;
 
 	// Run through each friendly.
 	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
@@ -3837,11 +3840,10 @@ UINT8 CountNearbyFriendliesContact( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 
 // sevenfm: count nearby friend soldiers - only soldiers who had no contact with enemy recently
 UINT8 CountNearbyFriendliesNoContact( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
 {
+	CHECKF(pSoldier);
+
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
-
-	// safety check
-	if( !pSoldier )	return 0;
 
 	// Run through each friendly.
 	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
@@ -3866,6 +3868,8 @@ UINT8 CountNearbyFriendliesNoContact( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT
 
 UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE* pSoldier )
 {
+	CHECKF(pSoldier);
+
 	UINT8	ubTeamLoop;
 	UINT8	ubIDLoop;
 	UINT8	cnt = 0;
@@ -3895,6 +3899,8 @@ UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE* pSoldier )
 
 INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel)
 {
+	CHECKF(pSoldier);
+
 	INT32 sGridNo, sClosestOpponent = NOWHERE;
 	UINT32 uiLoop;
 	INT32 iRange, iClosestRange = 1500;
@@ -3968,13 +3974,6 @@ INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 
 			bClosestLevel = bLevel;
 		}
 	}
-
-#ifdef DEBUGDECISIONS	
-	if (!TileIsOutOfBounds(sClosestOpponent))
-	{
-		AINumMessage("CLOSEST OPPONENT is at gridno ",sClosestOpponent);
-	}
-#endif
 
 	if (psGridNo)
 	{

@@ -1695,7 +1695,78 @@ void DrawCTHPixelToBuffer( UINT16 *pBuffer, UINT32 uiPitch, INT16 sLeft, INT16 s
 	pBuffer[sPixelX + uiPitch*sPixelY] = usColor;
 }
 
-//QUOTE_SYSTEM_STRUCT	soldierTTInfo;
+void DrawLocatorAboveGuy( UINT16 usSoldierID )
+{
+	SOLDIERTYPE	*pSoldier;
+	INT16		sXPos, sYPos;
+	INT32		iBack;
+	UINT16		usGraphicToUse = THIRDPOINTERS1;
+	BOOLEAN		fRaiseName = FALSE;
+	BOOLEAN		fDoName = TRUE;
+
+	GetSoldier( &pSoldier, usSoldierID );
+
+	if( !pSoldier )
+		return;
+
+	if ( pSoldier->sGridNo == NOWHERE )
+	{
+		return;
+	}
+
+	if ( pSoldier->flags.fFlashLocator )
+	{
+		if ( TIMECOUNTERDONE( pSoldier->timeCounters.BlinkSelCounter, 80 ) )
+		{
+			RESETTIMECOUNTER( pSoldier->timeCounters.BlinkSelCounter, 80 );
+
+			pSoldier->flags.fShowLocator = TRUE;
+
+			// Update frame
+			pSoldier->sLocatorFrame++;
+
+			if ( pSoldier->sLocatorFrame == 5 )
+			{
+				// Update time we do this
+				pSoldier->flags.fFlashLocator++;
+				pSoldier->sLocatorFrame = 0;
+			}
+		}
+
+		if ( pSoldier->flags.fFlashLocator == pSoldier->ubNumLocateCycles )
+		{
+			pSoldier->flags.fFlashLocator = FALSE;
+			pSoldier->flags.fShowLocator = FALSE;
+		}
+
+		//if ( pSoldier->flags.fShowLocator )
+		{
+			// Render the beastie
+			GetSoldierAboveGuyPositions( pSoldier, &sXPos, &sYPos, TRUE );
+
+			// Adjust for bars!
+			sXPos += 25;
+			sYPos += 25;
+
+			// Add bars
+			iBack = RegisterBackgroundRect( BGND_FLAG_SINGLE, NULL, sXPos, sYPos, (INT16)(sXPos +40 ), (INT16)(sYPos + 40 ) );
+
+			if ( iBack != -1 )
+			{
+				SetBackgroundRectFilled( iBack );
+			}
+
+			if ( !pSoldier->aiData.bNeutral && ( pSoldier->bSide != gbPlayerNum ) )
+			{
+				BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO2, pSoldier->sLocatorFrame, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
+			}
+			else
+			{
+				BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO, pSoldier->sLocatorFrame, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
+			}
+		}
+	}
+}
 
 void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 {
@@ -1712,6 +1783,15 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	UINT16 iCounter2;
 
 	GetSoldier( &pSoldier, usSoldierID );
+
+	if( !pSoldier )
+		return;
+
+	if ( pSoldier->bVisible == -1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS) )
+	{
+		DrawLocatorAboveGuy((UINT16)pSoldier->ubID);
+		return;
+	}
 
 	if ( !pSoldier || (pSoldier->bVisible == -1 && !(gTacticalStatus.uiFlags&SHOW_ALL_MERCS) ) )
 	{
@@ -5975,8 +6055,8 @@ void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLine
 	// draw morale
 	if( ubLines > 3 )
 	{
-		dPercentage = (FLOAT)( pSoldier->aiData.bAIMorale ) / (FLOAT)( MORALE_FEARLESS );
-		//dPercentage = (FLOAT)( pSoldier->aiData.bMorale ) / (FLOAT)( 100 );
+		//dPercentage = (FLOAT)( pSoldier->aiData.bAIMorale ) / (FLOAT)( MORALE_FEARLESS );
+		dPercentage = (FLOAT)( pSoldier->aiData.bMorale ) / (FLOAT)( 100 );
 		dWidth = dPercentage * iBarWidth;
 		dWidth = __min (dWidth, iBarWidth);
 		DrawBar( sX+1, sY + 1 + 3*(sHeight+1), (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 0, 140, 0 ) ), pDestBuf );

@@ -56,9 +56,10 @@
 	#include "drugs and alcohol.h"
 	#include "Food.h"
 	#include "opplist.h"
-	#include "Sys Globals.h"//dnl ch74 201013
+	#include "Sys Globals.h"		//dnl ch74 201013
 	#include "CampaignStats.h"		// added by Flugente
 	#include "Map Information.h"
+	#include "ai.h"					// sevenfm
 #endif
 
 #include "Quests.h" // anv: VR
@@ -9014,6 +9015,10 @@ void SwapHandItems( SOLDIERTYPE * pSoldier )
 	BOOLEAN		fOk;
 
 	CHECKV( pSoldier );
+
+	// sevenfm: stop watching
+	pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+
 	if (pSoldier->inv[HANDPOS].exists() == false || pSoldier->inv[SECONDHANDPOS].exists() == false)
 	{
 		// whatever is in the second hand can be swapped to the main hand!
@@ -9037,7 +9042,7 @@ void SwapHandItems( SOLDIERTYPE * pSoldier )
 	}
 
 	// Flugente: we have to recheck our flashlights
-	pSoldier->HandleFlashLights();
+	pSoldier->HandleFlashLights();	
 }
 
 void SwapOutHandItem( SOLDIERTYPE * pSoldier )
@@ -9907,6 +9912,8 @@ void ActivateXRayDevice( SOLDIERTYPE * pSoldier )
 		if ( pBatteries == 0 )
 		{
 			// doesn't work without batteries!
+			//PlayJA2SampleFromFile( "Sounds\\newbeep.wav", RATE_11025, MIDVOLUME, 1 , MIDDLEPAN );
+			pSoldier->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
 			return;
 		}
 
@@ -9924,34 +9931,68 @@ void ActivateXRayDevice( SOLDIERTYPE * pSoldier )
 			}
 		}
 	}
-	// first, scan through all mercs and turn off xrayed flag for anyone
-	// previously xrayed by this guy
-	for ( uiSlot = 0; uiSlot < guiNumMercSlots; uiSlot++ )
+
+	// sevenfm: moved here from HandleItem, play only if device is activated (has battery)
+	PlayJA2Sample( USE_X_RAY_MACHINE, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+
+	// sevenfm: alternative way of using XRay device - show locator
+	UINT8 ubDirection;
+	if( gGameExternalOptions.fShowXRayLocator )
 	{
-		pSoldier2 = MercSlots[ uiSlot ];
-		if ( pSoldier2 )
+		for ( uiSlot = 0; uiSlot < guiNumMercSlots; uiSlot++ )
 		{
-			if ( (pSoldier2->ubMiscSoldierFlags & SOLDIER_MISC_XRAYED) && (pSoldier2->aiData.ubXRayedBy == pSoldier->ubID) )
+			pSoldier2 = MercSlots[ uiSlot ];
+			if ( pSoldier2 )
 			{
-				pSoldier2->ubMiscSoldierFlags &= (~SOLDIER_MISC_XRAYED);
-				pSoldier2->aiData.ubXRayedBy = NOBODY;
+				if( pSoldier2->bActive &&
+					pSoldier2->stats.bLife >= OKLIFE &&
+					PythSpacesAway( pSoldier->sGridNo, pSoldier2->sGridNo ) <= DAY_VISION_RANGE/2 )
+				{
+					// should be looking in this direction or CD or CCD direction
+					ubDirection = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(pSoldier2->sGridNo),CenterY(pSoldier2->sGridNo));
+					if( pSoldier->ubDirection == ubDirection ||
+						pSoldier->ubDirection == gOneCDirection[ubDirection] ||
+						pSoldier->ubDirection == gOneCCDirection[ubDirection] )
+					{
+						ShowRadioLocator( pSoldier2->ubID, SHOW_LOCATOR_NORMAL );
+					}					
+				}
 			}
 		}
+		// X-Ray is dangerous device, can cause health loss
+		pSoldier->stats.bLife = __max(OKLIFE, pSoldier->stats.bLife - PreRandom(3));
 	}
-	// now turn on xray for anyone within range
-	for ( uiSlot = 0; uiSlot < guiNumMercSlots; uiSlot++ )
+	else
 	{
-		pSoldier2 = MercSlots[ uiSlot ];
-		if ( pSoldier2 )
+		// first, scan through all mercs and turn off xrayed flag for anyone
+		// previously xrayed by this guy
+		for ( uiSlot = 0; uiSlot < guiNumMercSlots; uiSlot++ )
 		{
-			if ( pSoldier2->bTeam != pSoldier->bTeam && PythSpacesAway( pSoldier->sGridNo, pSoldier2->sGridNo ) < XRAY_RANGE )
+			pSoldier2 = MercSlots[ uiSlot ];
+			if ( pSoldier2 )
 			{
-				pSoldier2->ubMiscSoldierFlags |= SOLDIER_MISC_XRAYED;
-				pSoldier2->aiData.ubXRayedBy = pSoldier->ubID;
+				if ( (pSoldier2->ubMiscSoldierFlags & SOLDIER_MISC_XRAYED) && (pSoldier2->aiData.ubXRayedBy == pSoldier->ubID) )
+				{
+					pSoldier2->ubMiscSoldierFlags &= (~SOLDIER_MISC_XRAYED);
+					pSoldier2->aiData.ubXRayedBy = NOBODY;
+				}
 			}
 		}
-	}
-	pSoldier->uiXRayActivatedTime = GetWorldTotalSeconds();
+		// now turn on xray for anyone within range
+		for ( uiSlot = 0; uiSlot < guiNumMercSlots; uiSlot++ )
+		{
+			pSoldier2 = MercSlots[ uiSlot ];
+			if ( pSoldier2 )
+			{
+				if ( pSoldier2->bTeam != pSoldier->bTeam && PythSpacesAway( pSoldier->sGridNo, pSoldier2->sGridNo ) < XRAY_RANGE )
+				{
+					pSoldier2->ubMiscSoldierFlags |= SOLDIER_MISC_XRAYED;
+					pSoldier2->aiData.ubXRayedBy = pSoldier->ubID;
+				}
+			}
+		}
+		pSoldier->uiXRayActivatedTime = GetWorldTotalSeconds();
+	}	
 }
 
 void TurnOnXRayEffects( SOLDIERTYPE * pSoldier )
@@ -11013,7 +11054,9 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 			}
 
 			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem) )//|| (IsWeapon(usItem) && usingGunScope == true) )
+			// sevenfm: binocs
+			//if (!IsWeapon(usItem) )
+			if (!IsWeapon(usItem) && pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] )
 			{
 				bonus += BonusReduceMore( pItem->visionrangebonus,	(*pObj)[0]->data.objectStatus );
 			}
@@ -11119,7 +11162,8 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			}
 
 			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem) )//|| (IsWeapon(usItem) && usingGunScope == true ) )
+			// sevenfm: binocs
+			if (!IsWeapon(usItem) && pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH])
 			{
 				bonus += BonusReduceMore(
 					NightBonusScale( pItem->nightvisionrangebonus, bLightLevel ),
@@ -11218,7 +11262,8 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			}
 
 			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem) )//|| (IsWeapon(usItem) && usingGunScope == true ) )
+			// sevenfm: binocs
+			if (!IsWeapon(usItem) && pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH])
 			{
 				bonus += BonusReduceMore(
 					NightBonusScale( pItem->cavevisionrangebonus, bLightLevel ),
@@ -11329,7 +11374,8 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			}
 
 			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem) )//|| (IsWeapon(usItem) && usingGunScope == true ) )
+			// sevenfm: binocs
+			if (!IsWeapon(usItem) && pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH])
 			{
 				bonus += BonusReduceMore( idiv( pItem->dayvisionrangebonus
 					* lightlevelmultiplier, lightleveldivisor ),
@@ -11431,7 +11477,8 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 			}
 
 			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem) )//|| (IsWeapon(usItem) && usingGunScope == true ) )
+			// sevenfm: binocs
+			if (!IsWeapon(usItem) && pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH])
 			{
 				bonus += BonusReduceMore( idiv( pItem->brightlightvisionrangebonus
 					* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY ),
@@ -11581,7 +11628,8 @@ UINT8 GetPercentTunnelVision( SOLDIERTYPE * pSoldier )
 				continue;
 			}
 
-			if ( !IsWeapon(usItem) )
+			// sevenfm: binocs
+			if ( !IsWeapon(usItem) && pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] )
 			{
 				bonus = __max( bonus, pItem->percenttunnelvision );
 			}
@@ -11699,7 +11747,9 @@ BOOLEAN HasThermalOptics( SOLDIERTYPE * pSoldier )
 				continue;
 			}
 
-			if (!IsWeapon(pSoldier->inv[i].usItem) || (IsWeapon(pSoldier->inv[i].usItem) && usingGunScope == true) )
+			// sevenfm: binocs
+			if (!IsWeapon(pSoldier->inv[i].usItem) && pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] ||
+				(IsWeapon(pSoldier->inv[i].usItem) && usingGunScope == true) )
 			{
 				if (Item[pSoldier->inv[i].usItem].thermaloptics)
 				{

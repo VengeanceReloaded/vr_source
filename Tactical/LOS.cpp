@@ -3813,7 +3813,7 @@ UINT8 SoldierToLocationChanceToGetThrough( SOLDIERTYPE * pStartSoldier, INT32 sG
 	INT16			sXPos;
 	INT16			sYPos;
 	INT8			bStructHeight;
-	SOLDIERTYPE * pEndSoldier;
+	//SOLDIERTYPE * pEndSoldier;
 
 	if (pStartSoldier->sGridNo == sGridNo)
 	{
@@ -3821,12 +3821,13 @@ UINT8 SoldierToLocationChanceToGetThrough( SOLDIERTYPE * pStartSoldier, INT32 sG
 	}
 	CHECKF( pStartSoldier );
 
-	pEndSoldier = SimpleFindSoldier( sGridNo, bLevel );
+	// sevenfm: disabled as we need to use bCubeLevel to know where we can hit
+	/*pEndSoldier = SimpleFindSoldier( sGridNo, bLevel );
 	if (pEndSoldier != NULL)
 	{
 		return( SoldierToSoldierChanceToGetThrough( pStartSoldier, pEndSoldier ) );
 	}
-	else
+	else*/
 	{
 		if (bCubeLevel)
 		{

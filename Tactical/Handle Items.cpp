@@ -1476,7 +1476,8 @@ INT32 HandleItem( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT16 usHa
 			DeductPoints( pSoldier, sAPCost, 0 );
 			if ( Item[usHandItem].xray )
 			{
-				PlayJA2Sample( USE_X_RAY_MACHINE, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+				// sevenfm: moved to ActivateXRayDevice
+				//PlayJA2Sample( USE_X_RAY_MACHINE, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
 
 				ActivateXRayDevice( pSoldier );
 				return( ITEM_HANDLE_OK );

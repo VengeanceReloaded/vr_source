@@ -47,7 +47,8 @@
 	#include "Sound Control.h"
 	#include "drugs and alcohol.h"
 	#include "Interface.h"
-	#include "Explosion Control.h"//dnl ch40 200909
+	#include "Explosion Control.h"	//dnl ch40 200909
+	#include "Interface Panels.h"	// sevenfm
 #endif
 
 #ifdef JA2UB
@@ -6834,17 +6835,34 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 		}
 	}
 
-
-	//DIGICRAB: Loud Sound Locator
-	//show a locator for very loud noises if we have an extended ear
-	if(ubVolumeIndex >= 2)
+	// sevenfm: show noise locator
+	if(gGameExternalOptions.fShowNoiseLocator)
 	{
-		if ( FindHearingAid(pSoldier) )
-			BeginMultiPurposeLocator(sGridNo, bLevel, (INT8)((gTacticalStatus.uiFlags & TURNBASED) && ( gTacticalStatus.uiFlags & INCOMBAT )));
+		if( ubVolumeIndex > 1 ||
+			ubVolumeIndex > 0 && FindHearingAid(pSoldier) )
+		{
+			if ( ubNoiseMaker < NOBODY )
+			{
+				ShowRadioLocator(ubNoiseMaker, SHOW_LOCATOR_FAST );
+			}
+			else
+			{
+				BeginMultiPurposeLocator(sGridNo, bLevel, FALSE);
+			}
+		}
 	}
+	else
+	{
+		//DIGICRAB: Loud Sound Locator
+		//show a locator for very loud noises if we have an extended ear
+		if(ubVolumeIndex >= 2)
+		{
+			if ( FindHearingAid(pSoldier) )
+				BeginMultiPurposeLocator(sGridNo, bLevel, (INT8)((gTacticalStatus.uiFlags & TURNBASED) && ( gTacticalStatus.uiFlags & INCOMBAT )));
+		}
+	}	
 
 	// flag soldier as having reported noise in a particular direction
-
 }
 
 void VerifyAndDecayOpplist(SOLDIERTYPE *pSoldier)

@@ -2243,6 +2243,12 @@ void HandleRenderFaceAdjustments( FACETYPE *pFace, BOOLEAN fDisplayBuffer, BOOLE
 				}
 			}
 
+			// sevenfm: watching
+			if ( MercPtrs[ pFace->ubSoldierID ]->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 )
+			{
+				DoRightIcon( uiRenderBuffer, pFace, sFaceX, sFaceY, bNumRightIcons, 28 );
+			}
+
 			switch( pSoldier->bAssignment )
 			{
 				case DOCTOR:

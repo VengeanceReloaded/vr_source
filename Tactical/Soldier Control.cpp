@@ -90,9 +90,10 @@
 #include "civ quotes.h"
 #include "Strategic Pathing.h"
 #include "Debug Control.h"
-#include "LOS.h" // added by SANDRO
+#include "LOS.h"				// added by SANDRO
 #include "CampaignStats.h"		// added by Flugente
 #include "Interface Panels.h"
+#include "ai.h"					// sevenfm
 #endif
 
 #include "ub_config.h"
@@ -15476,14 +15477,14 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 		return FALSE;
 	}
 	
-	// if we are trying to dress like a civilian, but aren't sucessful: not covert
+	// if we are trying to dress like a civilian, but aren't successful: not covert
 	if ( this->usSoldierFlagMask & SOLDIER_COVERT_CIV && !(this->LooksLikeACivilian()) )
 	{
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CIV], this->GetName() );
 		return FALSE;
 	}
 	
-	// if we are trying to dress like a soldier, but aren't sucessful: not covert
+	// if we are trying to dress like a soldier, but aren't successful: not covert
 	if ( this->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && !(this->LooksLikeASoldier()) )
 	{
 		return FALSE;
@@ -15494,8 +15495,11 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 
 	// if we are closer than this, our cover will always break if we do not have the skill
 	// if we have the skill, our cover will blow if we dress up as a soldier, but not if we are dressed like a civilian
-	INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange;
-	
+	//INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange;
+	// sevenfm: set detection range depending on enemy soldier's difficulty level
+	// 50% of this range for low level soldiers, 150% range for high level elites
+	INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange * (2 + SoldierDifficultyLevel(pSoldier))/ 4;
+
 	if ( distance < discoverrange )
 	{
 		switch ( covertlevel )
@@ -15587,7 +15591,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 			return FALSE;
 		}
 		
-		// check wether we are around a fresh corpse - this will make us much more suspicious
+		// check whether we are around a fresh corpse - this will make us much more suspicious
 		INT32				cnt;
 		ROTTING_CORPSE *	pCorpse;
 		for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
@@ -15600,7 +15604,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 				BOOLEAN fCorpseOFAlly = FALSE;
 				if ( pSoldier->bTeam == ENEMY_TEAM )
 				{
-					// check wether corpse was one of soldier's allies
+					// check whether corpse was one of soldier's allies
 					for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
 					{
 						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
@@ -15612,7 +15616,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 				}
 				else if ( pSoldier->bTeam == OUR_TEAM || pSoldier->bTeam == MILITIA_TEAM )
 				{
-					// check wether corpse was one of soldier's allies					
+					// check whether corpse was one of soldier's allies					
 					for ( UINT8 i = UNIFORM_MILITIA_ROOKIE; i <= UNIFORM_MILITIA_ELITE; ++i )
 					{
 						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
@@ -15657,7 +15661,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 		// assassins will not be uncovered around corpses, as the AI cannot willingly evade them... one could 'ward' against assassins by surrounding yourself with fresh corpses
 		if ( distance < gSkillTraitValues.sCOCloseDetectionRangeSoldierCorpse && !this->IsAssassin() )
 		{
-			// check wether we are around a fresh corpse - this will make us much more suspicious
+			// check whether we are around a fresh corpse - this will make us much more suspicious
 			// I deem this necessary, to avoid cheap exploits by nefarious players :-)
 			INT32				cnt;
 			ROTTING_CORPSE *	pCorpse;
@@ -15671,7 +15675,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 					BOOLEAN fCorpseOFAlly = FALSE;
 					if ( pSoldier->bTeam == ENEMY_TEAM )
 					{
-						// check wether corpse was one of soldier's allies
+						// check whether corpse was one of soldier's allies
 						for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
 						{
 							if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
@@ -15683,7 +15687,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 					}
 					else if ( pSoldier->bTeam == OUR_TEAM || pSoldier->bTeam == MILITIA_TEAM )
 					{
-						// check wether corpse was one of soldier's allies					
+						// check whether corpse was one of soldier's allies					
 						for ( UINT8 i = UNIFORM_MILITIA_ROOKIE; i <= UNIFORM_MILITIA_ELITE; ++i )
 						{
 							if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
@@ -15704,7 +15708,36 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 			}
 		}
 	}
-		
+	
+	// sevenfm: uncover if merc is using flashlight
+	if( (NightTime() || gbWorldSectorZ > 0) &&
+		this->GetBestEquippedFlashLightRange() > 0 )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s has flashlight!", this->GetName() );
+		return FALSE;
+	}
+
+	// sevenfm: covert civs/military are not allowed in combat depending on enemy soldier's difficulty	
+	if( pSoldier->aiData.bAlertStatus >= STATUS_RED )
+	{
+		// for enemy team:
+		// high level soldier: need to kill 2 enemies for detection distance = full day vision range
+		// average soldier: need to kill 4 enemies for detection distance = full day vision range
+		if( pSoldier->bTeam == ENEMY_TEAM )
+		{
+			if(distance <= DAY_VISION_RANGE * gTacticalStatus.ubArmyGuysKilled * SoldierDifficultyLevel(pSoldier) / 8)
+			{
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s is too close in combat!", this->GetName() );
+				return FALSE;
+			}
+		}
+		else
+		{
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s is seen in combat!", this->GetName() );
+			return FALSE;
+		}
+	}
+
 	return TRUE;
 }
 
@@ -18289,12 +18322,44 @@ void SOLDIERTYPE::DepleteActiveRadioSetEnergy(BOOLEAN fActivation, BOOLEAN fAssi
 	}
 }
 
+// sevenfm: spotting bonus for item in main hand
+UINT16 SOLDIERTYPE::SpottingBonus()
+{
+	UINT16 itembonus = 0;   
+
+	if ( this->inv[HANDPOS].exists() )
+		itembonus += min(100, GetObjectModifier( this, &(this->inv[ HANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
+
+	//if ( this->inv[SECONDHANDPOS].exists() )
+		//itembonus += min(100, GetObjectModifier( this, &(this->inv[ SECONDHANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
+
+	return itembonus;
+}
+
+// sevenfm: max vision bonus for item in main hand
+INT16 SOLDIERTYPE::MaxVisionBonus()
+{
+	INT16 sBonus = 0;
+
+	if ( !this->inv[HANDPOS].exists() )
+		return 0;
+
+	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].visionrangebonus );
+	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].dayvisionrangebonus );
+	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].brightlightvisionrangebonus );
+	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].nightvisionrangebonus );
+	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].cavevisionrangebonus );
+
+	return sBonus;
+}
+
+
 // Flugente: spotter
 BOOLEAN SOLDIERTYPE::IsSpotting()
 {
 	if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0 )
 	{
-		// do we still fulfil the requirements?
+		// do we still fulfill the requirements?
 		if ( CanSpot() )
 		{
 			// we are only a spotter if we did this long enough
@@ -18329,9 +18394,15 @@ BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
 	}
 	
 	// no item -> no spotting
-	if (   !( this->inv[HANDPOS].exists()       && GetObjectModifier( this, &(this->inv[ HANDPOS ]),       gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) 
-		&& !( this->inv[SECONDHANDPOS].exists() && GetObjectModifier( this, &(this->inv[ SECONDHANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) )
+	// sevenfm: can spot from main hand only
+	if( !( this->inv[HANDPOS].exists() &&
+		GetObjectModifier( this, &(this->inv[ HANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) )
+	{
 		return FALSE;
+	}
+	/*if (   !( this->inv[HANDPOS].exists()       && GetObjectModifier( this, &(this->inv[ HANDPOS ]),       gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) 
+		&& !( this->inv[SECONDHANDPOS].exists() && GetObjectModifier( this, &(this->inv[ SECONDHANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) )
+		return FALSE;*/
 	
 	return TRUE;
 }
@@ -18339,11 +18410,12 @@ BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
 BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 {
 	// not possible if already scanning
-	if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] )
+	// sevenfm: why not, if we want to spot another target?
+	/*if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] )
 	{
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_ALREADY_SPOTTING ]);
 		return FALSE;
-	}
+	}*/
 
 	if ( !CanSpot( sTargetGridNo ) )
 	{
@@ -18351,8 +18423,12 @@ BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 		return FALSE;
 	}
 
+	// sevenfm: remember watching points
+	UINT16 usWatchPoints = this->usSkillCounter[SOLDIER_COUNTER_WATCH];
 	// deduct APs
 	DeductPoints(this, APBPConstants[AP_SPOTTER], 0, 0);
+	// sevenfm: restore watch points
+	this->usSkillCounter[SOLDIER_COUNTER_WATCH] = usWatchPoints;
 
 	// add to counter
 	this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 1;
@@ -18360,6 +18436,10 @@ BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 	// stop any multi-turn action
 	CancelMultiTurnAction(FALSE);
 	
+	// sevenfm: additional visual effects
+	DirtyMercPanelInterface( this, DIRTYLEVEL1 );
+	BeginMultiPurposeLocator(sTargetGridNo, this->pathing.bLevel, FALSE);
+
 	return TRUE;
 }
 
@@ -21676,8 +21756,9 @@ UINT16	GridNoSpotterCTHBonus( SOLDIERTYPE* pSniper, INT32 sGridNo, UINT bTeam)
 				if ( pSoldier->inv[HANDPOS].exists() )
 					itembonus += min(100, GetObjectModifier( pSoldier, &(pSoldier->inv[ HANDPOS ]), gAnimControl[ pSoldier->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
 				
-				if ( pSoldier->inv[SECONDHANDPOS].exists() )
-					itembonus += min(100, GetObjectModifier( pSoldier, &(pSoldier->inv[ SECONDHANDPOS ]), gAnimControl[ pSoldier->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
+				// sevenfm: only main hand can be used for spotting
+				//if ( pSoldier->inv[SECONDHANDPOS].exists() )
+					//itembonus += min(100, GetObjectModifier( pSoldier, &(pSoldier->inv[ SECONDHANDPOS ]), gAnimControl[ pSoldier->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
 
 				// base spotter effectivity depends on 40% items, 30% experience, 20% marksmanship an 10% leadership 
 				// the nominal value is between 0 and 1000 (though the actual value can be raised higher, due to effective stat and level boni)

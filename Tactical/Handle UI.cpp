@@ -4921,7 +4921,8 @@ UINT32 UIHandleLCOnTerrain( UI_EVENT *pUIEvent )
 		gfUIHandleShowMoveGrid = FALSE;
 	}
 	else
-	{
+	{		
+		// ready weapon
 		if ( pSoldier->bScopeMode == USE_ALT_WEAPON_HOLD && gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 )
 			usAnimState = PickSoldierReadyAnimation( pSoldier, FALSE, TRUE );
 		else
@@ -4929,25 +4930,37 @@ UINT32 UIHandleLCOnTerrain( UI_EVENT *pUIEvent )
 
 		gsCurrentActionPoints = 0;
 
-		//CHRISL: Why are we doing this?  If we ready a weapon, we spend the AP_CHANGE_TARGET APs, but then if we actually shoot
-		//	at someone in our current firing arc, we'll again pay the AP_CHANGE_TARGET cost because it's considered a new tartget.
-		//	Should be simply pay the ready weapon cost and only pay the AP_CHANGE_TARGET when we actually aim at a target?
-		// Lesh: raise weapon include APs to set weapon towards enemy and APs to aquire/change target
-		//if( pSoldier->sLastTarget != sXPos + (MAXCOL * sYPos ) )
-		//	gsCurrentActionPoints = APBPConstants[AP_CHANGE_TARGET];
-
 		if( usAnimState != INVALID_ANIMATION )
 		{
-			gsCurrentActionPoints += GetAPsToReadyWeapon( pSoldier, usAnimState );// Madd: removed the next part since it was deducting 2 extra aps that would not be deducted when readying the old way //+ AP_TO_AIM_TILE_IF_GETTING_READY;
+			gsCurrentActionPoints += GetAPsToReadyWeapon( pSoldier, usAnimState );
+		}
+		else
+			// cannot ready weapon
+		{
+			// sevenfm: use for spotting skill
+			INT32 usGridNo;		
+			//Get the gridno the cursor is at
+			GetMouseMapPos( &usGridNo );
+
+			if( pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->MaxVisionBonus() > 0 &&
+				!gTacticalStatus.fAtLeastOneGuyOnMultiSelect )
+			{
+				gsCurrentActionPoints = GetAPsToWatch( pSoldier );
+			}
+			else if( !TileIsOutOfBounds(usGridNo) &&
+				pSoldier->CanSpot(usGridNo) &&
+				!gTacticalStatus.fAtLeastOneGuyOnMultiSelect )
+			{
+				gsCurrentActionPoints = APBPConstants[AP_SPOTTER];
+			}
 		}
 
 		gfUIHandleShowMoveGrid = TRUE;
 		gsUIHandleShowMoveGridLocation = sXPos + (MAXCOL * sYPos );
 
 		gubShowActionPointsInRed = 5;
-		//gfDisplayFullCountRingBurst = FALSE;
 	}
-
 	// Determine if we can afford!
 	if ( !EnoughPoints( pSoldier, gsCurrentActionPoints, 0, FALSE ) )
 	{
@@ -4975,6 +4988,9 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 	UINT16							usAnimState;
 	INT32							iBPCpst = 0;
 
+	// sevenfm:
+	INT32 usGridNo;
+
 	// Make sure the merc is not collapsed!
 	if (!IsValidStance(pSoldier, ANIM_CROUCH) )
 	{
@@ -4986,9 +5002,9 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 		return FALSE;
 	}
 
-
 	// Get direction from mouse pos
 	sFacingDir = GetDirectionFromXY( sXPos, sYPos, pSoldier );
+	GetMouseMapPos( &usGridNo );
 
 	if ( sFacingDir != pSoldier->ubDirection )
 	{
@@ -5031,6 +5047,35 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 	}
 	else
 	{
+		// sevenfm: start watching
+		if( pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+			pSoldier->MaxVisionBonus() > 0 )
+		{
+			// Check AP cost...
+			if ( !EnoughPoints( pSoldier, GetAPsToWatch(pSoldier), 0, TRUE ) )
+			{
+				return( FALSE );
+			}
+			DeductPoints(pSoldier, GetAPsToWatch(pSoldier), 0, 0);
+			pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 1;
+			DirtyMercPanelInterface( pSoldier, DIRTYLEVEL1 );
+
+			return TRUE;
+		}
+
+		// sevenfm: spotter		
+		if( pSoldier->CanSpot(usGridNo) )
+		{
+			// Check AP cost...
+			if ( !EnoughPoints( pSoldier, APBPConstants[AP_SPOTTER], 0, TRUE ) )
+			{
+				return( FALSE );
+			}
+			pSoldier->BecomeSpotter( usGridNo );
+
+			return( TRUE );
+		}
+
 		if ( pSoldier->bScopeMode == USE_ALT_WEAPON_HOLD && gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 )
 			usAnimState = PickSoldierReadyAnimation( pSoldier, FALSE, TRUE );
 		else

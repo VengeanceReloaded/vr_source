@@ -874,6 +874,12 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 	if ( sAPCost > 0)
 		pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
 
+	// sevenfm: stop watching if APs spent
+	if ( sAPCost > 0)
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+	}	
+
 	// in real time, there IS no AP cost, (only breath cost)
 	if (!(gTacticalStatus.uiFlags & TURNBASED) || !(gTacticalStatus.uiFlags & INCOMBAT ) )
 	{
@@ -4494,4 +4500,31 @@ INT32 GetBPCostForRecoilkick( SOLDIERTYPE * pSoldier )
 	iKickPower = max(0, iKickPower);
 
 	return ( iKickPower );
+}
+
+// sevenfm
+INT16 GetAPsToWatch( SOLDIERTYPE * pSoldier )
+{
+	CHECKF(pSoldier);
+
+	if ( !pSoldier->inv[HANDPOS].exists() )
+		return 0;
+
+	INT16 sBonus;
+	INT16 sAP;
+
+	sBonus = pSoldier->MaxVisionBonus();
+
+	// 40 AP for 100% bonus
+	// 20 AP for 50% bonus
+	sAP = 2 * sBonus * APBPConstants[AP_SPOTTER] / 100;
+	//sAP = pSoldier->SpottingBonus() * APBPConstants[AP_SPOTTER] / 50;
+
+	if( sAP > 0 && gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) )
+	{
+		// 30% less AP for scouting skill
+		sAP = sAP * 70 / 100;
+	}
+
+	return sAP;
 }
