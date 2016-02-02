@@ -9960,7 +9960,7 @@ void ActivateXRayDevice( SOLDIERTYPE * pSoldier )
 			}
 		}
 		// X-Ray is dangerous device, can cause health loss
-		pSoldier->stats.bLife = __max(OKLIFE, pSoldier->stats.bLife - PreRandom(3));
+		pSoldier->stats.bLife = __max(OKLIFE, pSoldier->stats.bLife - PreRandom(4));
 	}
 	else
 	{

@@ -10528,10 +10528,10 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 	BOOLEAN FallbackToDefault = FALSE;
 
 	// check for first sound
-	sprintf( zFilename, "BATTLESNDS\\%03d_%s.wav", pSoldier->ubProfile, gBattleSndsData[ ubSoundID ].zName);
+	sprintf( zFilename, "BATTLESNDS\\%03d_%s.ogg", pSoldier->ubProfile, gBattleSndsData[ ubSoundID ].zName);
 	if( !FileExists( zFilename ) )
 	{
-		sprintf( zFilename, "BATTLESNDS\\%03d_%s.ogg", pSoldier->ubProfile, gBattleSndsData[ ubSoundID ].zName );
+		sprintf( zFilename, "BATTLESNDS\\%03d_%s.wav", pSoldier->ubProfile, gBattleSndsData[ ubSoundID ].zName );
 		if( !FileExists( zFilename ) )
 		{
 			FallbackToDefault = TRUE;
@@ -10606,10 +10606,10 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 		}
 	}
 
-	sprintf( zFilename, "%s%s", BasicPattern, ".wav" );
+	sprintf( zFilename, "%s%s", BasicPattern, ".ogg" );
 	if( !FileExists( zFilename ) )
 	{
-		sprintf( zFilename, "%s%s", BasicPattern, ".ogg" );
+		sprintf( zFilename, "%s%s", BasicPattern, ".wav" );
 		if( FileExists( zFilename ) )
 		{
 			strcpy(ExistingSndsFilesIDs[ExistingSndsFiles],zFilename);
@@ -10629,10 +10629,10 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 	// check for the rest
 	for( int i = 2; i < 255 ; i++)//gBattleSndsData[ ubSoundID ].ubRandomVal; i++ )
 	{
-		sprintf( zFilename, "%s%d%s", BasicPattern, i,  ".wav");
+		sprintf( zFilename, "%s%d%s", BasicPattern, i,  ".ogg");
 		if( !FileExists( zFilename ) )
 		{
-			sprintf( zFilename, "%s%d%s", BasicPattern, i, ".ogg");
+			sprintf( zFilename, "%s%d%s", BasicPattern, i, ".wav");
 			if( FileExists( zFilename ) )
 			{
 				strcpy(ExistingSndsFilesIDs[ExistingSndsFiles],zFilename);
