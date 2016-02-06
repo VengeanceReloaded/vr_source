@@ -2283,11 +2283,12 @@ INT32 LocationToLocationLineOfSightTest( INT32 sStartGridNo, INT8 bStartLevel, I
 	INT16						sStartXPos, sStartYPos, sEndXPos, sEndYPos;
 	UINT8						ubStartID;
 
-	ubStartID = WhoIsThere2( sStartGridNo, bStartLevel );
+	// sevenfmL always use standing heights
+	/*ubStartID = WhoIsThere2( sStartGridNo, bStartLevel );
 	if ( ubStartID != NOBODY )
 	{
 		return( SoldierTo3DLocationLineOfSightTest( MercPtrs[ ubStartID ], sEndGridNo, bEndLevel, 0, bAware, iTileSightLimit ) );
-	}
+	}*/
 
 	// else... assume standing heights
 	dStartZPos = STANDING_LOS_POS + bStartLevel * HEIGHT_UNITS;

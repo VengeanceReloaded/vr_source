@@ -214,8 +214,11 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 			continue;	// next opponent
 		}
 		
-		if ((pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY &&
-			gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY) ) // guys nobody sees
+		if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY &&
+			// sevenfm: allow suppression fire on recently seen targets (uses fake AICTH = 1)
+			pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN &&
+			pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_LAST_TURN &&
+			gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY ) // guys nobody sees
 		{
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CalcBestShot: soldier = %d, target = %d, skip guys nobody sees, shootUnseen = %d, public opplist = %d",pSoldier->ubID, pOpponent->ubID, shootUnseen,gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID]));
 			continue;	// next opponent
@@ -3040,9 +3043,9 @@ void CheckIfShotPossible(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN s
 			fEnableAISuppression = TRUE;
 		}
 
-		// sevenfm: allow any soldier to shoot in RED state
+		// sevenfm: allow any soldier with long range weapon to shoot in RED state (if he can hit)
 		if ( !suppressionFire &&
-			GunRange(pObj, pSoldier) > DAY_VISION_RANGE/2 )
+			GunRange(pObj, pSoldier) > DAY_VISION_RANGE )
 		{
 			fEnableAISuppression = TRUE;
 		}
