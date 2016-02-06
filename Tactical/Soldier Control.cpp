@@ -17257,6 +17257,8 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 	{
 		if ( counter == SOLDIER_COUNTER_SPOTTER && usSkillCounter[counter] > 0 )
 			usSkillCounter[counter]	= min(255, usSkillCounter[counter] + 1 );
+		else if ( counter == SOLDIER_COUNTER_WATCH && usSkillCounter[counter] > 0 )
+			usSkillCounter[counter]	= min(255, usSkillCounter[counter] + 1 );
 		else
 			usSkillCounter[counter]	= max(0, usSkillCounter[counter] - 1 );
 	}
@@ -18327,11 +18329,13 @@ UINT16 SOLDIERTYPE::SpottingBonus()
 {
 	UINT16 itembonus = 0;   
 
-	if ( this->inv[HANDPOS].exists() )
-		itembonus += min(100, GetObjectModifier( this, &(this->inv[ HANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
+	if( !this->inv[HANDPOS].exists() )
+		return 0;
 
-	//if ( this->inv[SECONDHANDPOS].exists() )
-		//itembonus += min(100, GetObjectModifier( this, &(this->inv[ SECONDHANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
+	if( IsWeapon(this->inv[HANDPOS].usItem) )
+		return 0;
+
+	itembonus += min(100, GetObjectModifier( this, &(this->inv[ HANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) );
 
 	return itembonus;
 }
@@ -18344,6 +18348,9 @@ INT16 SOLDIERTYPE::MaxVisionBonus()
 	if ( !this->inv[HANDPOS].exists() )
 		return 0;
 
+	if( IsWeapon(this->inv[HANDPOS].usItem) )
+		return 0;
+
 	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].visionrangebonus );
 	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].dayvisionrangebonus );
 	sBonus = __max( sBonus, Item[this->inv[HANDPOS].usItem].brightlightvisionrangebonus );
@@ -18352,7 +18359,6 @@ INT16 SOLDIERTYPE::MaxVisionBonus()
 
 	return sBonus;
 }
-
 
 // Flugente: spotter
 BOOLEAN SOLDIERTYPE::IsSpotting()
@@ -18394,15 +18400,16 @@ BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
 	}
 	
 	// no item -> no spotting
-	// sevenfm: can spot from main hand only
-	if( !( this->inv[HANDPOS].exists() &&
-		GetObjectModifier( this, &(this->inv[ HANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) )
-	{
+	if( !this->inv[HANDPOS].exists() )
 		return FALSE;
-	}
-	/*if (   !( this->inv[HANDPOS].exists()       && GetObjectModifier( this, &(this->inv[ HANDPOS ]),       gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) 
-		&& !( this->inv[SECONDHANDPOS].exists() && GetObjectModifier( this, &(this->inv[ SECONDHANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) ) )
-		return FALSE;*/
+
+	// cannot spot with weapons
+	if( IsWeapon(this->inv[HANDPOS].usItem) )
+		return FALSE;
+
+	// sevenfm: can spot from main hand only
+	if( GetObjectModifier( this, &(this->inv[ HANDPOS ]), gAnimControl[ this->usAnimState ].ubEndHeight, ITEMMODIFIER_SPOTTER ) == 0 )
+		return FALSE;
 	
 	return TRUE;
 }
@@ -18410,12 +18417,11 @@ BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
 BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 {
 	// not possible if already scanning
-	// sevenfm: why not, if we want to spot another target?
-	/*if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] )
+	if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] )
 	{
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_ALREADY_SPOTTING ]);
 		return FALSE;
-	}*/
+	}
 
 	if ( !CanSpot( sTargetGridNo ) )
 	{
@@ -18423,12 +18429,8 @@ BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 		return FALSE;
 	}
 
-	// sevenfm: remember watching points
-	UINT16 usWatchPoints = this->usSkillCounter[SOLDIER_COUNTER_WATCH];
 	// deduct APs
 	DeductPoints(this, APBPConstants[AP_SPOTTER], 0, 0);
-	// sevenfm: restore watch points
-	this->usSkillCounter[SOLDIER_COUNTER_WATCH] = usWatchPoints;
 
 	// add to counter
 	this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 1;
@@ -18437,8 +18439,8 @@ BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 	CancelMultiTurnAction(FALSE);
 	
 	// sevenfm: additional visual effects
-	DirtyMercPanelInterface( this, DIRTYLEVEL1 );
-	BeginMultiPurposeLocator(sTargetGridNo, this->pathing.bLevel, FALSE);
+	//DirtyMercPanelInterface( this, DIRTYLEVEL1 );
+	//BeginMultiPurposeLocator(sTargetGridNo, this->pathing.bLevel, FALSE);
 
 	return TRUE;
 }

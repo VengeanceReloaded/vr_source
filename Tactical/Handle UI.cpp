@@ -4946,7 +4946,8 @@ UINT32 UIHandleLCOnTerrain( UI_EVENT *pUIEvent )
 				pSoldier->MaxVisionBonus() > 0 &&
 				!gTacticalStatus.fAtLeastOneGuyOnMultiSelect )
 			{
-				gsCurrentActionPoints = GetAPsToWatch( pSoldier );
+				//gsCurrentActionPoints = GetAPsToWatch( pSoldier );
+				gsCurrentActionPoints = APBPConstants[AP_SPOTTER];
 			}
 			else if( !TileIsOutOfBounds(usGridNo) &&
 				pSoldier->CanSpot(usGridNo) &&
@@ -5047,7 +5048,19 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 	}
 	else
 	{
-		// sevenfm: start watching
+		// sevenfm: start spotting
+		if( pSoldier->CanSpot(usGridNo) )
+		{
+			// Check AP cost...
+			if ( !EnoughPoints( pSoldier, APBPConstants[AP_SPOTTER], 0, TRUE ) )
+			{
+				return( FALSE );
+			}
+			pSoldier->BecomeSpotter( usGridNo );
+
+			return( TRUE );
+		}
+		// sevenfm: if cannot spot (the item has vision bonus but not spotting bonus) start watching
 		if( pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
 			pSoldier->MaxVisionBonus() > 0 )
 		{
@@ -5061,20 +5074,7 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 			DirtyMercPanelInterface( pSoldier, DIRTYLEVEL1 );
 
 			return TRUE;
-		}
-
-		// sevenfm: spotter		
-		if( pSoldier->CanSpot(usGridNo) )
-		{
-			// Check AP cost...
-			if ( !EnoughPoints( pSoldier, APBPConstants[AP_SPOTTER], 0, TRUE ) )
-			{
-				return( FALSE );
-			}
-			pSoldier->BecomeSpotter( usGridNo );
-
-			return( TRUE );
-		}
+		}		
 
 		if ( pSoldier->bScopeMode == USE_ALT_WEAPON_HOLD && gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 )
 			usAnimState = PickSoldierReadyAnimation( pSoldier, FALSE, TRUE );
