@@ -61,11 +61,6 @@ STR16 gStrAlertStatus[] = {L"Green", L"Yellow", L"Red", L"Black"};
 STR16 gStrAttitude[] = {L"DEFENSIVE", L"BRAVESOLO", L"BRAVEAID", L"CUNNINGSOLO", L"CUNNINGAID", L"AGGRESSIVE", L"MAXATTITUDES", L"ATTACKSLAYONLY"};
 STR16 gStrOrders[] = {L"STATIONARY", L"ONGUARD", L"CLOSEPATROL", L"FARPATROL", L"POINTPATROL", L"ONCALL", L"SEEKENEMY", L"RNDPTPATROL", L"SNIPER"};
 STR16 gStrTeam[] = {L"OUR_TEAM", L"ENEMY_TEAM", L"CREATURE_TEAM", L"MILITIA_TEAM", L"CIV_TEAM", L"LAST_TEAM", L"PLAYER_PLAN", L"LAN_TEAM_ONE", L"LAN_TEAM_TWO", L"LAN_TEAM_THREE", L"LAN_TEAM_FOUR"};
-STR16 gStrSubTeam[] = {L"NON_CIV_GROUP", L"REBEL_CIV_GROUP", L"KINGPIN_CIV_GROUP", L"SANMONA_ARMS_GROUP", L"ANGELS_GROUP", L"BEGGARS_CIV_GROUP", L"TOURISTS_CIV_GROUP", L"ALMA_MILITARY_CIV_GROUP",
-						L"DOCTORS_CIV_GROUP", L"COUPLE1_CIV_GROUP", L"HICKS_CIV_GROUP", L"WARDEN_CIV_GROUP", L"JUNKYARD_CIV_GROUP", L"FACTORY_KIDS_GROUP", L"QUEENS_CIV_GROUP",
-						L"UNNAMED_CIV_GROUP_15", L"UNNAMED_CIV_GROUP_16", L"UNNAMED_CIV_GROUP_17", L"UNNAMED_CIV_GROUP_18", L"UNNAMED_CIV_GROUP_19", L"ASSASSIN_CIV_GROUP", L"POW_PRISON_CIV_GROUP",
-						L"UNNAMED_CIV_GROUP_22", L"UNNAMED_CIV_GROUP_23", L"UNNAMED_CIV_GROUP_24", L"UNNAMED_CIV_GROUP_25", L"UNNAMED_CIV_GROUP_26", L"UNNAMED_CIV_GROUP_27", L"UNNAMED_CIV_GROUP_28", L"UNNAMED_CIV_GROUP_29", L"UNNAMED_CIV_GROUP_30",
-						L"CIA_OPERATIVES_GROUP", L"TRACONA_OPERATIVES_GROUP", L"COCKEYE_THUGS", L"CIA_STANLEY_GROUP", L"TRACONA_DRAGON_GROUP"};
 STR16 gStrClass[] = {L"SOLDIER_CLASS_NONE", L"SOLDIER_CLASS_ADMINISTRATOR", L"SOLDIER_CLASS_ELITE", L"SOLDIER_CLASS_ARMY", L"SOLDIER_CLASS_GREEN_MILITIA", L"SOLDIER_CLASS_REG_MILITIA", L"SOLDIER_CLASS_ELITE_MILITIA", L"SOLDIER_CLASS_CREATURE", L"SOLDIER_CLASS_MINER", L"SOLDIER_CLASS_ZOMBIE"};
 
 void SoldierTooltip( SOLDIERTYPE* pSoldier )
@@ -239,12 +234,9 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 				swprintf( pStrInfo, L"%s|Attitude: %s\n", pStrInfo, gStrAttitude[pSoldier->aiData.bAttitude] );
 				swprintf( pStrInfo, L"%s|Class: %s\n", pStrInfo, gStrClass[pSoldier->ubSoldierClass] );				
 				swprintf( pStrInfo, L"%s|Team: %s\n", pStrInfo, gStrTeam[pSoldier->bTeam] );
-				if( pSoldier->bTeam == CIV_TEAM )
+				if( pSoldier->bTeam == CIV_TEAM && pSoldier->ubCivilianGroup > 0 )
 				{
-					if(pSoldier->ubCivilianGroup <= TRACONA_DRAGON_GROUP)
-						swprintf( pStrInfo, L"%s|Civ |Group: %s\n", pStrInfo, gStrSubTeam[pSoldier->ubCivilianGroup] );
-					else
-						swprintf( pStrInfo, L"%s|Civ |Group: UNNAMED_CIV_GROUP_%d\n", pStrInfo, pSoldier->ubCivilianGroup );
+					swprintf( pStrInfo, L"%s|Civ |Group: %s\n", pStrInfo, zCivGroupName[pSoldier->ubCivilianGroup].szCurGroup );
 				}
 				if( pSoldier->aiData.bNeutral )
 				{

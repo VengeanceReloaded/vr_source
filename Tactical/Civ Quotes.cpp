@@ -1091,7 +1091,14 @@ void PossiblyStartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, UINT32 ui
 	if( pCiv->bTeam != ENEMY_TEAM &&
 		pCiv->bTeam != MILITIA_TEAM &&
 		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
-		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) )
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == WARDEN_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == UNNAMED_CIV_GROUP_16 && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_DRAGON_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_OPERATIVES_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_STANLEY_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_OPERATIVES_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == COCKEYE_THUGS && gGameExternalOptions.fVoiceTaunts ))		
 	{
 		return;
 	}
@@ -2184,7 +2191,35 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	}
 	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP )
 	{
-		strcat( filename, "\\Hicks\\");
+		strcat( filename, "\\Hale and Burton\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == UNNAMED_CIV_GROUP_16 )
+	{
+		strcat( filename, "\\Traconian Army\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == WARDEN_CIV_GROUP )
+	{
+		strcat( filename, "\\Warden\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_OPERATIVES_GROUP )
+	{
+		strcat( filename, "\\CIA Operatives\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
+	{
+		strcat( filename, "\\Tracona Operatives\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == COCKEYE_THUGS )
+	{
+		strcat( filename, "\\Cockeye Thugs\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_STANLEY_GROUP )
+	{
+		strcat( filename, "\\CIA Stanley\\");
+	}
+	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_DRAGON_GROUP )
+	{
+		strcat( filename, "\\TracOps Dragon\\");
 	}
 	else if( pCiv->ubBodyType == BIGMALE )
 	{

@@ -2713,7 +2713,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				// don't suppress when flanking
 				// don't suppress if we don't have extra clip to reload
 				// check line of sight to enemy (to avoid through-walls suppression fire)
-				CheckSuppressionDirection( pSoldier, Menptr[BestShot.ubOpponent].sGridNo ) &&
+				//CheckSuppressionDirection( pSoldier, Menptr[BestShot.ubOpponent].sGridNo ) &&
+				BestShot.ubFriendlyFireChance < 5 &&
 				!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
 				!AICheckIsFlanking(pSoldier) &&
 				LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, MercPtrs[BestShot.ubOpponent]->sGridNo, MercPtrs[BestShot.ubOpponent]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
