@@ -747,6 +747,35 @@ void HourlyGatheringInformation()
 void HourlyWeeklyLeaks()
 {
 	BOOLEAN fEmailSent = FALSE;
+
+	if( gubFact[ FACT_CONMAN_SAMPLE_SOLD_TO_BUYER ] && !gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && GetWorldHour == 0 )
+	{
+		AddEmail( SAMPLE_BUYER_FARMER_CHEATED, DEMAND_MONEY_BACK_LENGTH, SAMPLE_FARMER_BUYER, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+		SetFactTrue( FACT_BUYER_WANTS_MONEY_BACK );
+
+		// put Conman in random location
+		UINT8 random = Random(3);
+		if(random == 0)
+		{
+			// D13
+			gMercProfiles[ CONMAN ].sSectorX = 13;
+			gMercProfiles[ CONMAN ].sSectorY = 4;
+		}
+		else if(random == 1)
+		{
+			// G1
+			gMercProfiles[ CONMAN ].sSectorX = 1;
+			gMercProfiles[ CONMAN ].sSectorY = 7;
+		}
+		else if(random == 2)
+		{
+			// O4
+			gMercProfiles[ CONMAN ].sSectorX = 4;
+			gMercProfiles[ CONMAN ].sSectorY = 15;
+		}
+		fEmailSent = TRUE;
+	}
+
 	if( !gubFact[ FACT_MENDAX_SPARED ] || gMercProfiles[ MENDAX ].bMercStatus == MERC_IS_DEAD )
 	{
 		return;
@@ -757,11 +786,23 @@ void HourlyWeeklyLeaks()
 		switch( ubCounter )
 		{
 			case 1:
-				if( gubFact[ FACT_CONMAN_SAMPLE_SOLD_TO_BUYER ] && !gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && GetWorldHour == 0 )
+				if( gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && !gubFact[ FACT_CONMAN_GAVE_MONEY_BACK ] && gMercProfiles[ CONMAN ].bMercStatus != MERC_IS_DEAD )
 				{
-					AddEmail( SAMPLE_BUYER_FARMER_CHEATED, DEMAND_MONEY_BACK_LENGTH, SAMPLE_FARMER_BUYER, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
-					SetFactTrue( FACT_BUYER_WANTS_MONEY_BACK );
-					//fEmailSent = TRUE;
+					if( gMercProfiles[ CONMAN ].sSectorX == 13 && !gubFact[ FACT_CONMAN_SPOTTED_1_SENT ] )
+					{
+						AddEmail( CONMAN_SPOTTED_1, CONMAN_SPOTTED_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+						SetFactTrue( FACT_CONMAN_SPOTTED_1_SENT );
+					}
+					else if( gMercProfiles[ CONMAN ].sSectorX == 1 && !gubFact[ FACT_CONMAN_SPOTTED_2_SENT ] )
+					{
+						AddEmail( CONMAN_SPOTTED_2, CONMAN_SPOTTED_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+						SetFactTrue( FACT_CONMAN_SPOTTED_2_SENT );
+					}
+					else if( gMercProfiles[ CONMAN ].sSectorX == 15 && !gubFact[ FACT_CONMAN_SPOTTED_3_SENT ] )
+					{
+						AddEmail( CONMAN_SPOTTED_3, CONMAN_SPOTTED_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
+						SetFactTrue( FACT_CONMAN_SPOTTED_3_SENT );
+					}
 				}
 				break;
 			case 2:
