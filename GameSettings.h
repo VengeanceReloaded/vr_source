@@ -1453,6 +1453,9 @@ typedef struct
 	BOOLEAN fShowNoiseLocator;
 	BOOLEAN fShowXRayLocator;
 
+	BOOLEAN fPathAvoidDeepWater;
+	BOOLEAN fPathAvoidGas;
+
 } GAME_EXTERNAL_OPTIONS;
 
 typedef struct

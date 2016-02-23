@@ -59,6 +59,9 @@ class SOLDIERTYPE;
 
 extern UINT16 gubAnimSurfaceIndex[ TOTALBODYTYPES ][ NUMANIMATIONSTATES ];
 
+// sevenfm:
+extern BOOLEAN InGas( SOLDIERTYPE *pSoldier, INT32 sGridNo );
+
 //extern UINT8 gubDiagCost[20];
 // skiplist has extra level of pointers every 4 elements, so a level 5is optimized for
 // 4 to the power of 5 elements, or 2 to the power of 10, 1024
@@ -3092,6 +3095,24 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 						goto NEXTDIR;
 					}
 				}
+			}
+
+			// sevenfm: skip deep water if not in deep water already
+			if( gGameExternalOptions.fPathAvoidDeepWater &&
+				!(s->flags.uiStatusFlags & SOLDIER_PC) &&
+				ubLevel == 0 &&
+				DeepWater(newLoc) &&
+				!DeepWater(s->sGridNo) )
+			{
+				goto NEXTDIR;
+			}
+			// sevenfm: skip gas if not in gas already
+			if( gGameExternalOptions.fPathAvoidGas &&
+				!(s->flags.uiStatusFlags & SOLDIER_PC) &&
+				InGas(s, newLoc) &&
+				!InGas(s, s->sGridNo) )
+			{
+				goto NEXTDIR;
 			}
 
 			// AI check for mines

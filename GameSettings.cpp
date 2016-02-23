@@ -2254,6 +2254,9 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fExtraVoiceTaunts			= iniReader.ReadBoolean("Extended Options", "EXTRA_VOICE_TAUNTS", true, false);
 	gGameExternalOptions.fShowNoiseLocator			= iniReader.ReadBoolean("Extended Options", "SHOW_NOISE_LOCATOR", true, false);
 	gGameExternalOptions.fShowXRayLocator			= iniReader.ReadBoolean("Extended Options", "SHOW_XRAY_LOCATOR", true, false);
+
+	gGameExternalOptions.fPathAvoidDeepWater		= iniReader.ReadBoolean("Extended Options", "PATH_AVOID_DEEP_WATER", true, false);
+	gGameExternalOptions.fPathAvoidGas				= iniReader.ReadBoolean("Extended Options", "PATH_AVOID_GAS", true, false);
 }
 
 
