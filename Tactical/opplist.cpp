@@ -6838,12 +6838,12 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 	// sevenfm: show noise locator
 	if(gGameExternalOptions.fShowNoiseLocator)
 	{
-		if( ubVolumeIndex > 1 ||
-			ubVolumeIndex > 0 && FindHearingAid(pSoldier) )
+		if( ubVolumeIndex >= 1 ||
+			ubVolumeIndex >= 0 && FindHearingAid(pSoldier) )
 		{
 			if ( ubNoiseMaker < NOBODY )
 			{
-				ShowRadioLocator(ubNoiseMaker, SHOW_LOCATOR_FAST );
+				ShowRadioLocator(ubNoiseMaker, SHOW_LOCATOR_NOISE );
 			}
 			else
 			{

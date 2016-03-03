@@ -2696,7 +2696,7 @@ BOOLEAN HandleAtNewGridNo( SOLDIERTYPE *pSoldier, BOOLEAN *pfKeepMoving )
 	UpdateFastForwardMode( pSoldier );
 
     // ATE: Put some stuff in here to not handle certain things if we are
-    // trversing...
+    // traversing...
     if ( gubWaitingForAllMercsToExitCode == WAIT_FOR_MERCS_TO_WALKOFF_SCREEN || gubWaitingForAllMercsToExitCode == WAIT_FOR_MERCS_TO_WALK_TO_GRIDNO )
     {
         return( TRUE );

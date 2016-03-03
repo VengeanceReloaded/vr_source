@@ -6579,15 +6579,11 @@ void ShowRadioLocator( UINT8 ubID, UINT8 ubLocatorSpeed )
 
 	if ( ubLocatorSpeed == SHOW_LOCATOR_NORMAL )
 	{
-		// If we are an AI guy, and we have the baton, make lower...
-		// ( MercPtrs[ ubID ]->flags.uiStatusFlags & SOLDIER_UNDERAICONTROL && MercPtrs[ ubID ]->bTeam != gbPlayerNum )
-		//
-		//ercPtrs[ ubID ]->ubNumLocateCycles = 3;
-		//
-		//se
-		//
-			MercPtrs[ ubID ]->ubNumLocateCycles = 5;
-		//
+		MercPtrs[ ubID ]->ubNumLocateCycles = 4;
+	}
+	else if ( ubLocatorSpeed == SHOW_LOCATOR_NOISE )
+	{
+		MercPtrs[ ubID ]->ubNumLocateCycles = 2;
 	}
 	else
 	{

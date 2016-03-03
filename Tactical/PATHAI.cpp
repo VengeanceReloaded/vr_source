@@ -3100,6 +3100,7 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 			// sevenfm: skip deep water if not in deep water already
 			if( gGameExternalOptions.fPathAvoidDeepWater &&
 				!(s->flags.uiStatusFlags & SOLDIER_PC) &&
+				s->bSide != 0 &&
 				ubLevel == 0 &&
 				DeepWater(newLoc) &&
 				!DeepWater(s->sGridNo) )
@@ -3109,6 +3110,7 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 			// sevenfm: skip gas if not in gas already
 			if( gGameExternalOptions.fPathAvoidGas &&
 				!(s->flags.uiStatusFlags & SOLDIER_PC) &&
+				s->bSide != 0 &&
 				InGas(s, newLoc) &&
 				!InGas(s, s->sGridNo) )
 			{

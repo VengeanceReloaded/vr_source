@@ -2662,8 +2662,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 		// WarmSteel - Because of suppression fire, we need enough ammo to even consider suppressing
 		// This means we need to reload. Also reload if we're just plainly low on bullets.
-		if(BestShot.bWeaponIn != NO_SLOT
-			&& ((pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft < gGameExternalOptions.ubAISuppressionMinimumAmmo && GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize)
+		// sevenfm: no reloads for tanks
+		if( BestShot.bWeaponIn != NO_SLOT &&
+			!TANK(pSoldier) &&
+			((pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft < gGameExternalOptions.ubAISuppressionMinimumAmmo && GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize)
 			|| pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft < (UINT8)(GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) / 4) ))
 		{
 			// HEADROCK HAM 5: Fixed an issue where no ammo was found, leading to a crash when overloading the
@@ -3416,7 +3418,6 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 								pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
 								(!GuySawEnemyThisTurnOrBefore( pSoldier ) || CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2 ) &&								
 								( CountFriendsInDirection( pSoldier, sClosestDisturbance ) > 1 || NightTime() || CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2) )
-								//(CountFriendsFlankSameSpot(pSoldier) + 1 < CountFriendsInDirection( pSoldier, sClosestDisturbance ) || NightTime() ) ) 
 							{
 								INT8 action = AI_ACTION_SEEK_OPPONENT;
 								INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sClosestDisturbance );

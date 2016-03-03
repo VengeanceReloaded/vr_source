@@ -51,6 +51,7 @@ typedef enum
 
 #define	SHOW_LOCATOR_NORMAL					1
 #define SHOW_LOCATOR_FAST					2
+#define	SHOW_LOCATOR_NOISE					3
 
 //extern INT16 INTERFACE_CLOCK_X;
 //extern INT16 INTERFACE_CLOCK_Y;

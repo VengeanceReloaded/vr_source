@@ -64,7 +64,7 @@ UINT16 MovementMode[LAST_MOVEMENT_ACTION + 1][NUM_URGENCY_STATES] =
 
 	{WALKING,  WALKING,  WALKING }, // AI_ACTION_POINT_PATROL,
 	{RUNNING,  RUNNING,  RUNNING }, // AI_ACTION_LEAVE_WATER_GAS,
-	{WALKING,  SWATTING,  RUNNING }, // AI_ACTION_SEEK_NOISE,
+	{WALKING,  SWATTING, RUNNING }, // AI_ACTION_SEEK_NOISE,
 	{RUNNING,  RUNNING,  RUNNING }, // AI_ACTION_ESCORTED_MOVE,
 	{WALKING,  RUNNING,  RUNNING }, // AI_ACTION_RUN_AWAY,
 
@@ -409,7 +409,7 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 				pSoldier->aiData.bAlertStatus >= STATUS_RED &&
 				!InWaterGasOrSmoke( pSoldier, pSoldier->sGridNo ) &&
 				!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) &&				
-				!TileIsOutOfBounds( sClosestThreat) &&
+				!TileIsOutOfBounds(sClosestThreat) &&
 				(pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM) )
 			{
 				// determine max visible distance
