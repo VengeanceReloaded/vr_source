@@ -2625,7 +2625,7 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 	fNonSwimmer = !( IS_MERC_BODY_TYPE( s ) );
 	if ( fNonSwimmer )
 	{
-		if ( Water( sDestination ) )
+		if ( Water( sDestination, ubLevel ) )
 		{
 			return( 0 );
 		}
@@ -3100,17 +3100,19 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 			// sevenfm: skip deep water if not in deep water already
 			if( gGameExternalOptions.fPathAvoidDeepWater &&
 				!(s->flags.uiStatusFlags & SOLDIER_PC) &&
-				s->bSide != 0 &&
+				s->ubProfile == NO_PROFILE &&
+				s->aiData.bAlertStatus > STATUS_GREEN &&
+				//s->bSide != 0 &&
 				ubLevel == 0 &&
-				DeepWater(newLoc) &&
-				!DeepWater(s->sGridNo) )
+				DeepWater(newLoc, ubLevel) &&
+				!DeepWater(s->sGridNo, ubLevel) )
 			{
 				goto NEXTDIR;
 			}
 			// sevenfm: skip gas if not in gas already
 			if( gGameExternalOptions.fPathAvoidGas &&
 				!(s->flags.uiStatusFlags & SOLDIER_PC) &&
-				s->bSide != 0 &&
+				//s->bSide != 0 &&
 				InGas(s, newLoc) &&
 				!InGas(s, s->sGridNo) )
 			{

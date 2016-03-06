@@ -268,8 +268,8 @@ UINT8 ShootingStanceChange( SOLDIERTYPE * pSoldier, ATTACKTYPE * pAttack, INT8 b
 UINT8 StanceChange( SOLDIERTYPE * pSoldier, INT16 ubAttackAPCost );
 INT32 TrackScent( SOLDIERTYPE * pSoldier );
 void RefreshAI(SOLDIERTYPE *pSoldier);
-// sevenfm: added pSoldier to better decide if this spot should be considered dangerous
-BOOLEAN InLightAtNight( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel );
+
+BOOLEAN InLightAtNight( INT32 sGridNo, INT8 bLevel );
 INT16 FindNearbyDarkerSpot( SOLDIERTYPE *pSoldier );
 
 BOOLEAN ArmySeesOpponents( void );
@@ -278,7 +278,7 @@ void CheckIfShotPossible(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN s
 
 INT32 FindBestCoverNearTheGridNo(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubSearchRadius );
 
-INT8 FindDirectionForClimbing( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel);
+INT8 FindDirectionForClimbing( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 
 // HEADROCK HAM B2.7: Functions to assist group AI
 // WANNE: Headrock informed me that I should disable these 3 functions in code, because they need a lot of CPU during AI calculation.

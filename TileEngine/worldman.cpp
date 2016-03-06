@@ -3480,13 +3480,19 @@ UINT8	GetTerrainType( INT32 sGridNo )
 */
 }
 
-BOOLEAN Water( INT32 sGridNo )
+BOOLEAN Water( INT32 sGridNo, BOOLEAN bLevel )
 {
 	MAP_ELEMENT *			pMapElement;
-	
+
 	if( TileIsOutOfBounds( sGridNo ) )
 	{
 		return( FALSE );
+	}
+
+	// sevenfm: check bridge
+	if( bLevel )
+	{
+		return FALSE;
 	}
 
 	pMapElement = &(gpWorldLevelData[sGridNo]);
@@ -3501,13 +3507,19 @@ BOOLEAN Water( INT32 sGridNo )
 	}
 }
 
-BOOLEAN DeepWater( INT32 sGridNo )
+BOOLEAN DeepWater( INT32 sGridNo, BOOLEAN bLevel )
 {
 	MAP_ELEMENT *			pMapElement;
 
 	if( TileIsOutOfBounds( sGridNo ) )
 	{
 		return( FALSE );
+	}
+
+	// sevenfm: check bridge
+	if( bLevel )
+	{
+		return FALSE;
 	}
 
 	pMapElement = &(gpWorldLevelData[sGridNo]);
@@ -3523,9 +3535,9 @@ BOOLEAN DeepWater( INT32 sGridNo )
 	}
 }
 
-BOOLEAN WaterTooDeepForAttacks( INT32 sGridNo ) 
+BOOLEAN WaterTooDeepForAttacks( INT32 sGridNo, BOOLEAN bLevel ) 
 {
-	return( DeepWater( sGridNo ) );
+	return( DeepWater( sGridNo, bLevel ) );
 }
 
 void SetStructAframeFlags( INT32 iMapIndex, UINT32 uiFlags  )

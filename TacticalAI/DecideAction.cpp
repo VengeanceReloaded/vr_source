@@ -795,7 +795,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 	}
 
 
-	bInWater = Water( pSoldier->sGridNo );
+	bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 
 	// check if standing in tear gas without a gas mask on, or in smoke
 	bInGas = InGasOrSmoke( pSoldier, pSoldier->sGridNo );
@@ -1656,7 +1656,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		iChance = 5 * WhatIKnowThatPublicDont(pSoldier,FALSE);   // use 5 * for YELLOW alert
 
 		// if I actually know something they don't and I ain't swimming (deep water)
-		if (iChance && !DeepWater( pSoldier->sGridNo ))
+		if (iChance && !DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel ))
 		{
 
 			// CJC: this addition allows for varying difficulty levels for soldier types
@@ -2341,9 +2341,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	}
 
 	// determine if we happen to be in water (in which case we're in BIG trouble!)
-	bInWater = Water( pSoldier->sGridNo );
+	bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 	// sevenfm: changed Water() to DeepWater()
-	bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo );
+	bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 
 	// check if standing in tear gas without a gas mask on
 	bInGas = InGasOrSmoke( pSoldier, pSoldier->sGridNo );
@@ -2715,7 +2715,6 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				// don't suppress when flanking
 				// don't suppress if we don't have extra clip to reload
 				// check line of sight to enemy (to avoid through-walls suppression fire)
-				//CheckSuppressionDirection( pSoldier, Menptr[BestShot.ubOpponent].sGridNo ) &&
 				BestShot.ubFriendlyFireChance < 5 &&
 				!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
 				!AICheckIsFlanking(pSoldier) &&
@@ -2893,7 +2892,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	////////////////////////////////////////////////////////////////////////////
 	// WHEN IN THE LIGHT, GET OUT OF THERE!
 	////////////////////////////////////////////////////////////////////////////
-	if ( ubCanMove && InLightAtNight( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) && pSoldier->aiData.bOrders != STATIONARY )
+	if ( ubCanMove && InLightAtNight( pSoldier->sGridNo, pSoldier->pathing.bLevel ) && pSoldier->aiData.bOrders != STATIONARY )
 	{
 		//ddd for the enemy to run away from lighht
 		if(gGameExternalOptions.bNewTacticalAIBehavior)
@@ -3150,22 +3149,22 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			if( !TileIsOutOfBounds(tempGridNo) &&
 				!GuySawEnemyThisTurnOrBefore(pSoldier) &&
 				!pSoldier->aiData.bUnderFire &&
-				!Water(pSoldier->sGridNo) &&
+				!Water(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
 				pSoldier->bInitialActionPoints >= APBPConstants[AP_MINIMUM] &&
 				( PythSpacesAway( pSoldier->sGridNo, tempGridNo ) > MIN_FLANK_DIST_RED ||
-				!LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) ) )
+				!LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS) ) )
 			{				
 				pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,tempGridNo,GetAPsCrouch( pSoldier, TRUE),AI_ACTION_SEEK_OPPONENT,0);
 
 				// sevenfm: avoid going into water, gas or light
 				if( !TileIsOutOfBounds(pSoldier->aiData.usActionData) &&
-					!Water(pSoldier->aiData.usActionData) &&
+					!Water(pSoldier->aiData.usActionData, pSoldier->pathing.bLevel) &&
 					!InGas( pSoldier, pSoldier->aiData.usActionData ) &&
-					!InLightAtNight( pSoldier, pSoldier->aiData.usActionData, pSoldier->pathing.bLevel ) )
+					!InLightAtNight( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel ) )
 				{
 					// if soldier can be seen at new position and he cannot be seen at his current position
-					if ( LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) &&
-						!LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) )
+					if ( LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS) &&
+						!LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS) )
 					{
 						// reserve APs for a possible crouch plus a shot
 						INT32 sCautiousGridNo = InternalGoAsFarAsPossibleTowards(pSoldier, tempGridNo, (INT8) (MinAPsToAttack( pSoldier, tempGridNo, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE) + GetAPsToLook(pSoldier)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
@@ -3303,6 +3302,26 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					bSeekPts = -99;
 					bHelpPts = -99;
 				}
+
+				// sevenfm: disable seek/help when in building and seen enemy recently
+				// check that closest reachable enemy is not in the same building
+				if( (GuySawEnemyThisTurnOrBefore(pSoldier) && RangeChangeDesire(pSoldier) < 4 || CountSeenEnemiesLastTurn(pSoldier) > 0 ) &&
+					InARoom(pSoldier->sGridNo, NULL) &&
+					!TileIsOutOfBounds(sClosestDisturbance) &&
+					!SameBuilding(pSoldier->sGridNo, sClosestDisturbance) )
+				{
+					bSeekPts = -99;
+					bHelpPts = -99;
+				}
+
+				// sevenfm: don't watch when overcrowded
+				bWatchPts -= CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8);
+
+				// sevenfm: don't help if seen enemy recently
+				if( GuySawEnemyThisTurnOrBefore(pSoldier) )
+				{
+					bHelpPts = -99;
+				}
 			}
 
 			if (!gfTurnBasedAI)
@@ -3333,7 +3352,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					if (!TileIsOutOfBounds(sClosestDisturbance) &&
 						( gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE ||
 						!GuySawEnemyThisTurnOrBefore(pSoldier) ||
-						AICountFriendsInCombatSameSpot(pSoldier) > 0 ) )
+						CountFriendsBlack(pSoldier) > 0 ) )
 					{
 						DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: seek opponent");
 						//////////////////////////////////////////////////////////////////////
@@ -3452,7 +3471,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 								{
 									pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,sClosestDisturbance,GetAPsCrouch( pSoldier, TRUE), AI_ACTION_SEEK_OPPONENT,0);
 									//pSoldier->numFlanks = 0;
-									if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE ) )
+									if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS ) )
 									{
 										// reserve APs for a possible crouch plus a shot
 										// sevenfm: added APs to look
@@ -3498,7 +3517,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 							else
 							{
 								// let's be a bit cautious about going right up to a location without enough APs to shoot
-								if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE ) )
+								if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS ) )
 								{
 									// reserve APs for a possible crouch plus a shot
 									// sevenfm: added APs to look
@@ -3536,7 +3555,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					// take a look at our highest watch point... if it's still visible, turn to face it and then wait
 					bHighestWatchLoc = GetHighestVisibleWatchedLoc( pSoldier->ubID );
 					//sDistVisible =  DistanceVisible( pSoldier, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] );
-					if ( bHighestWatchLoc != -1 )
+					// sevenfm: check that we have prone sight cover from watched location
+					if ( bHighestWatchLoc != -1 &&
+						!LocationToLocationLineOfSightTest(gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ], pSoldier->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS) )
 					{
 						// see if we need turn to face that location
 						ubOpponentDir = atan8( CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX( gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] ),CenterY( gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] ) );
@@ -3559,7 +3580,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 								pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
 								return(AI_ACTION_CHANGE_STANCE);
 							}
-							else if ( gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
+							// sevenfm: disabled as we don't know if we will have line of sight to watched location in prone stance
+							/*else if ( gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
 							{
 								// maybe go prone
 								if ( PreRandom( 2 ) == 0 && pSoldier->InternalIsValidStance( ubOpponentDir, ANIM_PRONE ) )
@@ -3570,7 +3592,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 								}
 								// end turn
 								return( AI_ACTION_END_TURN );
-							}
+							}*/
 						}
 
 					}
@@ -3596,7 +3618,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					guiRedHelpCounter++;
 #endif
 					//WarmSteel - Dont try if we're already quite close to our friend
-					if (!TileIsOutOfBounds(sClosestFriend) && PythSpacesAway(pSoldier->sGridNo, sClosestFriend) > pSoldier->GetMaxDistanceVisible(sClosestFriend, 0, CALC_FROM_ALL_DIRS ))
+					// sevenfm: removed distance limit
+					if (!TileIsOutOfBounds(sClosestFriend))
+					//if (!TileIsOutOfBounds(sClosestFriend) && PythSpacesAway(pSoldier->sGridNo, sClosestFriend) > pSoldier->GetMaxDistanceVisible(sClosestFriend, 0, CALC_FROM_ALL_DIRS ))
 					{
 						//////////////////////////////////////////////////////////////////////
 						// GO DIRECTLY TOWARDS CLOSEST FRIEND UNDER FIRE OR WHO LAST RADIOED
@@ -4281,8 +4305,8 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	else
 	{
 		// determine if we happen to be in water (in which case we're in BIG trouble!)
-		bInWater = Water( pSoldier->sGridNo );
-		bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo );
+		bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+		bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 
 		// check if standing in tear gas without a gas mask on
 		bInGas = InGasOrSmoke( pSoldier, pSoldier->sGridNo );
@@ -5698,10 +5722,10 @@ L_NEWAIM:
 				pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, BestAttack.sTarget, bReserveAP, AI_ACTION_GET_CLOSER, 0 );
 
 				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData) &&
-					!Water(pSoldier->aiData.usActionData) &&
+					!Water(pSoldier->aiData.usActionData, pSoldier->pathing.bLevel) &&
 					!InGas(pSoldier, pSoldier->aiData.usActionData) &&
 					PythSpacesAway(pSoldier->aiData.usActionData, BestAttack.sTarget) < PythSpacesAway(pSoldier->sGridNo, BestAttack.sTarget) &&
-					LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, BestAttack.sTarget, BestAttack.bTargetLevel, TRUE ) )
+					LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, BestAttack.sTarget, BestAttack.bTargetLevel, TRUE, CALC_FROM_ALL_DIRS ) )
 				{
 					return( AI_ACTION_GET_CLOSER );
 				}
@@ -6070,13 +6094,14 @@ L_NEWAIM:
 #endif
 		//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"AI %d taking cover, morale %d, from %d to %d", pSoldier->ubID, pSoldier->aiData.bAIMorale, pSoldier->sGridNo, sBestCover );
 		pSoldier->aiData.usActionData = sBestCover;
-		if(!TileIsOutOfBounds(sClosestOpponent))//dnl ch58 150913 After taking cover change facing toward recent target or closest enemy, currently such turn not charge APs and seems because AI is still in moving animation from take cover action
+		// sevenfm: disabled
+		/*if(!TileIsOutOfBounds(sClosestOpponent))//dnl ch58 150913 After taking cover change facing toward recent target or closest enemy, currently such turn not charge APs and seems because AI is still in moving animation from take cover action
 		{
 			if(!TileIsOutOfBounds(pSoldier->sLastTarget))
 				sClosestOpponent = pSoldier->sLastTarget;
 			pSoldier->aiData.bNextAction = AI_ACTION_CHANGE_FACING;
 			pSoldier->aiData.usNextActionData = atan8(CenterX(sBestCover),CenterY(sBestCover),CenterX(sClosestOpponent),CenterY(sClosestOpponent));
-		}
+		}*/
 		return(AI_ACTION_TAKE_COVER);
 	}
 
@@ -6566,7 +6591,7 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 			return( AI_ACTION_NONE );
 		}
 
-		bInWater = Water( pSoldier->sGridNo );
+		bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 
 		if ( bInWater && PreRandom( 2 ) )
 		{
@@ -7024,7 +7049,7 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 			iChance = 5 * WhatIKnowThatPublicDont(pSoldier,FALSE);   // use 5 * for YELLOW alert
 
 			// if I actually know something they don't and I ain't swimming (deep water)
-			if (iChance && !DeepWater( pSoldier->sGridNo ))
+			if (iChance && !DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel ))
 			{
 				// CJC: this addition allows for varying difficulty levels for soldier types
 				iChance += gbDiff[ DIFF_RADIO_RED_ALERT ][ SoldierDifficultyLevel( pSoldier ) ] / 2;
@@ -7211,8 +7236,8 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 		
 
 		// determine if we happen to be in water (in which case we're in BIG trouble!)
-		bInWater = Water( pSoldier->sGridNo );
-		bInDeepWater = Water( pSoldier->sGridNo );
+		bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+		bInDeepWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 			
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: crouch and rest if running out of breath");
 		////////////////////////////////////////////////////////////////////////
@@ -7305,7 +7330,7 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 				{
 					pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,tempGridNo,GetAPsProne( pSoldier, TRUE),AI_ACTION_SEEK_OPPONENT,0);
 
-					if ( LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) )
+					if ( LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS) )
 					{
 						// reserve APs for a possible crouch plus a shot
 						pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, tempGridNo, (INT8) (MinAPsToAttack( pSoldier, tempGridNo, ADDTURNCOST, 0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS);
@@ -7504,7 +7529,7 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 									{
 										pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,sClosestDisturbance,GetAPsCrouch( pSoldier, TRUE), AI_ACTION_SEEK_OPPONENT,0);
 										//pSoldier->numFlanks = 0;
-										if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE ) )
+										if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS ) )
 										{
 											// reserve APs for a possible crouch plus a shot
 											pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8) (MinAPsToAttack( pSoldier, sClosestDisturbance, ADDTURNCOST, 0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
@@ -7542,7 +7567,7 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 								else
 								{
 									// let's be a bit cautious about going right up to a location without enough APs to shoot
-									if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE ) )
+									if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS ) )
 									{
 										// reserve APs for a possible crouch plus a shot
 										pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8) (MinAPsToAttack( pSoldier, sClosestDisturbance, ADDTURNCOST, 0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
@@ -7903,8 +7928,8 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 		ubCanMove = (pSoldier->bActionPoints >= MinPtsToMove(pSoldier));
 		
 		// determine if we happen to be in water (in which case we're in BIG trouble!)
-		bInWater = Water( pSoldier->sGridNo );
-		bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo );
+		bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+		bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 			
 		// calculate our morale
 		pSoldier->aiData.bAIMorale = CalcMorale(pSoldier);

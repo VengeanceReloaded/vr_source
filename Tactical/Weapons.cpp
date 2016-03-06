@@ -4340,7 +4340,7 @@ BOOLEAN DoSpecialEffectAmmoMiss( UINT8 ubAttackerID, UINT16 usWeaponIndex, INT32
 		MercPtrs[ ubAttackerID ]->bTargetLevel == 0 &&
 		AmmoTypes[ubAmmoType].highExplosive != 0 )
 	{
-		if(!Water(sGridNo))
+		if(!Water(sGridNo, 0))
 		{
 			NewSmokeEffect( sGridNo, AmmoTypes[ubAmmoType].highExplosive, 0, ubAttackerID );
 			if( (NightTime() || gbWorldSectorZ) )

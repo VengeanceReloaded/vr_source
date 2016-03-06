@@ -88,7 +88,7 @@ INT8 OKToAttack(SOLDIERTYPE * pSoldier, int target)
 	if (target == pSoldier->sGridNo)
 		return(NOSHOOT_MYSELF);
 
-	if (WaterTooDeepForAttacks(pSoldier->sGridNo))
+	if (WaterTooDeepForAttacks(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 		return(NOSHOOT_WATER);
 
 	// make sure a weapon is in hand (FEB.8 ADDITION: tossable items are also OK)
@@ -374,12 +374,8 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 	{
 		if ( (pSoldier->aiData.fAIFlags & AI_CAUTIOUS) )
 		{
-			//INT32 sClosestThreat = ClosestKnownOpponent( pSoldier, NULL, NULL );
-
 			// if soldier is already crouched/prone, use SWATTING
 			if( IS_MERC_BODY_TYPE(pSoldier ) &&
-				//!TileIsOutOfBounds( sClosestThreat) &&
-				// PythSpacesAway(pSoldier->sGridNo, sClosestThreat) > DAY_VISION_RANGE / 4
 				(pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM) &&
 				gAnimControl[ pSoldier->usAnimState ].ubEndHeight <= ANIM_CROUCH )
 			{
@@ -387,7 +383,9 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 			}
 			// use WALKING instead of RUNNING
 			if( MovementMode[bAction][Urgency[pSoldier->aiData.bAlertStatus][pSoldier->aiData.bAIMorale]] == RUNNING )
+			{
 				return( WALKING );
+			}
 
 			// if not RUNNING, use default movement mode
 			return MovementMode[bAction][Urgency[pSoldier->aiData.bAlertStatus][pSoldier->aiData.bAIMorale]];
@@ -418,7 +416,7 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 
 				// use running when in light at night (moving slowly in light at night is dangerous)
 				if( NightTime() &&
-					InLightAtNight( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) &&
+					InLightAtNight( pSoldier->sGridNo, pSoldier->pathing.bLevel ) &&
 					(bAction == AI_ACTION_SEEK_OPPONENT || 
 					bAction == AI_ACTION_GET_CLOSER ||
 					bAction == AI_ACTION_SEEK_FRIEND ||
@@ -428,31 +426,15 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 					return RUNNING;
 				}
 
-				// night crawling approach (disabled)
-				/*if( NightTime() &&
-					!InLightAtNight(pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
-					pSoldier->aiData.bAlertStatus == STATUS_RED &&
-					!pSoldier->aiData.bUnderFire &&
-					!GuySawEnemyThisTurnOrBefore(pSoldier) &&
-					CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) == 0 &&
-					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) > 3*sDistanceVisible/4 &&
-					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&
-					AICountFriendsInCombatSameSpot(pSoldier) == 0 &&
-					LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, sClosestThreat, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
-					(bAction == AI_ACTION_SEEK_OPPONENT) )
-				{
-					return CRAWLING;
-				}*/
-
 				// night swatting approach (more chance for AI to sneak unseen and get interrupt)
 				if( NightTime() &&
-					!InLightAtNight(pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+					!InLightAtNight( pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
 					pSoldier->aiData.bAlertStatus == STATUS_RED &&
 					pSoldier->aiData.bShock == 0 &&
 					!GuySawEnemyThisTurnOrBefore(pSoldier) &&					
 					CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) < 3 &&
 					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&
-					AICountFriendsInCombatSameSpot(pSoldier) == 0 &&
+					CountFriendsBlack(pSoldier) == 0 &&
 					(bAction == AI_ACTION_SEEK_OPPONENT) )
 				{					
 					return SWATTING;
@@ -460,22 +442,29 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 
 				// use swatting/crawling for SEEK in RED state if soldier is already crouched/prone
 				// (more chance for AI to sneak unseen and get interrupt)
-				if( (!NightTime() || !InLightAtNight(pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel)) &&
+				if( !InLightAtNight( pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
 					pSoldier->aiData.bAlertStatus == STATUS_RED &&
 					pSoldier->aiData.bShock == 0 &&
 					!GuySawEnemyThisTurnOrBefore(pSoldier) &&					
-					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&
-					RangeChangeDesire(pSoldier) < 4 &&
 					CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) < 3 &&
-					AICountFriendsInCombatSameSpot(pSoldier) == 0 &&
+					PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*sDistanceVisible/2 &&					
+					CountFriendsBlack(pSoldier) == 0 &&
+					RangeChangeDesire(pSoldier) < 4 &&					
 					gAnimControl[ pSoldier->usAnimState ].ubEndHeight <= ANIM_CROUCH &&
 					(bAction == AI_ACTION_SEEK_OPPONENT) )
 				{
-					/*if( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE &&
-						!InARoom( pSoldier->sGridNo, &usRoom ) )
-					{
-						return CRAWLING;
-					}*/
+					return SWATTING;
+				}
+
+				// use swatting for taking cover
+				if( pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+					PythSpacesAway( pSoldier->sGridNo, sClosestThreat ) > DAY_VISION_RANGE / 8 &&
+					(pSoldier->aiData.bUnderFire && RangeChangeDesire(pSoldier) < 4 ||
+					pSoldier->aiData.bShock > 2*RangeChangeDesire(pSoldier) ||
+					pSoldier->aiData.bShock > 0 && gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) &&
+					!pSoldier->aiData.bLastAttackHit &&
+					( bAction == AI_ACTION_TAKE_COVER ) )
+				{
 					return SWATTING;
 				}
 
@@ -512,7 +501,8 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 					( bAction == AI_ACTION_SEEK_OPPONENT || 
 					bAction == AI_ACTION_GET_CLOSER ||
 					bAction == AI_ACTION_SEEK_FRIEND ||
-					bAction == AI_ACTION_TAKE_COVER ) )
+					bAction == AI_ACTION_TAKE_COVER ||
+					bAction == AI_ACTION_SEEK_NOISE ) )
 				{
 					return SWATTING;
 				}
@@ -528,7 +518,8 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 					( bAction == AI_ACTION_SEEK_OPPONENT || 
 					bAction == AI_ACTION_GET_CLOSER ||
 					bAction == AI_ACTION_SEEK_FRIEND ||
-					bAction == AI_ACTION_TAKE_COVER ) )
+					bAction == AI_ACTION_TAKE_COVER ||
+					bAction == AI_ACTION_SEEK_NOISE ) )
 				{
 					return SWATTING;
 				}
@@ -555,9 +546,8 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 
 void NewDest(SOLDIERTYPE *pSoldier, INT32 usGridNo)
 {
-	// ATE: Setting sDestination? Tis does not make sense...
-	//pSoldier->pathing.sDestination = usGridNo;
-	BOOLEAN fSet = FALSE;
+	// sevenfm: disable
+	/*BOOLEAN fSet = FALSE;
 
 	if ( IS_MERC_BODY_TYPE( pSoldier ) && pSoldier->aiData.bAction == AI_ACTION_TAKE_COVER && (pSoldier->aiData.bOrders == DEFENSIVE || pSoldier->aiData.bOrders == CUNNINGSOLO || pSoldier->aiData.bOrders == CUNNINGAID ) && (SoldierDifficultyLevel( pSoldier ) >= 2) )
 	{
@@ -597,15 +587,6 @@ void NewDest(SOLDIERTYPE *pSoldier, INT32 usGridNo)
 					fSet = TRUE;
 					break;
 				default:
-/*					if ( PreRandom( 5 - SoldierDifficultyLevel( pSoldier ) ) == 0 )
-					{
-						INT32 sClosestNoise = (INT16) MostImportantNoiseHeard( pSoldier, NULL, NULL, NULL );						
-						if ( !TileIsOutOfBounds(sClosestNoise) && PythSpacesAway( pSoldier->sGridNo, sClosestNoise ) < MaxDistanceVisible() + 10 )
-						{
-							pSoldier->usUIMovementMode = SWATTING;
-							fSet = TRUE;
-						}
-					}*/
 					if ( !fSet )
 					{
 						pSoldier->usUIMovementMode = DetermineMovementMode( pSoldier, pSoldier->aiData.bAction );
@@ -625,14 +606,21 @@ void NewDest(SOLDIERTYPE *pSoldier, INT32 usGridNo)
 		{
 			pSoldier->usUIMovementMode = WALKING;
 		}
+	}*/
+
+	// sevenfm: always use DetermineMovementMode
+	pSoldier->usUIMovementMode = DetermineMovementMode( pSoldier, pSoldier->aiData.bAction );
+	// check for non merc bodytypes
+	if ( pSoldier->usUIMovementMode == SWATTING && !IS_MERC_BODY_TYPE( pSoldier ) )
+	{
+		pSoldier->usUIMovementMode = WALKING;
 	}
 
 	//pSoldier->EVENT_GetNewSoldierPath( pSoldier->pathing.sDestination, pSoldier->usUIMovementMode );
-	// ATE: Using this more versitile version
-	// Last paramater says whether to re-start the soldier's animation
+	// ATE: Using this more versatile version
+	// Last parameter says whether to re-start the soldier's animation
 	// This should be done if buddy was paused for fNoApstofinishMove...
 	pSoldier->EVENT_InternalGetNewSoldierPath( usGridNo, pSoldier->usUIMovementMode , FALSE, pSoldier->flags.fNoAPToFinishMove );
-
 }
 
 
@@ -734,7 +722,7 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier)
 			// sevenfm: r7972 fix
 			{
 				INT8 bAPForStandUp = 0;
-				INT8 bAPToLookAtWall = (FindDirectionForClimbing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) == pSoldier->ubDirection) ? 0 : GetAPsToLook( pSoldier );
+				INT8 bAPToLookAtWall = (FindDirectionForClimbing( pSoldier, pSoldier->sGridNo ) == pSoldier->ubDirection) ? 0 : GetAPsToLook( pSoldier );
 
 				// SANDRO - improved this a bit
 				if (pSoldier->pathing.bLevel == 0)
@@ -1146,6 +1134,12 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			continue;			// next merc
 		}
 
+		// sevenfm: ignore empty vehicles
+		if( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
+		{
+			continue;
+		}
+
 		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
 		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpp->ubID;
 		psLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpp->ubID;
@@ -1193,17 +1187,35 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			continue;
 		}
 
-		sDistToEnemy = PythSpacesAway( pSoldier->sGridNo, sGridNo );
+		iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
+
+		// if we can get there and it's first reachable enemy or closer than other known enemies
+		if( iPathCost != 0 &&
+			(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath) ) 
+		{
+			if (fClimbingNecessary)
+			{
+				sClosestDisturbance = sClimbGridNo;
+			}
+			else
+			{
+				sClosestDisturbance = sGridNo;
+			}
+
+			iShortestPath = iPathCost;
+			fClosestClimbingNecessary = fClimbingNecessary;
+		}
+
+		/*sDistToEnemy = PythSpacesAway( pSoldier->sGridNo, sGridNo );
 		if (sDistToEnemy < sDistToClosestEnemy )
 		{
 			sClosestEnemy = sGridNo;
 			bClosestLevel = bLevel;
 			sDistToClosestEnemy = sDistToEnemy;
-		}
-
+		}*/
 	}
 	
-	if (!TileIsOutOfBounds(sClosestEnemy))
+	/*if (!TileIsOutOfBounds(sClosestEnemy))
 	{
 		iPathCost = EstimatePathCostToLocation( pSoldier, sClosestEnemy, bClosestLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 		// if we can get there
@@ -1220,7 +1232,7 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			iShortestPath = iPathCost;
 			fClosestClimbingNecessary = fClimbingNecessary;
 		}
-	}
+	}*/
 
 	// if any "misc. noise" was also heard recently	
 	if (!TileIsOutOfBounds(pSoldier->aiData.sNoiseGridno) && pSoldier->aiData.sNoiseGridno != sClosestDisturbance)
@@ -1249,11 +1261,8 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			// get the AP cost to get to the location of the noise
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
-			// sevenfm: check that noise is closer than known disturbance and soldier is not flanking
-			//if (iPathCost != 0)
-			if (iPathCost != 0 && 
-				!AICheckIsFlanking(pSoldier) &&
-				(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath))
+			// sevenfm: only if we don't know enemy location
+			if (iPathCost != 0 && TileIsOutOfBounds(sClosestDisturbance))
 			{
 				if (fClimbingNecessary)
 				{
@@ -1278,17 +1287,12 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 
 		// if we are not NEAR the noise gridno...
 		if ( pSoldier->pathing.bLevel != bLevel || PythSpacesAway( pSoldier->sGridNo, sGridNo ) >= 6 || SoldierTo3DLocationLineOfSightTest( pSoldier, sGridNo, bLevel, 0, FALSE, NO_DISTANCE_LIMIT ) == 0 )
-		// if we are NOT there (at the noise gridno)
-		//	if (sGridNo != pSoldier->sGridNo)
 		{
 			// get the AP cost to get to the location of the noise
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
-			// sevenfm: check that noise is closer than known disturbance and soldier is not flanking
-			//if (iPathCost != 0)
-			if (iPathCost != 0 && 
-				!AICheckIsFlanking(pSoldier) &&
-				(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath))
+			// sevenfm: only if we don't know enemy location
+			if (iPathCost != 0 && TileIsOutOfBounds(sClosestDisturbance))
 			{
 				if (fClimbingNecessary)
 				{
@@ -1754,10 +1758,16 @@ INT32 FindClosestClimbPointAvailableToAI( SOLDIERTYPE * pSoldier, INT32 sStartGr
 	INT32	sRoamingOrigin;
 	INT16	sRoamingRange;
 
+	// sevenfm: safety check
+	if(!pSoldier)
+	{
+		return NOWHERE;
+	}
+
 	if ( pSoldier->flags.uiStatusFlags & SOLDIER_PC )
 	{
 		sRoamingOrigin = pSoldier->sGridNo;
-		sRoamingRange = 99;
+		sRoamingRange = MAX_ROAMING_RANGE;
 	}
 	else
 	{
@@ -1860,7 +1870,8 @@ INT16 EstimatePathCostToLocation( SOLDIERTYPE * pSoldier, INT32 sDestGridNo, INT
 			else
 			{
 				sPathCost = PlotPath( pSoldier, sClimbGridNo, FALSE, FALSE, FALSE, WALKING, FALSE, FALSE, 0 );
-				if (sPathCost != 0)
+				// sevenfm: check if we are already standing at climb gridno
+				if (sPathCost != 0 || pSoldier->sGridNo == sClimbGridNo)
 				{
 					// add in cost of climbing down
 					if (fAddCostAfterClimbingUp)
@@ -1903,7 +1914,8 @@ INT16 EstimatePathCostToLocation( SOLDIERTYPE * pSoldier, INT32 sDestGridNo, INT
 		else
 		{
 			sPathCost = PlotPath( pSoldier, sClimbGridNo, FALSE, FALSE, FALSE, WALKING, FALSE, FALSE, 0);
-			if (sPathCost != 0)
+			// sevenfm: check if we are already standing at climb gridno
+			if (sPathCost != 0 || pSoldier->sGridNo == sClimbGridNo)
 			{
 				// add in the cost of climbing up or down
 				if (pSoldier->pathing.bLevel == 0)
@@ -2120,7 +2132,7 @@ INT16 DistanceToClosestFriend( SOLDIERTYPE * pSoldier )
 
 BOOLEAN InWaterGasOrSmoke( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 {
-	if (WaterTooDeepForAttacks( sGridNo ))
+	if (WaterTooDeepForAttacks( sGridNo, pSoldier->pathing.bLevel ))
 	{
 		return(TRUE);
 	}
@@ -2146,7 +2158,7 @@ BOOLEAN InGasOrSmoke( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 
 INT16 InWaterOrGas(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 {
-	if (WaterTooDeepForAttacks( sGridNo ))
+	if (WaterTooDeepForAttacks( sGridNo, pSoldier->pathing.bLevel ))
 	{
 		return(TRUE);
 	}
@@ -2210,7 +2222,7 @@ BOOLEAN WearGasMaskIfAvailable( SOLDIERTYPE * pSoldier )
 	return( TRUE );
 }
 
-BOOLEAN InLightAtNight( SOLDIERTYPE* pSoldier, INT32 sGridNo, INT8 bLevel )
+BOOLEAN InLightAtNight( INT32 sGridNo, INT8 bLevel )
 {
 	UINT8 ubBackgroundLightLevel;
 
@@ -2235,12 +2247,10 @@ BOOLEAN InLightAtNight( SOLDIERTYPE* pSoldier, INT32 sGridNo, INT8 bLevel )
 	}
 	
 	// could've been placed here, ignore the light
-	// sevenfm: allow staying in light for CIV_TEAM and soldiers with profile or if soldier's original spot is in room
-	if( InARoom( sGridNo, NULL ) &&
-		(!pSoldier || pSoldier->bTeam == CIV_TEAM || pSoldier->ubProfile != NO_PROFILE || InARoom(pSoldier->aiData.sPatrolGrid[0], NULL) ) )
+	if ( InARoom( sGridNo, NULL ) )	
 	{
 		return( FALSE );
-	}	
+	}
 
 	// NB light levels are backwards, so a lower light level means the
 	// spot in question is BRIGHTER
@@ -3482,7 +3492,7 @@ BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier )
 
 // count mobile friends that are in BLACK state and not in a dangerous place or have 3/4 APs or hit enemy recently
 // this is mostly used to check at night if we can cross dangerous area (in light at night or fresh corpses)
-UINT8 AICountFriendsBlack( SOLDIERTYPE *pSoldier )
+UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier )
 {
 	CHECKF(pSoldier);
 
@@ -3511,64 +3521,10 @@ UINT8 AICountFriendsBlack( SOLDIERTYPE *pSoldier )
 			if(!TileIsOutOfBounds(sFriendClosestOpponent) &&
 				PythSpacesAway( sClosestOpponent, sFriendClosestOpponent ) <= ubMaxDist &&
 				pFriend->aiData.bAlertStatus == STATUS_BLACK &&
-				( GetNearestRottingCorpseAIWarning( pFriend->sGridNo ) == 0 && !InLightAtNight(pFriend, pFriend->sGridNo, pFriend->pathing.bLevel) ||
+				( GetNearestRottingCorpseAIWarning( pFriend->sGridNo ) == 0 && !InLightAtNight( pFriend->sGridNo, pFriend->pathing.bLevel) ||
 				pFriend->bActionPoints > 3*pFriend->bInitialActionPoints/4 || 
 				pFriend->aiData.bLastAttackHit )
 				)
-			{
-				ubFriendCount++;
-			}			
-		}
-	}
-
-	return ubFriendCount;
-}
-
-// sevenfm: count friends that are in combat
-// this is used to check if we should use cautious move or run to help friends in fight
-UINT8 AICountFriendsInCombatSameSpot( SOLDIERTYPE *pSoldier )
-{
-	CHECKF(pSoldier);
-
-	SOLDIERTYPE * pFriend;
-	UINT8 ubFriendCount = 0;
-	INT32 sFriendClosestOpponent;
-	INT32 sFriendClosestSeenLastTurnOpponent;
-
-	// use half of actual visual range
-	UINT8 ubMaxDist = VISION_RANGE / 2;
-	// we suggest that we are seeking the closest known opponent (not closest reachable as it's time consuming)
-	INT32 sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
-
-	if(TileIsOutOfBounds(sClosestOpponent))
-	{
-		return 0;
-	}
-
-	// Run through each friendly.
-	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
-	{
-		pFriend = MercPtrs[ iCounter ];		
-
-		// Make sure that character is alive, not too shocked, and conscious
-		if (pFriend != pSoldier && 
-			pFriend->bActive && 
-			pFriend->stats.bLife >= OKLIFE)
-		{
-			sFriendClosestOpponent = ClosestKnownOpponent( pFriend, NULL, NULL );
-			sFriendClosestSeenLastTurnOpponent = ClosestSeenLastTurnOpponent( pFriend, NULL, NULL);
-
-			// check that friend is not sniper (he's close enough to enemy)
-			// check that closest enemy for a friend is near our checked spot
-			// check that closest seen (this turn or last turn) enemy for a friend is near our checked enemy spot
-			if( !TileIsOutOfBounds(sFriendClosestOpponent) &&
-				PythSpacesAway( sClosestOpponent, sFriendClosestOpponent ) <= ubMaxDist &&
-				PythSpacesAway( pFriend->sGridNo, sFriendClosestOpponent ) <= VISION_RANGE &&
-				!TileIsOutOfBounds(sFriendClosestSeenLastTurnOpponent) &&
-				PythSpacesAway( sClosestOpponent, sFriendClosestSeenLastTurnOpponent ) <= ubMaxDist &&
-				pFriend->stats.bLife > pFriend->stats.bLife/2 &&
-				pFriend->bBreath > 25 &&
-				!CoweringShockLevel(pFriend) )
 			{
 				ubFriendCount++;
 			}			
@@ -3602,39 +3558,6 @@ UINT8 CountNearbyFriendliesOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 u
 	}
 
 	return ubFriendCount;
-}
-
-// sevenfm: check if suppression is possible (count friends in the fire direction)
-BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
-{
-	CHECKF(pSoldier);
-
-	SOLDIERTYPE * pFriend;
-	UINT8 ubShootingDir, ubFriendDir;
-
-	ubShootingDir = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(sTargetGridNo),CenterY(sTargetGridNo));
-
-	// Run through each friendly.
-	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
-	{
-		pFriend = MercPtrs[ iCounter ];
-		ubFriendDir = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(pFriend->sGridNo),CenterY(pFriend->sGridNo));
-
-		if (pFriend != pSoldier &&
-			pFriend->bActive &&
-			pFriend->stats.bLife >= OKLIFE &&
-			pSoldier->pathing.bLevel == pFriend->pathing.bLevel &&
-			ubShootingDir == ubFriendDir &&
-			PythSpacesAway( pSoldier->sGridNo, pFriend->sGridNo) < PythSpacesAway(pSoldier->sGridNo, sTargetGridNo) &&
-			CalcAverageCTGTForPosition( pSoldier, pFriend->ubID, pFriend->sGridNo, pFriend->pathing.bLevel, pSoldier->bActionPoints ) > 0 &&
-			( gAnimControl[ pFriend->usAnimState ].ubHeight != ANIM_PRONE ||
-			PythSpacesAway( pSoldier->sGridNo, pFriend->sGridNo ) <= 5 ) )
-		{
-			return FALSE;
-		}
-	}
-
-	return TRUE;
 }
 
 // sevenfm: count nearby friend soldiers

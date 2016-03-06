@@ -802,7 +802,8 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			// add this opponent's cover value to our current total cover value
 			iCurrentCoverValue += CalcCoverValue(pSoldier,pSoldier->sGridNo,iMyThreatValue,pSoldier->bActionPoints,uiLoop,Threat[uiLoop].iOrigRange,morale,&iCurrentScale);
 		}
-		if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
+		if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS) )			
+		//if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
 		{
 			fProneCover = FALSE;
 		}
@@ -976,7 +977,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			}
 
 			// sevenfm: avoid going into deep water if not in deep water already
-			if( DeepWater( sGridNo ) && !DeepWater( pSoldier->sGridNo ) )
+			if( DeepWater( sGridNo, pSoldier->pathing.bLevel ) && !DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel ) )
 			{
 				continue;
 			}
@@ -1024,7 +1025,8 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 						(pSoldier->bActionPoints - iPathCost),
 						uiLoop,iThreatRange,morale,&iCoverScale);
 				}
-				if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
+				if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS) )
+				//if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
 				{
 					fProneCover = FALSE;
 				}
@@ -1410,7 +1412,7 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 			}
 
 			//Madd: skip lighted spots
-			if ( InLightAtNight( pSoldier, sGridNo, pSoldier->pathing.bLevel ) )
+			if ( InLightAtNight( sGridNo, pSoldier->pathing.bLevel ) )
 				continue;
 
 			// OK, this place shows potential.	How useful is it as cover?
@@ -2599,7 +2601,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			//Madd: skip lighted spots
-			if ( InLightAtNight( pSoldier, sGridNo, pSoldier->pathing.bLevel ) )
+			if ( InLightAtNight( sGridNo, pSoldier->pathing.bLevel ) )
 				continue;
 
 			// sevenfm: skip tiles too close to edge
@@ -2609,13 +2611,13 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			// sevenfm: don't go into deep water for flanking
-			if( DeepWater( sGridNo ) )
+			if( DeepWater( sGridNo, pSoldier->pathing.bLevel ) )
 			{
 				continue;
 			}
 
 			// sevenfm: allow water flanking only for CUNNINGSOLO soldiers
-			if( Water( sGridNo ) && pSoldier->aiData.bAttitude != CUNNINGSOLO )
+			if( Water( sGridNo, pSoldier->pathing.bLevel ) && pSoldier->aiData.bAttitude != CUNNINGSOLO )
 			{
 				continue;
 			}
@@ -2634,7 +2636,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 
 			// sevenfm: penalize locations with no sight cover from noise gridno (supposed that we are sneaking)
 			if( PythSpacesAway( sGridNo, sPos) <= sDistanceVisible &&
-				LocationToLocationLineOfSightTest( sGridNo, pSoldier->pathing.bLevel, sPos, pSoldier->pathing.bLevel, TRUE) )
+				LocationToLocationLineOfSightTest( sGridNo, pSoldier->pathing.bLevel, sPos, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS) )
 			{
 				//continue;
 				sTempDist = sTempDist / 2;
@@ -2699,13 +2701,13 @@ INT32 FindClosestClimbPoint (SOLDIERTYPE *pSoldier, BOOLEAN fClimbUp )
 {
 	INT32 sBestSpot = NOWHERE;
 
+	// sevenfm: safety check
+	if(!pSoldier)
+	{
+		return NOWHERE;
+	}
+
 	//DebugMsg( TOPIC_JA2AI , DBG_LEVEL_3 , "FindClosestClimbPoint");
-
-		//gubNPCAPBudget = 	gubNPCAPBudget = __min( gubNPCAPBudget, gubNPCAPBudget - GetAPsToChangeStance( pSoldier, ANIM_STAND ) -1 ); //-1 for turning cost while standing
-	//NumMessage("Search Range = ",iSearchRange);
-	//NumMessage("gubNPCAPBudget = ",gubNPCAPBudget);
-
-	// 0verhaul:  This function is optimized to take advantage of the new climb point info.
 
 	if (fClimbUp)
 	{
@@ -2713,7 +2715,10 @@ INT32 FindClosestClimbPoint (SOLDIERTYPE *pSoldier, BOOLEAN fClimbUp )
 		INT32 sGridNo;
 		static const INT32 iSearchRange = 20;
 		INT16	sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXOffset, sYOffset;
-		UINT8 ubTestDir;
+		//UINT8 ubTestDir;
+
+		INT8 ubClimbDir;
+		INT32 sClimbSpot;
 
 		// determine maximum horizontal limits
 		sMaxLeft  = min( iSearchRange, (pSoldier->sGridNo % MAXCOL));
@@ -2729,6 +2734,7 @@ INT32 FindClosestClimbPoint (SOLDIERTYPE *pSoldier, BOOLEAN fClimbUp )
 
 		//DebugMsg( TOPIC_JA2AI , DBG_LEVEL_3 , String("Max: Left %d Right %d Up %d Down %d", sMaxLeft, sMaxRight, sMaxUp, sMaxDown ) );
 
+		// sevenfm: new calculation using FindHeigherLevel
 		for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
 		{
 			for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
@@ -2743,7 +2749,6 @@ INT32 FindClosestClimbPoint (SOLDIERTYPE *pSoldier, BOOLEAN fClimbUp )
 					continue;
 				}
 
-
 				if ( sGridNo == pSoldier->pathing.sBlackList )
 				{
 					continue;
@@ -2755,24 +2760,32 @@ INT32 FindClosestClimbPoint (SOLDIERTYPE *pSoldier, BOOLEAN fClimbUp )
 					continue;
 				}
 
-				if (gpWorldLevelData[ sGridNo].ubExtFlags[0] & MAPELEMENT_EXT_CLIMBPOINT)
+				// exclude water tiles
+				if ( Water( sGridNo, pSoldier->pathing.bLevel ) )
 				{
-					// Search for the destination climb point on the roof
-					for (ubTestDir=0; ubTestDir < 8; ubTestDir += 2)
+					continue;
+				}
+
+				// check that there's noone at sGridNo at level 0 (this soldier is allowed)
+				if( WhoIsThere2( sGridNo, 0 ) != NOBODY &&
+					WhoIsThere2( sGridNo, 0 ) != pSoldier->ubID )
+				{
+					continue;
+				}
+
+				if( FindHeigherLevel( pSoldier, sGridNo, pSoldier->ubDirection, &ubClimbDir ) )
+				{
+					// ubClimbDir is new direction
+					// check that there's noone there
+					sClimbSpot = NewGridNo( sGridNo, DirectionInc( ubClimbDir));
+					if( WhoIsThere2( sClimbSpot, 1 ) == NOBODY )
 					{
-						INT32 sTestGridNo = NewGridNo( sGridNo, DirectionInc( ubTestDir));
-						// And see if it or the ground location is occupied
-						if (gpWorldLevelData[ sTestGridNo ].ubExtFlags[1] & MAPELEMENT_EXT_CLIMBPOINT &&
-							(WhoIsThere2( sTestGridNo, 1 ) == NOBODY) &&
-							(WhoIsThere2( sGridNo, 0 ) == NOBODY) )
+						// Good climb point.  Is it closer than the previous point?
+						if( TileIsOutOfBounds(sBestSpot) ||
+							GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo , sGridNo ) < GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo , sBestSpot ))
 						{
-							// Good climb point.  Is it closer than the previous point?
-							if ( GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo , sGridNo ) < 
-								GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo , sBestSpot ))
-							{
-								// If not, we have a new winnar!
-								sBestSpot = sGridNo;
-							}
+							// If not, we have a new winnar!
+							sBestSpot = sGridNo;
 						}
 					}
 				}
@@ -2789,128 +2802,14 @@ INT32 FindClosestClimbPoint (SOLDIERTYPE *pSoldier, BOOLEAN fClimbUp )
 	return( sBestSpot );
 }
 
-
-
 BOOLEAN CanClimbFromHere (SOLDIERTYPE * pSoldier, BOOLEAN fUp )
 {
-#if 1
-	return FindDirectionForClimbing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel) != DIRECTION_IRRELEVANT;
-#else
-	BUILDING * pBuilding;
-	INT32 i;
-	INT32 iSearchRange = 1;
-	INT16	sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXOffset, sYOffset;
-
-	//DebugMsg( TOPIC_JA2AI , DBG_LEVEL_3 , "CanClimbFromHere");
-
-
-	// determine maximum horizontal limits
-	sMaxLeft  = min( iSearchRange, (pSoldier->sGridNo % MAXCOL));
-	sMaxRight = min( iSearchRange, MAXCOL - ((pSoldier->sGridNo % MAXCOL) + 1));
-
-	// determine maximum vertical limits
-	sMaxUp   = min( iSearchRange, (pSoldier->sGridNo / MAXROW));
-	sMaxDown = min( iSearchRange, MAXROW - ((pSoldier->sGridNo / MAXROW) + 1));
-
-	INT32 sGridNo=NOWHERE;
-
-	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
-	{
-		for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
-		{
-			// calculate the next potential gridno
-			sGridNo = pSoldier->sGridNo + sXOffset + (MAXCOL * sYOffset);
-			//DebugMsg( TOPIC_JA2AI , DBG_LEVEL_3 , String("Checking grid %d" , sGridNo ));
-
-			//NumMessage("Testing gridno #",gridno);
-			if ( !(sGridNo >=0 && sGridNo < WORLD_MAX) )
-			{
-				continue;
-			}
-
-
-			if ( sGridNo == pSoldier->pathing.sBlackList )
-			{
-				continue;
-			}
-
-
-			// OK, this place shows potential.	How useful is it as cover?
-			//NumMessage("Promising seems gridno #",gridno);
-
-			// Kaiden: From this point down I've removed an unneccessary call to
-			// FindBuilding, The original code that was from this point till the
-			// end of the function is now commented out AFTER the function.
-
-			pBuilding = FindBuilding ( sGridNo );
-
-			if ( pBuilding != NULL)
-			{
-				if ( fUp )
-				{
-
-					for (i = 0 ; i < pBuilding->ubNumClimbSpots; i++)
-					{
-						if (pBuilding->sUpClimbSpots[ i ] == pSoldier->sGridNo &&
-							(WhoIsThere2( pBuilding->sUpClimbSpots[ i ], 0 ) == NOBODY)
-							&& (WhoIsThere2( pBuilding->sDownClimbSpots[ i ], 1 ) == NOBODY) )
-							return TRUE;
-					}
-				}
-				else
-				{
-					for (i = 0 ; i < pBuilding->ubNumClimbSpots; i++)
-					{
-						if (pBuilding->sDownClimbSpots[ i ] == pSoldier->sGridNo &&
-							(WhoIsThere2( pBuilding->sUpClimbSpots[ i ], 0 ) == NOBODY)
-							&& (WhoIsThere2( pBuilding->sDownClimbSpots[ i ], 1 ) == NOBODY) )
-							return TRUE;
-					}
-				}
-			}
-		}
-	}
-	return FALSE;
-#endif
+	// sevenfm: new calculation using FindHeigherLevel/FindLowerLevel
+	return FindDirectionForClimbing( pSoldier, pSoldier->sGridNo ) != DIRECTION_IRRELEVANT;
 }
-			// OK, this place shows potential.	How useful is it as cover?
-			//NumMessage("Promising seems gridno #",gridno);
 
-/*			if ( FindBuilding ( sGridNo ) != NULL )
-				pBuilding = FindBuilding ( sGridNo );
-		}
-	}
-
-	DebugMsg( TOPIC_JA2AI , DBG_LEVEL_3 , String("Adjacent Building climb spots = %d" , pBuilding->ubNumClimbSpots ));
-	if ( pBuilding != NULL)
-	{
-		if ( fUp )
-		{
-			for (i = 0 ; i < pBuilding->ubNumClimbSpots; i++)
-			{
-				if (pBuilding->sUpClimbSpots[ i ] == pSoldier->sGridNo &&
-					(WhoIsThere2( pBuilding->sUpClimbSpots[ i ], 0 ) == NOBODY)
-					&& (WhoIsThere2( pBuilding->sDownClimbSpots[ i ], 1 ) == NOBODY) )
-					return TRUE;
-			}
-		}
-		else
-		{
-			for (i = 0 ; i < pBuilding->ubNumClimbSpots; i++)
-			{
-				if (pBuilding->sDownClimbSpots[ i ] == pSoldier->sGridNo &&
-					(WhoIsThere2( pBuilding->sUpClimbSpots[ i ], 0 ) == NOBODY)
-					&& (WhoIsThere2( pBuilding->sDownClimbSpots[ i ], 1 ) == NOBODY) )
-					return TRUE;
-			}
-		}
-	}
-	return FALSE;
-}
-*/
 extern BUILDING gBuildings[ MAX_BUILDINGS ];
 extern UINT8 gubNumberOfBuildings;
-
 
 INT32 FindBestCoverNearTheGridNo(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubSearchRadius )
 {
@@ -2935,44 +2834,47 @@ INT32 FindBestCoverNearTheGridNo(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubS
 
 }
 
-INT8 FindDirectionForClimbing( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel )
+// sevenfm: new calculation using FindHeigherLevel/FindLowerLevel
+INT8 FindDirectionForClimbing( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 {
-	UINT8 ubClimbDir;
+	INT8 ubClimbDir;
 	INT32 sClimbSpot;
 
-	if (bLevel == 0)
+	if(!pSoldier)
 	{
-		if (gpWorldLevelData[ sGridNo].ubExtFlags[0] & MAPELEMENT_EXT_CLIMBPOINT)
+		return DIRECTION_IRRELEVANT;
+	}
+
+	if (pSoldier->pathing.bLevel == 0)
+	{
+		// check climb up
+		if( FindHeigherLevel( pSoldier, sGridNo, pSoldier->ubDirection, &ubClimbDir ) )
 		{
-			for (ubClimbDir=0; ubClimbDir<8; ubClimbDir+=2)
+			// ubClimbDir is new direction
+			// check that there's noone there
+			sClimbSpot = NewGridNo( sGridNo, DirectionInc( ubClimbDir));
+			if( WhoIsThere2( sClimbSpot, 1 ) == NOBODY &&
+				!Water(sClimbSpot, 1) )
 			{
-				sClimbSpot = NewGridNo( sGridNo, DirectionInc( ubClimbDir));
-				if (gpWorldLevelData[ sClimbSpot].ubExtFlags[1] & MAPELEMENT_EXT_CLIMBPOINT &&
-					WhoIsThere2( sClimbSpot, 1 ) == NOBODY )
-				{
-					return ubClimbDir;
-				}
+				return ubClimbDir;
 			}
 		}
 	}
-	else if (bLevel == 1)
+	else
 	{
-		//CHRISL: If NewInv and wearing a backpack, don't allow climbing
-		if(UsingNewInventorySystem() == true && pSoldier->inv[BPACKPOCKPOS].exists() == true)
-			return DIRECTION_IRRELEVANT;
-		if (gpWorldLevelData[ sGridNo].ubExtFlags[1] & MAPELEMENT_EXT_CLIMBPOINT)
+		// check climb down
+		if( FindLowerLevel( pSoldier, pSoldier->sGridNo, pSoldier->ubDirection, &ubClimbDir ) )
 		{
-			for (ubClimbDir=0; ubClimbDir<8; ubClimbDir+=2)
+			// ubClimbDir is new direction
+			sClimbSpot = NewGridNo( sGridNo, DirectionInc( ubClimbDir));
+			if( WhoIsThere2( sClimbSpot, 0 ) == NOBODY &&
+				!Water(sClimbSpot, 0) )
 			{
-				sClimbSpot = NewGridNo( sGridNo, DirectionInc( ubClimbDir));
-				if (gpWorldLevelData[ sClimbSpot].ubExtFlags[0] & MAPELEMENT_EXT_CLIMBPOINT &&
-					WhoIsThere2( sClimbSpot, 0 ) == NOBODY )
-				{
-					return ubClimbDir;
-				}
+				return ubClimbDir;
 			}
 		}
 	}
+
 	return DIRECTION_IRRELEVANT;
 }
 
