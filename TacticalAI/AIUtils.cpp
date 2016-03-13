@@ -1261,8 +1261,10 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			// get the AP cost to get to the location of the noise
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
-			// sevenfm: only if we don't know enemy location
-			if (iPathCost != 0 && TileIsOutOfBounds(sClosestDisturbance))
+			// sevenfm: only if we don't know enemy location or noise source is close and we have not seen enemy recently
+			if (iPathCost != 0 &&
+				!AICheckIsFlanking(pSoldier) &&
+				(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath && !GuySawEnemyThisTurnOrBefore(pSoldier)))
 			{
 				if (fClimbingNecessary)
 				{
@@ -1291,8 +1293,10 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			// get the AP cost to get to the location of the noise
 			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
 			// if we can get there
-			// sevenfm: only if we don't know enemy location
-			if (iPathCost != 0 && TileIsOutOfBounds(sClosestDisturbance))
+			// sevenfm: only if we don't know enemy location or noise source is close and we have not seen enemy recently
+			if (iPathCost != 0 &&
+				!AICheckIsFlanking(pSoldier) &&
+				(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath && !GuySawEnemyThisTurnOrBefore(pSoldier)))
 			{
 				if (fClimbingNecessary)
 				{

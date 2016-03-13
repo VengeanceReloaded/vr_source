@@ -202,7 +202,8 @@ INT8 CalcBestCTGT( SOLDIERTYPE *pSoldier, UINT8 ubOppID, INT32 sOppGridNo, INT8 
 
 	// using only ints for maximum execution speed here
 	// CJC: Well, so much for THAT idea!
-	INT32 sCentralGridNo, sAdjSpot, sNorthGridNo, sSouthGridNo, sCheckSpot, sOKTest;
+	INT32 sCentralGridNo, sAdjSpot, sNorthGridNo, sSouthGridNo, sCheckSpot;
+	BOOLEAN sOKTest;
 
 	INT8 bThisCTGT, bBestCTGT = 0;
 
@@ -227,7 +228,7 @@ INT8 CalcBestCTGT( SOLDIERTYPE *pSoldier, UINT8 ubOppID, INT32 sOppGridNo, INT8 
 		if (sAdjSpot != sCentralGridNo)
 		{
 			// if the adjacent spot can we walked on and isn't in water or gas
-			if ((NewOKDestination( pSoldier, sAdjSpot, IGNOREPEOPLE, bLevel ) > 0) && !InWaterOrGas( pSoldier, sAdjSpot ))
+			if ( NewOKDestination( pSoldier, sAdjSpot, IGNOREPEOPLE, bLevel ) && !InWaterOrGas( pSoldier, sAdjSpot ) )
 			{
 				switch (sDir)
 				{
@@ -572,6 +573,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 	UINT8 ubNearbyFriends;
 	BOOLEAN fProneCover;
 	UINT8 ubDiff = SoldierDifficultyLevel( pSoldier );
+	INT32 iTileSightLimit;
 
 	// There's no cover when boxing!
 	if (gTacticalStatus.bBoxingState == BOXING)
@@ -802,7 +804,8 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			// add this opponent's cover value to our current total cover value
 			iCurrentCoverValue += CalcCoverValue(pSoldier,pSoldier->sGridNo,iMyThreatValue,pSoldier->bActionPoints,uiLoop,Threat[uiLoop].iOrigRange,morale,&iCurrentScale);
 		}
-		if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS) )			
+		iTileSightLimit = Threat[uiLoop].pOpponent->GetMaxDistanceVisible( pSoldier->sGridNo, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS );
+		if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, iTileSightLimit, STANDING_LOS_POS, PRONE_LOS_POS) )
 		//if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
 		{
 			fProneCover = FALSE;
@@ -1025,7 +1028,8 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 						(pSoldier->bActionPoints - iPathCost),
 						uiLoop,iThreatRange,morale,&iCoverScale);
 				}
-				if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS) )
+				iTileSightLimit = Threat[uiLoop].pOpponent->GetMaxDistanceVisible( sGridNo, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS );
+				if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, sGridNo, pSoldier->pathing.bLevel, TRUE, iTileSightLimit, STANDING_LOS_POS, PRONE_LOS_POS) )
 				//if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
 				{
 					fProneCover = FALSE;

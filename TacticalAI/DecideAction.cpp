@@ -46,6 +46,7 @@
 extern BOOLEAN gfHiddenInterrupt;
 extern BOOLEAN gfUseAlternateQueenPosition;
 extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fHipStance );
+extern BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam );
 
 // global status time counters to determine what takes the most time
 
@@ -3314,13 +3315,26 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					bHelpPts = -99;
 				}
 
-				// sevenfm: don't watch when overcrowded
-				bWatchPts -= CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8);
-
-				// sevenfm: don't help if seen enemy recently
-				if( GuySawEnemyThisTurnOrBefore(pSoldier) )
+				// sevenfm: disable watching if soldier is under fire or in dangerous place
+				// don't watch if some friends can see my closest opponent
+				if( //fDangerousPlace ||
+					InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) ||
+					pSoldier->aiData.bUnderFire ||
+					CountFriendsBlack(pSoldier) > 0 )
 				{
-					bHelpPts = -99;
+					bWatchPts -= 10;
+				}
+
+				// sevenfm: don't watch when overcrowded and not in a building
+				if( !InARoom(pSoldier->sGridNo, NULL) )
+				{
+					bWatchPts -= CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8);
+				}
+
+				// sevenfm: don't help if seen enemy recently or under fire
+				if( GuySawEnemyThisTurnOrBefore(pSoldier) || pSoldier->aiData.bUnderFire )
+				{
+					bHelpPts -= 10;
 				}
 			}
 
@@ -3555,12 +3569,13 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					// take a look at our highest watch point... if it's still visible, turn to face it and then wait
 					bHighestWatchLoc = GetHighestVisibleWatchedLoc( pSoldier->ubID );
 					//sDistVisible =  DistanceVisible( pSoldier, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] );
-					// sevenfm: check that we have prone sight cover from watched location
+					// sevenfm: check that we have prone sight cover from watched location or watched location is empty
 					if ( bHighestWatchLoc != -1 &&
-						!LocationToLocationLineOfSightTest(gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ], pSoldier->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS) )
+						(WatchedLocLocationIsEmpty(gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], pSoldier->bTeam) ||
+						!LocationToLocationLineOfSightTest(gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, PRONE_LOS_POS, PRONE_LOS_POS)) )
 					{
 						// see if we need turn to face that location
-						ubOpponentDir = atan8( CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX( gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] ),CenterY( gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] ) );
+						ubOpponentDir = atan8( CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX( gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc] ),CenterY( gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc] ) );
 
 						// if soldier is not already facing in that direction,
 						// and the opponent is close enough that he could possibly be seen
@@ -3594,14 +3609,11 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 								return( AI_ACTION_END_TURN );
 							}*/
 						}
-
 					}
 
 					bWatchPts = -99;
 					DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: couldn't watch");
-
 				}
-
 
 				DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: checking to help");
 				// if HELPING is possible and at least as desirable as seeking or hiding

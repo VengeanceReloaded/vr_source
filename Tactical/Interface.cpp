@@ -1785,7 +1785,9 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	GetSoldier( &pSoldier, usSoldierID );
 
 	if( !pSoldier )
+	{
 		return;
+	}
 
 	if ( pSoldier->bVisible == -1 && !(gTacticalStatus.uiFlags & SHOW_ALL_MERCS) )
 	{
