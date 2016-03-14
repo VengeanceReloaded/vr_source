@@ -1093,6 +1093,47 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 
 		}
 
+		if(Soldier.ubProfile == NO_PROFILE)
+		{
+			switch(Soldier.ubCivilianGroup)
+			{
+				case CIA_OPERATIVES_GROUP:
+					Soldier.ubBattleSoundID = 101;
+					break;
+				case COCKEYE_THUGS:
+					Soldier.ubBattleSoundID = 102;
+					break;
+				case HICKS_CIV_GROUP:
+					if(Soldier.ubBodyType == REGFEMALE)
+						Soldier.ubBattleSoundID = 104;
+					else
+						Soldier.ubBattleSoundID = 103;
+					break;
+				case KINGPIN_CIV_GROUP:
+					Soldier.ubBattleSoundID = 105;
+					break;
+				case TRACONA_OPERATIVES_GROUP:
+					Soldier.ubBattleSoundID = 108;
+					break;
+				case UNNAMED_CIV_GROUP_16:
+					Soldier.ubBattleSoundID = 109;
+					break;
+				case WARDEN_CIV_GROUP:
+					if(Soldier.ubBodyType == REGFEMALE)
+						Soldier.ubBattleSoundID = 111;
+					else
+						Soldier.ubBattleSoundID = 110;
+					break;
+			}
+			if(Soldier.bTeam == MILITIA_TEAM)
+			{
+				if(Soldier.ubBodyType == REGFEMALE)
+					Soldier.ubBattleSoundID = 107;
+				else
+					Soldier.ubBattleSoundID = 106;
+			}
+		}
+
 		if( guiCurrentScreen != AUTORESOLVE_SCREEN )
 		{
 			// Copy into merc struct
