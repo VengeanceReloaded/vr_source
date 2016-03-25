@@ -281,6 +281,8 @@ UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );
 
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 
+BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot );
+
 BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
 UINT16 AIGunRange(SOLDIERTYPE *pSoldier);
 

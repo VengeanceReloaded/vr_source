@@ -11055,10 +11055,17 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 				continue;
 			}
 
-			// Flugente: weapons are checked later on...
 			// sevenfm: binocs
-			if (!IsWeapon(usItem) && 
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) )
+			if( (i == HANDPOS || i == SECONDHANDPOS) &&
+				!IsWeapon(usItem) && 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+			{
+				continue;
+			}
+
+			// Flugente: weapons are checked later on...
+			if (!IsWeapon(usItem))
 			{
 				bonus += BonusReduceMore( pItem->visionrangebonus,	(*pObj)[0]->data.objectStatus );
 			}
@@ -11163,10 +11170,17 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 				continue;
 			}
 
-			// Flugente: weapons are checked later on...
 			// sevenfm: binocs
-			if (!IsWeapon(usItem) &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) )
+			if( (i == HANDPOS || i == SECONDHANDPOS) &&
+				!IsWeapon(usItem) && 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+			{
+				continue;
+			}
+
+			// Flugente: weapons are checked later on...
+			if (!IsWeapon(usItem))
 			{
 				bonus += BonusReduceMore(
 					NightBonusScale( pItem->nightvisionrangebonus, bLightLevel ),
@@ -11264,10 +11278,17 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 				continue;
 			}
 
-			// Flugente: weapons are checked later on...
 			// sevenfm: binocs
-			if (!IsWeapon(usItem) &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) )
+			if( (i == HANDPOS || i == SECONDHANDPOS) &&
+				!IsWeapon(usItem) && 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+			{
+				continue;
+			}
+
+			// Flugente: weapons are checked later on...
+			if (!IsWeapon(usItem))
 			{
 				bonus += BonusReduceMore(
 					NightBonusScale( pItem->cavevisionrangebonus, bLightLevel ),
@@ -11377,10 +11398,17 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 				continue;
 			}
 
-			// Flugente: weapons are checked later on...
 			// sevenfm: binocs
-			if (!IsWeapon(usItem) &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) )
+			if( (i == HANDPOS || i == SECONDHANDPOS) &&
+				!IsWeapon(usItem) && 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+			{
+				continue;
+			}
+
+			// Flugente: weapons are checked later on...
+			if (!IsWeapon(usItem))
 			{
 				bonus += BonusReduceMore( idiv( pItem->dayvisionrangebonus
 					* lightlevelmultiplier, lightleveldivisor ),
@@ -11481,10 +11509,17 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 				continue;
 			}
 
-			// Flugente: weapons are checked later on...
 			// sevenfm: binocs
-			if (!IsWeapon(usItem) &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) )
+			if( (i == HANDPOS || i == SECONDHANDPOS) &&
+				!IsWeapon(usItem) && 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+			{
+				continue;
+			}
+
+			// Flugente: weapons are checked later on...
+			if (!IsWeapon(usItem))
 			{
 				bonus += BonusReduceMore( idiv( pItem->brightlightvisionrangebonus
 					* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY ),
@@ -11635,8 +11670,15 @@ UINT8 GetPercentTunnelVision( SOLDIERTYPE * pSoldier )
 			}
 
 			// sevenfm: binocs
-			if ( !IsWeapon(usItem) &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) )
+			if( (i == HANDPOS || i == SECONDHANDPOS) &&
+				!IsWeapon(usItem) && 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+			{
+				continue;
+			}
+
+			if ( !IsWeapon(usItem))
 			{
 				bonus = __max( bonus, pItem->percenttunnelvision );
 			}
@@ -11755,8 +11797,15 @@ BOOLEAN HasThermalOptics( SOLDIERTYPE * pSoldier )
 			}
 
 			// sevenfm: binocs
-			if (!IsWeapon(pSoldier->inv[i].usItem) && (pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) ||
-				(IsWeapon(pSoldier->inv[i].usItem) && usingGunScope == true) )
+			if( (i == HANDPOS || i == SECONDHANDPOS) &&
+				!IsWeapon(pSoldier->inv[i].usItem) && 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+			{
+				continue;
+			}
+
+			if( !IsWeapon(pSoldier->inv[i].usItem) || (IsWeapon(pSoldier->inv[i].usItem) && usingGunScope == true) )
 			{
 				if (Item[pSoldier->inv[i].usItem].thermaloptics)
 				{

@@ -2268,6 +2268,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		(pSoldier->aiData.bNeutral && gTacticalStatus.fCivGroupHostile[pSoldier->ubCivilianGroup] == CIV_GROUP_NEUTRAL) ||
 		(pSoldier->ubBodyType >= FATCIV && pSoldier->ubBodyType <= CRIPPLECIV) ) );
 
+	// sevenfm:
+	BOOLEAN fDangerousSpot = FALSE;
+	BOOLEAN fProneSightCover = FALSE;
+
 #ifdef ENABLE_ZOMBIES
 	// Flugente: to prevent an accidental call
 	if ( pSoldier->IsZombie() )
@@ -2304,6 +2308,12 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	{
 		pSoldier->aiData.usActionData = NOWHERE;
 		return(AI_ACTION_NONE);
+	}
+
+	fProneSightCover = ProneSightCoverAtSpot(pSoldier, pSoldier->sGridNo);
+	if( !fProneSightCover || pSoldier->aiData.bUnderFire )
+	{
+		fDangerousSpot = TRUE;
 	}
 
 	// can this guy move to any of the neighbouring squares ? (sets TRUE/FALSE)
@@ -2704,23 +2714,19 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 		// CHRISL: Changed from a simple flag to two externalized values for more modder control over AI suppression
 		// WarmSteel - Don't *always* try to suppress when under 50 CTH
-		if ( BestShot.bWeaponIn != -1  
-				&& BestShot.ubPossible 
-				&& GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize
-				&& pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo 
-				&& BestShot.ubChanceToReallyHit < (INT16)(PreRandom(100) - 50)  
-				&& Menptr[BestShot.ubOpponent].pathing.bLevel == 0 
-				&& pSoldier->aiData.bOrders != SNIPER &&
-				// sevenfm: check that we'll not shoot at our friends
-				// don't suppress if target already cowering
-				// don't suppress when flanking
-				// don't suppress if we don't have extra clip to reload
-				// check line of sight to enemy (to avoid through-walls suppression fire)
-				BestShot.ubFriendlyFireChance < 5 &&
-				!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
-				!AICheckIsFlanking(pSoldier) &&
-				LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, MercPtrs[BestShot.ubOpponent]->sGridNo, MercPtrs[BestShot.ubOpponent]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
-				fExtraClip)
+		if( BestShot.bWeaponIn != -1  
+			&& BestShot.ubPossible 
+			&& GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize
+			&& pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo 
+			//&& BestShot.ubChanceToReallyHit < (INT16)(PreRandom(50))  
+			//&& Menptr[BestShot.ubOpponent].pathing.bLevel == 0 
+			&& pSoldier->aiData.bOrders != SNIPER &&
+			BestShot.ubFriendlyFireChance < 5 &&
+			!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
+			!AICheckIsFlanking(pSoldier) &&
+			LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, MercPtrs[BestShot.ubOpponent]->sGridNo, MercPtrs[BestShot.ubOpponent]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
+			//Weapon[pSoldier->inv[BestShot.bWeaponIn].usItem].ubWeaponType == GUN_LMG ) &&	//Weapon[usInHand].ubWeaponClass == MGCLASS
+			(fExtraClip || pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft > gGameExternalOptions.ubAISuppressionMinimumMagSize) )
 		{
 			// then do it!
 
@@ -2728,15 +2734,21 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: suppression fire possible!");
 
 			if (BestShot.bWeaponIn != HANDPOS)
+			{
 				RearrangePocket(pSoldier,HANDPOS,BestShot.bWeaponIn,FOREVER);
+			}
 
-			pSoldier->aiData.usActionData = BestShot.sTarget;
-			//pSoldier->aiData.bAimTime			= BestShot.ubAimTime;
+			pSoldier->aiData.usActionData	= BestShot.sTarget;
+			pSoldier->bTargetLevel			= BestShot.bTargetLevel;			
+			pSoldier->aiData.bAimTime		= 0;
+			pSoldier->bDoAutofire			= 0;
+			pSoldier->bDoBurst				= 1;
+
 			INT16 ubBurstAPs = 0;
 			FLOAT dTotalRecoil = 0;
 
-			pSoldier->bDoAutofire = 0;
-			if(UsingNewCTHSystem() == true){
+			if(UsingNewCTHSystem() == true)
+			{
 				do
 				{
 					pSoldier->bDoAutofire++;
@@ -2745,7 +2757,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				}
 				while(	pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire 
 					&& dTotalRecoil <= 10.0f );
-			} else {
+			}
+			else 
+			{
 				do
 				{
 					pSoldier->bDoAutofire++;
@@ -2761,88 +2775,20 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			// Make sure we decided to fire at least one shot!
 			ubBurstAPs = CalcAPsToAutofire( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier );
 
-			// minimum 5 bullets //WarmSteel: 5 bullets sounds reasonable, no?
-			// Hmmm, automatic suppression?  Howcome we don't get this?
-			if (pSoldier->bDoAutofire >= 5 &&  pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs )
+			// minimum 5 bullets
+			if (pSoldier->bDoAutofire >= 5 && pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs )
 			{
-				pSoldier->aiData.bAimTime			= 0;
-				pSoldier->bDoBurst			= 1;
-
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_SUPPRESSIONFIRE ] );
-				// HEADROCK HAM 4: This is the stupidest thing ever.
-				// Menptr[BestShot.ubOpponent].ubSuppressionPoints += pSoldier->bDoAutofire;
-				Menptr[BestShot.ubOpponent].ubSuppressorID = pSoldier->ubID;
-				if (!WeaponReady( pSoldier ) && gGameExternalOptions.ubAllowAlternativeWeaponHolding){	pSoldier->bScopeMode = USE_ALT_WEAPON_HOLD;	}
 				return( AI_ACTION_FIRE_GUN );
 			}
 			else
 			{
-				pSoldier->aiData.bAimTime			= 0;
 				pSoldier->bDoBurst			= 0;
 				pSoldier->bDoAutofire		= 0;
-				// not enough aps - do somthing else
 			}
 		}
 		// suppression not possible, do something else
 	}
-	/*
-	// CALL IN AIR STRIKE & RADIO RED ALERT
-	if ( !fCivilian && pSoldier->bTeam != MILITIA_TEAM && gGameOptions.fAirStrikes && airstrikeavailable && (pSoldier->bActionPoints >= APBPConstants[AP_RADIO]) && !WillAirRaidBeStopped(pSoldier->sSectorX,pSoldier->sSectorY))
-	{
-
-	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: checking to call in an air strike");
-
-	iChance = Random(50);
-	// if I ain't swimming (deep water)
-	if ( !bInDeepWater )
-	{
-	// modify base chance according to orders
-	switch (pSoldier->aiData.bOrders)
-	{
-	case STATIONARY:       iChance +=  20;  break;
-	case ONGUARD:          iChance +=  15;  break;
-	case ONCALL:           iChance +=  10;  break;
-	case CLOSEPATROL:                       break;
-	case RNDPTPATROL:
-	case POINTPATROL:      iChance +=  -5;  break;
-	case FARPATROL:        iChance += -10;  break;
-	case SEEKENEMY:        iChance += -20;  break;
-	}
-
-	// modify base chance according to attitude
-	switch (pSoldier->aiData.bAttitude)
-	{
-	case DEFENSIVE:        iChance +=  20;  break;
-	case BRAVESOLO:        iChance += -10;  break;
-	case BRAVEAID:                          break;
-	case CUNNINGSOLO:      iChance +=  -5;  break;
-	case CUNNINGAID:                        break;
-	case AGGRESSIVE:       iChance += -20;  break;
-	case ATTACKSLAYONLY:		iChance = 0;
-	}
-
-	// modify base chance according to morale
-	switch (pSoldier->aiData.bAIMorale)
-	{
-	case MORALE_HOPELESS:  iChance *= 3;    break;
-	case MORALE_WORRIED:   iChance *= 2;    break;
-	case MORALE_NORMAL:                     break;
-	case MORALE_CONFIDENT: iChance /= 2;    break;
-	case MORALE_FEARLESS:  iChance /= 3;    break;
-	}
-
-	if ((INT16) Random(100) < iChance)
-	{
-	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: decided to call in an air strike!");
-	SayQuoteFromAnyBodyInSector( QUOTE_WEARY_SLASH_SUSPUCIOUS );
-	EnemyCallInAirStrike ( pSoldier->sSectorX, pSoldier->sSectorY );
-	airstrikeavailable = FALSE;
-
-	return(AI_ACTION_RED_ALERT);
-	}
-	}
-	}
-	*/
 
 	if( gGameExternalOptions.bNewTacticalAIBehavior )
 	{
@@ -3317,9 +3263,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 				// sevenfm: disable watching if soldier is under fire or in dangerous place
 				// don't watch if some friends can see my closest opponent
-				if( //fDangerousPlace ||
+				if( fDangerousSpot ||
 					InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) ||
-					pSoldier->aiData.bUnderFire ||
 					CountFriendsBlack(pSoldier) > 0 )
 				{
 					bWatchPts -= 10;
@@ -3569,46 +3514,59 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					// take a look at our highest watch point... if it's still visible, turn to face it and then wait
 					bHighestWatchLoc = GetHighestVisibleWatchedLoc( pSoldier->ubID );
 					//sDistVisible =  DistanceVisible( pSoldier, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] );
-					// sevenfm: check that we have prone sight cover from watched location or watched location is empty
-					if ( bHighestWatchLoc != -1 &&
-						(WatchedLocLocationIsEmpty(gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], pSoldier->bTeam) ||
-						!LocationToLocationLineOfSightTest(gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, PRONE_LOS_POS, PRONE_LOS_POS)) )
+
+					if ( bHighestWatchLoc != -1 )
 					{
 						// see if we need turn to face that location
-						ubOpponentDir = atan8( CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX( gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc] ),CenterY( gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc] ) );
+						ubOpponentDir = atan8( CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX( gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] ),CenterY( gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ] ) );
 
 						// if soldier is not already facing in that direction,
 						// and the opponent is close enough that he could possibly be seen
-						if ( pSoldier->ubDirection != ubOpponentDir && pSoldier->InternalIsValidStance( ubOpponentDir, gAnimControl[ pSoldier->usAnimState ].ubEndHeight ) )
+						if( pSoldier->ubDirection != ubOpponentDir &&
+							pSoldier->InternalIsValidStance( ubOpponentDir, gAnimControl[ pSoldier->usAnimState ].ubEndHeight ) &&
+							pSoldier->bActionPoints >= GetAPsToLook(pSoldier)  )
 						{
 							// turn
 							pSoldier->aiData.usActionData = ubOpponentDir;
-							pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
+
 							return(AI_ACTION_CHANGE_FACING);
 						}
-						else
+
+						// consider at least crouching
+						if( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND &&
+							IsValidStance( pSoldier, ANIM_CROUCH ) &&
+							pSoldier->bActionPoints >= GetAPsCrouch(pSoldier, TRUE) )
 						{
-							// consider at least crouching
-							if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_STAND && pSoldier->InternalIsValidStance( ubOpponentDir, ANIM_CROUCH ) )
-							{
-								pSoldier->aiData.usActionData = ANIM_CROUCH;
-								pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
-								return(AI_ACTION_CHANGE_STANCE);
-							}
-							// sevenfm: disabled as we don't know if we will have line of sight to watched location in prone stance
-							/*else if ( gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
-							{
-								// maybe go prone
-								if ( PreRandom( 2 ) == 0 && pSoldier->InternalIsValidStance( ubOpponentDir, ANIM_PRONE ) )
-								{
-									pSoldier->aiData.usActionData = ANIM_PRONE;
-									pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
-									return( AI_ACTION_CHANGE_STANCE );
-								}
-								// end turn
-								return( AI_ACTION_END_TURN );
-							}*/
+							pSoldier->aiData.usActionData = ANIM_CROUCH;
+
+							return(AI_ACTION_CHANGE_STANCE);
 						}
+
+						// possibly go prone, check that we'll have line of sight to standing enemy at watched location
+						if (gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH &&
+							IsValidStance( pSoldier, ANIM_PRONE ) &&
+							pSoldier->bActionPoints >= GetAPsProne(pSoldier, TRUE) &&
+							!InARoom(pSoldier->sGridNo, NULL) &&
+							//LocationToLocationLineOfSightTestExt(pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], PRONE_LOS_POS, STANDING_LOS_POS))
+							LocationToLocationLineOfSightTest(pSoldier->sGridNo, pSoldier->pathing.bLevel, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], TRUE, CALC_FROM_ALL_DIRS, PRONE_LOS_POS, STANDING_LOS_POS))
+						{
+							pSoldier->aiData.usActionData = ANIM_PRONE;
+
+							return(AI_ACTION_CHANGE_STANCE);
+						}
+
+						// raise weapon if not raised
+						if( PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) != INVALID_ANIMATION &&
+							!WeaponReady(pSoldier) &&
+							(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 50) &&
+							pSoldier->bActionPoints >= GetAPsToReadyWeapon( pSoldier, PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) ) )
+						{
+							return AI_ACTION_RAISE_GUN;
+						}
+
+						//return(AI_ACTION_END_TURN);
+						return(AI_ACTION_NONE);
+						//return(AI_ACTION_END_TURN);
 					}
 
 					bWatchPts = -99;
