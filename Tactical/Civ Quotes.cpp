@@ -2211,6 +2211,9 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_OPERATIVES_GROUP )
 	{
 		strcat( filename, "\\CIA Operatives\\");
+		sprintf(buf, "%02d", 1+ pCiv->ubID % 2);
+		strcat( filename, buf);
+		strcat( filename, "\\");
 	}
 	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
 	{
