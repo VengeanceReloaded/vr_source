@@ -1043,7 +1043,99 @@ INT32 FindRandomGridNoFromSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, 
 
 }
 
+// Flugente: I've altered this function in two ways:
+// 1. The gridno is now drawn from the entirety of the circle - not just for sX and sY being positive
+// 2. The direction now points to sSweetGridNo, center of the circle, instead of the map center
 INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, INT8 ubRadius, UINT8 *pubDirection )
+{
+	INT16	sX, sY;
+	INT32	sGridNo = NOWHERE;
+	BOOLEAN	fFound = FALSE;
+	UINT32	cnt = 0;
+
+	do
+	{
+		sX = (UINT16)Random( 2 * ubRadius ) - ubRadius;
+		sY = (UINT16)Random( 2 * ubRadius ) - ubRadius;
+		
+		sGridNo = sSweetGridNo + (WORLD_COLS * sY ) + sX;
+		
+		if ( sGridNo == sSweetGridNo || TileIsOutOfBounds( sGridNo ) || PythSpacesAway( sGridNo, sSweetGridNo ) >= ubRadius || !IsLocationSittable( sGridNo, 0 ) )
+			sGridNo = NOWHERE;
+		else
+		{
+			// Go on sweet stop
+			if ( NewOKDestination( pSoldier, sGridNo, TRUE, pSoldier->pathing.bLevel ) )
+			{
+				fFound = TRUE;
+			}
+		}
+
+		++cnt;
+
+		if ( cnt > 2000 )
+		{
+			return( NOWHERE );
+		}
+	} while( !fFound );
+
+	// Set direction to center of map!
+	*pubDirection = (UINT8)GetDirectionToGridNoFromGridNo( sGridNo, sSweetGridNo );
+
+	return( sGridNo );
+}
+
+// Flugente: returns random gridno in a circle around sCenterGridNo with radius uOuterRadius that is not inside the circle with radius uInnerRadius
+INT32 FindRandomGridNoBetweenCircles( INT32 sCenterGridNo, UINT8 uInnerRadius, UINT8 uOuterRadius, UINT8& urDirection )
+{
+	INT16	sX, sY;
+	INT32	sGridNo = NOWHERE;
+	BOOLEAN	fFound = FALSE;
+	UINT32	cnt = 0;
+
+	if ( uInnerRadius >= uOuterRadius )
+		return NOWHERE;
+
+	do
+	{
+		/*sX = (UINT16)Random( 2 * (uOuterRadius - uInnerRadius) ) - (uOuterRadius - uInnerRadius);
+		sY = (UINT16)Random( 2 * (uOuterRadius - uInnerRadius) ) - (uOuterRadius - uInnerRadius);
+
+		if ( sX > 0 )
+			sX += uInnerRadius;
+		else
+			sX -= uInnerRadius;
+
+		if ( sY > 0 )
+			sY += uInnerRadius;
+		else
+			sY -= uInnerRadius;*/
+
+		sX = (UINT16)Random( 2 * uOuterRadius ) - uOuterRadius;
+		sY = (UINT16)Random( 2 * uOuterRadius ) - uOuterRadius;
+		
+		sGridNo = sCenterGridNo + (WORLD_COLS * sY) + sX;
+
+		if ( TileIsOutOfBounds( sGridNo ) || !IsLocationSittable( sGridNo, 0 ) || PythSpacesAway( sGridNo, sCenterGridNo ) <= uInnerRadius || PythSpacesAway( sGridNo, sCenterGridNo ) > uOuterRadius )
+			sGridNo = NOWHERE;
+		else
+			fFound = TRUE;
+
+		++cnt;
+
+		if ( cnt > 2000 )
+		{
+			return(NOWHERE);
+		}
+	} while ( !fFound );
+
+	// Set direction to center of map!
+	urDirection = (UINT8)GetDirectionToGridNoFromGridNo( sGridNo, sCenterGridNo );
+
+	return(sGridNo);
+}
+
+/*INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, INT8 ubRadius, UINT8 *pubDirection )
 {
 	INT16		sX, sY;
 	INT32	sGridNo = NOWHERE;
@@ -1089,7 +1181,7 @@ INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, IN
 
 	return( sGridNo );
 
-}
+}*/
 
 
 BOOLEAN InternalAddSoldierToSector( UINT8 ubID, BOOLEAN fCalculateDirection, BOOLEAN fUseAnimation, UINT16 usAnimState, UINT16 usAnimCode )
@@ -1237,7 +1329,7 @@ BOOLEAN InternalAddSoldierToSector( UINT8 ubID, BOOLEAN fCalculateDirection, BOO
 			pSoldier->usSoldierFlagMask |= SOLDIER_ASSAULT_BONUS;
 			
 			// Override calculated direction if we were told to....
-			if ( pSoldier->ubInsertionDirection > 100 )
+			if ( pSoldier->ubInsertionDirection >= 100 )
 			{
 				pSoldier->ubInsertionDirection = pSoldier->ubInsertionDirection - 100;
 				fCalculateDirection = FALSE;
