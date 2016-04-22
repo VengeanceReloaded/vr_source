@@ -268,16 +268,19 @@ INT16 MaxNormalVisionDistance( void );
 BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier );
 UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier );
 INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel);
+UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );
+BOOLEAN NightLight( void );
 
-UINT8 CountNearbyFriendlies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
+UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
 UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier );
-UINT8 CountNearbyFriendliesOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
+UINT8 CountNearbyFriendsOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsFlankSameSpot( SOLDIERTYPE *pSoldier );
-UINT8 CountNearbyFriendliesLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
-UINT8 CountNearbyFriendliesContact( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
-UINT8 CountNearbyFriendliesNoContact( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
-UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );
+UINT8 CountNearbyFriendsLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
+UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier );
+
+UINT8 CountTeamCombat( SOLDIERTYPE *pSoldier );
+UINT8 CountTeamSeeOpponent( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent );
 
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 

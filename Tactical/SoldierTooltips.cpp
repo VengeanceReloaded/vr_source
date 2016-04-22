@@ -26,18 +26,113 @@
 #include "soldier profile type.h"
 #include "Soldier macros.h"
 #include "Encyclopedia_new.h"	///< Encyclopedia item visibility
-#include "ai.h"					// sevenfm
-#include "AIInternals.h"		// sevenfm
+// sevenfm
+#include "ai.h"
+#include "AIInternals.h"
+#include "opplist.h"
+#include "Map Screen Interface.h"
 #endif
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
 
+#define TOOLTIP_TEXT_SIZE 4096
+
+// sevenfm
+STR16 gStrAction[] = {
+	L"AI_ACTION_NONE",
+
+	L"AI_ACTION_RANDOM_PATROL",
+	L"AI_ACTION_SEEK_FRIEND",
+	L"AI_ACTION_SEEK_OPPONENT",
+	L"AI_ACTION_TAKE_COVER",
+	L"AI_ACTION_GET_CLOSER",
+
+	L"AI_ACTION_POINT_PATROL",
+	L"AI_ACTION_LEAVE_WATER_GAS",
+	L"AI_ACTION_SEEK_NOISE",
+	L"AI_ACTION_ESCORTED_MOVE",
+	L"AI_ACTION_RUN_AWAY",
+
+	L"AI_ACTION_KNIFE_MOVE",
+	L"AI_ACTION_APPROACH_MERC",
+	L"AI_ACTION_TRACK",
+	L"AI_ACTION_EAT",
+	L"AI_ACTION_PICKUP_ITEM",
+
+	L"AI_ACTION_SCHEDULE_MOVE",
+	L"AI_ACTION_WALK",
+	L"AI_ACTION_RUN",
+	L"AI_ACTION_WITHDRAW",
+	L"AI_ACTION_FLANK_LEFT",
+	L"AI_ACTION_FLANK_RIGHT",
+	L"AI_ACTION_MOVE_TO_CLIMB",
+
+	L"AI_ACTION_CHANGE_FACING",
+
+	L"AI_ACTION_CHANGE_STANCE",
+
+	L"AI_ACTION_YELLOW_ALERT",
+	L"AI_ACTION_RED_ALERT",
+	L"AI_ACTION_CREATURE_CALL",
+	L"AI_ACTION_PULL_TRIGGER",
+
+	L"AI_ACTION_USE_DETONATOR",
+	L"AI_ACTION_FIRE_GUN",
+	L"AI_ACTION_TOSS_PROJECTILE",
+	L"AI_ACTION_KNIFE_STAB",
+	L"AI_ACTION_THROW_KNIFE",
+
+	L"AI_ACTION_GIVE_AID",
+	L"AI_ACTION_WAIT",
+	L"AI_ACTION_PENDING_ACTION",
+	L"AI_ACTION_DROP_ITEM",
+	L"AI_ACTION_COWER",
+
+	L"AI_ACTION_STOP_COWERING",
+	L"AI_ACTION_OPEN_OR_CLOSE_DOOR",
+	L"AI_ACTION_UNLOCK_DOOR",
+	L"AI_ACTION_LOCK_DOOR",
+	L"AI_ACTION_LOWER_GUN",
+
+	L"AI_ACTION_ABSOLUTELY_NONE",
+	L"AI_ACTION_CLIMB_ROOF",
+	L"AI_ACTION_END_TURN",
+	L"AI_ACTION_END_COWER_AND_MOVE",
+	L"AI_ACTION_TRAVERSE_DOWN",
+	L"AI_ACTION_OFFER_SURRENDER",
+	L"AI_ACTION_RAISE_GUN",
+	L"AI_ACTION_STEAL_MOVE",
+
+	L"AI_ACTION_RELOAD_GUN",
+
+	L"AI_ACTION_JUMP_WINDOW",
+	L"AI_ACTION_FREE_PRISONER",
+	L"AI_ACTION_USE_SKILL" 
+};
+
+STR16 SeenStr( INT32 value) 
+{
+	switch(value)
+	{
+	case -4: return L"HEARD 3";
+	case -3: return L"HEARD 2";
+	case -2: return L"HEARD LAST";
+	case -1: return L"HEARD THIS";
+	case 0: return L"NOT HEARD OR SEEN";
+	case 1: return L"SEEN CURR";
+	case 2: return L"SEEN THIS";
+	case 3: return L"SEEN LAST";
+	case 4: return L"SEEN 2";
+	case 5: return L"SEEN 3";
+	}
+	return L"unknown";
+}
 
 struct MOUSETT
 {
-	CHAR16 FastHelpText[ 1024 ];
+	CHAR16 FastHelpText[ TOOLTIP_TEXT_SIZE ];
 	INT32 iX;
 	INT32 iY;
 	INT32 iW;
@@ -85,7 +180,8 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 		IsPointInScreenRectWithRelative( gusMouseXPos, gusMouseYPos, &aRect, &a1, &a2 ) )
 	{
 		MOUSETT		*pRegion = &mouseTT;
-		CHAR16		pStrInfo[ sizeof( pRegion->FastHelpText ) ];
+		//CHAR16		pStrInfo[ sizeof( pRegion->FastHelpText ) ];
+		CHAR16		pStrInfo[ TOOLTIP_TEXT_SIZE ];
 		int			iNVG = 0;
 		INT32		usSoldierGridNo;
 		BOOLEAN		fDisplayBigSlotItem	= FALSE;
@@ -243,6 +339,14 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 					swprintf( pStrInfo, L"%s|Neutral\n", pStrInfo );
 				}			
 				swprintf( pStrInfo, L"%s|A|I |Morale/|Range |Change: %d/%d\n", pStrInfo, pSoldier->aiData.bAIMorale, RangeChangeDesire(pSoldier) );
+				swprintf( pStrInfo, L"%s|Last |Action: %s\n", pStrInfo, gStrAction[pSoldier->aiData.bLastAction] );
+				// sevenfm: show flank info
+				if( AICheckIsFlanking(pSoldier) )
+				{
+					swprintf( pStrInfo, L"%s|Flank %s\n", pStrInfo, pSoldier->flags.lastFlankLeft ? L"left" : L"right" );
+					swprintf( pStrInfo, L"%s|Flank Num %d\n", pStrInfo, pSoldier->numFlanks );
+					swprintf( pStrInfo, L"%s|Last Flank spot %d\n", pStrInfo, pSoldier->lastFlankSpot );
+				}
 				swprintf( pStrInfo, L"%s \n", pStrInfo );
 			}			
 

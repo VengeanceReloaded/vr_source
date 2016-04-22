@@ -12,6 +12,9 @@
 	#include "Soldier macros.h"
 #endif
 
+// sevenfm
+extern SECTOR_EXT_DATA	SectorExternalData[256][4];
+
 void CallAvailableEnemiesTo( INT32 sGridNo )
 {
 	INT32	iLoop;
@@ -176,6 +179,14 @@ INT32 MostImportantNoiseHeard( SOLDIERTYPE *pSoldier, INT32 *piRetValue, BOOLEAN
 	pbPersOL = pSoldier->aiData.bOppList;
 	pbPublOL = gbPublicOpplist[pSoldier->bTeam];
 
+	// sevenfm: sector information
+	UINT8 sectordata = 0;
+	UINT8 ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
+	if ( gbWorldSectorZ > 0 )	// underground we are always suspicious		
+		sectordata = 2;
+	else if ( ubSectorId >= 0 && ubSectorId < 256  )
+		sectordata = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
+
 	// look through this man's personal & public opplists for opponents heard
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
@@ -194,9 +205,18 @@ INT32 MostImportantNoiseHeard( SOLDIERTYPE *pSoldier, INT32 *piRetValue, BOOLEAN
 		{
 			// green  AI state: always ignore
 			// yellow AI state: 50% chance to ignore
-			if ( pSoldier->aiData.bAlertStatus == STATUS_GREEN ||
-				(pSoldier->aiData.bAlertStatus == STATUS_YELLOW && Random(2) < 1 ) )
+			if ( pSoldier->aiData.bAlertStatus == STATUS_GREEN ) //||
+				// sevenfm: removed random chance to ignore noise
+				//(pSoldier->aiData.bAlertStatus == STATUS_YELLOW && Random(2) < 1 ) )
+			{
 				continue;			// next merc
+			}
+
+			// sevenfm: ignore noise if some friends already see opponent
+			if( CountTeamSeeOpponent(pSoldier, pTemp) > sectordata )
+			{
+				continue;			// next merc
+			}
 		}
 
 		pbPersOL = pSoldier->aiData.bOppList + pTemp->ubID;

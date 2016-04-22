@@ -7561,8 +7561,16 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		this->aiData.bShock /= 2;
 
 		// sevenfm: stop cowering animation if new shock level is less than needed for cowering state
-		if( !CoweringShockLevel( this ) && !this->bCollapsed && this->ubBodyType <= REGFEMALE ) 
+		// this->bTeam == gbPlayerNum
+		// this->flags.uiStatusFlags & SOLDIER_PC
+		if( !CoweringShockLevel( this ) &&
+			!this->bCollapsed &&
+			!this->bBreathCollapsed &&
+			this->ubBodyType <= REGFEMALE &&
+			!this->aiData.bNeutral )
+		{
 			StopCoweringAnimation( this );
+		}
 
 		// if this person has heard a noise that hasn't been investigated
 		if (this->aiData.sNoiseGridno != NOWHERE)
@@ -15495,10 +15503,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 
 	// if we are closer than this, our cover will always break if we do not have the skill
 	// if we have the skill, our cover will blow if we dress up as a soldier, but not if we are dressed like a civilian
-	//INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange;
-	// sevenfm: set detection range depending on enemy soldier's difficulty level
-	// 50% of this range for low level soldiers, 150% range for high level elites
-	INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange * (2 + SoldierDifficultyLevel(pSoldier))/ 4;
+	INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange;
 
 	if ( distance < discoverrange )
 	{
@@ -15553,8 +15558,10 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 		}
 
 		// if we are a soldier, elites can uncover us if we are VERY close, and more experienced
-		if ( this->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && gSkillTraitValues.fCOElitesDetectNextTile && distance < 2 && EffectiveExpLevel(pSoldier) > EffectiveExpLevel(this) + covertlevel )
-		{
+		if ( this->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER &&
+			gSkillTraitValues.fCOElitesDetectNextTile &&
+			distance < 2 &&
+			EffectiveExpLevel(pSoldier) > EffectiveExpLevel(this) + covertlevel )		{
 			if ( pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE )
 			{
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOO_CLOSE_TO_ELITE], this->GetName() );
@@ -15572,7 +15579,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 		// 2 - civilians are always suspicious
 
 		UINT8 sectordata = 0;
-		UINT8 ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);	
+		UINT8 ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
 		if ( gbWorldSectorZ > 0 )
 			// underground we are always suspicious
 			sectordata = 2;
@@ -15598,7 +15605,8 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 		{
 			pCorpse = &(gRottingCorpse[ cnt ] );
 			
-			if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 && PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) <= 5 )
+			if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 &&
+				PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) < 2 )
 			{
 				// check: is this corpse that of an ally of the observing soldier?
 				BOOLEAN fCorpseOFAlly = FALSE;
@@ -15628,7 +15636,8 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 				}
 
 				// a corpse was found near our position. If the soldier observing us can see it, he will be alarmed 
-				if ( fCorpseOFAlly && SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
+				if( fCorpseOFAlly &&
+					SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
 				{
 					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NEAR_CORPSE], this->GetName() );
 					return FALSE;
@@ -15659,7 +15668,9 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 
 		// even as a soldier, we will be caught around fresh corpses
 		// assassins will not be uncovered around corpses, as the AI cannot willingly evade them... one could 'ward' against assassins by surrounding yourself with fresh corpses
-		if ( distance < gSkillTraitValues.sCOCloseDetectionRangeSoldierCorpse && !this->IsAssassin() )
+		// sevenfm: uncover near fresh corpse if observing soldier can see us from any range
+		//if ( distance < gSkillTraitValues.sCOCloseDetectionRangeSoldierCorpse && !this->IsAssassin() )
+		if ( !this->IsAssassin() )
 		{
 			// check whether we are around a fresh corpse - this will make us much more suspicious
 			// I deem this necessary, to avoid cheap exploits by nefarious players :-)
@@ -15669,7 +15680,8 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 			{
 				pCorpse = &(gRottingCorpse[ cnt ] );
 			
-				if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 && PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) <= 5 )
+				if( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 &&
+					PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) < 2 )
 				{
 					// check: is this corpse that of an ally of the observing soldier?
 					BOOLEAN fCorpseOFAlly = FALSE;
@@ -15699,7 +15711,8 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 					}
 
 					// a corpse was found near our position. If the soldier observing us can see it, he will be alarmed 
-					if ( fCorpseOFAlly && SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
+					if( fCorpseOFAlly &&
+						SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
 					{
 						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NEAR_CORPSE], this->GetName() );
 						return FALSE;
@@ -15708,34 +15721,38 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID )
 			}
 		}
 	}
+
+#ifdef JA2UB
+#else
+	// sevenfm: always uncover in Meduna
+	INT8	bTownId;
+	bTownId = GetTownIdForSector( gWorldSectorX, gWorldSectorY );
+	if ( bTownId == MEDUNA )	
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Uncover %s in restricted area!", this->GetName() );
+		return FALSE;
+	}
+#endif
 	
-	// sevenfm: uncover if merc is using flashlight
-	if( (NightTime() || gbWorldSectorZ > 0) &&
+	// sevenfm: uncover if merc is using flashlight and alert is raised
+	if( pSoldier->bTeam == ENEMY_TEAM &&
+		pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+		(NightTime() || gbWorldSectorZ > 0) &&
 		this->GetBestEquippedFlashLightRange() > 0 )
 	{
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s has flashlight!", this->GetName() );
 		return FALSE;
 	}
 
-	// sevenfm: covert civs/military are not allowed in combat depending on enemy soldier's difficulty	
-	if( pSoldier->aiData.bAlertStatus >= STATUS_RED )
+	// sevenfm: covert civs/military are not allowed in combat
+	if( pSoldier->bTeam == ENEMY_TEAM &&
+		//CountTeamCombat(pSoldier) > 0 )
+		!TileIsOutOfBounds(ClosestKnownOpponent(pSoldier, NULL, NULL)) )
 	{
-		// for enemy team:
-		// high level soldier: need to kill 2 enemies for detection distance = full day vision range
-		// average soldier: need to kill 4 enemies for detection distance = full day vision range
-		if( pSoldier->bTeam == ENEMY_TEAM )
-		{
-			if(distance <= DAY_VISION_RANGE * gTacticalStatus.ubArmyGuysKilled * SoldierDifficultyLevel(pSoldier) / 8)
-			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s is too close in combat!", this->GetName() );
-				return FALSE;
-			}
-		}
-		else
-		{
-			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s is seen in combat!", this->GetName() );
-			return FALSE;
-		}
+		// always uncover on sight if alert is raised
+		// if(distance <= DAY_VISION_RANGE * gTacticalStatus.ubArmyGuysKilled * SoldierDifficultyLevel(pSoldier) / 8)
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Uncover %s in combat!", this->GetName() );
+		return FALSE;
 	}
 
 	return TRUE;

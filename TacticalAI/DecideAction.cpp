@@ -884,10 +884,13 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 	}
 
-//ddd{
-	if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && gGameExternalOptions.bNewTacticalAIBehavior && pSoldier->bTeam == ENEMY_TEAM )
-	{
-		if ( !(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
+	// sevenfm: only if not raised alert yet
+	// && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition
+	if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && pSoldier->bTeam == ENEMY_TEAM )
+	{		
+		// raise alert if found fresh corpse
+		//if ( !(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
+		if( pSoldier->aiData.bAlertStatus < STATUS_RED )
 		{
 			INT32				cnt;
 			ROTTING_CORPSE *	pCorpse;
@@ -895,21 +898,30 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 			for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
 			{
 				pCorpse = &(gRottingCorpse[ cnt ] );
-			
-				if ( pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 )
+
+				if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 )
 				{
-					if ( PythSpacesAway( pSoldier->sGridNo, pCorpse->def.sGridNo ) <= 5 )//add check(comparison) of sight range variable (smaxvid ?)
+					// test ally
+					BOOLEAN fCorpseOFAlly = FALSE;
+					// check whether corpse was one of soldier's allies
+					for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
 					{
-						//check if the corpse is in the enemny/militia field of view?
-						//CHRISL: Shouldn't we be using the corpse's bLevel?  Otherwise a soldier inside a building can see a corpse on the roof of that building
-						//if ( SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pSoldier->pathing.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
-						if ( SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
+						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
 						{
-							ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
-							//pCorpse->def.ubAIWarningValue=0;
-							gRottingCorpse[ cnt ].def.ubAIWarningValue=0;
-							return( AI_ACTION_RED_ALERT );
+							fCorpseOFAlly = TRUE;
+							break;
 						}
+					}
+
+					// sevenfm: test vision (use only half of day vision range)
+					if( fCorpseOFAlly &&
+						PythSpacesAway( pSoldier->sGridNo, pCorpse->def.sGridNo ) <= DAY_VISION_RANGE / 2 &&
+						SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
+					{
+						ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
+						//pCorpse->def.ubAIWarningValue=0;
+						gRottingCorpse[ cnt ].def.ubAIWarningValue=0;
+						return( AI_ACTION_RED_ALERT );
 					}
 				}
 			}
@@ -920,7 +932,8 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 		////////////////////////////////////////////////////////////////////////////
 
 		// Flugente: if we see one of our buddies in handcuffs, its a clear sign of enemy activity!
-		if ( gGameExternalOptions.fAllowPrisonerSystem && pSoldier->bTeam == ENEMY_TEAM && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition )
+		//if ( gGameExternalOptions.fAllowPrisonerSystem && pSoldier->bTeam == ENEMY_TEAM && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition )
+		if ( gGameExternalOptions.fAllowPrisonerSystem )
 		{
 			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW, TRUE );
 
@@ -931,7 +944,6 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 			}
 		}
 	}
-//ddd}
 
 	////////////////////////////////////////////////////////////////////////////
 	// POINT PATROL: move towards next point unless getting a bit winded
@@ -2724,6 +2736,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			BestShot.ubFriendlyFireChance < 5 &&
 			!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
 			!AICheckIsFlanking(pSoldier) &&
+			MercPtrs[BestShot.ubOpponent]->bTeam != CREATURE_TEAM &&
+			!TANK( MercPtrs[BestShot.ubOpponent] ) &&
+			!AM_A_ROBOT( MercPtrs[BestShot.ubOpponent] ) &&
+			MercPtrs[BestShot.ubOpponent]->ubWhatKindOfMercAmI != MERC_TYPE__VEHICLE &&
 			LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, MercPtrs[BestShot.ubOpponent]->sGridNo, MercPtrs[BestShot.ubOpponent]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
 			//Weapon[pSoldier->inv[BestShot.bWeaponIn].usItem].ubWeaponType == GUN_LMG ) &&	//Weapon[usInHand].ubWeaponClass == MGCLASS
 			(fExtraClip || pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft > gGameExternalOptions.ubAISuppressionMinimumMagSize) )
@@ -3273,7 +3289,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				// sevenfm: don't watch when overcrowded and not in a building
 				if( !InARoom(pSoldier->sGridNo, NULL) )
 				{
-					bWatchPts -= CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8);
+					bWatchPts -= CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8);
 				}
 
 				// sevenfm: don't help if seen enemy recently or under fire
@@ -3385,7 +3401,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 							// sevenfm: possibly start RED flanking
 							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ||
-								( pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID ) && CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2 ) &&
+								( pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID ) && CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2 ) &&
 								pSoldier->bTeam == ENEMY_TEAM &&
 								gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE &&
 								!pSoldier->aiData.bUnderFire &&
@@ -3394,8 +3410,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 								pSoldier->aiData.bOrders == FARPATROL ||
 								pSoldier->aiData.bOrders == CLOSEPATROL && NightTime() ) &&
 								pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
-								(!GuySawEnemyThisTurnOrBefore( pSoldier ) || CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2 ) &&								
-								( CountFriendsInDirection( pSoldier, sClosestDisturbance ) > 1 || NightTime() || CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2) )
+								(!GuySawEnemyThisTurnOrBefore( pSoldier ) || CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2 ) &&								
+								( CountFriendsInDirection( pSoldier, sClosestDisturbance ) > 1 || NightTime() || CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2) )
 							{
 								INT8 action = AI_ACTION_SEEK_OPPONENT;
 								INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sClosestDisturbance );
@@ -5109,8 +5125,8 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		PythSpacesAway(pSoldier->sGridNo, sClosestThreat) < 3*(usRange/CELL_X_SIZE)/2 &&
 		usRange/CELL_X_SIZE > DAY_VISION_RANGE/2 &&
 		pSoldier->pathing.bLevel == 0 &&
-		PreRandom(100) > 100 / (1+BestAttack.bTargetLevel+CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4)) &&
-		CountNearbyFriendliesOnRoof(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8) == 0 &&
+		PreRandom(100) > 100 / (1+BestAttack.bTargetLevel+CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4)) &&
+		CountNearbyFriendsOnRoof(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8) == 0 &&
 		//pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
 		pSoldier->bActionPoints > APBPConstants[AP_MINIMUM] &&
 		ubCanMove )
@@ -5144,7 +5160,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		(	
 			PythSpacesAway( pSoldier->sGridNo, BestAttack.sTarget ) > usRange / CELL_X_SIZE ||
 			CoweringShockLevel(MercPtrs[BestAttack.ubOpponent]) ||
-			CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 0 ||
+			CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 0 ||
 			BestAttack.ubChanceToReallyHit == 1 
 		) && 
 		(	
@@ -5166,7 +5182,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		{
 			fAllowCoverCheck = TRUE;
 		}		
-		if ( PreRandom( MercPtrs[BestAttack.ubOpponent]->aiData.bShock + CountNearbyFriendlies(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) ) > BestAttack.ubChanceToReallyHit )
+		if ( PreRandom( MercPtrs[BestAttack.ubOpponent]->aiData.bShock + CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) ) > BestAttack.ubChanceToReallyHit )
 		{
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"DecideActionBlack: can't hit so screw the attack");
 			// screw the attack!

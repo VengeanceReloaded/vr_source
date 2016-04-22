@@ -4703,8 +4703,9 @@ BOOLEAN NewOKDestination( SOLDIERTYPE * pCurrSoldier, INT32 sGridNo, BOOLEAN fPe
 
     if ( !GridNoOnVisibleWorldTile( sGridNo ) )
     {
-		// sevenfm: r8104 fix
-        return( FALSE );
+		// sevenfm: reverted r8104 fix
+        //return( FALSE );
+		return( TRUE );
     }
 
     if (fPeopleToo && ( bPerson = WhoIsThere2( sGridNo, bLevel ) ) != NOBODY )

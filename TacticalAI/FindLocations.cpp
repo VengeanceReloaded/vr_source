@@ -834,7 +834,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 	}
 
 	// sevenfm: check for nearby friends, add bonus/penalty
-	ubNearbyFriends = __min(5, CountNearbyFriendlies( pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4 ));
+	ubNearbyFriends = __min(5, CountNearbyFriends( pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4 ));
 	iCurrentCoverValue -= ubNearbyFriends * abs(iCurrentCoverValue) / (10-ubDiff);
 
 	// sevenfm: penalize locations with fresh corpses
@@ -1057,7 +1057,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			}
 
 			// sevenfm: check for nearby friends in 5 radius, add bonus/penalty 10%
-			ubNearbyFriends = __min(5, CountNearbyFriendlies( pSoldier, sGridNo, DAY_VISION_RANGE/4 ));
+			ubNearbyFriends = __min(5, CountNearbyFriends( pSoldier, sGridNo, DAY_VISION_RANGE/4 ));
 			iCoverValue -= ubNearbyFriends * abs(iCoverValue) / (10-ubDiff);
 
 			// sevenfm: penalize locations with fresh corpses
