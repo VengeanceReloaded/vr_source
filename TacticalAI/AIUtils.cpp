@@ -2654,7 +2654,7 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 	BOOLEAN fOppPosKnown = FALSE;
 	BOOLEAN fInCombat = FALSE;
 	BOOLEAN fRedAlert = FALSE;
-	BOOLEAN fFriendsNeedHelp = FALSE;
+	//BOOLEAN fFriendsNeedHelp = FALSE;
 
 	if ( CREATURE_OR_BLOODCAT( pSoldier ) )
 	{
@@ -2688,10 +2688,10 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 	{
 		fInCombat = TRUE;
 	}
-	if( CountFriendsNeedHelp(pSoldier) > 0 )
+	/*if( CountFriendsNeedHelp(pSoldier) > 0 )
 	{
 		fFriendsNeedHelp = TRUE;
-	}
+	}*/
 
 	switch (pSoldier->aiData.bOrders)
 	{
@@ -2712,7 +2712,7 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 							{
 								return( MAX_ROAMING_RANGE );
 							}
-		case CLOSEPATROL:	if( !fInCombat && !fFriendsNeedHelp )
+		case CLOSEPATROL:	if( !fOppPosKnown )
 							{
 								return( 15 );
 							}
@@ -2720,7 +2720,7 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 							{
 								return( MAX_ROAMING_RANGE );
 							}
-		case POINTPATROL:	if( !fInCombat && !fFriendsNeedHelp )
+		case POINTPATROL:	if( !fOppPosKnown )
 							{
 								// from nextPatrolGrid, not whereIWas
 								return( 10 );
@@ -2729,7 +2729,7 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 							{
 								return( MAX_ROAMING_RANGE );
 							}
-		case RNDPTPATROL:	if( !fInCombat && !fFriendsNeedHelp )
+		case RNDPTPATROL:	if( !fOppPosKnown )
 							{
 								// from nextPatrolGrid, not whereIWas
 								return( 10 );
@@ -2746,7 +2746,7 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 							{
 								return( MAX_ROAMING_RANGE );
 							}
-		case ONCALL:		if( !fInCombat && !fFriendsNeedHelp )
+		case ONCALL:		if( !fOppPosKnown )
 							{
 								return( 10 );
 							}

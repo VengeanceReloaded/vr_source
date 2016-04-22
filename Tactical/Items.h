@@ -426,6 +426,7 @@ OBJECTTYPE* FindSunGogglesInInv( SOLDIERTYPE * pSoldier, INT8 * bSlot, BOOLEAN *
 OBJECTTYPE* FindNightGogglesInInv( SOLDIERTYPE * pSoldier, INT8 * bSlot, BOOLEAN * isAttach, BOOLEAN searchAllInventory = FALSE  );
 
 UINT8 AllowedAimingLevels(SOLDIERTYPE * pSoldier, INT32 sGridNo);
+UINT8 ImprovedAllowedAimingLevels(SOLDIERTYPE * pSoldier, INT32 sGridNo);
 // HEADROCK HAM 4: New functions to determine Scope and Laser factors on a weapon.
 FLOAT GetHighestScopeMagnificationFactor( OBJECTTYPE *pObj );
 FLOAT GetScopeMagnificationFactor( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, FLOAT uiRange );

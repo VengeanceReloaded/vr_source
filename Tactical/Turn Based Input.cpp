@@ -5087,20 +5087,9 @@ void ObliterateSector()
 	{
 		if ( pTSoldier->bActive && !pTSoldier->aiData.bNeutral && (pTSoldier->bSide != gbPlayerNum ) )
 		{
-			//	ANITILE_PARAMS	AniParams;
-			//		memset( &AniParams, 0, sizeof( ANITILE_PARAMS ) );
-			//		AniParams.sGridNo							= pTSoldier->sGridNo;
-			//		AniParams.ubLevelID						= ANI_STRUCT_LEVEL;
-			//	AniParams.usTileType				= FIRSTEXPLOSION;
-			//	AniParams.usTileIndex					= FIRSTEXPLOSION1;
-			//	AniParams.sDelay							= 80;
-			//	AniParams.sStartFrame					= 0;
-			//	AniParams.uiFlags							= ANITILE_FORWARD;
-
-			//	CreateAnimationTile( &AniParams );
-			//PlayJA2Sample( EXPLOSION_1, RATE_11025, MIDVOLUME, 1, MIDDLEPAN );
-
-			pTSoldier->EVENT_SoldierGotHit( 0, 400, 0, pTSoldier->ubDirection, 320, NOBODY , FIRE_WEAPON_NO_SPECIAL, pTSoldier->bAimShotLocation, 0, NOWHERE );
+			// sevenfm: r7928 (Obliterating a sector will now destroy tanks as well)
+			//pTSoldier->EVENT_SoldierGotHit( 0, 400, 0, pTSoldier->ubDirection, 320, NOBODY , FIRE_WEAPON_NO_SPECIAL, pTSoldier->bAimShotLocation, 0, NOWHERE );
+			pTSoldier->EVENT_SoldierGotHit( 1, 400, 0, pTSoldier->ubDirection, 320, NOBODY , FIRE_WEAPON_NO_SPECIAL, pTSoldier->bAimShotLocation, 0, NOWHERE );
 		}
 	}
 }

@@ -13422,10 +13422,229 @@ UINT8 AllowedAimingLevelsNCTH( SOLDIERTYPE *pSoldier, INT32 sGridNo )
  	return ((UINT8)aimLevels);
  }
 
+ // sevenfm: aiming levels with some tweaks
+ UINT8 ImprovedAllowedAimingLevels(SOLDIERTYPE * pSoldier, INT32 sGridNo)
+ {
+	 UINT8 aimLevels = 4;
+	 UINT16 sScopeBonus = 0;
+	 BOOLEAN allowed = TRUE;
+	 UINT8 weaponType;
+
+	 INT32 uiRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sGridNo );
+
+	 weaponType = Weapon[pSoldier->inv[pSoldier->ubAttackingHand].usItem].ubWeaponType;
+
+	 if ( gGameExternalOptions.fAimLevelRestriction ) // Extra aiming on/off 
+	 {
+		 if ( gGameExternalOptions.fDynamicAimingTime )
+		 {
+			 // SANDRO - throwing knives are a special case, allow two aiming clicks for them
+			 if( weaponType == NOT_GUN ) 
+			 {
+				 if ( Item[pSoldier->inv[pSoldier->ubAttackingHand].usItem].usItemClass == IC_THROWING_KNIFE )
+				 {
+					 aimLevels = 2;
+					 if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, THROWING_NT ) )
+					 {
+						 aimLevels += gSkillTraitValues.ubTHBladesAimClicksAdded;
+					 }
+					 return ( min(6, aimLevels) );
+				 }
+				 else
+				 {
+					 return ( 2 );
+				 }
+			 }
+
+			 UINT16 weaponRange;
+			 UINT8 maxAimForType, maxAimWithoutBipod;
+			 BOOLEAN fTwoHanded, fUsingBipod;
+
+			 // Read weapon data
+			 fTwoHanded = Item[pSoldier->inv[pSoldier->ubAttackingHand].usItem].twohanded;
+
+			 UINT16 usRange = GetModifiedGunRange(pSoldier->inv[pSoldier->ubAttackingHand].usItem);
+
+			 weaponRange = ( usRange * GetPercentRangeBonus(&pSoldier->inv[pSoldier->ubAttackingHand]) ) / 10000;
+			 weaponRange += GetRangeBonus(&pSoldier->inv[pSoldier->ubAttackingHand]);
+			 fUsingBipod = FALSE;
+
+			 maxAimWithoutBipod = 4;
+
+			 // Define basic (no attachments), and absolute maximums
+			 if (weaponType == GUN_PISTOL || weaponType == GUN_M_PISTOL )
+			 {
+				 maxAimForType = 4;
+				 aimLevels = 2;
+				 maxAimWithoutBipod = 4;
+
+				 // SANDRO - STOMP traits - Gunslinger bonus aim clicks
+				 if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, GUNSLINGER_NT ) )
+				 {
+					 aimLevels += (gSkillTraitValues.ubGSAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, GUNSLINGER_NT ));
+				 }
+			 }
+			 else if ((weaponType == GUN_SMG && fTwoHanded == 0) || fTwoHanded == 0)
+			 {
+				 maxAimForType = 4;
+				 aimLevels = 2;
+				 maxAimWithoutBipod = 4;
+			 }
+			 else if (weaponType == GUN_SHOTGUN)
+			 {
+				 maxAimForType = 4;
+				 aimLevels = 3;
+				 maxAimWithoutBipod = 4;
+
+				 // silversurfer added this - STOMP traits - Ranger bonus aim clicks
+				 if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, RANGER_NT ) )
+				 {
+					 aimLevels += (gSkillTraitValues.ubRAAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ));
+				 }
+			 }
+			 else if (weaponType == GUN_SMG && fTwoHanded == 1)
+			 {
+				 maxAimForType = 4;
+				 aimLevels = 3;
+				 maxAimWithoutBipod = 4;
+			 }
+			 else if (weaponType == GUN_LMG)
+			 {
+				 maxAimForType = 6;
+				 aimLevels = 4;
+				 maxAimWithoutBipod = 4;
+			 }
+			 else if (weaponType == GUN_AS_RIFLE || weaponType == GUN_RIFLE )
+			 {
+				 maxAimForType = 6;
+				 aimLevels = 4;
+				 maxAimWithoutBipod = 4;
+
+				 // SANDRO - STOMP traits - Sniper bonus aim clicks
+				 if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SNIPER_NT ) )
+				 {
+					 aimLevels += (gSkillTraitValues.ubSNAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT ));
+				 }
+			 }
+			 else if (weaponType == GUN_SN_RIFLE)
+			 {
+				 maxAimForType = 8;
+				 aimLevels = 4;
+				 maxAimWithoutBipod = 4;
+
+				 // SANDRO - STOMP traits - Sniper bonus aim clicks
+				 if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SNIPER_NT ) )
+				 {
+					 aimLevels += (gSkillTraitValues.ubSNAimClicksAdded * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT ));
+				 }
+			 }
+			 else
+			 {
+				 return 4;
+			 }
+
+			 // Determine whether a bipod is being used (prone)
+
+			 UINT8 stance = gAnimControl[ pSoldier->usAnimState ].ubEndHeight;
+
+			 // Flugente: new feature: if the next tile in our sight direction has a height so that we could rest our weapon on it, we do that, thereby gaining the prone boni instead. This includes bipods
+			 if ( gGameExternalOptions.fWeaponResting && pSoldier->IsWeaponMounted() )
+			 {
+				 stance = ANIM_PRONE;
+			 }
+
+			 if (GetBipodBonus(&pSoldier->inv[pSoldier->ubAttackingHand])>0 && stance == ANIM_PRONE )
+			 {
+				 fUsingBipod = TRUE;
+			 }
+
+			 // SANDRO - scopes are not gonna give us any aim levels when firing from hip etc.
+			 if ( pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD )
+			 {
+				 if( gGameExternalOptions.fScopeModes &&
+					 pSoldier &&
+					 (&pSoldier->inv[pSoldier->ubAttackingHand])->exists() == true &&
+					 Item[(&pSoldier->inv[pSoldier->ubAttackingHand])->usItem].usItemClass == IC_GUN)
+				 {
+					 // Flugente: check for scope mode
+					 std::map<INT8, OBJECTTYPE*> ObjList;
+					 GetScopeLists(&pSoldier->inv[pSoldier->ubAttackingHand], ObjList);
+
+					 // only use scope mode if gun is in hand, otherwise an error might occur!
+					 if( (&pSoldier->inv[HANDPOS]) == &pSoldier->inv[pSoldier->ubAttackingHand] &&
+						 ObjList[pSoldier->bScopeMode] != NULL &&
+						 pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD )
+					 {
+						 sScopeBonus = Item[ObjList[pSoldier->bScopeMode]->usItem].aimbonus;
+					 }
+				 }
+				 else
+				 {
+					 sScopeBonus = GetBaseScopeAimBonus( &pSoldier->inv[pSoldier->ubAttackingHand], uiRange );
+				 }
+
+				 // sevenfm: use new formula
+				 if ( sScopeBonus >= gGameExternalOptions.sVeryHighPowerScope ) 
+				 {
+					 aimLevels += 4;
+				 }
+				 else if ( sScopeBonus >= gGameExternalOptions.sHighPowerScope ) 
+				 {
+					 aimLevels += 3;
+				 }
+				 else if ( sScopeBonus >= gGameExternalOptions.sMediumPowerScope ) 
+				 {
+					 aimLevels += 2;
+				 }
+				 // Smaller scopes increase by one.
+				 else if ( sScopeBonus > 0 )
+				 {
+					 aimLevels++;
+				 }
+			 }
+			 // SANDRO - if using alternative weapon holding, we reduce the aim levels available
+			 else
+			 {
+				 aimLevels = (aimLevels * (100 - gGameExternalOptions.ubAltWeaponHoldingAimLevelsReduced) + 50) / 100; // round up
+			 }
+
+			 // Make sure not over maximum allowed for weapon type.
+			 if (aimLevels > maxAimForType)
+			 {
+				 aimLevels = maxAimForType;
+			 }
+			 // Make sure not over maximum allowed without a bipod.
+			 if (!fUsingBipod)
+			 {
+				 aimLevels = __min(aimLevels, maxAimWithoutBipod);
+			 }
+		 }
+	 }
+
+	 // sevenfm: limit aim levels depending on distance
+	 if( PythSpacesAway(pSoldier->sGridNo, sGridNo) <= DAY_VISION_RANGE  )
+	 {
+		 aimLevels = __min(4, aimLevels);
+	 }
+	 else
+	 {
+		 aimLevels = __min( 4 * PythSpacesAway(pSoldier->sGridNo, sGridNo) / DAY_VISION_RANGE, aimLevels );
+	 }
+
+	 //CHRISL: Make sure we always limit to the proper number of aim clicks
+	 aimLevels = __max(1, aimLevels);
+	 aimLevels = __min(8, aimLevels);
+
+	 return aimLevels;
+ }
+
 UINT8 AllowedAimingLevels(SOLDIERTYPE * pSoldier, INT32 sGridNo)
 {
 	if(UsingNewCTHSystem() == true)
 		return AllowedAimingLevelsNCTH(pSoldier, sGridNo);
+
+	if( gGameExternalOptions.fImprovedAimLevels )
+		return ImprovedAllowedAimingLevels(pSoldier, sGridNo);
 
 	UINT8 aimLevels = 4;
 	UINT16 sScopeBonus = 0;
