@@ -1452,6 +1452,7 @@ typedef struct
 	BOOLEAN fExtraVoiceTaunts;
 	BOOLEAN fShowNoiseLocator;
 	BOOLEAN fShowXRayLocator;
+	BOOLEAN fExtraBattleSounds;
 
 	BOOLEAN fPathAvoidDeepWater;
 	BOOLEAN fPathAvoidGas;

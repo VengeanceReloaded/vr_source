@@ -10635,27 +10635,32 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 		BasicPattern[strlen(BasicPattern) - 1] = 0;
 
 	// check for the rest
-	for( int i = 2; i < 255 ; i++)//gBattleSndsData[ ubSoundID ].ubRandomVal; i++ )
+	// sevenfm: added option
+	if( gGameExternalOptions.fExtraBattleSounds )
 	{
-		sprintf( zFilename, "%s%d%s", BasicPattern, i,  ".ogg");
-		if( !FileExists( zFilename ) )
+		for( int i = 2; i < 255 ; i++)//gBattleSndsData[ ubSoundID ].ubRandomVal; i++ )
 		{
-			sprintf( zFilename, "%s%d%s", BasicPattern, i, ".wav");
-			if( FileExists( zFilename ) )
+			sprintf( zFilename, "%s%d%s", BasicPattern, i,  ".ogg");
+			if( !FileExists( zFilename ) )
+			{
+				sprintf( zFilename, "%s%d%s", BasicPattern, i, ".wav");
+				if( FileExists( zFilename ) )
+				{
+					strcpy(ExistingSndsFilesIDs[ExistingSndsFiles],zFilename);
+					ExistingSndsFiles++;
+				}
+				else
+					break;
+			}
+			else
 			{
 				strcpy(ExistingSndsFilesIDs[ExistingSndsFiles],zFilename);
 				ExistingSndsFiles++;
 			}
-			else
-				break;
-		}
-		else
-		{
-			strcpy(ExistingSndsFilesIDs[ExistingSndsFiles],zFilename);
-			ExistingSndsFiles++;
-		}
 
+		}
 	}
+
 	if( ExistingSndsFiles > 0 )
 	{
 		sprintf( zFilename, ExistingSndsFilesIDs[ (UINT8)Random( ExistingSndsFiles ) ] );
