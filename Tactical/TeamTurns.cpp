@@ -1979,7 +1979,9 @@ INT8 CalcInterruptDuelPts( SOLDIERTYPE * pSoldier, UINT8 ubOpponentID, BOOLEAN f
 	}
 
 	// if soldier is still in shock from recent injuries, that penalizes him
-	iPoints -= pSoldier->aiData.bShock;
+	// sevenfm: because with new suppression system shock can be much higher, use 1/4 modifier for better balance
+	iPoints -= pSoldier->aiData.bShock / 4;
+	//iPoints -= pSoldier->aiData.bShock;
 
 	ubDistance = (UINT8) PythSpacesAway( pSoldier->sGridNo, MercPtrs[ ubOpponentID ]->sGridNo );
 

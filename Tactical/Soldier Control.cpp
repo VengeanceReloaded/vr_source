@@ -9975,8 +9975,11 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sPo
 	// Add shock
 	if ( !AM_A_ROBOT( this ) )
 	{
-		this->aiData.bShock += ubCombinedLoss;
-		this->ubLastShockFromHit += ubCombinedLoss;
+		// sevenfm: shock from wounds should be comparable to shock from suppression
+		this->aiData.bShock += ubCombinedLoss*2;
+		this->ubLastShockFromHit += ubCombinedLoss*2;
+		//this->aiData.bShock += ubCombinedLoss;
+		//this->ubLastShockFromHit += ubCombinedLoss;
 	}
 
 	// start the stopwatch - the blood is gushing!
