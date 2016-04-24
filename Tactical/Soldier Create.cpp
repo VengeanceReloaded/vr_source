@@ -1098,7 +1098,10 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 			switch(Soldier.ubCivilianGroup)
 			{
 				case CIA_OPERATIVES_GROUP:
-					Soldier.ubBattleSoundID = 101;
+					if(Random(2) == 0)
+						Soldier.ubBattleSoundID = 101;
+					else
+						Soldier.ubBattleSoundID = 112;
 					break;
 				case COCKEYE_THUGS:
 					Soldier.ubBattleSoundID = 102;
