@@ -12,7 +12,9 @@
 
 typedef struct FASTHELPREGION {
 	// the string
-	CHAR16 FastHelpText[ 256 ];
+	// sevenfm: increase size
+	//CHAR16 FastHelpText[ 256 ];
+	CHAR16 FastHelpText[ 1024 ];
 
 	// the x and y position values
 	INT32 iX;

@@ -3693,9 +3693,9 @@ UINT8 CalcChanceToGetThrough( BULLET * pBullet )
 		pBullet->sGridNo = MAPROWCOLTOPOS( pBullet->iCurrTileY , pBullet->iCurrTileX );
 
 		// HEADROCK HAM 4: Using new gravity constant from INI. See also a second change below.
-		// sevenfm: start drop at iRange in OCTH
+		// sevenfm: start drop at iRange * 1.5 in OCTH
 		//if ((UsingNewCTHSystem() == false && pBullet->iLoop > pBullet->iRange * 2) ||
-		if ((UsingNewCTHSystem() == false && pBullet->iLoop > pBullet->iRange) ||
+		if ((UsingNewCTHSystem() == false && pBullet->iLoop > 3*pBullet->iRange/2) ||
 			(UsingNewCTHSystem() == true && pBullet->iLoop > (INT32)(pBullet->iRange * gGameCTHConstants.RANGE_COEFFICIENT)))
 		{
 			// beyond max effective range, bullet starts to drop!
@@ -6884,9 +6884,9 @@ void MoveBullet( INT32 iBullet )
 				//pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * 2);
 				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * (gGameCTHConstants.GRAVITY_COEFFICIENT / 2) );
 			}
-			// sevenfm: start drop at iRange
+			// sevenfm: start drop at iRange * 1.5
 			//if ( (pBullet->iLoop > pBullet->iRange * 2) )
-			else if ( (pBullet->iLoop > pBullet->iRange ) )
+			else if ( (pBullet->iLoop > 3*pBullet->iRange/2 ) )
 			{
 				// beyond max effective range, bullet starts to drop!
 				// since we're doing an increment based on distance, not time, the
