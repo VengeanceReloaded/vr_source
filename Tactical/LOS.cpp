@@ -2137,13 +2137,15 @@ INT32 SoldierToSoldierLineOfSightTest( SOLDIERTYPE * pStartSoldier, SOLDIERTYPE 
 	}
 
 	// needed for sight limit calculation
-	if (iTileSightLimit == CALC_FROM_ALL_DIRS || iTileSightLimit == CALC_FROM_WANTED_DIR) {
+	if (iTileSightLimit == CALC_FROM_ALL_DIRS || iTileSightLimit == CALC_FROM_WANTED_DIR)
+	{
 		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible( pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, iTileSightLimit );
 		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pEndSoldier) / 100;
 	}
 
 	// needed for gun hit calculation (can you even hit him)
-	else if (iTileSightLimit == NO_DISTANCE_LIMIT) {
+	else if (iTileSightLimit == NO_DISTANCE_LIMIT)
+	{
 		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible( pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS );
 		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pEndSoldier) / 100;
 		iTileSightLimit += 255; // this shifts the limit for something special (we don't know yet)
@@ -2151,12 +2153,39 @@ INT32 SoldierToSoldierLineOfSightTest( SOLDIERTYPE * pStartSoldier, SOLDIERTYPE 
 
 	// we assume that if we are given a limit it doesn't include stealth or similar stuff
 	// for other function we assume the opposite but not this one, as we here are given the needed target soldier information to calculate sight adjustment
-	else {
+	else 
+	{
 		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pEndSoldier) / 100;
 	}
 
-	return( LineOfSightTest( (FLOAT) CenterX( pStartSoldier->sGridNo ), (FLOAT) CenterY( pStartSoldier->sGridNo ), dStartZPos, (FLOAT) CenterX( pEndSoldier->sGridNo ), (FLOAT) CenterY( pEndSoldier->sGridNo ), dEndZPos, iTileSightLimit, bAware, fSmell, NULL, adjustForSight, cthCalc ) );
+	// anv: special check for vehicles - since they're no longer transparent, we need to check for visibility 
+	// of all substructures, also vehicle will be noticed even if just part of it is sticking around the corner
+	if ( pEndSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE )
+	{
+		STRUCTURE	*pBase = pEndSoldier->pLevelNode->pStructureData;
+		if( pBase == NULL )
+		{
+			return( FALSE );
+		}
+		DB_STRUCTURE_TILE ** ppTile = pBase->pDBStructureRef->ppTile;
+		UINT8  ubNumberOfTiles = pBase->pDBStructureRef->pDBStructure->ubNumberOfTiles;
+
+		INT32 sStructGridNo;
+
+		// loop through all tiles
+		for (UINT8 ubLoop = BASE_TILE; ubLoop < ubNumberOfTiles; ubLoop++)
+		{
+			sStructGridNo = AddPosRelToBase(pBase->sGridNo, ppTile[ubLoop]);
+			if( LineOfSightTest( (FLOAT) CenterX( pStartSoldier->sGridNo ), (FLOAT) CenterY( pStartSoldier->sGridNo ), dStartZPos, (FLOAT) CenterX( sStructGridNo ), (FLOAT) CenterY( sStructGridNo ), dEndZPos, iTileSightLimit, bAware, fSmell, NULL, adjustForSight, cthCalc ) )
+			{
+				return( TRUE );
+			}
+		}
+		return( FALSE );
 	}
+
+	return( LineOfSightTest( (FLOAT) CenterX( pStartSoldier->sGridNo ), (FLOAT) CenterY( pStartSoldier->sGridNo ), dStartZPos, (FLOAT) CenterX( pEndSoldier->sGridNo ), (FLOAT) CenterY( pEndSoldier->sGridNo ), dEndZPos, iTileSightLimit, bAware, fSmell, NULL, adjustForSight, cthCalc ) );
+}
 
 INT32 SoldierToLocationWindowTest( SOLDIERTYPE * pStartSoldier, INT32 sEndGridNo )
 {

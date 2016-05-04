@@ -899,7 +899,10 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 			{
 				pCorpse = &(gRottingCorpse[ cnt ] );
 
-				if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 )
+				if( pCorpse &&
+					pCorpse->fActivated &&
+					pCorpse->def.ubAIWarningValue > 0 &&
+					!TileIsOutOfBounds(pCorpse->def.sGridNo) )
 				{
 					// test ally
 					BOOLEAN fCorpseOFAlly = FALSE;
@@ -3190,6 +3193,35 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			}
 		}*/
 
+		// sevenfm: before anything else, if we are lying prone in a building and the enemy is close so he can be seen, try to crouch first
+		if( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE &&
+			IsValidStance( pSoldier, ANIM_CROUCH ) &&			
+			pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&			
+			GetAPsToChangeStance( pSoldier, ANIM_CROUCH ) <= pSoldier->bActionPoints &&
+			!TileIsOutOfBounds(sClosestOpponent) &&
+			PythSpacesAway( pSoldier->sGridNo, sClosestOpponent ) <= DAY_VISION_RANGE/2 &&
+			InARoom(pSoldier->sGridNo, NULL) )
+		{
+			// maybe raise weapon after crouching
+			if( (PythSpacesAway( pSoldier->sGridNo, sClosestOpponent ) < (pSoldier->GetMaxDistanceVisible(sClosestOpponent) * 3) / 2 ||
+				PreRandom( 4 ) == 0) )
+			{
+				// determine direction from this soldier to the closest opponent
+				ubOpponentDir = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(sClosestOpponent),CenterY(sClosestOpponent));
+
+				if( PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) != INVALID_ANIMATION &&
+					AIGunInHandScoped(pSoldier) &&
+					!WeaponReady(pSoldier) &&
+					pSoldier->ubDirection == ubOpponentDir &&
+					GetAPsToReadyWeapon( pSoldier, PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) ) + GetAPsToChangeStance( pSoldier, ANIM_CROUCH ) <= pSoldier->bActionPoints )
+				{
+					pSoldier->aiData.bNextAction = AI_ACTION_RAISE_GUN;
+				}
+			}
+
+			pSoldier->aiData.usActionData = ANIM_CROUCH;
+			return(AI_ACTION_CHANGE_STANCE);
+		}
 
 		// if we can move at least 1 square's worth
 		// and have more APs than we want to reserve
@@ -3830,7 +3862,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			// sevenfm: better use increased range as we may have scope or enemy may be approaching
 			sDistVisible = 3 * sDistVisible / 2;
 
-			if ((pSoldier->ubDirection != ubOpponentDir) && (PythSpacesAway(pSoldier->sGridNo,sClosestOpponent) <= sDistVisible))
+			if( (pSoldier->ubDirection != ubOpponentDir) &&
+				(PythSpacesAway(pSoldier->sGridNo,sClosestOpponent) <= sDistVisible) &&
+				(gAnimControl[ pSoldier->usAnimState ].ubEndHeight > ANIM_PRONE || pSoldier->bActionPoints == pSoldier->bInitialActionPoints || TANK( pSoldier ) ) )
 			{
 				// set base chance according to orders
 				if ((pSoldier->aiData.bOrders == STATIONARY) || (pSoldier->aiData.bOrders == ONGUARD))

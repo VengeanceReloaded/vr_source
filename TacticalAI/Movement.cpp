@@ -443,7 +443,7 @@ INT8 RandomPointPatrolAI(SOLDIERTYPE *pSoldier)
 INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, INT16 bReserveAPs, INT8 bAction, INT8 fFlags )
 {
 #ifdef DEBUGDECISIONS
- STR16 tempstr;
+	STR16 tempstr;
 #endif
 	INT32 sLoop,sAPCost;
 	INT32 sTempDest,sGoToGrid;
@@ -517,27 +517,8 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 
 	fPathFlags = 0;
 	if ( CREATURE_OR_BLOODCAT( pSoldier ) )
-	{	/*
-		if ( PythSpacesAway( pSoldier->sGridNo, sDesGrid ) <= PATH_CLOSE_RADIUS )
-		{
-			// then do a limited range path search and see if we can get there
-			gubNPCDistLimit = 10;
-			if ( !LegalNPCDestination( pSoldier, sDesGrid, ENSURE_PATH, NOWATER, fPathFlags) )
-			{
-				gubNPCDistLimit = 0;
-				return( NOWHERE );
-			}
-			else
-			{
-				// allow attempt to path without 'good enough' flag on
-				gubNPCDistLimit = 0;
-			}
-		}
-		else
-		{
-		*/
-			fPathFlags = PATH_CLOSE_GOOD_ENOUGH;
-		//}
+	{
+		fPathFlags = PATH_CLOSE_GOOD_ENOUGH;
 	}
 
 	// first step: try to find an OK destination at or near the desired gridno
@@ -613,175 +594,158 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 		}
 	}
 
- // HAVE FOUND AN OK destination AND PLOTTED A VALID BEST PATH TO IT
+	// HAVE FOUND AN OK destination AND PLOTTED A VALID BEST PATH TO IT
 
 
 #ifdef DEBUGDECISIONS
- AINumMessage("Chosen legal destination is gridno ",sDesGrid);
- AINumMessage("Tracing along path, pathRouteToGo = ",pSoldier->pathing.usPathIndex);
+	AINumMessage("Chosen legal destination is gridno ",sDesGrid);
+	AINumMessage("Tracing along path, pathRouteToGo = ",pSoldier->pathing.usPathIndex);
 #endif
 
- sGoToGrid = pSoldier->sGridNo;		// start back where soldier is standing now
- sAPCost = 0;			// initialize path cost counter
+	sGoToGrid = pSoldier->sGridNo;		// start back where soldier is standing now
+	sAPCost = 0;			// initialize path cost counter
 
- // 0verhaul:  If the destination is within the patrol route, allow it.  This is necessary to allow an errant soldier
- // to return to his patrol route if flanking or other actions have pulled him beyond his allowed range from origin.
- if (SpacesAway(sOrigin,sDesGrid) <= usMaxDist)
- {
-	fAllowDest = TRUE;
- }
-
- // we'll only go as far along the plotted route as is within our
- // permitted roaming range, and we'll stop as soon as we're down to <= 5 APs
-
- for (sLoop = 0; sLoop < (pSoldier->pathing.usPathDataSize - pSoldier->pathing.usPathIndex); sLoop++)
+	// 0verhaul:  If the destination is within the patrol route, allow it.  This is necessary to allow an errant soldier
+	// to return to his patrol route if flanking or other actions have pulled him beyond his allowed range from origin.
+	if (SpacesAway(sOrigin,sDesGrid) <= usMaxDist)
 	{
-	// what is the next gridno in the path?
+		fAllowDest = TRUE;
+	}
 
-	 //sTempDest = NewGridNo( sGoToGrid,DirectionInc( (INT16) (pSoldier->pathing.usPathingData[sLoop] + 1) ) );
-	 sTempDest = NewGridNo( sGoToGrid,DirectionInc( (UINT8) (pSoldier->pathing.usPathingData[sLoop]) ) );
-	//NumMessage("sTempDest = ",sTempDest);
+	// we'll only go as far along the plotted route as is within our
+	// permitted roaming range, and we'll stop as soon as we're down to <= 5 APs
 
-	// this should NEVER be out of bounds
-	if (sTempDest == sGoToGrid)
+	// sevenfm: start here
+	sTempDest = pSoldier->sGridNo;
+
+	for (sLoop = 0; sLoop < (pSoldier->pathing.usPathDataSize - pSoldier->pathing.usPathIndex); sLoop++)
 	{
+		// what is the next gridno in the path?
+
+		//sTempDest = NewGridNo( sGoToGrid,DirectionInc( (INT16) (pSoldier->pathing.usPathingData[sLoop] + 1) ) );
+		//sTempDest = NewGridNo( sGoToGrid,DirectionInc( (UINT8) (pSoldier->pathing.usPathingData[sLoop]) ) );
+		// sevenfm: find new gridno from sTempDest to allow jumping over fence
+		sTempDest = NewGridNo( sTempDest,DirectionInc( (UINT8) (pSoldier->pathing.usPathingData[sLoop]) ) );		
+
+		// this should NEVER be out of bounds
+		if (sTempDest == sGoToGrid)
+		{
 #ifdef BETAVERSION
-	 sprintf(tempstr,"GoAsFarAsPossibleTowards: ERROR - gridno along valid route is invalid!	guynum %d, sTempDest = %d",pSoldier->ubID,sTempDest);
+			sprintf(tempstr,"GoAsFarAsPossibleTowards: ERROR - gridno along valid route is invalid!	guynum %d, sTempDest = %d",pSoldier->ubID,sTempDest);
 
 #ifdef RECORDNET
-	 fprintf(NetDebugFile,"\n\t%s\n",tempstr);
+			fprintf(NetDebugFile,"\n\t%s\n",tempstr);
 #endif
 
-	 PopMessage(tempstr);
-	 SaveGame(ERROR_SAVE);
+			PopMessage(tempstr);
+			SaveGame(ERROR_SAVE);
 #endif
 
-	 break;			// quit here, sGoToGrid is where we are going
-	}
-
-	// if this takes us beyond our permitted "roaming range"
-   // but if it brings us closer, then allow it!
-   if (SpacesAway(sOrigin,sTempDest) > usMaxDist && !fAllowDest)
-	 break;			// quit here, sGoToGrid is where we are going
-
-
-	if ( usRoomRequired )
-	{
-		if ( !( InARoom( sTempDest, &usTempRoom ) && usTempRoom == usRoomRequired ) )
-		{
-		// quit here, limited by room!
-		break;
+			break;			// quit here, sGoToGrid is where we are going
 		}
-	}
 
-	if ( (fFlags & FLAG_STOPSHORT) && SpacesAway( sDesGrid, sTempDest ) <= STOPSHORTDIST )
-	{
-	 break;			// quit here, sGoToGrid is where we are going
-	}
-
-	// if this gridno is NOT a legal NPC destination
-	// DONT'T test path again - that would replace the traced path! - Ian
-	// NOTE: It's OK to go *THROUGH* water to try and get to the destination!
-	if (!LegalNPCDestination(pSoldier,sTempDest,IGNORE_PATH,WATEROK,0))
-	 break;			// quit here, sGoToGrid is where we are going
+		// if this takes us beyond our permitted "roaming range"
+		// but if it brings us closer, then allow it!
+		if (SpacesAway(sOrigin,sTempDest) > usMaxDist && !fAllowDest)
+			break;			// quit here, sGoToGrid is where we are going
 
 
-	// CAN'T CALL PathCost() HERE! IT CALLS findBestPath() and overwrites
-	//		pathRouteToGo !!!	Gotta calculate the cost ourselves - Ian
-	//
-	//ubAPsLeft = pSoldier->bActionPoints - PathCost(pSoldier,sTempDest,FALSE,FALSE,FALSE,FALSE,FALSE);
-
-	if (gfTurnBasedAI)
-	{
-		// if we're just starting the "costing" process (first gridno)
-		if (sLoop == 0)
-			{
-			/*
-			// first, add any additional costs - such as intermediate animations, etc.
-			switch(pSoldier->anitype[pSoldier->anim])
-				{
-				// in theory, no NPC should ever be in one of these animations as
-				// things stand (they don't medic anyone), but leave it for robustness
-				case START_AID	:
-				case GIVING_AID	: sAnimCost = APBPConstants[AP_STOP_FIRST_AID];
-					break;
-
-				case TWISTOMACH	:
-				case COLLAPSED	: sAnimCost = APBPConstants[AP_GET_UP];
-					break;
-
-				case TWISTBACK	:
-				case UNCONSCIOUS : sAnimCost = (APBPConstants[AP_ROLL_OVER] + APBPConstants[AP_GET_UP]);
-					break;
-
-				default			: sAnimCost = 0;
-				}
-
-			// this is our first cost
-			sAPCost += sAnimCost;
-			*/
-
-			if (pSoldier->usUIMovementMode == RUNNING)
-			{
-				sAPCost += GetAPsStartRun( pSoldier ); // changed by SANDRO
-			}
-			}
-
-		// ATE: Direction here?
-		sAPCost += EstimateActionPointCost( pSoldier, sTempDest, (INT8) pSoldier->pathing.usPathingData[sLoop], pSoldier->usUIMovementMode, (INT8) sLoop, (INT8) pSoldier->pathing.usPathDataSize );
-
-		bAPsLeft = pSoldier->bActionPoints - sAPCost;
-	}
-
-	// if after this, we have <= 5 APs remaining, that's far enough, break out
-	// (the idea is to preserve APs so we can crouch or react if
-	// necessary, and benefit from the carry-over next turn if not needed)
-	// This routine is NOT used by any GREEN AI, so such caution is warranted!
-
-	if ( gfTurnBasedAI && (bAPsLeft < bReserveAPs) )
-		break;
-	else
+		if ( usRoomRequired )
 		{
-		sGoToGrid = sTempDest;	// we're OK up to here
+			if ( !( InARoom( sTempDest, &usTempRoom ) && usTempRoom == usRoomRequired ) )
+			{
+				// quit here, limited by room!
+				break;
+			}
+		}
 
-		// if exactly 5 APs left, don't bother checking any further
-		if ( gfTurnBasedAI && (bAPsLeft == bReserveAPs) )
+		if ( (fFlags & FLAG_STOPSHORT) && SpacesAway( sDesGrid, sTempDest ) <= STOPSHORTDIST )
+		{
+			break;			// quit here, sGoToGrid is where we are going
+		}
+
+		// CAN'T CALL PathCost() HERE! IT CALLS findBestPath() and overwrites
+		//		pathRouteToGo !!!	Gotta calculate the cost ourselves - Ian
+		//
+		//ubAPsLeft = pSoldier->bActionPoints - PathCost(pSoldier,sTempDest,FALSE,FALSE,FALSE,FALSE,FALSE);
+
+		if (gfTurnBasedAI)
+		{
+			// if we're just starting the "costing" process (first gridno)
+			if (sLoop == 0)
+			{
+
+				if (pSoldier->usUIMovementMode == RUNNING)
+				{
+					sAPCost += GetAPsStartRun( pSoldier ); // changed by SANDRO
+				}
+			}
+
+			// ATE: Direction here?
+			sAPCost += EstimateActionPointCost( pSoldier, sTempDest, (INT8) pSoldier->pathing.usPathingData[sLoop], pSoldier->usUIMovementMode, (INT8) sLoop, (INT8) pSoldier->pathing.usPathDataSize );
+
+			bAPsLeft = pSoldier->bActionPoints - sAPCost;
+		}
+
+		// if this gridno is NOT a legal NPC destination
+		// DONT'T test path again - that would replace the traced path! - Ian
+		// NOTE: It's OK to go *THROUGH* water to try and get to the destination!
+		// sevenfm: jump over fence code - if current gridno is not legal destination, check next gridno
+		if (!LegalNPCDestination(pSoldier,sTempDest,IGNORE_PATH,WATEROK,0))
+		{
+			// break;
+			continue;
+		}
+
+		// if after this, we have <= 5 APs remaining, that's far enough, break out
+		// (the idea is to preserve APs so we can crouch or react if
+		// necessary, and benefit from the carry-over next turn if not needed)
+		// This routine is NOT used by any GREEN AI, so such caution is warranted!
+
+		if ( gfTurnBasedAI && (bAPsLeft < bReserveAPs) )
+		{
 			break;
 		}
+		else
+		{
+			sGoToGrid = sTempDest;	// we're OK up to here
+
+			// if exactly 5 APs left, don't bother checking any further
+			if ( gfTurnBasedAI && (bAPsLeft == bReserveAPs) )
+				break;
+		}
 	}
 
-
- // if it turned out we couldn't go even 1 tile towards the desired gridno
- if (sGoToGrid == pSoldier->sGridNo)
+	// if it turned out we couldn't go even 1 tile towards the desired gridno
+	if (sGoToGrid == pSoldier->sGridNo)
 	{
 #ifdef DEBUGDECISIONS
-   sprintf(tempstr,"%s will go NOWHERE, path doesn't meet criteria",pSoldier->name);
-   AIPopMessage(tempstr);
+		sprintf(tempstr,"%s will go NOWHERE, path doesn't meet criteria",pSoldier->name);
+		AIPopMessage(tempstr);
 #endif
 
-	pSoldier->pathing.usPathIndex = pSoldier->pathing.usPathDataSize = 0;
-	return(NOWHERE);			 // then go nowhere
+		pSoldier->pathing.usPathIndex = pSoldier->pathing.usPathDataSize = 0;
+		return(NOWHERE);			 // then go nowhere
 	}
- else
-  {
-   // possible optimization - stored path IS good if we're going all the way
-   if (sGoToGrid == sDesGrid)
+	else
 	{
-	 pSoldier->pathing.bPathStored = TRUE;
-		pSoldier->pathing.sFinalDestination = sGoToGrid;
-	}
-	else if ( pSoldier->pathing.usPathIndex == 0 )
-	{
-		// we can hack this surely! -- CJC
-	 pSoldier->pathing.bPathStored = TRUE;
-		pSoldier->pathing.sFinalDestination = sGoToGrid;
-		pSoldier->pathing.usPathDataSize = sLoop + 1;
-	}
+		// possible optimization - stored path IS good if we're going all the way
+		if (sGoToGrid == sDesGrid)
+		{
+			pSoldier->pathing.bPathStored = TRUE;
+			pSoldier->pathing.sFinalDestination = sGoToGrid;
+		}
+		else if ( pSoldier->pathing.usPathIndex == 0 )
+		{
+			// we can hack this surely! -- CJC
+			pSoldier->pathing.bPathStored = TRUE;
+			pSoldier->pathing.sFinalDestination = sGoToGrid;
+			pSoldier->pathing.usPathDataSize = sLoop + 1;
+		}
 
 #ifdef DEBUGDECISIONS
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"%d to %d with %d APs left", pSoldier->ubID, sGoToGrid, pSoldier->bActionPoints );
- #endif
-
+#endif
 
 		return( sGoToGrid );
 	}

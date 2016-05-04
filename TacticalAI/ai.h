@@ -269,6 +269,7 @@ BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier );
 UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier );
 INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel);
 UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );
+BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier );
 BOOLEAN NightLight( void );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
@@ -287,6 +288,7 @@ BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot );
 
 BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
+BOOLEAN AIGunInHandScoped(SOLDIERTYPE *pSoldier);
 UINT16 AIGunRange(SOLDIERTYPE *pSoldier);
 
 #define MAX_FLANKS_RED 25

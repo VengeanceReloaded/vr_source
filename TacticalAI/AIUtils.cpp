@@ -24,9 +24,12 @@
 	#include "Soldier Create.h"
 	#include "SkillCheck.h"		// added by SANDRO
 	#include "Vehicles.h"		// added by silversurfer
-	#include "Game Clock.h"			// sevenfm
-	#include "Rotting Corpses.h"	// sevenfm
-	#include "wcheck.h"				// sevenfm
+	// sevenfm:
+	#include "Game Clock.h"
+	#include "Rotting Corpses.h"
+	#include "wcheck.h"
+	#include "Drugs And Alcohol.h"
+	#include  "Sound Control.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2656,6 +2659,13 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 	BOOLEAN fRedAlert = FALSE;
 	//BOOLEAN fFriendsNeedHelp = FALSE;
 
+	// sevenfm: in case we want to call this for player mercs
+	if ( pSoldier->flags.uiStatusFlags & SOLDIER_PC )
+	{
+		*pusFromGridNo = pSoldier->sGridNo;
+		return MAX_ROAMING_RANGE;
+	}
+
 	if ( CREATURE_OR_BLOODCAT( pSoldier ) )
 	{
 		if ( pSoldier->aiData.bAlertStatus == STATUS_BLACK )
@@ -2676,7 +2686,8 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 		*pusFromGridNo = pSoldier->aiData.sPatrolGrid[0];
 	}
 
-	if( !TileIsOutOfBounds(ClosestKnownOpponent(pSoldier, NULL, NULL)) )
+	//if( !TileIsOutOfBounds(ClosestKnownOpponent(pSoldier, NULL, NULL)) )
+	if( GuyKnowsEnemyPosition(pSoldier) )
 	{
 		fOppPosKnown = TRUE;
 	}
@@ -3719,6 +3730,22 @@ BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier)
 	}
 }
 
+BOOLEAN AIGunInHandScoped(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( UsingNewCTHSystem() == false && IsScoped(&pSoldier->inv[HANDPOS]) )
+	{
+		return TRUE;
+	}
+
+	if( UsingNewCTHSystem() == true && NCTHIsScoped(&pSoldier->inv[HANDPOS]) )
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
 // return range for the AI gun
 UINT16 AIGunRange(SOLDIERTYPE *pSoldier)
 {
@@ -4034,4 +4061,36 @@ UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier )
 	}
 
 	return ubFriendCount;
+}
+
+BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier )
+{
+	UINT8		ubTeamLoop;
+	UINT8		ubIDLoop;
+
+	for ( ubTeamLoop = 0; ubTeamLoop < MAXTEAMS; ubTeamLoop++ )
+	{
+		if(!gTacticalStatus.Team[ubTeamLoop].bTeamActive)
+			continue;
+
+		if ( gTacticalStatus.Team[ ubTeamLoop ].bSide != pSoldier->bSide )
+		{
+			// consider guys in this team, which isn't on our side
+			for ( ubIDLoop = gTacticalStatus.Team[ ubTeamLoop ].bFirstID; ubIDLoop <= gTacticalStatus.Team[ ubTeamLoop ].bLastID; ubIDLoop++ )
+			{
+				// if this guy knows something about this enemy
+				if ( pSoldier->aiData.bOppList[ ubIDLoop ] != NOT_HEARD_OR_SEEN )
+				{
+					return( TRUE );
+				}
+				// check also public knowledge
+				if ( gbPublicOpplist[pSoldier->bTeam][ ubIDLoop ] != NOT_HEARD_OR_SEEN )
+				{
+					return( TRUE );
+				}
+			}
+		}
+	}
+
+	return( FALSE );
 }
