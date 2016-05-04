@@ -117,8 +117,15 @@
 #include "SkillMenu.h"					// added by Flugente
 #include "Map Screen Interface Map Inventory.h"//dnl ch75 021113
 
-#include "DisplayCover.h"				// added by Sevenfm
-#include "InterfaceItemImages.h"		// added by Sevenfm
+// sevenfm:
+#include "DisplayCover.h"
+#include "InterfaceItemImages.h"
+#include "ai.h"
+#include "buildings.h"
+#include "Render Fun.h"
+#include "SkillCheck.h"
+#include "Campaign.h"
+#include "WCheck.h"
 
 #include "NPC.h"						// anv: VR
 
@@ -345,6 +352,8 @@ void TacticalCoverMessageBoxCallBack( UINT8 ubExitValue );
 void HandleTacticalAmmoCrates( UINT8 magType );
 void HandleTacticalTransformItem( void );
 BOOLEAN FindTransformation( UINT16 usItem, TransformInfoStruct **pTransformation );
+
+void HandleTacticalUnJam( SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj );
 
 void	GetTBMouseButtonInput( UINT32 *puiNewEvent )
 {
@@ -4197,7 +4206,29 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 
 				else if ( gusSelectedSoldier != NOBODY )
-					*puiNewEvent = M_CHANGE_TO_ACTION;
+				{
+					if( gGameExternalOptions.fManualUnjam )
+					{
+						SOLDIERTYPE* pSoldier = MercPtrs[gusSelectedSoldier];
+						OBJECTTYPE* pObj;
+
+						// check main hand
+						if( pSoldier->inv[ HANDPOS ].exists() )
+						{
+							pObj =  pSoldier->GetUsedWeapon( &pSoldier->inv[ HANDPOS ] );
+							if( pObj->exists() &&
+								Item[ pObj->usItem ].usItemClass == IC_GUN &&
+								!EXPLOSIVE_GUN( pObj->usItem ) )
+							{
+								HandleTacticalUnJam( MercPtrs[gusSelectedSoldier], pObj );
+							}
+						}
+					}
+					else
+					{
+						*puiNewEvent = M_CHANGE_TO_ACTION;
+					}					
+				}
 				break;
 
 			case 'U':
@@ -8508,3 +8539,157 @@ void HandleTacticalTakeItem( void )
 
 }
 
+void HandleTacticalUnJam( SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj )
+{
+	CHECKV(pSoldier);
+	CHECKV(pObj);
+
+	INT8 bChanceMod;
+	INT16 sAP;
+
+	UINT16	usItem = pObj->usItem;
+	UINT16	usWeapon = Item[pObj->usItem].ubClassIndex;
+
+	sAP = GetUnjamAP(pSoldier, pObj);
+
+	// first, check if gun is jammed
+	if( (*pObj)[0]->data.gun.bGunAmmoStatus < 0 )
+	{
+		if(EnoughPoints(pSoldier, sAP, APBPConstants[BP_UNJAM], TRUE))
+		{
+			DeductPoints(pSoldier, sAP, APBPConstants[BP_UNJAM]);		
+
+			if ( Weapon[pObj->usItem].EasyUnjam )
+				bChanceMod = 100;
+			else
+				bChanceMod = (INT8) (GetReliability( pObj )* 4);
+
+			int iResult = SkillCheck( pSoldier, UNJAM_GUN_CHECK, bChanceMod); 
+
+			if (iResult > 0) 
+			{ 
+				// yay! unjammed the gun 
+				(*pObj)[0]->data.gun.bGunAmmoStatus *= -1;
+
+				// deduct ammo
+				if( (*pObj)[0]->data.gun.ubGunShotsLeft > 0 )
+				{
+					// Flugente: external feeding allows us to take ammo from somewhere other than our magazine, like a belt in our inventory our even another mercs
+					if ( gGameExternalOptions.ubExternalFeeding > 0 )
+					{
+						if ( !DeductBulletViaExternalFeeding(pSoldier, pObj) )
+						{
+							// bullet couldn't be fed externally -> remove bullet from the weapon's magazine
+							// OK, let's see, don't overrun...
+							if ( (*pObj)[0]->data.gun.ubGunShotsLeft != 0 )
+							{
+								(*pObj)[0]->data.gun.ubGunShotsLeft--;
+							}	
+						}
+					}
+					else
+					{
+						// OK, let's see, don't overrun...
+						if ( (*pObj)[0]->data.gun.ubGunShotsLeft != 0 )
+						{
+							(*pObj)[0]->data.gun.ubGunShotsLeft--;
+						}	
+					}
+				}
+
+				// MECHANICAL/DEXTERITY GAIN: Unjammed a gun 
+				if (bChanceMod < 100) // don't give exp for unjamming an easily unjammable gun
+				{
+					StatChange( pSoldier, MECHANAMT, 5, FALSE ); 
+					StatChange( pSoldier, DEXTAMT, 5, FALSE ); 
+				}			
+
+				if( Random(2) )
+					pSoldier->DoMercBattleSound( BATTLE_SOUND_HUMM );
+				else
+					pSoldier->DoMercBattleSound( BATTLE_SOUND_COOL1 );			
+			}
+			else
+			{
+				// possibly damage gun
+				if( (*pObj)[0]->data.objectStatus > 0 &&
+					Random(100) > (*pObj)[0]->data.objectStatus + GetReliability( pObj )* 4 )
+				{
+					(*pObj)[0]->data.objectStatus--;
+					pSoldier->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+				}			
+			}
+
+			// play LNL sound (play manual reload sound if possible)
+			if( Weapon[Item[(pObj)->usItem].ubClassIndex].APsToReloadManually )
+			{
+				PlayJA2Sample( Weapon[ usWeapon ].ManualReloadSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+			}
+			else
+			{
+				PlayJA2Sample( Weapon[ usWeapon ].sLocknLoadSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+			}
+		}
+	}
+	// check if gun needs manual rechambering
+	else if( Weapon[Item[(pObj)->usItem].ubClassIndex].APsToReloadManually &&
+		(*pObj)[0]->data.gun.ubGunShotsLeft &&
+		!((*pObj)[0]->data.gun.ubGunState & GS_CARTRIDGE_IN_CHAMBER) )
+	{
+		if(EnoughPoints(pSoldier, sAP, 0, TRUE))
+		{
+			DeductPoints(pSoldier, sAP, 0);
+
+			(*pObj)[0]->data.gun.ubGunState |= GS_CARTRIDGE_IN_CHAMBER;
+			(*pObj)[0]->data.gun.ubGunState &= ~GS_WEAPON_BEING_RELOADED;
+
+			PlayJA2Sample( Weapon[ Item[pObj->usItem].ubClassIndex ].ManualReloadSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+		}		
+	}
+	// play LNL sound, deduct ammo
+	else	
+	{
+		if(EnoughPoints(pSoldier, sAP, APBPConstants[BP_UNJAM], TRUE))
+		{
+			DeductPoints(pSoldier, sAP, APBPConstants[BP_UNJAM]);
+
+			// deduct ammo
+			if( (*pObj)[0]->data.gun.ubGunShotsLeft > 0 )
+			{
+				// Flugente: external feeding allows us to take ammo from somewhere other than our magazine, like a belt in our inventory our even another mercs
+				if ( gGameExternalOptions.ubExternalFeeding > 0 )
+				{
+					if ( !DeductBulletViaExternalFeeding(pSoldier, pObj) )
+					{
+						// bullet couldn't be fed externally -> remove bullet from the weapon's magazine
+						// OK, let's see, don't overrun...
+						if ( (*pObj)[0]->data.gun.ubGunShotsLeft != 0 )
+						{
+							(*pObj)[0]->data.gun.ubGunShotsLeft--;
+						}	
+					}
+				}
+				else
+				{
+					// OK, let's see, don't overrun...
+					if ( (*pObj)[0]->data.gun.ubGunShotsLeft != 0 )
+					{
+						(*pObj)[0]->data.gun.ubGunShotsLeft--;
+					}	
+				}
+			}
+
+			// play LNL sound (play manual reload sound if possible)
+			if( Weapon[Item[(pObj)->usItem].ubClassIndex].APsToReloadManually )
+			{
+				PlayJA2Sample( Weapon[ usWeapon ].ManualReloadSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+			}
+			else
+			{
+				PlayJA2Sample( Weapon[ usWeapon ].sLocknLoadSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
+			}
+		}
+	}	
+
+	DirtyMercPanelInterface(pSoldier, DIRTYLEVEL2);
+}

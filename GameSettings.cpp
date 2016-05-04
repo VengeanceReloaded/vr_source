@@ -2256,6 +2256,9 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fShowXRayLocator			= iniReader.ReadBoolean("Extended Options", "SHOW_XRAY_LOCATOR", true, false);
 	gGameExternalOptions.fExtraBattleSounds			= iniReader.ReadBoolean("Extended Options", "EXTRA_BATTLE_SOUNDS", true, false);
 	gGameExternalOptions.fImprovedAimLevels			= iniReader.ReadBoolean("Extended Options", "IMPROVED_AIM_LEVELS", true, false);
+	gGameExternalOptions.fManualUnjam				= iniReader.ReadBoolean("Extended Options", "MANUAL_UNJAM", true, false);
+	gGameExternalOptions.fLessJams					= iniReader.ReadBoolean("Extended Options", "LESS_JAMS", true, false);
+	gGameExternalOptions.fEnemyJams					= iniReader.ReadBoolean("Extended Options", "ENEMY_JAMS", true, false);
 
 	gGameExternalOptions.fPathAvoidDeepWater		= iniReader.ReadBoolean("Extended Options", "PATH_AVOID_DEEP_WATER", true, false);
 	gGameExternalOptions.fPathAvoidGas				= iniReader.ReadBoolean("Extended Options", "PATH_AVOID_GAS", true, false);

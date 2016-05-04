@@ -82,6 +82,9 @@
 	#include "Explosion Control.h"		// added by Flugente
 	#include "Food.h"					// added by Flugente
 	#include "Encyclopedia_new.h"	//Moa: enc. item visibility
+	// sevenfm:
+	#include "Soldier Control.h"
+	#include "Sound Control.h"
 #endif
 
 #include "Multi Language Graphic Utils.h"
@@ -330,6 +333,7 @@ void TransformationMenuPopup_Transform(TransformInfoStruct * Transform);
 BOOLEAN TransformationMenuPopup_TestValid(TransformInfoStruct * Transform);
 void ItemDescTransformRegionCallback( MOUSE_REGION *pRegion, INT32 reason );
 void TransformationMenuPopup_Unjam();
+BOOLEAN TransformationMenuPopup_Unjam_TestValid(OBJECTTYPE* pObj);
 void TransformationMenuPopup_SplitCrate( UINT16 usMagazineItem );
 void TransformationMenuPopup_SplitCrateInInventory( );
 void TransformFromItemDescBox( TransformInfoStruct * Transform);
@@ -6757,13 +6761,18 @@ void RenderItemDescriptionBox( )
 			// - there is a transformation
 			// - we are in the game or map screen, it is a single item, and
 			//		- the item is a grenade
-			//		- the item is a bomb and has a detonator or remote detonator attached				
+			//		- the item is a bomb and has a detonator or remote detonator attached
+			// sevenfm: add unjam transformation
 			BOOLEAN renderTransformIcon = FALSE;
 			if ( ( (guiCurrentScreen == GAME_SCREEN || guiCurrentScreen == MAP_SCREEN) && gpItemDescObject->ubNumberOfObjects == 1 ) &&
-						( (Item[gpItemDescObject->usItem].usItemClass == IC_GRENADE) || 
-						( (Item[gpItemDescObject->usItem].usItemClass == IC_BOMB) && HasAttachmentOfClass( gpItemDescObject, (AC_DETONATOR | AC_REMOTEDET)) ) ) )
+				( (Item[gpItemDescObject->usItem].usItemClass == IC_GRENADE) || 
+				( (Item[gpItemDescObject->usItem].usItemClass == IC_BOMB) && HasAttachmentOfClass( gpItemDescObject, (AC_DETONATOR | AC_REMOTEDET)) ) ||
+				(Item[gpItemDescObject->usItem].usItemClass == IC_GUN && (*gpItemDescObject)[0]->data.gun.bGunAmmoStatus < 0 )    ) )
+			{
 				renderTransformIcon = TRUE;
+			}
 			if (!renderTransformIcon)
+			{
 				for (UINT16 x = 0; x < MAXITEMS; x++)
 				{
 					if (Transform[x].usItem == (UINT16)-1)
@@ -6774,8 +6783,11 @@ void RenderItemDescriptionBox( )
 						break;
 					}
 				}
+			}
 			if (renderTransformIcon)
+			{
 				BltVideoObjectFromIndex( guiSAVEBUFFER, guiTransformIconGraphic, 0, (ITEMDESC_ITEM_X+ITEMDESC_ITEM_WIDTH)-13, (ITEMDESC_ITEM_Y+ITEMDESC_ITEM_HEIGHT)-17, VO_BLT_SRCTRANSPARENCY, NULL );
+			}
 		}
 
 		// Display status
@@ -13211,21 +13223,6 @@ void ItemDescTransformRegionCallback( MOUSE_REGION *pRegion, INT32 reason )
 		
 		BOOLEAN fFoundTransformations = false;
 
-		/*
-		// Test the item for Gun Jams. If it's a gun and is jammed, add a Transformation Menu option to unjam it.
-		if ( Item[gpItemDescObject->usItem].usItemClass == IC_GUN && !EXPLOSIVE_GUN( gpItemDescObject->usItem ) ) 
-		{ 
-			// Check ammo status
-			if ((*gpItemDescObject)[0]->data.gun.bGunAmmoStatus < 0) 
-			{
-				// Add option
-				POPUP_OPTION *pOption = new POPUP_OPTION(&std::wstring( L"Unjam" ), new popupCallbackFunction<void,void>( &TransformationMenuPopup_Unjam ));
-				gItemDescTransformPopup->addOption( *pOption );
-				fFoundTransformations = true;
-			}
-		}
-		*/
-
 		//Madd: override - if this item is a gun attached to something then forget about it -- attachments of attachments and any loaded ammo get lost otherwise
 		if ((gpItemDescPrevObject == NULL && Item[gpItemDescObject->usItem].usItemClass & IC_GUN) || !(Item[gpItemDescObject->usItem].usItemClass & IC_GUN) )
 		{
@@ -13372,9 +13369,38 @@ void ItemDescTransformRegionCallback( MOUSE_REGION *pRegion, INT32 reason )
 				}
 			}
 										
-			// onyl allow transformations if the item is not an armed bomb
+			// only allow transformations if the item is not an armed bomb
 			if ( !fHaveToDisarm )
 			{
+				// Test the item for Gun Jams. If it's a gun and is jammed, add a Transformation Menu option to unjam it.
+				if( gGameExternalOptions.fManualUnjam &&
+					Item[gpItemDescObject->usItem].usItemClass == IC_GUN &&
+					!EXPLOSIVE_GUN( gpItemDescObject->usItem )) 
+				{ 
+					// Check ammo status
+					if ((*gpItemDescObject)[0]->data.gun.bGunAmmoStatus < 0) 
+					{
+						UINT16 usAPCost = GetUnjamAP(gpItemDescSoldier, gpItemDescObject);
+
+						CHAR16 MenuRowText[300];
+
+						if ( usAPCost > 0 && gTacticalStatus.uiFlags & INCOMBAT && gTacticalStatus.uiFlags & TURNBASED )
+						{
+							swprintf (MenuRowText, L"Unjam (%d AP)", usAPCost );
+						}
+						else
+						{
+							swprintf (MenuRowText, L"Unjam");
+						}
+
+						// Add option
+						POPUP_OPTION *pOption = new POPUP_OPTION(&std::wstring( MenuRowText ), new popupCallbackFunction<void,void>( &TransformationMenuPopup_Unjam ));
+						pOption->setAvail(new popupCallbackFunction<bool,OBJECTTYPE*>( &TransformationMenuPopup_Unjam_TestValid, gpItemDescObject ));
+						gItemDescTransformPopup->addOption( *pOption );
+						fFoundTransformations = true;
+					}
+				}
+
 				for (INT32 x = 0; x < MAXITEMS; x++)
 				{
 					if (Transform[x].usItem == (UINT16)-1)
@@ -13905,48 +13931,108 @@ void BombInventoryDisArmMessageBoxCallBack( UINT8 ubExitValue )
 // causing the normal effects.
 void TransformationMenuPopup_Unjam()
 {
-	/*
-	if ( Item[gpItemDescObject->usItem].usItemClass != IC_GUN || EXPLOSIVE_GUN( gpItemDescObject->usItem ) || (*gpItemDescObject)[0]->data.gun.bGunAmmoStatus > 0) 
+	if( Item[gpItemDescObject->usItem].usItemClass != IC_GUN ||
+		EXPLOSIVE_GUN( gpItemDescObject->usItem ) ||
+		(*gpItemDescObject)[0]->data.gun.bGunAmmoStatus > 0)
 	{ 
 		AssertMsg( 0, "Transformation Menu allowed us to attempt to unjam an unjammed gun. This is illegal!" );
 		return;
 	}
 
-	if(EnoughPoints(gpItemDescSoldier, APBPConstants[AP_UNJAM], APBPConstants[BP_UNJAM], FALSE))
+	if (gItemDescTransformPopup != NULL && gfItemDescTransformPopupInitialized == TRUE)
 	{
-		DeductPoints(gpItemDescSoldier, APBPConstants[AP_UNJAM], APBPConstants[BP_UNJAM]);
-		INT8 bChanceMod;
-		
-		if ( Weapon[gpItemDescObject->usItem].EasyUnjam )
-			bChanceMod = 100;
-		else
-			bChanceMod = (INT8) (GetReliability( gpItemDescObject )* 4);
-		
-		int iResult = SkillCheck( gpItemDescSoldier, UNJAM_GUN_CHECK, bChanceMod); 
-		
-		if (iResult > 0) 
-		{ 
-			// yay! unjammed the gun 
-			(*gpItemDescObject)[0]->data.gun.bGunAmmoStatus *= -1; 
-		 
-			// MECHANICAL/DEXTERITY GAIN: Unjammed a gun 
-			
-			if (bChanceMod < 100) // don't give exp for unjamming an easily unjammable gun
-			{
-				StatChange( gpItemDescSoldier, MECHANAMT, 5, FALSE ); 
-				StatChange( gpItemDescSoldier, DEXTAMT, 5, FALSE ); 
+		gItemDescTransformPopup->hide();
+	}
+
+	// sevenfm: new unjam code
+	INT8 bChanceMod;
+	INT16 sAP;
+
+	UINT16	usItem = gpItemDescObject->usItem;
+	UINT16	usWeapon = Item[gpItemDescObject->usItem].ubClassIndex;
+
+	sAP = GetUnjamAP(gpItemDescSoldier, gpItemDescObject);
+
+	// check if gun is jammed
+	if( (*gpItemDescObject)[0]->data.gun.bGunAmmoStatus < 0 )
+	{
+		if(EnoughPoints(gpItemDescSoldier, sAP, APBPConstants[BP_UNJAM], FALSE))
+		{
+			DeductPoints(gpItemDescSoldier, sAP, APBPConstants[BP_UNJAM]);		
+
+			if ( Weapon[gpItemDescObject->usItem].EasyUnjam )
+				bChanceMod = 100;
+			else
+				bChanceMod = (INT8) (GetReliability( gpItemDescObject )* 4);
+
+			int iResult = SkillCheck( gpItemDescSoldier, UNJAM_GUN_CHECK, bChanceMod); 
+
+			if (iResult > 0) 
+			{ 
+				// yay! unjammed the gun 
+				(*gpItemDescObject)[0]->data.gun.bGunAmmoStatus *= -1;
+
+				if( (*gpItemDescObject)[0]->data.gun.ubGunShotsLeft > 0 )
+				{
+					// Flugente: external feeding allows us to take ammo from somewhere other than our magazine, like a belt in our inventory our even another mercs
+					if ( gGameExternalOptions.ubExternalFeeding > 0 )
+					{
+						if ( !DeductBulletViaExternalFeeding(gpItemDescSoldier, gpItemDescObject) )
+						{
+							// bullet couldn't be fed externally -> remove bullet from the weapon's magazine
+							// OK, let's see, don't overrun...
+							if ( (*gpItemDescObject)[0]->data.gun.ubGunShotsLeft != 0 )
+							{
+								(*gpItemDescObject)[0]->data.gun.ubGunShotsLeft--;
+							}	
+						}
+					}
+					else
+					{
+						// OK, let's see, don't overrun...
+						if ( (*gpItemDescObject)[0]->data.gun.ubGunShotsLeft != 0 )
+						{
+							(*gpItemDescObject)[0]->data.gun.ubGunShotsLeft--;
+						}	
+					}
+				}
+
+				// MECHANICAL/DEXTERITY GAIN: Unjammed a gun 
+				if (bChanceMod < 100) // don't give exp for unjamming an easily unjammable gun
+				{
+					StatChange( gpItemDescSoldier, MECHANAMT, 5, FALSE ); 
+					StatChange( gpItemDescSoldier, DEXTAMT, 5, FALSE ); 
+				}			
+
+				if( Random(2) )
+					gpItemDescSoldier->DoMercBattleSound( BATTLE_SOUND_HUMM );
+				else
+					gpItemDescSoldier->DoMercBattleSound( BATTLE_SOUND_COOL1 );			
 			}
-		 
-			RenderItemDescriptionBox();
-		 
-			return;
-		} 
+			else
+			{
+				// possibly damage gun
+				if( (*gpItemDescObject)[0]->data.objectStatus > 0 &&
+					Random(100) > (*gpItemDescObject)[0]->data.objectStatus + GetReliability( gpItemDescObject )* 4 )
+				{
+					(*gpItemDescObject)[0]->data.objectStatus--;
+					gpItemDescSoldier->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+				}			
+			}
+
+			// play LNL sound (play manual reload sound if possible)
+			if( Weapon[Item[(gpItemDescObject)->usItem].ubClassIndex].APsToReloadManually )
+			{
+				PlayJA2Sample( Weapon[ usWeapon ].ManualReloadSound, RATE_11025, SoundVolume( HIGHVOLUME, gpItemDescSoldier->sGridNo ), 1, SoundDir( gpItemDescSoldier->sGridNo ) );
+			}
+			else
+			{
+				PlayJA2Sample( Weapon[ usWeapon ].sLocknLoadSound, RATE_11025, SoundVolume( HIGHVOLUME, gpItemDescSoldier->sGridNo ), 1, SoundDir( gpItemDescSoldier->sGridNo ) );
+			}
+		}
+
+		RenderItemDescriptionBox();
 	}
-	else
-	{
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s does not have enough APs to unjam this weapon.", gpItemDescSoldier->name);
-	}
-	*/
 }
 
 // HEADROCK HAM 5: This is a handler for transforming an ammo crate into magazines. We get the itemnumber of the
@@ -14339,3 +14425,26 @@ BOOLEAN CheckPocketEmpty( SOLDIERTYPE *pSoldier, INT16 sPocket )
 	}
 	return bResult;
 }
+
+BOOLEAN TransformationMenuPopup_Unjam_TestValid(OBJECTTYPE* pObj)
+{
+	if (pObj == NULL)
+	{
+		return false;
+	}
+	else
+	{
+		UINT16 usAPCost = GetUnjamAP( gpItemDescSoldier, pObj );
+		INT32 iBPCost = APBPConstants[BP_UNJAM];
+
+		if (EnoughPoints( gpItemDescSoldier, usAPCost, iBPCost, false ))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+

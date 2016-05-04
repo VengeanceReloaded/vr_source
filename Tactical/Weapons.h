@@ -81,7 +81,9 @@ void HandleTacticalEffectsOfEquipmentChange( SOLDIERTYPE *pSoldier, UINT32 uiInv
 #define MIN_MORTAR_RANGE				150			// minimum range of a mortar
 
 // NB this is arbitrary, chances in DG ranged from 1 in 6 to 1 in 20
-#define BASIC_DEPRECIATE_CHANCE	15
+// sevenfm: reduce basic damage chance
+//#define BASIC_DEPRECIATE_CHANCE	15
+#define BASIC_DEPRECIATE_CHANCE	45
 
 // WEAPON CLASSES
 enum

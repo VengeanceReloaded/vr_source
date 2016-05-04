@@ -2519,6 +2519,16 @@ INT16 MinAPsToShootOrStab(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 bAimTime, 
 		else
 			bAPCost += APBPConstants[AP_CHANGE_TARGET];
 	}
+
+	// sevenfm: add unjam AP cost	
+	if( Item[usUBItem].usItemClass == IC_GUN &&
+		!EXPLOSIVE_GUN( usUBItem ) &&
+		!(pSoldier->bWeaponMode == WM_ATTACHED_GL || pSoldier->bWeaponMode == WM_ATTACHED_GL_BURST || pSoldier->bWeaponMode == WM_ATTACHED_GL_AUTO) &&
+		(*pObjUsed)[0]->data.gun.bGunAmmoStatus < 0) 
+	{
+		bAPCost += APBPConstants[AP_UNJAM];
+	}
+
 #if 0//dnl ch63 240813 this seems very wrong, in most case (pSoldier->bActionPoints > bFullAps) and this will return less points then is actually required and could cancel some AI actions, like throwing grenades
 	// the minimum AP cost of ANY shot can NEVER be more than merc's maximum APs!
 	if ( bAPCost > bFullAPs )
@@ -4524,6 +4534,50 @@ INT16 GetAPsToWatch( SOLDIERTYPE * pSoldier )
 	{
 		// 30% less AP for scouting skill
 		sAP = sAP * 70 / 100;
+	}
+
+	return sAP;
+}
+
+INT16 GetUnjamAP( SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj )
+{
+	INT16 sAP;
+	INT16 sManualAP;
+
+	if(!pObj)
+	{
+		return 0;
+	}
+
+	// calculate APs for manual reload
+	sManualAP = Weapon[Item[(pObj)->usItem].ubClassIndex].APsToReloadManually;
+	if( Weapon[Item[(pObj)->usItem].ubClassIndex].APsToReloadManually )
+	{		
+		// modify by ini values
+		if ( Item[ pObj->usItem ].usItemClass == IC_GUN )
+			sManualAP *= gItemSettings.fAPtoReloadManuallyModifierGun[ Weapon[ pObj->usItem ].ubWeaponType ];
+		else if ( Item[ pObj->usItem ].usItemClass == IC_LAUNCHER )
+			sManualAP *= gItemSettings.fAPtoReloadManuallyModifierLauncher;
+
+		if ( gGameOptions.fNewTraitSystem )
+		{
+			// Sniper trait makes chambering a round faster
+			if (( Weapon[Item[(pObj)->usItem].ubClassIndex].ubWeaponType == GUN_SN_RIFLE || Weapon[Item[(pObj)->usItem].ubClassIndex].ubWeaponType == GUN_RIFLE ) && HAS_SKILL_TRAIT( pSoldier, SNIPER_NT ))
+				sManualAP = (sManualAP * (100 - gSkillTraitValues.ubSNChamberRoundAPsReduction * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT ))) / 100;
+			// Ranger trait makes pumping shotguns faster
+			else if (( Weapon[Item[(pObj)->usItem].ubClassIndex].ubWeaponType == GUN_SHOTGUN ) && HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
+				sManualAP = (sManualAP * (100 - gSkillTraitValues.ubRAPumpShotgunsAPsReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ))) / 100;
+		}
+	}
+
+	// use manual reload AP if defined for this weapon
+	if( Weapon[Item[(pObj)->usItem].ubClassIndex].APsToReloadManually )
+	{
+		sAP = sManualAP;
+	}
+	else
+	{
+		sAP = APBPConstants[AP_UNJAM];
 	}
 
 	return sAP;

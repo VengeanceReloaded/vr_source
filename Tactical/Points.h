@@ -386,5 +386,6 @@ INT32 GetBPCostForRecoilkick( SOLDIERTYPE * pSoldier );
 
 // sevenfm
 INT16 GetAPsToWatch( SOLDIERTYPE * pSoldier );
+INT16 GetUnjamAP( SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj );
 
 #endif

@@ -1277,16 +1277,23 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 	// INT32 iChance, iResult; 
  
 	// should jams apply to enemies? 
-	if (pSoldier->flags.uiStatusFlags & SOLDIER_PC) 
+	if (pSoldier->flags.uiStatusFlags & SOLDIER_PC || gGameExternalOptions.fEnemyJams) 
 	{ 
-		if ( Item[pSoldier->usAttackingWeapon].usItemClass == IC_GUN && !EXPLOSIVE_GUN( pSoldier->usAttackingWeapon ) && !(pSoldier->bWeaponMode == WM_ATTACHED_GL || pSoldier->bWeaponMode == WM_ATTACHED_GL_BURST || pSoldier->bWeaponMode == WM_ATTACHED_GL_AUTO) ) 
+		if( Item[pSoldier->usAttackingWeapon].usItemClass == IC_GUN &&
+			!EXPLOSIVE_GUN( pSoldier->usAttackingWeapon ) &&
+			!(pSoldier->bWeaponMode == WM_ATTACHED_GL || pSoldier->bWeaponMode == WM_ATTACHED_GL_BURST || pSoldier->bWeaponMode == WM_ATTACHED_GL_AUTO) ) 
 		{ 
 			pObj = pSoldier->GetUsedWeapon(&pSoldier->inv[pSoldier->ubAttackingHand]);
 
 			if ((*pObj)[0]->data.gun.bGunAmmoStatus > 0) 
 			{ 
 				// Algorithm for jamming 
-				int maxJamChance = 50; // Externalize this? 
+				//int maxJamChance = 50; // Externalize this? 
+				// sevenfm: max chance depends on weapon reliability
+				int maxJamChance = 30 - 4 * GetReliability( pObj );
+				maxJamChance = __max( 10, maxJamChance );
+				maxJamChance = __min( 50, maxJamChance );
+
 				int reliability =  GetReliability( pObj ); 
 				int condition = (*pObj)[0]->data.gun.bGunStatus; 
 				int invertedBaseJamChance = condition + (reliability * 2) - 
@@ -1317,17 +1324,25 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 				if (invertedBaseJamChance < 0) 
 					invertedBaseJamChance = 0; 
 				else if (invertedBaseJamChance > 100) 
-					invertedBaseJamChance = 100; 
+					invertedBaseJamChance = 100;
+
 				int jamChance = 100;
 				if ( pSoldier->ubAttackingHand == SECONDHANDPOS && pSoldier->IsValidSecondHandBurst() ) 
 					jamChance -= (int)sqrt((double)invertedBaseJamChance * ((75.0-(int)((pSoldier->bDoBurst/2)>1)*15) + (double)invertedBaseJamChance / 2.0)); 
 				else
 					jamChance -= (int)sqrt((double)invertedBaseJamChance * ((75.0-(int)(pSoldier->bDoBurst>1)*15) + (double)invertedBaseJamChance / 2.0)); 
-				if (jamChance < 0) 
-					jamChance = 0; 
-				else if (jamChance > maxJamChance - reliability) 
-					jamChance = maxJamChance - reliability; 
-			 
+
+				// sevenfm: less frequent jams
+				if(gGameExternalOptions.fLessJams)
+				{
+					jamChance = jamChance * jamChance / 100;
+				}
+
+				if (jamChance < 0)
+					jamChance = 0;
+				else if (jamChance > maxJamChance)
+					jamChance = maxJamChance;
+
 				/* Old jam code 
 				// gun might jam, figure out the chance 
 				//iChance = (80 - pObj->bGunStatus); 
@@ -1363,6 +1378,7 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 				if ( 1 ) 
 #else 
 				if ((INT32) PreRandom( 100 ) < jamChance || gfNextFireJam ) 
+				//if ((INT32) PreRandom( 100 ) < 30 ) 
 #endif 
 				{ 
 					gfNextFireJam = FALSE; 
@@ -1373,22 +1389,38 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 					// Deduct AMMO! 
 					DeductAmmo( pSoldier, pSoldier->ubAttackingHand ); 
 				 
-					TacticalCharacterDialogue( pSoldier, QUOTE_JAMMED_GUN ); 
+					// sevenfm: use curse battlesound for AI soldiers
+					if (pSoldier->flags.uiStatusFlags & SOLDIER_PC) 
+					{
+						TacticalCharacterDialogue( pSoldier, QUOTE_JAMMED_GUN ); 
+					}
+					else
+					{
+						pSoldier->DoMercBattleSound( BATTLE_SOUND_CURSE1 );
+					}
+
 					return( TRUE ); 
 				} 
 			} 
 			else if ((*pObj)[0]->data.gun.bGunAmmoStatus < 0) 
 			{ 
-			// try to unjam gun 
-				if(EnoughPoints(pSoldier, APBPConstants[AP_UNJAM], APBPConstants[BP_UNJAM], FALSE))
+				// try to unjam gun 
+				if( EnoughPoints(pSoldier, APBPConstants[AP_UNJAM], APBPConstants[BP_UNJAM], FALSE))
 				{
 					DeductPoints(pSoldier, APBPConstants[AP_UNJAM], APBPConstants[BP_UNJAM] );
+					
 					INT8 bChanceMod;
 					
 					if ( Weapon[pSoldier->inv[pSoldier->ubAttackingHand].usItem].EasyUnjam )
 						bChanceMod = 100;
 					else
 						bChanceMod = (INT8) (GetReliability( pObj )* 4);
+
+					// sevenfm: for AI, bonus to unjam successfully
+					if( !(pSoldier->flags.uiStatusFlags & SOLDIER_PC) )
+					{
+						bChanceMod += 30;
+					}
 					
 					int iResult = SkillCheck( pSoldier, UNJAM_GUN_CHECK, bChanceMod); 
 					
@@ -1422,7 +1454,6 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 	} 
 	return( FALSE ); 
 } 
-
 
 BOOLEAN	OKFireWeapon( SOLDIERTYPE *pSoldier )
 {
@@ -2441,7 +2472,7 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 
 				if( noisefactor < gGameExternalOptions.gubMaxPercentNoiseSilencedSound || Weapon[ usUBItem ].ubAttackVolume <= 10 )
 				{
-					// Pick sound file baed on how many bullets we are going to fire...
+					// Pick sound file based on how many bullets we are going to fire...
 					sprintf( zBurstString, gzBurstSndStrings[ Weapon[ usUBItem ].sSilencedBurstSound ], bShotsToFire );
 
 					// Try playing sound...

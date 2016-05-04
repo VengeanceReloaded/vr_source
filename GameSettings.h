@@ -1454,6 +1454,9 @@ typedef struct
 	BOOLEAN fShowXRayLocator;
 	BOOLEAN fExtraBattleSounds;
 	BOOLEAN fImprovedAimLevels;
+	BOOLEAN fManualUnjam;
+	BOOLEAN fLessJams;
+	BOOLEAN fEnemyJams;
 
 	BOOLEAN fPathAvoidDeepWater;
 	BOOLEAN fPathAvoidGas;
