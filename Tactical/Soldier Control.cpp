@@ -4543,6 +4543,38 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 
 		this->sOldGridNo = this->sGridNo;
 
+		// sevenfm: reduce camo when crawling
+		if( gGameExternalOptions.fCamoRemoving &&
+			this->usUIMovementMode == CRAWLING )
+		{
+			// 30% chance to reduce camo when crawling			
+			UINT8 ubChance = 30;
+			if ( gGameOptions.fNewTraitSystem)
+			{
+				// 20% for hunter, 10% for ranger
+				if ( HAS_SKILL_TRAIT( this, RANGER_NT ) )
+				{
+					ubChance -= 10 * NUM_SKILL_TRAITS( this, RANGER_NT );
+				}
+			}
+			else if ( HAS_SKILL_TRAIT( this, CAMOUFLAGED_OT ) ) // Old Camouflaged trait
+			{
+				// 0% for camo trait in old system
+				ubChance = 0;
+			}
+
+			if( Random(100) < ubChance )
+			{
+				ReduceCamoFromSoldier( this, 1, 0 );
+
+				// Reload palettes....
+				if ( this->bInSector )
+				{
+					this->CreateSoldierPalettes( );
+				}
+			}
+		}
+
 		if ( this->ubBodyType == QUEENMONSTER )
 		{
 			SetPositionSndGridNo( this->iPositionSndID, sNewGridNo );
