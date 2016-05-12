@@ -3741,7 +3741,8 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 			}
 
 			// SANDRO - Enhanced Close Combat System - Notice merc after stealing
-			if (gGameExternalOptions.fEnhancedCloseCombatSystem)
+			// sevenfm: don't turn when lying prone
+			if (gGameExternalOptions.fEnhancedCloseCombatSystem && gAnimControl[ pTargetSoldier->usAnimState ].ubEndHeight != ANIM_PRONE)
 				pTargetSoldier->EVENT_SetSoldierDesiredDirection( GetDirectionFromGridNo( pSoldier->sGridNo, pTargetSoldier ) );
 
 			// 0verhaul:  Also handled in the animation transition
@@ -9586,11 +9587,18 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, BULLET *pBullet, SOLDIERTYPE * pTarget,
 //		iOrigImpact = AMMO_DAMAGE_ADJUSTMENT_HE( iOrigImpact );
 		iOrigImpact = (INT32)(iOrigImpact * AmmoTypes[ubAmmoType].beforeArmourDamageMultiplier / max(1,AmmoTypes[ubAmmoType].beforeArmourDamageDivisor) );
 
-		if ( TANK( pTarget ) )
+		// sevenfm: moved out
+		/*if ( TANK( pTarget ) )
 		{
 			// HEAT round on tank, divide by 3 for damage
 			iOrigImpact /= 2;
-		}
+		}*/
+	}
+
+	// sevenfm: reduce damage to tanks from bullets
+	if ( TANK( pTarget ) )
+	{
+		iOrigImpact /= 4;
 	}
 
 	// sevenfm: store original impact

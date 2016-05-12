@@ -5794,7 +5794,7 @@ BOOLEAN NearbyGroundSeemsWrong( SOLDIERTYPE * pSoldier, INT32 sGridNo, BOOLEAN f
 	ubDetectLevel = 0;
 
 	// Flugente: changed the way the metal detector works: now it detects mines only when it is used in hands, not if it is anywhere in the inventory.
-	// Reason: with the new tripwire functionality and th new ability of a detector to spot mines several tiles away the detector s more useful.
+	// Reason: with the new tripwire functionality and the new ability of a detector to spot mines several tiles away the detector is more useful.
 	// However, the most likely persons to use it (explosive experts) are also those that plant those networks. They will often have a detector in their inventory.
 	// If the detector just works if its in inventory, they autoflag the mines they are laying, which is bad. 
 	// With this change, a detector must be in order to work.

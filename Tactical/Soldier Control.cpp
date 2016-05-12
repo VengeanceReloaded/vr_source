@@ -12324,6 +12324,12 @@ void SOLDIERTYPE::EVENT_SoldierBeginPunchAttack( INT32 sGridNo, UINT8 ubDirectio
 				nokick = TRUE;
 #endif
 
+			// sevenfm: don't use kick when attacking with any weapon in hand
+			if( this->inv[ HANDPOS ].exists() )
+			{
+				nokick = TRUE;
+			}
+
 			// Look at stance of target
 			switch( gAnimControl[ pTSoldier->usAnimState ].ubEndHeight	)
 			{
