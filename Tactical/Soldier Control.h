@@ -568,6 +568,7 @@ enum {
 	SOLDIER_COUNTER_RADIO_ARTILLERY,		// there is actually no need for an artillery timer, but we use one to forbid the same AI guy ordering multiple strikes at once
 	SOLDIER_COUNTER_SPOTTER,				// used to determine whether we are a spotter
 	SOLDIER_COUNTER_WATCH,					// vision bonus from binocs
+	SOLDIER_COUNTER_SUSPICIOUS,				// suspicion counter
 	
 	SOLDIER_COUNTER_MAX = 20,				// enough space for fillers
 };
@@ -1713,10 +1714,10 @@ public:
 	// Flugente: functions for the covert ops trait
 
 	// do we look like a civilian?
-	BOOLEAN		LooksLikeACivilian( void );
+	BOOLEAN		LooksLikeACivilian( BOOLEAN fShowResult = TRUE );
 
 	// do we look like a soldier?
-	BOOLEAN		LooksLikeASoldier( void );
+	BOOLEAN		LooksLikeASoldier( BOOLEAN fShowResult = TRUE );
 
 	// what kind of uniform are we wearing? returns -1 if none is worn
 	INT8		GetUniformType();
@@ -1725,7 +1726,7 @@ public:
 	BOOLEAN		EquipmentTooGood( BOOLEAN fCloselook );
 
 	// does soldier ubObserverID recognize us as his enemy?
-	BOOLEAN		SeemsLegit( UINT8 ubObserverID );
+	BOOLEAN		SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult = TRUE );
 
 	// do we recognize someone else as a combatant?
 	BOOLEAN		RecognizeAsCombatant(UINT8 ubTargetID);

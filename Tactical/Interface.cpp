@@ -65,6 +65,7 @@
 	// sevenfm: needed for _KeyDown(SHIFT)
 	#include "english.h"
 	#include "DisplayCover.h"
+	#include "ai.h"
 #endif
 
 #include "InterfaceItemImages.h"
@@ -1972,7 +1973,34 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	SetFont( TINYFONT1 );
 	SetFontBackground( FONT_MCOLOR_BLACK );
 	
-	BOOLEAN bInCombat = gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT;
+	// sevenfm: show suspicious counter
+	if ( pSoldier->usSoldierFlagMask & SOLDIER_NEW_VEST && pSoldier->usSoldierFlagMask & SOLDIER_NEW_PANTS )
+	{
+		UINT8 ubRed, ubGreen, ubBlue;
+
+		if( !pSoldier->SeemsLegit( pSoldier->ubID, FALSE ) )
+		{
+			SetFontForeground( FONT_RED );
+		}
+		else if( pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] >= MAX_SUSPICIOUS * APBPConstants[AP_MAXIMUM] )
+		{
+			SetRGBFontForeground( 240, 0, 0 );
+		}
+		else
+		{
+			ubRed = 240;
+			ubGreen = 220 - 220 * pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] / (MAX_SUSPICIOUS * APBPConstants[AP_MAXIMUM]);
+			ubBlue = 0;
+			
+			SetRGBFontForeground( ubRed, ubGreen, ubBlue );
+		}
+	}
+	else
+	{
+		SetFontForeground( FONT_MCOLOR_WHITE );
+	}
+
+	/*BOOLEAN bInCombat = gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT;
 	BOOLEAN bStealth = pSoldier->bStealthMode || pSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER );
 	// sevenfm: for mercs use name color as cover indicator
 	// only use color when there is enemy in sector
@@ -2004,7 +2032,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	else
 	{
 		SetFontForeground( FONT_MCOLOR_WHITE );
-	}
+	}*/
 
 	if ( pSoldier->ubProfile != NO_PROFILE || ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
 	{
