@@ -213,7 +213,7 @@ INT32 MostImportantNoiseHeard( SOLDIERTYPE *pSoldier, INT32 *piRetValue, BOOLEAN
 			}
 
 			// sevenfm: ignore noise if some friends already see opponent
-			if( CountTeamSeeOpponent(pSoldier, pTemp) > sectordata )
+			if( CountTeamSeeSoldier(pSoldier->bTeam, pTemp) > sectordata )
 			{
 				continue;			// next merc
 			}

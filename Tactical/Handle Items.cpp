@@ -5005,6 +5005,9 @@ void CleanWeapons( BOOLEAN fEntireTeam )
 // undisguise or take off custom clothes
 void Strip( SOLDIERTYPE * pSoldier )
 {
+	// sevenfm: loose disguise first
+	gpTempSoldier->LooseDisguise();
+
 	pSoldier->Strip();
 }
 

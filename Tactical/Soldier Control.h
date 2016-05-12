@@ -1733,6 +1733,9 @@ public:
 	// loose covert property
 	void		LooseDisguise( void );	
 
+	// sevenfm: auto disguise if have correct clothes
+	void		Disguise( void );
+
 	// lose disguise or take off any clothes item and switch back to original clothes
 	void		Strip();
 

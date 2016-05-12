@@ -265,11 +265,12 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 
 // sevenfm:
 INT16 MaxNormalVisionDistance( void );
-BOOLEAN GuySawEnemyThisTurnOrBefore( SOLDIERTYPE * pSoldier );
+BOOLEAN GuySawEnemy( SOLDIERTYPE * pSoldier, UINT8 ubMax = SEEN_3_TURNS_AGO );
 UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier );
 INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel);
 UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );
 BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier );
+BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax = SEEN_3_TURNS_AGO );
 BOOLEAN NightLight( void );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
@@ -281,7 +282,7 @@ UINT8 CountNearbyFriendsLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UIN
 UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier );
 
 UINT8 CountTeamCombat( SOLDIERTYPE *pSoldier );
-UINT8 CountTeamSeeOpponent( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent );
+UINT8 CountTeamSeeSoldier( INT8 bTeam, SOLDIERTYPE *pSoldier );
 
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 
