@@ -1006,16 +1006,16 @@ SOLDIERTYPE& SOLDIERTYPE::operator=(const OLDSOLDIERTYPE_101& src)
 		this->origDir = src.origDir;
 
 		this->bCamo = __min( gGameExternalOptions.bCamoKitArea, src.bCamo);
-		this->wornCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornCamo );
+		this->wornCamo = src.wornCamo;
 
 		this->urbanCamo = __min( gGameExternalOptions.bCamoKitArea, src.urbanCamo);	// Madd: new camo types
-		this->wornUrbanCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornUrbanCamo );
+		this->wornUrbanCamo = src.wornUrbanCamo;
 
 		this->desertCamo = __min( gGameExternalOptions.bCamoKitArea, src.desertCamo);
-		this->wornDesertCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornDesertCamo );
+		this->wornDesertCamo = src.wornDesertCamo;
 
 		this->snowCamo = __min( gGameExternalOptions.bCamoKitArea, src.snowCamo);
-		this->wornSnowCamo = __min( ( 100 - gGameExternalOptions.bCamoKitArea ), src.wornSnowCamo );
+		this->wornSnowCamo = src.wornSnowCamo;
 
 		this->bScopeMode = USE_BEST_SCOPE;
 

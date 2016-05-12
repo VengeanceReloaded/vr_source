@@ -2871,23 +2871,23 @@ UINT8 GetNearestRottingCorpseAIWarning( INT32 sGridNo )
 			}
 			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_CAMO_PALETTE )
 			{
-				pNewSoldier->bCamo = gGameExternalOptions.bCamoKitArea;
-				pNewSoldier->wornCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+				pNewSoldier->wornCamo = 65;
+				pNewSoldier->bCamo = Random(100 - pNewSoldier->wornCamo);
 			}
 			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_URBAN_CAMO_PALETTE )
 			{
-				pNewSoldier->urbanCamo = gGameExternalOptions.bCamoKitArea;
-				pNewSoldier->wornUrbanCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+				pNewSoldier->wornUrbanCamo = 65;
+				pNewSoldier->urbanCamo = Random(100 - pNewSoldier->wornUrbanCamo);
 			}
 			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_DESERT_CAMO_PALETTE )
 			{
-				pNewSoldier->desertCamo = gGameExternalOptions.bCamoKitArea;
-				pNewSoldier->wornDesertCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+				pNewSoldier->wornDesertCamo = 65;
+				pNewSoldier->desertCamo = Random(100 - pNewSoldier->wornDesertCamo);
 			}
 			else if ( pCorpse->def.usFlags & ROTTING_CORPSE_USE_SNOW_CAMO_PALETTE )
 			{
-				pNewSoldier->snowCamo = gGameExternalOptions.bCamoKitArea;
-				pNewSoldier->wornSnowCamo = __max(0, ( 65 - gGameExternalOptions.bCamoKitArea ) );
+				pNewSoldier->wornSnowCamo = 65;
+				pNewSoldier->snowCamo = Random(100 - pNewSoldier->wornSnowCamo);
 			}
 
 			// Reload palettes....
