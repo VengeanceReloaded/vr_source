@@ -1956,47 +1956,30 @@ INT16 EstimatePathCostToLocation( SOLDIERTYPE * pSoldier, INT32 sDestGridNo, INT
 
 BOOLEAN GuySawEnemy( SOLDIERTYPE * pSoldier, UINT8 ubMax )
 {
-	UINT8		ubTeamLoop;
-	UINT8		ubIDLoop;
+	UINT8		uiLoop;
 	SOLDIERTYPE *pOpponent;
 
-	for ( ubTeamLoop = 0; ubTeamLoop < MAXTEAMS; ubTeamLoop++ )
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
-		if(!gTacticalStatus.Team[ubTeamLoop].bTeamActive)
-			continue;
+		pOpponent = MercSlots[ uiLoop ];
 
-		if ( gTacticalStatus.Team[ ubTeamLoop ].bSide != pSoldier->bSide )
+		// if this merc is inactive, at base, on assignment, or dead
+		if (!pOpponent || !pOpponent->bActive || !pOpponent->bInSector)
 		{
-			// consider guys in this team, which isn't on our side
-			for ( ubIDLoop = gTacticalStatus.Team[ ubTeamLoop ].bFirstID; ubIDLoop <= gTacticalStatus.Team[ ubTeamLoop ].bLastID; ubIDLoop++ )
-			{
-				pOpponent = MercSlots[ ubIDLoop ];
+			continue;
+		}
 
-				// if this merc is inactive, at base, on assignment, or dead
-				if (!pOpponent)
-				{
-					continue;
-				}
+		// if this merc is neutral/on same side, he's not an opponent
+		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide) )
+		{
+			continue;
+		}
 
-				// if this merc is neutral/on same side, he's not an opponent
-				if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide) )
-				{
-					continue;
-				}
-
-				// sevenfm: ignore empty vehicles
-				if( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
-				{
-					continue;
-				}
-
-				// if this guy SAW an enemy recently...
-				if( pSoldier->aiData.bOppList[ ubIDLoop ] >= SEEN_CURRENTLY && 
-					pSoldier->aiData.bOppList[ ubIDLoop ] <= ubMax )
-				{
-					return( TRUE );
-				}
-			}
+		// if this guy SAW an enemy recently...
+		if( pSoldier->aiData.bOppList[ pOpponent->ubID ] >= SEEN_CURRENTLY && 
+			pSoldier->aiData.bOppList[ pOpponent->ubID ] <= ubMax )
+		{
+			return( TRUE );
 		}
 	}
 
@@ -4288,51 +4271,40 @@ UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier )
 
 BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier )
 {
-	UINT8		ubTeamLoop;
-	UINT8		ubIDLoop;
+	UINT8		uiLoop;
 	SOLDIERTYPE *pOpponent;
 
-	for ( ubTeamLoop = 0; ubTeamLoop < MAXTEAMS; ubTeamLoop++ )
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
-		if(!gTacticalStatus.Team[ubTeamLoop].bTeamActive)
-			continue;
+		pOpponent = MercSlots[ uiLoop ];
 
-		if ( gTacticalStatus.Team[ ubTeamLoop ].bSide != pSoldier->bSide )
+		// if this merc is inactive, at base, on assignment, or dead
+		if (!pOpponent || !pOpponent->bActionPoints || !pOpponent->bInSector)
 		{
-			// consider guys in this team, which isn't on our side
-			for ( ubIDLoop = gTacticalStatus.Team[ ubTeamLoop ].bFirstID; ubIDLoop <= gTacticalStatus.Team[ ubTeamLoop ].bLastID; ubIDLoop++ )
-			{
-				pOpponent = MercSlots[ ubIDLoop ];
+			continue;
+		}
 
-				// if this merc is inactive, at base, on assignment, or dead
-				if (!pOpponent)
-				{
-					continue;
-				}
+		// if this merc is neutral/on same side, he's not an opponent
+		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide) )
+		{
+			continue;
+		}
 
-				// if this merc is neutral/on same side, he's not an opponent
-				if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide) )
-				{
-					continue;
-				}
+		// sevenfm: ignore empty vehicles
+		if( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
+		{
+			continue;
+		}
 
-				// sevenfm: ignore empty vehicles
-				if( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
-				{
-					continue;
-				}
-
-				// if this guy knows something about this enemy
-				if ( pSoldier->aiData.bOppList[ ubIDLoop ] != NOT_HEARD_OR_SEEN )
-				{
-					return( TRUE );
-				}
-				// check also public knowledge
-				if ( gbPublicOpplist[pSoldier->bTeam][ ubIDLoop ] != NOT_HEARD_OR_SEEN )
-				{
-					return( TRUE );
-				}
-			}
+		// if this guy knows something about this enemy
+		if ( pSoldier->aiData.bOppList[ pOpponent->ubID ] != NOT_HEARD_OR_SEEN )
+		{
+			return( TRUE );
+		}
+		// check also public knowledge
+		if ( gbPublicOpplist[pSoldier->bTeam][ pOpponent->ubID ] != NOT_HEARD_OR_SEEN )
+		{
+			return( TRUE );
 		}
 	}
 
