@@ -6857,22 +6857,6 @@ BOOLEAN IsValidJumpLocation( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fChec
 		// MOVE OUT TWO DIRECTIONS
 		sInBetween = NewGridNo( sGridNo, DirectionInc( sDirs[ cnt ] ) );
 
-		// SANDRO: moved this someplace else and made it more fluid
-		// ATE: Check our movement costs for going through walls!
-		/*ubMovementCost = gubWorldMovementCosts[ sIntSpot ][ sDirs[ cnt ] ][ pSoldier->pathing.bLevel ];
-		if ( IS_TRAVELCOST_DOOR( ubMovementCost ) )
-		{
-			ubMovementCost = DoorTravelCost( pSoldier, sIntSpot, ubMovementCost, (BOOLEAN) (pSoldier->bTeam == gbPlayerNum), &iDoorGridNo );
-		}*/
-
-		// If we have hit an obstacle, STOP HERE
-		//if ( ubMovementCost >= TRAVELCOST_BLOCKED )
-		//{
-		//	// no good, continue
-		//	continue;
-		//}
-
-
 		// TWICE AS FAR!
 		sFourGrids[cnt] = sSpot = NewGridNo( sInBetween, DirectionInc( sDirs[ cnt ] ) );
 
@@ -6888,22 +6872,7 @@ BOOLEAN IsValidJumpLocation( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fChec
 				// If the soldier in the middle of doing stuff?
 				if ( !pSoldier->flags.fTurningUntilDone )
 				{
-					// OK, NOW check if there is a guy in between us
-					//
-					// SANDRO: made this a bit different - if we hold down the shift key, and pointing at a spot 2 tiles away, we check if jumping 
-					// there is possible for all cases, and if it is, then we juuuuumpppp!
-					// So we don't care if there is a guy on the ground there, and the cursor wont appear atutomatically anymore
-					//
-					//ubGuyThere = WhoIsThere2( sIntSpot, pSoldier->pathing.bLevel );
-					// Is there a guy and is he prone?
-					//if ( ubGuyThere != NOBODY && ubGuyThere != pSoldier->ubID && gAnimControl[ MercPtrs[ ubGuyThere ]->usAnimState ].ubHeight == ANIM_PRONE )
-					//{
-					//	// It's a GO!
-					//	return( TRUE );
-					//}
-					//else
-
-					// Can't jump from a water tile (but we can jumpt TO a water tile)
+					// Can't jump from a water tile (but we can jump TO a water tile)
 					if ( pSoldier->MercInWater() )
 					{
 						return( FALSE );
@@ -6914,6 +6883,33 @@ BOOLEAN IsValidJumpLocation( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fChec
 					{
 						return( FALSE );
 					}
+
+					// sevenfm: r8206 fix
+					// Now check for walls between the tiles
+					// Between our tile and the middle tile...
+					ubDirection = GetDirectionToGridNoFromGridNo( sInBetween, pSoldier->sGridNo );
+					ubMovementCost = gubWorldMovementCosts[pSoldier->sGridNo][ubDirection][pSoldier->pathing.bLevel];
+					if ( IS_TRAVELCOST_DOOR( ubMovementCost ) )
+					{
+						ubMovementCost = DoorTravelCost( pSoldier, pSoldier->sGridNo, ubMovementCost, (BOOLEAN)(pSoldier->bTeam == gbPlayerNum), &iDoorGridNo );
+					}
+					if ( ubMovementCost >= TRAVELCOST_BLOCKED )
+					{
+						return(FALSE);
+					}
+
+					// Between destination tile and the middle tile...
+					ubDirection = GetDirectionToGridNoFromGridNo( sInBetween, sGridNo );
+					ubMovementCost = gubWorldMovementCosts[sGridNo][ubDirection][pSoldier->pathing.bLevel];
+					if ( IS_TRAVELCOST_DOOR( ubMovementCost ) )
+					{
+						ubMovementCost = DoorTravelCost( pSoldier, sGridNo, ubMovementCost, (BOOLEAN)(pSoldier->bTeam == gbPlayerNum), &iDoorGridNo );
+					}
+					if ( ubMovementCost >= TRAVELCOST_BLOCKED )
+					{
+						return(FALSE);
+					}
+					// sevenfm: end r8206 fix
 
 					// If there's a guy here, and he's not prone, we can't jump over him (maybe the way we hop over fence when he's crouched? lol)
 					ubGuyThere = WhoIsThere2( sInBetween, pSoldier->pathing.bLevel );
@@ -6944,30 +6940,6 @@ BOOLEAN IsValidJumpLocation( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fChec
 						return( FALSE );
 					}
 
-					// Now check for walls between the tiles
-					// Between our tile and the middle tile...
-					ubDirection = GetDirectionToGridNoFromGridNo( sInBetween, pSoldier->sGridNo );
-					ubMovementCost = gubWorldMovementCosts[ pSoldier->sGridNo ][ ubDirection ][ pSoldier->pathing.bLevel ];
-					if ( IS_TRAVELCOST_DOOR( ubMovementCost ) )
-					{
-						ubMovementCost = DoorTravelCost( pSoldier, pSoldier->sGridNo, ubMovementCost, (BOOLEAN) (pSoldier->bTeam == gbPlayerNum), &iDoorGridNo );
-					}
-					if ( ubMovementCost >= TRAVELCOST_BLOCKED )
-					{
-						return( FALSE );
-					}
-					// Between destination tile and the middle tile...
-					ubDirection = GetDirectionToGridNoFromGridNo( sInBetween, sGridNo );
-					ubMovementCost = gubWorldMovementCosts[ sGridNo ][ ubDirection ][ pSoldier->pathing.bLevel ];
-					if ( IS_TRAVELCOST_DOOR( ubMovementCost ) )
-					{
-						ubMovementCost = DoorTravelCost( pSoldier, sGridNo, ubMovementCost, (BOOLEAN) (pSoldier->bTeam == gbPlayerNum), &iDoorGridNo );
-					}
-					if ( ubMovementCost >= TRAVELCOST_BLOCKED )
-					{
-						return( FALSE );
-					}
-						
 					if( !(_KeyDown( SHIFT ) && _KeyDown( ALT )) )
 					{
 						return( FALSE );
@@ -6997,7 +6969,7 @@ BOOLEAN IsValidJumpLocation( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fChec
 					// If the soldier in the middle of doing stuff?
 					if ( !pSoldier->flags.fTurningUntilDone )
 					{			
-						// Can't jump from a water tile (but we can jumpt TO a water tile)
+						// Can't jump from a water tile (but we can jump TO a water tile)
 						if ( pSoldier->MercInWater() )
 						{
 							return( FALSE );

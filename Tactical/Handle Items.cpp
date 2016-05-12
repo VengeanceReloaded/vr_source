@@ -5779,17 +5779,17 @@ void SwitchMessageBoxCallBack( UINT8 ubExitValue )
 
 BOOLEAN NearbyGroundSeemsWrong( SOLDIERTYPE * pSoldier, INT32 sGridNo, BOOLEAN fCheckAroundGridNo, INT32 * psProblemGridNo )
 {
-	INT32						sNextGridNo;
+	INT32				sNextGridNo;
 	// BOOLEAN fWorthChecking = FALSE, fProblemExists = FALSE, fDetectedProblem = FALSE;
-	UINT16						ubDetectLevel;
-	UINT8						ubDirection;
+	UINT16				ubDetectLevel;
+	UINT8				ubDirection;
 	MAP_ELEMENT *		pMapElement;
-	UINT32					fCheckFlag;
-	UINT32					uiWorldBombIndex;
+	UINT32				fCheckFlag;
+	UINT32				uiWorldBombIndex;
 	OBJECTTYPE *		pObj;
-	BOOLEAN					fMining, fFoundMetal = FALSE;
+	BOOLEAN				fMining, fFoundMetal = FALSE;
 	//	ITEM_POOL *			pItemPool;
-	UINT8						ubMovementCost;
+	UINT8				ubMovementCost;
 
 	ubDetectLevel = 0;
 
@@ -5807,29 +5807,16 @@ BOOLEAN NearbyGroundSeemsWrong( SOLDIERTYPE * pSoldier, INT32 sGridNo, BOOLEAN f
 		fMining = FALSE;
 
 		ubDetectLevel = CalcTrapDetectLevel( pSoldier, FALSE );
-		/*
-		if (pSoldier->bStealthMode)
-		{
-		ubDetectLevel++;
-		}
-		switch (pSoldier->usAnimState)
-		{
-		case CRAWLING:
-		ubDetectLevel += 2;
-		break;
 
-		case SWATTING:
-		ubDetectLevel++;
-		break;
-
-		default:
-		break;
+		// sevenfm: bonus if soldier is crawling and has knife in his hand
+		if( pSoldier->usAnimState == CRAWLING &&
+			FindKnifeInHand( pSoldier ) != NO_SLOT )
+		{
+			ubDetectLevel += 2;
 		}
-		*/
 	}
 
-	// sevenfm
-	// pSoldier->aiData.bNeutral is needed to prevent neutral civs stepping on player's mines
+	// sevenfm: prevent neutral civs from stepping on player's mines
 	if (pSoldier->bSide == 0 || (pSoldier->aiData.bNeutral && gGameExternalOptions.bNeutralCiviliansAvoidPlayerMines))	
 	{
 		fCheckFlag = MAPELEMENT_PLAYER_MINE_PRESENT;
@@ -5871,13 +5858,13 @@ BOOLEAN NearbyGroundSeemsWrong( SOLDIERTYPE * pSoldier, INT32 sGridNo, BOOLEAN f
 		if (pMapElement->uiFlags & fCheckFlag)
 		{
 			// already know there's a mine there
-			// sevenfm
-			// if we try to step on known (planted by player) mine we should consider it wrong
+			// sevenfm: if we try to step on known (planted by player) mine we should consider it wrong
 			if(!fCheckAroundGridNo)
 			{
 				*psProblemGridNo = sNextGridNo;
 				return( TRUE );
-			}else{
+			}else
+			{
 				continue;
 			}
 		}
@@ -5962,7 +5949,6 @@ BOOLEAN NearbyGroundSeemsWrong( SOLDIERTYPE * pSoldier, INT32 sGridNo, BOOLEAN f
 		}
 		}
 		*/
-
 	}
 
 	*psProblemGridNo = NOWHERE;

@@ -538,6 +538,9 @@ UINT8 GetInventorySleepModifier( SOLDIERTYPE *pSoldier );
 
 void AttachDefaultAttachments(OBJECTTYPE *pObj, BOOLEAN fAllDefaultAttachments=TRUE);//dnl ch75 261013
 
+// sevenfm:
+INT8 FindKnifeInHand( SOLDIERTYPE * pSoldier );
+
 #endif
 
 

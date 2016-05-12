@@ -1622,6 +1622,23 @@ INT8 FindMetalDetectorInHand( SOLDIERTYPE * pSoldier )
 	return( NO_SLOT );
 }
 
+INT8 FindKnifeInHand( SOLDIERTYPE * pSoldier )
+{
+	if( (&(pSoldier->inv[HANDPOS] ))->exists() &&
+		(Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_BLADE || Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_THROWING_KNIFE) )
+	{
+		return( HANDPOS );
+	}
+
+	if( (&(pSoldier->inv[SECONDHANDPOS] ))->exists() &&
+		(Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass == IC_BLADE || Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass == IC_THROWING_KNIFE) )
+	{
+		return( SECONDHANDPOS );
+	}
+
+	return( NO_SLOT );
+}
+
 INT8 FindLockBomb( SOLDIERTYPE * pSoldier )
 {
 	INT8 invsize = (INT8)pSoldier->inv.size();
