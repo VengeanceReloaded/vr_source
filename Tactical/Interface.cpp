@@ -1973,8 +1973,9 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	SetFont( TINYFONT1 );
 	SetFontBackground( FONT_MCOLOR_BLACK );
 	
-	// sevenfm: show suspicious counter
-	if ( pSoldier->usSoldierFlagMask & SOLDIER_NEW_VEST && pSoldier->usSoldierFlagMask & SOLDIER_NEW_PANTS )
+	// sevenfm: show suspicion counter
+	//if ( pSoldier->usSoldierFlagMask & SOLDIER_NEW_VEST && pSoldier->usSoldierFlagMask & SOLDIER_NEW_PANTS )
+	if( pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL) )
 	{
 		UINT8 ubRed, ubGreen, ubBlue;
 
@@ -1982,14 +1983,14 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 		{
 			SetFontForeground( FONT_RED );
 		}
-		else if( pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] >= MAX_SUSPICIOUS * APBPConstants[AP_MAXIMUM] )
+		else if( pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= MAX_SUSPICION * APBPConstants[AP_MAXIMUM] )
 		{
 			SetRGBFontForeground( 240, 0, 0 );
 		}
 		else
 		{
 			ubRed = 240;
-			ubGreen = 220 - 220 * pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] / (MAX_SUSPICIOUS * APBPConstants[AP_MAXIMUM]);
+			ubGreen = 220 - 220 * pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] / (MAX_SUSPICION * APBPConstants[AP_MAXIMUM]);
 			ubBlue = 0;
 			
 			SetRGBFontForeground( ubRed, ubGreen, ubBlue );

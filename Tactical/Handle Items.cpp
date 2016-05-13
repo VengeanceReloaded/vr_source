@@ -5008,7 +5008,11 @@ void Strip( SOLDIERTYPE * pSoldier )
 	// sevenfm: loose disguise first
 	gpTempSoldier->LooseDisguise();
 
-	pSoldier->Strip();
+	// sevenfm: only for mercs with covert skill who will disguise automatically
+	if ( HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) )
+	{
+		pSoldier->Strip();
+	}
 }
 
 void BombMessageBoxCallBack( UINT8 ubExitValue )

@@ -4046,12 +4046,6 @@ BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier )
 			continue;			// next merc
 		}
 
-		// sevenfm: ignore empty vehicles
-		if( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
-		{
-			continue;
-		}
-
 		// if opponent is collapsed/breath collapsed
 		if( pOpponent->bCollapsed || pOpponent->bBreathCollapsed )
 		{
@@ -4071,7 +4065,7 @@ BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier )
 	return FALSE;
 }
 
-UINT32 CountSuspicousValue( SOLDIERTYPE *pSoldier )
+UINT32 CountSuspiconValue( SOLDIERTYPE *pSoldier )
 {
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
@@ -4081,6 +4075,12 @@ UINT32 CountSuspicousValue( SOLDIERTYPE *pSoldier )
 	CHECKF( pSoldier );
 
 	if( !pSoldier->bActive || !pSoldier->bInSector )
+	{
+		return 0;
+	}
+
+	// only new skill system
+	if( !gGameOptions.fNewTraitSystem )
 	{
 		return 0;
 	}
@@ -4102,8 +4102,8 @@ UINT32 CountSuspicousValue( SOLDIERTYPE *pSoldier )
 			continue;			// next merc
 		}
 
-		// sevenfm: ignore empty vehicles
-		if( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
+		// creatures should not raise suspicion counter even if they are hostile to player
+		if( pOpponent->bTeam == CREATURE_TEAM )
 		{
 			continue;
 		}
@@ -4117,45 +4117,83 @@ UINT32 CountSuspicousValue( SOLDIERTYPE *pSoldier )
 		// check that this opponent sees us
 		if( pOpponent->aiData.bOppList[ pSoldier->ubID ] == SEEN_CURRENTLY )
 		{
-			// 1-5 for enemy difficulty
+			UINT8	ubCovertLevel = NUM_SKILL_TRAITS( pSoldier, COVERT_NT );	// our level in covert operations
+			INT16	sDistance = PythSpacesAway(pSoldier->sGridNo, pOpponent->sGridNo);
+			INT8	bTownId = GetTownIdForSector( gWorldSectorX, gWorldSectorY );
+			UINT8	ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
+			UINT8	ubSectorData = 0;
+
+			if ( ubSectorId >= 0 && ubSectorId < 256  )
+				ubSectorData = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
+			if ( NightLight() )			// suspicious at night
+				ubSectorData = __max( ubSectorData, 1 );
+			if ( gbWorldSectorZ > 0 )	// underground we are always suspicious				
+				ubSectorData = __max( ubSectorData, 2 );
+
+			// basic value is 1-5
 			uiValue = 1 + SoldierDifficultyLevel( pOpponent );
 			// add bonus for squad leader
-			if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pOpponent, SQUADLEADER_NT ) )
+			if (HAS_SKILL_TRAIT( pOpponent, SQUADLEADER_NT ) )
 			{
 				uiValue += NUM_SKILL_TRAITS( pOpponent, SQUADLEADER_NT );
 			}
-			// bonus for special sectors
-			UINT8 sectordata = 0;
-			UINT8 ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
-			if ( gbWorldSectorZ > 0 )	// underground we are always suspicious		
-				sectordata = 2;
-			else if ( ubSectorId >= 0 && ubSectorId < 256  )
-				sectordata = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
-			uiValue += sectordata;
+			// bonus when using flashlight
+			if ( pSoldier->GetBestEquippedFlashLightRange() > 0 )
+			{
+				uiValue++;
+			}
+			// bonus in capital			
+			if ( bTownId == MEDUNA )	
+			{
+				uiValue += 2;
+			}			
 
 			// bonus for suspicious movement mode
-			if( pSoldier->bStealthMode || 
+			if ( pSoldier->bStealthMode || 
 				gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_STAND ||
 				pSoldier->usAnimState == RUNNING )
 			{
-				uiValue *= 2;
+				uiValue = uiValue * 2;
 			}
-			// bonus if enemy is alerted, always suspicious at night
-			if( pOpponent->aiData.bAlertStatus >= STATUS_RED || NightLight() )
+			// bonus for soldier state
+			if ( pSoldier->bBleeding > 0 ||
+				pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && GetDrunkLevel( pSoldier ) != SOBER ||
+				pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && !HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) ||
+				pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && pSoldier->EquipmentTooGood( sDistance < DAY_VISION_RANGE/4 ))
 			{
-				uiValue *= 2;
+				uiValue = uiValue * 2;
+			}
+			// bonus for special sectors, skill can compensate this
+			if ( ubSectorData > 0 )
+			{
+				uiValue = uiValue * ubSectorData * 2;
+			}
+			// bonus if enemy is alerted
+			if ( pOpponent->aiData.bAlertStatus >= STATUS_RED )
+			{
+				uiValue = uiValue * 2;
+			}
+			// bonus in combat
+			if ( GuySawEnemy( pOpponent, SEEN_THIS_TURN ) || pOpponent->aiData.bUnderFire )
+			{
+				uiValue = uiValue * 2;
 			}
 
 			// reduce if soldier has covert trait
-			if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) )
+			if ( HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) )
 			{
 				uiValue = uiValue / (2 * NUM_SKILL_TRAITS( pSoldier, COVERT_NT ));
 			}
+			// for special NPCs even without covert trait
+			else if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_NPC_SPECIAL )
+			{
+				uiValue = uiValue / 2;
+			}
 
 			// finally reduce according to the distance
-			if( PythSpacesAway(pSoldier->sGridNo, pOpponent->sGridNo) > DAY_VISION_RANGE / 4 )
+			if( sDistance > DAY_VISION_RANGE / 4 )
 			{
-				uiValue = uiValue * (DAY_VISION_RANGE / 4) / PythSpacesAway(pSoldier->sGridNo, pOpponent->sGridNo);
+				uiValue = uiValue * (DAY_VISION_RANGE / 4) / sDistance;
 			}
 
 			uiTotalValue += uiValue;
@@ -4187,12 +4225,6 @@ BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
 			continue;			// next merc
 		}
 
-		// sevenfm: ignore empty vehicles
-		if( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
-		{
-			continue;
-		}
-
 		// if opponent is collapsed/breath collapsed
 		if( pOpponent->bCollapsed || pOpponent->bBreathCollapsed )
 		{
@@ -4201,7 +4233,9 @@ BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
 
 		// check that this opponent sees us
 		if( pOpponent->aiData.bOppList[ pSoldier->ubID ] >= SEEN_CURRENTLY && 
-			pOpponent->aiData.bOppList[ pSoldier->ubID ] <= ubMax )
+			pOpponent->aiData.bOppList[ pSoldier->ubID ] <= ubMax ||
+			gbPublicOpplist[pOpponent->bTeam][pSoldier->ubID] >= SEEN_CURRENTLY &&
+			gbPublicOpplist[pOpponent->bTeam][pSoldier->ubID] <= ubMax )
 		{
 			return( TRUE );
 		}
@@ -4279,7 +4313,7 @@ BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier )
 		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpponent || !pOpponent->bActionPoints || !pOpponent->bInSector)
+		if (!pOpponent || !pOpponent->bActive|| !pOpponent->bInSector)
 		{
 			continue;
 		}

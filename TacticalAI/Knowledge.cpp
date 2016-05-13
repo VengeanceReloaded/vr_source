@@ -205,9 +205,8 @@ INT32 MostImportantNoiseHeard( SOLDIERTYPE *pSoldier, INT32 *piRetValue, BOOLEAN
 		{
 			// green  AI state: always ignore
 			// yellow AI state: 50% chance to ignore
-			if ( pSoldier->aiData.bAlertStatus == STATUS_GREEN ) //||
-				// sevenfm: removed random chance to ignore noise
-				//(pSoldier->aiData.bAlertStatus == STATUS_YELLOW && Random(2) < 1 ) )
+			// sevenfm: always ignore noise 
+			if ( pSoldier->aiData.bAlertStatus == STATUS_GREEN || pSoldier->aiData.bAlertStatus == STATUS_YELLOW)
 			{
 				continue;			// next merc
 			}

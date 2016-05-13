@@ -15491,7 +15491,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		return FALSE;
 
 	// sevenfm: suspicious counter
-	if( usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICIOUS )
+	if( usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICION )
 	{
 		if(fShowResult) ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", this->GetName());
 		return FALSE;
@@ -15558,17 +15558,13 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		return FALSE;
 	}
 
-	UINT8 covertlevel = NUM_SKILL_TRAITS( this, COVERT_NT );	// our level in covert operations
+	/*UINT8 covertlevel = NUM_SKILL_TRAITS( this, COVERT_NT );	// our level in covert operations
 	INT32 distance = GetRangeFromGridNoDiff(this->sGridNo, pSoldier->sGridNo);
 
 	// if we are closer than this, our cover will always break if we do not have the skill
 	// if we have the skill, our cover will blow if we dress up as a soldier, but not if we are dressed like a civilian
 	INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange;
-
-	// sevenfm: set detection range depending on enemy soldier's difficulty level
-	// 50% of this range for low level soldiers, 150% range for high level elites
-	//INT32 discoverrange = gSkillTraitValues.sCOCloseDetectionRange * (2 + SoldierDifficultyLevel(pSoldier))/ 4;
-
+	
 	if ( distance < discoverrange )
 	{
 		switch ( covertlevel )
@@ -15634,6 +15630,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 			}
 		}
 	}
+	*/
 
 	if ( this->usSoldierFlagMask & SOLDIER_COVERT_CIV )
 	{
@@ -15643,7 +15640,8 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		// 1 - civilians are suspicious at night
 		// 2 - civilians are always suspicious
 
-		UINT8 sectordata = 0;
+		// sevenfm: this is now reflected in suspicion counter
+		/*UINT8 sectordata = 0;
 		UINT8 ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
 		if ( gbWorldSectorZ > 0 )
 			// underground we are always suspicious
@@ -15661,15 +15659,15 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		{
 			if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_CURFEW_BROKEN_NIGHT], this->GetName() );
 			return FALSE;
-		}
-
+		}*/
+		
 		// check whether we are around a fresh corpse - this will make us much more suspicious
 		INT32				cnt;
 		ROTTING_CORPSE *	pCorpse;
 		for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
 		{
 			pCorpse = &(gRottingCorpse[ cnt ] );
-
+			
 			if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 &&
 				PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) < 2 )
 			{
@@ -15714,11 +15712,11 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 	if ( this->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
 	{
 		// if our equipment is too good, that is suspicious... not covert!
-		if ( this->EquipmentTooGood( (distance < discoverrange) ) )
+		/*if ( this->EquipmentTooGood( (distance < discoverrange) ) )
 		{
 			if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_SUSPICIOUS_EQUIPMENT], this->GetName() );
 			return FALSE;
-		}
+		}*/
 
 		// are we targeting a buddy of our observer?
 		if ( this->ubTargetID && MercPtrs[this->ubTargetID] && MercPtrs[this->ubTargetID]->bTeam == pSoldier->bTeam )
@@ -15744,7 +15742,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 			for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
 			{
 				pCorpse = &(gRottingCorpse[ cnt ] );
-
+			
 				if ( pCorpse && pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 &&
 					PythSpacesAway( this->sGridNo, pCorpse->def.sGridNo ) < 2 )
 				{
@@ -15785,41 +15783,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 				}
 			}
 		}
-	}
-
-#ifdef JA2UB
-#else
-	// sevenfm: always uncover in Meduna
-	INT8	bTownId;
-	bTownId = GetTownIdForSector( gWorldSectorX, gWorldSectorY );
-	if ( bTownId == MEDUNA )	
-	{
-		if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Uncover %s in restricted area!", this->GetName() );
-		return FALSE;
-	}
-#endif
-
-	// sevenfm: uncover if merc is using flashlight and alert is raised
-	if( pSoldier->bTeam == ENEMY_TEAM &&
-		pSoldier->aiData.bAlertStatus >= STATUS_RED &&
-		(NightTime() || gbWorldSectorZ > 0) &&
-		this->GetBestEquippedFlashLightRange() > 0 )
-	{
-		if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s has flashlight!", this->GetName() );
-		return FALSE;
-	}
-
-	// sevenfm: covert civs/military are not allowed in combat
-	if( pSoldier->bTeam == ENEMY_TEAM &&
-		//CountTeamCombat(pSoldier) > 0 )
-		GuySawEnemy( pSoldier, SEEN_THIS_TURN ) )
-
-	{
-		// always uncover on sight if alert is raised
-		// if(distance <= DAY_VISION_RANGE * gTacticalStatus.ubArmyGuysKilled * SoldierDifficultyLevel(pSoldier) / 8)
-		if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Uncover %s in combat!", this->GetName() );
-		return FALSE;
-	}
+	}	
 
 	return TRUE;
 }
@@ -15931,6 +15895,7 @@ void	SOLDIERTYPE::LooseDisguise( void )
 			RecalculateOppCntsDueToNoLongerNeutral( pSoldier );
 		}
 	}
+	DirtyMercPanelInterface( this, DIRTYLEVEL2 );
 }
 
 void SOLDIERTYPE::Disguise( void )
@@ -15953,8 +15918,8 @@ void SOLDIERTYPE::Disguise( void )
 		return;
 	}
 
-	// cannot disguise with high suspicious level
-	if( usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICIOUS )
+	// cannot disguise with high suspicion level
+	if( usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICION )
 	{
 		return;
 	}
@@ -15979,8 +15944,8 @@ void SOLDIERTYPE::Disguise( void )
 			{
 				this->usSoldierFlagMask |= SOLDIER_COVERT_SOLDIER;
 
-				if ( this->bTeam == OUR_TEAM )
-					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_DISGUISED_AS_SOLDIER], this->GetName() );
+				//if ( this->bTeam == OUR_TEAM )
+					//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_DISGUISED_AS_SOLDIER], this->GetName() );
 
 				break;
 			}
@@ -15989,14 +15954,37 @@ void SOLDIERTYPE::Disguise( void )
 		// if not dressed as a soldier, we must be dressed as a civilian
 		if ( !(this->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER) )
 		{
-			this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
-
-			if ( this->bTeam == OUR_TEAM )
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_DISGUISED_AS_CIVILIAN], this->GetName() );
+			// default civilian clothes: white + blue/jean
+			if( COMPARE_PALETTEREP_ID(this->VestPal, "WHITEVEST") &&
+				( COMPARE_PALETTEREP_ID(this->PantsPal, "BLUEPANTS") || COMPARE_PALETTEREP_ID(this->PantsPal, "JEANPANTS")))
+			{
+				this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
+			}
+			// don't use enemy military colors for civilian clothes
+			BOOLEAN fFound = FALSE;
+			for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
+			{
+				if( COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].vest) ||
+					COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].pants) ||
+					COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].vest) ||
+					COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].pants) )
+				{
+					BOOLEAN fFound = TRUE;
+					break;
+				}
+			}
+			if( !fFound )
+			{
+				this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
+			}
+			
+			//if ( this->bTeam == OUR_TEAM )
+				//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_DISGUISED_AS_CIVILIAN], this->GetName() );
 		}
 
 		// reevaluate sight - otherwise we could hide by changing clothes in plain sight!
 		OtherTeamsLookForMan(this);
+		DirtyMercPanelInterface( this, DIRTYLEVEL2 );
 	}
 }
 
@@ -17409,7 +17397,7 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 			usSkillCounter[counter]	= min(255, usSkillCounter[counter] + 1 );
 		else if ( counter == SOLDIER_COUNTER_WATCH && usSkillCounter[counter] > 0 )
 			usSkillCounter[counter]	= min(255, usSkillCounter[counter] + 1 );
-		else if ( counter == SOLDIER_COUNTER_SUSPICIOUS  )
+		else if ( counter == SOLDIER_COUNTER_SUSPICION  )
 			;	// don't change
 		else
 			usSkillCounter[counter]	= max(0, usSkillCounter[counter] - 1 );
@@ -17431,36 +17419,43 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 		this->usSoldierFlagMask &= ~SOLDIER_BATTLE_PARTICIPATION;
 	}
 
-	// sevenfm: disguise automatically
-	this->Disguise();
+	// sevenfm: disguise automatically if soldier has spy skill
+	if ( HAS_SKILL_TRAIT( this, COVERT_NT ) )
+	{
+		this->Disguise();
+	}
 
-	// sevenfm: update suspicious counter for player spy
+	// sevenfm: update suspicion counter for player spy
 	if( this->flags.uiStatusFlags & SOLDIER_PC )
 	{
-		UINT32 uiValue = CountSuspicousValue( this );
+		UINT32 uiValue = CountSuspiconValue( this );
 		if( this->bInSector && uiValue > 0 )
 		{
 			if( (gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
 			{
 				// in turnbased add rest of action points on end of turn
-				usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] += uiValue * __max(0, this->bActionPoints - APBPConstants[MAX_AP_CARRIED]);
+				usSkillCounter[SOLDIER_COUNTER_SUSPICION] += uiValue * __max(0, this->bActionPoints - APBPConstants[MAX_AP_CARRIED]);
 			}
 			else
 			{
-				// in realtime, add Value * AP_CHANGE_FACING
-				usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] += uiValue * APBPConstants[AP_CHANGE_FACING];
+				// in realtime, add Value * MAX_AP_CARRIED (usually 1/5 of max possible AP)
+				usSkillCounter[SOLDIER_COUNTER_SUSPICION] += uiValue * APBPConstants[MAX_AP_CARRIED];
 			}
 		}
 		else
 		{
-			// -25% each turn
-			usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] = 3 * usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] / 4;
+			if( EnemySeenSoldierRecently(this) )
+				// -25% each turn
+				usSkillCounter[SOLDIER_COUNTER_SUSPICION] = 3 * usSkillCounter[SOLDIER_COUNTER_SUSPICION] / 4;
+			else
+				// if no one seen us recently (maybe he was killed), no one knows anything about us
+				usSkillCounter[SOLDIER_COUNTER_SUSPICION] = usSkillCounter[SOLDIER_COUNTER_SUSPICION] / 4;
 		}
-		// limit maximum value to MAX_SUSPICIOUS * 2
-		usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] = __min( APBPConstants[AP_MAXIMUM] * MAX_SUSPICIOUS * 2, usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] );
+		// limit maximum value to MAX_SUSPICION * 2
+		usSkillCounter[SOLDIER_COUNTER_SUSPICION] = __min( APBPConstants[AP_MAXIMUM] * MAX_SUSPICION * 2, usSkillCounter[SOLDIER_COUNTER_SUSPICION] );
 
 		if( this->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) &&
-			usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICIOUS )
+			usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICION )
 		{
 			ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", this->GetName());
 			LooseDisguise();

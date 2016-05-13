@@ -883,21 +883,21 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 	// sevenfm: update suspicion counter
 	if( pSoldier->flags.uiStatusFlags & SOLDIER_PC )
 	{
-		UINT32 uiValue = CountSuspicousValue( pSoldier );
+		UINT32 uiValue = CountSuspiconValue( pSoldier );
 		if( uiValue > 0 )
 		{
 			// add rest of action points on end of turn
-			pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] += uiValue * sAPCost;
+			pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] += uiValue * sAPCost;
 
 			if( pSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICIOUS )
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICION )
 			{
 				ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", pSoldier->GetName());
 				pSoldier->LooseDisguise();
 			}
 		}
-		// limit maximum value to MAX_SUSPICIOUS * 2
-		pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] = __min( APBPConstants[AP_MAXIMUM] * MAX_SUSPICIOUS * 2, pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICIOUS] );
+		// limit maximum value to MAX_SUSPICION * 2
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] = __min( APBPConstants[AP_MAXIMUM] * MAX_SUSPICION * 2, pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] );
 	}	
 
 	// in real time, there IS no AP cost, (only breath cost)

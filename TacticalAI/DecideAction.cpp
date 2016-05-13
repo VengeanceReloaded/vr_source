@@ -916,9 +916,9 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 						}
 					}
 
-					// sevenfm: test vision (use only half of day vision range)
+					// sevenfm: test vision
 					if( fCorpseOFAlly &&
-						PythSpacesAway( pSoldier->sGridNo, pCorpse->def.sGridNo ) <= DAY_VISION_RANGE / 2 &&
+						//PythSpacesAway( pSoldier->sGridNo, pCorpse->def.sGridNo ) <= DAY_VISION_RANGE / 2 &&
 						SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
 					{
 						ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
@@ -1548,6 +1548,57 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 	if( gGameExternalOptions.bNewTacticalAIBehavior )
 	{
+		////////////////////////////////////////////////////////////////////////////
+		// RAISE ALERT IF SEE FRESH CORPSE
+		////////////////////////////////////////////////////////////////////////////
+
+		// sevenfm: only if not raised alert yet
+		// && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition
+
+		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && pSoldier->bTeam == ENEMY_TEAM )
+		{		
+			// raise alert if found fresh corpse
+			//if ( !(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
+			if( pSoldier->aiData.bAlertStatus < STATUS_RED )
+			{
+				INT32				cnt;
+				ROTTING_CORPSE *	pCorpse;
+
+				for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
+				{
+					pCorpse = &(gRottingCorpse[ cnt ] );
+
+					if( pCorpse &&
+						pCorpse->fActivated &&
+						pCorpse->def.ubAIWarningValue > 0 &&
+						!TileIsOutOfBounds(pCorpse->def.sGridNo) )
+					{
+						// test ally
+						BOOLEAN fCorpseOFAlly = FALSE;
+						// check whether corpse was one of soldier's allies
+						for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
+						{
+							if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
+							{
+								fCorpseOFAlly = TRUE;
+								break;
+							}
+						}
+
+						// sevenfm: test vision
+						if( fCorpseOFAlly &&
+							SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
+						{
+							ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
+							//pCorpse->def.ubAIWarningValue=0;
+							gRottingCorpse[ cnt ].def.ubAIWarningValue=0;
+							return( AI_ACTION_RED_ALERT );
+						}
+					}
+				}
+			}
+		}
+
 		////////////////////////////////////////////////////////////////////////////
 		// IF YOU SEE CAPTURED FRIENDS, FREE THEM!
 		////////////////////////////////////////////////////////////////////////////

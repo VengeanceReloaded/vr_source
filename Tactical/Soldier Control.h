@@ -568,7 +568,7 @@ enum {
 	SOLDIER_COUNTER_RADIO_ARTILLERY,		// there is actually no need for an artillery timer, but we use one to forbid the same AI guy ordering multiple strikes at once
 	SOLDIER_COUNTER_SPOTTER,				// used to determine whether we are a spotter
 	SOLDIER_COUNTER_WATCH,					// vision bonus from binocs
-	SOLDIER_COUNTER_SUSPICIOUS,				// suspicion counter
+	SOLDIER_COUNTER_SUSPICION,				// suspicion counter
 	
 	SOLDIER_COUNTER_MAX = 20,				// enough space for fillers
 };

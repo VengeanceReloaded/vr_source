@@ -292,8 +292,8 @@ BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
 BOOLEAN AIGunInHandScoped(SOLDIERTYPE *pSoldier);
 UINT16 AIGunRange(SOLDIERTYPE *pSoldier);
 
-#define MAX_SUSPICIOUS 100
-UINT32 CountSuspicousValue( SOLDIERTYPE *pSoldier );
+#define MAX_SUSPICION 100
+UINT32 CountSuspiconValue( SOLDIERTYPE *pSoldier );
 BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier );
 
 #define MAX_FLANKS_RED 25
