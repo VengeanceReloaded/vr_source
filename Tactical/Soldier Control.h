@@ -400,6 +400,7 @@ enum
 #define SOLDIER_PREVENT_MISBEHAVIOUR_OFF	0x00000002	//2				// isn't allowed to prevent misbehaviour
 // ----------------------------------------------------------------
 
+#define SOLDIER_COVERT_NOREDISGUISE			0x00001000					// this soldier does not want to be redisguised
 // -------- added by Flugente: background property flags --------
 // easier than adding 32 differently named variables. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
 // a merc's background info reveals data about his previous life, like former regiments. These backgrounds add small abilities/disabilities. Nothing substantial, just small bits do
@@ -1723,7 +1724,7 @@ public:
 	INT8		GetUniformType();
 
 	// is our equipment too good for a soldier?
-	BOOLEAN		EquipmentTooGood( BOOLEAN fCloselook );
+	BOOLEAN		EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult = TRUE );
 
 	// does soldier ubObserverID recognize us as his enemy?
 	BOOLEAN		SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult = TRUE );
@@ -1742,6 +1743,13 @@ public:
 
 	// check wether our disguise is any good
 	void		SpySelfTest();
+
+	// sevenfm
+	UINT8 SuspicionPercent( void );
+	void AddSuspicion( UINT32 iValue );
+	void MultiplySuspicionByPercent( UINT8 ubPercent );
+	void SetMaxSuspicion( void );
+	BOOLEAN CanInspect( SOLDIERTYPE *pOpponent );
 
 	// Flugente: prisoner system
 	BOOLEAN		CanProcessPrisoners();

@@ -4045,9 +4045,15 @@ BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier )
 			continue;
 		}
 
+		// check if he is captured
+		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
 		// check that we see opponent and he can see us
 		if( (pSoldier->aiData.bOppList[ pOpponent->ubID ] == SEEN_CURRENTLY ||
-			//pSoldier->aiData.bOppList[ pOpponent->ubID ] == SEEN_THIS_TURN ||
+			pSoldier->aiData.bOppList[ pOpponent->ubID ] == SEEN_THIS_TURN ||
 			gbPublicOpplist[pSoldier->bTeam][ pOpponent->ubID ] == SEEN_CURRENTLY) &&
 			pOpponent->aiData.bOppList[ pSoldier->ubID ] == SEEN_CURRENTLY )
 		{
@@ -4084,6 +4090,12 @@ BOOLEAN EnemyAlerted( SOLDIERTYPE *pSoldier )
 
 		// if opponent is collapsed/breath collapsed
 		if( pOpponent->bCollapsed || pOpponent->bBreathCollapsed )
+		{
+			continue;
+		}
+
+		// check if he is captured
+		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
 		{
 			continue;
 		}
@@ -4146,10 +4158,16 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			continue;
 		}
 
+		// check if he is captured
+		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
 		// check that this opponent sees us
 		if( pOpponent->aiData.bOppList[ pSoldier->ubID ] == SEEN_CURRENTLY )
 		{
-			UINT8	ubCovertLevel = NUM_SKILL_TRAITS( pSoldier, COVERT_NT );	// our level in covert operations
+			UINT8	ubCovertLevel = NUM_SKILL_TRAITS( pSoldier, COVERT_NT );
 			INT16	sDistance = PythSpacesAway(pSoldier->sGridNo, pOpponent->sGridNo);
 			INT8	bTownId = GetTownIdForSector( gWorldSectorX, gWorldSectorY );
 			UINT8	ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
@@ -4162,7 +4180,7 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			if ( gbWorldSectorZ > 0 )	// underground we are always suspicious				
 				ubSectorData = __max( ubSectorData, 2 );
 
-			// basic value is 1-5
+			// basic value is 1..5
 			uiValue = 1 + SoldierDifficultyLevel( pOpponent );
 			// add bonus for squad leader
 			if (HAS_SKILL_TRAIT( pOpponent, SQUADLEADER_NT ) )
@@ -4174,11 +4192,33 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			{
 				uiValue++;
 			}
+			// bonus if bleeding
+			if ( pSoldier->bBleeding > 0 )
+			{
+				uiValue++;
+			}
+			// bonus for soldier state
+			if ( MercUnderTheInfluence( pSoldier ) ||
+				GetDrunkLevel( pSoldier ) != SOBER )
+			{
+				uiValue += 1;
+			}
+			// bonus if enemy is alerted
+			if ( pOpponent->aiData.bAlertStatus >= STATUS_RED )
+			{
+				uiValue += 2;
+			}
+			// bonus in combat
+			if ( GuySawEnemy( pOpponent ) || pOpponent->aiData.bUnderFire )
+			{
+				uiValue += 2;
+			}
 			// bonus in capital			
 			if ( bTownId == MEDUNA )	
 			{
 				uiValue += 2;
-			}			
+			}
+			// finally, basic value is 1..16
 
 			// bonus for suspicious movement mode
 			if ( pSoldier->bStealthMode || 
@@ -4186,43 +4226,30 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 				pSoldier->usAnimState == RUNNING )
 			{
 				uiValue = uiValue * 2;
-			}
-			// bonus for soldier state
-			if ( pSoldier->bBleeding > 0 ||
-				pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && GetDrunkLevel( pSoldier ) != SOBER ||
-				pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && !HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) ||
-				pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER && pSoldier->EquipmentTooGood( sDistance < DAY_VISION_RANGE/4 ))
+			}			
+			// soldier spies cause more suspicion (this can be compensated by skill)
+			if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
 			{
 				uiValue = uiValue * 2;
 			}
-			// bonus for special sectors, skill can compensate this
-			if ( ubSectorData > 0 )
-			{
-				uiValue = uiValue * ubSectorData * 2;
-			}
-			// bonus if enemy is alerted
-			if ( pOpponent->aiData.bAlertStatus >= STATUS_RED )
-			{
-				uiValue = uiValue * 2;
-			}
-			// bonus in combat
-			if ( GuySawEnemy( pOpponent, SEEN_THIS_TURN ) || pOpponent->aiData.bUnderFire )
-			{
-				uiValue = uiValue * 2;
-			}
+			// finally, multiplier can be 1..4
 
-			// reduce if soldier has covert trait
+			// reduce 2-4 times if soldier has covert trait
 			if ( HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) )
 			{
 				uiValue = uiValue / (2 * NUM_SKILL_TRAITS( pSoldier, COVERT_NT ));
 			}
 			// for special NPCs even without covert trait
-			else if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_NPC_SPECIAL )
+			else if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_CIV && pSoldier->usSoldierFlagMask & SOLDIER_COVERT_NPC_SPECIAL )
 			{
 				uiValue = uiValue / 2;
 			}
-
-			// finally reduce according to the distance
+			// if observer is drunk, he is less suspicious
+			if( GetDrunkLevel(pOpponent) > SOBER && GetDrunkLevel(pOpponent) < HUNGOVER )
+			{
+				uiValue -= uiValue * GetDrunkLevel(pOpponent) * 25 / 100;
+			}
+			// finally reduce according to the distance, 4 times at max day vision range
 			if( sDistance > DAY_VISION_RANGE / 4 )
 			{
 				uiValue = uiValue * (DAY_VISION_RANGE / 4) / sDistance;

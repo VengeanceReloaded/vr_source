@@ -886,19 +886,28 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 		UINT32 uiValue = CountSuspicionValue( pSoldier );
 		if( uiValue > 0 )
 		{
-			// add rest of action points on end of turn
-			pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] += uiValue * sAPCost;
-
-			if( pSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICION )
+			if ( pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 			{
-				ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", pSoldier->GetName());
-				pSoldier->LooseDisguise();
+				// if we are covert, add suspicion value
+				pSoldier->AddSuspicion( uiValue * sAPCost );
+
+				if( pSoldier->SuspicionPercent() >= 100 )
+				{
+					ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", pSoldier->GetName());
+					pSoldier->LooseDisguise();
+				}
+				else if ( !pSoldier->SeemsLegit(pSoldier->ubID, TRUE) )
+				{
+					pSoldier->LooseDisguise();
+				}
 			}
+			else
+			{
+				// if we are not disguised, set suspicion counter to max value
+				pSoldier->SetMaxSuspicion();
+			}			
 		}
-		// limit maximum value to MAX_SUSPICION * 2
-		pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] = __min( APBPConstants[AP_MAXIMUM] * MAX_SUSPICION * 2, pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] );
-	}	
+	}
 
 	// in real time, there IS no AP cost, (only breath cost)
 	if (!(gTacticalStatus.uiFlags & TURNBASED) || !(gTacticalStatus.uiFlags & INCOMBAT ) )
