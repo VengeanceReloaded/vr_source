@@ -271,6 +271,7 @@ INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 
 UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );
 BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier );
 BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax = SEEN_3_TURNS_AGO );
+BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax = HEARD_3_TURNS_AGO );
 BOOLEAN NightLight( void );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
@@ -286,11 +287,21 @@ UINT8 CountTeamSeeSoldier( INT8 bTeam, SOLDIERTYPE *pSoldier );
 
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 
+BOOLEAN AICheckIsSniper(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsMarksman(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsMachinegunner(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsRadioOperator(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsMedic(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsMortarOperator(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsOfficer(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier);
+
 BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot );
 
 BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
 BOOLEAN AIGunInHandScoped(SOLDIERTYPE *pSoldier);
 UINT16 AIGunRange(SOLDIERTYPE *pSoldier);
+UINT16 AIGunType(SOLDIERTYPE *pSoldier);
 
 #define MAX_SUSPICION 100
 UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier );

@@ -66,6 +66,7 @@
 	#include "english.h"
 	#include "DisplayCover.h"
 	#include "ai.h"
+	#include "Drugs And Alcohol.h"
 #endif
 
 #include "InterfaceItemImages.h"
@@ -555,40 +556,6 @@ BOOLEAN InitializeTacticalInterface(	)
 
 	InitializeFaceGearGraphics();
 	
-	/*
-	for( iCounter2 = 1; iCounter2 < MAXITEMS; iCounter2++ )
-	{
-		VObjectDesc.fCreateFlags = VSURFACE_CREATE_FROMFILE;		
-
-		#define SCSTI ".STI"
-		
-		if ( zNewFaceGear[iCounter2].Type > 0 )
-		{
-			strcpy(fileName, zNewFaceGear[iCounter2].szFile);
-			strcat(fileName, SCSTI);
-			strcpy(VObjectDesc.ImageFile, fileName);
-			CHECKF(AddVideoObject(&VObjectDesc,&zNewFaceGear[iCounter2].uiIndex));
-
-		}
-	}
-	
-	for( iCounter2 = 1; iCounter2 < MAXITEMS; iCounter2++ )
-	{
-		VObjectDesc.fCreateFlags = VSURFACE_CREATE_FROMFILE;		
-		
-		#define SCSTI_IMP "_IMP.STI"
-		
-		if ( zNewFaceGear[iCounter2].Type > 0 )
-		{
-			//IMP
-			strcpy(fileName, zNewFaceGear[iCounter2].szFile);
-			strcat(fileName, SCSTI_IMP);
-			strcpy(VObjectDesc.ImageFile, fileName);
-			CHECKF(AddVideoObject(&VObjectDesc,&zNewFaceGearIMP[iCounter2].uiIndex));
-		}
-	}
-	*/
-	
 	// LOAD RADIO
 	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 	FilenameForBPP("INTERFACE\\radio.sti", VObjectDesc.ImageFile);
@@ -634,9 +601,6 @@ BOOLEAN InitializeTacticalInterface(	)
 	InitRadarScreen( );
 
 	InitTEAMSlots( );
-
-	// Init popup box images
-//	CHECKF( LoadTextMercPopupImages( BASIC_MERC_POPUP_BACKGROUND, BASIC_MERC_POPUP_BORDER ) );
 
 	return( TRUE );
 }
@@ -1972,68 +1936,70 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	// Display name
 	SetFont( TINYFONT1 );
 	SetFontBackground( FONT_MCOLOR_BLACK );
-	
+		
 	// sevenfm: show suspicion counter
 	//if ( pSoldier->usSoldierFlagMask & SOLDIER_NEW_VEST && pSoldier->usSoldierFlagMask & SOLDIER_NEW_PANTS )
-	if( pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL) )
+	if( pSoldier->flags.uiStatusFlags & SOLDIER_PC &&
+		pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) )
 	{
 		UINT8 ubRed, ubGreen, ubBlue;
 
-		if( !pSoldier->SeemsLegit( pSoldier->ubID, FALSE ) )
+		if( //pSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) &&
+			!pSoldier->SeemsLegit( pSoldier->ubID, FALSE ) )
 		{
+			//SetFontForeground( FONT_MCOLOR_WHITE );
 			SetFontForeground( FONT_RED );
 		}
-		else if( pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= MAX_SUSPICION * APBPConstants[AP_MAXIMUM] )
+		else if( pSoldier->SuspicionPercent() >= 100 )
 		{
 			SetRGBFontForeground( 240, 0, 0 );
 		}
 		else
 		{
 			ubRed = 240;
-			ubGreen = 220 - 220 * pSoldier->usSkillCounter[SOLDIER_COUNTER_SUSPICION] / (MAX_SUSPICION * APBPConstants[AP_MAXIMUM]);
+			ubGreen = 220 - 220 * pSoldier->SuspicionPercent() / 100;
 			ubBlue = 0;
 			
 			SetRGBFontForeground( ubRed, ubGreen, ubBlue );
 		}
 	}
-	else
+	else if ( GetDrunkLevel(pSoldier) != SOBER )
 	{
-		SetFontForeground( FONT_MCOLOR_WHITE );
-	}
-
-	/*BOOLEAN bInCombat = gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT;
-	BOOLEAN bStealth = pSoldier->bStealthMode || pSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER );
-	// sevenfm: for mercs use name color as cover indicator
-	// only use color when there is enemy in sector
-	if( pSoldier->bTeam == OUR_TEAM &&
-		(NumEnemyInSector() != 0) &&
-		! ( pSoldier->flags.uiStatusFlags & ( SOLDIER_VEHICLE | SOLDIER_ROBOT) ) &&
-		( ( gGameExternalOptions.ubShowCoverIndicator == 1 && ( bInCombat || bStealth ) ) ||
-		( gGameExternalOptions.ubShowCoverIndicator == 2 && bStealth ) ) )
-	{
-		INT8 cover = 3;		// MAX_COVER
-		BOOLEAN showCover;
-		INT32 usMapPos;
-		INT16 color8, color16;
-
-		if( GetMouseMapPos(&usMapPos) && _KeyDown(SHIFT) )
+		switch ( GetDrunkLevel(pSoldier) )
 		{
-			// target tile cover
-			CalculateCoverForSoldier( pSoldier, usMapPos, gsInterfaceLevel, cover );
+		case FEELING_GOOD:
+			SetRGBFontForeground( 180, 180, 240 );
+			break;
+		case BORDERLINE:
+			SetRGBFontForeground( 120, 120, 240 );
+			break;
+		case DRUNK:
+			SetRGBFontForeground( 20, 20, 240 );
+			break;
+		case HUNGOVER:
+			SetRGBFontForeground( 120, 20, 240 );
+			break;
+		default:
+			SetFontForeground( FONT_MCOLOR_WHITE );
+		}
+	}
+	// in stealth mode, show if enemy can see this soldier
+	/*else if( pSoldier->bStealthMode )
+	{
+		//SetFontForeground( FONT_YELLOW );
+		if( EnemyCanSeeMe(pSoldier) )
+		{
+			SetFontForeground( FONT_MCOLOR_RED );
 		}
 		else
 		{
-			// merc's cover
-			CalculateCoverForSoldier( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, cover );			
+			SetFontForeground( FONT_YELLOW );
 		}
-
-		showCover = CoverColorCode( cover, color8, color16 );
-		SetFontForeground( (UINT8)color8 );
-	}
+	}*/
 	else
 	{
 		SetFontForeground( FONT_MCOLOR_WHITE );
-	}*/
+	}
 
 	if ( pSoldier->ubProfile != NO_PROFILE || ( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
 	{
@@ -2314,8 +2280,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 					}
 				}
 				if ( gGameSettings.fOptions[TOPTION_ALLOW_SOLDIER_TOOLTIPS] )
-					SoldierTooltip(pSoldier);
-			//------------
+					SoldierTooltip(pSoldier);			//------------
 			}
 		}
 	}
@@ -2339,7 +2304,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 		}
 
 		pStr = GetSoldierHealthString( pSoldier );
-		
+
 		if ( gGameSettings.fOptions[TOPTION_ALLOW_SOLDIER_TOOLTIPS] )
 			SoldierTooltip(pSoldier);
 
@@ -3539,7 +3504,6 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 	UINT8											*pDestBuf;
 	INT8											bBandage;
 	INT8											bPoisonBandage;
-	INT16		color8;
 	INT16		color16;
 
 	// Draw new size
@@ -3551,24 +3515,33 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 	// sevenfm: draw background for alt bar
 	if( gGameExternalOptions.ubShowHealthBarsOnHead > 1 )
 	{
-		DrawBar( sXPos+2, sYPos, sWidth + 2, 1 + interval*3, COLOR_BLACK, Get16BPPColor( FROMRGB( 0, 0, 0	) ), pDestBuf );
-		// draw border: light brown for stealth mode, grey for regular		
-		if(pSoldier->bStealthMode)
+		DrawBar( sXPos+2, sYPos, sWidth + 2, 1 + interval*3, Get16BPPColor( FROMRGB( 0, 0, 0	) ), pDestBuf );
+
+		// draw border: light brown for stealth mode, grey for regular
+		if (pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) && pSoldier->bStealthMode && EnemyCanSeeMe(pSoldier))
 		{
-			color8 = COLOR_BROWN;
+			color16 = Get16BPPColor( FROMRGB( 180, 20, 20 ) );
+		}
+		else if (pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) && EnemyCanSeeMe(pSoldier))
+		{
+			color16 = Get16BPPColor( FROMRGB( 120, 20, 20 ) );
+		}
+		else if(pSoldier->bStealthMode && EnemyCanSeeMe(pSoldier))
+		{
+			color16 = Get16BPPColor( FROMRGB( 180, 20, 20 ) );
+		}
+		else if(pSoldier->bStealthMode)
+		{
 			color16 = Get16BPPColor( FROMRGB( 180, 140, 20 ) );
 		}
-		else{
-			color8 = COLOR_DKGREY;
+		else
+		{
 			color16 = Get16BPPColor( FROMRGB( 120, 120, 120 ) );
 		}
 		if ( pSoldier->ubID == gusSelectedSoldier )
 		{
-			if(gbPixelDepth==16)
-				RectangleDraw( TRUE, sXPos+1, sYPos-1, sXPos+sWidth+3, sYPos+1+interval*3, color16, pDestBuf);
-			else
-				RectangleDraw8( TRUE, sXPos+1, sYPos-1, sXPos+sWidth+3, sYPos+1+interval*3, color8, pDestBuf);
-		}
+			RectangleDraw( TRUE, sXPos+1, sYPos-1, sXPos+sWidth+3, sYPos+1+interval*3, color16, pDestBuf);
+		}		
 	}
 
 	// get amt bandaged
@@ -3582,7 +3555,7 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 	{
 		dPercentage = (FLOAT)( pSoldier->bBleeding +	pSoldier->stats.bLife + bBandage )/ (FLOAT)100;
 		dWidth			=	dPercentage * sWidth;
-		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 240,	240, 20	) ), pDestBuf );
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 240,	240, 20	) ), pDestBuf );
 	}
 
 	// poisoned bleeding
@@ -3590,14 +3563,14 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 	{
 		dPercentage = (FLOAT)( pSoldier->stats.bLifeMax - pSoldier->bBleeding +	pSoldier->bPoisonBleeding )/ (FLOAT)100;
 		dWidth			=	dPercentage * sWidth;
-		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 240, 20, 240	) ), pDestBuf );
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 240, 20, 240	) ), pDestBuf );
 	}
 
 	if( bBandage )
 	{
 		dPercentage = (FLOAT)( pSoldier->stats.bLife + bBandage ) / (FLOAT)100;
 		dWidth			=	dPercentage * sWidth;
-		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 222, 132, 132	) ), pDestBuf );
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 222, 132, 132	) ), pDestBuf );
 	}
 
 	// poisoned bandage
@@ -3605,92 +3578,39 @@ void DrawBarsInUIBox( SOLDIERTYPE *pSoldier , INT16 sXPos, INT16 sYPos, INT16 sW
 	{
 		dPercentage = (FLOAT)( pSoldier->stats.bLife + bPoisonBandage )/ (FLOAT)100;
 		dWidth			=	dPercentage * sWidth;
-		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 132, 222, 132	) ), pDestBuf );
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 132, 222, 132	) ), pDestBuf );
 	}
 
 	dPercentage = (FLOAT)pSoldier->stats.bLife / (FLOAT)100;
 	dWidth			=	dPercentage * sWidth;
-	DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 200, 0, 0	) ), pDestBuf );
+	DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 200, 0, 0	) ), pDestBuf );
 
 	// poisoned life
 	if ( pSoldier->bPoisonLife )
 	{
 		dPercentage = (FLOAT)( pSoldier->bPoisonLife )/ (FLOAT)100;
 		dWidth			=	dPercentage * sWidth;
-		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 0, 200, 0 ) ), pDestBuf );
+		DrawBar( sXPos + 3, sYPos + 1, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 0, 200, 0 ) ), pDestBuf );
 	}
 
 	dPercentage = (FLOAT)( pSoldier->bBreathMax ) / (FLOAT)100;
 	dWidth			=	dPercentage * sWidth;
-	DrawBar( sXPos + 3, sYPos + 1 + interval, (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 20, 20, 150	) ), pDestBuf );
+	DrawBar( sXPos + 3, sYPos + 1 + interval, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 20, 20, 150	) ), pDestBuf );
 
 	dPercentage = (FLOAT)( pSoldier->bBreath ) / (FLOAT)100;
 	dWidth			=	dPercentage * sWidth;
-	DrawBar( sXPos + 3, sYPos + 1 + interval, (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 100, 100, 220 ) ), pDestBuf );	
-
-	/*
-	// morale
-	dPercentage = (FLOAT)pSoldier->aiData.bMorale / (FLOAT)100;
-	dWidth			=	dPercentage * sWidth;
-	if(gbPixelDepth==16)
-	{
-		usLineColor = Get16BPPColor( FROMRGB( 0, 250, 0 ) );
-		RectangleDraw( TRUE, sXPos + 1, sYPos + 7, (INT32)( sXPos + dWidth + 1 ), sYPos + 7, usLineColor, pDestBuf );
-	}
-	else if(gbPixelDepth==8)
-	{
-	// DB Need to change this to a color from the 8-bit standard palette
-		usLineColor = COLOR_GREEN;
-		RectangleDraw8( TRUE, sXPos + 1, sYPos + 7, (INT32)( sXPos + dWidth + 1 ), sYPos + 7, usLineColor, pDestBuf );
-	}
-
-	*/
+	DrawBar( sXPos + 3, sYPos + 1 + interval, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 100, 100, 220 ) ), pDestBuf );	
 
 	// draw suppression shock bar
 	if( gGameExternalOptions.ubShowHealthBarsOnHead > 1 )
 	{
-		dPercentage = (FLOAT)( __min(100, ( (FLOAT)100 * CalcEffectiveShockLevel( pSoldier ) ) / CalcSuppressionTolerance( pSoldier ) ) ) / (FLOAT)100;
+		//dPercentage = (FLOAT)( __min(100, ( (FLOAT)100 * CalcEffectiveShockLevel( pSoldier ) ) / CalcSuppressionTolerance( pSoldier ) ) ) / (FLOAT)100;
+		dPercentage = (FLOAT)ShockLevelPercent( pSoldier ) / 100.0;
 		dWidth		=	dPercentage * sWidth;
-		DrawBar( sXPos+3, sYPos+1+2*interval, (INT32)dWidth, sHeight, COLOR_ORANGE, Get16BPPColor( FROMRGB( 220, 140, 0 ) ), pDestBuf );
+		DrawBar( sXPos+3, sYPos+1+2*interval, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 220, 140, 0 ) ), pDestBuf );
 	}
-
-	/*
-	BOOLEAN bDisguised = pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER);
-	BOOLEAN bStealth = pSoldier->bStealthMode;
-	// draw cover indicators
-	if( ( gGameExternalOptions.ubShowHealthBarsOnHead > 1 ) && 
-		( (gTacticalStatus.uiFlags & TURNBASED ) && (gTacticalStatus.uiFlags & INCOMBAT) || bStealth || bDisguised ) )
-	{		
-		INT8 cover = 3;		// MAX_COVER
-		BOOLEAN showCover;
-		INT32 usMapPos;
-
-		if( gGameExternalOptions.ubShowCoverIndicator ==1 ||
-			( gGameExternalOptions.ubShowCoverIndicator ==3 && (bStealth || bDisguised) ) )
-		{
-			if( GetMouseMapPos(&usMapPos) && _KeyDown(SHIFT) )
-			{
-				// draw target tile cover indicator
-				CalculateCoverForSoldier( pSoldier, usMapPos, gsInterfaceLevel, cover );
-				showCover = CoverColorCode( cover, color8, color16 );
-			}
-			else
-			{
-				// draw cover indicator
-				CalculateCoverForSoldier( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, cover );
-				showCover = CoverColorCode( cover, color8, color16 );
-				if ( color8 == COLOR_GREEN)
-					showCover = FALSE;
-			}
-
-			if(showCover)
-				DrawBar( sXPos+33, sYPos+1, 1+sHeight , (interval==3 ? 2 : 3 )*interval-1, color8, color16, pDestBuf );
-		}
-	}
-	*/
 
 	UnLockVideoSurface( FRAME_BUFFER );
-
 }
 
 void EndDeadlockMsg( )
@@ -4713,14 +4633,6 @@ BOOLEAN AddTopMessage( UINT8 ubType, STR16 pzString )
 	fFound = TRUE;
 	cnt = 0;
 
-	// WANNE: Disabled AI count on turnbar, because it shows different count on clients
-	/*
-	if(is_networked && gTacticalStatus.ubCurrentTeam == 1 && ubType == COMPUTER_TURN_MESSAGE){
-		//add ai count to turn bar - haydent
-		swprintf( pzString, MPClientMessage[80], NumEnemyInSector());
-	}
-	*/
-
 	if ( fFound )
 	{
 		gTopMessage.bCurrentMessage = (INT8)cnt;
@@ -4751,7 +4663,7 @@ void CreateTopMessage( UINT32 uiSurface, UINT8 ubType, STR16 psString )
 	FLOAT			dNumStepsPerEnemy, dLength, dCurSize;
 	INT16			iProgBarLength; 
 	STR fn;
-	
+
 	memset( &VObjectDesc, 0, sizeof( VObjectDesc ) );
 	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 	
@@ -5871,161 +5783,222 @@ void RenderTopmostMultiPurposeLocator( )
 	BltVideoObjectFromIndex(	FRAME_BUFFER, guiRADIO, gbMultiPurposeLocatorFrame, sXPos, sYPos, VO_BLT_SRCTRANSPARENCY, NULL );
 }
 
-void DrawBar( INT32 x, INT32 y, INT32 width, INT32 height, UINT16 color8, UINT16 color16, UINT8 *pDestBuf )
+void DrawBar( INT32 x, INT32 y, INT32 width, INT32 height, UINT16 color16, UINT8 *pDestBuf )
 {
 	if( width > 0 )
 	{
 		for( INT32 i=0; i < height; i++ )
 		{
-			if(gbPixelDepth==16)
-				LineDraw( TRUE, x, y+i, x+width-1, y+i, color16, pDestBuf );
-			else if(gbPixelDepth==8)
-				LineDraw8( TRUE, x, y+i, x+width-1, y+i, color8, pDestBuf );
+			LineDraw( TRUE, x, y+i, x+width-1, y+i, color16, pDestBuf );
 		}
 	}
 }
 
-BOOLEAN CoverColorCode( INT8 cover, INT16 &color8, INT16 &color16 ){
-	BOOLEAN showCover = TRUE;
-	switch(cover)
-	{
-	case 0:
-		//color8 = COLOR_RED;
-		color8 = FONT_MCOLOR_RED;
-		color16 = Get16BPPColor( FROMRGB( 220, 0, 0 ) );
-		break;
-	case 1:
-		color8 = COLOR_ORANGE;
-		color16 = Get16BPPColor( FROMRGB( 220, 140, 0 ) );
-		break;
-	case 2:
-		color8 = COLOR_YELLOW;
-		color16 = Get16BPPColor( FROMRGB( 220, 220, 0 ) );
-		break;
-	case 3:
-		color8 = COLOR_GREEN;
-		color16 = Get16BPPColor( FROMRGB( 0, 200, 0 ) );
-		break;
-	default: 
-		showCover = FALSE;
-	}
-	return showCover;
-}
-
-void DrawRankIcon( INT8 rank, INT32 baseX, INT32 baseY )
+void DrawRoleIcon( SOLDIERTYPE *pSoldier, INT32 baseX, INT32 baseY )
 {
 	UINT32		uiDestPitchBYTES;
 	UINT8		*pDestBuf;
-	INT16		color8;
 	INT16		color16;
+
+	if( !AICheckIsCommander(pSoldier) &&
+		!AICheckIsOfficer(pSoldier) &&
+		!AICheckIsRadioOperator(pSoldier) &&
+		!AICheckIsMortarOperator(pSoldier) &&
+		!AICheckIsSniper(pSoldier) &&
+		!AICheckIsMarksman(pSoldier) &&
+		!AICheckIsMachinegunner(pSoldier) &&
+		!AICheckIsMedic(pSoldier) )
+	{
+		return;
+	}
 
 	pDestBuf = LockVideoSurface( FRAME_BUFFER, &uiDestPitchBYTES );
 	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, gsVIEWPORT_WINDOW_START_Y, SCREEN_WIDTH, ( gsVIEWPORT_WINDOW_END_Y - gsVIEWPORT_WINDOW_START_Y ) );
 
-	if(rank<6)
-	{
-		color8 = FONT_DKGREEN;
-		color16 = Get16BPPColor( FROMRGB( 20, 60, 20 ) );
-		//color8 = FONT_ORANGE;
-		//color16 = Get16BPPColor( FROMRGB( 160, 80, 0 ) );
-	}
-	else
-	{
-		color8 = FONT_DKRED;
-		color16 = Get16BPPColor( FROMRGB( 60, 20, 20 ) );
-	}
+	color16 = Get16BPPColor( FROMRGB( 20, 60, 20 ) );
+	//color16 = Get16BPPColor( FROMRGB( 60, 20, 20 ) );
 
-	DrawBar( baseX+2, baseY+2, 7, 8, color8, color16, pDestBuf );
-	DrawLine( baseX+3, baseY+10, baseX+7, baseY+10, color8, color16, pDestBuf );
-	DrawLine( baseX+4, baseY+11, baseX+6, baseY+11, color8, color16, pDestBuf );
+	DrawBar( baseX+2, baseY+2, 7, 8, color16, pDestBuf );
+	DrawLine( baseX+3, baseY+10, baseX+7, baseY+10, color16, pDestBuf );
+	DrawLine( baseX+4, baseY+11, baseX+6, baseY+11, color16, pDestBuf );
 
-	if(rank<6)
-	{
-		color8 = COLOR_GREEN;
-		color16 = Get16BPPColor( FROMRGB( 20, 80, 20 ) );
-		//color8 = FONT_YELLOW;
-		//color16 = Get16BPPColor( FROMRGB( 200, 120, 00 ) );
-	}
-	else
-	{
-		color8 = COLOR_RED;
-		color16 = Get16BPPColor( FROMRGB( 120, 20, 20 ) );
-	}
+	color16 = Get16BPPColor( FROMRGB( 20, 80, 20 ) );
+	//color16 = Get16BPPColor( FROMRGB( 120, 20, 20 ) );
 
-	DrawLine( baseX+2, baseY+1, baseX+8, baseY+1, color8, color16, pDestBuf );
-	DrawLine( baseX+1, baseY+2, baseX+1, baseY+9, color8, color16, pDestBuf );
-	DrawLine( baseX+9, baseY+2, baseX+9, baseY+9, color8, color16, pDestBuf );
-	
-	DrawLine( baseX+1, baseY+9, baseX+4, baseY+12, color8, color16, pDestBuf );
-	DrawLine( baseX+4, baseY+12, baseX+6, baseY+12, color8, color16, pDestBuf );
-	DrawLine( baseX+6, baseY+12, baseX+9, baseY+9, color8, color16, pDestBuf );
+	DrawLine( baseX+2, baseY+1, baseX+8, baseY+1, color16, pDestBuf );
+	DrawLine( baseX+1, baseY+2, baseX+1, baseY+9, color16, pDestBuf );
+	DrawLine( baseX+9, baseY+2, baseX+9, baseY+9, color16, pDestBuf );
 
-	if(rank<6)
+	DrawLine( baseX+1, baseY+9, baseX+4, baseY+12, color16, pDestBuf );
+	DrawLine( baseX+4, baseY+12, baseX+6, baseY+12, color16, pDestBuf );
+	DrawLine( baseX+6, baseY+12, baseX+9, baseY+9, color16, pDestBuf );
+
+	color16 = Get16BPPColor( FROMRGB( 200, 200, 200 ) );
+//	color16 = Get16BPPColor( FROMRGB( 220, 140, 20 ) );
+
+	/*if(TRUE)
 	{
-		//color8 = FONT_DKGREEN;
-		//color16 = Get16BPPColor( FROMRGB( 0, 40, 0 ) );
-		//color8 = COLOR_LTGREY;
-		//color16 = Get16BPPColor( FROMRGB( 120, 120, 120 ) );
-		color8 = COLOR_YELLOW;
-		color16 = Get16BPPColor( FROMRGB( 200, 200, 200 ) );
+		DrawLine( baseX+3, baseY+6, baseX+4, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+6, baseX+7, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+5, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+7, baseX+5, baseY+8, color16, pDestBuf );
 	}
-	else
+	else */
+	if( AICheckIsCommander(pSoldier) )
 	{
-		color8 = FONT_ORANGE;
 		color16 = Get16BPPColor( FROMRGB( 220, 140, 20 ) );
+
+		DrawLine( baseX+3, baseY+4, baseX+5, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+6, baseX+7, baseY+4, color16, pDestBuf );
+
+		DrawLine( baseX+3, baseY+7, baseX+5, baseY+9, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+9, baseX+7, baseY+7, color16, pDestBuf );
+	}
+	else if( AICheckIsOfficer(pSoldier) )
+	{
+		color16 = Get16BPPColor( FROMRGB( 220, 140, 20 ) );
+
+		DrawLine( baseX+3, baseY+6, baseX+5, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+8, baseX+7, baseY+6, color16, pDestBuf );
+	}
+	else if( AICheckIsRadioOperator(pSoldier) )
+	{
+		color16 = Get16BPPColor( FROMRGB( 200, 200, 200 ) );
+
+		DrawLine( baseX+4, baseY+10, baseX+6, baseY+10, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+7, baseX+5, baseY+10, color16, pDestBuf );
+		DrawLine( baseX+4, baseY+5, baseX+4, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+5, baseX+6, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+2, baseY+4, baseX+2, baseY+7, color16, pDestBuf );
+		DrawLine( baseX+8, baseY+4, baseX+8, baseY+7, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+3, baseX+3, baseY+3, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+8, baseX+3, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+3, baseX+7, baseY+3, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+8, baseX+7, baseY+8, color16, pDestBuf );
+	}
+	else if( AICheckIsMortarOperator(pSoldier) )
+	{
+		color16 = Get16BPPColor( FROMRGB( 200, 200, 200 ) );
+
+		DrawLine( baseX+4, baseY+3, baseX+4, baseY+4, color16, pDestBuf );
+		DrawLine( baseX+4, baseY+6, baseX+4, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+3, baseX+6, baseY+4, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+6, baseX+6, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+9, color16, pDestBuf );
+	}
+	else if( AICheckIsSniper(pSoldier) )
+	{
+		color16 = Get16BPPColor( FROMRGB( 200, 200, 200 ) );
+		// 1
+		/*DrawLine( baseX+3, baseY+6, baseX+4, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+6, baseX+7, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+5, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+7, baseX+5, baseY+8, color16, pDestBuf );*/
+
+		/*DrawLine( baseX+4, baseY+3, baseX+6, baseY+3, color16, pDestBuf );
+		DrawLine( baseX+4, baseY+9, baseX+6, baseY+9, color16, pDestBuf );
+		DrawLine( baseX+2, baseY+5, baseX+2, baseY+7, color16, pDestBuf );
+		DrawLine( baseX+8, baseY+5, baseX+8, baseY+7, color16, pDestBuf );*/
+
+		// 2
+		DrawLine( baseX+4, baseY+3, baseX+6, baseY+3, color16, pDestBuf );
+		DrawLine( baseX+4, baseY+9, baseX+6, baseY+9, color16, pDestBuf );
+		DrawLine( baseX+2, baseY+5, baseX+2, baseY+7, color16, pDestBuf );
+		DrawLine( baseX+8, baseY+5, baseX+8, baseY+7, color16, pDestBuf );
+
+		DrawLine( baseX+3, baseY+4, baseX+3, baseY+4, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+8, baseX+3, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+4, baseX+7, baseY+4, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+8, baseX+7, baseY+8, color16, pDestBuf );
+
+		DrawLine( baseX+5, baseY+6, baseX+5, baseY+6, color16, pDestBuf );		
+
+		//3
+		/*DrawLine( baseX+4, baseY+6, baseX+6, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+5, baseX+5, baseY+7, color16, pDestBuf );
+
+		DrawLine( baseX+3, baseY+3, baseX+7, baseY+3, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+9, baseX+7, baseY+9, color16, pDestBuf );
+		DrawLine( baseX+2, baseY+4, baseX+2, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+8, baseY+4, baseX+8, baseY+8, color16, pDestBuf );*/
+	}
+	else if( AICheckIsMarksman(pSoldier) )
+	{
+		color16 = Get16BPPColor( FROMRGB( 200, 200, 200 ) );
+
+		DrawLine( baseX+3, baseY+6, baseX+4, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+6, baseX+7, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+5, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+7, baseX+5, baseY+8, color16, pDestBuf );
+	}
+	else if( AICheckIsMachinegunner(pSoldier) )
+	{
+		color16 = Get16BPPColor( FROMRGB( 220, 140, 20 ) );
+
+		DrawLine( baseX+3, baseY+5, baseX+3, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+5, baseX+5, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+5, baseX+7, baseY+8, color16, pDestBuf );
+
+		color16 = Get16BPPColor( FROMRGB( 140, 80, 20 ) );
+		DrawLine( baseX+3, baseY+4, baseX+3, baseY+5, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+5, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+4, baseX+7, baseY+5, color16, pDestBuf );
+	}
+	else if( AICheckIsMedic(pSoldier) )
+	{
+		color16 = Get16BPPColor( FROMRGB( 200, 20, 20 ) );
+		DrawLine( baseX+3, baseY+6, baseX+7, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+8, color16, pDestBuf );
 	}
 
-	switch( rank )
+	/*switch( rank )
 	{
 	case 1:
-		DrawLine( baseX+3, baseY+6, baseX+7, baseY+6, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+6, baseX+7, baseY+6, color16, pDestBuf );
 		break;
 	case 2:
-		DrawLine( baseX+3, baseY+5, baseX+7, baseY+5, color8, color16, pDestBuf );
-		DrawLine( baseX+3, baseY+7, baseX+7, baseY+7, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+5, baseX+7, baseY+5, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+7, baseX+7, baseY+7, color16, pDestBuf );
 		break;
 	case 3:
-		DrawLine( baseX+3, baseY+4, baseX+7, baseY+4, color8, color16, pDestBuf );
-		DrawLine( baseX+3, baseY+6, baseX+7, baseY+6, color8, color16, pDestBuf );
-		DrawLine( baseX+3, baseY+8, baseX+7, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+4, baseX+7, baseY+4, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+6, baseX+7, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+8, baseX+7, baseY+8, color16, pDestBuf );
 		break;
 	case 4:
-		DrawLine( baseX+3, baseY+5, baseX+5, baseY+8, color8, color16, pDestBuf );
-		DrawLine( baseX+5, baseY+8, baseX+7, baseY+5, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+5, baseX+5, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+8, baseX+7, baseY+5, color16, pDestBuf );
 		break;
 	case 5:
-		DrawLine( baseX+3, baseY+4, baseX+7, baseY+4, color8, color16, pDestBuf );
-		DrawLine( baseX+3, baseY+6, baseX+5, baseY+9, color8, color16, pDestBuf );
-		DrawLine( baseX+5, baseY+9, baseX+7, baseY+6, color8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+4, baseX+7, baseY+4, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+6, baseX+5, baseY+9, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+9, baseX+7, baseY+6, color16, pDestBuf );
 		break;
 	case 6:
-		DrawLine( baseX+5, baseY+4, baseX+5, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+8, color16, pDestBuf );
 		break;
 	case 7:
-		DrawLine( baseX+4, baseY+4, baseX+4, baseY+8, color8, color16, pDestBuf );
-		DrawLine( baseX+6, baseY+4, baseX+6, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+4, baseY+4, baseX+4, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+6, baseY+4, baseX+6, baseY+8, color16, pDestBuf );
 		break;
 	case 8:
-		DrawLine( baseX+5, baseY+4, baseX+5, baseY+8, color8, color16, pDestBuf );
-		DrawLine( baseX+3, baseY+4, baseX+3, baseY+8, color8, color16, pDestBuf );
-		DrawLine( baseX+7, baseY+4, baseX+7, baseY+8, color8, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+4, baseX+5, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+4, baseX+3, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+4, baseX+7, baseY+8, color16, pDestBuf );
 		break;
 	case 9:
-		DrawLine( baseX+2, baseY+6, baseX+8, baseY+6, color8, color16, pDestBuf );
-		DrawLine( baseX+5, baseY+3, baseX+5, baseY+9, color8, color16, pDestBuf );
-		DrawLine( baseX+3, baseY+4, baseX+7, baseY+8, color8, color16, pDestBuf );
-		DrawLine( baseX+7, baseY+4, baseX+3, baseY+8, color8, color16, pDestBuf );
-	}
-	
+		DrawLine( baseX+2, baseY+6, baseX+8, baseY+6, color16, pDestBuf );
+		DrawLine( baseX+5, baseY+3, baseX+5, baseY+9, color16, pDestBuf );
+		DrawLine( baseX+3, baseY+4, baseX+7, baseY+8, color16, pDestBuf );
+		DrawLine( baseX+7, baseY+4, baseX+3, baseY+8, color16, pDestBuf );
+	}*/
+
 	UnLockVideoSurface( FRAME_BUFFER );
 }
 
-void DrawLine( INT32 x1, INT32 y1, INT32 x2, INT32 y2, UINT16 color8, UINT16 color16, UINT8 *pDestBuf )
+void DrawLine( INT32 x1, INT32 y1, INT32 x2, INT32 y2, UINT16 color16, UINT8 *pDestBuf )
 {
-	if(gbPixelDepth==16)
-		LineDraw( TRUE, x1, y1, x2, y2, color16, pDestBuf);
-	else
-		LineDraw8( TRUE, x1, y1, x2, y2, color8, pDestBuf);
+	LineDraw( TRUE, x1, y1, x2, y2, color16, pDestBuf);
 }
 
 void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLines, INT32 iBarWidth, INT32 iBarHeight )
@@ -6039,7 +6012,7 @@ void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLine
 	SetClippingRegionAndImageWidth( uiDestPitchBYTES, 0, gsVIEWPORT_WINDOW_START_Y, SCREEN_WIDTH, ( gsVIEWPORT_WINDOW_END_Y - gsVIEWPORT_WINDOW_START_Y ) );
 
 	// sevenfm: draw background
-	DrawBar( sX, sY, iBarWidth + 2, iBarHeight, COLOR_BLACK, Get16BPPColor( FROMRGB( 0, 0, 0 ) ), pDestBuf );
+	DrawBar( sX, sY, iBarWidth + 2, iBarHeight, Get16BPPColor( FROMRGB( 0, 0, 0 ) ), pDestBuf );
 
 	// draw health
 	if(ubLines > 0)
@@ -6047,7 +6020,7 @@ void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLine
 		dPercentage = (FLOAT)pSoldier->stats.bLife / (FLOAT) pSoldier->stats.bLifeMax;
 		dWidth			=	dPercentage * iBarWidth;
 		dWidth = __min (dWidth, iBarWidth);
-		DrawBar( sX + 1, sY + 1, (INT32)dWidth, sHeight, COLOR_RED, Get16BPPColor( FROMRGB( 200, 0, 0	) ), pDestBuf );
+		DrawBar( sX + 1, sY + 1, (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 200, 0, 0	) ), pDestBuf );
 	}
 
 	// draw ap
@@ -6059,25 +6032,26 @@ void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLine
 			dPercentage = (FLOAT)pSoldier->bActionPoints / (FLOAT) ( pSoldier->bInitialActionPoints);
 			dWidth = dPercentage * iBarWidth;
 			dWidth = __min (dWidth, iBarWidth);
-			//DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 20, 20, 220 ) ), pDestBuf );
-			DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, COLOR_PURPLE, Get16BPPColor( FROMRGB( 110, 30, 210 ) ), pDestBuf );
+			//DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 20, 20, 220 ) ), pDestBuf );
+			DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 110, 30, 210 ) ), pDestBuf );
 		}
 		else
 		{
 			dPercentage = (FLOAT)pSoldier->bActionPoints / (FLOAT) ( APBPConstants[AP_MIN_LIMIT] );
 			dWidth	= dPercentage * iBarWidth;
 			dWidth = __min (dWidth, iBarWidth);
-			DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, COLOR_LTGREY, Get16BPPColor( FROMRGB( 140, 140, 140	) ), pDestBuf );
+			DrawBar( sX + 1, sY + 1 + (sHeight+1), (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 140, 140, 140	) ), pDestBuf );
 		}
 	}
 
 	// draw suppression shock
 	if( ubLines > 2 )
 	{
-		dPercentage = (FLOAT)( __min(100, ( (FLOAT)100 * CalcEffectiveShockLevel( pSoldier ) ) / CalcSuppressionTolerance( pSoldier ) ) ) / (FLOAT)100;
+		//dPercentage = (FLOAT)( __min(100, ( (FLOAT)100 * CalcEffectiveShockLevel( pSoldier ) ) / CalcSuppressionTolerance( pSoldier ) ) ) / (FLOAT)100;
+		dPercentage = (FLOAT)ShockLevelPercent( pSoldier ) / 100.0;
 		dWidth = dPercentage * iBarWidth;
 		dWidth = __min (dWidth, iBarWidth);
-		DrawBar( sX+1, sY + 1 + 2*(sHeight+1), (INT32)dWidth, sHeight, COLOR_ORANGE, Get16BPPColor( FROMRGB( 200, 120, 0 ) ), pDestBuf );
+		DrawBar( sX+1, sY + 1 + 2*(sHeight+1), (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 200, 120, 0 ) ), pDestBuf );
 	}
 
 	// draw morale
@@ -6087,7 +6061,7 @@ void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLine
 		dPercentage = (FLOAT)( pSoldier->aiData.bMorale ) / (FLOAT)( 100 );
 		dWidth = dPercentage * iBarWidth;
 		dWidth = __min (dWidth, iBarWidth);
-		DrawBar( sX+1, sY + 1 + 3*(sHeight+1), (INT32)dWidth, sHeight, COLOR_GREEN, Get16BPPColor( FROMRGB( 0, 140, 0 ) ), pDestBuf );
+		DrawBar( sX+1, sY + 1 + 3*(sHeight+1), (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 0, 140, 0 ) ), pDestBuf );
 	}
 
 	// draw BP
@@ -6096,7 +6070,7 @@ void DrawEnemyHealthBar( SOLDIERTYPE* pSoldier, INT32 sX, INT32 sY, UINT8 ubLine
 		dPercentage = (FLOAT)( pSoldier->bBreath ) / (FLOAT)( pSoldier->bBreathMax );
 		dWidth = dPercentage * iBarWidth;
 		dWidth = __min (dWidth, iBarWidth);
-		DrawBar( sX+1, sY + 1 + 4*(sHeight+1), (INT32)dWidth, sHeight, COLOR_BLUE, Get16BPPColor( FROMRGB( 0, 0, 200 ) ), pDestBuf );
+		DrawBar( sX+1, sY + 1 + 4*(sHeight+1), (INT32)dWidth, sHeight, Get16BPPColor( FROMRGB( 0, 0, 200 ) ), pDestBuf );
 	}
 
 	UnLockVideoSurface( FRAME_BUFFER );
@@ -6457,6 +6431,58 @@ void ShowEnemyWeapon( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier )
 
 void ShowAdditionalInfo( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier )
 {
+	CHAR16		NameStr[ MAX_ENEMY_NAMES_CHARS ];
+	SOLDIERTYPE *pSelectedSoldier;
+
+	if ( gusSelectedSoldier != NOBODY )
+		pSelectedSoldier = MercPtrs[ gusSelectedSoldier ];
+	else
+		return;
+
+	if( !gGameExternalOptions.fShowEnemyAwareness )
+		return;
+
+	// this feature is a part of improved enemy health bar
+	if ( gGameExternalOptions.ubShowEnemyHealth < 2 )
+		return;
+
+	// this feature is not compatible with showing enemy rank or name
+	if( gGameExternalOptions.fEnemyRank || gGameExternalOptions.fEnemyNames )
+		return;
+
+	if( gTacticalStatus.ubCurrentTeam == OUR_TEAM &&
+		(pTargetSoldier->bTeam == ENEMY_TEAM || pTargetSoldier->bTeam == CIV_TEAM && !pTargetSoldier->aiData.bNeutral) &&
+		(pSelectedSoldier->bStealthMode || pSelectedSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER )) )
+	{				
+		// show awareness sign only when in stealth mode or disguised
+		if( pTargetSoldier->aiData.bOppList[ MercPtrs[ gusSelectedSoldier ]->ubID ] == SEEN_CURRENTLY )
+		{
+			SetFont( TINYFONT1 );
+			SetFontBackground( FONT_MCOLOR_BLACK );
+
+			switch ( pTargetSoldier->aiData.bAlertStatus )
+			{
+			case STATUS_GREEN:
+			case STATUS_YELLOW:
+				SetFontForeground( FONT_YELLOW );
+				break;
+			case STATUS_RED:
+			case STATUS_BLACK:
+				SetFontForeground( FONT_DKRED );
+				break;
+			}
+
+			swprintf( NameStr, L"%s", L"*" );
+			sX -= StringPixLength ( NameStr, TINYFONT1 );
+
+			gprintfdirty( sX - 15, sY, NameStr );
+			mprintf( sX - 15, sY, NameStr );
+		}
+	}
+}
+
+/*void ShowAdditionalInfo( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier )
+{
 	BOOLEAN		showExactInfo;
 	CHAR16		NameStr[ MAX_ENEMY_NAMES_CHARS ];
 	SOLDIERTYPE *pSelectedSoldier;
@@ -6516,7 +6542,7 @@ void ShowAdditionalInfo( INT16 sX, INT16 sY, SOLDIERTYPE* pTargetSoldier )
 			}
 		}
 	}
-}
+}*/
 
 void ShowEnemyHealthBar( INT16 sX, INT16 sY, SOLDIERTYPE* pSoldier )
 {
@@ -6565,7 +6591,6 @@ void ShowRankIcon( INT16 sXPos, INT16 sYPos, SOLDIERTYPE* pSoldier )
 		return;
 
 	if( gGameExternalOptions.ubShowEnemyRankIcon && gTacticalStatus.ubCurrentTeam == OUR_TEAM )
-		//&& (!gGameExternalOptions.fEnemyNames) && (!gGameExternalOptions.fEnemyRank))
 	{
 		sX = sXPos + 50;
 		sY = sYPos + 17;
@@ -6578,7 +6603,7 @@ void ShowRankIcon( INT16 sXPos, INT16 sYPos, SOLDIERTYPE* pSoldier )
 		if ( iBack != -1 )
 			SetBackgroundRectFilled( iBack );
 
-		DrawRankIcon( pSoldier->stats.bExpLevel, sX, sY );
+		DrawRoleIcon( pSoldier, sX, sY );
 	}
 }
 

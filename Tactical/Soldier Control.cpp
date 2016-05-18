@@ -16049,6 +16049,7 @@ void	SOLDIERTYPE::Strip()
 	if ( this->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 	{
 		LooseDisguise();
+		this->usSoldierFlagMask2 |= SOLDIER_COVERT_NOREDISGUISE;
 	}
 	// if already not covert, take off clothes
 	else if ( this->usSoldierFlagMask & (SOLDIER_NEW_VEST|SOLDIER_NEW_PANTS) )
@@ -17472,12 +17473,6 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 		this->usSoldierFlagMask &= ~SOLDIER_BATTLE_PARTICIPATION;
 	}
 
-	// sevenfm: disguise automatically if soldier has spy skill
-	if ( HAS_SKILL_TRAIT( this, COVERT_NT ) )
-	{
-		this->Disguise();
-	}
-
 	// sevenfm: update suspicion counter for player spy
 	if( this->flags.uiStatusFlags & SOLDIER_PC )
 	{
@@ -17485,46 +17480,58 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 		// if someone is observing us
 		if( this->bInSector && uiValue > 0 )
 		{
-			if( (gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
+			// if we are not disguised, set suspicion counter to max value
+			if ( !(this->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) ) )
 			{
-				// in turnbased add rest of action points on end of turn
-				usSkillCounter[SOLDIER_COUNTER_SUSPICION] += uiValue * __max(0, this->bActionPoints - APBPConstants[MAX_AP_CARRIED]);
+				SetMaxSuspicion();
 			}
+			// if we are covert, increase counter
 			else
 			{
-				// in realtime, add Value * MAX_AP_CARRIED (usually 1/5 of max possible AP)
-				usSkillCounter[SOLDIER_COUNTER_SUSPICION] += uiValue * APBPConstants[MAX_AP_CARRIED];
-			}
+				if( (gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
+				{
+					// in turnbased add rest of action points on end of turn
+					AddSuspicion( uiValue * __max(0, this->bActionPoints - APBPConstants[MAX_AP_CARRIED]) );
+				}
+				else
+				{
+					// in realtime, add Value * MAX_AP_CARRIED (usually 1/5 of max possible AP)
+					AddSuspicion( uiValue * APBPConstants[MAX_AP_CARRIED] );
+				}
+			}			
 		}
-		// reduce counter if alert is not raised
 		else
 		{
-			if( EnemyAlerted(this) )
-				// -5% each turn if alert is raised in sector
-				usSkillCounter[SOLDIER_COUNTER_SUSPICION] = 95 * usSkillCounter[SOLDIER_COUNTER_SUSPICION] / 100;
-			if( EnemySeenSoldierRecently(this) )
+			if( EnemyAlerted(this) && ( EnemySeenSoldierRecently(this) || EnemyHeardSoldierRecently(this) ))
+				// -10% each turn if alert is raised in sector and enemy heard or seen this soldier
+				MultiplySuspicionByPercent( 90 );
+			else if( EnemySeenSoldierRecently(this) )
 				// -25% each turn
-				usSkillCounter[SOLDIER_COUNTER_SUSPICION] = 3 * usSkillCounter[SOLDIER_COUNTER_SUSPICION] / 4;
+				MultiplySuspicionByPercent( 75 );
 			else
-				// if no one seen us recently (maybe he was killed), no one knows anything about us
-				usSkillCounter[SOLDIER_COUNTER_SUSPICION] = usSkillCounter[SOLDIER_COUNTER_SUSPICION] / 4;
+				// if no one seen us recently (maybe he was killed)
+				MultiplySuspicionByPercent( 25 );
 		}
-		// limit maximum value to MAX_SUSPICION * 2
-		usSkillCounter[SOLDIER_COUNTER_SUSPICION] = __min( APBPConstants[AP_MAXIMUM] * MAX_SUSPICION * 2, usSkillCounter[SOLDIER_COUNTER_SUSPICION] );
 
 		if( this->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) &&
-			usSkillCounter[SOLDIER_COUNTER_SUSPICION] >= APBPConstants[AP_MAXIMUM] * MAX_SUSPICION )
+			SuspicionPercent() >= 100 )
 		{
 			ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", this->GetName());
 			LooseDisguise();
 		}
 	}
 
+	// sevenfm: disguise automatically if soldier has spy skill
+	if ( !(this->usSoldierFlagMask2 & SOLDIER_COVERT_NOREDISGUISE) )
+	{
+		this->Disguise();
+	}
+
 	// sevenfm: auto refill canteens if no hostile enemy in sector
 	if( !EnemyAlerted(this) )
 	{
 		SoldierAutoFillCanteens( this );
-	}
+	}	
 }
 
 // check if Soldier can use the spell skillwise, with fAPCheck = TRUE also check current APs

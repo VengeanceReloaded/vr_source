@@ -10657,11 +10657,12 @@ INT8 CalcEffectiveShockLevel( SOLDIERTYPE * pSoldier )
 
 BOOLEAN CoweringShockLevel( SOLDIERTYPE * pSoldier )
 {
-	INT8 bTolerance = CalcSuppressionTolerance( pSoldier );
+	INT8 bCoweringLevel = CalcSuppressionTolerance( pSoldier );
 	INT8 bShock = CalcEffectiveShockLevel( pSoldier );
+	//INT8 bCoweringLevel = gGameExternalOptions.ubMaxSuppressionShock / 2;
 
 	// check that character is cowering
-	if (bShock >= bTolerance )
+	if (bShock >= bCoweringLevel )
 	{
 		return TRUE;
 	}
@@ -10669,3 +10670,29 @@ BOOLEAN CoweringShockLevel( SOLDIERTYPE * pSoldier )
 	return FALSE;
 }
 
+UINT8 ShockLevelPercent( SOLDIERTYPE* pSoldier )
+{
+	// if suppression shock is disabled
+	if( gGameExternalOptions.ubMaxSuppressionShock == 0 )
+		return 0;
+
+	//INT8 bTolerance = CalcSuppressionTolerance( pSoldier );
+	INT8 bShock = CalcEffectiveShockLevel( pSoldier );
+	INT8 bCoweringLevel;
+	UINT8 ubShockPercent = 0;
+
+	//bCoweringLevel = __max( 1, gGameExternalOptions.ubMaxSuppressionShock / 2 );
+	bCoweringLevel = CalcSuppressionTolerance( pSoldier );
+
+	if( bCoweringLevel > 0 )
+	{
+		// calculate shock level percent
+		ubShockPercent = 100 * bShock / bCoweringLevel;
+	}
+
+	// check bounds
+	ubShockPercent = __max( 0, ubShockPercent );
+	ubShockPercent = __min( 100, ubShockPercent );
+
+	return ubShockPercent;
+}

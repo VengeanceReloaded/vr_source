@@ -9801,6 +9801,11 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 
 		// sevenfm: try to disguise now
 		pSoldier->Disguise();
+
+		// sevenfm: r8215
+		// to inform the player on whether this will work, test the disguise immediately (but only if we are now disguised in the first place)
+		if ( pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) )
+			pSoldier->SpySelfTest();
 	}
 		
 	return( TRUE );

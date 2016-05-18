@@ -143,7 +143,6 @@ void StartBombMessageBox( SOLDIERTYPE * pSoldier, INT32 sGridNo );
 // added by Flugente
 void StartTacticalFunctionSelectionMessageBox( SOLDIERTYPE * pSoldier, INT32 sGridNo,  INT8 bLevel );
 void CleanWeapons( BOOLEAN fEntireTeam );
-void Strip( SOLDIERTYPE * pSoldier );
 void StartCorpseMessageBox( SOLDIERTYPE * pSoldier, INT32 sGridNo,  INT8 bLevel );
 
 BOOLEAN	HandleCheckForBadChangeToGetThrough( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pTargetSoldier, INT32 sTargetGridNo , INT8 bLevel ) 
@@ -5002,19 +5001,6 @@ void CleanWeapons( BOOLEAN fEntireTeam )
 	}
 }
 
-// undisguise or take off custom clothes
-void Strip( SOLDIERTYPE * pSoldier )
-{
-	// sevenfm: loose disguise first
-	gpTempSoldier->LooseDisguise();
-
-	// sevenfm: only for mercs with covert skill who will disguise automatically
-	if ( HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) )
-	{
-		pSoldier->Strip();
-	}
-}
-
 void BombMessageBoxCallBack( UINT8 ubExitValue )
 {
 	if (gpTempSoldier)
@@ -5164,8 +5150,8 @@ void TacticalFunctionSelectionMessageBoxCallBack( UINT8 ubExitValue )
 			SectorFillCanteens();
 			break;
 		case 2:
-       	// undisguise or take off custom clothes 
-       	Strip(gpTempSoldier);
+       		// undisguise or take off custom clothes 
+       		gpTempSoldier->Strip();
            break;
        case 3:
 			// clean weapons of selected merc

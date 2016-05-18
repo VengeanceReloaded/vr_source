@@ -4267,7 +4267,7 @@ BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
 
-	//loop through all the enemies and determine the cover
+	// loop through all the enemies
 	for (uiLoop = 0; uiLoop<guiNumMercSlots; ++uiLoop)
 	{
 		pOpponent = MercSlots[ uiLoop ];
@@ -4290,11 +4290,64 @@ BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
 			continue;
 		}
 
+		// check if he is captured
+		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
 		// check that this opponent sees us
 		if( pOpponent->aiData.bOppList[ pSoldier->ubID ] >= SEEN_CURRENTLY && 
 			pOpponent->aiData.bOppList[ pSoldier->ubID ] <= ubMax ||
 			gbPublicOpplist[pOpponent->bTeam][pSoldier->ubID] >= SEEN_CURRENTLY &&
 			gbPublicOpplist[pOpponent->bTeam][pSoldier->ubID] <= ubMax )
+		{
+			return( TRUE );
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
+{
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+
+	// loop through all the enemies
+	for (uiLoop = 0; uiLoop<guiNumMercSlots; ++uiLoop)
+	{
+		pOpponent = MercSlots[ uiLoop ];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		// if this man is neutral / on the same side, he's not an opponent
+		if( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		{
+			continue;			// next merc
+		}
+
+		// if opponent is collapsed/breath collapsed
+		if( pOpponent->bCollapsed || pOpponent->bBreathCollapsed )
+		{
+			continue;
+		}
+
+		// check if he is captured
+		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
+		// check that this opponent sees us
+		if( pOpponent->aiData.bOppList[ pSoldier->ubID ] <= HEARD_THIS_TURN && 
+			pOpponent->aiData.bOppList[ pSoldier->ubID ] >= ubMax ||
+			gbPublicOpplist[pOpponent->bTeam][pSoldier->ubID] <= HEARD_THIS_TURN &&
+			gbPublicOpplist[pOpponent->bTeam][pSoldier->ubID] >= ubMax )
 		{
 			return( TRUE );
 		}
@@ -4402,5 +4455,139 @@ BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier )
 	}
 
 	return( FALSE );
+}
+
+BOOLEAN AICheckIsSniper(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( AIGunType(pSoldier) != GUN_SN_RIFLE )
+	{
+		return FALSE;
+	}
+
+	if( AIGunRange(pSoldier) / CELL_X_SIZE > DAY_VISION_RANGE &&
+		AIGunScoped(pSoldier) &&
+		pSoldier->stats.bMarksmanship > 90 && HAS_SKILL_TRAIT(pSoldier, SNIPER_NT) )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckIsMarksman(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( AIGunType(pSoldier) != GUN_SN_RIFLE && 
+		AIGunType(pSoldier) != GUN_RIFLE &&
+		AIGunType(pSoldier) != GUN_AS_RIFLE )
+	{
+		return FALSE;
+	}
+
+	if( AIGunRange(pSoldier) / CELL_X_SIZE >= DAY_VISION_RANGE &&
+		(AIGunScoped(pSoldier) || pSoldier->stats.bMarksmanship > 90 || HAS_SKILL_TRAIT(pSoldier, SNIPER_NT)) )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckIsRadioOperator(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( pSoldier->CanUseRadio(FALSE) )
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN AICheckIsMedic(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( !HAS_SKILL_TRAIT( pSoldier, DOCTOR_NT) )
+	{
+		return FALSE;
+	}
+
+	if( FindFirstAidKit( pSoldier ) != NO_SLOT ||
+		FindMedKit( pSoldier ) != NO_SLOT )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckIsMortarOperator(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if ( pSoldier->HasMortar() )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckIsOfficer(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( HAS_SKILL_TRAIT(pSoldier, SQUADLEADER_NT) )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( NUM_SKILL_TRAITS( pSoldier, SQUADLEADER_NT ) > 1 )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckIsMachinegunner(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if( AIGunType(pSoldier) == GUN_LMG )
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
+UINT16 AIGunType(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	INT8 bWeaponIn;
+
+	bWeaponIn = FindAIUsableObjClass( pSoldier, IC_GUN );
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return 0;
+	}
+
+	if(pSoldier->inv[bWeaponIn].exists())
+	{
+		return Weapon[pSoldier->inv[bWeaponIn].usItem].ubWeaponType;
+	}
+	return 0;
 }
 
