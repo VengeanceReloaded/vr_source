@@ -8888,6 +8888,14 @@ void SetSoldierAniSpeed( SOLDIERTYPE *pSoldier )
 		pSoldier->sAniDelay = (pSoldier->sAniDelay *3/4);
 	}
 
+	// sevenfm: fast radio animation
+	if ( pSoldier->usAnimState == AI_RADIO ||
+		pSoldier->usAnimState ==  AI_CR_RADIO )
+	{		
+		//pSoldier->sAniDelay = 0;
+		pSoldier->sAniDelay = pSoldier->sAniDelay / 2;
+	}
+
 	if ( _KeyDown( SPACE ) )
 	{
 		//pSoldier->sAniDelay = 1000;
@@ -15785,6 +15793,16 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		}
 	}	
 
+	// uncover if merc is using flashlight and alert is raised
+	if ( pSoldier->bTeam == ENEMY_TEAM &&
+		pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+		(NightLight( ) || gbWorldSectorZ > 0) &&
+		this->GetBestEquippedFlashLightRange( ) > 0 )
+	{
+		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s has flashlight!", this->GetName( ) );
+		return FALSE;
+	}
+
 	return TRUE;
 }
 
@@ -17428,7 +17446,8 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 	// sevenfm: update suspicion counter for player spy
 	if( this->flags.uiStatusFlags & SOLDIER_PC )
 	{
-		UINT32 uiValue = CountSuspiconValue( this );
+		UINT32 uiValue = CountSuspicionValue( this );
+		// if someone is observing us
 		if( this->bInSector && uiValue > 0 )
 		{
 			if( (gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
@@ -17442,8 +17461,12 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 				usSkillCounter[SOLDIER_COUNTER_SUSPICION] += uiValue * APBPConstants[MAX_AP_CARRIED];
 			}
 		}
+		// reduce counter if alert is not raised
 		else
 		{
+			if( EnemyAlerted(this) )
+				// -5% each turn if alert is raised in sector
+				usSkillCounter[SOLDIER_COUNTER_SUSPICION] = 95 * usSkillCounter[SOLDIER_COUNTER_SUSPICION] / 100;
 			if( EnemySeenSoldierRecently(this) )
 				// -25% each turn
 				usSkillCounter[SOLDIER_COUNTER_SUSPICION] = 3 * usSkillCounter[SOLDIER_COUNTER_SUSPICION] / 4;
@@ -17460,6 +17483,12 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 			ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", this->GetName());
 			LooseDisguise();
 		}
+	}
+
+	// sevenfm: auto refill canteens if no hostile enemy in sector
+	if( !EnemyAlerted(this) )
+	{
+		SoldierAutoFillCanteens( this );
 	}
 }
 

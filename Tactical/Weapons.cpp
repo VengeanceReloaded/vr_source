@@ -1343,37 +1343,6 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 				else if (jamChance > maxJamChance)
 					jamChance = maxJamChance;
 
-				/* Old jam code 
-				// gun might jam, figure out the chance 
-				//iChance = (80 - pObj->bGunStatus); 
-			 
-				//rain 
-				iChance = (80 - pObj->ItemData.Gun.bGunStatus) + gGameExternalOptions.ubWeaponReliabilityReductionPerRainIntensity * gbCurrentRainIntensity; 
-				//end rain 
-			 
-				// CJC: removed reliability from formula... 
-			 
-				// jams can happen to unreliable guns "earlier" than normal or reliable ones. 
-				//iChance = iChance - Item[pObj->usItem].bReliability * 2; 
-			 
-				// decrease the chance of a jam by 20% per point of reliability; 
-				// increased by 20% per negative point... 
-				//iChance = iChance * (10 - Item[pObj->usItem].bReliability * 2) / 10; 
-			 
-				//rain 
-				// iChance = iChance * (10 - Item[pObj->usItem].bReliability * 2) / 10; // Madd: took it back out 
-				//end rain 
-			 
-				if (pSoldier->bDoBurst > 1) 
-				{ 
-				// if at bullet in a burst after the first, higher chance 
-				iChance -= PreRandom( 80 ); 
-				} 
-				else 
-				{ 
-				iChance -= PreRandom( 100 ); 
-				} 
-			*/ 
 #ifdef TESTGUNJAM 
 				if ( 1 ) 
 #else 
@@ -1416,18 +1385,13 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 					else
 						bChanceMod = (INT8) (GetReliability( pObj )* 4);
 
-					// sevenfm: for AI, bonus to unjam successfully
-					if( !(pSoldier->flags.uiStatusFlags & SOLDIER_PC) )
-					{
-						bChanceMod += 30;
-					}
-					
 					int iResult = SkillCheck( pSoldier, UNJAM_GUN_CHECK, bChanceMod); 
 					
-					if (iResult > 0) 
+					// sevenfm: AI always unjams successfully
+					if (iResult > 0 || !(pSoldier->flags.uiStatusFlags & SOLDIER_PC)) 
 					{ 
 						// yay! unjammed the gun 
-						(*pObj)[0]->data.gun.bGunAmmoStatus *= -1; 
+						(*pObj)[0]->data.gun.bGunAmmoStatus *= -1;
 					 
 						// MECHANICAL/DEXTERITY GAIN: Unjammed a gun 
 						
@@ -10384,12 +10348,14 @@ INT32 HTHImpact( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pTarget, INT32 iHitBy, BO
 
 	// Flugente: if we are using a garotte, there is a chance that we score an instakill
 	// our level in covert ops and wether the target is aware of us has a huge impact
-	if ( pObj && HasItemFlag(pObj->usItem, GAROTTE) )
+	// sevenfm: garotte should be used on head only
+	if ( pObj && HasItemFlag(pObj->usItem, GAROTTE) && pSoldier->bAimShotLocation == AIM_SHOT_HEAD )
 	{
 		INT32 instakillchance = 0;
 		INT32 resistchance = 20;
 
-		if ( !SoldierTo3DLocationLineOfSightTest( pSoldier, pTarget->sGridNo, pTarget->pathing.bLevel, 3, TRUE, CALC_FROM_WANTED_DIR ) )
+		// sevenfm: use AI knowledge
+		if( pTarget->aiData.bOppList[pSoldier->ubID] != SEEN_CURRENTLY )
 			instakillchance += 30;
 
 		UINT8 skilllevel = NUM_SKILL_TRAITS( pSoldier, COVERT_NT );

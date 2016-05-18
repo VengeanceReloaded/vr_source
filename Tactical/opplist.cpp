@@ -1219,6 +1219,12 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 		return( 0 );
 	}
 
+	// sevenfm: if soldier is unconscious, he can't see anything
+	if ( pSoldier->bCollapsed && pSoldier->bBreath == 0 )
+	{
+		return( 0 );
+	}
+
 	if ( bFacingDir == DIRECTION_IRRELEVANT && TANK( pSoldier ) )
 	{
 		// always calculate direction for tanks so we have something to work with
@@ -2171,11 +2177,16 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 	// if we're somehow seeing a guy who is on the same team
 	if (pSoldier->bTeam == pOpponent->bTeam)
 		return;
-	// Flugente: if the other guy is in med or deep water and wearing scua gear, then we cannot see him as he is submerged
+	// Flugente: if the other guy is in med or deep water and wearing scuba gear, then we cannot see him as he is submerged
 	if ( pOpponent->UsesScubaGear() )
 		return;
 	// Flugente: update our sight concerning this guy, otherwise we could get way with open attacks because this does not get updated
 	pSoldier->RecognizeAsCombatant(pOpponent->ubID);
+	// sevenfm: unconscious soldiers cannot see anybody
+	if ( pSoldier->bCollapsed && pSoldier->bBreath == 0 )
+	{
+		return;
+	}
 
 	// if we're seeing a guy we didn't see on our last chance to look for him
 	if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY)

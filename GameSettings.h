@@ -1458,9 +1458,6 @@ typedef struct
 	BOOLEAN fLessJams;
 	BOOLEAN fEnemyJams;
 
-	BOOLEAN fPathAvoidDeepWater;
-	BOOLEAN fPathAvoidGas;
-
 } GAME_EXTERNAL_OPTIONS;
 
 typedef struct

@@ -2260,8 +2260,6 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fLessJams					= iniReader.ReadBoolean("Extended Options", "LESS_JAMS", true, false);
 	gGameExternalOptions.fEnemyJams					= iniReader.ReadBoolean("Extended Options", "ENEMY_JAMS", true, false);
 
-	gGameExternalOptions.fPathAvoidDeepWater		= iniReader.ReadBoolean("Extended Options", "PATH_AVOID_DEEP_WATER", true, false);
-	gGameExternalOptions.fPathAvoidGas				= iniReader.ReadBoolean("Extended Options", "PATH_AVOID_GAS", true, false);
 }
 
 

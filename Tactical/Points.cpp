@@ -883,7 +883,7 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 	// sevenfm: update suspicion counter
 	if( pSoldier->flags.uiStatusFlags & SOLDIER_PC )
 	{
-		UINT32 uiValue = CountSuspiconValue( pSoldier );
+		UINT32 uiValue = CountSuspicionValue( pSoldier );
 		if( uiValue > 0 )
 		{
 			// add rest of action points on end of turn

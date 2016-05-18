@@ -15192,6 +15192,17 @@ void ExplainWhySkyriderCantFly( void )
 		return;
 	}
 
+	// sevenfm: r8220
+	// travelled too far?
+	if ( gGameExternalOptions.fAlternativeHelicopterFuelSystem )
+	{
+		if ( iTotalHeliDistanceSinceRefuel > gHelicopterSettings.ubHelicopterDistanceWithoutRefuel )
+		{
+			DoMapMessageBox( MSG_BOX_BASIC_STYLE, L"Helicopter has exceeded maximum range!", MAP_SCREEN, MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
+			return;
+		}
+	}
+
 	// no explainable reason
 }
 

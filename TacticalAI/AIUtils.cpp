@@ -4019,15 +4019,8 @@ BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier )
 {
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
-	UINT32		uiValue;
-	UINT32		uiTotalValue = 0;
 
 	CHECKF( pSoldier );
-
-	if( !pSoldier->bActive || !pSoldier->bInSector )
-	{
-		return 0;
-	}
 
 	//loop through all the enemies and determine the cover
 	for (uiLoop = 0; uiLoop<guiNumMercSlots; ++uiLoop)
@@ -4035,7 +4028,7 @@ BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier )
 		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, dead, unconscious
-		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		if (!pOpponent || !pOpponent->bActive || !pOpponent->bInSector || pOpponent->stats.bLife < OKLIFE)
 		{
 			continue;			// next merc
 		}
@@ -4065,7 +4058,46 @@ BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier )
 	return FALSE;
 }
 
-UINT32 CountSuspiconValue( SOLDIERTYPE *pSoldier )
+BOOLEAN EnemyAlerted( SOLDIERTYPE *pSoldier )
+{
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+
+	CHECKF( pSoldier );
+
+	//loop through all the enemies and determine the cover
+	for (uiLoop = 0; uiLoop<guiNumMercSlots; ++uiLoop)
+	{
+		pOpponent = MercSlots[ uiLoop ];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || !pOpponent->bActive || !pOpponent->bInSector || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		// if this man is neutral / on the same side, he's not an opponent
+		if( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		{
+			continue;			// next merc
+		}
+
+		// if opponent is collapsed/breath collapsed
+		if( pOpponent->bCollapsed || pOpponent->bBreathCollapsed )
+		{
+			continue;
+		}
+
+		if( pOpponent->aiData.bAlertStatus >= STATUS_RED )
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 {
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;

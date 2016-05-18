@@ -346,6 +346,22 @@ void HandleEndTurnDrugAdjustments( SOLDIERTYPE *pSoldier )
 
 	if ( pSoldier->bRegenerationCounter > 0)
 	{
+		if( pSoldier->stats.bLifeMax > LIFE_GAIN_PER_REGEN_POINT * 2 )
+		{
+			// sevenfm: damage max health when using regen boosters
+			INT8 bStatLoss = Random( __min( LIFE_GAIN_PER_REGEN_POINT, pSoldier->bBleeding ) ) ;			
+			if( bStatLoss > 0 )
+			{
+				pSoldier->stats.bLifeMax -= bStatLoss;
+				pSoldier->ubCriticalStatDamage[DAMAGED_STAT_HEALTH] += bStatLoss;
+
+				if (pSoldier->ubProfile != NO_PROFILE)
+				{
+					gMercProfiles[ pSoldier->ubProfile ].bLifeMax = pSoldier->stats.bLifeMax;
+				}
+			}			
+		}
+
 		// increase life
 		pSoldier->bPoisonLife = max(pSoldier->bPoisonSum, pSoldier->bPoisonLife + pSoldier->stats.bLife - __min( pSoldier->stats.bLife + LIFE_GAIN_PER_REGEN_POINT, pSoldier->stats.bLifeMax ) );
 		pSoldier->stats.bLife = __min( pSoldier->stats.bLife + LIFE_GAIN_PER_REGEN_POINT, pSoldier->stats.bLifeMax );
@@ -602,7 +618,9 @@ INT8 GetDrunkLevel( SOLDIERTYPE *pSoldier )
 	INT8 bNumDrinks;
 
 	// If we have a -ve effect ...
-	if ( pSoldier->drugs.bDrugEffect[ DRUG_TYPE_ALCOHOL ] == 0 && pSoldier->drugs.bDrugSideEffect[ DRUG_TYPE_ALCOHOL ] == 0 )
+	if ( pSoldier->drugs.bDrugEffect[ DRUG_TYPE_ALCOHOL ] == 0 &&
+		pSoldier->drugs.bFutureDrugEffect[ DRUG_TYPE_ALCOHOL ] == 0 &&
+		pSoldier->drugs.bDrugSideEffect[ DRUG_TYPE_ALCOHOL ] == 0 )
 	{
 		return( SOBER );
 	}
@@ -612,7 +630,7 @@ INT8 GetDrunkLevel( SOLDIERTYPE *pSoldier )
 		return( HUNGOVER );
 	}
 
-	// Calculate how many dinks we have had....
+	// Calculate how many drinks we have had....
 	bNumDrinks = ( pSoldier->drugs.bDrugEffect[ DRUG_TYPE_ALCOHOL ] / Drug[DRUG_TYPE_ALCOHOL].ubDrugEffect );
 
 	if ( bNumDrinks <= 3 )
