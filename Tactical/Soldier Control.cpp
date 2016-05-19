@@ -15593,7 +15593,14 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 	{
 		if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_BLEEDING], this->GetName() );
 		return FALSE;
-	}	
+	}
+
+	// sevenfm: always uncover when standing near bomb
+	if( FindBombNearby(pSoldier, this->sGridNo, DAY_VISION_RANGE/8 ))
+	{
+		if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s is seen near bomb!", this->GetName() );
+		return FALSE;
+	}
 
 	if ( this->usSoldierFlagMask & SOLDIER_COVERT_CIV )
 	{

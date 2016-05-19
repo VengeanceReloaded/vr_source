@@ -5547,34 +5547,56 @@ BOOLEAN HandleAttachedExplosions(UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, IN
 	iterend = (*pObj)[0]->attachments.end();
 	for (iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter) 
 	{
-		if ( iter->exists() && Item[iter->usItem].usItemClass & (IC_GRENADE|IC_BOMB) )
-		{ 			
-			// no need for binder if both item and attachment are tripwire-activated
+		// if attached item is grenade or explosives
+		if( iter->exists() &&
+			Item[iter->usItem].usItemClass & (IC_GRENADE|IC_BOMB) )
+		{
+			// if both item and attachment are tripwire-activated
+			// or attached item is grenade with volatility > 0
 			if( ( Item[pObj->usItem].tripwireactivation && Item[iter->usItem].tripwireactivation ) ||
 				( binderFound && detonator && Explosive[Item[iter->usItem].ubClassIndex].ubVolatility > 0 ) )
 			{
 				if(Item[iter->usItem].directional && ubDirection == DIRECTION_IRRELEVANT)
 					direction=Random(8);
 				else
-					direction=ubDirection;				
+					direction=ubDirection;
+
 				if( Item[iter->usItem].uiIndex == TRIP_KLAXON )
 				{
 					PlayJA2Sample( KLAXON_ALARM, RATE_11025, SoundVolume( MIDVOLUME, sGridNo ), 5, SoundDir( sGridNo ) );
-					// CallAvailableEnemiesTo( sGridNo );
 					MakeNoise( NOBODY, sGridNo, bLevel, gpWorldLevelData[ sGridNo ].ubTerrainID, (UINT8)Explosive[ Item[iter->usItem].ubClassIndex ].ubVolume, NOISE_EXPLOSION );
-				} else if( Item[iter->usItem].uiIndex == TRIP_FLARE )
+				} 
+				else if( Item[iter->usItem].uiIndex == TRIP_FLARE )
 				{
 					NewLightEffect( sGridNo, (UINT8)Explosive[ Item[iter->usItem].ubClassIndex ].ubDuration, (UINT8)Explosive[iter->usItem].ubStartRadius );
-				} else
+				} 
+				else
 				{
 					IgniteExplosion( ubOwner, sX, sY, sZ, sGridNo, Item[iter->usItem].uiIndex, bLevel, direction , NULL );
-			}
+				}
 				fAttFound = TRUE;
+			}
 		}
-		}
-		if ( binderFound && detonator && gGameExternalOptions.bAllowSpecialExplosiveAttachments && iter->exists() && Item[iter->usItem].usItemClass & IC_MISC )
+		// if attached item is not grenade, check buddy item
+		else if( iter->exists() &&
+				gGameExternalOptions.bAllowSpecialExplosiveAttachments &&
+				binderFound &&
+				detonator &&			
+				Item[ iter->usItem ].usBuddyItem != 0 &&
+				Item[ Item[ iter->usItem ].usBuddyItem ].usItemClass & (IC_GRENADE|IC_BOMB) &&
+				Explosive[ Item[ Item[ iter->usItem ].usBuddyItem ].ubClassIndex ].ubVolatility > 0 )
+				//Item[iter->usItem].usItemClass & IC_MISC )
 		{
-			if(Item[iter->usItem].gascan)
+			if(Item[ Item[ iter->usItem ].usBuddyItem ].directional && ubDirection == DIRECTION_IRRELEVANT)
+				direction=Random(8);
+			else
+				direction=ubDirection;
+
+			IgniteExplosion( ubOwner, sX, sY, sZ, sGridNo, Item[ iter->usItem ].usBuddyItem, bLevel, direction , NULL );
+
+			fAttFound = TRUE;
+
+			/*if(Item[iter->usItem].gascan)
 			{
 				IgniteExplosion( ubOwner, sX, sY, sZ, sGridNo, GAS_EXPLOSION, bLevel, DIRECTION_IRRELEVANT , NULL );
 				fAttFound = TRUE;
@@ -5588,8 +5610,8 @@ BOOLEAN HandleAttachedExplosions(UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, IN
 			{
 				IgniteExplosion( ubOwner, sX, sY, sZ, sGridNo, FRAG_EXPLOSION, bLevel, DIRECTION_IRRELEVANT , NULL );
 				fAttFound = TRUE;
+			}*/
 		}
-	}
 	}
 	return fAttFound;
 }
@@ -5661,7 +5683,7 @@ BOOLEAN FindBinderAttachment (OBJECTTYPE * pObj)
 	{
 		if ( iter->exists() && Item[iter->usItem].usItemClass == IC_MISC )
 		{
-			if(Item[iter->usItem].uiIndex == ELASTIC || Item[iter->usItem].uiIndex == DUCT_TAPE )
+			if(Item[iter->usItem].uiIndex == ELASTIC || Item[iter->usItem].uiIndex == DUCT_TAPE || Item[iter->usItem].uiIndex == STRING)
 			{
 				return TRUE;
 			}

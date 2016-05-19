@@ -2171,6 +2171,38 @@ BOOLEAN ValidAttachment( UINT16 usAttachment, UINT16 usItem, UINT8 * pubAPCost )
 	if ( Item[usItem].tripwire && Item[usAttachment].usItemClass & IC_GUN )
 		return TRUE;
 
+	if( gGameExternalOptions.bAllowExplosiveAttachments )
+	{
+		// sevenfm: can attach rubber band to any grenade
+		if ( (usAttachment == ELASTIC || usAttachment == STRING) && Item[usItem].usItemClass & IC_GRENADE )
+		{
+			return TRUE;
+		}
+		// if there's rubber band attached, allow attaching another grenade
+		if ( (usItem == ELASTIC || usItem == STRING) &&
+			(Item[usAttachment].usItemClass & IC_GRENADE || Item[usAttachment].usBuddyItem != 0 && Item[ Item[usAttachment].usBuddyItem ].usItemClass & IC_GRENADE) )
+		{
+			return TRUE;
+		}
+		// can attach duct tape to any explosives
+		if ( usAttachment == DUCT_TAPE && Item[usItem].usItemClass & IC_BOMB )
+		{
+			return TRUE;
+		}
+		// can attach explosives to duct tape
+		if ( usItem == DUCT_TAPE &&
+			(Item[usAttachment].usItemClass & (IC_GRENADE | IC_BOMB) ||
+			Item[usAttachment].usBuddyItem != 0 && Item[Item[usAttachment].usBuddyItem].usItemClass & (IC_GRENADE | IC_BOMB) ) )
+		{
+			return TRUE;
+		}
+		// can attach tripwire activated item to tripwire
+		if ( Item[usItem].tripwire  && Item[usAttachment].tripwireactivation )
+		{
+			return TRUE;
+		}
+	}
+
 	//Madd: Common Attachment Framework
 	if ( IsAttachmentPointAvailable(usItem, usAttachment))
 	{

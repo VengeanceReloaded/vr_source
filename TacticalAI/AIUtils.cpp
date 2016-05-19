@@ -4591,3 +4591,57 @@ UINT16 AIGunType(SOLDIERTYPE *pSoldier)
 	return 0;
 }
 
+BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
+{
+	UINT32	uiBombIndex;
+	INT32	sCheckGridno;
+	OBJECTTYPE *pObj;
+	
+	//UINT8 ubDistance = 5;
+	//UINT8 ubDirection;
+	//UINT8 ubMovementCost;
+
+	INT16 sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXOffset, sYOffset;
+
+	// determine maximum horizontal limits
+	sMaxLeft  = min( ubDistance, (sGridNo % MAXCOL));
+	sMaxRight = min( ubDistance, MAXCOL - ((sGridNo % MAXCOL) + 1));
+
+	// determine maximum vertical limits
+	sMaxUp   = min( ubDistance, (sGridNo / MAXROW));
+	sMaxDown = min( ubDistance, MAXROW - ((sGridNo / MAXROW) + 1));
+
+	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
+	{
+		for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
+		{
+			sCheckGridno = sGridNo + sXOffset + (MAXCOL * sYOffset);
+			
+			if( TileIsOutOfBounds(sCheckGridno) )
+			{
+				continue;
+			}
+
+			// search all bombs that we can see
+			for (uiBombIndex = 0; uiBombIndex < guiNumWorldBombs; uiBombIndex++)
+			{
+				if (gWorldBombs[ uiBombIndex ].fExists &&
+					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].sGridNo == sCheckGridno &&
+					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].ubLevel == pSoldier->pathing.bLevel )
+				{
+					pObj = &( gWorldItems[ gWorldBombs[uiBombIndex].iItemIndex ].object );
+
+					if( pObj && pObj->exists() && HasAttachmentOfClass( pObj, AC_REMOTEDET | AC_DETONATOR ) &&
+						SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, CALC_FROM_WANTED_DIR ) )
+						//SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, CALC_FROM_ALL_DIRS ) )
+					{
+						return TRUE;
+					}
+				}
+			}
+		}
+	}
+
+	return FALSE;
+}
+
