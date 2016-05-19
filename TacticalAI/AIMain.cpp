@@ -2055,10 +2055,15 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
                 HandleInitialRedAlert(pSoldier->bTeam, TRUE);
 
 				pSoldier->usSoldierFlagMask |= SOLDIER_RAISED_REDALERT;
+
+				// SANDRO - ENEMY TAUNTS
+				PossiblyStartEnemyTaunt( pSoldier, TAUNT_ALERT );
             }
-            
-            // SANDRO - ENEMY TAUNTS
-            PossiblyStartEnemyTaunt( pSoldier, TAUNT_ALERT );
+			else
+			{
+				// sevenfm: if it's not initial RED ALERT and we are informing others
+				PossiblyStartEnemyTaunt( pSoldier, TAUNT_INFORM_ABOUT );
+			}
 
             //ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Debug: AI radios your position!" );
             // DROP THROUGH HERE!
@@ -2079,7 +2084,8 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
             AIDecideRadioAnimation( pSoldier );
 
 			// SANDRO - ENEMY TAUNTS
-            PossiblyStartEnemyTaunt( pSoldier, TAUNT_SUSPICIOUS );
+			if (pSoldier->aiData.bAction == AI_ACTION_YELLOW_ALERT )
+				PossiblyStartEnemyTaunt( pSoldier, TAUNT_SUSPICIOUS );				
 
             break;
 
