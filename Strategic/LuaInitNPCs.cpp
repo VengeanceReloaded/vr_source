@@ -1187,7 +1187,7 @@ void IniFunction(lua_State *L, BOOLEAN bQuests )
 	lua_register(L, "ActionDoorClose", l_Action_door_close);	
 
 	//------Fact and Quest------
-	if ( bQuests = TRUE )
+	if ( bQuests == TRUE )
 	{
 	lua_register(L, "SetFactTrue", l_SetFactTrue);
 	lua_register(L, "SetFactFalse", l_SetFactFalse);
@@ -1195,7 +1195,7 @@ void IniFunction(lua_State *L, BOOLEAN bQuests )
 	
 	lua_register(L, "CheckFact", l_CheckFact);
 	lua_register(L, "CheckQuest", l_gubQuest);
-	if ( bQuests = TRUE )
+	if ( bQuests == TRUE )
 	{
 	lua_register(L, "StartQuest", l_StartQuest);
 	lua_register(L, "EndQuest", l_EndQuest);
@@ -7415,7 +7415,7 @@ static int l_SetGlobalLuaBool (lua_State *L)
 		BOOLEAN set = lua_toboolean(L,2);
 
 		// Flugente: I assume '<= 1000' is meant here...
-		if ( val >= 0 && val <= 1000 ) 
+		if ( val >= 0 && val < 1000 ) 
 			gLuaGlobal[val].fGlobalLuaBool = set;
 	}
 	

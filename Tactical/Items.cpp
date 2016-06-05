@@ -2039,7 +2039,7 @@ UINT16 FindLegalGrenade(UINT16 usItem)
 
 	if(newItem > 0)
 	{
-		for ( UINT16 loop = 1; loop < MAXITEMS+1; loop++ )
+		for ( UINT16 loop = 1; loop < MAXITEMS; loop++ )
 		{
 			if(Item[loop].uiIndex == 0)
 				break;
@@ -2363,7 +2363,8 @@ BOOLEAN ValidItemAttachmentSlot( OBJECTTYPE * pObj, UINT16 usAttachment, BOOLEAN
 	}
 	if ( !fSameItem )
 	{
-		for(int i = 0;i<sizeof(IncompatibleAttachments);i++)
+		//for(int i = 0;i<sizeof(IncompatibleAttachments);i++)
+		for(int i = 0; i < MAXATTACHMENTS; i++)
 		{
 			if ( FindAttachment(pObj, usAttachment, subObject) != 0 && !IsAttachmentClass(usAttachment, (AC_GRENADE|AC_ROCKET|AC_MODPOUCH) ) )
 			{//Search for identical attachments unless we're dealing with rifle grenades
@@ -2547,7 +2548,8 @@ BOOLEAN ValidItemAttachment( OBJECTTYPE * pObj, UINT16 usAttachment, BOOLEAN fAt
 
 	if ( !fSameItem )
 	{
-		for(int i = 0;i<sizeof(IncompatibleAttachments);i++)
+		//for(int i = 0;i<sizeof(IncompatibleAttachments);i++)
+		for(int i = 0; i < MAXATTACHMENTS; i++)
 		{
 			if ( FindAttachment(pObj, usAttachment, subObject) != 0 )
 			{
@@ -13686,14 +13688,16 @@ UINT8 AllowedAimingLevelsNCTH( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 		 }
 	 }
 
+	 INT16 sNormalDistance = DAY_VISION_RANGE;
+
 	 // sevenfm: limit aim levels depending on distance
-	 if( PythSpacesAway(pSoldier->sGridNo, sGridNo) <= DAY_VISION_RANGE  )
+	 if( PythSpacesAway(pSoldier->sGridNo, sGridNo) <= sNormalDistance  )
 	 {
 		 aimLevels = __min(4, aimLevels);
 	 }
 	 else
 	 {
-		 aimLevels = __min( 4 * PythSpacesAway(pSoldier->sGridNo, sGridNo) / DAY_VISION_RANGE, aimLevels );
+		 aimLevels = __min( 4 * PythSpacesAway(pSoldier->sGridNo, sGridNo) / sNormalDistance, aimLevels );
 	 }
 
 	 //CHRISL: Make sure we always limit to the proper number of aim clicks
@@ -15474,7 +15478,7 @@ OBJECTTYPE* GetExternalFeedingObject(SOLDIERTYPE* pSoldier, OBJECTTYPE * pObject
 		// remember the caliber, magsize (TODO: really?) and type of ammo. They all have to fit
 		UINT8 ubCalibre = Weapon[usItem].ubCalibre;
 		UINT16 ubMagSize = Weapon[usItem].ubMagSize;
-		UINT8 ubAmmoType = ubAmmoType = (*pObject)[0]->data.gun.ubGunAmmoType;
+		UINT8 ubAmmoType = (*pObject)[0]->data.gun.ubGunAmmoType;
 
 		// now we now that this gun CAN be belt fed in the current situation. We now have to check if it IS
 		// we will first check for other mercs who might feed us. Afterwards we look into our own inventory
