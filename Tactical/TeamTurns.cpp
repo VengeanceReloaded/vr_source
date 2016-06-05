@@ -962,7 +962,7 @@ void StartInterrupt( void )
 	gTacticalStatus.fInterruptOccurred = TRUE;
 
 	cnt = 0;
-	for ( pTempSoldier = MercPtrs[ cnt ]; cnt <= MAX_NUM_SOLDIERS; cnt++,pTempSoldier++)
+	for ( pTempSoldier = MercPtrs[ cnt ]; cnt < MAX_NUM_SOLDIERS; cnt++,pTempSoldier++)
 	{
 		if ( pTempSoldier->bActive )
 		{
@@ -984,7 +984,7 @@ void StartInterrupt( void )
 
 		// build string for display of who gets interrupt
 		//while( 1 )
-		for( iCounter = 0; iCounter <= MAX_NUM_SOLDIERS; iCounter++ )
+		for( iCounter = 0; iCounter < MAX_NUM_SOLDIERS; iCounter++ )
 		{
 			MercPtrs[ubInterrupter]->aiData.bMoved = FALSE;
 			DebugMsg( TOPIC_JA2INTERRUPT, DBG_LEVEL_3, String("INTERRUPT: popping %d off of the interrupt queue", ubInterrupter ) );
@@ -1143,7 +1143,7 @@ void StartInterrupt( void )
 
 		//while( 1 )
 		UINT16 usCounter;
-		for( usCounter = 0; usCounter <= MAX_NUM_SOLDIERS; usCounter++ )
+		for( usCounter = 0; usCounter < MAX_NUM_SOLDIERS; usCounter++ )
 		{
 			MercPtrs[ubInterrupter]->aiData.bMoved = FALSE;
 
@@ -1174,6 +1174,9 @@ void StartInterrupt( void )
 
 		pTempSoldier = MercPtrs[ cnt ];
 //		pSoldier = MercPtrs[ubFirstInterrupter];
+
+		// sevenfm: check that soldier is not NULL
+		Assert(pTempSoldier);
 
 		//if ( gTacticalStatus.ubCurrentTeam == OUR_TEAM )//hayden
 		// if ( pSoldier->bTeam > OUR_TEAM && pSoldier->bTeam < 6) // cheap disable
@@ -1346,7 +1349,7 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 		pSoldier = MercPtrs[ubInterruptedSoldier];
 
 		cnt = 0;
-		for ( pTempSoldier = MercPtrs[ cnt ]; cnt <= MAX_NUM_SOLDIERS; cnt++,pTempSoldier++)
+		for ( pTempSoldier = MercPtrs[ cnt ]; cnt < MAX_NUM_SOLDIERS; cnt++,pTempSoldier++)
 		{
 			if ( pTempSoldier->bActive )
 			{

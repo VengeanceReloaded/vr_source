@@ -1983,58 +1983,58 @@ INT8 SearchForItems( SOLDIERTYPE * pSoldier, INT8 bReason, UINT16 usItem )
 							{
 								switch( Armour[pItem->ubClassIndex].ubArmourClass )
 								{
-									case ARMOURCLASS_HELMET:
-										if (pSoldier->inv[HELMETPOS].exists() == false)
-										{
-											iTempValue = 200 + EffectiveArmour( pObj );
-										}
-										else if ( EffectiveArmour( &(pSoldier->inv[HELMETPOS]) ) > EffectiveArmour( pObj ) )
-										{
-											iTempValue = 100 * EffectiveArmour( pObj ) / EffectiveArmour( &(pSoldier->inv[HELMETPOS]) );
-										}
-										else
-										{
-											iTempValue = 0;
-										}
+								case ARMOURCLASS_HELMET:
+									if (pSoldier->inv[HELMETPOS].exists() == false || EffectiveArmour( &(pSoldier->inv[HELMETPOS])) == 0)
+									{
+										iTempValue = 200 + EffectiveArmour( pObj );
+									}
+									else if ( EffectiveArmour( &(pSoldier->inv[HELMETPOS]) ) < EffectiveArmour( pObj ) )
+									{
+										iTempValue = 100 * EffectiveArmour( pObj ) / EffectiveArmour( &(pSoldier->inv[HELMETPOS]) );
+									}
+									else
+									{
+										iTempValue = 0;
+									}
+									break;
+								case ARMOURCLASS_VEST:
+									if (pSoldier->inv[VESTPOS].exists() == false || EffectiveArmour( &(pSoldier->inv[VESTPOS])) == 0)
+									{
+										iTempValue = 200 + EffectiveArmour( pObj );
+									}
+									else if ( EffectiveArmour( &(pSoldier->inv[VESTPOS]) ) < EffectiveArmour( pObj ) )
+									{
+										iTempValue = 100 * EffectiveArmour( pObj ) / EffectiveArmour( &(pSoldier->inv[VESTPOS]) );
+									}
+									else
+									{
+										iTempValue = 0;
+									}
+									break;
+								case ARMOURCLASS_LEGGINGS:
+									if (pSoldier->inv[LEGPOS].exists() == false || EffectiveArmour( &(pSoldier->inv[LEGPOS])) == 0)
+									{
+										iTempValue = 200 + EffectiveArmour( pObj );
+									}
+									else if ( EffectiveArmour( &(pSoldier->inv[LEGPOS]) ) < EffectiveArmour( pObj ) )
+									{
+										iTempValue = 100 * EffectiveArmour( pObj ) / EffectiveArmour( &(pSoldier->inv[LEGPOS]) );
+									}
+									else
+									{
+										iTempValue = 0;
+									}
+									break;
+								default:
+									// WANNE: Fix a vanilla bug: When an enemy soldier is looking for items and finds a non-helmet/vest/leggings piece of armour it was incorrectly considered for pickup.
+									// Fixed by Tron (Stracciatella): Revision: 5719
+									// break;
+									// continue; <- silversurfer: bad idea, this causes the game to hang
+									// to make sure that the item isn't considered set iTempValue to zero and get out
+									{
+										iTempValue = 0;
 										break;
-									case ARMOURCLASS_VEST:
-										if (pSoldier->inv[VESTPOS].exists() == false)
-										{
-											iTempValue = 200 + EffectiveArmour( pObj );
-										}
-										else if ( EffectiveArmour( &(pSoldier->inv[HELMETPOS]) ) > EffectiveArmour( pObj ) )
-										{
-											iTempValue = 100 * EffectiveArmour( pObj ) / EffectiveArmour( &(pSoldier->inv[VESTPOS]) );
-										}
-										else
-										{
-											iTempValue = 0;
-										}
-										break;
-									case ARMOURCLASS_LEGGINGS:
-										if (pSoldier->inv[LEGPOS].exists() == false)
-										{
-											iTempValue = 200 + EffectiveArmour( pObj );
-										}
-										else if ( EffectiveArmour( &(pSoldier->inv[HELMETPOS]) ) > EffectiveArmour( pObj ) )
-										{
-											iTempValue = 100 * EffectiveArmour( pObj ) / EffectiveArmour( &(pSoldier->inv[LEGPOS]) );
-										}
-										else
-										{
-											iTempValue = 0;
-										}
-										break;
-									default:
-										// WANNE: Fix a vanilla bug: When an enemy soldier is looking for items and finds a non-helmet/vest/leggings piece of armour it was incorrectly considered for pickup.
-										// Fixed by Tron (Stracciatella): Revision: 5719
-										// break;
-										// continue; <- silversurfer: bad idea, this causes the game to hang
-										// to make sure that the item isn't considered set iTempValue to zero and get out
-										{
-											iTempValue = 0;
-											break;
-										}
+									}
 								}
 							}
 							// Flugente: if the soldier is 'dumb enough', he may pick up 'interesting items'. This can be used to lure him into traps (a certain scene in FMJ comes to mind)

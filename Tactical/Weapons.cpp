@@ -1646,9 +1646,22 @@ void GetTargetWorldPositions( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, FLOAT 
 		pSoldier->ubOppNum = pTargetSoldier->ubID;
 		dTargetX = (FLOAT) CenterX( pTargetSoldier->sGridNo );
 		dTargetY = (FLOAT) CenterY( pTargetSoldier->sGridNo );
+
 		if (pSoldier->bAimShotLocation == AIM_SHOT_RANDOM)
 		{
-			uiRoll = PreRandom( 100 );
+			// sevenfm: always attack torso as this function can be called from different places with different results
+			pSoldier->bAimShotLocation = AIM_SHOT_TORSO;
+
+			UINT32 uiCTGT_Torso = SoldierToSoldierBodyPartChanceToGetThrough( pSoldier, pTargetSoldier, AIM_SHOT_TORSO );
+			UINT32 uiCTGT_Head = SoldierToSoldierBodyPartChanceToGetThrough( pSoldier, pTargetSoldier, AIM_SHOT_HEAD );
+
+			// if head shot has more chance to get through
+			if ( uiCTGT_Torso < 25 && uiCTGT_Head > uiCTGT_Torso * 2 )
+			{
+				pSoldier->bAimShotLocation = AIM_SHOT_HEAD;
+			}
+
+			/*uiRoll = PreRandom( 100 );
 			if (uiRoll < 15)
 			{
 				pSoldier->bAimShotLocation = AIM_SHOT_LEGS;
@@ -1673,7 +1686,7 @@ void GetTargetWorldPositions( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, FLOAT 
 						pSoldier->bAimShotLocation = AIM_SHOT_HEAD;
 					}
 				}
-			}
+			}*/
 
 		}
 

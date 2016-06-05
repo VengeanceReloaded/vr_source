@@ -2761,6 +2761,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 		//SUPPRESSION FIRE
 
+		// sevenfm: set bAimShotLocation
+		pSoldier->bAimShotLocation = AIM_SHOT_RANDOM;
+
 		CheckIfShotPossible(pSoldier,&BestShot,TRUE); //WarmSteel - No longer returns 0 when there IS actually a chance to hit.
 
 		// sevenfm: check that we have a clip to reload
@@ -5535,6 +5538,103 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 						// we're not facing towards him, so turn first!
 						pSoldier->aiData.usActionData = bDirection;
 						return(AI_ACTION_CHANGE_FACING);
+					}
+				}
+
+				// sevenfm: dynamically decide shot location
+				if (BestAttack.ubOpponent != NOBODY)
+				{
+					UINT32	uiRoll;
+					UINT8	ubChanceLegs = 0;
+					UINT8	ubChanceHead = 0;
+					UINT8	ubDistance = PythSpacesAway(pSoldier->sGridNo, MercPtrs[BestAttack.ubOpponent]->sGridNo);
+					UINT8	ubMaxDistance = (DAY_VISION_RANGE / 2);
+					UINT8	ubRealCTH = BestAttack.ubChanceToReallyHit;
+					UINT32	uiCTGT_Legs, uiCTGT_Torso, uiCTGT_Head;					
+
+					uiCTGT_Legs = SoldierToSoldierBodyPartChanceToGetThrough( pSoldier, MercPtrs[BestAttack.ubOpponent], AIM_SHOT_LEGS );
+					uiCTGT_Torso = SoldierToSoldierBodyPartChanceToGetThrough( pSoldier, MercPtrs[BestAttack.ubOpponent], AIM_SHOT_TORSO );
+					uiCTGT_Head = SoldierToSoldierBodyPartChanceToGetThrough( pSoldier, MercPtrs[BestAttack.ubOpponent], AIM_SHOT_HEAD );
+
+					// check legs/head only if target is not prone
+					if( gAnimControl[ MercPtrs[BestAttack.ubOpponent]->usAnimState ].ubEndHeight != ANIM_PRONE )
+					{
+						// check if leg shot is possible
+						if( uiCTGT_Legs > 0 )
+						{
+							// basic chance to shoot legs
+							ubChanceLegs = 15;
+
+							// don't shoot legs at close distance
+							if( ubDistance < ubMaxDistance )
+							{
+								ubChanceLegs = ubChanceLegs * ubDistance / ubMaxDistance;						
+							}
+							// when using NCTH system, shoot legs more often
+							else if( UsingNewCTHSystem() )
+							{
+								ubChanceLegs += 15;
+							}							
+						}
+
+						// check if head shot is possible
+						if( uiCTGT_Head > 0 )
+						{
+							// basic chance to shoot head
+							ubChanceHead = 6;
+
+							// snipers shoot at heads more often
+							if( HAS_SKILL_TRAIT( pSoldier, SNIPER_NT ) )
+							{
+								ubChanceHead += 5 * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT );
+							}
+
+							// if we just hit our enemy, aim at head if have good CTH
+							if( pSoldier->sLastTarget == BestAttack.sTarget && pSoldier->aiData.bLastAttackHit )
+							{
+								ubChanceHead += ubRealCTH / 2;
+							}
+
+#ifdef ENABLE_ZOMBIES
+							if( MercPtrs[BestAttack.ubOpponent]->IsZombie() )
+							{
+								ubChanceHead += 30;
+							}
+#endif
+						
+							// don't waste bullets shooting at heads with low CTH
+							ubChanceHead = ubChanceHead * ubRealCTH / 100;
+						}
+					}					
+
+					// randomly decide hit location
+					uiRoll = PreRandom( 100 );					
+
+					if (uiRoll < ubChanceLegs)
+					{
+						pSoldier->bAimShotLocation = AIM_SHOT_LEGS;
+					}
+					else if (uiRoll > 100 - ubChanceHead)
+					{
+						pSoldier->bAimShotLocation = AIM_SHOT_HEAD;
+					}
+					else
+					{
+						pSoldier->bAimShotLocation = AIM_SHOT_TORSO;
+					}
+
+					// maybe switch to torso
+					if( pSoldier->bAimShotLocation == AIM_SHOT_LEGS &&
+						uiCTGT_Torso > uiCTGT_Legs * 2 )
+					{
+						pSoldier->bAimShotLocation = AIM_SHOT_TORSO;
+					}
+					// maybe switch to head (check that target is not prone)
+					if( pSoldier->bAimShotLocation == AIM_SHOT_TORSO &&
+						uiCTGT_Head > uiCTGT_Torso * 2 &&
+						gAnimControl[ MercPtrs[BestAttack.ubOpponent]->usAnimState ].ubEndHeight != ANIM_PRONE )
+					{
+						pSoldier->bAimShotLocation = AIM_SHOT_HEAD;
 					}
 				}
 			}

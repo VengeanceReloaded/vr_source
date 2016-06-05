@@ -4708,7 +4708,7 @@ BOOLEAN NewOKDestination( SOLDIERTYPE * pCurrSoldier, INT32 sGridNo, BOOLEAN fPe
 	}
 
 	// sevenfm: allow civilians to go off screen
-	if ( !GridNoOnVisibleWorldTile( sGridNo ) && pCurrSoldier->bTeam != CIV_TEAM )
+	if ( !GridNoOnVisibleWorldTile( sGridNo ) && (pCurrSoldier->bTeam != CIV_TEAM || pCurrSoldier->ubProfile == NO_PROFILE) )
 	{
 		// sevenfm: r8104 fix
 		return( FALSE );

@@ -10601,12 +10601,12 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 			if ( pSoldier->ubBodyType == REGFEMALE )
 			{
 				sprintf(BasicPattern, "BATTLESNDS\\f_%s", gBattleSndsData[ ubSoundID ].zName);
-				BOOLEAN UseProfileNumber = FALSE;
+				UseProfileNumber = FALSE;
 			}
 			else
 			{
 				sprintf(BasicPattern, "BATTLESNDS\\m_%s", gBattleSndsData[ ubSoundID ].zName);
-				BOOLEAN UseProfileNumber = FALSE;
+				UseProfileNumber = FALSE;
 			}
 		}
 	}
@@ -12980,7 +12980,7 @@ UINT32 SOLDIERTYPE::SoldierDressWound( SOLDIERTYPE *pVictim, INT16 sKitPts, INT1
 		// find out if we will repair any stats...
 		if ( NumberOfDamagedStats( pVictim ) > 0 ) 
 		{
-			usReturnDamagedStatRate = ((gSkillTraitValues.usDORepairStatsRateBasic + gSkillTraitValues.usDORepairStatsRateOnTop * NUM_SKILL_TRAITS( this, DOCTOR_NT )));
+			usReturnDamagedStatRate = (gSkillTraitValues.usDORepairStatsRateBasic + gSkillTraitValues.usDORepairStatsRateOnTop * NUM_SKILL_TRAITS( this, DOCTOR_NT ));
 			usReturnDamagedStatRate -= max( 0, ((usReturnDamagedStatRate * gSkillTraitValues.ubDORepStPenaltyIfAlsoHealing ) / 100));
 
 			// ... in which case, reduce the points
@@ -15244,7 +15244,7 @@ BOOLEAN		SOLDIERTYPE::LooksLikeASoldier( BOOLEAN fShowResult )
 INT8		SOLDIERTYPE::GetUniformType()
 {
 	// we determine wether we are currently wearing civilian or military clothes
-	for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= NUM_UNIFORMS; ++i )
+	for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i < NUM_UNIFORMS; ++i )
 	{
 		// both parts have to fit. We cant mix different uniforms and get soldier disguise
 		if ( COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].pants) )
@@ -15974,7 +15974,7 @@ void SOLDIERTYPE::Disguise( void )
 					COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].vest) ||
 					COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].pants) )
 				{
-					BOOLEAN fFound = TRUE;
+					fFound = TRUE;
 					break;
 				}
 			}
@@ -16026,7 +16026,7 @@ BOOLEAN SOLDIERTYPE::CanInspect( SOLDIERTYPE *pOpponent )
 	}
 
 	// only covert mercs can be inspected
-	if( !pOpponent->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) )
+	if( !(pOpponent->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER)) )
 	{
 		return FALSE;
 	}
@@ -18984,8 +18984,9 @@ void SoldierCollapse( SOLDIERTYPE *pSoldier )
 
 	if (pSoldier->flags.uiStatusFlags & SOLDIER_ENEMY)
 	{
-
-		if ( !(gTacticalStatus.bPanicTriggerIsAlarm) && (gTacticalStatus.ubTheChosenOne == pSoldier->ubID) )
+		// sevenfm: bPanicTriggerIsAlarm is always not NULL pointer
+		//if ( !(gTacticalStatus.bPanicTriggerIsAlarm) && (gTacticalStatus.ubTheChosenOne == pSoldier->ubID) )
+		if ( gTacticalStatus.ubTheChosenOne == pSoldier->ubID )
 		{
 			// replace this guy as the chosen one!
 			gTacticalStatus.ubTheChosenOne = NOBODY;
@@ -21533,7 +21534,7 @@ BOOLEAN ResolvePendingInterrupt( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType )
 		UINT16 uCnt = 0, uiReactionTime;
 		INT16 iInjuryPenalty;
 
-		for ( uCnt = 0; uCnt <= MAX_NUM_SOLDIERS; uCnt++ )
+		for ( uCnt = 0; uCnt < MAX_NUM_SOLDIERS; uCnt++ )
 		{
 			// first find all guys who can see us
 			pInterrupter = MercPtrs[ uCnt ];
@@ -21852,7 +21853,7 @@ BOOLEAN GetRadioOperatorSignal(UINT8 usOwner, INT32* psTargetGridNo)
 		if ( pSoldier && pSoldier->CanUseRadio(FALSE) && pSoldier->bActive && pSoldier->bInSector && ( pSoldier->sSectorX == gWorldSectorX ) && ( pSoldier->sSectorY == gWorldSectorY ) && ( pSoldier->bSectorZ == gbWorldSectorZ) )
 		{
 			*psTargetGridNo = pSoldier->sGridNo;
-			pSoldier->bSide;
+			//pSoldier->bSide;
 			return TRUE;
 		}
 	}
@@ -21871,7 +21872,7 @@ BOOLEAN GetRadioOperatorSignal(UINT8 usOwner, INT32* psTargetGridNo)
 			if ( pSoldier && pSoldier->CanUseRadio(FALSE) && pSoldier->bActive && pSoldier->bInSector && ( pSoldier->sSectorX == gWorldSectorX ) && ( pSoldier->sSectorY == gWorldSectorY ) && ( pSoldier->bSectorZ == gbWorldSectorZ) )
 			{
 				*psTargetGridNo = pSoldier->sGridNo;
-				pSoldier->bSide;
+				//pSoldier->bSide;
 				return TRUE;
 			}
 		}

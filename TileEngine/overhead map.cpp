@@ -1168,7 +1168,7 @@ void RenderOverheadMap( INT16 sStartPointX_M, INT16 sStartPointY_M, INT16 sStart
 							pTile = &( gSmTileDB[ pNode->usIndex ] );
 
 							sX = sTempPosX_S;
-							sY = sTempPosY_S - sHeight;
+							//sY = sTempPosY_S - sHeight;
 							//dnl ch82 081213
 							sY = sTempPosY_S;
 							if(gTileDatabase[pNode->usIndex].uiFlags & IGNORE_WORLD_HEIGHT)
@@ -1398,7 +1398,7 @@ void RenderOverheadOverlays()
 	//SOLDIER OVERLAY
 	if( gfTacticalPlacementGUIActive )
 	{ //loop through only the player soldiers
-		end = gTacticalStatus.Team[ OUR_TEAM ].bLastID;
+		end = gTacticalStatus.Team[ OUR_TEAM ].bLastID + 1;
 	}
 	else
 	{ //loop through all soldiers.
