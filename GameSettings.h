@@ -1457,6 +1457,7 @@ typedef struct
 	BOOLEAN fManualUnjam;
 	BOOLEAN fLessJams;
 	BOOLEAN fEnemyJams;
+	UINT8	ubChangePaletteLevel;
 
 } GAME_EXTERNAL_OPTIONS;
 

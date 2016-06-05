@@ -2197,7 +2197,7 @@ BOOLEAN ValidAttachment( UINT16 usAttachment, UINT16 usItem, UINT8 * pubAPCost )
 			return TRUE;
 		}
 		// can attach tripwire activated item to tripwire
-		if ( Item[usItem].tripwire  && Item[usAttachment].tripwireactivation )
+		if ( Item[usItem].tripwire  && Item[usAttachment].tripwireactivation && !Item[usAttachment].tripwire )
 		{
 			return TRUE;
 		}

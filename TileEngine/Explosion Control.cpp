@@ -5695,5 +5695,5 @@ BOOLEAN FindBinderAttachment (OBJECTTYPE * pObj)
 BOOLEAN CheckExplosiveTypeAsDetonator(UINT16 ubType)
 {
 	// attached explosives are allowed only for EXPLOSV_NORMAL, EXPLOSV_STUN and EXPLOSV_FLASHBANG types
-	return ( ubType == EXPLOSV_NORMAL || ubType == EXPLOSV_STUN || ubType == EXPLOSV_FLASHBANG );
+	return ( ubType == EXPLOSV_NORMAL );
 }

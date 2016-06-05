@@ -4591,7 +4591,7 @@ UINT16 AIGunType(SOLDIERTYPE *pSoldier)
 	return 0;
 }
 
-BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
+BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, BOOLEAN fCheckSight )
 {
 	UINT32	uiBombIndex;
 	INT32	sCheckGridno;
@@ -4627,13 +4627,15 @@ BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
 			{
 				if (gWorldBombs[ uiBombIndex ].fExists &&
 					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].sGridNo == sCheckGridno &&
-					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].ubLevel == pSoldier->pathing.bLevel )
+					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].ubLevel == pSoldier->pathing.bLevel &&
+					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].bVisible == VISIBLE &&
+					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].usFlags & WORLD_ITEM_ARMED_BOMB )
 				{
 					pObj = &( gWorldItems[ gWorldBombs[uiBombIndex].iItemIndex ].object );
 
 					if( pObj && pObj->exists() && HasAttachmentOfClass( pObj, AC_REMOTEDET | AC_DETONATOR ) &&
-						SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, CALC_FROM_WANTED_DIR ) )
-						//SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, CALC_FROM_ALL_DIRS ) )
+						SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, fCheckSight ? CALC_FROM_WANTED_DIR : CALC_FROM_ALL_DIRS) )
+						//(!fCheckSight || SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, CALC_FROM_WANTED_DIR )) )
 					{
 						return TRUE;
 					}
@@ -4645,3 +4647,35 @@ BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
 	return FALSE;
 }
 
+BOOLEAN TeamKnowsSoldier( INT8 bTeam, UINT8 ubID )
+{
+	SOLDIERTYPE *pFriend;
+	UINT16 cnt;
+
+	if( bTeam >= MAXTEAMS || ubID == NOBODY )
+	{
+		return FALSE;
+	}
+
+	if( gbPublicOpplist[bTeam][ubID] != NOT_HEARD_OR_SEEN )
+	{
+		return TRUE;
+	}
+
+	for ( cnt = gTacticalStatus.Team[ bTeam ].bFirstID; cnt <= gTacticalStatus.Team[ bTeam ].bLastID; cnt++ )
+	{
+		pFriend = MercPtrs[ cnt ];
+
+		if( pFriend->bActive &&
+			pFriend->bInSector &&
+			pFriend->stats.bLife >= OKLIFE &&
+			!pFriend->bCollapsed &&
+			!pFriend->bBreathCollapsed &&
+			pFriend->aiData.bOppList[ ubID ] != NOT_HEARD_OR_SEEN )
+		{
+			return TRUE;
+		}
+	}	
+
+	return FALSE;
+}

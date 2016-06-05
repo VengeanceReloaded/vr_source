@@ -2259,7 +2259,7 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fManualUnjam				= iniReader.ReadBoolean("Extended Options", "MANUAL_UNJAM", true, false);
 	gGameExternalOptions.fLessJams					= iniReader.ReadBoolean("Extended Options", "LESS_JAMS", true, false);
 	gGameExternalOptions.fEnemyJams					= iniReader.ReadBoolean("Extended Options", "ENEMY_JAMS", true, false);
-
+	gGameExternalOptions.ubChangePaletteLevel		= iniReader.ReadInteger("Extended Options", "CHANGE_PALETTE_LEVEL", 50, 10, 100);
 }
 
 

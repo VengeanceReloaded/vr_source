@@ -3832,7 +3832,7 @@ INT8	GetBodyTypePaletteSubstitutionCode( SOLDIERTYPE *pSoldier, UINT8 ubBodyType
 			// Check for camo...
 
 			//stealth has priority
-			if ( GetWornStealth(pSoldier) >= 50 )
+			if ( GetWornStealth(pSoldier) >= gGameExternalOptions.ubChangePaletteLevel )
 			{
 				strcpy( zColFilename, "ANIMS\\stealth.col" );
 				return( 1 );
@@ -3845,7 +3845,7 @@ INT8	GetBodyTypePaletteSubstitutionCode( SOLDIERTYPE *pSoldier, UINT8 ubBodyType
 			int total = urban + jungle + desert + snow;
 
 			// display camo depending on which is higher
-			if ( total >= 50 )
+			if ( total >= gGameExternalOptions.ubChangePaletteLevel )
 			{
 				if ( jungle >= urban && jungle >= desert && jungle >= snow )
 					strcpy( zColFilename, "ANIMS\\camo.COL" );

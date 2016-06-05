@@ -1178,9 +1178,10 @@ void StartInterrupt( void )
 		//if ( gTacticalStatus.ubCurrentTeam == OUR_TEAM )//hayden
 		// if ( pSoldier->bTeam > OUR_TEAM && pSoldier->bTeam < 6) // cheap disable
 		// SANDRO - we don't use the "hidden interrupt" feature with IIS
-		if (!is_networked && gTacticalStatus.ubCurrentTeam == OUR_TEAM && !gGameOptions.fImprovedInterruptSystem
+		/*if (!is_networked && gTacticalStatus.ubCurrentTeam == OUR_TEAM && !gGameOptions.fImprovedInterruptSystem
 			&& MercPtrs[ LATEST_INTERRUPT_GUY ]->aiData.bOppList[pTempSoldier->ubID] != SEEN_CURRENTLY 
-			&& MercPtrs[ LATEST_INTERRUPT_GUY ]->aiData.bOppList[pTempSoldier->ubID] != SEEN_THIS_TURN ) 
+			&& MercPtrs[ LATEST_INTERRUPT_GUY ]->aiData.bOppList[pTempSoldier->ubID] != SEEN_THIS_TURN ) */
+		if ( !is_networked && pSoldier->bTeam != OUR_TEAM && !gGameOptions.fImprovedInterruptSystem )
 		{
 			// we're being interrupted by the computer!
 			// we delay displaying any interrupt message until the computer
@@ -1199,11 +1200,16 @@ void StartInterrupt( void )
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Interrupt ( could be hidden )" );
 			#endif
 		}
-		// SANDRO - show correct top message
-		if (pTempSoldier->bTeam == MILITIA_TEAM )
-			AddTopMessage( MILITIA_INTERRUPT_MESSAGE, Message[STR_INTERRUPT] );
-		else
-			AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, Message[STR_INTERRUPT] );
+
+		// sevenfm: don't show hidden interrupt
+		if( !gfHiddenInterrupt )
+		{
+			// SANDRO - show correct top message
+			if (pTempSoldier->bTeam == MILITIA_TEAM )
+				AddTopMessage( MILITIA_INTERRUPT_MESSAGE, Message[STR_INTERRUPT] );
+			else
+				AddTopMessage( COMPUTER_INTERRUPT_MESSAGE, Message[STR_INTERRUPT] );
+		}
 
 		if (pTempSoldier != NULL)
 		{

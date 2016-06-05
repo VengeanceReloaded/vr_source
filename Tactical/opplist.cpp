@@ -6558,6 +6558,18 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 					pSoldier->aiData.ubNoiseVolume = MAX_MISC_NOISE_DURATION;
 				}
 
+				// sevenfm: increment watched location when soldier hears enemy
+				if( (ubNoiseType == NOISE_GUNFIRE || ubNoiseType == NOISE_MOVEMENT || ubNoiseType == NOISE_SCREAM || ubNoiseType == NOISE_VOICE) &&
+					!TileIsOutOfBounds(sGridNo) &&
+					!pSoldier->aiData.bNeutral &&
+					!MercPtrs[ubNoiseMaker]->aiData.bNeutral &&
+					SoldierToVirtualSoldierLineOfSightTest( pSoldier, sGridNo, bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) )
+				{
+					//	ScreenMsg(FONT_MCOLOR_LTBLUE, MSG_INTERFACE, L"[%d] %s hears noise at %d from [%d] %s", pSoldier->ubID, pSoldier->GetName(), sGridNo, ubNoiseMaker, MercPtrs[ubNoiseMaker]->GetName() );
+					//	BeginMultiPurposeLocator(sGridNo, bLevel, FALSE);
+					IncrementWatchedLoc(pSoldier->ubID, sGridNo, bLevel);
+				}
+
 				SetNewSituation( pSoldier );	// force a fresh AI decision to be made
 			}
 
@@ -7756,7 +7768,7 @@ void SetWatchedLocAsUsed( UINT8 ubID, INT32 sGridNo, INT8 bLevel )
 	}
 }
 
-BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam )
+BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam, UINT8 ubWatchID )
 {
 	// look to see if there is anyone near the watched loc who is not on this team
 	UINT8	ubID;
@@ -7773,7 +7785,14 @@ BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam )
 				continue;
 			}
 			ubID = WhoIsThere2( sTempGridNo, bLevel );
-			if ( ubID != NOBODY && MercPtrs[ ubID ]->bTeam != bTeam )
+			// sevenfm: check personal/public knowledge
+			if( ubID != NOBODY &&
+				MercPtrs[ ubID ]->bTeam != bTeam &&
+				MercPtrs[ ubID ]->stats.bLife >= OKLIFE &&
+				ubWatchID != NOBODY &&
+				(gbPublicOpplist[bTeam][ubID] != NOT_HEARD_OR_SEEN ||
+				MercPtrs[ ubWatchID ]->aiData.bOppList[ ubID ] != NOT_HEARD_OR_SEEN) )
+				//TeamKnowsSoldier(bTeam, ubID) )
 			{
 				return( FALSE );
 			}
@@ -7792,7 +7811,8 @@ void DecayWatchedLocs( INT8 bTeam )
 		// for each watched location
 		for ( cnt2 = 0; cnt2 < NUM_WATCHED_LOCS; cnt2++ )
 		{			
-			if (!TileIsOutOfBounds(gsWatchedLoc[ cnt ][ cnt2 ]) && WatchedLocLocationIsEmpty( gsWatchedLoc[ cnt ][ cnt2 ], gbWatchedLocLevel[ cnt ][ cnt2 ], bTeam ) )
+			if( !TileIsOutOfBounds(gsWatchedLoc[ cnt ][ cnt2 ]) &&
+				WatchedLocLocationIsEmpty( gsWatchedLoc[ cnt ][ cnt2 ], gbWatchedLocLevel[ cnt ][ cnt2 ], bTeam, cnt ) )
 			{
 				// if the reset flag is still set, then we should decay this point
 				if (gfWatchedLocReset[ cnt ][ cnt2 ])

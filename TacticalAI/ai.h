@@ -273,7 +273,7 @@ BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier );
 BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax = SEEN_3_TURNS_AGO );
 BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax = HEARD_3_TURNS_AGO );
 BOOLEAN NightLight( void );
-BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
+BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, BOOLEAN fCheckSight );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
@@ -285,6 +285,7 @@ UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier );
 
 UINT8 CountTeamCombat( SOLDIERTYPE *pSoldier );
 UINT8 CountTeamSeeSoldier( INT8 bTeam, SOLDIERTYPE *pSoldier );
+BOOLEAN TeamKnowsSoldier( INT8 bTeam, UINT8 ubID );
 
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 
