@@ -3149,30 +3149,40 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 							( ( ( gsCurInterfacePanel == SM_PANEL	) && ( ButtonList[ iSMPanelButtons[ SM_DONE_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) ||
 							( ( gsCurInterfacePanel == TEAM_PANEL ) && ( ButtonList[ iTEAMPanelButtons[ TEAM_DONE_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) ) )
 						{
-							if( fAlt )
+							if( CHEATER_CHEAT_LEVEL( ) && fAlt )
 							{
 								INT32 cnt;
 								SOLDIERTYPE *pSoldier;
 
-								if ( CHEATER_CHEAT_LEVEL( ) )
+								for ( pSoldier = MercPtrs[ gbPlayerNum ], cnt = 0; cnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; cnt++,pSoldier++)
 								{
-									for ( pSoldier = MercPtrs[ gbPlayerNum ], cnt = 0; cnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; cnt++,pSoldier++)
+									if ( pSoldier->bActive && pSoldier->stats.bLife > 0 )
 									{
-										if ( pSoldier->bActive && pSoldier->stats.bLife > 0 )
-										{
-											// Get APs back...
-											pSoldier->CalcNewActionPoints( );
+										// Get APs back...
+										pSoldier->CalcNewActionPoints( );
 
-											fInterfacePanelDirty = DIRTYLEVEL2;
-										}
+										fInterfacePanelDirty = DIRTYLEVEL2;
 									}
 								}
 							} 
 							else
 							{
 								//End turn only if in combat and it is the player's turn
-								if ( fCtrl )
-									gTacticalStatus.ubDisablePlayerInterrupts = TRUE;								
+
+								if ( fCtrl && fAlt)
+								{
+									gTacticalStatus.ubDisablePlayerInterrupts = TRUE;
+									ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"Player team will skip interrupts");
+								}
+								else if( fCtrl )
+								{
+									// disable interrupts for this merc
+									if( gusSelectedSoldier != NOBODY )
+									{
+										MercPtrs[ gusSelectedSoldier ]->aiData.bPassedLastInterrupt = TRUE;
+										ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s will skip interrupts", MercPtrs[ gusSelectedSoldier ]->GetName());
+									}
+								}
 
 								*puiNewEvent = I_ENDTURN;
 							}

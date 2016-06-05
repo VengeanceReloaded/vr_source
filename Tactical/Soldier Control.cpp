@@ -7847,6 +7847,9 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		}
 	}
 
+	// sevenfm: always reset bPassedLastInterrupt at the start of new turn
+	this->aiData.bPassedLastInterrupt = FALSE;
+
 	// HEADROCK HAM 4: Store this soldier's X/Y cell coordinates into his SOLDIERTYPE data.
 	INT16 sStartPosX = 0;
 	INT16 sStartPosY = 0;

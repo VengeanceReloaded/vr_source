@@ -1269,7 +1269,7 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 	}
 
 	// Loop through all mercs and see if any passed on this interrupt
-	cnt = gTacticalStatus.Team[ gTacticalStatus.ubCurrentTeam ].bFirstID;
+	/*cnt = gTacticalStatus.Team[ gTacticalStatus.ubCurrentTeam ].bFirstID;
 	for ( pTempSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ gTacticalStatus.ubCurrentTeam ].bLastID; cnt++,pTempSoldier++)
 	{
 		if ( pTempSoldier->bActive && pTempSoldier->bInSector && !pTempSoldier->aiData.bMoved && (pTempSoldier->bActionPoints == pTempSoldier->aiData.bIntStartAPs))
@@ -1280,7 +1280,7 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 				pTempSoldier->aiData.bPassedLastInterrupt = TRUE;
 			}
 		}
-	}
+	}*/
 
 	if ( !EveryoneInInterruptListOnSameTeam() )
 	{
@@ -1744,10 +1744,15 @@ BOOLEAN StandardInterruptConditionsMet( SOLDIERTYPE * pSoldier, UINT8 ubOpponent
 
 	// a soldier already engaged in a life & death battle is too busy doing his
 	// best to survive to worry about "getting the jump" on additional threats
-	if (pSoldier->aiData.bUnderFire)
+	// sevenfm: check suppression shock instead
+	if( ShockLevelPercent(pSoldier) > 50 )
 	{
 		return(FALSE);
 	}
+	/*if (pSoldier->aiData.bUnderFire)
+	{
+		return(FALSE);
+	}*/
 
 	if (pSoldier->bCollapsed)
 	{
@@ -1889,16 +1894,11 @@ BOOLEAN StandardInterruptConditionsMet( SOLDIERTYPE * pSoldier, UINT8 ubOpponent
 	}
 
 	// soldier passed on the chance to react during previous interrupt this turn
-	if (pSoldier->aiData.bPassedLastInterrupt)
-	{
-#ifdef RECORDNET
-		fprintf(NetDebugFile,"\tStandardInterruptConditionsMet: FAILING because PassedLastInterrupt %d(%s)\n",
-			pSoldier->guynum,ExtMen[pSoldier->guynum].name);
-#endif
-
-//		return(FALSE);
+	// sevenfm: enabled this for use with Ctrl+D feature
+	if ( !is_networked && !gGameOptions.fImprovedInterruptSystem && pSoldier->aiData.bPassedLastInterrupt)
+	{		
+		return(FALSE);
 	}
-
 
 #ifdef RECORDINTERRUPT
 	// this usually starts a new series of logs, so that's why the blank line
