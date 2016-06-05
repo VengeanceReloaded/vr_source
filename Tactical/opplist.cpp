@@ -1638,8 +1638,9 @@ void InitOpplistForDoorOpening( void )
 
 void AllTeamsLookForAll(UINT8 ubAllowInterrupts)
 {
- UINT32 uiLoop;
- SOLDIERTYPE *pSoldier;
+	UINT32 uiLoop;
+	SOLDIERTYPE *pSoldier;
+	BOOLEAN fDoorOpen = FALSE;
 
 	if( ( gTacticalStatus.uiFlags & LOADING_SAVED_GAME ) )
 	{
@@ -1654,6 +1655,7 @@ void AllTeamsLookForAll(UINT8 ubAllowInterrupts)
 			// turn off flag now, and skip init of sight arrays
 			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, "HBSPIR: turning door flag off" );
 			gfDelayResolvingBestSightingDueToDoor = FALSE;
+			fDoorOpen = TRUE;
 		}
 		else
 		{
@@ -1667,7 +1669,11 @@ void AllTeamsLookForAll(UINT8 ubAllowInterrupts)
 
 		if ( pSoldier != NULL && pSoldier->stats.bLife >= OKLIFE )
 		{
-			HandleSight(pSoldier,SIGHT_LOOK);	// no radio or interrupts yet
+			// sevenfm: allow interrupts on sight when opening doors
+			if( fDoorOpen && ubAllowInterrupts && !gGameOptions.fImprovedInterruptSystem && !is_networked )
+				HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+			else
+				HandleSight(pSoldier, SIGHT_LOOK);	// no radio or interrupts yet
 		}
 	}
 
@@ -1698,52 +1704,8 @@ void AllTeamsLookForAll(UINT8 ubAllowInterrupts)
 		gubBestToMakeSightingSize = BEST_SIGHTING_ARRAY_SIZE_INCOMBAT;
 	}
 
- /*
-
- // do this here as well as in overhead so the looks/interrupts are combined!
-
- // if a door was recently opened/closed (doesn't matter if we could see it)
- // this is done here so we can first handle everyone looking through the
- // door, and deal with the resulting opplist changes, interrupts, etc.
- if ( !TileIsOutOfBounds(Status.doorCreakedGridno))
-	{
-	// opening/closing a door makes a bit of noise (constant volume)
-	MakeNoise(Status.doorCreakedGuynum,Status.doorCreakedGridno,TTypeList[Grid[Status.doorCreakedGridno].land],DOOR_NOISE_VOLUME,NOISE_CREAKING,EXPECTED_NOSEND);
-
-	Status.doorCreakedGridno = NOWHERE;
-	Status.doorCreakedGuynum = NOBODY;
-	}
-
-
- // all soldiers now radio their findings (NO interrupts permitted this early!)
- // NEW: our entire team must radio first, so that they radio about EVERYBODY
- // rather radioing about individuals one a a time (repeats see 1 enemy quote)
- for (cnt = Status.team[Net.pnum].guystart,ptr = MercPtrs[cnt]; cnt < Status.team[Net.pnum].guyend; cnt++,ptr++)
-	{
-	if (ptr->active && ptr->in_sector && (ptr->life >= OKLIFE))
-	 HandleSight(ptr,SIGHT_RADIO);		// looking was done above
-	}
-
- for (cnt = 0,ptr = Menptr; cnt < MAXMERCS; cnt++,ptr++)
-	{
-	if (ptr->active && ptr->in_sector && (ptr->life >= OKLIFE) && !PTR_OURTEAM)
-	 HandleSight(ptr,SIGHT_RADIO);		// looking was done above
-	}
-
-
- // if interrupts were allowed
- if (allowInterrupts)
-	// resolve interrupts against the selected character (others disallowed)
-	HandleSight(MercPtrs[Status.allLookCharacter],SIGHT_INTERRUPT);
-
-
- // revert to normal interrupt operation
- InterruptOnlyGuynum = NOBODY;
- InterruptsAllowed = TRUE;
- */
-
- // reset interrupt only guynum which may have been used
- gubInterruptProvoker = NOBODY;
+	// reset interrupt only guynum which may have been used
+	gubInterruptProvoker = NOBODY;
 }
 
 

@@ -4701,12 +4701,18 @@ BOOLEAN NewOKDestination( SOLDIERTYPE * pCurrSoldier, INT32 sGridNo, BOOLEAN fPe
     INT16        sDesiredLevel;
     BOOLEAN             fOKCheckStruct;
 
-    if ( !GridNoOnVisibleWorldTile( sGridNo ) )
-    {
-		// sevenfm: reverted r8104 fix
-        //return( FALSE );
-		return( TRUE );
-    }
+	// sevenfm: safety check
+	if( TileIsOutOfBounds( sGridNo ) )
+	{
+		return FALSE;
+	}
+
+	// sevenfm: allow civilians to go off screen
+	if ( !GridNoOnVisibleWorldTile( sGridNo ) && pCurrSoldier->bTeam != CIV_TEAM )
+	{
+		// sevenfm: r8104 fix
+		return( FALSE );
+	}
 
     if (fPeopleToo && ( bPerson = WhoIsThere2( sGridNo, bLevel ) ) != NOBODY )
     {
@@ -4825,12 +4831,18 @@ BOOLEAN NewOKDestination( SOLDIERTYPE * pCurrSoldier, INT32 sGridNo, BOOLEAN fPe
 }
 
 // NB if making changes don't forget to update NewOKDestination
-INT16 NewOKDestinationAndDirection( SOLDIERTYPE * pCurrSoldier, INT32 sGridNo, INT8 bDirection, BOOLEAN fPeopleToo, INT8 bLevel )
+BOOLEAN NewOKDestinationAndDirection( SOLDIERTYPE * pCurrSoldier, INT32 sGridNo, INT8 bDirection, BOOLEAN fPeopleToo, INT8 bLevel )
 {
     UINT8                   bPerson;
     STRUCTURE *     pStructure;
     INT16        sDesiredLevel;
     BOOLEAN             fOKCheckStruct;
+
+	// sevenfm: safety check
+	if( TileIsOutOfBounds(sGridNo) )
+	{
+		return FALSE;
+	}
 
     if (fPeopleToo && ( bPerson = WhoIsThere2( sGridNo, bLevel ) ) != NOBODY )
     {
@@ -5058,11 +5070,8 @@ INT32 FindAdjacentGridEx( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 *pubDirect
 
     INT32 sFourGrids[4], sDistance=0;
     static const UINT8 sDirs[4] = { NORTH, EAST, SOUTH, WEST };
-    //INT32 cnt;
-    //INT32 sClosest=NOWHERE, sSpot, sOkTest;
-    INT32 sClosest = MAX_MAP_POS, sSpot; //Lalien: changed to ensure compability with new definition of NOWHERE
-    //INT32 sCloseGridNo=NOWHERE;
-    INT32 sCloseGridNo = MAX_MAP_POS; //Lalien: changed to ensure compability with new definition of NOWHERE
+    INT32 sClosest = MAX_MAP_POS, sSpot;	//Lalien: changed to ensure compability with new definition of NOWHERE
+    INT32 sCloseGridNo = MAX_MAP_POS;		//Lalien: changed to ensure compability with new definition of NOWHERE
     UINT32                                       uiMercFlags;
     UINT16                                       usSoldierIndex;
     UINT8                                           ubDir;
@@ -5257,7 +5266,7 @@ INT32 FindAdjacentGridEx( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 *pubDirect
         // don't store path, just measure it
         ubDir = (UINT8)GetDirectionToGridNoFromGridNo( sSpot, sGridNo );
 
-        if ( ( NewOKDestinationAndDirection( pSoldier, sSpot, ubDir, TRUE, pSoldier->pathing.bLevel ) > 0 ) &&
+        if ( ( NewOKDestinationAndDirection( pSoldier, sSpot, ubDir, TRUE, pSoldier->pathing.bLevel ) ) &&
                 ( ( sDistance = PlotPath( pSoldier, sSpot,  NO_COPYROUTE, NO_PLOT, TEMPORARY, (INT16)pSoldier->usUIMovementMode, NOT_STEALTH, FORWARD, pSoldier->bActionPoints ) ) > 0 ) )
         {
             if ( sDistance < sClosest )
@@ -5486,7 +5495,7 @@ INT32 FindNextToAdjacentGridEx( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 *pub
         ubDir = (UINT8)GetDirectionToGridNoFromGridNo( sSpot, sGridNo );
 
         // don't store path, just measure it
-        if ( ( NewOKDestinationAndDirection( pSoldier, sSpot, ubDir, TRUE , pSoldier->pathing.bLevel ) > 0 ) &&
+        if ( ( NewOKDestinationAndDirection( pSoldier, sSpot, ubDir, TRUE , pSoldier->pathing.bLevel ) ) &&
                 ( ( sDistance = PlotPath( pSoldier, sSpot,  NO_COPYROUTE, NO_PLOT, TEMPORARY, (INT16)pSoldier->usUIMovementMode, NOT_STEALTH, FORWARD, pSoldier->bActionPoints ) ) > 0 ) )
         {
             if ( sDistance < sClosest )

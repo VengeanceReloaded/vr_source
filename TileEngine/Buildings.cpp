@@ -433,7 +433,8 @@ BUILDING * GenerateBuilding( INT32 sDesiredSpot )
 			gpWorldLevelData[ sCurrGridNo ].ubExtFlags[0] |= MAPELEMENT_EXT_ROOFCODE_VISITED;
 
 			// sevenfm: why mark tile as building when it's not in a building?
-			//gubBuildingInfo[ sCurrGridNo ] = ubBuildingID;
+			if( InARoom(sCurrGridNo, NULL) )
+				gubBuildingInfo[ sCurrGridNo ] = ubBuildingID;
 
 			// consider this location as possible climb gridno
 			// there must be a regular wall adjacent to this for us to consider it a
