@@ -796,10 +796,10 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 	}
 
 
-	bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+	bInWater = DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 
-	// check if standing in tear gas without a gas mask on, or in smoke
-	bInGas = InGasOrSmoke( pSoldier, pSoldier->sGridNo );
+	// check if standing in tear gas without a gas mask on
+	bInGas = InGas( pSoldier, pSoldier->sGridNo );
 
 	// if real-time, and not in the way, do nothing 90% of the time (for GUARDS!)
 	// unless in water (could've started there), then we better swim to shore!
@@ -885,12 +885,15 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 	}
 
 	// sevenfm: only if not raised alert yet
-	// && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition
-	if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && pSoldier->bTeam == ENEMY_TEAM )
-	{		
-		// raise alert if found fresh corpse
-		//if ( !(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
-		if( pSoldier->aiData.bAlertStatus < STATUS_RED )
+	if( !fCivilian &&
+		pSoldier->bTeam == ENEMY_TEAM &&		
+		SoldierAI(pSoldier) &&
+		gGameExternalOptions.bNewTacticalAIBehavior )
+	{
+		// raise alert if found fresh corpse		
+		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) &&
+			!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&
+			pSoldier->aiData.bAlertStatus < STATUS_RED )
 		{
 			INT32				cnt;
 			ROTTING_CORPSE *	pCorpse;
@@ -916,9 +919,8 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 						}
 					}
 
-					// sevenfm: test vision
+					// sevenfm: test vision (use only half of day vision range)
 					if( fCorpseOFAlly &&
-						//PythSpacesAway( pSoldier->sGridNo, pCorpse->def.sGridNo ) <= DAY_VISION_RANGE / 2 &&
 						SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
 					{
 						ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
@@ -930,20 +932,64 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 			}
 		}
 
+		// sevenfm: raise alert if found bomb
+		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) &&
+			!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&
+			pSoldier->aiData.bAlertStatus < STATUS_RED &&
+			FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4, TRUE))
+		{
+			ScreenMsg( FONT_ORANGE, MSG_INTERFACE, L"%s found bomb!", pSoldier->GetName() );
+			return( AI_ACTION_RED_ALERT );
+		}
+
 		////////////////////////////////////////////////////////////////////////////
 		// IF YOU SEE CAPTURED FRIENDS, FREE THEM!
 		////////////////////////////////////////////////////////////////////////////
 
 		// Flugente: if we see one of our buddies in handcuffs, its a clear sign of enemy activity!
-		//if ( gGameExternalOptions.fAllowPrisonerSystem && pSoldier->bTeam == ENEMY_TEAM && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition )
 		if ( gGameExternalOptions.fAllowPrisonerSystem )
 		{
-			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW, TRUE );
+			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, VISION_RANGE, ENEMY_TEAM, SOLDIER_POW, TRUE );
 
-			if ( ubPerson != NOBODY )
+			if ( ubPerson != NOBODY)
 			{	
 				// raise alarm!
 				return( AI_ACTION_RED_ALERT );
+			}
+		}
+
+		// sevenfm: officer can come to inspect suspicious soldier
+		if ( HAS_SKILL_TRAIT(pSoldier, SQUADLEADER_NT) )
+		{
+			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, VISION_RANGE, OUR_TEAM, SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_CIV, TRUE );
+
+			if( ubPerson != NOBODY &&
+				pSoldier->pathing.bLevel == MercPtrs[ubPerson]->pathing.bLevel &&
+				pSoldier->CanInspect( MercPtrs[ubPerson] ) &&
+				Random(100) < MercPtrs[ubPerson]->SuspicionPercent() )
+			{
+				UINT8 ubFriendsNearby = CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4);
+				UINT8 ubSoldierDifficulty = SoldierDifficultyLevel(pSoldier);				
+
+				// come to investigate
+				pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, MercPtrs[ubPerson]->sGridNo, 0, AI_ACTION_SEEK_NOISE, 0);
+
+				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+				{
+					// sevenfm: raise alert first if this soldier is not the person who raised alert last
+					// chance to raise alert 30%
+					if( pSoldier->bActionPoints >= APBPConstants[AP_RADIO] &&
+						gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1 &&
+						pSoldier->ubID != gTacticalStatus.Team[pSoldier->bTeam].ubLastMercToRadio &&
+						ubFriendsNearby < 1 + ubSoldierDifficulty &&
+						Random(100) < 10 * ubSoldierDifficulty )
+					{
+						// call friends
+						return( AI_ACTION_YELLOW_ALERT );
+					}
+
+					return(AI_ACTION_SEEK_NOISE);
+				}
 			}
 		}
 	}
@@ -999,7 +1045,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionGreen: get out of water and gas"));
 
-	if (bInWater || bInGas)
+	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE))
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 		
@@ -1472,8 +1518,13 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		return( ZombieDecideActionYellow(pSoldier) );
 #endif
 
+	INT8  bInWater,bInGas;
+
 	// sevenfm: disable stealth mode
 	pSoldier->bStealthMode = FALSE;
+
+	bInWater = DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+	bInGas = InGas( pSoldier, pSoldier->sGridNo );
 
 	if (fCivilian || (gGameExternalOptions.fAllNamedNpcsDecideAction && pSoldier->ubProfile != NO_PROFILE))
 	{
@@ -1532,71 +1583,69 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 	sNoiseGridNo = MostImportantNoiseHeard(pSoldier,&iNoiseValue, &fClimb, &fReachable);
 	//NumMessage("iNoiseValue = ",iNoiseValue);
 	
-	if (TileIsOutOfBounds(sNoiseGridNo))
-	{
-		// then we have no business being under YELLOW status any more!
-#ifdef RECORDNET
-		fprintf(NetDebugFile,"\nDecideActionYellow: ERROR - No important noise known by guynum %d\n\n",pSoldier->ubID);
-#endif
-
-#ifdef BETAVERSION
-		NumMessage("DecideActionYellow: ERROR - No important noise known by guynum ",pSoldier->ubID);
-#endif
-
-		return(AI_ACTION_NONE);
-	}
-
-	if( gGameExternalOptions.bNewTacticalAIBehavior )
+	if( !fCivilian &&
+		pSoldier->bTeam == ENEMY_TEAM &&
+		SoldierAI(pSoldier) &&
+		gGameExternalOptions.bNewTacticalAIBehavior )
 	{
 		////////////////////////////////////////////////////////////////////////////
 		// RAISE ALERT IF SEE FRESH CORPSE
 		////////////////////////////////////////////////////////////////////////////
 
-		// sevenfm: only if not raised alert yet
+
 		// && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition
+		//if ( !(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
 
-		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && pSoldier->bTeam == ENEMY_TEAM )
-		{		
-			// raise alert if found fresh corpse
-			//if ( !(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
-			if( pSoldier->aiData.bAlertStatus < STATUS_RED )
+		// raise alert if found fresh corpse
+		// sevenfm: only if not raised alert yet
+		if( pSoldier->aiData.bAlertStatus < STATUS_RED )
+		{
+			INT32				cnt;
+			ROTTING_CORPSE *	pCorpse;
+
+			for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
 			{
-				INT32				cnt;
-				ROTTING_CORPSE *	pCorpse;
+				pCorpse = &(gRottingCorpse[ cnt ] );
 
-				for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
+				if( pCorpse &&
+					pCorpse->fActivated &&
+					pCorpse->def.ubAIWarningValue > 0 &&
+					!TileIsOutOfBounds(pCorpse->def.sGridNo) )
 				{
-					pCorpse = &(gRottingCorpse[ cnt ] );
-
-					if( pCorpse &&
-						pCorpse->fActivated &&
-						pCorpse->def.ubAIWarningValue > 0 &&
-						!TileIsOutOfBounds(pCorpse->def.sGridNo) )
+					// test ally
+					BOOLEAN fCorpseOFAlly = FALSE;
+					// check whether corpse was one of soldier's allies
+					for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
 					{
-						// test ally
-						BOOLEAN fCorpseOFAlly = FALSE;
-						// check whether corpse was one of soldier's allies
-						for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
+						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
 						{
-							if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
-							{
-								fCorpseOFAlly = TRUE;
-								break;
-							}
+							fCorpseOFAlly = TRUE;
+							break;
 						}
+					}
 
-						// sevenfm: test vision
-						if( fCorpseOFAlly &&
-							SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
-						{
-							ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
-							//pCorpse->def.ubAIWarningValue=0;
-							gRottingCorpse[ cnt ].def.ubAIWarningValue=0;
-							return( AI_ACTION_RED_ALERT );
-						}
+					// sevenfm: test vision (use only half of day vision range)
+					if( fCorpseOFAlly &&
+						//PythSpacesAway( pSoldier->sGridNo, pCorpse->def.sGridNo ) <= DAY_VISION_RANGE / 2 &&
+						SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
+					{
+						ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
+						//pCorpse->def.ubAIWarningValue=0;
+						gRottingCorpse[ cnt ].def.ubAIWarningValue=0;
+						return( AI_ACTION_RED_ALERT );
 					}
 				}
 			}
+		}
+
+		// sevenfm: raise alert if found bomb
+		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) &&
+			!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&
+			pSoldier->aiData.bAlertStatus < STATUS_RED &&
+			FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4, TRUE))
+		{
+			ScreenMsg( FONT_ORANGE, MSG_INTERFACE, L"%s found bomb!", pSoldier->GetName() );
+			return( AI_ACTION_RED_ALERT );
 		}
 
 		////////////////////////////////////////////////////////////////////////////
@@ -1604,13 +1653,21 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		////////////////////////////////////////////////////////////////////////////
 
 		// Flugente: if we see one of our buddies in handcuffs, its a clear sign of enemy activity!
-		// Flugente: if we see one of our buddies captured, it is a clear sign of enemy activity!
-		if ( gGameExternalOptions.fAllowPrisonerSystem && pSoldier->bTeam == ENEMY_TEAM )
+		if ( gGameExternalOptions.fAllowPrisonerSystem )
 		{
-			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, 20, ENEMY_TEAM, SOLDIER_POW, TRUE );
+			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, VISION_RANGE, ENEMY_TEAM, SOLDIER_POW, TRUE );
 
 			if ( ubPerson != NOBODY )
 			{
+				// sevenfm: raise alert first
+				if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) &&
+					!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&
+					pSoldier->aiData.bAlertStatus < STATUS_RED )
+				{
+					// raise alarm!
+					return( AI_ACTION_RED_ALERT );
+				}
+
 				// if we are close, we can release this guy
 				// possible only if not handcuffed (binders can be opened, handcuffs not)
 				if ( !HasItemFlag( (&(MercPtrs[ubPerson]->inv[HANDPOS]))->usItem, HANDCUFFS ) )
@@ -1627,26 +1684,86 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 							return( AI_ACTION_CHANGE_FACING );
 						}
-
+						//ScreenMsg( FONT_LTGREEN, MSG_INTERFACE, L"[%d] found handcuffed %d! Free prisoner!", pSoldier->ubID, ubPerson);
 						return(AI_ACTION_FREE_PRISONER);
 					}
 					else
 					{
 						pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, MercPtrs[ubPerson]->sGridNo, 20, AI_ACTION_SEEK_FRIEND, 0);
-				
+
 						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 						{
 							return(AI_ACTION_SEEK_FRIEND);
 						}
 					}
 				}
-				else if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) && !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition )
+			}
+		}
+
+		// sevenfm: officer can come to inspect suspicious soldier
+		if ( HAS_SKILL_TRAIT(pSoldier, SQUADLEADER_NT) )
+		{
+			UINT8 ubPerson = GetClosestFlaggedSoldierID( pSoldier, VISION_RANGE, OUR_TEAM, SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_CIV, TRUE );
+
+			if( ubPerson != NOBODY &&
+				pSoldier->pathing.bLevel == MercPtrs[ubPerson]->pathing.bLevel &&
+				pSoldier->CanInspect( MercPtrs[ubPerson] ) &&
+				Random(100) < MercPtrs[ubPerson]->SuspicionPercent() )
+			{
+				UINT8 ubFriendsNearby = CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4);
+				UINT8 ubSoldierDifficulty = SoldierDifficultyLevel(pSoldier);				
+
+				// come to investigate
+				pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, MercPtrs[ubPerson]->sGridNo, 0, AI_ACTION_SEEK_NOISE, 0);
+
+				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 				{
-					// raise alarm!
-					return( AI_ACTION_RED_ALERT );
+					// sevenfm: raise alert first if this soldier is not the person who raised alert last
+					// chance to raise alert 30%
+					if( pSoldier->bActionPoints >= APBPConstants[AP_RADIO] &&
+						gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1 &&
+						pSoldier->ubID != gTacticalStatus.Team[pSoldier->bTeam].ubLastMercToRadio &&
+						ubFriendsNearby < 1 + ubSoldierDifficulty &&
+						Random(100) < 10 * ubSoldierDifficulty )
+					{
+						// call friends
+						return( AI_ACTION_YELLOW_ALERT );
+					}
+
+					return(AI_ACTION_SEEK_NOISE);
 				}
 			}
 		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+	// WHEN LEFT IN WATER OR GAS, GO TO NEAREST REACHABLE SPOT OF UNGASSED LAND
+	////////////////////////////////////////////////////////////////////////////
+
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionYellow: get out of water and gas"));
+
+	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE))
+	{
+		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
+
+		if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+		{
+			return(AI_ACTION_LEAVE_WATER_GAS);
+		}
+	}
+
+	if (TileIsOutOfBounds(sNoiseGridNo))
+	{
+		// then we have no business being under YELLOW status any more!
+#ifdef RECORDNET
+		fprintf(NetDebugFile,"\nDecideActionYellow: ERROR - No important noise known by guynum %d\n\n",pSoldier->ubID);
+#endif
+
+#ifdef BETAVERSION
+		NumMessage("DecideActionYellow: ERROR - No important noise known by guynum ",pSoldier->ubID);
+#endif
+
+		return(AI_ACTION_NONE);
 	}
 
 	////////////////////////////////////////////////////////////////////////////
@@ -2423,7 +2540,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 
 	// check if standing in tear gas without a gas mask on
-	bInGas = InGasOrSmoke( pSoldier, pSoldier->sGridNo );
+	bInGas = InGas( pSoldier, pSoldier->sGridNo );
 
 	////////////////////////////////////////////////////////////////////////////
 	// WHEN LEFT IN GAS, WEAR GAS MASK IF AVAILABLE AND NOT WORN
@@ -2447,17 +2564,12 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	// WHEN IN GAS, GO TO NEAREST REACHABLE SPOT OF UNGASSED LAND
 	////////////////////////////////////////////////////////////////////////////
 
-	if (bInGas && ubCanMove)
+	if ( ubCanMove && (bInGas || bInDeepWater || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE)) )
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
-		
+
 		if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 		{
-#ifdef DEBUGDECISIONS
-			sprintf(tempstr,"%s - SEEKING NEAREST UNGASSED LAND at grid %d",pSoldier->name,pSoldier->aiData.usActionData);
-			AIPopMessage(tempstr);
-#endif
-
 			return(AI_ACTION_LEAVE_WATER_GAS);
 		}
 	}
@@ -2536,7 +2648,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		gTacticalStatus.bBoxingState == NOT_BOXING &&
 		!TANK( pSoldier ) &&
 		!AM_A_ROBOT( pSoldier ) &&
-		!InWaterGasOrSmoke(pSoldier, pSoldier->sGridNo) &&
+		!InWaterOrGas(pSoldier, pSoldier->sGridNo) &&
 		FindAIUsableObjClass( pSoldier, IC_GUN ) == ITEM_NOT_FOUND)
 	{
 		// look around for a gun...
@@ -2898,7 +3010,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					else
 					{
 						pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, MercPtrs[ubPerson]->sGridNo, 20, AI_ACTION_SEEK_FRIEND, 0);
-				
+
 						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 						{
 							return(AI_ACTION_SEEK_FRIEND);
@@ -3645,7 +3757,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 						}
 
 						// possibly go prone, check that we'll have line of sight to standing enemy at watched location
-						/*if (gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH &&
+						if (gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH &&
 							IsValidStance( pSoldier, ANIM_PRONE ) &&
 							pSoldier->bActionPoints >= GetAPsProne(pSoldier, TRUE) &&
 							!InARoom(pSoldier->sGridNo, NULL) &&
@@ -3655,7 +3767,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 							pSoldier->aiData.usActionData = ANIM_PRONE;
 
 							return(AI_ACTION_CHANGE_STANCE);
-						}*/
+						}
 
 						// raise weapon if not raised
 						if( PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) != INVALID_ANIMATION &&
@@ -4383,7 +4495,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 
 		// check if standing in tear gas without a gas mask on
-		bInGas = InGasOrSmoke( pSoldier, pSoldier->sGridNo );
+		bInGas = InGas( pSoldier, pSoldier->sGridNo );
 
 		// calculate our morale
 		pSoldier->aiData.bAIMorale = CalcMorale(pSoldier);
@@ -4446,7 +4558,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	////////////////////////////////////////////////////////////////////////////
 
 	// if soldier in water/gas has enough APs left to move at least 1 square
-	if ( ( bInDeepWater || bInGas ) && ubCanMove)
+	if ( ( bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE)) && ubCanMove)
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 		
@@ -4477,13 +4589,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 		// GIVE UP ON LIFE!  MERCS MUST HAVE JUST CORNERED A HELPLESS ENEMY IN A
 		// GAS FILLED ROOM (OR IN WATER MORE THAN 25 TILES FROM NEAREST LAND...)
-		if ( bInGas && gGameOptions.ubDifficultyLevel == DIF_LEVEL_INSANE )
-		{
-			pSoldier->bBreath = pSoldier->bBreathMax;
-			pSoldier->aiData.bAIMorale = MORALE_FEARLESS;  // Can't move, can't get away, go nuts instead...
-		}
-		else
-			pSoldier->aiData.bAIMorale = MORALE_HOPELESS;
+		pSoldier->aiData.bAIMorale = MORALE_HOPELESS;
 	}
 
 	// offer surrender?
@@ -4778,38 +4884,9 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 					if (BestShot.ubPossible)
 					{
-						// if the selected opponent is not a threat (unconscious & !serviced)
-						// (usually, this means all the guys we see are unconscious, but, on
-						//  rare occasions, we may not be able to shoot a healthy guy, too)
-						if ((Menptr[BestShot.ubOpponent].stats.bLife < OKLIFE) &&
-							!Menptr[BestShot.ubOpponent].bService)
-						{
-							// if our attitude is NOT aggressive
-							if ( pSoldier->aiData.bAttitude != AGGRESSIVE || BestShot.ubChanceToReallyHit < 60 )
-							{
-								// get the location of the closest CONSCIOUS reachable opponent
-								sClosestDisturbance = ClosestReachableDisturbance(pSoldier,FALSE, &fClimb);
-
-								// if we found one								
-								if (!TileIsOutOfBounds(sClosestDisturbance))
-								{
-									// don't bother checking GRENADES/KNIVES, he can't have conscious targets
-#ifdef RECORDNET
-									fprintf(NetDebugFile,"\tDecideActionBlack: all visible opponents unconscious, switching to RED AI...\n");
-#endif
-									// then make decision as if at alert status RED, but make sure
-									// we don't try to SEEK OPPONENT the unconscious guy!
-									return(DecideActionRed(pSoldier,FALSE));
-								}
-								// else kill the guy, he could be the last opponent alive in this sector
-							}
-							// else aggressive guys will ALWAYS finish off unconscious opponents
-						}
-
 						// now we KNOW FOR SURE that we will do something (shoot, at least)
 						NPCDoesAct(pSoldier);
 						DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"NPC decided to shoot (or something)");
-
 					}
 				}
 

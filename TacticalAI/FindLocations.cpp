@@ -989,6 +989,12 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 				continue;
 			}
 
+			// sevenfm: avoid tiles near bombs
+			if( FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE / 8, FALSE))
+			{
+				continue;
+			}
+
 			iPathCost = gubAIPathCosts[AI_PATHCOST_RADIUS + sXOffset][AI_PATHCOST_RADIUS + sYOffset];
 
 			// OK, this place shows potential.	How useful is it as cover?
@@ -1536,6 +1542,24 @@ INT32 FindNearestUngassedLand(SOLDIERTYPE *pSoldier)
 
 				// ignore blacklisted spot
 				if ( sGridNo == pSoldier->pathing.sBlackList )
+				{
+					continue;
+				}
+
+				// sevenfm: check for gas
+				if( InGas(pSoldier, sGridNo) )
+				{
+					continue;
+				}
+
+				// check for deep water
+				if( DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel) )
+				{
+					continue;
+				}
+
+				// check for bombs nearby
+				if( FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE/8, FALSE) )
 				{
 					continue;
 				}

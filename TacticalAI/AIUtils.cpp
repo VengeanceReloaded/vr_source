@@ -1068,6 +1068,29 @@ INT32 RandDestWithinRange(SOLDIERTYPE *pSoldier)
 				continue;
 			}
 
+			// sevenfm: avoid staying at doors
+			if( pSoldier->aiData.bAlertStatus < STATUS_RED &&
+				pSoldier->pathing.bLevel == 0 &&
+				CheckDoorNearGridno(sRandDest) )
+			{
+				sRandDest = NOWHERE;
+				continue;
+			}
+
+			// sevenfm: avoid going too close to known bombs
+			if( FindBombNearby(pSoldier, sRandDest, DAY_VISION_RANGE/8, FALSE ) )
+			{
+				sRandDest = NOWHERE;
+				continue;
+			}
+
+			// sevenfm: don't go too far from closest not SEEKENEMY friend if alert is not raised yet
+			if( pSoldier->aiData.bAlertStatus < STATUS_RED &&
+				DistanceToClosestNotSeekEnemyFriend(pSoldier, sRandDest) > DAY_VISION_RANGE )
+			{
+				continue;
+			}
+
 			if (!LegalNPCDestination(pSoldier,sRandDest,ENSURE_PATH,NOWATER,0))
 			{
 				sRandDest = NOWHERE;
@@ -1153,15 +1176,6 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
 		{
 			continue;			// next merc
-		}
-
-		// this is possible if get here from BLACK AI in one of those rare
-		// instances when we couldn't get a meaningful shot off at a guy in sight
-		if ((*pbPersOL == SEEN_CURRENTLY) && (pOpp->stats.bLife >= OKLIFE))
-		{
-			// don't allow this to return any valid values, this guy remains a
-			// serious threat and the last thing we want to do is approach him!
-			return(NOWHERE);
 		}
 
 		// if personal knowledge is more up to date or at least equal
@@ -4606,15 +4620,48 @@ UINT16 AIGunType(SOLDIERTYPE *pSoldier)
 	return 0;
 }
 
+BOOLEAN CheckDoorAtGridno( UINT32 usGridNo )
+{
+	STRUCTURE *pStructure;
+
+	pStructure = FindStructure( usGridNo, STRUCTURE_ANYDOOR );
+	if ( pStructure != NULL)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN CheckDoorNearGridno( UINT32 usGridNo )
+{
+	UINT8	ubMovementCost;
+	INT32	sTempGridNo;
+	UINT8	ubDirection;
+
+	if( CheckDoorAtGridno(usGridNo) )
+	{
+		return TRUE;
+	}
+
+	for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+	{
+		sTempGridNo = NewGridNo( usGridNo, DirectionInc( ubDirection ) );
+		ubMovementCost = gubWorldMovementCosts[ sTempGridNo ][ ubDirection ][ 0 ];
+		if ( IS_TRAVELCOST_DOOR( ubMovementCost ) )
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, BOOLEAN fCheckSight )
 {
 	UINT32	uiBombIndex;
 	INT32	sCheckGridno;
 	OBJECTTYPE *pObj;
-	
-	//UINT8 ubDistance = 5;
-	//UINT8 ubDirection;
-	//UINT8 ubMovementCost;
 
 	INT16 sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXOffset, sYOffset;
 
@@ -4631,7 +4678,7 @@ BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, 
 		for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
 		{
 			sCheckGridno = sGridNo + sXOffset + (MAXCOL * sYOffset);
-			
+
 			if( TileIsOutOfBounds(sCheckGridno) )
 			{
 				continue;
@@ -4644,7 +4691,9 @@ BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, 
 					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].sGridNo == sCheckGridno &&
 					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].ubLevel == pSoldier->pathing.bLevel &&
 					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].bVisible == VISIBLE &&
-					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].usFlags & WORLD_ITEM_ARMED_BOMB )
+					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].usFlags & WORLD_ITEM_ARMED_BOMB ) //&&
+					//(gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].soldierID == -1 ||
+					//MercPtrs[ gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].soldierID ]->bSide != pSoldier->bSide ))
 				{
 					pObj = &( gWorldItems[ gWorldBombs[uiBombIndex].iItemIndex ].object );
 
@@ -4693,6 +4742,38 @@ BOOLEAN TeamKnowsSoldier( INT8 bTeam, UINT8 ubID )
 	}	
 
 	return FALSE;
+}
+
+INT16 DistanceToClosestNotSeekEnemyFriend( SOLDIERTYPE *pSoldier, INT32 sGridNo )
+{
+	CHECKF(pSoldier);
+
+	INT16 sDistance = 0;
+	SOLDIERTYPE * pFriend;
+
+	// Run through each friendly.
+	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	{
+		pFriend = MercPtrs[ iCounter ];		
+
+		// Make sure that character is alive, not too shocked, and conscious
+		if( pFriend->bActive &&
+			pFriend->bInSector &&
+			pFriend != pSoldier &&
+			pFriend->aiData.bOrders != SEEKENEMY &&
+			pFriend->stats.bLife >= OKLIFE &&
+			!pFriend->bCollapsed &&
+			!pFriend->bBreathCollapsed &&
+			!(pFriend->usSoldierFlagMask & SOLDIER_POW) )
+		{
+			if(	sDistance == 0 || PythSpacesAway(sGridNo, pFriend->sGridNo) < sDistance )
+			{
+				sDistance = PythSpacesAway(sGridNo, pFriend->sGridNo);
+			}
+		}
+	}
+
+	return sDistance;
 }
 
 BOOLEAN LastTargetCollapsed( SOLDIERTYPE *pSoldier )
@@ -4760,3 +4841,30 @@ BOOLEAN LastTargetSuppressed( SOLDIERTYPE *pSoldier )
 
 	return FALSE;
 }
+
+// use soldier AI - merc bodytype, no robots/tanks/boxers/etc
+BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+
+	if(!IS_MERC_BODY_TYPE( pSoldier ))
+		return FALSE;
+
+	if(pSoldier->aiData.bNeutral)
+		return FALSE;
+
+	if(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER )
+		return FALSE;
+
+	if(TANK( pSoldier ))
+		return FALSE;
+
+	if(pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE)
+		return FALSE;
+
+	if(AM_A_ROBOT(pSoldier))
+		return FALSE;
+
+	return TRUE;
+}
+

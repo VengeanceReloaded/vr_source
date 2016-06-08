@@ -527,6 +527,12 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 #ifdef DEBUGDECISIONS
 		AIPopMessage("destination Grid # itself not valid, looking around it");
 #endif
+		// sevenfm: if we are already one tile away from target, stop
+		if( PythSpacesAway(pSoldier->sGridNo, sDesGrid) < 2 )
+		{
+			return(NOWHERE);
+		}
+
 		if ( CREATURE_OR_BLOODCAT( pSoldier ) )
 		{
 			// we tried to get close, failed; abort!
