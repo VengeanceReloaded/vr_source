@@ -1938,7 +1938,6 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	SetFontBackground( FONT_MCOLOR_BLACK );
 		
 	// sevenfm: show suspicion counter
-	//if ( pSoldier->usSoldierFlagMask & SOLDIER_NEW_VEST && pSoldier->usSoldierFlagMask & SOLDIER_NEW_PANTS )
 	if( pSoldier->flags.uiStatusFlags & SOLDIER_PC &&
 		pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) )
 	{

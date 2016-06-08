@@ -361,8 +361,8 @@ enum
 
 #define SOLDIER_DAMAGED_VEST				0x00000010	//16		// Soldier's vest is damaged (and thus can't be taken off)
 #define SOLDIER_COVERT_NPC_SPECIAL			0x00000020	//32		// Special flag for NPCs when recruited (used for covert stuff)
-#define SOLDIER_NEW_VEST   					0x00000040	//64		// Soldier is wearing new vest. if having both vest and pants, he can disguise
-#define SOLDIER_NEW_PANTS					0x00000080	//128		// Soldier is wearing new pants
+//#define SOLDIER_NEW_VEST   					0x00000040	//64		// Soldier is wearing new vest. if having both vest and pants, he can disguise
+//#define SOLDIER_NEW_PANTS					0x00000080	//128		// Soldier is wearing new pants
 
 #define SOLDIER_DAMAGED_PANTS				0x00000100	//256		// Soldier's vest is damaged (and thus can't be taken off)
 #define SOLDIER_HEADSHOT					0x00000200	//512		// last hit received was a headshot (attack to the head, so knifes/punches also work)
@@ -400,7 +400,7 @@ enum
 #define SOLDIER_PREVENT_MISBEHAVIOUR_OFF	0x00000002	//2				// isn't allowed to prevent misbehaviour
 // ----------------------------------------------------------------
 
-#define SOLDIER_COVERT_NOREDISGUISE			0x00001000					// this soldier does not want to be redisguised
+#define SOLDIER_COVERT_AUTO_DISGUISE		0x00001000					// auto disguise soldier
 // -------- added by Flugente: background property flags --------
 // easier than adding 32 differently named variables. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
 // a merc's background info reveals data about his previous life, like former regiments. These backgrounds add small abilities/disabilities. Nothing substantial, just small bits do
@@ -1737,9 +1737,6 @@ public:
 
 	// sevenfm: auto disguise if have correct clothes
 	void		Disguise( void );
-
-	// lose disguise or take off any clothes item and switch back to original clothes
-	void		Strip();
 
 	// check wether our disguise is any good
 	void		SpySelfTest();

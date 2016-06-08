@@ -6552,9 +6552,17 @@ void SoldierGotHitGunFire( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sD
 
 	// Flugente: if hit in legs or torso, blood will be on our uniform - parts of the clothes cannot be worn anymore
 	if ( ubHitLocation == AIM_SHOT_TORSO  )
+	{
 		pSoldier->usSoldierFlagMask |= SOLDIER_DAMAGED_VEST;
+		// loose any covert flags
+		pSoldier->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL);
+	}
 	else if ( ubHitLocation == AIM_SHOT_LEGS )
+	{
 		pSoldier->usSoldierFlagMask |= SOLDIER_DAMAGED_PANTS;
+		// loose any covert flags
+		pSoldier->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL);
+	}
 
 	// IF HERE AND GUY IS DEAD, RETURN!
 	if ( pSoldier->flags.uiStatusFlags & SOLDIER_DEAD )
@@ -6604,9 +6612,17 @@ void SoldierGotHitExplosion( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 
 {
 	// Flugente: if hit in legs or torso, blood will be on our uniform - parts of the clothes cannot be worn anymore
 	if ( ubHitLocation == AIM_SHOT_TORSO  )
+	{
 		pSoldier->usSoldierFlagMask |= SOLDIER_DAMAGED_VEST;
+		// loose any covert flags
+		pSoldier->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL);
+	}
 	else if ( ubHitLocation == AIM_SHOT_LEGS )
+	{
 		pSoldier->usSoldierFlagMask |= SOLDIER_DAMAGED_PANTS;
+		// loose any covert flags
+		pSoldier->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL);
+	}
 
 	INT32 sNewGridNo;
 
@@ -6787,16 +6803,23 @@ void SoldierGotHitBlade( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 sDam
 {
 	// Flugente: if hit in legs or torso, blood will be on our uniform - parts of the clothes cannot be worn anymore
 	if ( ubHitLocation == AIM_SHOT_TORSO  )
+	{
 		pSoldier->usSoldierFlagMask |= SOLDIER_DAMAGED_VEST;
+		// loose any covert flags
+		pSoldier->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL);
+	}
 	else if ( ubHitLocation == AIM_SHOT_LEGS )
+	{
 		pSoldier->usSoldierFlagMask |= SOLDIER_DAMAGED_PANTS;
+		// loose any covert flags
+		pSoldier->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL);
+	}
 
 	// IF HERE AND GUY IS DEAD, RETURN!
 	if ( pSoldier->flags.uiStatusFlags & SOLDIER_DEAD )
 	{
 		return;
 	}
-
 
 	// Based on stance, select generic hit animation
 	switch ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
@@ -15864,8 +15887,6 @@ BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
 		{
 			pSoldier->LooseDisguise();
 
-			//pSoldier->Strip();
-
 			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNCOVERED], this->GetName(), pSoldier->GetName()  );
 
 			// we have uncovered a spy! Get alerted, if we aren't already
@@ -15920,6 +15941,12 @@ void SOLDIERTYPE::Disguise( void )
 		return;
 	}
 
+	// sevenfm: check that we still wear correct clothes
+	if ( this->usSoldierFlagMask & (SOLDIER_DAMAGED_VEST | SOLDIER_DAMAGED_PANTS) )
+	{
+		return;
+	}
+
 	// check that soldier is active and in sector
 	if ( !this->bActive || !this->bInSector )
 	{
@@ -15939,15 +15966,11 @@ void SOLDIERTYPE::Disguise( void )
 	}
 
 	// check that we have correct clothes
-	if ( this->usSoldierFlagMask & SOLDIER_NEW_VEST && this->usSoldierFlagMask & SOLDIER_NEW_PANTS )
+	// sevenfm: don't need new clothes to disguise, only check that they are not damaged
+	if ( !(this->usSoldierFlagMask & (SOLDIER_DAMAGED_VEST | SOLDIER_DAMAGED_PANTS)) )
 	{
 		// first, remove the covert flags, and then reapply the correct ones, in case we switch between civilian and military clothes
 		this->usSoldierFlagMask &= ~(SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER);
-
-		// if we apply the disguise property, remove the marker that we don't want this to happen
-		// the idea is that if we explicitly remove a disguise, but not our new colours, we don't want to regain the disguise
-		// we can then lose this marker again if we explicitly put on a disguise
-		this->usSoldierFlagMask2 &= ~SOLDIER_COVERT_NOREDISGUISE;
 
 		// we now have to determine whether we are currently wearing civilian or military clothes
 		for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
@@ -15973,26 +15996,26 @@ void SOLDIERTYPE::Disguise( void )
 			{
 				this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
 			}
-			// don't use enemy military colors for civilian clothes
-			BOOLEAN fFound = FALSE;
-			for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
+			else
 			{
-				if( COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].vest) ||
-					COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].pants) ||
-					COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].vest) ||
-					COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].pants) )
+				// don't use enemy military colors for civilian clothes
+				BOOLEAN fFound = FALSE;
+				for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
 				{
-					fFound = TRUE;
-					break;
+					if( COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].vest) ||
+						COMPARE_PALETTEREP_ID(this->VestPal, gUniformColors[ i ].pants) ||
+						COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].vest) ||
+						COMPARE_PALETTEREP_ID(this->PantsPal, gUniformColors[ i ].pants) )
+					{
+						fFound = TRUE;
+						break;
+					}
+				}
+				if( !fFound )
+				{
+					this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
 				}
 			}
-			if( !fFound )
-			{
-				this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
-			}
-
-			//if ( this->bTeam == OUR_TEAM )
-			//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_DISGUISED_AS_CIVILIAN], this->GetName() );
 		}
 
 		// reevaluate sight - otherwise we could hide by changing clothes in plain sight!
@@ -16054,94 +16077,6 @@ BOOLEAN SOLDIERTYPE::CanInspect( SOLDIERTYPE *pOpponent )
 	}
 
 	return FALSE;
-}
-
-// undisguise or take off any clothes item and switch back to original clothes
-// no - this function does not do what you think it does. Leave Fox alone, you perv.
-void	SOLDIERTYPE::Strip()
-{
-	// if covert, loose that ability
-	if ( this->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
-	{
-		LooseDisguise();
-		this->usSoldierFlagMask2 |= SOLDIER_COVERT_NOREDISGUISE;
-	}
-	// if already not covert, take off clothes
-	else if ( this->usSoldierFlagMask & (SOLDIER_NEW_VEST|SOLDIER_NEW_PANTS) )
-	{
-		// if we have undamaged clothes, spawn them, the graphci will be removed anyway
-		if ( (this->usSoldierFlagMask & SOLDIER_NEW_VEST) && !(this->usSoldierFlagMask & SOLDIER_DAMAGED_VEST) )
-		{
-			UINT16 vestitem = 0;
-			if ( GetFirstClothesItemWithSpecificData(&vestitem, this->VestPal, "blank")  )
-			{
-				CreateItem( vestitem, 100, &gTempObject );
-				if ( !AutoPlaceObject( this, &gTempObject, FALSE ) )
-					AddItemToPool( this->sGridNo, &gTempObject, 1, 0, 0, -1 );
-			}
-			else
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CLOTHES_ITEM] );
-		}
-
-		if ( (this->usSoldierFlagMask & SOLDIER_NEW_PANTS) && !(this->usSoldierFlagMask & SOLDIER_DAMAGED_PANTS) )
-		{
-			UINT16 pantsitem = 0;
-			if ( GetFirstClothesItemWithSpecificData(&pantsitem, "blank", this->PantsPal)  )
-			{
-				CreateItem( pantsitem, 100, &gTempObject );
-				if ( !AutoPlaceObject( this, &gTempObject, FALSE ) )
-					AddItemToPool( this->sGridNo, &gTempObject, 1, 0, 0, -1 );
-			}
-			else
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NO_CLOTHES_ITEM] );
-		}
-
-		// loose any clothes flags
-		this->usSoldierFlagMask &= ~(SOLDIER_NEW_VEST|SOLDIER_NEW_PANTS);
-
-		// show our true colours
-		UINT16 usPaletteAnimSurface = LoadSoldierAnimationSurface( this, this->usAnimState );
-
-		if ( usPaletteAnimSurface != INVALID_ANIMATION_SURFACE )
-		{
-			if ( this->bTeam == OUR_TEAM )
-			{
-				UINT8				ubProfileIndex;
-				MERCPROFILESTRUCT * pProfile;
-
-				ubProfileIndex = this->ubProfile;
-				pProfile = &(gMercProfiles[ubProfileIndex]);
-
-				SET_PALETTEREP_ID ( this->VestPal,		pProfile->VEST );
-				SET_PALETTEREP_ID ( this->PantsPal,		pProfile->PANTS );
-			}
-			else if ( this->usSoldierFlagMask & SOLDIER_ASSASSIN )
-			{
-				SET_PALETTEREP_ID( this->VestPal, gUniformColors[ UNIFORM_ENEMY_ELITE ].vest );
-				SET_PALETTEREP_ID( this->PantsPal, gUniformColors[ UNIFORM_ENEMY_ELITE ].pants );
-			}
-
-			// Use palette from HVOBJECT, then use substitution for pants, etc
-			memcpy( this->p8BPPPalette, gAnimSurfaceDatabase[ usPaletteAnimSurface ].hVideoObject->pPaletteEntry, sizeof( this->p8BPPPalette ) * 256 );
-
-			SetPaletteReplacement( this->p8BPPPalette, this->HeadPal );
-			SetPaletteReplacement( this->p8BPPPalette, this->VestPal );
-			SetPaletteReplacement( this->p8BPPPalette, this->PantsPal );
-			SetPaletteReplacement( this->p8BPPPalette, this->SkinPal );
-
-			this->CreateSoldierPalettes();
-		}
-	}
-	else
-	{
-		// if the player is an annoying little perv, tell them so, girls!
-		if ( this->ubBodyType == REGFEMALE )
-		{
-			// sigh. We were hired by an idiot.
-			TacticalCharacterDialogue( this, QUOTE_IMPATIENT_QUOTE );
-			this->aiData.bMorale = max(0, this->aiData.bMorale - 1);
-		}
-	}
 }
 
 // check wether our disguise is any good
@@ -17534,12 +17469,12 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 			ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s is too suspicious!", this->GetName());
 			LooseDisguise();
 		}
-	}
 
-	// sevenfm: disguise automatically if soldier has spy skill
-	if ( !(this->usSoldierFlagMask2 & SOLDIER_COVERT_NOREDISGUISE) )
-	{
-		this->Disguise();
+		// sevenfm: disguise automatically
+		if ( this->usSoldierFlagMask2 & SOLDIER_COVERT_AUTO_DISGUISE )
+		{
+			this->Disguise();
+		}
 	}
 
 	// sevenfm: auto refill canteens if no hostile enemy in sector
@@ -19692,7 +19627,6 @@ void SOLDIERTYPE::EVENT_SoldierHandcuffPerson( INT32 sGridNo, UINT8 ubDirection 
 			if ( this->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 			{
 				this->LooseDisguise();
-				//this->Strip();
 														
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ACTIVITIES], this->GetName() );
 				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNCOVERED], pSoldier->GetName(), this->GetName()  );
@@ -19751,7 +19685,6 @@ void SOLDIERTYPE::EVENT_SoldierApplyItemToPerson( INT32 sGridNo, UINT8 ubDirecti
 						if ( this->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
 						{
 							this->LooseDisguise();
-							//this->Strip();
 														
 							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_APPLYITEM_STEAL_FAIL], this->GetName(), pSoldier->GetName() );
 							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNCOVERED], pSoldier->GetName(), this->GetName()  );

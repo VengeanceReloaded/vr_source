@@ -9742,6 +9742,9 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_NOT_ENOUGH_APS] );
 		return( FALSE );
 	}
+
+	// sevenfm: loose disguise every time we apply clothes
+	pSoldier->LooseDisguise();
 			
 	// determine clothes type
 	UINT32 clothestype = Item[pObj->usItem].clothestype;
@@ -9774,7 +9777,7 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 			if ( newvest )
 			{
 				// if we are already wearing a vest, give us back that item
-				if ( pSoldier->usSoldierFlagMask & SOLDIER_NEW_VEST )
+				if ( !(pSoldier->usSoldierFlagMask & SOLDIER_DAMAGED_VEST) )
 				{
 					UINT16 vestitem = 0;
 					if ( GetFirstClothesItemWithSpecificData(&vestitem, pSoldier->VestPal, "blank")  )
@@ -9788,7 +9791,6 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 				}
 
 				SET_PALETTEREP_ID( pSoldier->VestPal, Clothes[clothestype].vest );
-				pSoldier->usSoldierFlagMask |= SOLDIER_NEW_VEST;
 
 				// this vest is not damaged, so remove the damaged vest flag
 				pSoldier->usSoldierFlagMask &= ~SOLDIER_DAMAGED_VEST;
@@ -9796,8 +9798,8 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 
 			if ( newpants )
 			{
-				// if we are already wearing a vest, give us back that item
-				if ( pSoldier->usSoldierFlagMask & SOLDIER_NEW_PANTS )
+				// if we are already wearing pants, give us back that item
+				if ( !(pSoldier->usSoldierFlagMask & SOLDIER_DAMAGED_PANTS) )
 				{
 					UINT16 pantsitem = 0;
 					if ( GetFirstClothesItemWithSpecificData(&pantsitem, "blank", pSoldier->PantsPal)  )
@@ -9811,7 +9813,6 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 				}
 
 				SET_PALETTEREP_ID( pSoldier->PantsPal, Clothes[clothestype].pants );
-				pSoldier->usSoldierFlagMask |= SOLDIER_NEW_PANTS;
 
 				// these pants are not damaged, so remove the damaged pants flag
 				pSoldier->usSoldierFlagMask &= ~SOLDIER_DAMAGED_PANTS;
@@ -9832,14 +9833,6 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 			if ( fUseAPs )
 				DeductPoints( pSoldier, apcost, 0 );
 		}
-
-		// sevenfm: try to disguise now
-		pSoldier->Disguise();
-
-		// sevenfm: r8215
-		// to inform the player on whether this will work, test the disguise immediately (but only if we are now disguised in the first place)
-		if ( pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) )
-			pSoldier->SpySelfTest();
 	}
 		
 	return( TRUE );

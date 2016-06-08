@@ -4936,9 +4936,16 @@ void StartTacticalFunctionSelectionMessageBox( SOLDIERTYPE * pSoldier, INT32 sGr
 	wcscpy( gzUserDefinedButton[3], TacticalStr[ CLEAN_ALL_GUNS_STR ] );
 	
 	if ( gpTempSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
-       wcscpy( gzUserDefinedButton[1], TacticalStr[ TAKE_OFF_DISGUISE_STR ] );
+		wcscpy( gzUserDefinedButton[1], TacticalStr[ TAKE_OFF_DISGUISE_STR ] );
+	else if( !(gpTempSoldier->usSoldierFlagMask & (SOLDIER_DAMAGED_VEST | SOLDIER_DAMAGED_PANTS)) )
+		wcscpy( gzUserDefinedButton[1], L"Disguise" );
+	else if( gpTempSoldier->usSoldierFlagMask & SOLDIER_DAMAGED_VEST )
+		wcscpy( gzUserDefinedButton[1], L"Bad vest" );
+	else if( gpTempSoldier->usSoldierFlagMask & SOLDIER_DAMAGED_PANTS )
+		wcscpy( gzUserDefinedButton[1], L"Bad pants" );
 	else
-       wcscpy( gzUserDefinedButton[1], TacticalStr[ TAKE_OFF_CLOTHES_STR ] );
+		wcscpy( gzUserDefinedButton[6], TacticalStr[ UNUSED_STR ] );
+	//wcscpy( gzUserDefinedButton[1], TacticalStr[ TAKE_OFF_CLOTHES_STR ] );
 
 	if ( gGameExternalOptions.fMilitiaUseSectorInventory )
 	{
@@ -5150,8 +5157,22 @@ void TacticalFunctionSelectionMessageBoxCallBack( UINT8 ubExitValue )
 			SectorFillCanteens();
 			break;
 		case 2:
-       		// undisguise or take off custom clothes 
-       		gpTempSoldier->Strip();
+			// disguise/lose disguise			
+			if ( gpTempSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+			{				
+				gpTempSoldier->usSoldierFlagMask2 &= ~SOLDIER_COVERT_AUTO_DISGUISE;
+				gpTempSoldier->LooseDisguise();				
+			}
+			else if( !(gpTempSoldier->usSoldierFlagMask & (SOLDIER_DAMAGED_VEST | SOLDIER_DAMAGED_PANTS)) )
+			{
+				gpTempSoldier->Disguise();
+
+				if ( gpTempSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER) )
+				{
+					gpTempSoldier->usSoldierFlagMask2 |= SOLDIER_COVERT_AUTO_DISGUISE;
+					gpTempSoldier->SpySelfTest();
+				}
+			}
            break;
        case 3:
 			// clean weapons of selected merc

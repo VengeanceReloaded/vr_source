@@ -581,33 +581,34 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 	tbTeam=pCreateStruct->bTeam;
 	tfPP=pCreateStruct->fPlayerPlan; //used as temp indicator of struct sent from the server //hayden.
 
-	if(is_networked) {
-	if(is_networked && (pCreateStruct->fOnRoof==1))
+	if(is_networked) 
 	{
-		ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"skipping roof merc");
-		return NULL;
-	}
+		if(pCreateStruct->fOnRoof==1)
+		{
+			ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"skipping roof merc");
+			return NULL;
+		}
 
-	if(is_client && !is_server && (tbTeam >0 && tbTeam < 5) && tfPP==0)
-	{
+		if(is_client && !is_server && (tbTeam >0 && tbTeam < 5) && tfPP==0)
+		{
 			return NULL; // pure client to not spawn AI unless from server, Hayden.
 			//gTacticalStatus.Team[ tbTeam ].bTeamActive=0;
-	}
-	//if(is_server && tbTeam>0 && tbTeam<5)
-	if(is_server && tbTeam>0 && tbTeam<5)
-	{
-		send_AI(pCreateStruct,pubID);
-	}
-	if(is_client && !is_server && tfPP==1)
-	{
-		pCreateStruct->fPlayerPlan = 0;
-	}
+		}
+		//if(is_server && tbTeam>0 && tbTeam<5)
+		if(is_server && tbTeam>0 && tbTeam<5)
+		{
+			send_AI(pCreateStruct,pubID);
+		}
+		if(is_client && !is_server && tfPP==1)
+		{
+			pCreateStruct->fPlayerPlan = 0;
+		}
 
-	if(is_networked && (pCreateStruct->bBodyType==23 || pCreateStruct->bBodyType==24))
-	{
-		ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"skipping tank");
-		return NULL;
-	}
+		if(pCreateStruct->bBodyType==23 || pCreateStruct->bBodyType==24)
+		{
+			ScreenMsg( FONT_YELLOW, MSG_MPSYSTEM, L"skipping tank");
+			return NULL;
+		}
 	}
 
 	//hayden
@@ -1208,8 +1209,6 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 		UINT8 ubSectorID;
 		ubSectorID = GetAutoResolveSectorID();
 		pSoldier = new SOLDIERTYPE(Soldier); //(SOLDIERTYPE*)MemAlloc( SIZEOF_SOLDIERTYPE );
-		if( !pSoldier )
-			return NULL;
 		pSoldier->ubID = NUM_PROFILES;
 		pSoldier->sSectorX = (INT16)SECTORX( ubSectorID );
 		pSoldier->sSectorY = (INT16)SECTORY( ubSectorID );
@@ -1316,7 +1315,7 @@ BOOLEAN TacticalCopySoldierFromProfile( SOLDIERTYPE *pSoldier, SOLDIERCREATE_STR
 	// Flugente: if playing with the covert trait, the assassins come covert, so they are tougher to find	
 	if ( gGameExternalOptions.fAssassinsAreDisguised && gGameOptions.fNewTraitSystem && pSoldier->IsAssassin() )
 	{
-		pSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_SOLDIER|SOLDIER_COVERT_NPC_SPECIAL|SOLDIER_NEW_VEST|SOLDIER_NEW_PANTS);
+		pSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_SOLDIER|SOLDIER_COVERT_NPC_SPECIAL);
 
 		UINT8 rnd = Random(11);
 
@@ -2926,8 +2925,6 @@ SOLDIERTYPE* ReserveTacticalSoldierForAutoresolve( UINT8 ubSoldierClass )
 
 				//Allocate and copy the soldier
 				pSoldier = new SOLDIERTYPE(*MercPtrs[i]); //(SOLDIERTYPE*)MemAlloc( SIZEOF_SOLDIERTYPE );
-				if( !pSoldier )
-					return NULL;
 
 				//Assign a bogus ID, then return it
 				pSoldier->ubID = NUM_PROFILES;
@@ -3104,8 +3101,6 @@ SOLDIERTYPE* ReserveTacticalMilitiaSoldierForAutoresolve( UINT8 ubSoldierClass )
 
 				//Allocate and copy the soldier
 				pSoldier = new SOLDIERTYPE(*MercPtrs[i]); //(SOLDIERTYPE*)MemAlloc( SIZEOF_SOLDIERTYPE );
-				if( !pSoldier )
-					return NULL;
 
 				// the militia in autoresolve will drop their gear after combat. For this reason, there is no need for MercPtrs[i] to also drop it
 				MercPtrs[i]->usSoldierFlagMask |= SOLDIER_EQUIPMENT_DROPPED;
