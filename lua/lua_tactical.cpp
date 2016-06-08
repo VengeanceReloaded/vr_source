@@ -183,7 +183,7 @@ void LuaTacticalSetup(lua_State *L)
 	for (int sold=0; sold < 256; sold++)
 	{
 		lua_pushinteger( L, sold);
-		if (MercPtrs[ sold ] )
+		if (sold < TOTAL_SOLDIERS && MercPtrs[ sold ])
 		{
 			NewLuaObject( L, SOLDIER_CLASS, MercPtrs[ sold ] );
 		}

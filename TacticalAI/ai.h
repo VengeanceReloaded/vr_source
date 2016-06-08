@@ -274,6 +274,8 @@ BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax = SEEN_3_TU
 BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax = HEARD_3_TURNS_AGO );
 BOOLEAN NightLight( void );
 BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, BOOLEAN fCheckSight );
+BOOLEAN LastTargetCollapsed( SOLDIERTYPE *pSoldier );
+BOOLEAN LastTargetSuppressed( SOLDIERTYPE *pSoldier );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );

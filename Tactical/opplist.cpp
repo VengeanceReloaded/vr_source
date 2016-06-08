@@ -3390,7 +3390,7 @@ void InitSoldierOppList(SOLDIERTYPE *pSoldier)
 	memset(pSoldier->aiData.bOppList,NOT_HEARD_OR_SEEN,sizeof(pSoldier->aiData.bOppList));
 	pSoldier->aiData.bOppCnt = 0;
 	ResetLastKnownLocs(pSoldier);
-	memset(gbSeenOpponents[pSoldier->ubID],0,MAXMERCS);
+	memset(gbSeenOpponents[pSoldier->ubID],0,TOTAL_SOLDIERS);
 }
 
 
@@ -6985,7 +6985,7 @@ void DecayIndividualOpplist(SOLDIERTYPE *pSoldier)
 	if (pSoldier->stats.bLife < OKLIFE)
 	{
 		// must make sure that public opplist is kept to match...
-		for ( uiLoop = 0; uiLoop < TOTAL_SOLDIERS; ++uiLoop )
+		for ( uiLoop = 0; uiLoop < MAX_NUM_SOLDIERS; ++uiLoop )
 		{
 			if ( pSoldier->aiData.bOppList[ uiLoop ] == SEEN_CURRENTLY )
 			{

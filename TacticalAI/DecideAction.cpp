@@ -3645,7 +3645,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 						}
 
 						// possibly go prone, check that we'll have line of sight to standing enemy at watched location
-						if (gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH &&
+						/*if (gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_CROUCH &&
 							IsValidStance( pSoldier, ANIM_PRONE ) &&
 							pSoldier->bActionPoints >= GetAPsProne(pSoldier, TRUE) &&
 							!InARoom(pSoldier->sGridNo, NULL) &&
@@ -3655,7 +3655,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 							pSoldier->aiData.usActionData = ANIM_PRONE;
 
 							return(AI_ACTION_CHANGE_STANCE);
-						}
+						}*/
 
 						// raise weapon if not raised
 						if( PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) != INVALID_ANIMATION &&

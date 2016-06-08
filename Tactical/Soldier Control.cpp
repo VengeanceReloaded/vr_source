@@ -7594,13 +7594,12 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		this->aiData.bShock /= 2;
 
 		// sevenfm: stop cowering animation if new shock level is less than needed for cowering state
-		// this->bTeam == gbPlayerNum
-		// this->flags.uiStatusFlags & SOLDIER_PC
-		if( !CoweringShockLevel( this ) &&
+		if( this->flags.uiStatusFlags & SOLDIER_PC &&
+			!CoweringShockLevel( this ) &&
+			this->stats.bLife > OKLIFE &&
 			!this->bCollapsed &&
 			!this->bBreathCollapsed &&
-			this->ubBodyType <= REGFEMALE &&
-			!this->aiData.bNeutral )
+			this->ubBodyType <= REGFEMALE )
 		{
 			StopCoweringAnimation( this );
 		}
@@ -15246,7 +15245,7 @@ BOOLEAN		SOLDIERTYPE::LooksLikeASoldier( BOOLEAN fShowResult )
 
 INT8		SOLDIERTYPE::GetUniformType()
 {
-	// we determine wether we are currently wearing civilian or military clothes
+	// we determine whether we are currently wearing civilian or military clothes
 	for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i < NUM_UNIFORMS; ++i )
 	{
 		// both parts have to fit. We cant mix different uniforms and get soldier disguise
@@ -15513,6 +15512,12 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 	// important: no messages up to this point. the function will get called a lot, up to this point there is nothing unusual
 	if ( !(this->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) ) )
 		return FALSE;
+
+	// sevenfm: check that we still wear correct clothes
+	if ( this->usSoldierFlagMask & (SOLDIER_DAMAGED_VEST | SOLDIER_DAMAGED_PANTS) )
+	{
+		return FALSE;
+	}
 		
 	// sevenfm: suspicion counter
 	if( SuspicionPercent() >= 100 )

@@ -2302,6 +2302,11 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 			//return( MORALE_HOPELESS );
 		}
 	}
+	// sevenfm: neutrals always have low AI morale even if they have weapons (so they run from enemy)
+	if( pSoldier->aiData.bNeutral )
+	{
+		return( MORALE_WORRIED );
+	}
 
 	// hang pointers to my personal opplist, my team's public opplist, and my
 	// list of previously seen opponents
@@ -2495,6 +2500,16 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 
 	// if some friend hit enemy - increase morale
 	if( CountNearbyFriendsLastAttackHit(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4 ) > 0 )
+	{
+		bMoraleCategory++;
+	}
+
+	// bonus if last target is unconscious or suppressed
+	if( LastTargetCollapsed(pSoldier) )
+	{
+		bMoraleCategory++;
+	}
+	if( LastTargetSuppressed(pSoldier) )
 	{
 		bMoraleCategory++;
 	}
@@ -4676,6 +4691,72 @@ BOOLEAN TeamKnowsSoldier( INT8 bTeam, UINT8 ubID )
 			return TRUE;
 		}
 	}	
+
+	return FALSE;
+}
+
+BOOLEAN LastTargetCollapsed( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+	UINT8 ubTarget;
+
+	if(TileIsOutOfBounds(pSoldier->sLastTarget))
+	{
+		return FALSE;
+	}
+
+	// since we don't know the level of target, check both ground and roof levels
+	ubTarget = WhoIsThere2( pSoldier->sLastTarget, 0 );
+	if( ubTarget == NOBODY )
+	{
+		ubTarget = WhoIsThere2( pSoldier->sLastTarget, 1 );
+	}
+
+	// if still cannot find somebody, return FALSE
+	if( ubTarget == NOBODY )
+	{
+		return FALSE;
+	}
+
+	// now check target state
+	if( MercPtrs[ubTarget]->stats.bLife < OKLIFE ||
+		MercPtrs[ubTarget]->bCollapsed ||
+		MercPtrs[ubTarget]->bBreathCollapsed )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN LastTargetSuppressed( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+	UINT8 ubTarget;
+
+	if(TileIsOutOfBounds(pSoldier->sLastTarget))
+	{
+		return FALSE;
+	}
+
+	// since we don't know the level of target, check both ground and roof levels
+	ubTarget = WhoIsThere2( pSoldier->sLastTarget, 0 );
+	if( ubTarget == NOBODY )
+	{
+		ubTarget = WhoIsThere2( pSoldier->sLastTarget, 1 );
+	}
+
+	// if still cannot find somebody, return FALSE
+	if( ubTarget == NOBODY )
+	{
+		return FALSE;
+	}
+
+	// now check target state
+	if( CoweringShockLevel(MercPtrs[ubTarget]) )
+	{
+		return TRUE;
+	}
 
 	return FALSE;
 }

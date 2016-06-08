@@ -466,7 +466,11 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	#endif
 
 				// aggression booster for stupider enemies
-				iMyPosValue += 100 * iRangeFactor * ( 5 - SoldierDifficultyLevel( pMe ) ) / 5 ;
+				// sevenfm: neutrals should not advance to enemy
+				if( !pMe->aiData.bNeutral )
+				{
+					iMyPosValue += 100 * iRangeFactor * ( 5 - SoldierDifficultyLevel( pMe ) ) / 5 ;
+				}				
 
 				// if factor is positive increase positional value, else decrease it
 				// change both values, since one or the other could be 0
@@ -986,27 +990,6 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			}
 
 			iPathCost = gubAIPathCosts[AI_PATHCOST_RADIUS + sXOffset][AI_PATHCOST_RADIUS + sYOffset];
-			/*
-			// water is OK, if the only good hiding place requires us to get wet, OK
-			iPathCost = LegalNPCDestination(pSoldier,sGridNo,ENSURE_PATH_COST,WATEROK);
-
-			if (!iPathCost)
-			{
-				continue;		// skip on to the next potential grid
-			}
-
-			// CJC: This should be a redundent check because the path code is given an
-			// AP limit to begin with!
-			if (pSoldier->aiData.bAlertStatus == STATUS_BLACK)		// in battle
-			{
-				// must be able to afford the APs to get to this cover this turn
-				if (iPathCost > pSoldier->bActionPoints)
-				{
-					//NumMessage("In BLACK, and can't afford to get there, cost = ",iPathCost);
-					continue;		// skip on to the next potential grid
-				}
-			}
-			*/
 
 			// OK, this place shows potential.	How useful is it as cover?
 			// EVALUATE EACH GRID #, remembering the BEST PROTECTED ONE
