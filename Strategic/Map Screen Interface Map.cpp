@@ -6412,6 +6412,8 @@ UINT32 WhatPlayerKnowsAboutEnemiesInSector( INT16 sSectorX, INT16 sSectorY )
 		{
 			// show their presence
 			fDetection = TRUE;
+			// sevenfm: show direction also
+			fDirection = TRUE;
 			// show their numbers
 			if (gSkillTraitValues.fSCCanDetermineEnemyNumbersAround)
 				fCount = TRUE;
@@ -6432,7 +6434,7 @@ UINT32 WhatPlayerKnowsAboutEnemiesInSector( INT16 sSectorX, INT16 sSectorY )
 		}
 	}
 
-	// if Skyrider noticed the enemis in the sector recently
+	// if Skyrider noticed the enemies in the sector recently
 	if ( uiSectorFlags & SF_SKYRIDER_NOTICED_ENEMIES_HERE )
 	{
 		// and Skyrider is still in this sector, flying
@@ -6440,6 +6442,8 @@ UINT32 WhatPlayerKnowsAboutEnemiesInSector( INT16 sSectorX, INT16 sSectorY )
 		{
 			// player remains aware of them as long as Skyrider remains in the sector
 			fDetection = TRUE;
+			// sevenfm: show direction also
+			fDirection = TRUE;
 		}
 		else
 		{

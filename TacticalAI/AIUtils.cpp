@@ -628,7 +628,7 @@ void NewDest(SOLDIERTYPE *pSoldier, INT32 usGridNo)
 }
 
 
-BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier)
+BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 {
 	INT16	bMinPointsNeeded = 0;
 	// sevenfm: r7972 fix
@@ -636,6 +636,11 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier)
 	//INT8 bAPToLookAtWall = ( FindDirectionForClimbing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) == pSoldier->ubDirection ) ? 0 : 1;
 
 	//NumMessage("AffordableAction - Guy#",pSoldier->ubID);
+
+	if( bAction == AI_ACTION_NONE )
+	{
+		bAction = pSoldier->aiData.bAction;
+	}
 
 	switch (pSoldier->aiData.bAction)
 	{

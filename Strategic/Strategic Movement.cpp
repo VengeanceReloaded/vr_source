@@ -5640,6 +5640,7 @@ BOOLEAN ValidateGroups( GROUP *pGroup )
 
 
 // SANDRO - added check if we have a scout in group
+// sevenfm: scout should not be sleeping, in vehicle or on assignment
 BOOLEAN ScoutIsPresentInSquad( INT16 ubSectorNumX, INT16 ubSectorNumY )
 {
 	BOOLEAN fScoutPresent = FALSE;
@@ -5647,17 +5648,25 @@ BOOLEAN ScoutIsPresentInSquad( INT16 ubSectorNumX, INT16 ubSectorNumY )
 
 	for( i = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; i <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; i++ )
 	{
-		if( MercPtrs[ i ]->bActive && MercPtrs[ i ]->stats.bLife && !(MercPtrs[ i ]->flags.uiStatusFlags & SOLDIER_VEHICLE) )
+		if( MercPtrs[ i ]->bActive &&
+			MercPtrs[ i ]->stats.bLife >= OKLIFE &&
+			MercPtrs[ i ]->sSectorX == ubSectorNumX &&
+			MercPtrs[ i ]->sSectorY == ubSectorNumY &&			
+			MercPtrs[ i ]->bAssignment < ON_DUTY &&			
+			!MercPtrs[ i ]->flags.fMercAsleep &&			
+			HAS_SKILL_TRAIT( MercPtrs[ i ], SCOUTING_NT ) )
 		{
-			if ( MercPtrs[ i ]->sSectorX == ubSectorNumX && MercPtrs[ i ]->sSectorY == ubSectorNumY && MercPtrs[ i ]->bAssignment != ASSIGNMENT_POW && MercPtrs[ i ]->stats.bLife > OKLIFE )
-			{
-				if( HAS_SKILL_TRAIT( MercPtrs[ i ], SCOUTING_NT ))
-				{
-					fScoutPresent = TRUE;
-				}
-			}
+			fScoutPresent = TRUE;
 		}
 	}
+
+	//MercPtrs[ i ]->bAssignment != ASSIGNMENT_POW &&
+	//MercPtrs[ i ]->bAssignment != IN_TRANSIT &&
+	//MercPtrs[ i ]->bAssignment != ASSIGNMENT_DEAD &&
+	//MercPtrs[ i ]->bAssignment != VEHICLE &&
+	//MercPtrs[ i ]->iVehicleId != iHelicopterVehicleId &&
+	//!MercPtrs[ i ]->flags.fBetweenSectors &&
+	//!(MercPtrs[ i ]->flags.uiStatusFlags & SOLDIER_VEHICLE) &&			
 
 	return ( fScoutPresent );
 }

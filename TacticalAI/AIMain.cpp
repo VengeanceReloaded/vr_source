@@ -565,10 +565,7 @@ void HandleSoldierAI( SOLDIERTYPE *pSoldier ) // FIXME - this function is named 
 					if ( pSoldier->aiData.bAction == AI_ACTION_MOVE_TO_CLIMB )
 					{
 						// successfully moved to roof!
-
-						// fake setting action to climb roof and see if we can afford this
-						pSoldier->aiData.bAction = AI_ACTION_CLIMB_ROOF;
-						if (IsActionAffordable(pSoldier))
+						if (IsActionAffordable(pSoldier, AI_ACTION_CLIMB_ROOF))
 						{
 							// set action to none and next action to climb roof so we do that next
 							pSoldier->aiData.bAction = AI_ACTION_NONE;
