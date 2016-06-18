@@ -7414,8 +7414,8 @@ static int l_SetGlobalLuaBool (lua_State *L)
 		UINT32 val = lua_tointeger(L,1);
 		BOOLEAN set = lua_toboolean(L,2);
 
-		// Flugente: I assume '<= 1000' is meant here...
-		if ( val >= 0 && val < 1000 ) 
+		// Flugente: I assume '< 1000' is meant here...
+		if ( val < 1000 ) 
 			gLuaGlobal[val].fGlobalLuaBool = set;
 	}
 	
@@ -7429,7 +7429,7 @@ static int l_SetGlobalLuaVal (lua_State *L)
 		UINT32 val = lua_tointeger(L,1);
 		INT32 set = lua_tointeger(L,2);
 
-		if ( val >=0 ||  1000<= val ) 
+		if ( val < 1000 ) 
 			gLuaGlobal[val].iGlobalLuaVal = set;
 	}	
 	return 0;
