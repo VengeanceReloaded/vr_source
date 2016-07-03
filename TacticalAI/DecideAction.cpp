@@ -2442,6 +2442,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	// sevenfm:
 	BOOLEAN fDangerousSpot = FALSE;
 	BOOLEAN fProneSightCover = FALSE;
+	INT32	sOpponentGridNo;
+	INT8	bOpponentLevel;
 
 	// WANNE: Headrock informed me that I should remove that because it needs a lot of CPU!
 	// HEADROCK HAM B2.7: Calculate the overall tactical situation
@@ -2474,6 +2476,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		pSoldier->aiData.usActionData = NOWHERE;
 		return(AI_ACTION_NONE);
 	}
+
+	// sevenfm: find closest opponent
+	sClosestOpponent = ClosestKnownOpponent( pSoldier, &sOpponentGridNo, &bOpponentLevel );
 
 	fProneSightCover = ProneSightCoverAtSpot(pSoldier, pSoldier->sGridNo);
 	if( !fProneSightCover || pSoldier->aiData.bUnderFire )
@@ -2621,6 +2626,17 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				}
 			}
 		}
+	}
+
+	// sevenfm: before deciding anything, stop cowering
+	if( SoldierAI(pSoldier) &&
+		ubCanMove &&
+		pSoldier->stats.bLife > OKLIFE &&
+		!pSoldier->bCollapsed &&
+		!pSoldier->bBreathCollapsed &&
+		(pSoldier->usAnimState == COWERING || pSoldier->usAnimState == COWERING_PRONE) )
+	{
+		return AI_ACTION_STOP_COWERING;
 	}
 
 	// sevenfm: if we don't have a gun, look around for a weapon!
@@ -3472,6 +3488,13 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					bWatchPts -= CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8);
 				}
 
+				// sevenfm: penalize watching if some friends see enemy at watched location
+				bHighestWatchLoc = GetHighestVisibleWatchedLoc( pSoldier->ubID );
+				if ( bHighestWatchLoc != -1 )
+				{
+					bWatchPts -= CountFriendsBlack(pSoldier, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ]);
+				}
+
 				// sevenfm: don't help if seen enemy recently or under fire
 				if( GuySawEnemy(pSoldier) || pSoldier->aiData.bUnderFire )
 				{
@@ -3743,6 +3766,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 							IsValidStance( pSoldier, ANIM_PRONE ) &&
 							pSoldier->bActionPoints >= GetAPsProne(pSoldier, TRUE) &&
 							!InARoom(pSoldier->sGridNo, NULL) &&
+							gfTurnBasedAI &&
+							pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
 							//LocationToLocationLineOfSightTestExt(pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], PRONE_LOS_POS, STANDING_LOS_POS))
 							LocationToLocationLineOfSightTest(pSoldier->sGridNo, pSoldier->pathing.bLevel, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], TRUE, CALC_FROM_ALL_DIRS, PRONE_LOS_POS, STANDING_LOS_POS))
 						{
@@ -4706,6 +4731,18 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 				fTryPunching = TRUE;
 			}
 		}
+	}
+
+	// sevenfm: before deciding anything, stop cowering
+	if( SoldierAI(pSoldier) &&
+		ubCanMove &&
+		pSoldier->stats.bLife > OKLIFE &&
+		!pSoldier->bCollapsed &&
+		!pSoldier->bBreathCollapsed &&
+		(pSoldier->usAnimState == COWERING || pSoldier->usAnimState == COWERING_PRONE) )
+	{
+		//ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"[%d] stop cowering", pSoldier->ubID);
+		return AI_ACTION_STOP_COWERING;
 	}
 
 	// if we don't have a gun, look around for a weapon!
@@ -6042,7 +6079,10 @@ L_NEWAIM:
 		// SANDRO - chance to make aimed punch/stab for martial arts/melee 
 		else if (ubBestAttackAction == AI_ACTION_KNIFE_MOVE && gGameOptions.fNewTraitSystem)
 		{
-			pSoldier->aiData.bAimTime = 0;
+			// sevenfm: don't change aim time calculated in CalsBestStab
+			pSoldier->aiData.bAimTime = BestAttack.ubAimTime;
+
+			/*pSoldier->aiData.bAimTime = 0;
 			iChance = 0;
 
 			if (Item[pSoldier->inv[BestAttack.bWeaponIn].usItem].usItemClass == IC_PUNCH)
@@ -6068,7 +6108,7 @@ L_NEWAIM:
 				{
 					pSoldier->aiData.bAimTime = (gGameExternalOptions.fEnhancedCloseCombatSystem ? gSkillTraitValues.ubModifierForAPsAddedOnAimedBladedAttackes : 6);
 				}
-			}
+			}*/
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -6388,8 +6428,8 @@ L_NEWAIM:
 			// if we have a closest reachable opponent			
 			if (!TileIsOutOfBounds(sClosestOpponent))
 			{
-				if(!TileIsOutOfBounds(pSoldier->sLastTarget))//dnl ch58 150913
-					sClosestOpponent = pSoldier->sLastTarget;
+				//if(!TileIsOutOfBounds(pSoldier->sLastTarget))//dnl ch58 150913
+					//sClosestOpponent = pSoldier->sLastTarget;
 				bDirection = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(sClosestOpponent),CenterY(sClosestOpponent));
 
 				// if we're not facing towards him
@@ -7289,7 +7329,9 @@ INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	// and have more APs than we want to reserve
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: can we move? = %d, APs = %d",ubCanMove,pSoldier->bActionPoints));
 
-	if (ubCanMove && pSoldier->bActionPoints > APBPConstants[MAX_AP_CARRIED])
+	if( ubCanMove &&
+		pSoldier->bActionPoints > APBPConstants[MAX_AP_CARRIED] &&
+		!gfHiddenInterrupt )
 	{
 		// if there is an opponent reachable					
 		if (!TileIsOutOfBounds(sClosestDisturbance) )
@@ -7359,6 +7401,17 @@ INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			if ( !TileIsOutOfBounds(pSoldier->aiData.usActionData) )
 			{
 				return(AI_ACTION_SEEK_FRIEND);
+			}
+		}
+
+		// if cannot seek or help - hide
+		if( pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
+			(GuySawEnemy(pSoldier) || pSoldier->aiData.bUnderFire) )
+		{
+			pSoldier->aiData.usActionData = FindBestNearbyCover(pSoldier,pSoldier->aiData.bAIMorale,&iDummy);
+			if( !TileIsOutOfBounds(pSoldier->aiData.usActionData) )
+			{
+				return AI_ACTION_TAKE_COVER;
 			}
 		}
 	}
@@ -7451,6 +7504,7 @@ INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier)
 	INT8		bCanAttack;
 	INT8		bWeaponIn;
 	BOOLEAN		fClimb;
+	INT32		iDummy;
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionBlack: soldier = %d, orders = %d, attitude = %d",pSoldier->ubID,pSoldier->aiData.bOrders,pSoldier->aiData.bAttitude));
 
@@ -7663,7 +7717,9 @@ INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier)
 		return(ubBestAttackAction);
 	}
 
-	if( ubCanMove && !gfHiddenInterrupt )
+	if( ubCanMove &&
+		!gfHiddenInterrupt &&
+		pSoldier->bActionPoints > APBPConstants[MAX_AP_CARRIED] )
 	{
 		sClosestDisturbance = ClosestReachableDisturbance(pSoldier, TRUE, &fClimb);
 		//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] cannot find disturbance!", pSoldier->ubID);
@@ -7704,6 +7760,17 @@ INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier)
 			if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 			{
 				return(AI_ACTION_SEEK_OPPONENT);
+			}
+		}
+
+		// if cannot seek or help - hide
+		if( pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
+			(pSoldier->aiData.bUnderFire) )
+		{
+			pSoldier->aiData.usActionData = FindBestNearbyCover(pSoldier,pSoldier->aiData.bAIMorale,&iDummy);
+			if( !TileIsOutOfBounds(pSoldier->aiData.usActionData) )
+			{
+				return AI_ACTION_TAKE_COVER;
 			}
 		}
 	}

@@ -48,7 +48,9 @@
 	#include "drugs and alcohol.h"
 	#include "Interface.h"
 	#include "Explosion Control.h"	//dnl ch40 200909
-	#include "Interface Panels.h"	// sevenfm
+	// sevenfm
+	#include "Interface Panels.h"
+	#include "PATHAI.H"
 #endif
 
 #ifdef JA2UB
@@ -6293,11 +6295,12 @@ UINT8 CalcEffVolume(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT8 ubN
 		iEffVolume -= 5;
 	}
 
- if (pSoldier->bAssignment == SLEEPING )
- {
-	// decrease effective volume since we're asleep!
-	iEffVolume -= 5;
- }
+	//if (pSoldier->bAssignment == SLEEPING )
+	if( pSoldier->flags.fMercAsleep )
+	{
+		// decrease effective volume since we're asleep!
+		iEffVolume -= 5;
+	}
 
 	// check for floor/roof difference
 	if (bLevel > pSoldier->pathing.bLevel)
@@ -7626,28 +7629,42 @@ INT8 GetHighestWatchedLocPoints( UINT8 ubID )
 
 void CommunicateWatchedLoc( UINT8 ubID, INT32 sGridNo, INT8 bLevel, UINT8 ubPoints )
 {
-	UINT8 ubLoop;
-	INT8		bTeam, bLoopPoint, bPoint;
+	UINT8	ubLoop;
+	INT8	bTeam, bLoopPoint, bPoint;
+	BOOLEAN fCanCommunicate;
 
 	bTeam = MercPtrs[ ubID ]->bTeam;
 
 	for ( ubLoop = gTacticalStatus.Team[ bTeam ].bFirstID; ubLoop < gTacticalStatus.Team[ bTeam ].bLastID; ubLoop++ )
 	{
-		// sevenfm: skip communication if friend is too far or no line of sight between
-		if ( ubLoop == ubID ||
+		if( ubLoop == ubID ||
 			MercPtrs[ ubLoop ]->bActive == FALSE ||
 			MercPtrs[ ubLoop ]->bInSector == FALSE ||
 			MercPtrs[ ubLoop ]->stats.bLife < OKLIFE ||
-			PythSpacesAway(MercPtrs[ ubID ]->sGridNo, MercPtrs[ ubLoop ]->sGridNo) > DAY_VISION_RANGE / 4 ||
-			!LocationToLocationLineOfSightTest( MercPtrs[ ubID ]->sGridNo, MercPtrs[ ubID ]->pathing.bLevel,
-			MercPtrs[ ubLoop ]->sGridNo, MercPtrs[ ubLoop ]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) )
+			MercPtrs[ ubLoop ]->bCollapsed ||
+			MercPtrs[ ubLoop ]->bBreathCollapsed )
 		{
 			continue;
 		}
-		if ( ubLoop == ubID || MercPtrs[ ubLoop ]->bActive == FALSE || MercPtrs[ ubLoop ]->bInSector == FALSE || MercPtrs[ ubLoop ]->stats.bLife < OKLIFE )
+
+		// sevenfm: skip communication if friend is too far or no line of sight between
+		fCanCommunicate = FALSE;
+		if( FindHearingAid(MercPtrs[ ubID ]) &&
+			FindHearingAid(MercPtrs[ ubLoop ]) &&
+			PythSpacesAway(MercPtrs[ ubID ]->sGridNo, MercPtrs[ ubLoop ]->sGridNo) < DAY_VISION_RANGE )
+		{
+			fCanCommunicate = TRUE;
+		}
+		if( PythSpacesAway(MercPtrs[ ubID ]->sGridNo, MercPtrs[ ubLoop ]->sGridNo) < DAY_VISION_RANGE / 2 &&
+			LocationToLocationLineOfSightTest( MercPtrs[ ubID ]->sGridNo, MercPtrs[ ubID ]->pathing.bLevel, MercPtrs[ ubLoop ]->sGridNo, MercPtrs[ ubLoop ]->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS) )
+		{
+			fCanCommunicate = TRUE;
+		}
+		if( !fCanCommunicate )
 		{
 			continue;
 		}
+
 		bLoopPoint = FindWatchedLoc( ubLoop, sGridNo, bLevel );
 		if ( bLoopPoint == -1 )
 		{
@@ -7732,9 +7749,48 @@ void SetWatchedLocAsUsed( UINT8 ubID, INT32 sGridNo, INT8 bLevel )
 
 BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam, UINT8 ubWatchID )
 {
+	if( ubWatchID == NOBODY )
+	{
+		return FALSE;
+	}
+
 	// look to see if there is anyone near the watched loc who is not on this team
 	UINT8	ubID;
+
+	UINT8	ubMovementCost;
 	INT32	sTempGridNo;
+	UINT8	ubDirection;
+	
+	SOLDIERTYPE *pSoldier = MercPtrs[ubWatchID];
+	if( !pSoldier )
+	{
+		return FALSE;
+	}
+
+	// check adjacent reachable tiles for known enemies
+	for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+	{
+		sTempGridNo = NewGridNo( sGridNo, DirectionInc( ubDirection ) );
+		ubMovementCost = gubWorldMovementCosts[ sTempGridNo ][ ubDirection ][ bLevel ];
+
+		if ( ubMovementCost < TRAVELCOST_BLOCKED && NewOKDestination(pSoldier, sTempGridNo, FALSE, bLevel) )
+		{
+			ubID = WhoIsThere2( sTempGridNo, bLevel );
+
+			// sevenfm: check personal/public knowledge
+			if( ubID != NOBODY &&
+				MercPtrs[ ubID ]->bTeam != bTeam &&
+				!CONSIDERED_NEUTRAL( pSoldier, MercPtrs[ ubID ] ) &&
+				MercPtrs[ ubID ]->stats.bLife >= OKLIFE &&
+				(gbPublicOpplist[bTeam][ubID] != NOT_HEARD_OR_SEEN ||
+				MercPtrs[ ubWatchID ]->aiData.bOppList[ ubID ] != NOT_HEARD_OR_SEEN) )
+			{
+				return( FALSE );
+			}			
+		}
+	}
+
+	/*INT32	sTempGridNo;
 	INT16	sX, sY;
 
 	for ( sY = -WATCHED_LOC_RADIUS; sY <= WATCHED_LOC_RADIUS; sY++ )
@@ -7750,8 +7806,8 @@ BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam, UINT8
 			// sevenfm: check personal/public knowledge
 			if( ubID != NOBODY &&
 				MercPtrs[ ubID ]->bTeam != bTeam &&
+				!CONSIDERED_NEUTRAL( pSoldier, MercPtrs[ ubID ] ) &&
 				MercPtrs[ ubID ]->stats.bLife >= OKLIFE &&
-				ubWatchID != NOBODY &&
 				(gbPublicOpplist[bTeam][ubID] != NOT_HEARD_OR_SEEN ||
 				MercPtrs[ ubWatchID ]->aiData.bOppList[ ubID ] != NOT_HEARD_OR_SEEN) )
 				//TeamKnowsSoldier(bTeam, ubID) )
@@ -7759,7 +7815,8 @@ BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam, UINT8
 				return( FALSE );
 			}
 		}
-	}
+	}*/
+
 	return( TRUE );
 }
 

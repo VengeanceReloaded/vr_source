@@ -2126,6 +2126,12 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
             break;
 
         case AI_ACTION_STOP_COWERING:
+			// sevenfm: stop cowering
+			if(SoldierAI(pSoldier))
+			{
+				StopCoweringAnimation(pSoldier);
+			}
+
             // make sure action data is set right
             if ( pSoldier->flags.uiStatusFlags & SOLDIER_COWERING )
             {

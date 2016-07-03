@@ -4,11 +4,14 @@
 #include "types.h"
 #include "worlddef.h"
 #include "Soldier Control.h"
+#include "Isometric Utils.h"
 
 #define TESTAICONTROL
 
 extern INT16	gubAIPathCosts[19][19];
 #define AI_PATHCOST_RADIUS 9
+
+extern void BeginMultiPurposeLocator( INT32 sGridNo, INT8 bLevel, BOOLEAN fSlideTo );
 
 extern BOOLEAN gfDisplayCoverValues;
 //extern INT16 gsCoverValue[WORLD_MAX];
@@ -283,7 +286,7 @@ BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
-UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier );
+UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent = NOWHERE );
 UINT8 CountNearbyFriendsOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsFlankSameSpot( SOLDIERTYPE *pSoldier );
 UINT8 CountNearbyFriendsLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );

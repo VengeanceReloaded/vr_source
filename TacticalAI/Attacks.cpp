@@ -426,7 +426,9 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 				//sprintf(tempstr,"Vs. %s, at AimTime %d, ubChanceToHit = %d",ExtMen[pOpponent->ubID].GetName(),ubAimTime,ubChanceToHit);
 				//PopMessage(tempstr);
 
-				iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
+				// sevenfm: 100 AP system
+				iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
+				//iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
 				//NumMessage("hitRate = ",iHitRate);
 
 				// if aiming for this amount of time produces a better hit rate
@@ -451,7 +453,9 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 					ubChanceToHit = ubChanceToHit2;
 			}
 			Assert( ubRawAPCost > 0);
-			iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
+			//iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
+			// sevenfm: 100AP system
+			iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
 			iBestHitRate = iHitRate;
 			ubBestAimTime = ubAimTime;
 			ubBestChanceToHit = ubChanceToHit;
@@ -1574,7 +1578,10 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 			continue;			// next merc
 
 		// if this opponent is not currently in sight (ignore known but unseen!)
-		if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY)
+		// sevenfm: allow stabbing recently seen opponents or public known opponents
+		if ( pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY &&
+			pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN &&
+			gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY )
 			continue;			// next merc
 
 		// if this opponent is not on the same level
@@ -1679,7 +1686,9 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 			if (ubRawAPCost < 1)
 				ubRawAPCost = ubMinAPCost;
 
-			iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
+			//iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
+			// sevenfm: 100AP system
+			iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
 			//NumMessage("hitRate = ",iHitRate);
 
 			// if aiming for this amount of time produces a better hit rate
@@ -1859,7 +1868,9 @@ void CalcTentacleAttack(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab )
 			if (ubRawAPCost < 1)
 				ubRawAPCost = ubMinAPCost;
 
-			iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
+			//iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
+			// sevenfm: 100AP system
+			iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
 			//NumMessage("hitRate = ",iHitRate);
 
 			// if aiming for this amount of time produces a better hit rate

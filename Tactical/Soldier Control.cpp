@@ -16015,7 +16015,15 @@ void SOLDIERTYPE::Disguise( void )
 				{
 					this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
 				}
+				else
+				{
+					if ( this->bTeam == OUR_TEAM )
+						ScreenMsg( FONT_ORANGE, MSG_INTERFACE, L"Cannot use military colors to disguise as civilian!" );
+				}
 			}
+
+			if ( this->bTeam == OUR_TEAM && (this->usSoldierFlagMask & SOLDIER_COVERT_CIV) )
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_DISGUISED_AS_CIVILIAN], this->GetName() );
 		}
 
 		// reevaluate sight - otherwise we could hide by changing clothes in plain sight!
@@ -22092,5 +22100,7 @@ void StopCoweringAnimation( SOLDIERTYPE* pSoldier)
 			pSoldier->flags.uiStatusFlags &= (~SOLDIER_COWERING );
 		}
 	}
+
+	pSoldier->flags.uiStatusFlags &= (~SOLDIER_COWERING );
 }
 

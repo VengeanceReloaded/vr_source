@@ -447,6 +447,21 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	// high morale prefers decreasing the range (positive factor), while very
 	// low morale (HOPELESS) prefers increasing it
 
+	BOOLEAN fAdvance = TRUE;
+
+	if( pMe->aiData.bNeutral || (pMe->aiData.bUnderFire && pMe->aiData.bShock > 0) )
+	{
+		fAdvance = FALSE;
+	}
+
+#ifdef ENABLE_ZOMBIES
+	// zombies only try to hide
+	if ( pMe->IsZombie()  )
+	{
+		fAdvance = FALSE;
+	 }
+#endif
+
 //	if (bHisCTGT < 100 || (morale - 1 < 0))
 	{
 
@@ -466,8 +481,8 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	#endif
 
 				// aggression booster for stupider enemies
-				// sevenfm: neutrals should not advance to enemy
-				if( !pMe->aiData.bNeutral )
+				// sevenfm: disable for zombies, neutrals and soldiers under fire
+				if( fAdvance )
 				{
 					iMyPosValue += 100 * iRangeFactor * ( 5 - SoldierDifficultyLevel( pMe ) ) / 5 ;
 				}				
@@ -576,6 +591,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 	// sevenfm
 	UINT8 ubNearbyFriends;
 	BOOLEAN fProneCover;
+	BOOLEAN fSightCover;
 	UINT8 ubDiff = SoldierDifficultyLevel( pSoldier );
 	INT32 iTileSightLimit;
 
@@ -798,6 +814,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 
 	// sevenfm: sight cover
 	fProneCover = TRUE;
+	fSightCover = TRUE;
 
 	// for every opponent that threatens, consider this spot's cover vs. him
 	for (uiLoop = 0; uiLoop < uiThreatCnt; uiLoop++)
@@ -813,6 +830,11 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 		//if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
 		{
 			fProneCover = FALSE;
+		}
+		if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, iTileSightLimit, STANDING_LOS_POS, STANDING_LOS_POS) )
+			//if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, pSoldier->sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
+		{
+			fSightCover = FALSE;
 		}
 		//sprintf(tempstr,"iCurrentCoverValue after opponent %d is now %d",iLoop,iCurrentCoverValue);
 		//PopMessage(tempstr);
@@ -1004,6 +1026,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 
 			// sevenfm: check sight cover
 			fProneCover = TRUE;
+			fSightCover = TRUE;
 
 			// for every opponent that threatens, consider this spot's cover vs. him
 			for (uiLoop = 0; uiLoop < uiThreatCnt; uiLoop++)
@@ -1023,9 +1046,22 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 				{
 					fProneCover = FALSE;
 				}
+				if( LocationToLocationLineOfSightTest( Threat[uiLoop].sGridNo, Threat[uiLoop].pOpponent->pathing.bLevel, sGridNo, pSoldier->pathing.bLevel, TRUE, iTileSightLimit, STANDING_LOS_POS, STANDING_LOS_POS) )
+					//if ( SoldierToVirtualSoldierLineOfSightTest( Threat[uiLoop].pOpponent, sGridNo, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, -1 ) != 0 )
+				{
+					fSightCover = FALSE;
+				}
 				//sprintf(tempstr,"iCoverValue after opponent %d is now %d",iLoop,iCoverValue);
 				//PopMessage(tempstr);
 			}
+
+#ifdef ENABLE_ZOMBIES
+			// zombies only try to hide
+			if ( pSoldier->IsZombie() && !fSightCover )
+			{
+				continue;
+			}
+#endif
 
 			// reduce cover for each person adjacent to this gridno who is on our team,
 			// by 10% (so locations next to several people will be very much frowned upon
@@ -2580,9 +2616,9 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 
 	DebugMsg ( TOPIC_JA2AI , DBG_LEVEL_3 , String("FindFlankingSpot: direction to loc = %d, dir to flank = %d", sDir , sDesiredDir ));
 
-	for (sYOffset = -sMaxUp + 1; sYOffset <= sMaxDown - 1; sYOffset++)
+	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
 	{
-		for (sXOffset = -sMaxLeft + 1; sXOffset <= sMaxRight - 1; sXOffset++)
+		for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
 		{
 			// calculate the next potential gridno
 			sGridNo = pSoldier->sGridNo + sXOffset + (MAXCOL * sYOffset);

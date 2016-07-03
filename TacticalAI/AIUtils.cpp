@@ -3556,16 +3556,20 @@ BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier )
 }
 
 // count mobile friends that are in BLACK state and not in a dangerous place or have 3/4 APs or hit enemy recently
-// this is mostly used to check at night if we can cross dangerous area (in light at night or fresh corpses)
-UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier )
+// this is mostly used to check if we can cross dangerous area (in light at night or fresh corpses)
+UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent )
 {
 	CHECKF(pSoldier);
 
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
 	INT32 sFriendClosestOpponent;
-	UINT8 ubMaxDist = VISION_RANGE / 2;
-	INT32 sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
+
+	// by default, use closest known opponent
+	if( sClosestOpponent == NOWHERE )
+	{
+		sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
+	}
 
 	if(TileIsOutOfBounds(sClosestOpponent))
 	{
@@ -3582,17 +3586,19 @@ UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier )
 			pFriend->bActive && 
 			pFriend->stats.bLife >= OKLIFE)
 		{
-			sFriendClosestOpponent = ClosestKnownOpponent( pFriend, NULL, NULL );
+			//sFriendClosestOpponent = ClosestKnownOpponent( pFriend, NULL, NULL );
+			sFriendClosestOpponent = ClosestSeenOpponent( pFriend, NULL, NULL );
 			if(!TileIsOutOfBounds(sFriendClosestOpponent) &&
-				PythSpacesAway( sClosestOpponent, sFriendClosestOpponent ) <= ubMaxDist &&
+				PythSpacesAway( sClosestOpponent, sFriendClosestOpponent ) < DAY_VISION_RANGE / 4 &&
 				pFriend->aiData.bAlertStatus == STATUS_BLACK &&
-				( GetNearestRottingCorpseAIWarning( pFriend->sGridNo ) == 0 && !InLightAtNight( pFriend->sGridNo, pFriend->pathing.bLevel) ||
+				pFriend->stats.bLife > pFriend->stats.bLifeMax / 2 &&
+				( GetNearestRottingCorpseAIWarning( pFriend->sGridNo ) == 0 && !InLightAtNight(pFriend->sGridNo, pFriend->pathing.bLevel) ||
 				pFriend->bActionPoints > 3*pFriend->bInitialActionPoints/4 || 
 				pFriend->aiData.bLastAttackHit )
 				)
 			{
 				ubFriendCount++;
-			}			
+			}
 		}
 	}
 
