@@ -5356,12 +5356,19 @@ UINT32 CalcNewChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTi
 	iSightRange = 0;
 
 	if (ubTargetID != NOBODY && ( pSoldier->aiData.bOppList[ubTargetID] == SEEN_CURRENTLY || gbPublicOpplist[pSoldier->bTeam][ubTargetID] == SEEN_CURRENTLY ) )
+	{
 		iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false );
-	if (iSightRange == 0) {	// didn't do a bodypart-based test or can't see specific body part aimed at
+	}
+	if (iSightRange == 0) 
+	{	
+		// didn't do a bodypart-based test or can't see specific body part aimed at
 		iSightRange = SoldierTo3DLocationLineOfSightTest( pSoldier, sGridNo, pSoldier->bTargetLevel, pSoldier->bTargetCubeLevel, TRUE, NO_DISTANCE_LIMIT, false );
 	}
-	if (iSightRange == 0) {	// Can't see the target but we still need to know what the sight range would be if we could so we can deal with cover penalties
-		iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false, true );
+	if (iSightRange == 0) 
+	{	
+		// Can't see the target but we still need to know what the sight range would be if we could so we can deal with cover penalties
+		// sevenfm: disable to prevent bug when shooting at empty tile
+		//iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false, true );
 		fCantSeeTarget = true;
 	}
 
@@ -5575,14 +5582,15 @@ if (gGameExternalOptions.fUseNewCTHCalculation)
 
 		// silversurfer: this doesn't make sense. We always apply a penalty when we can see the target?
 		// invisible targets are already taken into account one step above in aimbonus from target
+		// sevenfm: this code is ok and allows to take into account obstacles between shooter and target
 		// VISIBILITY
-/*		if (iRange > 0 && iSightRange > iRange)
+		if (iRange > 0 && iSightRange > iRange)
 		{
 			FLOAT fTempPenalty = (FLOAT)((FLOAT)iSightRange / (FLOAT)iRange);
 			fTempPenalty = (FLOAT)(100 / fTempPenalty);
 			fAimModifier += ((100-fTempPenalty) * gGameCTHConstants.AIM_VISIBILITY)/100;
 			fAimModifier = __max( gGameCTHConstants.AIM_TARGET_INVISIBLE, fAimModifier );
-		}*/
+		}
 
 		// factor in scopes under their range
 		if ( !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
@@ -5857,6 +5865,10 @@ else
 	// STANCE
 	switch ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
 	{
+		// sevenfm: r8281 fix
+		case ANIM_STAND:
+			iGunBaseDifficulty *= gGameCTHConstants.BASE_STANDING_STANCE;
+			break;
 		case ANIM_CROUCH:
 			iGunBaseDifficulty *= gGameCTHConstants.BASE_CROUCHING_STANCE;
 			break;
@@ -6927,20 +6939,28 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	sDistVis = pSoldier->GetMaxDistanceVisible(sGridNo, pSoldier->bTargetLevel, CALC_FROM_ALL_DIRS ) * CELL_X_SIZE;
 	iScopeVisionRangeBonus = GetTotalVisionRangeBonus(pSoldier, bLightLevel);	// not an actual range value, simply a modifier for range calculations
 	if (ubTargetID != NOBODY && pSoldier->aiData.bOppList[ubTargetID] == SEEN_CURRENTLY || gbPublicOpplist[pSoldier->bTeam][ubTargetID] == SEEN_CURRENTLY)
+	{
 		iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false );
-	if (iSightRange == 0) {	// didn't do a bodypart-based test or can't see specific body part aimed at
+	}
+	if (iSightRange == 0) 
+	{	
+		// didn't do a bodypart-based test or can't see specific body part aimed at
 		iSightRange = SoldierTo3DLocationLineOfSightTest( pSoldier, sGridNo, pSoldier->bTargetLevel, pSoldier->bTargetCubeLevel, TRUE, NO_DISTANCE_LIMIT, false );
 		fCoverObscured = true;
 	}
-	if (iSightRange == 0) {	// Can't see the target but we still need to know what the sight range would be if we could so we can deal with cover penalties
-		iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false, true );
+	if (iSightRange == 0) 
+	{	
+		// Can't see the target but we still need to know what the sight range would be if we could so we can deal with cover penalties
+		// sevenfm: disable to fix bug when shooting at invisible empty tile
+		//iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false, true );
 		fCantSeeTarget = true;
 		fCoverObscured = false;
 	}
-		gbForceWeaponReady = false;
-		gbForceWeaponNotReady = true;
+
+	gbForceWeaponReady = false;
+	gbForceWeaponNotReady = true;
 	sDistVisNoScope = pSoldier->GetMaxDistanceVisible(sGridNo, pSoldier->bTargetLevel, CALC_FROM_ALL_DIRS ) * CELL_X_SIZE;
-		gbForceWeaponNotReady = false;
+	gbForceWeaponNotReady = false;
 
 	// Flugente: blind soldiers have sDistVisNoScope = 0...
 	if ( sDistVisNoScope )
@@ -12833,10 +12853,13 @@ FLOAT CalcNewChanceToHitBaseWeaponBonus(SOLDIERTYPE *pSoldier, INT32 sGridNo, IN
 	// STANCE
 	switch ( stance )
 	{
+		// sevenfm: r8281 fix
+		case ANIM_STAND:
+			fGunBaseDifficulty *= gGameCTHConstants.BASE_STANDING_STANCE;
+			break;
 		case ANIM_CROUCH:
 			fGunBaseDifficulty *= gGameCTHConstants.BASE_CROUCHING_STANCE;
 			break;
-
 		case ANIM_PRONE:
 			fGunBaseDifficulty *= gGameCTHConstants.BASE_PRONE_STANCE;
 			break;

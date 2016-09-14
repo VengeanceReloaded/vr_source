@@ -42,6 +42,7 @@ typedef enum
 	SMCTABLE_ELEMENT_TRAVELRATING,
 	SMCTABLE_ELEMENT_TRAVELTYPE,
 	SMCTABLE_ELEMENT_SHORTNAME,
+	SMCTABLE_ELEMENT_BADSECTOR,
 } SMCTABLE_PARSE_STAGE;
 
 typedef struct
@@ -138,7 +139,7 @@ smctableStartElementHandle(void *userData, const XML_Char *name, const XML_Char 
 		}
 		else if(strcmp(name, "BadSector") == 0 && pData->curElement == SMCTABLE_ELEMENT_SECTOR)
 		{
-			pData->curElement = SMCTABLE_ELEMENT_TRAVELTYPE;
+			pData->curElement = SMCTABLE_ELEMENT_BADSECTOR;
 			pData->maxReadDepth++; //we are not skipping this element
 		}
 		pData->szCharData[0] = '\0';
@@ -258,6 +259,10 @@ smctableEndElementHandle(void *userData, const XML_Char *name)
 			{
 				trav_type = HILLS;
 			}
+			else if(strcmp(pData->szCharData, "GROUNDBARRIER") == 0)
+			{
+				trav_type = GROUNDBARRIER;
+			}
 			else if(strcmp(pData->szCharData, "NS_RIVER") == 0)
 			{
 				trav_type = NS_RIVER;
@@ -320,7 +325,9 @@ smctableEndElementHandle(void *userData, const XML_Char *name)
 			}
 			else
 			{
-				trav_type = GROUNDBARRIER;
+				// silversurfer: don't just assign type GROUNDBARRIER. Let modders know that traversal data is incorrect!
+				AssertMsg(0, String( "Incorrect traversal data '%s' for sector row=%d column=%d in MovementCosts.xml!", pData->szCharData, pData->uiRowNumber, pData->uiColNumber) );
+				//trav_type = GROUNDBARRIER;
 			}
 			// Now assign it to the correct directory using the close tag as a guide
 			if(strcmp(name, "North") == 0)
@@ -343,11 +350,6 @@ smctableEndElementHandle(void *userData, const XML_Char *name)
 			{
 				pData->travHere = trav_type;
 			}
-			else if(strcmp(name, "BadSector") == 0)
-			{
-				bool fBadSector = atoi(pData->szCharData) > 0;
-				sBadSectorsList[pData->uiColNumber][pData->uiRowNumber] = fBadSector;
-			}
 			else
 			{
 				// Bogus Traversal Reference
@@ -357,15 +359,13 @@ smctableEndElementHandle(void *userData, const XML_Char *name)
 			//fprintf (outfile, "Exiting Traversal Type\n");
 			pData->curElement = SMCTABLE_ELEMENT_SECTOR;
 		}
-		//else if(strcmp(name, "Shortname") == 0 && pData->curElement == SMCTABLE_ELEMENT_SHORTNAME)
-		//{
-		//	// Copy this string into the pTownNames array
-		//	//fprintf(outfile, "Element data: %s\n", pData->szCharData);
-		//	strncpy(pData->szCustomShortname, pData->szCharData, MAX_SECTORNAME_LENGTH);
-		//	//fprintf(outfile, "Shortname extracted: %s\n", pData->szCustomShortname);
-		//	pData->curElement = SMCTABLE_ELEMENT_SECTOR;
-		//	//fprintf(outfile, "Exiting Shortname\n");
-		//}
+		else if(pData->curElement == SMCTABLE_ELEMENT_BADSECTOR)
+		{
+			bool fBadSector = atoi(pData->szCharData) > 0;
+			sBadSectorsList[pData->uiColNumber][pData->uiRowNumber] = fBadSector;
+
+			pData->curElement = SMCTABLE_ELEMENT_SECTOR;
+		}
 
 		pData->maxReadDepth--;
 	}
