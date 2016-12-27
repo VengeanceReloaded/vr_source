@@ -2984,24 +2984,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 				if ( fCtrl )
 				{
-#ifdef GERMAN
-					if ( gubCheatLevel == 3 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else if ( gubCheatLevel == 5 )
-					{
-						gubCheatLevel++;
-						// ATE; We're done.... start cheat mode....
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_TWO ] );
-						SetHistoryFact( HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), -1, -1 );
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#else
 					if ( gubCheatLevel == 1 )
 					{
 						gubCheatLevel++;
@@ -3011,7 +2993,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 					{
 						RESET_CHEAT_LEVEL();
 					}
-#endif
 				}
 				else if ( fAlt )
 				{
@@ -3056,38 +3037,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-#ifndef GERMAN
-					if ( gubCheatLevel == 2 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else if ( gubCheatLevel == 3 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else if ( gubCheatLevel == 5 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL( );
-					}
-#else
-					if ( gubCheatLevel == 6 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL( );
-					}
-#endif
-					//gGameSettings.fOptions[ TOPTION_HIDE_BULLETS ] ^= TRUE;
+
 				}
 				else
 				{
@@ -3241,12 +3191,22 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 						ToggleViewAllItems();
 					}
 				}
-#ifdef JA2BETAVERSION
 				else if( fCtrl )
 				{
-					ToggleMapEdgepoints();
-				}
+					if ( gubCheatLevel == 3 )
+					{
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+					}
+					else
+					{
+						RESET_CHEAT_LEVEL();
+#ifdef JA2BETAVERSION			
+						ToggleMapEdgepoints();
 #endif
+					}
+				}
+
 				else
 				{
 					SOLDIERTYPE *pSoldier;
@@ -3376,17 +3336,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-#ifdef GERMAN
-					if ( gubCheatLevel == 1 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#else
 					if ( gubCheatLevel == 0 )
 					{
 						gubCheatLevel++;
@@ -3396,7 +3345,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 					{
 						RESET_CHEAT_LEVEL();
 					}
-#endif
 				}
 				else if ( fAlt )
 				{
@@ -3483,26 +3431,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-#ifdef GERMAN
-					if ( gubCheatLevel == 0 )
-					{
-						fGoodCheatLevelKey = TRUE;
-						gubCheatLevel++;
-					}
-#else
-					if ( gubCheatLevel == 4 )
-					{
-						gubCheatLevel++;
-						fGoodCheatLevelKey = TRUE;
-						// ATE; We're done.... start cheat mode....
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_TWO ] );
-						SetHistoryFact( HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), -1, -1 );
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();						
-					}
-#endif
+
 				}
 				else
 				{
@@ -3800,7 +3729,17 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-					if ( INFORMATION_CHEAT_LEVEL( ) )
+					if ( gubCheatLevel == 2 )
+					{
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+					}
+					else
+					{
+						RESET_CHEAT_LEVEL();
+					}
+
+					if ( INFORMATION_CHEAT_LEVEL( ) && !fGoodCheatLevelKey )
 					{
 						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Memory Used: %d + %d = %d vs: %d", guiMemTotal, giMemUsedInSurfaces, ( guiMemTotal + giMemUsedInSurfaces), ( giStartingMemValue - MemGetFree() ) );
 					}
@@ -3903,37 +3842,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else if( fCtrl )
 				{
-#ifdef GERMAN
-					if ( gubCheatLevel == 4 )
-					{
-						fGoodCheatLevelKey = TRUE;
-						gubCheatLevel++;
-#if 0
-						// ATE: Level one reached.....
-						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_ONE ] );
-#endif
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#endif
 
-#if 0
-					if ( INFORMATION_CHEAT_LEVEL( ) )
-					{
-						if( gfUIShowCurIntTile ^= TRUE )
-						{
-							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Turning Enhanced mouse detection ON." );
-							gubIntTileCheckFlags	= INTILE_CHECK_FULL;
-						}
-						else
-						{
-							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Turning Enhanced mouse detection OFF." );
-							gubIntTileCheckFlags	= INTILE_CHECK_SELECTIVE;
-						}
-					}
-#endif
 				}
 				else
 					if( !CycleSoldierFindStack( usMapPos ) )// Are we over a merc stack?
@@ -4034,6 +3943,21 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 				break;
 			case 'r':
+				if( fCtrl )
+				{
+					if ( gubCheatLevel == 4 )
+					{
+						gubCheatLevel++;
+						fGoodCheatLevelKey = TRUE;
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_CHEAT_LEVEL_TWO ] );
+						SetHistoryFact( HISTORY_CHEAT_ENABLED, 0, GetWorldTotalMin(), -1, -1 );
+						break;
+					}
+					else
+					{
+						RESET_CHEAT_LEVEL();
+					}
+				}
 				if( gusSelectedSoldier != NOBODY )
 				{
 					if( fAlt ) //reload selected merc's weapon
@@ -4047,9 +3971,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 					}
 					else if( fCtrl )
 					{
-						if ( INFORMATION_CHEAT_LEVEL( ) )
-						{
-						}
 						RefreshAllNPCScripts();
 					}
 					else
@@ -4180,18 +4101,6 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				{
 					INT32 cnt;
 					SOLDIERTYPE *pSoldier;
-
-#ifdef GERMAN
-					if ( gubCheatLevel == 2 )
-					{
-						fGoodCheatLevelKey = TRUE;
-						gubCheatLevel++;
-					}
-					else
-					{
-						RESET_CHEAT_LEVEL();
-					}
-#endif
 
 					if ( CHEATER_CHEAT_LEVEL( ) && gusSelectedSoldier != NOBODY )
 					{
@@ -4472,18 +4381,10 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 
 			}
 
-#ifdef GERMAN
-			if ( !fGoodCheatLevelKey && gubCheatLevel < 5 )
-			{
-				RESET_CHEAT_LEVEL( );
-			}
-#else
 			if ( !fGoodCheatLevelKey && gubCheatLevel < 4 )
 			{
 				RESET_CHEAT_LEVEL( );
 			}
-#endif
-
 		}
 	}
 }
