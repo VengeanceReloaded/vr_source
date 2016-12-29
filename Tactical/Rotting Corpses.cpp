@@ -1805,7 +1805,25 @@ BOOLEAN IsValidDecapitationCorpse( ROTTING_CORPSE *pCorpse )
 
 ROTTING_CORPSE *GetCorpseAtGridNo( INT32 sGridNo, INT8 bLevel )
 {
-	STRUCTURE				*pStructure, *pBaseStructure;
+	INT32			cnt;
+	ROTTING_CORPSE *pCorpse;
+
+	for ( cnt = 0; cnt < giNumRottingCorpse; ++cnt )
+	{
+		pCorpse = &(gRottingCorpse[ cnt ] );
+
+		if( pCorpse &&
+			pCorpse->fActivated &&
+			pCorpse->def.bLevel == bLevel &&
+			pCorpse->def.sGridNo == sGridNo)
+		{
+			return pCorpse;
+		}
+	}
+
+	return NULL;
+
+	/*STRUCTURE				*pStructure, *pBaseStructure;
 	INT32 sBaseGridNo;
 
 	pStructure = FindStructure( sGridNo, STRUCTURE_CORPSE );
@@ -1824,7 +1842,7 @@ ROTTING_CORPSE *GetCorpseAtGridNo( INT32 sGridNo, INT8 bLevel )
 		}
 	}
 
-	return( NULL );
+	return( NULL );*/
 }
 
 

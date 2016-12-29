@@ -35,6 +35,7 @@
 	#include "Game Clock.h"
 	#include "Init.h"
 	#include "InterfaceItemImages.h"
+	#include "cheats.h"					// sevenfm
 #endif
 
 #include "KeyMap.h"
@@ -4194,6 +4195,12 @@ BOOLEAN SetMeanwhileSceneSeen( UINT8 ubMeanwhile )
 
 BOOLEAN	CanGameBeSaved()
 {
+	// sevenfm: always can save in cheat mode
+	if( CHEATER_CHEAT_LEVEL() )
+	{
+		return TRUE;
+	}
+
 	//if the iron man mode is on
 	if( gGameOptions.fIronManMode )
 	{

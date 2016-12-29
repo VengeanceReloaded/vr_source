@@ -13566,6 +13566,12 @@ BOOLEAN TransformationMenuPopup_TestValid(TransformInfoStruct * Transform)
 // Flugente: This function handles callback when the 'ARM' option in the item transformation menu is clicked
 void TransformationMenuPopup_Arm( OBJECTTYPE* pObj )
 {
+	// sevenfm: hide transformation menu
+	if (gItemDescTransformPopup != NULL && gfItemDescTransformPopupInitialized == TRUE)
+	{
+		gItemDescTransformPopup->hide();
+	}
+
 	// cant handle item stacks here
 	if (gpItemDescObject->ubNumberOfObjects > 1)
 	{
@@ -13608,6 +13614,11 @@ void TransformationMenuPopup_Arm( OBJECTTYPE* pObj )
 			}
 
 			DeleteObj( pObj );
+
+			// sevenfm: correctly update interface
+			gfSkipDestroyTransformPopup = TRUE;
+			DeleteItemDescriptionBox();
+			gfSkipDestroyTransformPopup = FALSE;
 
 			return;
 		}
@@ -13751,6 +13762,11 @@ void BombInventoryMessageBoxCallBack( UINT8 ubExitValue )
 				}
 
 				DeleteObj( gpItemDescObject );
+
+				// sevenfm: correctly update interface
+				gfSkipDestroyTransformPopup = TRUE;
+				DeleteItemDescriptionBox();
+				gfSkipDestroyTransformPopup = FALSE;
 
 				return;
 			}

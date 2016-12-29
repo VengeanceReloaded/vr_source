@@ -4167,7 +4167,9 @@ INT32 SellItem( OBJECTTYPE& object, BOOLEAN fAll, BOOLEAN useModifier )
 	{
 		//we are selling ammo
 		UINT16 magSize = Magazine[ Item[ usItemType ].ubClassIndex ].ubMagSize;
-		for (UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ubLoop++)
+		// sevenfm: r8275
+		//for (UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ubLoop++)
+		for (UINT8 ubLoop = 0; ubLoop < ubNumberOfObjects; ubLoop++)
 		{
 			iPrice += (INT32)( itemPrice * (float) object[ubLoop]->data.ubShotsLeft / magSize );
 		}
@@ -4175,7 +4177,9 @@ INT32 SellItem( OBJECTTYPE& object, BOOLEAN fAll, BOOLEAN useModifier )
 	//CHRISL: If we're dealing with money, we want to use the money's amount and just return that value with no modification
 	else if(Item[usItemType].usItemClass == IC_MONEY)
 	{
-		for (UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ubLoop++)
+		// sevenfm: r8275
+		//for (UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ubLoop++)
+		for (UINT8 ubLoop = 0; ubLoop < ubNumberOfObjects; ubLoop++)
 		{
 			iPrice += (INT32)(object[ubLoop]->data.money.uiMoneyAmount);
 		}
@@ -4185,7 +4189,9 @@ INT32 SellItem( OBJECTTYPE& object, BOOLEAN fAll, BOOLEAN useModifier )
 	{
 		//CHRISL: If we're selling an LBE Item, we need to verify if it's an LBENODE, first.  If it is, we need to sell
 		//	everything stored in the LBENODE before we sell teh LBE Item itself.
-		for(UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ++ubLoop)
+		// sevenfm: r8275
+		//for(UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ++ubLoop)
+		for(UINT8 ubLoop = 0; ubLoop < ubNumberOfObjects; ++ubLoop)
 		{
 			if(object.IsActiveLBE(ubLoop) == true)
 			{
@@ -4216,7 +4222,9 @@ INT32 SellItem( OBJECTTYPE& object, BOOLEAN fAll, BOOLEAN useModifier )
 	else
 	{
 		//we are selling a gun or something - it could be stacked or single, and if single it could have attachments
-		for (UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ubLoop++)
+		// sevenfm: r8275
+		//for (UINT8 ubLoop = 0; ubLoop < object.ubNumberOfObjects; ubLoop++)
+		for (UINT8 ubLoop = 0; ubLoop < ubNumberOfObjects; ubLoop++)
 		{
 			iPrice += ( itemPrice * object[ubLoop]->data.objectStatus / 100 );
 			for (attachmentList::iterator iter = object[ubLoop]->attachments.begin(); iter != object[ubLoop]->attachments.end(); ++iter) {

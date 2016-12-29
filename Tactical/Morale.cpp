@@ -340,6 +340,16 @@ void RefreshSoldierMorale( SOLDIERTYPE * pSoldier )
 	iActualMorale	+= ( ( pSoldier->drugs.bDrugEffect[ DRUG_TYPE_ADRENALINE ] * gMoraleSettings.sDrugAndAlcoholModifiers[DRUG_EFFECT_MORALE_MOD] ) / 100 );
 	iActualMorale	+= ( ( pSoldier->drugs.bDrugEffect[ DRUG_TYPE_ALCOHOL ] * gMoraleSettings.sDrugAndAlcoholModifiers[ALCOHOL_EFFECT_MORALE_MOD] ) / 100 );
 
+	// sevenfm: bonus 20% to morale when using walkman
+	if( FindWalkman(pSoldier) != NO_SLOT &&
+		pSoldier->bDeafenedCounter == 0 )
+	{
+		if( gMercProfiles[ pSoldier->ubProfile ].bDisability == DEAF )
+			iActualMorale += iActualMorale / 10;
+		else
+			iActualMorale += iActualMorale / 5;
+	}
+
 	iActualMorale = __min( 100, iActualMorale );
 	iActualMorale = __max( 0, iActualMorale );
 

@@ -12529,7 +12529,13 @@ INT8 FindWalkman( SOLDIERTYPE * pSoldier )
 {
 	for (INT8 bLoop = BODYPOSSTART; bLoop < BODYPOSFINAL; bLoop++)
 	{
-		if (pSoldier->inv[bLoop].exists() == true) {
+		// sevenfm: walkman only works from head slot
+		if( bLoop != HEAD1POS && bLoop != HEAD2POS )
+		{
+			continue;
+		}
+		if (pSoldier->inv[bLoop].exists() == true) 
+		{
 			if (Item[pSoldier->inv[bLoop].usItem].walkman  )
 			{
 				return( bLoop );

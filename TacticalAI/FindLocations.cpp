@@ -1811,33 +1811,6 @@ INT8 SearchForItems( SOLDIERTYPE * pSoldier, INT8 bReason, UINT16 usItem )
 		iSearchRange = DAY_VISION_RANGE/4;
 	}
 
-	/*iSearchRange = gbDiff[DIFF_MAX_COVER_RANGE][ SoldierDifficultyLevel( pSoldier ) ];
-
-	switch (pSoldier->aiData.bAttitude)
-	{
-		case DEFENSIVE:		iSearchRange --;	break;
-		case BRAVESOLO:		iSearchRange += 2; break;
-		case BRAVEAID:		iSearchRange += 2; break;
-		case CUNNINGSOLO:	iSearchRange -= 2; break;
-		case CUNNINGAID:	iSearchRange -= 2; break;
-		case AGGRESSIVE:	iSearchRange ++;	break;
-	}
-
-	// maximum search range is 1 tile / 10 pts of wisdom
-	if (iSearchRange > (pSoldier->stats.bWisdom / 10))
-	{
-		iSearchRange = (pSoldier->stats.bWisdom / 10);
-	}
-
-	if (!gfTurnBasedAI)
-	{
-		// don't search so far in realtime
-		iSearchRange /= 2;
-	}
-
-	// don't search so far for items
-	iSearchRange /= 2;*/
-
 	// determine maximum horizontal limits
 	sMaxLeft  = min( iSearchRange, (pSoldier->sGridNo % MAXCOL));
 	//NumMessage("sMaxLeft = ",sMaxLeft);
@@ -1959,7 +1932,10 @@ INT8 SearchForItems( SOLDIERTYPE * pSoldier, INT8 bReason, UINT16 usItem )
 									// jammed or out of ammo, skip it!
 									iTempValue = 0;
 								}
-								else if ( Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON )
+								// sevenfm: compare deadliness only if weapon in hand is a gun (not a launcher, knife etc...)
+								// for example, we should pick up a gun if we hold a launcher in our hands
+								else if ( Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_GUN )
+								//else if ( Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON )
 								{
 									if (Weapon[pObj->usItem].ubDeadliness > Weapon[pSoldier->inv[HANDPOS].usItem].ubDeadliness)
 									{

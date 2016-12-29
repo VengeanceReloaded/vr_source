@@ -4258,7 +4258,12 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			{
 				uiValue += 2;
 			}
-			// finally, basic value is 1..16
+			// wearing or carrying backpack is suspicious
+			if ( UsingNewInventorySystem() && FindBackpackOnSoldier( pSoldier ) )
+			{
+				uiValue += 4;
+			}
+			// finally, basic value is 1..20
 
 			// bonus for suspicious movement mode
 			if ( pSoldier->bStealthMode || 

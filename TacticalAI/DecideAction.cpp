@@ -5026,6 +5026,19 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 					if (BestStab.ubPossible)
 					{
+						INT32 sAttackDist = PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget);
+						INT32 sMaxStabAttackDist = DAY_VISION_RANGE / 8;
+						// sevenfm: limit HTH attacks when target is not very close
+						if( sAttackDist > sMaxStabAttackDist )
+						{
+							BestStab.iAttackValue = BestStab.iAttackValue * sMaxStabAttackDist / sAttackDist;
+						}
+
+						if ( !HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) )
+						{
+							BestStab.iAttackValue /= 4;
+						}
+
 						// now we KNOW FOR SURE that we will do something (stab, at least)
 						NPCDoesAct(pSoldier);
 						DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"NPC decided to stab");
@@ -5071,62 +5084,31 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 					if (BestStab.ubPossible)
 					{
-						// if we have not enough APs to deal at least two or three punches, 
-						// reduce the attack value as one punch ain't much
-						if( gGameOptions.fNewTraitSystem )
+						INT32 sAttackDist = PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget);
+						INT32 sMaxStabAttackDist = DAY_VISION_RANGE / 8;
+						// sevenfm: limit HTH attacks when target is not very close
+						if( sAttackDist > sMaxStabAttackDist )
 						{
-							// if we are not specialized, reduce the attack attractiveness generaly
-							if ( !HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) )
-							{
-								BestStab.iAttackValue /= 4; 
-								// if too far and not having APs for at least 3 hits no way to attack
-								if (((CalcTotalAPsToAttack( pSoldier,BestStab.sTarget,ADDTURNCOST, 0 ) + (2 * (ApsToPunch( pSoldier )))) > pSoldier->bActionPoints) && !(PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget) <= 1) ) 
-								{
-									BestStab.ubPossible = 0; 
-									BestStab.iAttackValue = 0; 
-								}
-							}
-							else
-							{
-								if (PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget) <= 1)
-								{
-									BestStab.iAttackValue = (BestStab.iAttackValue * 2); 
-								}
-								// if too far and not having APs for at least 2 hits
-								else if (((CalcTotalAPsToAttack( pSoldier,BestStab.sTarget,ADDTURNCOST, 0 ) + ApsToPunch( pSoldier )) > pSoldier->bActionPoints) && !(PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget) <= 1))
-								{
-									BestStab.iAttackValue /= 3; 
-								}
-							}
+							//BestStab.iAttackValue /= 2;
+							BestStab.iAttackValue = BestStab.iAttackValue * sMaxStabAttackDist / sAttackDist;
 						}
-						else 
-						{
-							if ( !HAS_SKILL_TRAIT( pSoldier, MARTIALARTS_OT ) && !HAS_SKILL_TRAIT( pSoldier, HANDTOHAND_OT ) )
-							{
-								// if we are not specialized, reduce the attack attractiveness generaly
-								BestStab.iAttackValue /= 4; 
-								// if too far and not having APs for at least 3 hits
-								if (((CalcTotalAPsToAttack( pSoldier,BestStab.sTarget,ADDTURNCOST, 0 ) + (2 * (ApsToPunch( pSoldier )))) > pSoldier->bActionPoints) && !(PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget <= 1)) )
-								{
-									BestStab.ubPossible = 0; 
-									BestStab.iAttackValue = 0; 
-								}
-							}
-							else
-							{
-								BestStab.iAttackValue = ((BestStab.iAttackValue * 3)/2); 
 
-								if (PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget) <= 1)
-								{
-									BestStab.iAttackValue = ((BestStab.iAttackValue * 3)/2); 
-								}
-								// if too far and not having APs for at least 2 hits
-								else if (((CalcTotalAPsToAttack( pSoldier,BestStab.sTarget,ADDTURNCOST, 0 ) + ApsToPunch( pSoldier )) > pSoldier->bActionPoints) && !(PythSpacesAway(pSoldier->sGridNo, BestStab.sTarget <= 1)) )
-								{
-									BestStab.iAttackValue /= 3;
-								}
+						// if we are not specialized, reduce the attack attractiveness generally
+						if( !HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && 
+							!HAS_SKILL_TRAIT( pSoldier, MARTIALARTS_OT ) && 
+							!HAS_SKILL_TRAIT( pSoldier, HANDTOHAND_OT ) )
+						{
+							BestStab.iAttackValue /= 4; 
+						}
+						else
+						{
+							// if too far and not having APs for at least 2 hits
+							if( (CalcTotalAPsToAttack( pSoldier,BestStab.sTarget,ADDTURNCOST, 0 ) + ApsToPunch( pSoldier )) > pSoldier->bActionPoints )
+							{
+								BestStab.iAttackValue /= 2;
 							}
 						}
+
 						// now we KNOW FOR SURE that we will do something (stab, at least)
 						NPCDoesAct(pSoldier);
 						DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"NPC decided to punch");
@@ -5162,6 +5144,19 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 			BestAttack.iAttackValue = BestShot.iAttackValue;
 			ubBestAttackAction = AI_ACTION_FIRE_GUN;
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"best action = fire gun");
+
+			// sevenfm: limit HTH/melee attacks if not specialist and the target is not very close
+			if( BestStab.ubPossible && 
+				!TileIsOutOfBounds(BestStab.sTarget) &&
+				SpacesAway(pSoldier->sGridNo, BestStab.sTarget) > 1 &&
+				!(Item[ pSoldier->inv[BestStab.bWeaponIn].usItem ].usItemClass & IC_THROWING_KNIFE) &&				
+				!HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) &&
+				!HAS_SKILL_TRAIT( pSoldier, MARTIALARTS_OT ) &&
+				!HAS_SKILL_TRAIT( pSoldier, HANDTOHAND_OT ) &&
+				!HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) )
+			{
+				BestStab.ubPossible = FALSE;
+			}
 		}
 		else
 		{
@@ -5664,7 +5659,9 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 							else if( UsingNewCTHSystem() )
 							{
 								ubChanceLegs += 15;
-							}							
+							}
+							// don't waste bullets shooting at legs with low CTH
+							ubChanceLegs = ubChanceLegs * ubRealCTH / 100;
 						}
 
 						// check if head shot is possible
@@ -5688,7 +5685,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 #ifdef ENABLE_ZOMBIES
 							if( MercPtrs[BestAttack.ubOpponent]->IsZombie() )
 							{
-								ubChanceHead += 30;
+								ubChanceHead += 50;
 							}
 #endif
 						
@@ -6076,39 +6073,48 @@ L_NEWAIM:
 			}
 
 		}
-		// SANDRO - chance to make aimed punch/stab for martial arts/melee 
-		else if (ubBestAttackAction == AI_ACTION_KNIFE_MOVE && gGameOptions.fNewTraitSystem)
+		else if (ubBestAttackAction == AI_ACTION_KNIFE_MOVE)
 		{
 			// sevenfm: don't change aim time calculated in CalsBestStab
 			pSoldier->aiData.bAimTime = BestAttack.ubAimTime;
 
-			/*pSoldier->aiData.bAimTime = 0;
-			iChance = 0;
-
-			if (Item[pSoldier->inv[BestAttack.bWeaponIn].usItem].usItemClass == IC_PUNCH)
+			// sevenfm: dynamically decide stab location
+			if( BestAttack.ubOpponent != NOBODY )
 			{
-				if ( gGameExternalOptions.fEnhancedCloseCombatSystem )
-					iChance += 30;
-				if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT) )
-					iChance += 30 * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT);
+				UINT32	uiRoll;
+				UINT8	ubChanceHead = 0;
+				UINT8	ubRealCTH = BestAttack.ubChanceToReallyHit;
 
-				if( (INT32)PreRandom( 100 ) <= iChance )
+				// by default stab at torso
+				pSoldier->bAimShotLocation = AIM_SHOT_TORSO;
+
+				// attack to head randomly
+				if( gAnimControl[ MercPtrs[BestAttack.ubOpponent]->usAnimState ].ubEndHeight != ANIM_PRONE )
+				{	
+					ubChanceHead = 6;
+
+					if( HAS_SKILL_TRAIT(pSoldier, MARTIAL_ARTS_NT))
+					{
+						ubChanceHead += 5 * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT);
+					}
+
+					ubChanceHead += ubRealCTH / 2;
+
+					ubChanceHead = ubChanceHead * ubRealCTH / 100;
+				}
+
+				// randomly decide hit location
+				uiRoll = PreRandom( 100 );					
+
+				if (uiRoll > 100 - ubChanceHead)
 				{
-					pSoldier->aiData.bAimTime = (gGameExternalOptions.fEnhancedCloseCombatSystem ? gSkillTraitValues.ubModifierForAPsAddedOnAimedPunches : 6);
+					pSoldier->bAimShotLocation = AIM_SHOT_HEAD;
+				}
+				else
+				{
+					pSoldier->bAimShotLocation = AIM_SHOT_TORSO;
 				}
 			}
-			else
-			{
-				if ( gGameExternalOptions.fEnhancedCloseCombatSystem )
-					iChance += 30;
-				if (HAS_SKILL_TRAIT( pSoldier, MELEE_NT))
-					iChance += 30;
-
-				if( (INT32)PreRandom( 100 ) <= iChance )
-				{
-					pSoldier->aiData.bAimTime = (gGameExternalOptions.fEnhancedCloseCombatSystem ? gSkillTraitValues.ubModifierForAPsAddedOnAimedBladedAttackes : 6);
-				}
-			}*/
 		}
 
 		//////////////////////////////////////////////////////////////////////////

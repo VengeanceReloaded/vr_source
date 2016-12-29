@@ -3142,6 +3142,16 @@ SOLDIERTYPE* TacticalCreateMilitia( UINT8 ubMilitiaClass, INT16 sX, INT16 sY )
 	//bp.bAttitude = AGGRESSIVE;
 	bp.bBodyType = -1;
 	CreateDetailedPlacementGivenBasicPlacementInfo( &pp, &bp, sX, sY );
+
+	// sevenfm: r8229 fix
+	// Flugente: this might not be properly filled in autoresolve
+	if ( guiCurrentScreen == AUTORESOLVE_SCREEN )
+	{
+		pp.sSectorX = sX;
+		pp.sSectorY = sY;
+		pp.bSectorZ = 0;
+	}
+
 	pSoldier = TacticalCreateSoldier( &pp, &ubID );
 
 	return pSoldier;

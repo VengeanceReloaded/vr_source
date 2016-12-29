@@ -1613,18 +1613,6 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 		if ( ubMinAPCost > pSoldier->bActionPoints || ubMinAPCost == 0 )
 		{
 			continue;
-			/*
-			if ( CREATURE_OR_BLOODCAT( pSoldier ) )
-			{
-			// hardcode ubMinAPCost so that aiming time is 0 and can start move to stab
-			// at any time
-			ubMinAPCost = pSoldier->bActionPoints;
-			}
-			else
-			{
-			continue;			// next merc
-			}
-			*/
 		}
 
 		//KeepInterfaceGoing();
@@ -1634,6 +1622,12 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 		ubRawAPCost = MinAPsToAttack(pSoldier,pOpponent->sGridNo, FALSE,0) - APBPConstants[AP_CHANGE_TARGET];
 		//NumMessage("ubRawAPCost to stab this opponent = ",ubRawAPCost);
 
+		// sevenfm: minimum possible value for ubRawAPCost
+		if (ubRawAPCost < 1)
+		{
+			//ubRawAPCost = ubMinAPCost;
+			ubRawAPCost = 1;
+		}
 
 		// determine if this is a surprise stab (must be next to opponent & unseen)
 		fSurpriseStab = FALSE;		// assume it is not a surprise stab
@@ -1688,7 +1682,9 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 
 			//iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
 			// sevenfm: 100AP system
-			iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
+			// sevenfm: take into account pathing and turning
+			//iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
+			iHitRate = ((pSoldier->bActionPoints - ubMinAPCost) * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
 			//NumMessage("hitRate = ",iHitRate);
 
 			// if aiming for this amount of time produces a better hit rate
@@ -1710,8 +1706,8 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 
 		// calculate this opponent's threat value
 		// NOTE: ignore my cover!	By the time I run beside him I won't have any!
-		iThreatValue = CalcManThreatValue(pOpponent,pSoldier->sGridNo,FALSE,pSoldier);
-
+		//iThreatValue = CalcManThreatValue(pOpponent,pSoldier->sGridNo,FALSE,pSoldier);
+		iThreatValue = CalcManThreatValue(pOpponent,pSoldier->sGridNo,TRUE,pSoldier);
 
 		// estimate the damage this stab would do to this opponent
 		iEstDamage = EstimateStabDamage(pSoldier,pOpponent,ubBestChanceToHit, fBladeAttack );
@@ -1828,6 +1824,13 @@ void CalcTentacleAttack(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab )
 		ubRawAPCost = MinAPsToAttack(pSoldier,pOpponent->sGridNo, FALSE,0) - APBPConstants[AP_CHANGE_TARGET];
 		//NumMessage("ubRawAPCost to stab this opponent = ",ubRawAPCost);
 
+		// sevenfm: set minimum possible AP cost
+		if (ubRawAPCost < 1)
+		{
+			//ubRawAPCost = ubMinAPCost;
+			ubRawAPCost = 1;
+		}
+
 		// determine if this is a surprise stab (for tentacles, enemy must not see us, no dist limit)
 		fSurpriseStab = FALSE;		// assume it is not a surprise stab
 
@@ -1864,9 +1867,6 @@ void CalcTentacleAttack(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab )
 
 			//sprintf(tempstr,"Vs. %s, at AimTime %d, ubChanceToHit = %d",ExtMen[pOpponent->ubID].name,ubAimTime,ubChanceToHit);
 			//PopMessage(tempstr);
-
-			if (ubRawAPCost < 1)
-				ubRawAPCost = ubMinAPCost;
 
 			//iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / (ubRawAPCost + ubAimTime);
 			// sevenfm: 100AP system
@@ -1954,6 +1954,7 @@ INT32 EstimateShotDamage(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT16 ub
 {
 	INT32 iRange,iMaxRange,iPowerLost;
 	INT32 iDamage;
+	INT32 iDamageBeforeArmour;
 	UINT8 ubBonus;
 	INT32 iHeadProt = 0, iTorsoProt = 0, iLegProt = 0;
 	INT32 iTotalProt;
@@ -1961,14 +1962,6 @@ INT32 EstimateShotDamage(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT16 ub
 	UINT8	ubAmmoType;
 	UINT16 usItem;
 	OBJECTTYPE *pObj;
-
-	/*
-	if ( pOpponent->flags.uiStatusFlags & SOLDIER_VEHICLE )
-	{
-	// only thing that can damage vehicles is HEAP rounds?
-	return( 0 );
-	}
-	*/
 
 	pObj = &(pSoldier->inv[pSoldier->ubAttackingHand]);
 	usItem = pObj->usItem;
@@ -2045,30 +2038,18 @@ INT32 EstimateShotDamage(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT16 ub
 
 	iTotalProt = ((15 * iHeadProt) + (75 * iTorsoProt) + 5 * iLegProt) / 100;
 	iTotalProt = (INT32) (iTotalProt * AmmoTypes[ubAmmoType].armourImpactReductionMultiplier / max(1,AmmoTypes[ubAmmoType].armourImpactReductionDivisor) );
-	//switch (ubAmmoType)
-	//{
-	//	case AMMO_HP:
-	//		iTotalProt = AMMO_ARMOUR_ADJUSTMENT_HP( iTotalProt );
-	//		break;
-	//	case AMMO_AP:
-	//		iTotalProt = AMMO_ARMOUR_ADJUSTMENT_AP( iTotalProt );
-	//		break;
-	//	case AMMO_SUPER_AP:
-	//		iTotalProt = AMMO_ARMOUR_ADJUSTMENT_SAP( iTotalProt );
-	//		break;
-	//	default:
-	//		break;
-	//}
 
-	iDamage -= iTotalProt;
-	//NumMessage("After-protection damage: ",damage);
+	iDamageBeforeArmour = iDamage;
+	//iDamage -= iTotalProt;
+	iDamage = __max(0, iDamage - iTotalProt);
 
-	//if (ubAmmoType == AMMO_HP)
-	//{
-	//	// increase after-armour damage
-	//	iDamage = AMMO_DAMAGE_ADJUSTMENT_HP( iDamage );
-	//}
 	iDamage = (INT32)(iDamage * AmmoTypes[ubAmmoType].afterArmourDamageMultiplier / max(1,AmmoTypes[ubAmmoType].afterArmourDamageDivisor) ) ;
+
+	// sevenfm: take into account BP loss from hit
+	if( iDamage < iDamageBeforeArmour )
+	{
+		iDamage += (iDamageBeforeArmour - iDamage) / 2;
+	}
 
 	if (AmmoTypes[ubAmmoType].monsterSpit )
 	{
@@ -2108,20 +2089,6 @@ INT32 EstimateThrowDamage( SOLDIERTYPE *pSoldier, UINT8 ubItemPos, SOLDIERTYPE *
 	if( pSoldier->inv[ubItemPos].exists() == false )
 		return 0;
 
-
-	//switch ( pSoldier->inv[ ubItemPos ].usItem )
-	//{
-	//case GL_SMOKE_GRENADE:
-	//case SMOKE_GRENADE:
-	//	// Don't want to value throwing smoke very much.	This value is based relative
-	//	// to the value for knocking somebody down, which was giving values that were
-	//	// too high
-	//	return( 5 );
-	//case RPG7:
-	//case ROCKET_LAUNCHER:
-	//	ubExplosiveIndex = Item[ C1 ].ubClassIndex;
-	//	break;
-	//default:
 	if ( Item[pSoldier->inv[ ubItemPos ].usItem].singleshotrocketlauncher )
 		ubExplosiveIndex = Item[ C1 ].ubClassIndex;
 	else if ( Item[pSoldier->inv[ ubItemPos ].usItem].rocketlauncher || Item[pSoldier->inv[ ubItemPos ].usItem].grenadelauncher || Item[pSoldier->inv[ ubItemPos ].usItem].mortar )
@@ -2222,12 +2189,6 @@ INT32 EstimateThrowDamage( SOLDIERTYPE *pSoldier, UINT8 ubItemPos, SOLDIERTYPE *
 	// then use that to reduce the expected damage because thing may not blow!
 	iDamage = (iDamage * pSoldier->inv[ubItemPos][0]->data.objectStatus) / 100;
 
-	// if the target gridno is in water, grenade may not blow (guess 50% of time)
-	/*
-	if (TTypeList[Grid[gridno].land] >= LAKETYPE)
-	iDamage /= 2;
-	*/
-
 	return( iDamage);
 }
 
@@ -2304,13 +2265,6 @@ INT32 EstimateStabDamage( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent,
 				{
 					// also add breath damage bonus into consideration
 					iImpact = (INT32)((iImpact * ( 100 + (gSkillTraitValues.ubMABonusDamageHandToHand + gSkillTraitValues.ubMABonusBreathDamageHandToHand) * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT ) ) / 100) + 0.5);
-
-
-					// The Spinning kicks or aimed punch bonus - SANDRO
-					//if (pSoldier->usAnimState == NINJA_SPINKICK || (pSoldier->aiData.bAimTime > 0))
-					//{
-					//	iImpact += (iImpact * gSkillTraitValues.usMAAimedPunchDamageBonus * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT ) ) / 100; // +75% damage per trait
-					//}
 				}
 			}
 			else
@@ -2319,11 +2273,6 @@ INT32 EstimateStabDamage( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent,
 				if (HAS_SKILL_TRAIT( pSoldier, MELEE_NT ))
 				{
 					iImpact = (INT32)((iImpact * (100 + gSkillTraitValues.ubMEDamageBonusBlunt)/100) + 0.5);
-
-					//if (pSoldier->aiData.bAimTime > 0)
-					//{
-					//	iImpact += (iImpact * (100 + gSkillTraitValues.usMEAimedMeleeAttackDamageBonus) / 100);  // 50% incresed damage if focused melee attack
-					//}
 				}
 			}
 		}
@@ -2346,8 +2295,9 @@ INT32 EstimateStabDamage( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent,
 		// Here, if we're doing a bare-fisted attack,
 		// we want to pay attention just to wounds inflicted
 		// SANDRO - No, we may consider the breath damage as asort of "real" damage too, so only reduce it by half
-		iImpact = iImpact / 2;
-		//iImpact = iImpact / PUNCH_REAL_DAMAGE_PORTION;
+
+		// sevenfm: divide by 4
+		iImpact = iImpact / 4;
 	}
 	// SANDRO - damage bonus to melee trait
 	else 
@@ -2355,11 +2305,6 @@ INT32 EstimateStabDamage( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent,
 		if ( HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) && (gGameOptions.fNewTraitSystem) )
 		{
 			iImpact += (iImpact * (100 + gSkillTraitValues.ubMEDamageBonusBlades ) / 100); // +30% damage
-			
-			//if (pSoldier->aiData.bAimTime > 0)
-			//{
-			//	iImpact += (iImpact * ( 100 + gSkillTraitValues.usMEAimedMeleeAttackDamageBonus ) / 100);  // 50% incresed damage if focused melee attack
-			//}
 		}
 		// SANDRO - Enhanced Close Combat System
 		if (gGameExternalOptions.fEnhancedCloseCombatSystem)
@@ -2594,13 +2539,6 @@ INT8 CanNPCAttack(SOLDIERTYPE *pSoldier)
 		AIPopMessage(tempstr);
 	}
 #endif
-
-	// sevenfm: possibly can attack with a grenade
-	INT8 bGrenadeIn = FindThrowableGrenade(pSoldier);
-	if(bGrenadeIn != NO_SLOT)
-	{
-		bCanAttack = TRUE;
-	}
 
 	return( bCanAttack );
 }
@@ -3106,6 +3044,15 @@ BOOLEAN AIDetermineStealingWeaponAttempt( SOLDIERTYPE * pSoldier, SOLDIERTYPE * 
 	{
 		return( FALSE );
 	}
+
+	// sevenfm: don't steal weapons from cowering or prone enemy to prevent possible bug
+	if( pOpponent->usAnimState == COWERING_PRONE || 
+		pOpponent->usAnimState == COWERING || 
+		gAnimControl[ pOpponent->usAnimState ].ubEndHeight == ANIM_PRONE )
+	{
+		return( FALSE );
+	}
+
 	pSoldier->usUIMovementMode = RUNNING;
 	if( pSoldier->bActionPoints < GetAPsToStealItem( pSoldier, NULL, pOpponent->sGridNo ) )
 	{

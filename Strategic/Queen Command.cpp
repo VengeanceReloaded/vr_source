@@ -567,6 +567,10 @@ BOOLEAN PrepareEnemyForSectorBattle()
 		}
 
 		ValidateEnemiesHaveWeapons();
+		
+		// sevenfm: r8162 fix
+		UnPauseGame();
+
 		return ( ( BOOLEAN) ( gpBattleGroup->ubGroupSize > 0 ) );
 	}
 
@@ -676,6 +680,10 @@ BOOLEAN PrepareEnemyForSectorBattle()
 			return FALSE;
 		AddSoldierInitListEnemyDefenceSoldiers( ubTotalAdmins, ubTotalTroops, ubTotalElites );
 		ValidateEnemiesHaveWeapons();
+
+		// sevenfm: r8162 fix
+		UnPauseGame();
+
 		return TRUE;
 	}
 	#endif
@@ -876,6 +884,9 @@ BOOLEAN PrepareEnemyForSectorBattle()
 
 	ValidateEnemiesHaveWeapons();
 
+	// sevenfm: r8162 fix
+	UnPauseGame();
+
 	return TRUE;
 }
 
@@ -901,6 +912,9 @@ BOOLEAN PrepareEnemyForUndergroundBattle()
 				pUnderground->ubElitesInBattle += ubTotalElites;
 				AddSoldierInitListEnemyDefenceSoldiers( pUnderground->ubNumAdmins, pUnderground->ubNumTroops, pUnderground->ubNumElites );
 				ValidateEnemiesHaveWeapons();
+
+				// sevenfm: r8162 fix
+				UnPauseGame();
 			}
 			return ( ( BOOLEAN) ( pUnderground->ubNumAdmins + pUnderground->ubNumTroops + pUnderground->ubNumElites > 0 ) );
 		}
@@ -1408,7 +1422,11 @@ void AddPossiblePendingEnemiesToBattle()
 		|| !NumEnemiesInSector( gWorldSectorX, gWorldSectorY ) ) return;
 
 	ubSlots = NumFreeEnemySlots();
-	if(gGameExternalOptions.sMinDelayEnemyReinforcements)//dnl ch68 080913
+
+	// sevenfm: r8131 fix
+	// silversurfer: Only if there are enemy troops in the sector already we can talk about "reinforcements". If no troops are there we will spawn the incoming troops without delay.
+	if( gGameExternalOptions.sMinDelayEnemyReinforcements && gTacticalStatus.Team[ENEMY_TEAM].bTeamActive )
+	//if(gGameExternalOptions.sMinDelayEnemyReinforcements)//dnl ch68 080913
 	{
 		if(gTacticalStatus.Team[ENEMY_TEAM].bAwareOfOpposition == TRUE)
 		{

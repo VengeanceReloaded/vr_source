@@ -1227,6 +1227,12 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 		return( 0 );
 	}
 
+	// sevenfm: if soldier is captured, he can't see anything
+	if( pSoldier->usSoldierFlagMask & SOLDIER_POW )
+	{
+		return( 0 );
+	}
+
 	if ( bFacingDir == DIRECTION_IRRELEVANT && TANK( pSoldier ) )
 	{
 		// always calculate direction for tanks so we have something to work with
@@ -2148,6 +2154,11 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 	pSoldier->RecognizeAsCombatant(pOpponent->ubID);
 	// sevenfm: unconscious soldiers cannot see anybody
 	if ( pSoldier->bCollapsed && pSoldier->bBreath == 0 )
+	{
+		return;
+	}
+	// sevenfm: if soldier is captured, he can't see anything
+	if( pSoldier->usSoldierFlagMask & SOLDIER_POW )
 	{
 		return;
 	}
@@ -6202,6 +6213,12 @@ UINT8 CalcEffVolume(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT8 ubN
 
 	// Lesh: deafness
 	if ( pSoldier->bDeafenedCounter > 0 )
+	{
+		return( 0 );
+	}
+
+	// sevenfm: if soldier is captured, he cannot hear anything
+	if( pSoldier->usSoldierFlagMask & SOLDIER_POW )
 	{
 		return( 0 );
 	}

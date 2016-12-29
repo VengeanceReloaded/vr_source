@@ -380,7 +380,8 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 	}
 
 	// HEADROCK HAM 5.1: Launch fragments from the explosion.
-	if (Explosive[ Item[ usItem ].ubClassIndex ].usNumFragments > 0 )
+	// sevenfm: no fragments in water
+	if( Explosive[ Item[ usItem ].ubClassIndex ].usNumFragments > 0 && !Water( sGridNo, bLevel ) )
 	{
 		// HEADROCK HAM 5: Deactivated until the release of HAM 5.1.
 		FireFragments( ubOwner, sX, sY, sZ, usItem, ubDirection );
@@ -394,9 +395,13 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 		HandleAttachedExplosions(ubOwner, sX, sY, sZ, sGridNo, usItem, fLocate, bLevel, ubDirection, pObj );
 	
 	// sevenfm: add smoke effect if not in room and not underground, only for normal explosions
-	if(!InARoom( sGridNo, &tmp ) && !gbWorldSectorZ && gGameExternalOptions.bAddSmokeAfterExplosion)
+	if( !gbWorldSectorZ && 
+		gGameExternalOptions.bAddSmokeAfterExplosion &&
+		!Water( sGridNo, bLevel ) )
 	{
-		if( Explosive[ Item[ usItem ].ubClassIndex ].ubType == 0 && Item[ usItem ].usBuddyItem == 0 && Explosive[ Item[ usItem ].ubClassIndex ].ubDamage > 20  )
+		if( Explosive[ Item[ usItem ].ubClassIndex ].ubType == 0 && 
+			Item[ usItem ].usBuddyItem == 0 && 
+			Explosive[ Item[ usItem ].ubClassIndex ].ubDamage > 20  )
 		{
 			SOLDIERTYPE* pTarget = SimpleFindSoldier(sGridNo, bLevel);
 			if( pTarget && ( pTarget->ubBodyType == TANK_NE || pTarget->ubBodyType == TANK_NW ) )
@@ -405,13 +410,15 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 			}
 			else
 			{
-				NewSmokeEffect( sGridNo, SMALL_SMOKE, 0, NOBODY );
+				NewSmokeEffect( sGridNo, SMALL_SMOKE, bLevel, ubOwner );
 			}
 		}
 	}
 
 	// sevenfm: add light for fire effects
-	if( (NightTime() || gbWorldSectorZ) && Explosive[ Item[ usItem ].ubClassIndex ].ubType == EXPLOSV_BURNABLEGAS )
+	if( (NightLight() || gbWorldSectorZ) && 
+		Explosive[ Item[ usItem ].ubClassIndex ].ubType == EXPLOSV_BURNABLEGAS &&
+		!Water(sGridNo, bLevel) )
 	{
 		// add light
 		NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubDuration+2, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubRadius +1 );
@@ -527,7 +534,9 @@ void GenerateExplosionFromExplosionPointer( EXPLOSIONTYPE *pExplosion )
 	AniParams.sStartFrame = pExplosion->sCurrentFrame;
 	AniParams.uiFlags	= ANITILE_CACHEDTILE | ANITILE_FORWARD | ANITILE_EXPLOSION;
 
-	if ( TERRAIN_IS_WATER(ubTerrainType) )
+	// sevenfm: check level
+	//if ( TERRAIN_IS_WATER(ubTerrainType) )
+	if( Water( sGridNo, bLevel ) )
 	{
 		// Change type to water explosion...
 		ubTypeID = WATER_BLAST;
@@ -2237,6 +2246,12 @@ BOOLEAN ExpAffect( INT32 sBombGridNo, INT32 sGridNo, UINT32 uiDist, UINT16 usIte
 
 	//Init the variables
 	sX = sY = -1;
+
+	// sevenfm: don't spread fire on water
+	if( Explosive[Item[usItem].ubClassIndex].ubType == EXPLOSV_BURNABLEGAS && Water(sGridNo, bLevel) )
+	{
+		return FALSE;
+	}
 
 	if ( sSubsequent == BLOOD_SPREAD_EFFECT )
 	{

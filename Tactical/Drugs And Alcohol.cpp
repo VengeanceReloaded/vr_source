@@ -349,7 +349,8 @@ void HandleEndTurnDrugAdjustments( SOLDIERTYPE *pSoldier )
 		if( pSoldier->stats.bLifeMax > LIFE_GAIN_PER_REGEN_POINT * 2 )
 		{
 			// sevenfm: damage max health when using regen boosters
-			INT8 bStatLoss = Random( __min( LIFE_GAIN_PER_REGEN_POINT, pSoldier->bBleeding ) ) ;			
+			INT8 bStatLoss = Random( __min( LIFE_GAIN_PER_REGEN_POINT, pSoldier->stats.bLifeMax - pSoldier->stats.bLife ) ) / 2 ;
+
 			if( bStatLoss > 0 )
 			{
 				pSoldier->stats.bLifeMax -= bStatLoss;

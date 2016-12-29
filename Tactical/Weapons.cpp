@@ -2887,7 +2887,8 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 				DirtyMercPanelInterface( pSoldier, DIRTYLEVEL2 );
 				if ( Item[usUBItem].usBuddyItem != 0 && Item[Item[usUBItem].usBuddyItem].usItemClass & IC_EXPLOSV )
 				{
-					IgniteExplosion( pSoldier->ubID, CenterX( pSoldier->sGridNo ), CenterY( pSoldier->sGridNo ), 0, pSoldier->sGridNo, C1, pSoldier->pathing.bLevel );
+					//IgniteExplosion( pSoldier->ubID, CenterX( pSoldier->sGridNo ), CenterY( pSoldier->sGridNo ), 0, pSoldier->sGridNo, C1, pSoldier->pathing.bLevel );
+					IgniteExplosion( pSoldier->ubID, CenterX( pSoldier->sGridNo ), CenterY( pSoldier->sGridNo ), 0, pSoldier->sGridNo, Item[usUBItem].usBuddyItem, pSoldier->pathing.bLevel );
 				}
 				else
 				{

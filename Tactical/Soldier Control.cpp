@@ -7582,6 +7582,9 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		HandleEndTurnDrugAdjustments( this );
 	}
 
+	// sevenfm: update morale
+	RefreshSoldierMorale( this );
+
 	// ATE: Don't bleed if in AUTO BANDAGE!
 	if ( !gTacticalStatus.fAutoBandageMode )
 	{
@@ -15121,12 +15124,13 @@ BOOLEAN		SOLDIERTYPE::LooksLikeACivilian( BOOLEAN fShowResult )
 		{
 			if ( this->inv[bLoop].exists() )
 			{
+				// sevenfm: allow wearing backpack for civilians, use suspicion counter instead
 				// if we have a back pack: not covert
-				if ( bLoop == BPACKPOCKPOS )
+				/*if ( bLoop == BPACKPOCKPOS )
 				{
 					if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_BACKPACKFOUND], this->GetName() );
 					return FALSE;
-				}
+				}*/
 
 				// do not check the LBE itself (we already checked for camo above)
 				if ( bLoop >= VESTPOCKPOS && bLoop <= CPACKPOCKPOS )
@@ -15329,12 +15333,13 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 		{
 			if ( this->inv[bLoop].exists() )
 			{
+				// sevenfm: allow wearing backpack, use suspicion counter instead
 				// if we have a back pack: not covert
-				if ( bLoop == BPACKPOCKPOS )
+				/*if ( bLoop == BPACKPOCKPOS )
 				{
 					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_BACKPACKFOUND], this->GetName() );
 					return TRUE;
-				}
+				}*/
 
 				// guns/launchers in our hands will always be noticed, even if covert, so we need to check them later
 				if ( bLoop == HANDPOS || bLoop == SECONDHANDPOS )
