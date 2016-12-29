@@ -12518,7 +12518,8 @@ void GetHelpTextForItem( STR16 pzStr, OBJECTTYPE *pObject, SOLDIERTYPE *pSoldier
 					Armour[ Item[ usItem ].ubClassIndex ].ubProtection * sValue / 100,
 					Armour[ Item[ usItem ].ubClassIndex ].ubProtection, //Protection (raw data)
 					pInvPanelTitleStrings[ 3 ],	//Camo string
-					GetCamoBonus(pObject)+GetUrbanCamoBonus(pObject)+GetDesertCamoBonus(pObject)+GetSnowCamoBonus(pObject),	//Camo bonus
+					//GetCamoBonus(pObject)+GetUrbanCamoBonus(pObject)+GetDesertCamoBonus(pObject)+GetSnowCamoBonus(pObject),	//Camo bonus
+					GetCamoBonus(pSoldier, pObject)+GetUrbanCamoBonus(pSoldier, pObject)+GetDesertCamoBonus(pSoldier, pObject)+GetSnowCamoBonus(pSoldier, pObject),	//Camo bonus
 					gWeaponStatsDesc[ 12 ],		//Weight string
 					fWeight,					//Weight
 					GetWeightUnitString()		//Weight units
@@ -12539,7 +12540,8 @@ void GetHelpTextForItem( STR16 pzStr, OBJECTTYPE *pObject, SOLDIERTYPE *pSoldier
 					Armour[ Item[ usItem ].ubClassIndex ].ubProtection * sValue / 100,
 					Armour[ Item[ usItem ].ubClassIndex ].ubProtection, //Protection (raw data)
 					pInvPanelTitleStrings[ 3 ],	//Camo string
-					GetCamoBonus(pObject)+GetUrbanCamoBonus(pObject)+GetDesertCamoBonus(pObject)+GetSnowCamoBonus(pObject),	//Camo bonus
+					//GetCamoBonus(pObject)+GetUrbanCamoBonus(pObject)+GetDesertCamoBonus(pObject)+GetSnowCamoBonus(pObject),	//Camo bonus
+					GetCamoBonus(pSoldier, pObject)+GetUrbanCamoBonus(pSoldier, pObject)+GetDesertCamoBonus(pSoldier, pObject)+GetSnowCamoBonus(pSoldier, pObject),	//Camo bonus
 					gWeaponStatsDesc[ 12 ],		//Weight string
 					fWeight,					//Weight
 					GetWeightUnitString()		//Weight units

@@ -6733,7 +6733,10 @@ void SoldierGotHitExplosion( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 
 				// 4 of 10 - fall backward (if possible) either forward
 				// Check behind us!
 				sNewGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ bDirection ] ) );
-				if ( OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
+				//if ( OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
+				if( sRange <= Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubRadius / 2 &&
+					Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubDamage >= 50 &&
+					OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
 				{
 					pSoldier->EVENT_SetSoldierDirection( (INT8)bDirection );
 					pSoldier->EVENT_SetSoldierDesiredDirection( pSoldier->ubDirection );
@@ -6770,9 +6773,12 @@ void SoldierGotHitExplosion( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 
 		pSoldier->EVENT_SetSoldierDesiredDirection( pSoldier->ubDirection );
 
 		// Check behind us!
-			sNewGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ bDirection ] ) );
+		sNewGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ bDirection ] ) );
 
-		if ( OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
+		//if ( OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
+		if( sRange <= Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubRadius / 2 &&
+			Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubDamage >= 50 &&
+			OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
 		{
 			pSoldier->ChangeToFallbackAnimation( (UINT8)bDirection );
 		}
@@ -7582,8 +7588,11 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		HandleEndTurnDrugAdjustments( this );
 	}
 
-	// sevenfm: update morale
-	RefreshSoldierMorale( this );
+	// sevenfm: update morale for mercs
+	if( this->ubProfile != NO_PROFILE )
+	{
+		RefreshSoldierMorale( this );
+	}
 
 	// ATE: Don't bleed if in AUTO BANDAGE!
 	if ( !gTacticalStatus.fAutoBandageMode )
@@ -10759,7 +10768,10 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 	// If we are an enemy.....reduce due to volume
 	if ( pSoldier->bTeam != gbPlayerNum )
 	{
-		spParms.uiVolume = SoundVolume( (UINT8)spParms.uiVolume, pSoldier->sGridNo );
+		if( ubBattleSoundID == BATTLE_SOUND_CURSE1 )
+			spParms.uiVolume = (INT8)CalculateSpeechVolume( MIDVOLUME );
+		else
+			spParms.uiVolume = SoundVolume( (UINT8)spParms.uiVolume, pSoldier->sGridNo );
 	}
 
 	spParms.uiLoop = 1;
@@ -14294,6 +14306,8 @@ BOOLEAN	SOLDIERTYPE::IsWeaponMounted( void )
 	if ( !bInSector )
 		return( FALSE );
 
+	// sevenfm: r7808
+	/*
 	// not possible if already prone
 	if ( gAnimControl[ this->usAnimState ].ubEndHeight == ANIM_PRONE )
 		return( FALSE );
@@ -14301,10 +14315,20 @@ BOOLEAN	SOLDIERTYPE::IsWeaponMounted( void )
 	// not possible to get this bonus on a roof, as there are no objects on the roof on which we could rest our gun
 	if ( this->pathing.bLevel == 1 )
 		return( FALSE );
+	*/
 
 	// this is odd - invalid GridNo... well, not mounted then
 	if ( TileIsOutOfBounds(this->sGridNo) )
 		return( FALSE );
+
+	// sevenfm: r7808
+	// if we are prone, then we are 'mounting' our gun on the very floor we are laying upon, which always exist
+	if ( gAnimControl[this->usAnimState].ubEndHeight == ANIM_PRONE )
+		return TRUE;
+
+	// not possible to get this bonus on a roof, as there are no objects on the roof on which we could rest our gun
+	if ( this->pathing.bLevel == 1 )
+		return(FALSE);
 
 	// we determine the height of the next tile in our direction. Because of the way structures are handled, we sometimes have to take the very tile we're occupying right now
 	INT32 nextGridNoinSight = this->sGridNo;

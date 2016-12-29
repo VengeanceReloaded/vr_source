@@ -1986,7 +1986,9 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 			{
 				// on the move, can't sleep
 				swprintf( sString, zMarksMapScreenText[ 5 ], pSoldier->GetName() );
-				DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
+
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, sString);
+				//DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 			}
 
 			return( FALSE );
@@ -2002,7 +2004,8 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 					// is piloting, can't sleep
 					if( pSoldier == GetDriver(iHelicopterVehicleId) && fHelicopterIsAirBorne )
 					{
-						DoScreenIndependantMessageBox( pSkyriderText[ 9 ], MSG_BOX_FLAG_OK, NULL );
+						ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pSkyriderText[ 9 ]);
+						//DoScreenIndependantMessageBox( pSkyriderText[ 9 ], MSG_BOX_FLAG_OK, NULL );
 						return ( FALSE );
 					}
 				}
@@ -2016,7 +2019,9 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 				{
 					// is driving, can't sleep
 					swprintf( sString, zMarksMapScreenText[ 7 ], pSoldier->GetName() );
-					DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
+
+					ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, sString);
+					//DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 				}
 
 				return( FALSE );
@@ -2038,7 +2043,8 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 			{
 				if( fExplainWhyNot )
 				{
-					DoScreenIndependantMessageBox( Message[ STR_SECTOR_NOT_CLEARED ], MSG_BOX_FLAG_OK, NULL );
+					ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[ STR_SECTOR_NOT_CLEARED ]);
+					//DoScreenIndependantMessageBox( Message[ STR_SECTOR_NOT_CLEARED ], MSG_BOX_FLAG_OK, NULL );
 				}
 
 				return( FALSE );
@@ -2049,7 +2055,8 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 			{
 				if( fExplainWhyNot )
 				{
-					DoScreenIndependantMessageBox( Message[ STR_SECTOR_NOT_CLEARED ], MSG_BOX_FLAG_OK, NULL );
+					ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, Message[ STR_SECTOR_NOT_CLEARED ]);
+					//DoScreenIndependantMessageBox( Message[ STR_SECTOR_NOT_CLEARED ], MSG_BOX_FLAG_OK, NULL );
 				}
 
 				return( FALSE );
@@ -2066,7 +2073,9 @@ BOOLEAN CanCharacterSleep( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 		if( fExplainWhyNot )
 		{
 			swprintf( sString, zMarksMapScreenText[ 4 ], pSoldier->GetName() );
-			DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
+
+			ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, sString);
+			//DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 		}
 
 		return( FALSE );
@@ -2097,7 +2106,9 @@ BOOLEAN CanCharacterBeAwakened( SOLDIERTYPE *pSoldier, BOOLEAN fExplainWhyNot )
 		if ( fExplainWhyNot )
 		{
 			swprintf( sString, zMarksMapScreenText[ 6 ], pSoldier->GetName() );
-			DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
+
+			ScreenMsg(FONT_ORANGE, MSG_INTERFACE, sString);
+			//DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL );
 		}
 
 		return( FALSE );
@@ -3609,66 +3620,6 @@ void HealCharacters( SOLDIERTYPE *pDoctor, INT16 sX, INT16 sY, INT8 bZ )
 		}
 	}
 }
-
-
-/* Assignment distance limits removed.	Sep/11/98.	ARM
-BOOLEAN IsSoldierCloseEnoughToADoctor( SOLDIERTYPE *pPatient )
-{
-	// run through all doctors in sector, if it is loaded
-	// if no - one is close enough and there is a doctor assigned in sector, inform player
-	BOOLEAN fDoctorInSector = FALSE;
-	BOOLEAN fDoctorCloseEnough = FALSE;
-	SOLDIERTYPE *pSoldier = NULL;
-	INT32 iCounter = 0;
-	CHAR16 sString[ 128 ];
-
-	if( ( pPatient->sSectorX != gWorldSectorX ) || ( pPatient->sSectorY != gWorldSectorY ) || ( pPatient->bSectorZ != gbWorldSectorZ ) )
-	{
-		// not currently loaded
-		return( TRUE );
-	}
-
-	for( iCounter = 0; iCounter < CODE_MAXIMUM_NUMBER_OF_PLAYER_SLOTS; iCounter++ )
-	{
-		pSoldier = &Menptr[ iCounter ];
-
-		if( pSoldier->bActive )
-		{
-
-			// are they two of these guys in the same sector?
-			if( ( pSoldier->sSectorX == pPatient->sSectorX ) && ( pSoldier->sSectorY == pPatient->sSectorY ) && ( pSoldier->bSectorZ == pPatient->bSectorZ ) )
-			{
-
-				// is a doctor
-				if( pSoldier->bAssignment == DOCTOR )
-				{
-
-					// the doctor is in the house
-					fDoctorInSector = TRUE;
-
-					// can this patient be healed by the doctor?
-					if( CanSoldierBeHealedByDoctor( pPatient, pSoldier, TRUE, HEALABLE_EVER, FALSE, FALSE ) == TRUE )
-					{
-						// yep
-						fDoctorCloseEnough = TRUE;
-					}
-				}
-			}
-		}
-	}
-
-	// there are doctors here but noone can heal this guy
-	if( ( fDoctorInSector ) && ( fDoctorCloseEnough == FALSE ) )
-	{
-		swprintf( sString, pDoctorWarningString[ 0 ] , pPatient->GetName() );
-		DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL);
-		return( FALSE );
-	}
-
-	return( TRUE );
-}
-*/
-
 
 BOOLEAN CanSoldierBeHealedByDoctor( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pDoctor, BOOLEAN fIgnoreAssignment, BOOLEAN fThisHour, BOOLEAN fSkipKitCheck, BOOLEAN fSkipSkillCheck, BOOLEAN fCheckForSurgery )
 {
@@ -7572,79 +7523,6 @@ void UpDateSoldierLife( SOLDIERTYPE *pSoldier )
 	}
 }
 
-
-
-/*
-// merc is tired, put to sleep
-BOOLEAN AutoSleepMerc( SOLDIERTYPE *pSoldier )
-{
-	if( pSoldier == NULL )
-	{
-		return ( FALSE );
-	}
-
-	// already asleep
-	if( pSoldier->flags.fMercAsleep == TRUE )
-	{
-		return ( FALSE );
-	}
-
-	if( pSoldier->bBreathMax > MIN_BREATH_TO_STAY_AWAKE )
-	{
-		if( ( pSoldier->bAssignment < ON_DUTY ) )
-		{
-			return ( FALSE );
-		}
-
-		if( pSoldier->stats.bLife < OKLIFE )
-		{
-			// can't sleep
-			return ( FALSE );
-		}
-
-
-		// if	was forced to stay awake, leave
-		if( pSoldier->fForcedToStayAwake == TRUE )
-		{
-			return( FALSE );
-		}
-	}
-	else
-	{
-	//	ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s",	pMercFellAsleepString[ 0 ], pSoldier->GetName() );
-	}
-
-
-	// store old assignment
-	pSoldier->bOldAssignment = pSoldier->bAssignment;
-
-
-	if( pSoldier->bAssignment < ON_DUTY )
-	{
-		RemoveCharacterFromASquad( pSoldier, pSoldier->bAssignment );
-	}
-
-	if( SetMercAsleep( pSoldier, FALSE ) )
-	{
-		// change soldier state
-		SoldierInSectorSleep( pSoldier, pSoldier->usStrategicInsertionData );
-
-		// update mapscreen
-		fCharacterInfoPanelDirty = TRUE;
-		fTeamPanelDirty = TRUE;
-		fMapScreenBottomDirty = TRUE;
-
-		return( TRUE );
-	}
-	else
-	{
-		return( FALSE );
-	}
-}
-*/
-
-
-
 void CheckIfSoldierUnassigned( SOLDIERTYPE *pSoldier )
 {
 	if( pSoldier->bAssignment == NO_ASSIGNMENT )
@@ -8109,6 +7987,8 @@ void HandleShadingOfLinesForRepairMenu( void )
 	}
 
 	pSoldier = GetSelectedAssignSoldier( FALSE );
+	// sevenfm: r8325 fix
+	BOOL bHasToolkit = (FindToolkit( pSoldier ) != NO_SLOT);
 
 	// PLEASE NOTE: make sure any changes you do here are reflected in all 3 routines which must remain in synch:
 	// CreateDestroyMouseRegionForRepairMenu(), DisplayRepairMenu(), and HandleShadingOfLinesForRepairMenu().
@@ -8124,7 +8004,7 @@ void HandleShadingOfLinesForRepairMenu( void )
 				{
 					if ( IsThisVehicleAccessibleToSoldier( pSoldier, iVehicleIndex ) )
 					{
-						if( CanCharacterRepairVehicle( pSoldier, iVehicleIndex ) == TRUE )
+						if( CanCharacterRepairVehicle( pSoldier, iVehicleIndex ) == TRUE && bHasToolkit )
 						{
 							// unshade vehicle line
 							UnShadeStringInBox( ghRepairBox, iCount );
@@ -8146,7 +8026,7 @@ void HandleShadingOfLinesForRepairMenu( void )
 	if( ( IsThisSectorASAMSector( pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ ) == TRUE ) && ( IsTheSAMSiteInSectorRepairable( pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ ) ) )
 	{
 		// handle enable disable of repair sam option
-		if( CanSoldierRepairSAM( pSoldier, SAM_SITE_REPAIR_DIVISOR ) )
+		if( CanSoldierRepairSAM( pSoldier, SAM_SITE_REPAIR_DIVISOR ) && bHasToolkit )
 		{
 			// unshade SAM line
 			UnShadeStringInBox( ghRepairBox, iCount );
@@ -8162,7 +8042,7 @@ void HandleShadingOfLinesForRepairMenu( void )
 */
 
 
-	if( IsRobotInThisSector( pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ ) )
+	if( IsRobotInThisSector( pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ ) && bHasToolkit )
 	{
 		// handle shading of repair robot option
 		if( CanCharacterRepairRobot( pSoldier ) )
@@ -15539,7 +15419,8 @@ BOOLEAN HandleSelectedMercsBeingPutAsleep( BOOLEAN fWakeUp, BOOLEAN fDisplayWarn
 
 			if( fDisplayWarning )
 			{
-				DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL);
+				ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, sString);
+				//DoScreenIndependantMessageBox( sString, MSG_BOX_FLAG_OK, NULL);
 			}
 		}
 	}
@@ -17497,18 +17378,6 @@ BOOLEAN CanCharacterTrainMilitiaWithErrorReport( SOLDIERTYPE *pSoldier )
 			return (FALSE);
 		}
 	}
-
-	// HEADROCK HAM 3.6: To be moved into the Mobile Militia training routine....
-	// Kaiden: Roaming Militia Training:
-	//if(IsMilitiaTrainableFromSoldiersSectorMaxed( pSoldier, ELITE_MILITIA ))
-	//	if (!gGameExternalOptions.gfmusttrainroaming)
-	//		fCanTrainMilitia = FALSE;
-	//	else if (GetWorldDay( ) < gGameExternalOptions.guiAllowMilitiaGroupsDelay)
-	//		fCanTrainMilitia = FALSE;
-	//	else if (IsThisSectorASAMSector(pSoldier->sSectorX,pSoldier->sSectorY,0 ))
-	//		fCanTrainMilitia = FALSE;
-	//	else
-	//		fCanTrainMilitia = TRUE;
 
 	////////////////////////////////
 	// Test for Militia Capacity

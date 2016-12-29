@@ -249,7 +249,7 @@ INT16 GetFlatAimBonus( OBJECTTYPE * pObj );
 // HEADROCK: Function to get the final loudness value of a weapon, after reduction from its own characteristics, ammo and attachments
 INT16 GetFinalLoudness( OBJECTTYPE * pObj );
 //INT16 GetMinAimBonusRange( OBJECTTYPE * pObj );
-INT16 GetToHitBonus( OBJECTTYPE * pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN fProneStance = FALSE );
+INT16 GetToHitBonus( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN fProneStance, UINT8 ubAimTime = 0 );
 // HEADROCK: Added alternate function that only returns the natural to-hit-bonii of a weapon, ammo and attachments
 INT16 GetFlatToHitBonus( OBJECTTYPE * pObj );
 // HEADROCK: Function to get average of best laser ranges from weapon and attachments
@@ -258,8 +258,8 @@ INT16 GetAverageBestLaserRange( OBJECTTYPE * pObj );
 INT16 GetBestLaserRange( OBJECTTYPE * pObj );
 // HEADROCK: Function to get bipod bonus from weapon and its attachments
 INT16 GetBipodBonus( OBJECTTYPE * pObj );
-INT16 GetBurstToHitBonus( OBJECTTYPE * pObj, BOOLEAN fProneStance = FALSE );
-INT16 GetAutoToHitBonus( OBJECTTYPE * pObj, BOOLEAN fProneStance = FALSE	);
+INT16 GetBurstToHitBonus( SOLDIERTYPE *pSoldier, OBJECTTYPE * pObj, BOOLEAN fProneStance = FALSE );
+INT16 GetAutoToHitBonus( SOLDIERTYPE *pSoldier, OBJECTTYPE * pObj, BOOLEAN fProneStance = FALSE	);
 INT16 GetGearAimBonus( SOLDIERTYPE * pSoldier, INT32 iRange, INT16 ubAimTime);
 INT16 GetGearToHitBonus( SOLDIERTYPE * pSoldier );
 INT16 GetMinRangeForAimBonus( SOLDIERTYPE* pSoldier, OBJECTTYPE * pObj );
@@ -406,11 +406,11 @@ INT8 FindWalkman( SOLDIERTYPE * pSoldier );
 INT8 FindTrigger( SOLDIERTYPE * pSoldier );
 INT8 FindRemoteControl( SOLDIERTYPE * pSoldier );
 INT16 GetWornCamo( SOLDIERTYPE * pSoldier );
-INT16 GetCamoBonus( OBJECTTYPE * pObj );
+INT16 GetCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj );
 INT16 GetWornStealth( SOLDIERTYPE * pSoldier );
-INT16 GetStealthBonus( OBJECTTYPE * pObj );
+INT16 GetStealthBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj );
 // HEADROCK: Non-status-dependent version of the above
-INT16 GetBasicStealthBonus( OBJECTTYPE * pObj );
+INT16 GetBasicStealthBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj );
 
 void ApplyEquipmentBonuses(SOLDIERTYPE * pSoldier);
 
@@ -443,11 +443,11 @@ UINT8 AllowedAimingLevelsNCTH( SOLDIERTYPE *pSoldier, INT32 sGridNo);
 UINT8 GetAllowedAimingLevelsForItem( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, UINT8 ubStance );
 
 INT16 GetWornUrbanCamo( SOLDIERTYPE * pSoldier );
-INT16 GetUrbanCamoBonus( OBJECTTYPE * pObj );
+INT16 GetUrbanCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj );
 INT16 GetWornDesertCamo( SOLDIERTYPE * pSoldier );
-INT16 GetDesertCamoBonus( OBJECTTYPE * pObj );
+INT16 GetDesertCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj );
 INT16 GetWornSnowCamo( SOLDIERTYPE * pSoldier );
-INT16 GetSnowCamoBonus( OBJECTTYPE * pObj );
+INT16 GetSnowCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj );
 
 // HEADROCK HAM 3.6: Looks for a backpack anywhere on this character.
 INT8 FindBackpackOnSoldier( SOLDIERTYPE * pSoldier );

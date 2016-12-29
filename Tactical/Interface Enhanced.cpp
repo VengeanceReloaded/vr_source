@@ -1760,7 +1760,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 			}
 			else	/////////////////// BIPOD & BURST PENALTY
 			{
-				if( GetBurstPenalty(gpItemDescObject) > 0 )
+				if( GetBurstPenalty(gpItemDescSoldier, gpItemDescObject) > 0 )
 					MSYS_EnableRegion( &gUDBFasthelpRegions[ iFirstDataRegion + 19 ] );
 				if( GetBipodBonus(gpItemDescObject) > 0 )
 					MSYS_EnableRegion( &gUDBFasthelpRegions[ iFirstDataRegion + 20 ] );
@@ -1773,7 +1773,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 			}
 
 			/////////////////// AUTOFIRE PENALTY
-			if( UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescObject) > 0 )
+			if( UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescSoldier, gpItemDescObject) > 0 )
 				MSYS_EnableRegion( &gUDBFasthelpRegions[ iFirstDataRegion + 22 ] );
 		}
 	}
@@ -2910,8 +2910,8 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 		///////////////////// TO-HIT MODIFIER
 		if(UsingNewCTHSystem() == false)
 		{
-			if ( GetToHitBonus( gpItemDescObject, 100, 1, FALSE ) != 0 
-				|| GetToHitBonus( gpItemDescObject, 100, 1, TRUE ) != 0 )
+			if ( GetToHitBonus( gpItemDescSoldier, gpItemDescObject, 100, 1, FALSE ) != 0 
+				|| GetToHitBonus( gpItemDescSoldier, gpItemDescObject, 100, 1, TRUE ) != 0 )
 			{
 				if (cnt >= sFirstLine && cnt < sLastLine)
 				{
@@ -3585,7 +3585,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 		}
 
 		///////////////////// WOODLAND CAMO
-		if (GetCamoBonus( gpItemDescObject ) != 0 )
+		if (GetCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 )
 		{
 			if (cnt >= sFirstLine && cnt < sLastLine)
 			{
@@ -3608,7 +3608,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 		}
 
 		///////////////////// URBAN CAMO
-		if (GetUrbanCamoBonus( gpItemDescObject ) != 0 )
+		if (GetUrbanCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 )
 		{
 			if (cnt >= sFirstLine && cnt < sLastLine)
 			{
@@ -3631,7 +3631,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 		}
 
 		///////////////////// DESERT CAMO
-		if (GetDesertCamoBonus( gpItemDescObject ) != 0 )
+		if (GetDesertCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 )
 		{
 			if (cnt >= sFirstLine && cnt < sLastLine)
 			{
@@ -3654,7 +3654,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 		}
 
 		///////////////////// SNOW CAMO
-		if (GetSnowCamoBonus( gpItemDescObject ) != 0 )
+		if (GetSnowCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 )
 		{
 			if (cnt >= sFirstLine && cnt < sLastLine)
 			{
@@ -3677,7 +3677,7 @@ void InternalInitEDBTooltipRegion( OBJECTTYPE * gpItemDescObject, UINT32 guiCurr
 		}
 
 		///////////////////// STEALTH MODIFIER
-		if (GetStealthBonus( gpItemDescObject ) != 0 )
+		if (GetStealthBonus( gpItemDescSoldier, gpItemDescObject ) != 0 )
 		{
 			if (cnt >= sFirstLine && cnt < sLastLine)
 			{
@@ -4531,8 +4531,8 @@ void DrawWeaponStats( OBJECTTYPE * gpItemDescObject )
 		}
 		else	///////////////// BIPOD & BURST PENALTY
 		{
-			if( ( GetBurstPenalty(gpItemDescObject) > 0 ) || 
-				( fComparisonMode && GetBurstPenalty(gpComparedItemDescObject) > 0  ) )
+			if( ( GetBurstPenalty(gpItemDescSoldier, gpItemDescObject) > 0 ) || 
+				( fComparisonMode && GetBurstPenalty(gpItemDescSoldier, gpComparedItemDescObject) > 0  ) )
 			{
 				ubNumLine = 19;
 				BltVideoObjectFromIndex( guiSAVEBUFFER, guiItemInfoWeaponIcon, 30, gItemDescGenRegions[ubNumLine][0].sLeft+sOffsetX, gItemDescGenRegions[ubNumLine][0].sTop+sOffsetY, VO_BLT_SRCTRANSPARENCY, NULL );
@@ -4556,8 +4556,8 @@ void DrawWeaponStats( OBJECTTYPE * gpItemDescObject )
 		}
 
 		///////////////// AUTOFIRE PENALTY
-		if( ( UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescObject) > 0 ) ||
-			( fComparisonMode && UsingNewCTHSystem() == false && GetAutoPenalty(gpComparedItemDescObject) > 0 ) )
+		if( ( UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescSoldier, gpItemDescObject) > 0 ) ||
+			( fComparisonMode && UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescSoldier, gpComparedItemDescObject) > 0 ) )
 		{
 			ubNumLine = 22;
 			BltVideoObjectFromIndex( guiSAVEBUFFER, guiItemInfoWeaponIcon, 29, gItemDescGenRegions[ubNumLine][0].sLeft+sOffsetX, gItemDescGenRegions[ubNumLine][0].sTop+sOffsetY, VO_BLT_SRCTRANSPARENCY, NULL );
@@ -5072,10 +5072,10 @@ void DrawAdvancedStats( OBJECTTYPE * gpItemDescObject )
 	///////////////////// TO-HIT MODIFIER
 	if(UsingNewCTHSystem() == false)
 	{
-		if ( ( GetToHitBonus( gpItemDescObject, 100, 1, FALSE ) != 0 
-			|| GetToHitBonus( gpItemDescObject, 100, 1, TRUE ) != 0 ) ||
-			( fComparisonMode && ( GetToHitBonus( gpComparedItemDescObject, 100, 1, FALSE ) != 0 
-			|| GetToHitBonus( gpComparedItemDescObject, 100, 1, TRUE ) != 0 ) ) )
+		if ( ( GetToHitBonus( gpItemDescSoldier, gpItemDescObject, 100, 1, FALSE ) != 0 
+			|| GetToHitBonus( gpItemDescSoldier, gpItemDescObject, 100, 1, TRUE ) != 0 ) ||
+			( fComparisonMode && ( GetToHitBonus( gpItemDescSoldier, gpComparedItemDescObject, 100, 1, FALSE ) != 0 
+			|| GetToHitBonus( gpItemDescSoldier, gpComparedItemDescObject, 100, 1, TRUE ) != 0 ) ) )
 		{
 			if (cnt >= sFirstLine && cnt < sLastLine)
 			{
@@ -5463,8 +5463,8 @@ void DrawAdvancedStats( OBJECTTYPE * gpItemDescObject )
 	}
 
 	///////////////////// WOODLAND CAMO
-	if ( (GetCamoBonus( gpItemDescObject ) != 0 ) ||
-		( fComparisonMode && GetCamoBonus( gpComparedItemDescObject ) != 0 ) )
+	if ( (GetCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 ) ||
+		( fComparisonMode && GetCamoBonus( gpItemDescSoldier, gpComparedItemDescObject ) != 0 ) )
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
 		{
@@ -5474,8 +5474,8 @@ void DrawAdvancedStats( OBJECTTYPE * gpItemDescObject )
 	}
 
 	///////////////////// URBAN CAMO
-	if ( (GetUrbanCamoBonus( gpItemDescObject ) != 0 ) ||
-		( fComparisonMode && GetUrbanCamoBonus( gpComparedItemDescObject ) != 0 ) )
+	if ( (GetUrbanCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 ) ||
+		( fComparisonMode && GetUrbanCamoBonus( gpItemDescSoldier, gpComparedItemDescObject ) != 0 ) )
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
 		{
@@ -5485,8 +5485,8 @@ void DrawAdvancedStats( OBJECTTYPE * gpItemDescObject )
 	}
 
 	///////////////////// DESERT CAMO
-	if ( (GetDesertCamoBonus( gpItemDescObject ) != 0 ) ||
-		( fComparisonMode && GetDesertCamoBonus( gpComparedItemDescObject ) != 0 ) )
+	if ( (GetDesertCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 ) ||
+		( fComparisonMode && GetDesertCamoBonus( gpItemDescSoldier, gpComparedItemDescObject ) != 0 ) )
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
 		{
@@ -5496,8 +5496,8 @@ void DrawAdvancedStats( OBJECTTYPE * gpItemDescObject )
 	}
 
 	///////////////////// SNOW CAMO
-	if ( (GetSnowCamoBonus( gpItemDescObject ) != 0 ) ||
-		( fComparisonMode && GetSnowCamoBonus( gpComparedItemDescObject ) != 0 ) )
+	if ( (GetSnowCamoBonus( gpItemDescSoldier, gpItemDescObject ) != 0 ) ||
+		( fComparisonMode && GetSnowCamoBonus( gpItemDescSoldier, gpComparedItemDescObject ) != 0 ) )
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
 		{
@@ -5507,8 +5507,8 @@ void DrawAdvancedStats( OBJECTTYPE * gpItemDescObject )
 	}
 
 	///////////////////// STEALTH MODIFIER
-	if ( (GetStealthBonus( gpItemDescObject ) != 0 ) ||
-		( fComparisonMode && GetStealthBonus( gpComparedItemDescObject ) != 0 ) )
+	if ( (GetStealthBonus( gpItemDescSoldier, gpItemDescObject ) != 0 ) ||
+		( fComparisonMode && GetStealthBonus( gpItemDescSoldier, gpComparedItemDescObject ) != 0 ) )
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
 		{
@@ -8239,7 +8239,7 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 		}
 		else	///////////////// BIPOD & BURST PENALTY
 		{
-			if( GetBurstPenalty(gpItemDescObject) > 0 )
+			if( GetBurstPenalty(gpItemDescSoldier, gpItemDescObject) > 0 )
 			{
 				// Set line to draw into
 				ubNumLine = 19;
@@ -8251,12 +8251,12 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 				INT16 iFinalBurstValue;
 				if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 				{
-					iFinalBurstValue = GetBurstToHitBonus(gpItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+					iFinalBurstValue = GetBurstToHitBonus(gpItemDescSoldier, gpItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 					iFinalBurstValue = max(0, (iBurstValue * (100 - iFinalBurstValue))/100 );
 				}
 				else
 				{
-					iFinalBurstValue = GetBurstPenalty(gpItemDescObject);
+					iFinalBurstValue = GetBurstPenalty(gpItemDescSoldier, gpItemDescObject);
 					if(gGameExternalOptions.bAimedBurstEnabled)
 						iFinalBurstValue += Weapon[gpItemDescObject->usItem].ubBurstPenalty * gGameExternalOptions.uAimedBurstPenalty;
 				}
@@ -8281,12 +8281,12 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 					INT16 iComparedFinalBurstValue;
 					if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 					{
-						iComparedFinalBurstValue = GetBurstToHitBonus(gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+						iComparedFinalBurstValue = GetBurstToHitBonus(gpItemDescSoldier, gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 						iComparedFinalBurstValue = max(0, (iComparedBurstValue * (100 - iComparedFinalBurstValue))/100 );
 					}
 					else
 					{
-						iComparedFinalBurstValue = GetBurstPenalty(gpComparedItemDescObject);
+						iComparedFinalBurstValue = GetBurstPenalty(gpItemDescSoldier, gpComparedItemDescObject);
 						if(gGameExternalOptions.bAimedBurstEnabled)
 							iComparedFinalBurstValue += Weapon[gpComparedItemDescObject->usItem].ubBurstPenalty * gGameExternalOptions.uAimedBurstPenalty;
 					}
@@ -8300,7 +8300,7 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 					DrawPropertyValueInColour( iComparedFinalBurstValue - iFinalBurstValue, ubNumLine, 3, fComparisonMode, FALSE, FALSE );
 				}
 			}
-			else if( fComparisonMode && GetBurstPenalty(gpComparedItemDescObject) > 0 )
+			else if( fComparisonMode && GetBurstPenalty(gpItemDescSoldier, gpComparedItemDescObject) > 0 )
 			{
 				ubNumLine = 19;	
 				// Get base Burst Penalty value
@@ -8309,12 +8309,12 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 				INT16 iFinalBurstValue;
 				if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 				{
-					iFinalBurstValue = GetBurstToHitBonus(gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+					iFinalBurstValue = GetBurstToHitBonus(gpItemDescSoldier, gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 					iFinalBurstValue = max(0, (iBurstValue * (100 - iFinalBurstValue))/100 );
 				}
 				else
 				{
-					iFinalBurstValue = GetBurstPenalty(gpComparedItemDescObject);
+					iFinalBurstValue = GetBurstPenalty(gpItemDescSoldier, gpComparedItemDescObject);
 					if(gGameExternalOptions.bAimedBurstEnabled)
 						iFinalBurstValue += Weapon[gpComparedItemDescObject->usItem].ubBurstPenalty * gGameExternalOptions.uAimedBurstPenalty;
 				}
@@ -8445,7 +8445,7 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 		}
 
 		/////////////////// AUTOFIRE PENALTY
-		if( UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescObject) > 0 )
+		if( UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescSoldier, gpItemDescObject) > 0 )
 		{
 			// Set line to draw into
 			ubNumLine = 22;
@@ -8457,12 +8457,12 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 			INT16 iFinalAutoValue;
 			if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 			{
-				iFinalAutoValue = GetAutoToHitBonus(gpItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+				iFinalAutoValue = GetAutoToHitBonus(gpItemDescSoldier, gpItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 				iFinalAutoValue = max(0, (iAutoValue * (100 - iFinalAutoValue))/100 );
 			}
 			else
 			{
-				iFinalAutoValue = GetAutoPenalty(gpItemDescObject);
+				iFinalAutoValue = GetAutoPenalty(gpItemDescSoldier, gpItemDescObject);
 				if(gGameExternalOptions.bAimedBurstEnabled)
 					iFinalAutoValue += Weapon[gpItemDescObject->usItem].ubBurstPenalty * gGameExternalOptions.uAimedBurstPenalty;
 			}
@@ -8488,12 +8488,12 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 				INT16 iComparedFinalAutoValue;
 				if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 				{
-					iComparedFinalAutoValue = GetAutoToHitBonus(gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+					iComparedFinalAutoValue = GetAutoToHitBonus(gpItemDescSoldier, gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 					iComparedFinalAutoValue = max(0, (iComparedAutoValue * (100 - iComparedFinalAutoValue))/100 );
 				}
 				else
 				{
-					iComparedFinalAutoValue = GetAutoPenalty(gpComparedItemDescObject);
+					iComparedFinalAutoValue = GetAutoPenalty(gpItemDescSoldier, gpComparedItemDescObject);
 					if(gGameExternalOptions.bAimedBurstEnabled)
 						iComparedFinalAutoValue += Weapon[gpComparedItemDescObject->usItem].ubBurstPenalty * gGameExternalOptions.uAimedBurstPenalty;
 				}
@@ -8514,7 +8514,7 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 			}
 
 		}
-		else if( fComparisonMode && UsingNewCTHSystem() == false && GetAutoPenalty(gpComparedItemDescObject) > 0 )
+		else if( fComparisonMode && UsingNewCTHSystem() == false && GetAutoPenalty(gpItemDescSoldier, gpComparedItemDescObject) > 0 )
 		{
 			ubNumLine = 22;	
 			// Get base Auto Penalty value
@@ -8523,12 +8523,12 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 			INT16 iFinalAutoValue;
 			if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 			{
-				iFinalAutoValue = GetAutoToHitBonus(gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+				iFinalAutoValue = GetAutoToHitBonus(gpItemDescSoldier, gpComparedItemDescObject) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 				iFinalAutoValue = max(0, (iAutoValue * (100 - iFinalAutoValue))/100 );
 			}
 			else
 			{
-				iFinalAutoValue = GetAutoPenalty(gpComparedItemDescObject);
+				iFinalAutoValue = GetAutoPenalty(gpItemDescSoldier, gpComparedItemDescObject);
 				if(gGameExternalOptions.bAimedBurstEnabled)
 					iFinalAutoValue += Weapon[gpComparedItemDescObject->usItem].ubBurstPenalty * gGameExternalOptions.uAimedBurstPenalty;
 			}
@@ -10246,14 +10246,14 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 	///////////////////// TO-HIT MODIFIER
 	if(UsingNewCTHSystem() == false)
 	{
-		iModifier[0] = GetToHitBonus( gpItemDescObject, 100, 1, FALSE );
+		iModifier[0] = GetToHitBonus( gpItemDescSoldier, gpItemDescObject, 100, 1, FALSE );
 		iModifier[1] = 0;
-		iModifier[2] = GetToHitBonus( gpItemDescObject, 100, 1, TRUE );
+		iModifier[2] = GetToHitBonus( gpItemDescSoldier, gpItemDescObject, 100, 1, TRUE );
 		if( fComparisonMode )
 		{
-			iComparedModifier[0] = GetToHitBonus( gpComparedItemDescObject, 100, 1, FALSE );
+			iComparedModifier[0] = GetToHitBonus( gpItemDescSoldier, gpComparedItemDescObject, 100, 1, FALSE );
 			iComparedModifier[1] = 0;
-			iComparedModifier[2] = GetToHitBonus( gpComparedItemDescObject, 100, 1, TRUE );
+			iComparedModifier[2] = GetToHitBonus( gpItemDescSoldier, gpComparedItemDescObject, 100, 1, TRUE );
 		}
 		if ( ( (iModifier[0] != 0 || iModifier[1] != 0 || iModifier[2] != 0) ) ||
 			( fComparisonMode && (iComparedModifier[0] != 0 || iComparedModifier[1] != 0 || iComparedModifier[2] != 0) ) )
@@ -12064,12 +12064,12 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 	}
 
 	///////////////////// WOODLAND CAMO
-	iModifier[0] = GetCamoBonus( gpItemDescObject );
+	iModifier[0] = GetCamoBonus( gpItemDescSoldier, gpItemDescObject );
 	iModifier[1] = iModifier[0];
 	iModifier[2] = iModifier[0];
 	if( fComparisonMode )
 	{
-		iComparedModifier[0] = GetCamoBonus( gpComparedItemDescObject );
+		iComparedModifier[0] = GetCamoBonus( gpItemDescSoldier, gpComparedItemDescObject );
 		iComparedModifier[1] = iComparedModifier[0];
 		iComparedModifier[2] = iComparedModifier[0];
 	}
@@ -12134,12 +12134,12 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 	}
 
 	///////////////////// URBAN CAMO
-	iModifier[0] = GetUrbanCamoBonus( gpItemDescObject );
+	iModifier[0] = GetUrbanCamoBonus( gpItemDescSoldier, gpItemDescObject );
 	iModifier[1] = iModifier[0];
 	iModifier[2] = iModifier[0];
 	if( fComparisonMode )
 	{
-		iComparedModifier[0] = GetUrbanCamoBonus( gpComparedItemDescObject );
+		iComparedModifier[0] = GetUrbanCamoBonus( gpItemDescSoldier, gpComparedItemDescObject );
 		iComparedModifier[1] = iComparedModifier[0];
 		iComparedModifier[2] = iComparedModifier[0];
 	}
@@ -12204,12 +12204,12 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 	}
 
 	///////////////////// DESERT CAMO
-	iModifier[0] = GetDesertCamoBonus( gpItemDescObject );
+	iModifier[0] = GetDesertCamoBonus( gpItemDescSoldier, gpItemDescObject );
 	iModifier[1] = iModifier[0];
 	iModifier[2] = iModifier[0];
 	if( fComparisonMode )
 	{
-		iComparedModifier[0] = GetDesertCamoBonus( gpComparedItemDescObject );
+		iComparedModifier[0] = GetDesertCamoBonus( gpItemDescSoldier, gpComparedItemDescObject );
 		iComparedModifier[1] = iComparedModifier[0];
 		iComparedModifier[2] = iComparedModifier[0];
 	}
@@ -12274,12 +12274,12 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 	}
 
 	///////////////////// SNOW CAMO
-	iModifier[0] = GetSnowCamoBonus( gpItemDescObject );
+	iModifier[0] = GetSnowCamoBonus( gpItemDescSoldier, gpItemDescObject );
 	iModifier[1] = iModifier[0];
 	iModifier[2] = iModifier[0];
 	if( fComparisonMode )
 	{
-		iComparedModifier[0] = GetSnowCamoBonus( gpComparedItemDescObject );
+		iComparedModifier[0] = GetSnowCamoBonus( gpItemDescSoldier, gpComparedItemDescObject );
 		iComparedModifier[1] = iComparedModifier[0];
 		iComparedModifier[2] = iComparedModifier[0];
 	}
@@ -12344,12 +12344,12 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 	}
 
 	///////////////////// STEALTH MODIFIER
-	iModifier[0] = GetStealthBonus( gpItemDescObject );
+	iModifier[0] = GetStealthBonus( gpItemDescSoldier, gpItemDescObject );
 	iModifier[1] = iModifier[0];
 	iModifier[2] = iModifier[0];
 	if( fComparisonMode )
 	{
-		iComparedModifier[0] = GetStealthBonus( gpComparedItemDescObject );
+		iComparedModifier[0] = GetStealthBonus( gpItemDescSoldier, gpComparedItemDescObject );
 		iComparedModifier[1] = iComparedModifier[0];
 		iComparedModifier[2] = iComparedModifier[0];
 	}

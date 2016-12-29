@@ -18,6 +18,8 @@
 	#include "Render Fun.h"
 #endif
 #include "connect.h"
+#include "Structure Wrap.h"			// sevenfm
+
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
@@ -65,33 +67,25 @@ int LegalNPCDestination(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubPathMode, 
 	 // AND the gridno hasn't been black-listed for us
 
 	 // Nov 28 98: skip people in destination tile if in turnbased
-	 if ( ( NewOKDestination(pSoldier, sGridNo, fSkipTilesWithMercs, pSoldier->pathing.bLevel ) ) &&
-				( !InGas( pSoldier, sGridNo ) ) &&
-				( sGridNo != pSoldier->sGridNo ) &&
-				( sGridNo != pSoldier->pathing.sBlackList ) )
-	 /*
-	 if ( ( NewOKDestination(pSoldier, sGridno, FALSE, pSoldier->pathing.bLevel ) ) &&
-					( !(gpWorldLevelData[ sGridno ].ubExtFlags[0] & (MAPELEMENT_EXT_SMOKE | MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS)) || ( pSoldier->inv[ HEAD1POS ].usItem == GASMASK || pSoldier->inv[ HEAD2POS ].usItem == GASMASK ) ) &&
-					( sGridno != pSoldier->sGridNo ) &&
-					( sGridno != pSoldier->pathing.sBlackList ) )*/
-	 /*
-	 if ( ( NewOKDestination(pSoldier,sGridno,ALLPEOPLE, pSoldier->pathing.bLevel ) ) &&
-					( !(gpWorldLevelData[ sGridno ].ubExtFlags[0] & (MAPELEMENT_EXT_SMOKE | MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS)) || ( pSoldier->inv[ HEAD1POS ].usItem == GASMASK || pSoldier->inv[ HEAD2POS ].usItem == GASMASK ) ) &&
-					( sGridno != pSoldier->sGridNo ) &&
-					( sGridno != pSoldier->pathing.sBlackList ) )
-					*/
+	// sevenfm: also check for bomb nearby, check for red smoke danger
+	if ( NewOKDestination(pSoldier, sGridNo, fSkipTilesWithMercs, pSoldier->pathing.bLevel ) &&
+		!InGas( pSoldier, sGridNo ) &&
+		!FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE/8, FALSE ) &&
+		RedSmokeDanger(sGridNo, pSoldier->pathing.bLevel) == 0 &&
+		sGridNo != pSoldier->sGridNo &&
+		sGridNo != pSoldier->pathing.sBlackList )
 	{
 		// if water's a problem, and gridno is in a water tile (bridges are OK)
 		if (!ubWaterOK && Water(sGridNo, pSoldier->pathing.bLevel))
 			return(FALSE);
 
 		//Madd: added to prevent people from running into gas and fire
-		if ( (gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_TEARGAS | MAPELEMENT_EXT_MUSTARDGAS)) &&
-					FindGasMask(pSoldier) == NO_SLOT	)
+		if ( (gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_TEARGAS) && FindGasMask(pSoldier) == NO_SLOT )
 		{
 			return( FALSE );
 		}
-		if ( gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_BURNABLEGAS )
+		// sevenfm: always avoid mustard gas
+		if ( gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_MUSTARDGAS | MAPELEMENT_EXT_BURNABLEGAS | MAPELEMENT_EXT_CREATUREGAS))
 		{
 			return( FALSE );
 		}
@@ -451,7 +445,8 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 	UINT16 usMaxDist;
 	UINT8 ubDirection,ubDirsLeft,ubDirChecked[8],fFound = FALSE;
 	// anv: changed to INT16 since Soldier->bActionPoints are INT16 too
-	INT16 bAPsLeft, fPathFlags;
+	INT16 bAPsLeft;
+	UINT8 fPathFlags;
 	//DBrot: More Rooms
 	//UINT8 ubRoomRequired = 0, ubTempRoom;
 	UINT16 usRoomRequired = 0, usTempRoom;
@@ -624,13 +619,11 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 	// sevenfm: start here
 	sTempDest = pSoldier->sGridNo;
 
-	for (sLoop = 0; sLoop < (pSoldier->pathing.usPathDataSize - pSoldier->pathing.usPathIndex); sLoop++)
+	for (sLoop = pSoldier->pathing.usPathIndex; sLoop < pSoldier->pathing.usPathDataSize; sLoop++)
 	{
 		// what is the next gridno in the path?
 
-		//sTempDest = NewGridNo( sGoToGrid,DirectionInc( (INT16) (pSoldier->pathing.usPathingData[sLoop] + 1) ) );
 		//sTempDest = NewGridNo( sGoToGrid,DirectionInc( (UINT8) (pSoldier->pathing.usPathingData[sLoop]) ) );
-		// sevenfm: find new gridno from sTempDest to allow jumping over fence
 		sTempDest = NewGridNo( sTempDest,DirectionInc( (UINT8) (pSoldier->pathing.usPathingData[sLoop]) ) );		
 
 		// this should NEVER be out of bounds
@@ -696,12 +689,9 @@ INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, IN
 		// if this gridno is NOT a legal NPC destination
 		// DONT'T test path again - that would replace the traced path! - Ian
 		// NOTE: It's OK to go *THROUGH* water to try and get to the destination!
-		// sevenfm: jump over fence code - if current gridno is not legal destination, check next gridno
-		if (!LegalNPCDestination(pSoldier,sTempDest,IGNORE_PATH,WATEROK,0))
-		{
-			// break;
-			continue;
-		}
+		// sevenfm: jump over fence fix from Ja2cw
+		if (!LegalNPCDestination(pSoldier,sTempDest,IGNORE_PATH,WATEROK,0) && !IsJumpableFencePresentAtGridNo(sTempDest))
+			break;           // quit here, sGoToGrid is where we are going
 
 		// if after this, we have <= 5 APs remaining, that's far enough, break out
 		// (the idea is to preserve APs so we can crouch or react if

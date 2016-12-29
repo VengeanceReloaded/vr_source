@@ -823,7 +823,16 @@ void SectorFillCanteens( void )
 								FLOAT temperature = (*pObj)[i]->data.bTemperature;
 																
 								(*pObj)[i]->data.objectStatus = 100;						// refill canteen
-								(*pObj)[i]->data.bTemperature = (status * temperature + statusmmissing * addtemperature)/100;
+
+								// sevenfm: if new water quality is better than old - replace completely
+								if( addtemperature > temperature )
+								{
+									(*pObj)[i]->data.bTemperature = addtemperature;
+								}
+								else
+								{
+									(*pObj)[i]->data.bTemperature = (status * temperature + statusmmissing * addtemperature)/100;
+								}	
 							}
 						}
 					}
@@ -855,7 +864,16 @@ void SectorFillCanteens( void )
 							FLOAT temperature = (*pObj)[i]->data.bTemperature;
 																
 							(*pObj)[i]->data.objectStatus = 100;						// refill canteen
-							(*pObj)[i]->data.bTemperature = (status * temperature + statusmmissing * addtemperature)/100;
+							
+							// sevenfm: if new water quality is better than old - replace completely
+							if( addtemperature > temperature )
+							{
+								(*pObj)[i]->data.bTemperature = addtemperature;
+							}
+							else
+							{
+								(*pObj)[i]->data.bTemperature = (status * temperature + statusmmissing * addtemperature)/100;
+							}
 						}
 					}
 				}
@@ -894,6 +912,13 @@ void SectorFillCanteens( void )
 
 							for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)			// ... there might be multiple items here (item stack), so for each one ...
 							{
+								// sevenfm: if drum water has better quality than canteen water, empty canteen first
+								if( (*pObj)[i]->data.bTemperature < (*pWaterDrum)[0]->data.bTemperature )
+								{
+									(*pObj)[i]->data.objectStatus = 1;
+									(*pObj)[i]->data.bTemperature = OVERHEATING_MAX_TEMPERATURE;
+								}
+
 								if ( (*pObj)[i]->data.objectStatus < 100 )				// ... and status is > 1 (1 means that it is empty, but still usable)
 								{
 									INT32 ptsneeded		 = (INT32)((100 - (*pObj)[i]->data.objectStatus)		   * canteensize / 100);
@@ -949,6 +974,13 @@ void SectorFillCanteens( void )
 
 							for(INT16 i = 0; i < pObj->ubNumberOfObjects; ++i)			// ... there might be multiple items here (item stack), so for each one ...
 							{
+								// sevenfm: if drum water has better quality than canteen water, empty canteen first
+								if( (*pObj)[i]->data.bTemperature < (*pWaterDrum)[0]->data.bTemperature )
+								{
+									(*pObj)[i]->data.objectStatus = 1;
+									(*pObj)[i]->data.bTemperature = OVERHEATING_MAX_TEMPERATURE;
+								}
+
 								if ( (*pObj)[i]->data.objectStatus < 100 )				// ... and status is > 1 (1 means that it is empty, but still usable)
 								{
 									INT32 ptsneeded		 = (INT32)((100 - (*pObj)[i]->data.objectStatus)		   * canteensize / 100);
@@ -1054,7 +1086,10 @@ void SoldierAutoFillCanteens(SOLDIERTYPE *pSoldier)
 						FLOAT temperature = (*pObj)[i]->data.bTemperature;
 																
 						(*pObj)[i]->data.objectStatus = 100;						// refill canteen
-						(*pObj)[i]->data.bTemperature = (status * temperature + statusmmissing * addtemperature)/100;
+						
+						// sevenfm: always refill canteen completely
+						//(*pObj)[i]->data.bTemperature = (status * temperature + statusmmissing * addtemperature)/100;
+						(*pObj)[i]->data.bTemperature = addtemperature;
 					}
 				}
 			}

@@ -869,6 +869,9 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 		iCurrentCoverValue -= abs(iCurrentCoverValue) / (8-ubDiff);
 	}
 
+	// sevenfm: penalize locations near red smoke
+	iCurrentCoverValue -= 2 * abs(iCurrentCoverValue) * RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel) / 100;
+
 #ifdef DEBUGCOVER
 //	AINumMessage("Search Range = ",iSearchRange);
 #endif
@@ -1090,6 +1093,9 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			{
 				iCoverValue -= abs(iCoverValue) / (8-ubDiff);
 			}
+
+			// sevenfm: penalize locations near red smoke
+			iCoverValue -= 2 * abs(iCoverValue) * RedSmokeDanger(sGridNo, pSoldier->pathing.bLevel) / 100;
 
 			if ( fNight && !( InARoom( sGridNo, NULL ) ) ) // ignore in buildings in case placed there
 			{
@@ -1444,6 +1450,18 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 			if ( InLightAtNight( sGridNo, pSoldier->pathing.bLevel ) )
 				continue;
 
+			// sevenfm: avoid bombs:
+			if( FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8, TRUE) )
+			{
+				continue;
+			}
+
+			// sevenfm: avoid red smoke
+			if( RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel) )
+			{
+				continue;
+			}
+
 			// OK, this place shows potential.	How useful is it as cover?
 			//NumMessage("Promising seems gridno #",gridno);
 
@@ -1596,6 +1614,12 @@ INT32 FindNearestUngassedLand(SOLDIERTYPE *pSoldier)
 
 				// check for bombs nearby
 				if( FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE/8, FALSE) )
+				{
+					continue;
+				}
+
+				// check for red smoke
+				if( RedSmokeDanger(sGridNo, pSoldier->pathing.bLevel) > 0 )
 				{
 					continue;
 				}

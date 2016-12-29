@@ -1298,14 +1298,16 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 					}
 					break;
 				
-				case( MILCON_MENU_HOLD ):						
+				case( MILCON_MENU_HOLD ):
 					{
 						if ( (pTMilitiaSoldier->bActive) && (pTMilitiaSoldier->bInSector) && (pTMilitiaSoldier->stats.bLife >= OKLIFE) )
 						{
 							//Hold Position !!!
 							//ScreenMsg( FONT_WHITE, MSG_INTERFACE, L"Hold Position" );
 							pTMilitiaSoldier->aiData.bOrders = STATIONARY;
-							//pTMilitiaSoldier->bAttitude = DEFENSIVE;
+							pTMilitiaSoldier->aiData.bAttitude = DEFENSIVE;
+							// sevenfm: set this spot as original point
+							pTMilitiaSoldier->aiData.sPatrolGrid[0] = pTMilitiaSoldier->sGridNo;
 						}
 
 						if ( GetSoldier( &pSoldier, gusSelectedSoldier )  )
@@ -1476,7 +1478,8 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 							INT16 sActionGridNo;
 							INT32 iDummy;						
 
-							sActionGridNo =  FindBestNearbyCover(pTMilitiaSoldier,pTMilitiaSoldier->aiData.bAIMorale,&iDummy);
+							//sActionGridNo =  FindBestNearbyCover(pTMilitiaSoldier,pTMilitiaSoldier->aiData.bAIMorale,&iDummy);
+							sActionGridNo =  FindBestNearbyCover(pTMilitiaSoldier,MORALE_WORRIED,&iDummy);
 							
 							if (!TileIsOutOfBounds(sActionGridNo))
 							{
@@ -1556,6 +1559,8 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 							{
 								pTeamSoldier->aiData.bOrders = STATIONARY;
 								pTeamSoldier->aiData.bAttitude = DEFENSIVE;
+								// sevenfm: set this spot as original point
+								pTMilitiaSoldier->aiData.sPatrolGrid[0] = pTMilitiaSoldier->sGridNo;
 							}
 						}
 
@@ -1813,29 +1818,6 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 
 				case( MILCON_MENU_ALL_TAKE_COVER ):
 					{
-						//UINT8 cnt;
-						//SOLDIERTYPE *pTeamSoldier;
-						//INT32 iDummy;
-						
-						//cnt = gTacticalStatus.Team[ MILITIA_TEAM ].bFirstID;
-
-						//for ( pTeamSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ MILITIA_TEAM ].bLastID; cnt++, pTeamSoldier++)
-						//{
-						//	if ( pTeamSoldier->bActive && pTeamSoldier->bInSector && pTeamSoldier->stats.bLife > 0 )
-						//	{
-						//		pTeamSoldier->usActionData = FindBestNearbyCover(pTeamSoldier,pTeamSoldier->bAIMorale,&iDummy);
-						//								
-						//		pTeamSoldier->usNextActionData = FindBestNearbyCover(pTeamSoldier,pTeamSoldier->bAIMorale,&iDummy);
-						//		
-						//		//if ( !TileIsOutOfBounds(pTeamSoldier->usNextActionData) )
-						//		{
-						//			pTeamSoldier->bNextAction = AI_ACTION_TAKE_COVER;
-						//			pTeamSoldier->usActionData = ANIM_STAND;									
-						//		}
-						//	}
-						//}
-
-
 						UINT8 cnt;
 						INT16 sActionGridNo;
 						INT32 iDummy;
@@ -1848,7 +1830,8 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 							if ( (pTeamSoldier->bActive) && (pTeamSoldier->bInSector) && (pTeamSoldier->stats.bLife >= OKLIFE) )
 							{
 								// See if we can get there
-								sActionGridNo =  FindBestNearbyCover(pTeamSoldier,pTeamSoldier->aiData.bAIMorale,&iDummy);
+								//sActionGridNo =  FindBestNearbyCover(pTeamSoldier,pTeamSoldier->aiData.bAIMorale,&iDummy);
+								sActionGridNo =  FindBestNearbyCover(pTeamSoldier,MORALE_WORRIED,&iDummy);
 																
 								if (!TileIsOutOfBounds(sActionGridNo))
 								{

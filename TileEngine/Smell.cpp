@@ -357,9 +357,9 @@ void DropSmell( SOLDIERTYPE * pSoldier )
 
 void InternalDropBlood( INT32 sGridNo, INT8 bLevel, UINT8 ubType, UINT8 ubStrength, INT8 bVisible )
 {
-	CHAR tmpMPDbgString[512];
-	sprintf(tmpMPDbgString,"InternalDropBlood ( %i , %i , %i , %i , %i )\n",sGridNo, bLevel , ubType , ubStrength , bVisible );
-	MPDebugMsg(tmpMPDbgString);
+	//CHAR tmpMPDbgString[512];
+	//sprintf(tmpMPDbgString,"InternalDropBlood ( %i , %i , %i , %i , %i )\n",sGridNo, bLevel , ubType , ubStrength , bVisible );
+	//MPDebugMsg(tmpMPDbgString);
 
 	MAP_ELEMENT *		pMapElement;
 	UINT8						ubOldStrength=0;

@@ -46,8 +46,9 @@ UINT16 itemGrenadeLauncher;
 UINT16 itemLAW;
 UINT16 itemRPG;
 
-#define MAX_MORTARS_PER_TEAM			1			// one team can't randomly roll more than this many mortars per sector
-
+// #define MAX_MORTARS_PER_TEAM			1			// one team can't randomly roll more than this many mortars per sector
+// sevenfm: increase max mortars number
+#define MAX_MORTARS_PER_TEAM (gGameOptions.ubDifficultyLevel / 2 + 1)
 
 UINT32 guiMortarsRolledByTeam = 0;
 

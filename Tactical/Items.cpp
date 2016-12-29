@@ -7621,8 +7621,94 @@ UINT16 MagazineClassIndexToItemType(UINT16 usMagIndex)
 	return(NONE);
 }
 
+// sevenfm: r8312
+// Code change: When loading gun/looking for a default maazine for a gun while no mag with fitting magsize exists,
+// instead take a magazine of same calibre and ammotype that has magsize bigger (but close to) the originally requested magsize.
 
 UINT16 DefaultMagazine( UINT16 usItem )
+{
+	WEAPONTYPE*	pWeapon = &(Weapon[usItem]);
+	UINT16		usLoop  = 0;
+	UINT16		usDefault = NOTHING;
+	UINT16		bestfoundsize = 9999;
+
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DefaultMagazine: item = %d",usItem));
+	if (!(Item[usItem].usItemClass & IC_GUN))
+		return( 0 );
+
+	while ( Magazine[usLoop].ubCalibre != NOAMMO )
+	{
+		// Flugente: problems arise if we cannot find a mag that fits exactly. Instead of not using a magazine at all, find a mag of same calibre that has a size as close to what is requested as possible
+		if ( Magazine[usLoop].ubCalibre == pWeapon->ubCalibre && 
+			AmmoTypes[Magazine[usLoop].ubAmmoType].standardIssue )
+		{
+			// Flugente: forbid ammo with tracer effects to be used on singleshot-only guns (snipers wouldn't use ammo that marks their position, would they?)
+			if ( !pWeapon->ubShotsPerBurst && !pWeapon->bAutofireShotsPerFiveAP && AmmoTypes[ Magazine[usLoop].ubAmmoType ].tracerEffect )
+			{
+				// don't use this one...
+				++usLoop;
+				continue;
+			}
+
+			if ( Magazine[usLoop].ubMagSize == pWeapon->ubMagSize )
+			{
+				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "DefaultMagazine: found at index %d", usLoop ) );
+				return(MagazineClassIndexToItemType( usLoop ));
+			}
+			// as a fallback solution, look for a mag of same calibre and ammotype, but bigger size (as close to requested size as possible)
+			else if ( Magazine[usLoop].ubMagSize > pWeapon->ubMagSize && Magazine[usLoop].ubMagSize < bestfoundsize )
+			{
+				// store this one to use if all else fails
+				usDefault = MagazineClassIndexToItemType( usLoop );
+
+				bestfoundsize = Magazine[Item[usDefault].ubClassIndex].ubMagSize;
+			}
+		}
+
+		++usLoop;
+	}
+
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DefaultMagazine: can't find exact match, use approximation"));
+	return usDefault;
+}
+
+UINT16 FindReplacementMagazine( UINT8 ubCalibre, UINT16 ubMagSize, UINT8 ubAmmoType )
+{
+	UINT16 usLoop = 0;
+	UINT16 usDefault = NOTHING;
+	UINT16 bestfoundsize = 9999;
+
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("FindReplacementMagazine: calibre = %d, Mag size = %d, ammo type = %d",ubCalibre,ubMagSize,ubAmmoType));
+
+	while ( Magazine[usLoop].ubCalibre != NOAMMO )
+	{
+		// Flugente: problems arise if we cannot find a mag that fits exactly. Vanilla code then compromises on ammotype - which leads to loading from a AP belt resulting in HP mags.
+		// As that's rather silly, we instead of compromis on mag size
+		if ( Magazine[usLoop].ubCalibre == ubCalibre && Magazine[usLoop].ubAmmoType == ubAmmoType )
+		{
+			if ( Magazine[usLoop].ubMagSize == ubMagSize )
+			{
+				DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("FindReplacementMagazine: returning item = %d",MagazineClassIndexToItemType( usLoop )));
+				return( MagazineClassIndexToItemType( usLoop ) );
+			}
+			// as a fallback solution, look for a mag of same calibre and ammotype, but bigger size (as close to requested size as possible)
+			else if ( Magazine[usLoop].ubMagSize > ubMagSize && Magazine[usLoop].ubMagSize < bestfoundsize )
+			{
+				// store this one to use if all else fails
+				usDefault = MagazineClassIndexToItemType( usLoop );
+
+				bestfoundsize = Magazine[Item[usDefault].ubClassIndex].ubMagSize;
+			}
+		}
+
+		++usLoop;
+	}
+
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("FindReplacementMagazine: returning default item = %d",usDefault));
+	return( usDefault );
+}
+
+/*UINT16 DefaultMagazine( UINT16 usItem )
 {
 	WEAPONTYPE *	pWeapon;
 	UINT16				usLoop;
@@ -7695,7 +7781,7 @@ UINT16 FindReplacementMagazine( UINT8 ubCalibre, UINT16 ubMagSize, UINT8 ubAmmoT
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("FindReplacementMagazine: returning default item = %d",usDefault));
 	return( usDefault );
 
-}
+}*/
 
 UINT16 FindReplacementMagazineIfNecessary( UINT16 usOldGun, UINT16 usOldAmmo, UINT16 usNewGun )
 {
@@ -10417,37 +10503,51 @@ INT16 GetRangeBonus( OBJECTTYPE * pObj )
 }
 
 
-INT16 LaserBonus( const INVTYPE * pItem, INT32 iRange, UINT8 bLightLevel )
+INT16 LaserBonus( SOLDIERTYPE *pSoldier, const INVTYPE * pItem, INT32 iRange, UINT8 bLightLevel, UINT8 ubAimTime )
 {
 	// Snap: Reduce laser scope bonus at long ranges and high light levels
+	INT16 bonus;
 
-	if ( pItem->bestlaserrange == 0 || iRange <= pItem->bestlaserrange ) {
+	if ( pItem->bestlaserrange == 0 || iRange <= pItem->bestlaserrange ) 
+	{
 		// No penalty within this range
-		return pItem->tohitbonus;
+		bonus = pItem->tohitbonus;
+
+		// sevenfm: reduce laser bonus when aiming
+		if( pItem->bestlaserrange > 0 && bonus > 0 )
+			bonus = 2 * bonus / (2 + ubAimTime);
+
+		return bonus;
 	}
-	else {
+	else 
+	{
 		// Figure out max. visible distance for the laser dot:
 		// day: 1.5*bestlaserrange, night: 2.5*bestlaserrange
 		// iMaxLaserRange = bestlaserrange * ( 1.5 + ( bLightLevel - NORMAL_LIGHTLEVEL_DAY )
 		//                                 / ( NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY ) )
 		INT32 iMaxLaserRange = ( pItem->bestlaserrange*( 2*bLightLevel + 3*NORMAL_LIGHTLEVEL_NIGHT - 5*NORMAL_LIGHTLEVEL_DAY ) )
-		                     / ( 2 * ( NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY ) );
+			/ ( 2 * ( NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY ) );
 
 		// Beyond bestlaserrange laser bonus drops linearly to 0
 		INT16 bonus = ( pItem->tohitbonus * (iMaxLaserRange - iRange) )
-		            / ( iMaxLaserRange - pItem->bestlaserrange );
+			/ ( iMaxLaserRange - pItem->bestlaserrange );
+
+		// sevenfm: reduce laser bonus when aiming
+		if( pItem->bestlaserrange > 0 && bonus > 0 )
+			bonus = 2 * bonus / (2 + ubAimTime);
 
 		return (bonus > 0 ? bonus : 0);
 	}
 }
 
-INT16 GetToHitBonus( OBJECTTYPE * pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN fProneStance )
+INT16 GetToHitBonus( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN fProneStance, UINT8 ubAimTime )
 {
-	INT16 bonus=0;
+	/*INT16 bonus=0;
 
 	// Snap: bipod is effective only in the prone stance
 
-	if (pObj->exists() == true) {
+	if (pObj->exists() == true) 
+	{
 		if ( fProneStance )
 			bonus += Item[pObj->usItem].bipod;
 
@@ -10455,7 +10555,8 @@ INT16 GetToHitBonus( OBJECTTYPE * pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN
 		bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].tohitbonus;
 
 		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
-			if(iter->exists()){
+			if(iter->exists())
+			{
 				if ( fProneStance )
 					bonus += Item[iter->usItem].bipod;
 
@@ -10465,6 +10566,50 @@ INT16 GetToHitBonus( OBJECTTYPE * pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN
 	}
 
 	// Snap (TODO): add special treatment of laser scopes
+	return( bonus );*/
+
+	///////////////////////////////////////////////////////////////////////////
+	// sevenfm: added scope mode support
+	///////////////////////////////////////////////////////////////////////////
+	INT16 bonus = 0;
+
+	if (pObj->exists() == true) 
+	{
+		if ( fProneStance )
+			bonus += Item[pObj->usItem].bipod;
+
+		// Flugente: check for scope mode
+		if ( gGameExternalOptions.fScopeModes && pSoldier && Item[pObj->usItem].usItemClass == IC_GUN )
+		{
+			std::map<INT8, OBJECTTYPE*> ObjList;
+			GetScopeLists(pObj, ObjList);
+
+			// only use scope mode if gun is in hand, otherwise an error might occur!
+			if ( (&pSoldier->inv[HANDPOS]) == pObj && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+			{
+				bonus += BonusReduceMore( LaserBonus( pSoldier, &Item[ObjList[pSoldier->bScopeMode]->usItem], iRange, bLightLevel, ubAimTime), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
+			}
+		}
+		else
+			bonus += BonusReduceMore( LaserBonus( pSoldier, &Item[pObj->usItem], iRange, bLightLevel, ubAimTime), (*pObj)[0]->data.objectStatus );
+
+		bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].tohitbonus;
+
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+			if(iter->exists())
+			{
+				if ( fProneStance )
+					bonus += Item[iter->usItem].bipod;
+
+				// don't apply ToHit bonus if item is not used scope
+				if( !gGameExternalOptions.fScopeModes || !IsAttachmentClass(iter->usItem, AC_SCOPE|AC_SIGHT|AC_IRONSIGHT ) )
+				{
+					bonus += BonusReduceMore( LaserBonus( pSoldier, &Item[iter->usItem], iRange, bLightLevel, ubAimTime), (*iter)[0]->data.objectStatus );
+				}				
+			}
+		}
+	}
+
 	return( bonus );
 }
 
@@ -10607,25 +10752,73 @@ INT32 GetAimLevelsTraitModifier( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj )
 
 }
 
-INT16 GetBurstToHitBonus( OBJECTTYPE * pObj, BOOLEAN fProneStance )
+INT16 GetBurstToHitBonus( SOLDIERTYPE *pSoldier, OBJECTTYPE * pObj, BOOLEAN fProneStance )
 {
-	INT16 bonus=0;
+	/*INT16 bonus=0;
 
 	// Snap: bipod is effective only in the prone stance
 	// CHRISL: We don't want to count both bipod AND bursttohitbonus as some items get both bonuses
 
-	if (pObj->exists() == true) {
+	if (pObj->exists() == true) 
+	{
 		if ( fProneStance )
 			bonus += BonusReduceMore( Item[pObj->usItem].bipod, (*pObj)[0]->data.objectStatus );
 		else
 			bonus += BonusReduceMore( Item[pObj->usItem].bursttohitbonus, (*pObj)[0]->data.objectStatus );
+
 		// HEADROCK HAM B2.5: A certain setting in the New Tracer System can turn auto/burst penalties off
 		// entirely, to make up for "Tracer Bump".
 		if ( gGameExternalOptions.ubRealisticTracers != 1 )
 			bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].bursttohitbonus ;
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
-			if(iter->exists()){
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
+			if(iter->exists())
+			{
+				if ( fProneStance )
+					bonus += BonusReduceMore( Item[iter->usItem].bipod, (*iter)[0]->data.objectStatus );
+				else
+					bonus += BonusReduceMore( Item[iter->usItem].bursttohitbonus, (*iter)[0]->data.objectStatus );
+			}
+		}
+	}
+
+	return( bonus );*/
+
+	///////////////////////////////////////////////////////////////////
+	// sevenfm: added scope mode support
+	///////////////////////////////////////////////////////////////////
+	INT16 bonus = 0;
+
+	if (pObj->exists() == true) 
+	{
+		if( fProneStance )
+			bonus += BonusReduceMore( Item[pObj->usItem].bipod, (*pObj)[0]->data.objectStatus );
+		else
+			bonus += BonusReduceMore( Item[pObj->usItem].bursttohitbonus, (*pObj)[0]->data.objectStatus );
+
+		// HEADROCK HAM B2.5: A certain setting in the New Tracer System can turn auto/burst penalties off
+		// entirely, to make up for "Tracer Bump".
+		if ( gGameExternalOptions.ubRealisticTracers != 1 )
+			bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].bursttohitbonus ;
+
+		// Flugente: check for scope mode
+		if ( gGameExternalOptions.fScopeModes && pSoldier && Item[pObj->usItem].usItemClass == IC_GUN )
+		{
+			std::map<INT8, OBJECTTYPE*> ObjList;
+			GetScopeLists(pObj, ObjList);
+
+			// only use scope mode if gun is in hand, otherwise an error might occur!
+			if ( (&pSoldier->inv[HANDPOS]) == pObj && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+			{
+				bonus += BonusReduceMore( Item[ObjList[pSoldier->bScopeMode]->usItem].bursttohitbonus, (*pObj)[0]->data.objectStatus );
+			}
+		}
+
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
+			if(iter->exists() && ( !gGameExternalOptions.fScopeModes || !IsAttachmentClass(iter->usItem, AC_SCOPE|AC_SIGHT|AC_IRONSIGHT ) ) )
+			{
 				if ( fProneStance )
 					bonus += BonusReduceMore( Item[iter->usItem].bipod, (*iter)[0]->data.objectStatus );
 				else
@@ -10988,9 +11181,9 @@ INT16 GetRateOfFireBonus( OBJECTTYPE * pObj )
 	return( bonus );
 }
 
-INT16 GetAutoToHitBonus( OBJECTTYPE * pObj, BOOLEAN fProneStance )
+INT16 GetAutoToHitBonus( SOLDIERTYPE *pSoldier, OBJECTTYPE * pObj, BOOLEAN fProneStance )
 {
-	INT16 bonus=0;
+	/*INT16 bonus=0;
 
 	// Snap: bipod is effective only in the prone stance
 	// CHRISL: We don't want to count both bipod AND bursttohitbonus as some items get both bonuses
@@ -11017,17 +11210,63 @@ INT16 GetAutoToHitBonus( OBJECTTYPE * pObj, BOOLEAN fProneStance )
 		}
 	}
 
+	return( bonus );*/
+
+	///////////////////////////////////////////////////////////////////
+	// sevenfm: added scope mode support
+	///////////////////////////////////////////////////////////////////
+	INT16 bonus = 0;
+
+	if (pObj->exists() == true) 
+	{
+		if( fProneStance )
+			bonus += BonusReduceMore( Item[pObj->usItem].bipod, (*pObj)[0]->data.objectStatus );
+		else
+			bonus += BonusReduceMore( Item[pObj->usItem].autofiretohitbonus, (*pObj)[0]->data.objectStatus );
+
+		// HEADROCK HAM B2.5: A certain setting in the New Tracer System can turn auto/burst penalties off
+		// entirely, to make up for "Tracer Bump".
+		if ( gGameExternalOptions.ubRealisticTracers != 1 )
+			bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].autofiretohitbonus;
+
+		// Flugente: check for scope mode
+		if ( gGameExternalOptions.fScopeModes && pSoldier && Item[pObj->usItem].usItemClass == IC_GUN )
+		{
+			std::map<INT8, OBJECTTYPE*> ObjList;
+			GetScopeLists(pObj, ObjList);
+
+			// only use scope mode if gun is in hand, otherwise an error might occur!
+			if ( (&pSoldier->inv[HANDPOS]) == pObj && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+			{
+				bonus += BonusReduceMore( Item[ObjList[pSoldier->bScopeMode]->usItem].autofiretohitbonus, (*pObj)[0]->data.objectStatus );
+			}
+		}
+
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
+			if(iter->exists() && ( !gGameExternalOptions.fScopeModes || !IsAttachmentClass(iter->usItem, AC_SCOPE|AC_SIGHT|AC_IRONSIGHT ) ) )
+			{
+				if ( fProneStance )
+					bonus += BonusReduceMore( Item[iter->usItem].bipod, (*iter)[0]->data.objectStatus );
+				else
+					bonus += BonusReduceMore( Item[iter->usItem].autofiretohitbonus, (*iter)[0]->data.objectStatus );
+			}
+		}
+	}
+
 	return( bonus );
 }
 
 INT16 GetPercentReadyTimeAPReduction( OBJECTTYPE * pObj )
 {
 	INT16 bonus = 0;
-	if (pObj->exists() == true) {
+	if (pObj->exists() == true) 
+	{
 		bonus = BonusReduceMore( Item[pObj->usItem].percentreadytimeapreduction, (*pObj)[0]->data.objectStatus );
 		bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].percentreadytimeapreduction;
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
 			if(iter->exists()){
 				bonus += BonusReduceMore( Item[iter->usItem].percentreadytimeapreduction, (*iter)[0]->data.objectStatus );
 			}
@@ -12666,58 +12905,131 @@ UINT16 PickARandomLaunchable(UINT16 itemIndex)
 
 	return 0;
 }
-INT16 GetCamoBonus( OBJECTTYPE * pObj )
+
+INT16 GetCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj )
 {
 	INT16 bonus = 0;
-	if ( pObj->exists() == true ) {
+	BOOLEAN fWeaponReady = FALSE;
+
+	if ( pObj->exists() == true ) 
+	{
+		if( pSoldier && 
+			Item[pObj->usItem].usItemClass == IC_GUN && 
+			((&pSoldier->inv[HANDPOS]) == pObj || (&pSoldier->inv[SECONDHANDPOS]) == pObj && pSoldier->IsValidSecondHandShot()) &&
+			(WeaponReady(pSoldier) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			fWeaponReady = TRUE;
+		}
+
 		bonus = (Item[pObj->usItem].camobonus);// * (WEAPON_STATUS_MOD((*pObj)[0]->data.objectStatus) / 100)) ;
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
 			if (!Item[iter->usItem].camouflagekit && iter->exists())
-				bonus += (INT16) (Item[iter->usItem].camobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+			{
+				if( Item[iter->usItem].bestlaserrange == 0 || fWeaponReady )
+				{
+					bonus += (INT16) (Item[iter->usItem].camobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+				}				
+			}
 		}
 	}
 	return( bonus );
 }
-INT16 GetUrbanCamoBonus( OBJECTTYPE * pObj )
+
+INT16 GetUrbanCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj )
 {
 	INT16 bonus = 0;
-	if ( pObj->exists() == true ) {
+	BOOLEAN fWeaponReady = FALSE;
+
+	if ( pObj->exists() == true ) 
+	{
+		if( pSoldier && 
+			Item[pObj->usItem].usItemClass == IC_GUN && 
+			((&pSoldier->inv[HANDPOS]) == pObj || (&pSoldier->inv[SECONDHANDPOS]) == pObj && pSoldier->IsValidSecondHandShot()) &&
+			(WeaponReady(pSoldier) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			fWeaponReady = TRUE;
+		}
+
 		bonus = (Item[pObj->usItem].urbanCamobonus);// * (WEAPON_STATUS_MOD((*pObj)[0]->data.objectStatus) / 100)) ;
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
 			if (!Item[iter->usItem].camouflagekit && iter->exists())
-				bonus += (INT16) (Item[iter->usItem].urbanCamobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+			{
+				if( Item[iter->usItem].bestlaserrange == 0 || fWeaponReady )
+				{
+					bonus += (INT16) (Item[iter->usItem].urbanCamobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+				}
+			}
 		}
 	}
 	return( bonus );
 }
-INT16 GetDesertCamoBonus( OBJECTTYPE * pObj )
+
+INT16 GetDesertCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj )
 {
 	INT16 bonus = 0;
-	if ( pObj->exists() == true ) {
+	BOOLEAN fWeaponReady = FALSE;
+
+	if ( pObj->exists() == true ) 
+	{
+		if( pSoldier && 
+			Item[pObj->usItem].usItemClass == IC_GUN && 
+			((&pSoldier->inv[HANDPOS]) == pObj || (&pSoldier->inv[SECONDHANDPOS]) == pObj && pSoldier->IsValidSecondHandShot()) &&
+			(WeaponReady(pSoldier) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			fWeaponReady = TRUE;
+		}
+
 		bonus = (Item[pObj->usItem].desertCamobonus);// * (WEAPON_STATUS_MOD((*pObj)[0]->data.objectStatus) / 100)) ;
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
 			if (!Item[iter->usItem].camouflagekit && iter->exists())
-				bonus += (INT16) (Item[iter->usItem].desertCamobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+			{
+				if( Item[iter->usItem].bestlaserrange == 0 || fWeaponReady )
+				{
+					bonus += (INT16) (Item[iter->usItem].desertCamobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+				}				
+			}
 		}
 	}
 	return( bonus );
 }
-INT16 GetSnowCamoBonus( OBJECTTYPE * pObj )
+
+INT16 GetSnowCamoBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj )
 {
 	INT16 bonus = 0;
-	if ( pObj->exists() == true ) {
+	BOOLEAN fWeaponReady = FALSE;
+
+	if ( pObj->exists() == true ) 
+	{
+		if( pSoldier && 
+			Item[pObj->usItem].usItemClass == IC_GUN && 
+			((&pSoldier->inv[HANDPOS]) == pObj || (&pSoldier->inv[SECONDHANDPOS]) == pObj && pSoldier->IsValidSecondHandShot()) &&
+			(WeaponReady(pSoldier) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			fWeaponReady = TRUE;
+		}
+
 		bonus = (Item[pObj->usItem].snowCamobonus);// * (WEAPON_STATUS_MOD((*pObj)[0]->data.objectStatus) / 100)) ;
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
 			if (!Item[iter->usItem].camouflagekit && iter->exists())
-				bonus += (INT16) (Item[iter->usItem].snowCamobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+			{
+				if( Item[iter->usItem].bestlaserrange == 0 || fWeaponReady )
+				{
+					bonus += (INT16) (Item[iter->usItem].snowCamobonus);// * (WEAPON_STATUS_MOD((*iter)[0]->data.objectStatus) / 100));
+				}				
+			}
 		}
 	}
 	return( bonus );
 }
+
 INT16 GetWornCamo( SOLDIERTYPE * pSoldier )
 {
 	INT8	bLoop;
@@ -12727,8 +13039,9 @@ INT16 GetWornCamo( SOLDIERTYPE * pSoldier )
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
-			ttl += GetCamoBonus(&pSoldier->inv[bLoop]);
+			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 			if ( UsingNewInventorySystem() )
+			{
 				if ( bLoop == VESTPOS && pSoldier->inv[VESTPOCKPOS].exists() )
 				{
 					// silversurfer: Using LBE vest. Only apply partial bonus from armor vest.
@@ -12744,6 +13057,7 @@ INT16 GetWornCamo( SOLDIERTYPE * pSoldier )
 					if ( fLegPenalty > 0 )
 						ttl -= (INT16)( ( 1.0 - gItemSettings.fCamoLBEoverPantsModifier ) * Item[ pSoldier->inv[bLoop].usItem ].camobonus * fLegPenalty / 2 );
 				}
+			}
 		}
 	}
 
@@ -12753,20 +13067,24 @@ INT16 GetWornCamo( SOLDIERTYPE * pSoldier )
 		for (bLoop = VESTPOCKPOS; bLoop <= BPACKPOCKPOS; bLoop++)
 		{
 			if ( pSoldier->inv[bLoop].exists() == true )
-				ttl += GetCamoBonus(&pSoldier->inv[bLoop]);
+				ttl += GetCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
 		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetCamoBonus(&pSoldier->inv[HANDPOS]);
+			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetCamoBonus(&pSoldier->inv[SECONDHANDPOS]);
+			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetCamoBonus(&pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
 	}
+
+	// sevenfm: cannot have negative camo
+	ttl = __max(ttl, 0);
 
 	return __min( ttl, 100 );
 }
+
 INT16 GetWornUrbanCamo( SOLDIERTYPE * pSoldier )
 {
 	INT8	bLoop;
@@ -12776,7 +13094,7 @@ INT16 GetWornUrbanCamo( SOLDIERTYPE * pSoldier )
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
-			ttl += GetUrbanCamoBonus(&pSoldier->inv[bLoop]);
+			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 			if ( UsingNewInventorySystem() )
 				if ( bLoop == VESTPOS && pSoldier->inv[VESTPOCKPOS].exists() )
 				{
@@ -12802,30 +13120,34 @@ INT16 GetWornUrbanCamo( SOLDIERTYPE * pSoldier )
 		for (bLoop = VESTPOCKPOS; bLoop <= BPACKPOCKPOS; bLoop++)
 		{
 			if ( pSoldier->inv[bLoop].exists() == true )
-				ttl += GetUrbanCamoBonus(&pSoldier->inv[bLoop]);
+				ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
 		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetUrbanCamoBonus(&pSoldier->inv[HANDPOS]);
+			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetUrbanCamoBonus(&pSoldier->inv[SECONDHANDPOS]);
+			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetUrbanCamoBonus(&pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
 	}
+
+	// sevenfm: cannot have negative camo
+	ttl = __max(ttl, 0);
 
 	return __min( ttl, 100 );
 }
+
 INT16 GetWornDesertCamo( SOLDIERTYPE * pSoldier )
 {
 	INT8	bLoop;
-	INT16	ttl=0;
+	INT16 ttl=0;
 
 	for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
-			ttl += GetDesertCamoBonus(&pSoldier->inv[bLoop]);
+			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 			if ( UsingNewInventorySystem() )
 				if ( bLoop == VESTPOS && pSoldier->inv[VESTPOCKPOS].exists() )
 				{
@@ -12851,30 +13173,33 @@ INT16 GetWornDesertCamo( SOLDIERTYPE * pSoldier )
 		for (bLoop = VESTPOCKPOS; bLoop <= BPACKPOCKPOS; bLoop++)
 		{
 			if ( pSoldier->inv[bLoop].exists() == true )
-				ttl += GetDesertCamoBonus(&pSoldier->inv[bLoop]);
+				ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
 		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetDesertCamoBonus(&pSoldier->inv[HANDPOS]);
+			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetDesertCamoBonus(&pSoldier->inv[SECONDHANDPOS]);
+			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetDesertCamoBonus(&pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
 	}
-	
+
+	// sevenfm: cannot have negative camo
+	ttl = __max(ttl, 0);
+
 	return __min( ttl, 100 );
 }
 INT16 GetWornSnowCamo( SOLDIERTYPE * pSoldier )
 {
 	INT8	bLoop;
-	INT16	ttl=0;
+	INT16 ttl=0;
 
 	for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
-			ttl += GetSnowCamoBonus(&pSoldier->inv[bLoop]);
+			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 			if ( UsingNewInventorySystem() )
 				if ( bLoop == VESTPOS && pSoldier->inv[VESTPOCKPOS].exists() )
 				{
@@ -12900,18 +13225,21 @@ INT16 GetWornSnowCamo( SOLDIERTYPE * pSoldier )
 		for (bLoop = VESTPOCKPOS; bLoop <= BPACKPOCKPOS; bLoop++)
 		{
 			if ( pSoldier->inv[bLoop].exists() == true )
-				ttl += GetSnowCamoBonus(&pSoldier->inv[bLoop]);
+				ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[bLoop]);
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
 		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetSnowCamoBonus(&pSoldier->inv[HANDPOS]);
+			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetSnowCamoBonus(&pSoldier->inv[SECONDHANDPOS]);
+			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetSnowCamoBonus(&pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
 	}
-	
+
+	// sevenfm: cannot have negative camo
+	ttl = __max(ttl, 0);
+
 	return __min( ttl, 100 );
 }
 
@@ -13692,13 +14020,13 @@ UINT8 AllowedAimingLevelsNCTH( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 	 INT16 sNormalDistance = DAY_VISION_RANGE;
 
 	 // sevenfm: limit aim levels depending on distance
-	 if( PythSpacesAway(pSoldier->sGridNo, sGridNo) <= sNormalDistance  )
+	 if( PythSpacesAway(pSoldier->sGridNo, sGridNo) <= sNormalDistance / 2  )
 	 {
 		 aimLevels = __min(4, aimLevels);
 	 }
 	 else
 	 {
-		 aimLevels = __min( 4 * PythSpacesAway(pSoldier->sGridNo, sGridNo) / sNormalDistance, aimLevels );
+		 aimLevels = __min( 4 * PythSpacesAway(pSoldier->sGridNo, sGridNo) / (sNormalDistance / 2), aimLevels );
 	 }
 
 	 //CHRISL: Make sure we always limit to the proper number of aim clicks
@@ -14086,19 +14414,37 @@ UINT8 GetAllowedAimingLevelsForItem( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, UI
 }
 
 //Madd: added
-INT16 GetStealthBonus( OBJECTTYPE * pObj )
+INT16 GetStealthBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj )
 {
 	INT16 bonus = 0;
-	if ( pObj->exists() == true ) {
+	BOOLEAN fWeaponReady = FALSE;
+
+	if ( pObj->exists() == true ) 
+	{
+		if( pSoldier && 
+			Item[pObj->usItem].usItemClass == IC_GUN && 
+			((&pSoldier->inv[HANDPOS]) == pObj || (&pSoldier->inv[SECONDHANDPOS]) == pObj && pSoldier->IsValidSecondHandShot()) &&
+			(WeaponReady(pSoldier) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			fWeaponReady = TRUE;
+		}
+
 		bonus = BonusReduce(Item[pObj->usItem].stealthbonus,(*pObj)[0]->data.objectStatus);
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
 			if(iter->exists())
-				bonus += (INT16) BonusReduce(Item[iter->usItem].stealthbonus,(*iter)[0]->data.objectStatus);
+			{
+				if( Item[iter->usItem].bestlaserrange == 0 || fWeaponReady )
+				{
+					bonus += (INT16) BonusReduce(Item[iter->usItem].stealthbonus,(*iter)[0]->data.objectStatus);
+				}				
+			}
 		}
 	}
 	return( bonus );
 }
+
 INT16 GetWornStealth( SOLDIERTYPE * pSoldier )
 {
 	//note: Stealth bonus is capped at 100
@@ -14111,7 +14457,7 @@ INT16 GetWornStealth( SOLDIERTYPE * pSoldier )
 	for (bLoop = HELMETPOS; bLoop <= LEGPOS; ++bLoop)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
-			ttl += GetStealthBonus(&pSoldier->inv[bLoop]);
+			ttl += GetStealthBonus(pSoldier, &pSoldier->inv[bLoop]);
 	}
 
 	// Add some default stealth ability to mercs with STEALTHY trait - SANDRO 
@@ -14120,9 +14466,11 @@ INT16 GetWornStealth( SOLDIERTYPE * pSoldier )
 
 	ttl += pSoldier->GetBackgroundValue(BG_PERC_STEALTH);
 
+	// sevenfm: cannot have negative stealth
+	ttl = __max(ttl, 0);
+
 	return __min( ttl, 100 );
 }
-
 
 /////////////////////////////
 // HEADROCK: Several functions created for the Enhanced Description Box project, but may generally be useful some
@@ -14414,15 +14762,32 @@ BOOLEAN IsFlashSuppressorAlt( OBJECTTYPE * pObj )
 }
 
 // HEADROCK: Calculate stealth not based on item status
-INT16 GetBasicStealthBonus( OBJECTTYPE * pObj )
+INT16 GetBasicStealthBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj )
 {
 	INT16 bonus = 0;
-	if ( pObj->exists() == true ) {
+	BOOLEAN fWeaponReady = FALSE;
+
+	if ( pObj->exists() == true ) 
+	{
+		if( pSoldier && 
+			Item[pObj->usItem].usItemClass == IC_GUN && 
+			((&pSoldier->inv[HANDPOS]) == pObj || (&pSoldier->inv[SECONDHANDPOS]) == pObj && pSoldier->IsValidSecondHandShot()) &&
+			(WeaponReady(pSoldier) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING )) )
+		{
+			fWeaponReady = TRUE;
+		}
+
 		bonus = Item[pObj->usItem].stealthbonus;
 
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) 
+		{
 			if(iter->exists())
-				bonus += (INT16) Item[iter->usItem].stealthbonus;
+			{
+				if( Item[iter->usItem].bestlaserrange == 0 || fWeaponReady )
+				{
+					bonus += (INT16) Item[iter->usItem].stealthbonus;
+				}				
+			}
 		}
 	}
 	return( bonus );

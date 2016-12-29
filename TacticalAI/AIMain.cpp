@@ -727,6 +727,12 @@ void EndAIDeadlock(void)
 				}
 #endif
 
+				// sevenfm: abort flanking
+				if( AICheckIsFlanking(pSoldier) )
+				{
+					pSoldier->numFlanks = MAX_FLANKS_RED + 1;
+				}
+
 				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "Number of bullets in the air is %ld", guiNumBullets ) );
 
 				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Setting attack busy count to 0 from deadlock break" ) );

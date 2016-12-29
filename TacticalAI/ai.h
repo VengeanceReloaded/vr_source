@@ -333,4 +333,18 @@ BOOLEAN EnemyAlerted( SOLDIERTYPE *pSoldier );
 #define MIN_FLANK_DIST_RED (DAY_VISION_RANGE/2)
 #define MAX_FLANK_DIST_RED (VISION_RANGE + 20)
 
+UINT8 RedSmokeDanger( INT32 sGridNo, INT8 bLevel );
+BOOLEAN CheckArtilleryStrike( void );
+BOOLEAN CheckRoof( INT32 sGridNo );
+
+BOOLEAN AICheckHasGun( SOLDIERTYPE *pSoldier );
+BOOLEAN AICheckShortWeaponRange( SOLDIERTYPE *pSoldier );
+BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot );
+BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThreatLevel );
+BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, INT8 bTargetLevel );
+BOOLEAN AICheckNVG( SOLDIERTYPE *pSoldier );
+INT8 AIEstimateInterruptLevel( SOLDIERTYPE *pSoldier );
+INT8 FindMaxEnemyInterruptLevel( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 blevel, UINT8 ubDistance );
+
+
 #endif

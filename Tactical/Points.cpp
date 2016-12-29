@@ -4498,7 +4498,7 @@ INT32 GetBPCostForRecoilkick( SOLDIERTYPE * pSoldier )
 	{					
 		// per every shot after the first one, the power increases by an amount based on the weapon steadiness (autopenalty - reduction of it)
 		// the additional kick factor is 5% base + half the auto penalty, but is itself also reduced by the above adjustments
-		INT16 sSteadiness = Weapon[pSoldier->inv[pSoldier->ubAttackingHand].usItem].AutoPenalty - GetAutoToHitBonus(&pSoldier->inv[pSoldier->ubAttackingHand], FALSE );
+		INT16 sSteadiness = Weapon[pSoldier->inv[pSoldier->ubAttackingHand].usItem].AutoPenalty - GetAutoToHitBonus(pSoldier, &pSoldier->inv[pSoldier->ubAttackingHand], FALSE );
 		dModifier = (INT32)((3 + (sSteadiness / 2)) * (100 - dModifier) / 100); 
 		if ( dModifier > 0 )
 		{

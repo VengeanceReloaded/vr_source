@@ -1060,8 +1060,15 @@ INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, IN
 		
 		sGridNo = sSweetGridNo + (WORLD_COLS * sY ) + sX;
 		
-		if ( sGridNo == sSweetGridNo || TileIsOutOfBounds( sGridNo ) || PythSpacesAway( sGridNo, sSweetGridNo ) >= ubRadius || !IsLocationSittable( sGridNo, 0 ) )
+		if( sGridNo == sSweetGridNo || 
+			TileIsOutOfBounds( sGridNo ) || 
+			PythSpacesAway( sGridNo, sSweetGridNo ) >= ubRadius || 
+			!IsLocationSittable( sGridNo, 0 ) ||
+			// sevenfm: don't place ambushing soldiers at cliffs
+			gpWorldLevelData[ sGridNo ].sHeight != gpWorldLevelData[ sSweetGridNo ].sHeight )
+		{
 			sGridNo = NOWHERE;
+		}
 		else
 		{
 			// Go on sweet stop
@@ -1116,10 +1123,19 @@ INT32 FindRandomGridNoBetweenCircles( INT32 sCenterGridNo, UINT8 uInnerRadius, U
 		
 		sGridNo = sCenterGridNo + (WORLD_COLS * sY) + sX;
 
-		if ( TileIsOutOfBounds( sGridNo ) || !IsLocationSittable( sGridNo, 0 ) || PythSpacesAway( sGridNo, sCenterGridNo ) <= uInnerRadius || PythSpacesAway( sGridNo, sCenterGridNo ) > uOuterRadius )
+		if( TileIsOutOfBounds( sGridNo ) || 
+			!IsLocationSittable( sGridNo, 0 ) || 
+			PythSpacesAway( sGridNo, sCenterGridNo ) <= uInnerRadius || 
+			PythSpacesAway( sGridNo, sCenterGridNo ) > uOuterRadius ||
+			// sevenfm: don't place ambushing soldiers at cliffs
+			gpWorldLevelData[ sGridNo ].sHeight != gpWorldLevelData[ sCenterGridNo ].sHeight)
+		{
 			sGridNo = NOWHERE;
+		}
 		else
+		{
 			fFound = TRUE;
+		}
 
 		++cnt;
 

@@ -29,7 +29,8 @@
 	#include "Rotting Corpses.h"
 	#include "wcheck.h"
 	#include "Drugs And Alcohol.h"
-	#include  "Sound Control.h"
+	#include "Sound Control.h"
+	#include "SmokeEffects.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2202,21 +2203,39 @@ INT16 InWaterOrGas(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 }
 
 BOOLEAN InGas( SOLDIERTYPE *pSoldier, INT32 sGridNo )
-{//WarmSteel - One square away from gas is still considered in gas, because it could expand any moment.
+{
+	//WarmSteel - One square away from gas is still considered in gas, because it could expand any moment.
 	//Note: this only works for gas that expands with one tile, but hey it's better than nothing!
 	int iNeighbourGridNo;
+
+	if(!TileIsOutOfBounds(sGridNo))
+	{			
+		// tear gas
+		if((gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_TEARGAS) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
+		{
+			return(TRUE);
+		}
+		// sevenfm: avoid mustard gas even when wearing gas mask
+		// fire/creature/mustard gas
+		if(gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_BURNABLEGAS|MAPELEMENT_EXT_CREATUREGAS|MAPELEMENT_EXT_MUSTARDGAS))//dnl ch62 240813
+		{
+			return(TRUE);
+		}
+	}
+
 	for(int iDir = 0; iDir < NUM_WORLD_DIRECTIONS; ++iDir)
- 	{
+	{
 		iNeighbourGridNo = sGridNo + DirectionInc(iDir);
 		if(!TileIsOutOfBounds(iNeighbourGridNo))
-		{
-			// tear/mustard gas
-			if((gpWorldLevelData[iNeighbourGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_TEARGAS|MAPELEMENT_EXT_MUSTARDGAS)) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
+		{			
+			// tear gas
+			if((gpWorldLevelData[iNeighbourGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_TEARGAS) && !DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
 			{
 				return(TRUE);
 			}
-			// fire/creature gas
-			if(gpWorldLevelData[iNeighbourGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_BURNABLEGAS|MAPELEMENT_EXT_CREATUREGAS))//dnl ch62 240813
+			// sevenfm: avoid mustard gas even when wearing gas mask
+			// fire/creature/mustard gas
+			if(gpWorldLevelData[iNeighbourGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_BURNABLEGAS|MAPELEMENT_EXT_CREATUREGAS|MAPELEMENT_EXT_MUSTARDGAS))//dnl ch62 240813
 			{
 				return(TRUE);
 			}
@@ -2263,12 +2282,6 @@ BOOLEAN InLightAtNight( INT32 sGridNo, INT8 bLevel )
 
 	// do not consider us to be "in light" if we're in an underground sector
 	if ( gbWorldSectorZ > 0 )
-	{
-		return( FALSE );
-	}
-
-	// sevenfm: check time of day also
-	if( !NightTime() )
 	{
 		return( FALSE );
 	}
@@ -3150,20 +3163,37 @@ INT32 RangeChangeDesire( SOLDIERTYPE * pSoldier )
 	INT32 iRangeFactorMultiplier;
 
 	iRangeFactorMultiplier = pSoldier->aiData.bAIMorale - 1;
+
+	INT8 bBonus = 0;
+	// sevenfm: if we have no weapons, try to get closer to enemy
+	if ( !AICheckHasGun(pSoldier) )
+	{
+		bBonus = 2;
+	}
+	// bonus if weapon range is short
+	else if( GuySawEnemy(pSoldier, SEEN_LAST_TURN) && AICheckShortWeaponRange(pSoldier) )
+	{
+		bBonus = 1;
+	}
+
 	switch (pSoldier->aiData.bAttitude)
 	{
-		case DEFENSIVE:		iRangeFactorMultiplier += -1; break;
-		case BRAVESOLO:		iRangeFactorMultiplier +=	2; break;
-		case BRAVEAID:		iRangeFactorMultiplier +=	2; break;
-		case CUNNINGSOLO:	iRangeFactorMultiplier +=	0; break;
-		case CUNNINGAID:	iRangeFactorMultiplier +=	0; break;
-		case ATTACKSLAYONLY:
-		case AGGRESSIVE:	iRangeFactorMultiplier +=	1; break;
+	//case DEFENSIVE:		iRangeFactorMultiplier +=	__max(-1, bBonus); break;
+	case DEFENSIVE:		iRangeFactorMultiplier +=	__max(0, bBonus); break;
+	case BRAVESOLO:		iRangeFactorMultiplier +=	__max(2, bBonus); break;
+	case BRAVEAID:		iRangeFactorMultiplier +=	__max(2, bBonus); break;
+	case CUNNINGSOLO:	iRangeFactorMultiplier +=	__max(0, bBonus); break;
+	case CUNNINGAID:	iRangeFactorMultiplier +=	__max(0, bBonus); break;
+	case ATTACKSLAYONLY:
+	case AGGRESSIVE:	iRangeFactorMultiplier +=	__max(1, bBonus); break;
 	}
-	if ( gTacticalStatus.bConsNumTurnsWeHaventSeenButEnemyDoes > 0 )
+
+	if ( (pSoldier->aiData.bOrders == SEEKENEMY || pSoldier->bTeam != ENEMY_TEAM) &&
+		gTacticalStatus.bConsNumTurnsWeHaventSeenButEnemyDoes > 0 )
 	{
 		iRangeFactorMultiplier += gTacticalStatus.bConsNumTurnsWeHaventSeenButEnemyDoes;
 	}
+	
 	return( iRangeFactorMultiplier );
 }
 
@@ -4884,3 +4914,406 @@ BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier )
 	return TRUE;
 }
 
+// danger percent based on distance to closest smoke effect
+UINT8 RedSmokeDanger( INT32 sGridNo, INT8 bLevel )
+{
+	UINT32	uiCnt;
+	INT32	sDist, sClosestDist, sMaxDist = DAY_VISION_RANGE / 2;
+	INT32	sClosestSmoke = NOWHERE;
+	UINT8	ubDangerPercent = 0;
+
+	if( TileIsOutOfBounds(sGridNo) )
+	{
+		return 0;
+	}
+
+	if ( !gSkillTraitValues.fROAllowArtillery )
+	{
+		return 0;
+	}
+
+	// no artillery strike danger underground
+	if ( gbWorldSectorZ > 0 )
+	{
+		return( FALSE );
+	}
+
+	// check if artillery strike was ordered by any team
+	if( !CheckArtilleryStrike() )
+	{
+		return FALSE;
+	}
+
+	//loop through all red smoke effects and find closest
+	for( uiCnt=0; uiCnt < guiNumSmokeEffects; uiCnt++)
+	{
+		if( gSmokeEffectData[ uiCnt ].fAllocated &&
+			gSmokeEffectData[ uiCnt ].bType == SIGNAL_SMOKE_EFFECT &&
+			!TileIsOutOfBounds(gSmokeEffectData[ uiCnt ].sGridNo) )
+		{
+			sDist = PythSpacesAway(gSmokeEffectData[ uiCnt ].sGridNo, sGridNo);
+
+			if( sClosestSmoke == NOWHERE || sDist < sClosestDist )
+			{
+				sClosestDist = sDist;
+				sClosestSmoke = gSmokeEffectData[ uiCnt ].sGridNo;
+			}
+		}
+	}
+
+	// if we found red smoke, calculate danger percent based on distance
+	// 0% at DAY_VISION_RANGE/2, 100% at zero range
+	if( sClosestSmoke != NOWHERE )
+	{
+		ubDangerPercent = 100 * (sMaxDist - __min(sMaxDist, sClosestDist)) / sMaxDist;
+
+		// reduce danger in water
+		if( Water(sGridNo, bLevel) && ubDangerPercent < 25 )
+		{
+			ubDangerPercent = 0;
+		}
+
+		// no danger when in a building
+		if( bLevel == 0 && CheckRoof(sGridNo) )
+		{
+			ubDangerPercent = 0;
+		}		
+	}
+
+	return ubDangerPercent;
+}
+
+BOOLEAN CheckRoof( INT32 sGridNo )
+{
+	if ( FindStructure( sGridNo, STRUCTURE_ROOF ) != NULL )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+// check if artillery strike was ordered by any team
+BOOLEAN CheckArtilleryStrike( void )
+{
+	UINT32	uiBombIndex;
+	OBJECTTYPE *pObj;
+
+	// search all bombs
+	for (uiBombIndex = 0; uiBombIndex < guiNumWorldBombs; uiBombIndex++)
+	{
+		if (gWorldBombs[ uiBombIndex ].fExists &&
+			gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].usFlags & WORLD_ITEM_ARMED_BOMB )
+		{
+			pObj = &( gWorldItems[ gWorldBombs[uiBombIndex].iItemIndex ].object );
+
+			if( pObj && pObj->exists() && (*pObj)[0]->data.ubWireNetworkFlag & ANY_ARTILLERY_FLAG )
+			{
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckHasGun( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+
+	if( FindAIUsableObjClass( pSoldier, IC_GUN ) != NO_SLOT )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckShortWeaponRange( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+
+	if( !AICheckHasGun( pSoldier ) )
+	{
+		return TRUE;
+	}
+
+	if( AIGunRange(pSoldier) < DAY_VISION_RANGE / 2 )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+// check if we have any sight cover from known enemies at spot
+BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
+{
+	CHECKF(pSoldier);
+
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+	INT32		*pusLastLoc;
+	INT8		*pbPersOL;
+	INT8		*pbPublOL;
+	INT8		*pbLastLevel;
+
+	INT32		sThreatLoc;
+	//INT32		iThreatCertainty;
+	INT8		iThreatLevel;
+
+	// look through all opponents for those we know of
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpponent = MercSlots[ uiLoop ];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		// if this man is neutral / on the same side, he's not an opponent
+		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		{
+			continue;			// next merc
+		}
+
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
+		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
+
+		pusLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpponent->ubID;
+		pbLastLevel = gbLastKnownOppLevel[pSoldier->ubID] + pOpponent->ubID;
+
+		// if this opponent is unknown personally and publicly
+		if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
+		{
+			continue;			// next merc
+		}
+
+		// if personal knowledge is more up to date or at least equal
+		// sevenfm: fix for unknown public location
+		if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) ||
+			(*pbPersOL == *pbPublOL) ||
+			*pbPersOL != NOT_HEARD_OR_SEEN && TileIsOutOfBounds(gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID]) && !TileIsOutOfBounds(gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID]) )
+		{
+			// using personal knowledge, obtain opponent's "best guess" gridno
+			sThreatLoc = *pusLastLoc;
+			iThreatLevel = *pbLastLevel;
+			//iThreatCertainty = ThreatPercent[*pbPersOL - OLDEST_HEARD_VALUE];
+		}
+		else
+		{
+			// using public knowledge, obtain opponent's "best guess" gridno
+			sThreatLoc = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
+			iThreatLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID];
+			//iThreatCertainty = ThreatPercent[*pbPublOL - OLDEST_HEARD_VALUE];
+		}
+
+		if( !AnyCoverFromSpot( sSpot, pSoldier->pathing.bLevel, sThreatLoc, iThreatLevel ) &&
+			LocationToLocationLineOfSightTest( sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, PRONE_LOS_POS) )
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThreatLevel )
+{
+	UINT8	ubDirection;
+	INT32	sCoverSpot;
+	INT8	bCoverHeight;
+
+	if( TileIsOutOfBounds( sSpot ) || TileIsOutOfBounds(sThreatLoc) )
+	{
+		return FALSE;
+	}
+
+	ubDirection = atan8(CenterX(sSpot), CenterY(sSpot), CenterX(sThreatLoc), CenterY(sThreatLoc));
+	sCoverSpot = NewGridNo( sSpot, DirectionInc( ubDirection ) );
+
+	if ( TileIsOutOfBounds( sCoverSpot ) )
+	{
+		return FALSE;
+	}
+
+	if ( WhoIsThere2( sCoverSpot, bLevel ) != NOBODY )
+	{
+		return FALSE;
+	}
+
+	if ( IsLocationSittable( sCoverSpot, bLevel ) )
+	{
+		return FALSE;
+	}
+
+	bCoverHeight = GetTallestStructureHeight( sCoverSpot, bLevel );
+
+	if ( bCoverHeight >= 2 )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+// sevenfm: check if suppression is possible (count friends in the fire direction)
+BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, INT8 bTargetLevel )
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubShootingDir;
+	UINT8 ubFriendDir;
+
+	CHECKF(pSoldier);
+
+	if(TileIsOutOfBounds(sTargetGridNo))
+	{
+		return FALSE;
+	}
+
+	ubShootingDir = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(sTargetGridNo),CenterY(sTargetGridNo));
+
+	UINT32 uiLoop;
+
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
+	{
+		pFriend = MercSlots[ uiLoop ];
+
+		if( pFriend &&
+			pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			(pFriend->bSide == pSoldier->bSide || CONSIDERED_NEUTRAL(pSoldier, pFriend)) &&
+			pFriend->pathing.bLevel == pSoldier->pathing.bLevel &&
+			pFriend->pathing.bLevel == bTargetLevel &&
+			ubShootingDir == atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(pFriend->sGridNo),CenterY(pFriend->sGridNo)) &&
+			PythSpacesAway( pSoldier->sGridNo, pFriend->sGridNo) < 2 * DAY_VISION_RANGE &&
+			AISoldierToSoldierChanceToGetThrough( pSoldier, pFriend ) > 0 &&
+			LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, pFriend->sGridNo, pFriend->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
+			(gAnimControl[ pFriend->usAnimState ].ubHeight == ANIM_STAND || 
+			pSoldier->bTeam == MILITIA_TEAM && pFriend->bTeam == CIV_TEAM && pFriend->aiData.bNeutral ||
+			pFriend->bTeam == OUR_TEAM && gAnimControl[ pFriend->usAnimState ].ubHeight != ANIM_PRONE )	)
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+BOOLEAN AICheckNVG( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+
+	if( Item[pSoldier->inv[HEAD1POS].usItem].nightvisionrangebonus > 0 ||
+		Item[pSoldier->inv[HEAD1POS].usItem].cavevisionrangebonus > 0 ||
+		Item[pSoldier->inv[HEAD2POS].usItem].nightvisionrangebonus > 0 ||
+		Item[pSoldier->inv[HEAD2POS].usItem].cavevisionrangebonus > 0 )
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+INT8 AIEstimateInterruptLevel( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+
+	INT8 bLevel;
+
+	bLevel = ( 20*EffectiveExpLevel( pSoldier ) + EffectiveAgility( pSoldier, FALSE ) + 15 ) / 30;
+
+	bLevel = __max(0, bLevel - pSoldier->aiData.bShock / 4);
+
+	if ( TANK( pSoldier ) )
+	{
+		bLevel /= 2;
+	}
+
+	return bLevel;
+}
+
+INT8 FindMaxEnemyInterruptLevel( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 blevel, UINT8 ubDistance )
+{
+	CHECKF(pSoldier);
+
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+	INT8		bMaxInterruptLevel = 0;
+	INT8		bInterruptLevel;
+
+	INT32		sThreatLoc;
+	INT8		iThreatLevel;
+
+	UINT8 ubNum = 0;
+
+	// loop through all the enemies
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
+	{
+		pOpponent = MercSlots[ uiLoop ];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;
+		}
+
+		// if this man is neutral / on the same side, he's not an opponent
+		if( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		{
+			continue;
+		}
+
+		// check if he is captured
+		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
+		// check personal/public knowledge
+		if( pSoldier->aiData.bOppList[pOpponent->ubID] == NOT_HEARD_OR_SEEN &&
+			gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] == NOT_HEARD_OR_SEEN )
+		{
+			continue;
+		}
+
+		sThreatLoc = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
+		iThreatLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID];
+
+		// use personal knowledge if possible
+		if( pSoldier->aiData.bOppList[pOpponent->ubID] != NOT_HEARD_OR_SEEN )
+		{
+			sThreatLoc = gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID];
+			iThreatLevel = gbLastKnownOppLevel[pSoldier->ubID][pOpponent->ubID];
+		}
+
+		// if for some reason known location is bad - skip
+		if( TileIsOutOfBounds(sThreatLoc) )
+		{
+			continue;
+		}
+
+		// check distance
+		if( PythSpacesAway(sThreatLoc, sGridNo ) > ubDistance )
+		{
+			continue;
+		}
+
+		// check level
+		if( iThreatLevel != blevel )
+		{
+			continue;
+		}
+
+		bInterruptLevel = AIEstimateInterruptLevel(pOpponent);
+		if( bInterruptLevel > bMaxInterruptLevel )
+		{
+			bMaxInterruptLevel = bInterruptLevel;
+		}
+	}
+
+	return bMaxInterruptLevel;
+}

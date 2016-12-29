@@ -5927,95 +5927,43 @@ void UpgradeAdminsToTroops()
 	GROUP *pGroup;
 	INT16 sPatrolIndex;
 
- Ensure_RepairedGarrisonGroup( &gGarrisonGroup, &giGarrisonArraySize );	/* added NULL fix, 2007-03-03, Sgt. Kolja */
+	Ensure_RepairedGarrisonGroup( &gGarrisonGroup, &giGarrisonArraySize );	/* added NULL fix, 2007-03-03, Sgt. Kolja */
 	// on normal, AI evaluates approximately every 10 hrs.	There are about 130 administrators seeded on the map.
 	// Some of these will be killed by the player.
 
+	UINT8 ubHighestPlayerProgress = HighestPlayerProgressPercentage( );
+
 	// check all garrisons for administrators
-	for( i = 0; i < giGarrisonArraySize; i++ )
+	//if( gGameExternalOptions.fUpdateGarrisonAdmins )
 	{
-		// skip sector if it's currently loaded, we'll never upgrade guys in those
-		if ( (gWorldSectorX != 0) && (gWorldSectorY != 0) &&
-			 (SECTOR( gWorldSectorX, gWorldSectorY ) == gGarrisonGroup[ i ].ubSectorID) )
+		for( i = 0; i < giGarrisonArraySize; i++ )
 		{
-			continue;
-		}
-
-		pSector = &SectorInfo[ gGarrisonGroup[ i ].ubSectorID ];
-
-		// if there are any admins currently in this garrison
-		if ( pSector->ubNumAdmins > 0 )
-		{
-			bPriority = gArmyComp[ gGarrisonGroup[ i ].ubComposition ].bPriority;
-
-			// highest priority sectors are upgraded first. Each 1% of progress lower the
-			// priority threshold required to start triggering upgrades by 10%.
-			if ( ( 100 - ( 10 * HighestPlayerProgressPercentage() ) ) < bPriority )
-			{
-				ubAdminsToCheck = pSector->ubNumAdmins;
-
-				while ( ubAdminsToCheck > 0)
-				{
-					// chance to upgrade at each check is random, and also dependant on the garrison's priority
-					if ( Chance ( bPriority ) || gGameOptions.ubDifficultyLevel > DIF_LEVEL_HARD ) // Madd: Always happens on Insane
-					{
-						pSector->ubNumAdmins--;
-						pSector->ubNumTroops++;
-					}
-
-					ubAdminsToCheck--;
-				}
-			}
-		}
-	}
-
-
-	// check all moving enemy groups for administrators
-	pGroup = gpGroupList;
-	while( pGroup )
-	{
-		if( pGroup->ubGroupSize && !pGroup->fPlayer && !pGroup->fVehicle)
-		{
-			Assert ( pGroup->pEnemyGroup );
-
 			// skip sector if it's currently loaded, we'll never upgrade guys in those
-			if ( ( pGroup->ubSectorX == gWorldSectorX ) && ( pGroup->ubSectorY == gWorldSectorY ) )
+			if ( (gWorldSectorX != 0) && (gWorldSectorY != 0) &&
+				(SECTOR( gWorldSectorX, gWorldSectorY ) == gGarrisonGroup[ i ].ubSectorID) )
 			{
-				pGroup = pGroup->next;
 				continue;
 			}
 
-			// if there are any admins currently in this group
-			if ( pGroup->pEnemyGroup->ubNumAdmins > 0 )
+			pSector = &SectorInfo[ gGarrisonGroup[ i ].ubSectorID ];
+
+			// if there are any admins currently in this garrison
+			if ( pSector->ubNumAdmins > 0 )
 			{
-				// if it's a patrol group
-				if ( pGroup->pEnemyGroup->ubIntention == PATROL )
-				{
-					sPatrolIndex = FindPatrolGroupIndexForGroupID( pGroup->ubGroupID );
-					Assert( sPatrolIndex != -1 );
+				bPriority = gArmyComp[ gGarrisonGroup[ i ].ubComposition ].bPriority;
 
-					// use that patrol's priority
-					bPriority = gPatrolGroup[ sPatrolIndex ].bPriority;
-				}
-				else	// not a patrol group
+				// highest priority sectors are upgraded first.
+				if ( ( 100 - ubHighestPlayerProgress) / gGameOptions.ubDifficultyLevel < bPriority )
 				{
-					// use a default priority
-					bPriority = 50;
-				}
-
-				// highest priority groups are upgraded first. Each 1% of progress lower the
-				// priority threshold required to start triggering upgrades by 10%.
-				if ( ( 100 - ( 10 * HighestPlayerProgressPercentage() ) ) < bPriority )
-				{
-					ubAdminsToCheck = pGroup->pEnemyGroup->ubNumAdmins;
+					ubAdminsToCheck = pSector->ubNumAdmins;
 
 					while ( ubAdminsToCheck > 0)
 					{
-						// chance to upgrade at each check is random, and also dependant on the group's priority
-						if ( Chance ( bPriority ) || gGameOptions.ubDifficultyLevel >= DIF_LEVEL_HARD )// Madd: Always happens on Expert and Insane
+						// chance to upgrade at each check is random, and also dependent on the garrison's priority
+						if ( Chance ( bPriority ) || gGameOptions.ubDifficultyLevel > DIF_LEVEL_HARD ) // Always happens on Insane
 						{
-							pGroup->pEnemyGroup->ubNumAdmins--;
-							pGroup->pEnemyGroup->ubNumTroops++;
+							pSector->ubNumAdmins--;
+							pSector->ubNumTroops++;
 						}
 
 						ubAdminsToCheck--;
@@ -6023,11 +5971,67 @@ void UpgradeAdminsToTroops()
 				}
 			}
 		}
-
-		pGroup = pGroup->next;
 	}
-}
 
+	// check all moving enemy groups for administrators
+	//if( gGameExternalOptions.fUpdatePatrolAdmins )
+	{
+		pGroup = gpGroupList;
+		while( pGroup )
+		{
+			if( pGroup->ubGroupSize && !pGroup->fPlayer && !pGroup->fVehicle)
+			{
+				Assert ( pGroup->pEnemyGroup );
+
+				// skip sector if it's currently loaded, we'll never upgrade guys in those
+				if ( ( pGroup->ubSectorX == gWorldSectorX ) && ( pGroup->ubSectorY == gWorldSectorY ) )
+				{
+					pGroup = pGroup->next;
+					continue;
+				}
+
+				// if there are any admins currently in this group
+				if ( pGroup->pEnemyGroup->ubNumAdmins > 0 )
+				{
+					// if it's a patrol group
+					if ( pGroup->pEnemyGroup->ubIntention == PATROL )
+					{
+						sPatrolIndex = FindPatrolGroupIndexForGroupID( pGroup->ubGroupID );
+						Assert( sPatrolIndex != -1 );
+
+						// use that patrol's priority
+						bPriority = gPatrolGroup[ sPatrolIndex ].bPriority;
+					}
+					else	// not a patrol group
+					{
+						// use a default priority
+						bPriority = 50;
+					}
+
+					// highest priority groups are upgraded first
+					if ( ( 100 - ubHighestPlayerProgress ) / gGameOptions.ubDifficultyLevel < bPriority )
+					{
+						ubAdminsToCheck = pGroup->pEnemyGroup->ubNumAdmins;
+
+						while ( ubAdminsToCheck > 0)
+						{
+							// chance to upgrade at each check is random, and also dependent on the group's priority
+							if ( Chance ( bPriority ) || gGameOptions.ubDifficultyLevel > DIF_LEVEL_HARD ) // Always happens on Insane
+							{
+								pGroup->pEnemyGroup->ubNumAdmins--;
+								pGroup->pEnemyGroup->ubNumTroops++;
+							}
+
+							ubAdminsToCheck--;
+						}
+					}
+				}
+			}
+
+			pGroup = pGroup->next;
+		}
+	}	
+}
 
 INT16 FindPatrolGroupIndexForGroupID( UINT8 ubGroupID )
 {

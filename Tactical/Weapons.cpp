@@ -7480,8 +7480,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 			Bipods also grant their flat CTH bonus so we don't need to mess this that here*/
 		if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 		{
-			INT16 moda = GetBurstToHitBonus(pInHand, stance == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
-			INT16 modb = GetBurstToHitBonus(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			//INT16 moda = GetBurstToHitBonus(pInHand, stance == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			//INT16 modb = GetBurstToHitBonus(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			INT16 moda = GetBurstToHitBonus(pSoldier, pInHand, stance == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			INT16 modb = GetBurstToHitBonus(pSoldier, pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 			iBonus = (INT32)((gGameExternalOptions.ubProneModifierPercentage * moda + (100 - gGameExternalOptions.ubProneModifierPercentage) * modb)/100); 
 			
 			iPenalty = Weapon[pInHand->usItem].ubBurstPenalty * (pSoldier->bDoBurst - 1) * (gGameExternalOptions.bAimedBurstEnabled?gGameExternalOptions.uAimedBurstPenalty:1);
@@ -7490,8 +7492,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		else
 		{
 			// Snap: bipod may reduce burst penalty
-			INT16 moda = GetBurstPenalty(pInHand, stance == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
-			INT16 modb = GetBurstPenalty(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			//INT16 moda = GetBurstPenalty(pInHand, stance == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			//INT16 modb = GetBurstPenalty(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			INT16 moda = GetBurstPenalty(pSoldier, pInHand, stance == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			INT16 modb = GetBurstPenalty(pSoldier, pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
 			iPenalty = (INT32)((gGameExternalOptions.ubProneModifierPercentage * moda + (100 - gGameExternalOptions.ubProneModifierPercentage) * modb)/100); 
 
 			if(gGameExternalOptions.bAimedBurstEnabled)
@@ -7528,8 +7532,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 			Bipods also grant their flat CTH bonus so we don't need to mess this that here*/
 		if(gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier)
 		{
-			INT16 moda = GetAutoToHitBonus(pInHand, stance == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
-			INT16 modb = GetAutoToHitBonus(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			//INT16 moda = GetAutoToHitBonus(pInHand, stance == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			//INT16 modb = GetAutoToHitBonus(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			INT16 moda = GetAutoToHitBonus(pSoldier, pInHand, stance == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
+			INT16 modb = GetAutoToHitBonus(pSoldier, pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * gGameExternalOptions.ubFlatAFTHBtoPrecentMultiplier;
 			iBonus = (INT32)((gGameExternalOptions.ubProneModifierPercentage * moda + (100 - gGameExternalOptions.ubProneModifierPercentage) * modb)/100); 
 
 			iPenalty = Weapon[pInHand->usItem].AutoPenalty * (pSoldier->bDoBurst - 1) * (gGameExternalOptions.bAimedBurstEnabled?gGameExternalOptions.uAimedBurstPenalty:1);
@@ -7538,8 +7544,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		else
 		{
 			// Snap: bipod may reduce auto penalty
-			INT16 moda = GetAutoPenalty(pInHand, stance == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
-			INT16 modb = GetAutoPenalty(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			//INT16 moda = GetAutoPenalty(pInHand, stance == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			//INT16 modb = GetAutoPenalty(pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			INT16 moda = GetAutoPenalty(pSoldier, pInHand, stance == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
+			INT16 modb = GetAutoPenalty(pSoldier, pInHand, gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) * (pSoldier->bDoBurst - 1);
 			iPenalty = (INT32)((gGameExternalOptions.ubProneModifierPercentage * moda + (100 - gGameExternalOptions.ubProneModifierPercentage) * modb)/100); 
 
 			if(gGameExternalOptions.bAimedBurstEnabled)
@@ -7767,8 +7775,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	// Equipment Modifiers
 	iChance += GetGearToHitBonus ( pSoldier );
 
-	INT16 moda = GetToHitBonus( pInHand, iRange, bLightLevel, stance && iRange > MIN_PRONE_RANGE );
-	INT16 modb = GetToHitBonus( pInHand, iRange, bLightLevel, gAnimControl[ pSoldier->usAnimState ].ubEndHeight && iRange > MIN_PRONE_RANGE );
+	INT16 moda = GetToHitBonus( pSoldier, pInHand, iRange, bLightLevel, stance && iRange > MIN_PRONE_RANGE, ubAimTime );
+	INT16 modb = GetToHitBonus( pSoldier, pInHand, iRange, bLightLevel, gAnimControl[ pSoldier->usAnimState ].ubEndHeight && iRange > MIN_PRONE_RANGE, ubAimTime );
+
 	iChance += (INT32)((gGameExternalOptions.ubProneModifierPercentage * moda + (100 - gGameExternalOptions.ubProneModifierPercentage) * modb)/100); 
 	/////////////////////////////////////////////////////////////////////////////////////
 	
@@ -9742,7 +9751,9 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, BULLET *pBullet, SOLDIERTYPE * pTarget,
 					if (pubSpecial)
 					{
 						// is the blow deadly enough to cause a head explosion?
-						if ( iImpactForCrits >= pTarget->stats.bLife )
+						//if ( iImpactForCrits >= pTarget->stats.bLife )
+						// sevenfm: min gun damage for head explosion
+						if ( iImpactForCrits >= pTarget->stats.bLife && Weapon[ usAttackingWeapon ].ubImpact >= 30 )
 						{
 							if (iImpactForCrits > MIN_DAMAGE_FOR_HEAD_EXPLOSION )
 							{
@@ -11652,7 +11663,8 @@ UINT32 CalcThrownChanceToHit(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTi
 	if ( UsingNewCTHSystem() == false && pSoldier->bDoBurst )
 	{
 		int iPenalty = ( Weapon[usHandItem].ubBurstPenalty
-			- GetBurstToHitBonus(&pSoldier->inv[HANDPOS], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) )
+			//- GetBurstToHitBonus(&pSoldier->inv[HANDPOS], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) )
+			- GetBurstToHitBonus(pSoldier, &pSoldier->inv[HANDPOS], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE) )
 			* (pSoldier->bDoBurst - 1);
 
 		// SAMDRO - shooting dual bursts is somehow harder to control
@@ -12177,23 +12189,25 @@ UINT8 GetShotsPerBurst( OBJECTTYPE *pObj )
 	return Weapon[ pObj->usItem ].ubShotsPerBurst  + GetBurstSizeBonus(pObj);
 
 }
-UINT8 GetBurstPenalty( OBJECTTYPE *pObj, BOOLEAN fProneStance )
+UINT8 GetBurstPenalty( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, BOOLEAN fProneStance )
 {
 	// Snap: Make sure burst bonus does not exceed burst penalty!
-	INT16 bns = GetBurstToHitBonus(pObj, fProneStance);
+	INT16 bns = GetBurstToHitBonus(pSoldier, pObj, fProneStance);
 
-	if ( bns > Weapon[ pObj->usItem ].ubBurstPenalty ) {
+	if ( bns > Weapon[ pObj->usItem ].ubBurstPenalty ) 
+	{
 		return 0;
 	}
 
 	return Weapon[ pObj->usItem ].ubBurstPenalty - bns;
 }
-UINT8 GetAutoPenalty( OBJECTTYPE *pObj, BOOLEAN fProneStance )
+UINT8 GetAutoPenalty( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, BOOLEAN fProneStance )
 {
 	// Snap: Make sure burst bonus does not exceed burst penalty!
-	INT16 bns = GetAutoToHitBonus(pObj, fProneStance);
+	INT16 bns = GetAutoToHitBonus(pSoldier, pObj, fProneStance);
 
-	if ( bns > Weapon[ pObj->usItem ].AutoPenalty ) {
+	if ( bns > Weapon[ pObj->usItem ].AutoPenalty ) 
+	{
 		return 0;
 	}
 

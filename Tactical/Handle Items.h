@@ -185,4 +185,6 @@ BOOLEAN RemoveFortification( INT32 sGridNo );
 
 extern ITEM_POOL *gpItemPool;//dnl ch26 210909
 
+std::string GetNameToTileSet( UINT8 aIndex );
+
 #endif

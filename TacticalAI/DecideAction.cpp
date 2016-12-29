@@ -1039,7 +1039,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionGreen: get out of water and gas"));
 
-	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE))
+	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 		
@@ -1730,7 +1730,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionYellow: get out of water and gas"));
 
-	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE))
+	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 
@@ -2551,7 +2551,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	// WHEN IN GAS, GO TO NEAREST REACHABLE SPOT OF UNGASSED LAND
 	////////////////////////////////////////////////////////////////////////////
 
-	if ( ubCanMove && (bInGas || bInDeepWater || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE)) )
+	if ( ubCanMove && (bInGas || bInDeepWater || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)) )
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 
@@ -2893,23 +2893,28 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 		// CHRISL: Changed from a simple flag to two externalized values for more modder control over AI suppression
 		// WarmSteel - Don't *always* try to suppress when under 50 CTH
-		if( BestShot.bWeaponIn != -1  
-			&& BestShot.ubPossible 
-			&& GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize
-			&& pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo 
-			//&& BestShot.ubChanceToReallyHit < (INT16)(PreRandom(50))  
-			//&& Menptr[BestShot.ubOpponent].pathing.bLevel == 0 
-			&& pSoldier->aiData.bOrders != SNIPER &&
+		if( BestShot.bWeaponIn != -1 &&
+			BestShot.ubPossible &&
+			GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize &&
+			pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo &&
+			pSoldier->aiData.bOrders != SNIPER &&
 			BestShot.ubFriendlyFireChance < 5 &&
+			!TileIsOutOfBounds(BestShot.sTarget) &&
+			PythSpacesAway(pSoldier->sGridNo, BestShot.sTarget) > DAY_VISION_RANGE / 4 &&
+			Random(100) < 100 * (GunRange(&pSoldier->inv[BestShot.bWeaponIn], pSoldier) / CELL_X_SIZE) / PythSpacesAway(pSoldier->sGridNo, BestShot.sTarget) &&
+			//CheckSuppressionDirection( pSoldier, Menptr[BestShot.ubOpponent].sGridNo, Menptr[BestShot.ubOpponent].pathing.bLevel ) &&
+			MercPtrs[BestShot.ubOpponent]->stats.bLife >= OKLIFE &&
+			!MercPtrs[BestShot.ubOpponent]->bCollapsed &&
+			!MercPtrs[BestShot.ubOpponent]->bBreathCollapsed &&
 			!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
 			!AICheckIsFlanking(pSoldier) &&
+			!TileIsOutOfBounds(BestShot.sTarget) &&
+			!pSoldier->IsZombie() &&
 			MercPtrs[BestShot.ubOpponent]->bTeam != CREATURE_TEAM &&
 			!TANK( MercPtrs[BestShot.ubOpponent] ) &&
 			!AM_A_ROBOT( MercPtrs[BestShot.ubOpponent] ) &&
 			MercPtrs[BestShot.ubOpponent]->ubWhatKindOfMercAmI != MERC_TYPE__VEHICLE &&
-			LocationToLocationLineOfSightTest( pSoldier->sGridNo, pSoldier->pathing.bLevel, MercPtrs[BestShot.ubOpponent]->sGridNo, MercPtrs[BestShot.ubOpponent]->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT) &&
-			//Weapon[pSoldier->inv[BestShot.bWeaponIn].usItem].ubWeaponType == GUN_LMG ) &&	//Weapon[usInHand].ubWeaponClass == MGCLASS
-			(fExtraClip || pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft > gGameExternalOptions.ubAISuppressionMinimumMagSize) )
+			(FindAmmoToReload( pSoldier, BestShot.bWeaponIn, NO_SLOT ) != NO_SLOT || pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft > gGameExternalOptions.ubAISuppressionMinimumMagSize) )
 		{
 			// then do it!
 
@@ -2950,7 +2955,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				}
 				while(	pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs &&
 					pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire &&
-					GetAutoPenalty(&pSoldier->inv[ pSoldier->ubAttackingHand ], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE)*pSoldier->bDoAutofire <= 80 );
+					GetAutoPenalty(pSoldier, &pSoldier->inv[ pSoldier->ubAttackingHand ], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE)*pSoldier->bDoAutofire <= 80 );
 			}
 
 			pSoldier->bDoAutofire--;
@@ -3490,15 +3495,40 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 				// sevenfm: penalize watching if some friends see enemy at watched location
 				bHighestWatchLoc = GetHighestVisibleWatchedLoc( pSoldier->ubID );
-				if ( bHighestWatchLoc != -1 )
+				if ( bHighestWatchLoc != -1 && !TileIsOutOfBounds(gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ]) )
 				{
-					bWatchPts -= CountFriendsBlack(pSoldier, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ]);
+					if( pSoldier->aiData.bOrders != STATIONARY &&
+						pSoldier->aiData.bOrders != SNIPER )
+					{
+						bWatchPts -= CountFriendsBlack(pSoldier, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ]);
+
+						// penalize watching at night if soldier has no NVG and watched location is not in light
+						if(	NightLight() && 
+							!InLightAtNight(gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ], gbWatchedLocLevel[ pSoldier->ubID ][ bHighestWatchLoc ]) && 
+							!AICheckNVG(pSoldier) &&
+							!InARoom(pSoldier->sGridNo, NULL) )
+						{
+							bWatchPts -= 1;
+						}
+
+						if( AIGunRange(pSoldier) < PythSpacesAway(pSoldier->sGridNo, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ]) )
+						{
+							bWatchPts -= (PythSpacesAway(pSoldier->sGridNo, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ]) - AIGunRange(pSoldier) ) / 4;
+						}
+
+						INT8 bMaxEnemyLevel = FindMaxEnemyInterruptLevel( pSoldier, gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ], gbWatchedLocLevel[ pSoldier->ubID ][ bHighestWatchLoc ], DAY_VISION_RANGE / 8 );
+						if( bMaxEnemyLevel > AIEstimateInterruptLevel(pSoldier) + CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8) &&
+							LocationToLocationLineOfSightTest( gsWatchedLoc[ pSoldier->ubID ][ bHighestWatchLoc ], gbWatchedLocLevel[ pSoldier->ubID ][ bHighestWatchLoc ], pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS ))
+						{
+							bWatchPts -= bMaxEnemyLevel - (AIEstimateInterruptLevel(pSoldier) + CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8) );
+						}
+					}					
 				}
 
 				// sevenfm: don't help if seen enemy recently or under fire
 				if( GuySawEnemy(pSoldier) || pSoldier->aiData.bUnderFire )
 				{
-					bHelpPts -= 10;
+					bHelpPts = -99;
 				}
 			}
 
@@ -4559,7 +4589,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	////////////////////////////////////////////////////////////////////////////
 
 	// if soldier in water/gas has enough APs left to move at least 1 square
-	if ( ( bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE)) && ubCanMove)
+	if ( ( bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)) && ubCanMove)
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 		
@@ -4596,7 +4626,11 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	// offer surrender?
 #ifdef JA2UB
 #else
-	if ( pSoldier->bTeam == ENEMY_TEAM && pSoldier->bVisible == TRUE && !( gTacticalStatus.fEnemyFlags & ENEMY_OFFERED_SURRENDER ) && pSoldier->stats.bLife >= pSoldier->stats.bLifeMax / 2 )
+	if( pSoldier->bTeam == ENEMY_TEAM && 
+		pSoldier->bVisible == TRUE &&
+		!( gTacticalStatus.fEnemyFlags & ENEMY_OFFERED_SURRENDER ) && 
+		pSoldier->stats.bLife >= pSoldier->stats.bLifeMax / 2 &&
+		!pSoldier->aiData.bUnderFire ) 
 	{
 		if ( gTacticalStatus.Team[ MILITIA_TEAM ].bMenInSector == 0 && gTacticalStatus.Team[ CREATURE_TEAM ].bMenInSector == 0 && NumPCsInSector() < 4 && gTacticalStatus.Team[ ENEMY_TEAM ].bMenInSector >= NumPCsInSector() * 3 )
 		{
@@ -5833,7 +5867,7 @@ L_NEWAIM:
 						pSoldier->inv[ BestAttack.bWeaponIn ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire &&
 						//dnl ch64 130913 pSoldier->ubAttackingHand is wrong because decision is to use BestAttack.bWeaponIn, also missing sActualAimTime
 						// sevenfm limit max auto penalty if target has shock (suppressed)
-						GetAutoPenalty(&pSoldier->inv[ BestAttack.bWeaponIn ], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE)*pSoldier->bDoAutofire <= __max(BestAttack.ubChanceToReallyHit, 40 + 80 / (2+MercPtrs[BestAttack.ubOpponent]->aiData.bShock)) ); 
+						GetAutoPenalty(pSoldier, &pSoldier->inv[ BestAttack.bWeaponIn ], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE)*pSoldier->bDoAutofire <= __max(BestAttack.ubChanceToReallyHit, 40 + 80 / (2+MercPtrs[BestAttack.ubOpponent]->aiData.bShock)) ); 
 						//GetAutoPenalty(&pSoldier->inv[ BestAttack.bWeaponIn ], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE)*pSoldier->bDoAutofire <= 80);//dnl ch64 130913 pSoldier->ubAttackingHand is wrong because decision is to use BestAttack.bWeaponIn, also missing sActualAimTime
 				}
 

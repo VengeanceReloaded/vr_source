@@ -7054,3 +7054,23 @@ void HandleTakeNewBombFromInventory(SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj)
        pSoldier->TakeNewBombFromInventory(pObj->usItem);
 	}
 }
+
+std::string GetNameToTileSet( UINT8 aIndex )
+{
+	// if tileset is from the current tileset, check that
+	if ( gTilesets[giCurrentTilesetID].TileSurfaceFilenames[aIndex][0] )
+	{
+		std::string str( gTilesets[giCurrentTilesetID].TileSurfaceFilenames[aIndex], std::find( gTilesets[giCurrentTilesetID].TileSurfaceFilenames[aIndex], gTilesets[giCurrentTilesetID].TileSurfaceFilenames[aIndex] + 32, '\0' ) );
+
+		return str;
+	}
+	// otherwise, check first tileset (GENERIC 1)
+	else if ( gTilesets[0].TileSurfaceFilenames[aIndex][0] )
+	{
+		std::string str( gTilesets[0].TileSurfaceFilenames[aIndex], std::find( gTilesets[0].TileSurfaceFilenames[aIndex], gTilesets[0].TileSurfaceFilenames[aIndex] + 32, '\0' ) );
+
+		return str;
+	}
+
+	return "";
+}
