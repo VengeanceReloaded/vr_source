@@ -5037,22 +5037,48 @@ void RemoveAllActiveTimedBombs( void )
 
 UINT8 DetermineFlashbangEffect( SOLDIERTYPE *pSoldier, INT8 ubExplosionDir, BOOLEAN fInBuilding)
 {
-	INT8 bNumTurns;
-	UINT16 usHeadItem1, usHeadItem2;
+	INT8 bNumTurns;	
 
 	bNumTurns	= FindNumTurnsBetweenDirs(pSoldier->ubDirection, ubExplosionDir);
-	usHeadItem1 = pSoldier->inv[ HEAD1POS ].usItem;
-	usHeadItem2 = pSoldier->inv[ HEAD2POS ].usItem;
+
+	//UINT16 usHeadItem1, usHeadItem2;
+	//usHeadItem1 = pSoldier->inv[ HEAD1POS ].usItem;
+	//usHeadItem2 = pSoldier->inv[ HEAD2POS ].usItem;
+	//if ( (usHeadItem1 == SUNGOGGLES || usHeadItem2 == SUNGOGGLES) || (bNumTurns > 1) ||
+
+	BOOLEAN fFlashProtection = FALSE;
+
+	if( pSoldier->inv[ HEAD1POS ].exists() && Item[pSoldier->inv[ HEAD1POS ].usItem].brightlightvisionrangebonus > 0 )
+	{
+		fFlashProtection = TRUE;
+	}
+	if( pSoldier->inv[ HEAD2POS ].exists() && Item[pSoldier->inv[ HEAD2POS ].usItem].brightlightvisionrangebonus > 0 )
+	{
+		fFlashProtection = TRUE;
+	}
+
+	BOOLEAN fHearingProtection = FALSE;
+
+	if( FindWalkman(pSoldier) != NO_SLOT || FindHearingAid(pSoldier) != NO_SLOT )
+	{
+		fHearingProtection = TRUE;
+	}
 
 	// if soldier got in explosion area check if he is affected by flash
 	// if soldier wears sun goggles OR grenade behind him OR
 	//	(he is not underground AND it is day AND he is outdoor)
-	if ( (usHeadItem1 == SUNGOGGLES || usHeadItem2 == SUNGOGGLES) || (bNumTurns > 1) ||
-		(!gbWorldSectorZ && !NightTime() && !fInBuilding) )
+	if ( fFlashProtection || (bNumTurns > 1) ||	(!gbWorldSectorZ && !NightTime() && !fInBuilding) )
 	{
+		// if soldier has hearing protection, he will not be deafened
+		if( fHearingProtection )
+			return 0;
+
 		// soldier didn't see flash or wears protective sungogles or outdoor at day, so he is only deafened
 		return ( FIRE_WEAPON_DEAFENED );
 	}
+
+	if( fHearingProtection )
+		return FIRE_WEAPON_BLINDED;
 
 	return ( FIRE_WEAPON_BLINDED_AND_DEAFENED );
 }

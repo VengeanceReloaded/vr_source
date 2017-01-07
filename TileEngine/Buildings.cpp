@@ -67,20 +67,19 @@ BUILDING * FindBuilding( INT32 sGridNo )
 
 	if ( ubBuildingID == NO_BUILDING )
 	{
-		// sevenfm: experimental fix from Ja2cw
-		//return( NULL );
+		return( NULL );
 
 		// need extra checks to see if is valid spot...
 		// must have valid room information and be a flat-roofed
 		// building
-		if ( InARoom( sGridNo, &usRoomNo ) && (FindStructure( sGridNo, STRUCTURE_NORMAL_ROOF ) != NULL) )
+		/*if ( InARoom( sGridNo, &usRoomNo ) && (FindStructure( sGridNo, STRUCTURE_NORMAL_ROOF ) != NULL) )
 		{
 			return( GenerateBuilding( sGridNo ) );
 		}
 		else
 		{
 			return( NULL );
-		}
+		}*/
 	}
 	else if ( ubBuildingID > gubNumberOfBuildings ) // huh?
 	{
