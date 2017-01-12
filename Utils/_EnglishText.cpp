@@ -3635,7 +3635,7 @@ STR16 pUpdateMercStrings[] =
 STR16 pMapScreenBorderButtonHelpText[] =
 {
 	L"Show To|wns",
-	L"Show |Mines",
+	L"Show |Mines & Oil Rigs",
 	L"Show |Teams & Enemies",
 	L"Show |Airspace",
 	L"Show |Items",
