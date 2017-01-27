@@ -191,6 +191,12 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 
 	//InitAttackType(pBestShot);		// set all structure fields to defaults//dnl ch69 150913 already initialize from class constructor
 
+	// sevenfm: initialize
+	pBestShot->ubPossible = FALSE;
+	pBestShot->ubChanceToReallyHit = 0;
+	pBestShot->iAttackValue = 0;
+	pBestShot->ubOpponent = NOBODY;
+
 	// hang a pointer into active soldier's personal opponent list
 	//pbPersOL = &(pSoldier->aiData.bOppList[0]);
 
@@ -814,6 +820,11 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 
 	usInHand = pSoldier->inv[HANDPOS].usItem;
 	usGrenade = NOTHING;
+
+	// sevenfm: initialize
+	pBestThrow->ubPossible = FALSE;
+	pBestThrow->ubChanceToReallyHit = 0;
+	pBestThrow->iAttackValue = 0;
 
 	if ( IsGrenadeLauncherAttached(&pSoldier->inv[HANDPOS]) )
 		usInHand = GetAttachedGrenadeLauncher(&pSoldier->inv[HANDPOS]);
@@ -1558,6 +1569,12 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 
 	pSoldier->usAttackingWeapon = pSoldier->inv[HANDPOS].usItem;
 
+	// sevenfm: initialize
+	pBestStab->ubPossible = FALSE;
+	pBestStab->iAttackValue = 0;	
+	pBestStab->ubChanceToReallyHit = 0;
+	pBestStab->ubOpponent = NOBODY;
+
 	// temporarily make this guy run so we get a proper AP cost value
 	// from CalcTotalAPsToAttack
 	usTrueMovementMode = pSoldier->usUIMovementMode;
@@ -1775,8 +1792,13 @@ void CalcTentacleAttack(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab )
 	INT16 ubChanceToReallyHit = 0;
 	SOLDIERTYPE *pOpponent;
 
-
 	//InitAttackType(pBestStab);		// set all structure fields to defaults//dnl ch69 150913
+
+	// sevenfm: initialize
+	pBestStab->ubPossible = FALSE;
+	pBestStab->iAttackValue = 0;	
+	pBestStab->ubChanceToReallyHit = 0;
+	pBestStab->ubOpponent = NOBODY;
 
 	pSoldier->usAttackingWeapon = pSoldier->inv[HANDPOS].usItem;
 
