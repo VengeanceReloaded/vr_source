@@ -857,11 +857,11 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	int snow = pSoldier->snowCamo + pSoldier->wornSnowCamo;
 	int total = urban + jungle + desert + snow;
 
-	if ( GetWornStealth(pSoldier) >= 50 )
+	if ( GetWornStealth(pSoldier) >= gGameExternalOptions.ubChangePaletteLevel )
 	{
 		Corpse.usFlags |= ROTTING_CORPSE_USE_STEALTH_PALETTE;
 	}
-	else if ( total >= 50 )
+	else if ( total >= gGameExternalOptions.ubChangePaletteLevel )
 	{
 		// display camo depending on which is higher
 		if ( jungle >= urban && jungle >= desert && jungle >= snow )
