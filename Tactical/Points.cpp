@@ -117,10 +117,11 @@ INT16 TerrainActionPoints( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, INT8
 
 	//CHRISL: We can't jump a fence while wearing a backpack, to consider fences as impassible
 	// SANDRO - Headrocks change to backpack check implemented
-	if(sSwitchValue == TRAVELCOST_FENCE && UsingNewInventorySystem() == true && FindBackpackOnSoldier( pSoldier ) != ITEM_NOT_FOUND)
+	// sevenfm: allow jumping with backpacks
+	/*if(sSwitchValue == TRAVELCOST_FENCE && UsingNewInventorySystem() == true && FindBackpackOnSoldier( pSoldier ) != ITEM_NOT_FOUND)
 	{
 		return(-1);
-	}
+	}*/
 
 	switch( sSwitchValue )
 	{

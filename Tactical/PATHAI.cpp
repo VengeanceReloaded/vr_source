@@ -2621,7 +2621,11 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 	fTurnBased = ( (gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) );
 
 	fPathingForPlayer = ( (s->bTeam == gbPlayerNum) && (!gTacticalStatus.fAutoBandageMode) && !(s->flags.uiStatusFlags & SOLDIER_PCUNDERAICONTROL) );
-	fNonFenceJumper = !( IS_MERC_BODY_TYPE( s ) ) || (UsingNewInventorySystem() == true && FindBackpackOnSoldier( s ) != ITEM_NOT_FOUND);//Moa: added backpack check
+
+	// sevenfm: allow jumping with a backpack
+	//fNonFenceJumper = !( IS_MERC_BODY_TYPE( s ) ) || (UsingNewInventorySystem() == true && FindBackpackOnSoldier( s ) != ITEM_NOT_FOUND);//Moa: added backpack check
+	fNonFenceJumper = !(IS_MERC_BODY_TYPE( s ));
+
 	fNonSwimmer = !( IS_MERC_BODY_TYPE( s ) );
 	if ( fNonSwimmer )
 	{
@@ -3100,17 +3104,14 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 			// sevenfm: skip deep water if not in deep water already
 			if( !(s->flags.uiStatusFlags & SOLDIER_PC) &&
 				s->ubProfile == NO_PROFILE &&
-				//s->aiData.bAlertStatus > STATUS_GREEN &&
-				//s->bSide != 0 &&
-				ubLevel == 0 &&
 				DeepWater(newLoc, ubLevel) &&
-				!DeepWater(s->sGridNo, ubLevel) )
+				!DeepWater(s->sGridNo, ubLevel) &&
+				!FindNotDeepWaterNearby(newLoc, ubLevel) )
 			{
 				goto NEXTDIR;
 			}
 			// sevenfm: skip gas if not in gas already
 			if( !(s->flags.uiStatusFlags & SOLDIER_PC) &&
-				//s->bSide != 0 &&
 				InGas(s, newLoc) &&
 				!InGas(s, s->sGridNo) )
 			{

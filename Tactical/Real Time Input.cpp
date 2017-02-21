@@ -2106,9 +2106,11 @@ void HandleMouseRTX1Button( UINT32 *puiNewEvent )
 					BOOLEAN	fNearHeigherLevel;
 					BOOLEAN	fNearLowerLevel;
 					INT8	bDirection;
-						// CHRISL: Turn off manual jumping while wearing a backpack
-					if(UsingNewInventorySystem() == true && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
-							return;
+
+					// CHRISL: Turn off manual jumping while wearing a backpack
+					// sevenfm: allow jumping with backpacks
+					//if(UsingNewInventorySystem() == true && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+					//return;
 
 					// Make sure the merc is not collapsed!
 					if (!IsValidStance(pjSoldier, ANIM_CROUCH) )
@@ -2199,9 +2201,11 @@ void HandleRTJump( void )
 		BOOLEAN	fNearHeigherLevel;
 		BOOLEAN	fNearLowerLevel;
 		INT8	bDirection;
+
 		// CHRISL: Turn off manual jumping while wearing a backpack
-		if(UsingNewInventorySystem() == true && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
-				return;
+		// sevenfm: allow jumping with backpacks
+		//if(UsingNewInventorySystem() == true && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+		//	return;
 
 		// Make sure the merc is not collapsed!
 		if (!IsValidStance(pjSoldier, ANIM_CROUCH) )

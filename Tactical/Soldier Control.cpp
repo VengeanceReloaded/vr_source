@@ -9238,10 +9238,12 @@ void SOLDIERTYPE::BeginSoldierClimbUpRoof( void )
 {
 
 	//CHRISL: Disable climbing up to a roof while wearing a backpack
-	if((UsingNewInventorySystem() == true) && this->inv[BPACKPOCKPOS].exists() == true) {
+	// sevenfm: allow climbing with a backpack
+	/*if((UsingNewInventorySystem() == true) && this->inv[BPACKPOCKPOS].exists() == true) {
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
 		return;
-	}
+	}*/
+
 	INT8							bNewDirection;
 	UINT8							ubWhoIsThere;
 	if(is_client)

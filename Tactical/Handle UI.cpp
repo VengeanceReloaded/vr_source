@@ -6976,10 +6976,11 @@ BOOLEAN IsValidJumpLocation( SOLDIERTYPE *pSoldier, INT32 sGridNo, BOOLEAN fChec
 						}
 
 						// This ain't gonna happen with backpack
-						if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( pSoldier ) != ITEM_NOT_FOUND )
+						// sevenfm: allow jumping with backpack
+						/*if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( pSoldier ) != ITEM_NOT_FOUND )
 						{
 							return( FALSE );
-						}
+						}*/
 
 						// check for cliffs and similar oddities
 						if ( gpWorldLevelData[ sGridNo ].sHeight != gpWorldLevelData[ sSpot ].sHeight )

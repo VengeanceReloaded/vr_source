@@ -3529,11 +3529,12 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 						if ( fNearLowerLevel )
 						{
 							// No climbing when wearing a backpack!
-							if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+							// sevenfm: allow climbing with backpack
+							/*if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
 							{
 								ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
 								return;
-							}
+							}*/
 							if ( EnoughPoints( pjSoldier, GetAPsToClimbRoof( pjSoldier, TRUE ), GetBPsToClimbRoof( pjSoldier, TRUE ), FALSE )	)
 							{
 								pjSoldier->BeginSoldierClimbDownRoof( );
@@ -3542,11 +3543,12 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 						if ( fNearHeigherLevel )
 						{
 							// No climbing when wearing a backpack!
-							if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+							// sevenfm: allow climbing with a backpack
+							/*if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
 							{
 								ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
 								return;
-							}
+							}*/
 							if ( EnoughPoints( pjSoldier, GetAPsToClimbRoof( pjSoldier, FALSE ), GetBPsToClimbRoof( pjSoldier, FALSE ), FALSE )	)
 							{
 								pjSoldier->BeginSoldierClimbUpRoof(	);
@@ -3558,11 +3560,12 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 						{
 							if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
 							{
-								//Moa: no jumping whith backpack
-								//sAPCost = GetAPsToJumpFence( pjSoldier, TRUE );
-								//sBPCost = GetBPsToJumpFence( pjSoldier, TRUE );
-								ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
-								break;
+								//Moa: no jumping with backpack
+								// sevenfm: allow jumping with backpack
+								sAPCost = GetAPsToJumpFence( pjSoldier, TRUE );
+								sBPCost = GetBPsToJumpFence( pjSoldier, TRUE );
+								//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
+								//break;
 							}
 							else
 							{
@@ -3580,11 +3583,12 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 						if (gGameExternalOptions.fCanClimbOnWalls == TRUE)
 						{ 
 							// No climbing when wearing a backpack!
-							if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+							// sevenfm: allow climbing with a backpack
+							/*if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
 							{
 								ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
 								return;
-							}
+							}*/
 							if ( FindWallJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
 							{
 								if ( EnoughPoints( pjSoldier, GetAPsToJumpWall( pjSoldier, FALSE ), GetBPsToJumpWall( pjSoldier, FALSE ), FALSE )	)
@@ -3617,10 +3621,14 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 							if((UsingNewInventorySystem() == true) && lSoldier->inv[BPACKPOCKPOS].exists() == true)
 							{
 								//Moa: no jumping with backpack
+								// sevenfm: allow jumping with a backpack
 								//sAPCost = GetAPsToJumpThroughWindows( lSoldier, TRUE );
 								//sBPCost = GetBPsToJumpThroughWindows( lSoldier, TRUE );
-								ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
-								break;
+								sAPCost = GetAPsToJumpFence( lSoldier, TRUE );
+								sBPCost = GetBPsToJumpFence( lSoldier, TRUE );
+
+								//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, NewInvMessage[NIV_NO_CLIMB] );
+								//break;
 							}
 							else
 							{
@@ -7081,86 +7089,89 @@ void HandleTBLook( UINT32 *puiNewEvent )
 }
 void HandleTBJump( void )
 {
-				SOLDIERTYPE *pjSoldier;
-				if ( GetSoldier( &pjSoldier, gusSelectedSoldier ) )
+	SOLDIERTYPE *pjSoldier;
+	if ( GetSoldier( &pjSoldier, gusSelectedSoldier ) )
+	{
+		INT16							sAPCost;
+		INT16							sBPCost;
+		BOOLEAN	fNearHeigherLevel;
+		BOOLEAN	fNearLowerLevel;
+		INT8	bDirection;
+
+		// Make sure the merc is not collapsed!
+		if (!IsValidStance(pjSoldier, ANIM_CROUCH) )
+		{
+			if ( pjSoldier->bCollapsed && pjSoldier->bBreath < OKBREATH )
+				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[ 4 ], pjSoldier->GetName() );
+			return;
+		}
+
+		// Climb on roofs
+		GetMercClimbDirection( pjSoldier->ubID, &fNearLowerLevel, &fNearHeigherLevel );
+
+		if ( fNearLowerLevel )
+		{
+			// CHRISL: Turn off manual jumping while wearing a backpack
+			// sevenfm: allow jumping with backpacks
+			//if(UsingNewInventorySystem() == true && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+			//return;
+
+			if ( EnoughPoints( pjSoldier, GetAPsToClimbRoof( pjSoldier, TRUE ), GetBPsToClimbRoof( pjSoldier, TRUE ), FALSE )	)
+			{
+				pjSoldier->BeginSoldierClimbDownRoof( );
+			}
+		}
+
+		if ( fNearHeigherLevel )
+		{
+			// No climbing when wearing a backpack!
+			// sevenfm: allow jumping with a backpack
+			//if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+			//return;
+
+			if ( EnoughPoints( pjSoldier, GetAPsToClimbRoof( pjSoldier, FALSE ), GetBPsToClimbRoof( pjSoldier, FALSE ), FALSE )	)
+			{
+				pjSoldier->BeginSoldierClimbUpRoof(	);
+			}
+		}
+
+		// Jump over fence
+		if ( FindFenceJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
+		{
+			if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+			{
+				sAPCost = GetAPsToJumpFence( pjSoldier, TRUE );
+				sBPCost = GetBPsToJumpFence( pjSoldier, TRUE );
+			}
+			else
+			{
+				sAPCost = GetAPsToJumpFence( pjSoldier, FALSE );
+				sBPCost = GetBPsToJumpFence( pjSoldier, FALSE );
+			}
+
+			if ( EnoughPoints( pjSoldier, sAPCost, sBPCost, FALSE )	)
+			{
+				pjSoldier->BeginSoldierClimbFence(	);
+			}
+		}
+
+		// Climb on walls
+		if (gGameExternalOptions.fCanClimbOnWalls == TRUE)
+		{ 
+			if ( FindWallJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
+			{
+				// No climbing when wearing a backpack!
+				// sevenfm: allow jumping with a backpack
+				//if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+				//return;
+
+				if ( EnoughPoints( pjSoldier, GetAPsToJumpWall( pjSoldier, FALSE ), GetBPsToJumpWall( pjSoldier, FALSE ), FALSE )	)
 				{
-					INT16							sAPCost;
-					INT16							sBPCost;
-					BOOLEAN	fNearHeigherLevel;
-					BOOLEAN	fNearLowerLevel;
-					INT8	bDirection;
-
-					// Make sure the merc is not collapsed!
-					if (!IsValidStance(pjSoldier, ANIM_CROUCH) )
-					{
-						if ( pjSoldier->bCollapsed && pjSoldier->bBreath < OKBREATH )
-							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_UI_FEEDBACK, gzLateLocalizedString[ 4 ], pjSoldier->GetName() );
-						return;
-					}
-
-					// Climb on roofs
-					GetMercClimbDirection( pjSoldier->ubID, &fNearLowerLevel, &fNearHeigherLevel );
-
-					if ( fNearLowerLevel )
-					{
-						// CHRISL: Turn off manual jumping while wearing a backpack
-						if(UsingNewInventorySystem() == true && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
-							return;
-
-						if ( EnoughPoints( pjSoldier, GetAPsToClimbRoof( pjSoldier, TRUE ), GetBPsToClimbRoof( pjSoldier, TRUE ), FALSE )	)
-						{
-							pjSoldier->BeginSoldierClimbDownRoof( );
-						}
-					}
-					
-					if ( fNearHeigherLevel )
-					{
-						// No climbing when wearing a backpack!
-						if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
-							return;
-
-						if ( EnoughPoints( pjSoldier, GetAPsToClimbRoof( pjSoldier, FALSE ), GetBPsToClimbRoof( pjSoldier, FALSE ), FALSE )	)
-						{
-							pjSoldier->BeginSoldierClimbUpRoof(	);
-						}
-					}
-					
-					// Jump over fence
-					if ( FindFenceJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
-					{
-						if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
-						{
-							sAPCost = GetAPsToJumpFence( pjSoldier, TRUE );
-							sBPCost = GetBPsToJumpFence( pjSoldier, TRUE );
-						}
-						else
-						{
-							sAPCost = GetAPsToJumpFence( pjSoldier, FALSE );
-							sBPCost = GetBPsToJumpFence( pjSoldier, FALSE );
-						}
-
-						if ( EnoughPoints( pjSoldier, sAPCost, sBPCost, FALSE )	)
-						{
-							pjSoldier->BeginSoldierClimbFence(	);
-						}
-					}
-
-					// Climb on walls
-					if (gGameExternalOptions.fCanClimbOnWalls == TRUE)
-					{ 
-						if ( FindWallJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
-						{
-							// No climbing when wearing a backpack!
-							if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
-								return;
-
-							if ( EnoughPoints( pjSoldier, GetAPsToJumpWall( pjSoldier, FALSE ), GetBPsToJumpWall( pjSoldier, FALSE ), FALSE )	)
-							{
-								pjSoldier->BeginSoldierClimbWall(  );
-							}
-						}
-					}
+					pjSoldier->BeginSoldierClimbWall(  );
 				}
+			}
+		}
+	}
 }
 void HandleTBJumpThroughWindow( void ){
 	// WANNE: Jump through window?
@@ -7172,27 +7183,30 @@ void HandleTBJumpThroughWindow( void ){
 		INT8	bDirection;
 
 		if ( GetSoldier( &pjSoldier, gusSelectedSoldier ) )
-	{
-			if ( FindWindowJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
 		{
-				if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+			if ( FindWindowJumpDirection( pjSoldier, pjSoldier->sGridNo, pjSoldier->ubDirection, &bDirection ) )
 			{
-					sAPCost = GetAPsToJumpThroughWindows( pjSoldier, TRUE );
-					sBPCost = GetBPsToJumpThroughWindows( pjSoldier, TRUE );
-			}
+				if((UsingNewInventorySystem() == true) && pjSoldier->inv[BPACKPOCKPOS].exists() == true)
+				{
+					//sAPCost = GetAPsToJumpThroughWindows( pjSoldier, TRUE );
+					//sBPCost = GetBPsToJumpThroughWindows( pjSoldier, TRUE );
+					sAPCost = GetAPsToJumpFence( pjSoldier, TRUE );
+					sBPCost = GetBPsToJumpFence( pjSoldier, TRUE );
+				}
 				else
 				{
 					sAPCost = GetAPsToJumpFence( pjSoldier, FALSE );
 					sBPCost = GetBPsToJumpFence( pjSoldier, FALSE );
-		}
+				}
 				if (EnoughPoints(pjSoldier, sAPCost, sBPCost, FALSE))
-		{
+				{
 					pjSoldier->BeginSoldierClimbWindow();
 				}
 			}
 		}
 	}
 }
+
 void HandleTBToggleStealthAll( void )
 {
 			// Toggle squad's stealth mode.....
