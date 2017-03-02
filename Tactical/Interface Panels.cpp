@@ -8060,7 +8060,7 @@ BOOLEAN DrawExtendedPanel(SOLDIERTYPE* pSoldier, UINT16 screenWidth)
 
 	//135 - map screen width
 	//83 - one merc avatar width
-	UINT16 uiPlaceForPanels = (UINT16)( screenWidth - 135 - ( gGameOptions.ubSquadSize * 83 ) );
+	UINT16 uiPlaceForPanels = (UINT16)( INTERFACE_WIDTH - 135 - ( gGameOptions.ubSquadSize * 83 ) );
 
 	UINT16 uiPanels = 0;
 

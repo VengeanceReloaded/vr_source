@@ -169,7 +169,7 @@ UINT8	gubTerrorists[NUM_TERRORISTS + 1] =
 // anv: MIA
 UINT8	gubMIA[NUM_MIA + 1] =
 {
-	84,
+	70,
 	60,
 	69,
 	101,

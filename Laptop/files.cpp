@@ -158,7 +158,7 @@ UINT16 usProfileIdsForTerroristFiles[]={
 	111, // t-rex
 	112, // elgin
 	// anv: VR - MIA files
-	84, // conrad
+	70, // conrad
 	60, // frazzler
 	69, // fish
 	101, // bubba
