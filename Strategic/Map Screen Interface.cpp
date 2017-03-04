@@ -6252,6 +6252,18 @@ BOOLEAN CanCharacterMoveInStrategic( SOLDIERTYPE *pSoldier, INT8 *pbErrorNumber 
 				fProblemExists = TRUE;
 			}
 			break;
+
+		// anv: VR - Dwight can't move through strategic map while in Doran
+		case ( CONMAN ) :
+			sSector = SECTOR(pSoldier->sSectorX, pSoldier->sSectorY);
+			if (sSector == SEC_G1 || sSector == SEC_G2 || sSector == SEC_G3 ||
+				sSector == SEC_H1 || sSector == SEC_H2 || sSector == SEC_H3 || 
+				sSector == SEC_I3 || sSector == SEC_J3)
+			{
+				// can't move at this time
+				fProblemExists = TRUE;
+			}
+			break;
 	}
 
 	if ( fProblemExists )
