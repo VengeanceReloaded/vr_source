@@ -587,6 +587,10 @@ typedef struct
 	UINT32 ubGameProgressOffensiveStage1;
 	UINT32 ubGameProgressOffensiveStage2;
 
+	UINT8 ubWeeklyLeaksFrequency;
+	UINT8 ubWeeklyLeaksMaximumProgress;
+	UINT8 ubWeeklyLeaksCheckHour;
+
 	// WDS - make number of mercenaries, etc. be configurable
 	// group sizes
 	UINT32 ubGameMaximumNumberOfPlayerMercs;
@@ -808,6 +812,7 @@ typedef struct
 	BOOLEAN fSmallSizeProgressbar;
 	// anv: hide stuff on roof in explored rooms at ground level view (sandbags and other crap)
 	BOOLEAN fHideExploredRoomRoofStructures;
+	BOOLEAN fForceShadowsEvenInDarkness;
 	//enable ext mouse key
 	BOOLEAN bAltAimEnabled;	
 	BOOLEAN bAimedBurstEnabled;

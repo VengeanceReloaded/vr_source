@@ -748,7 +748,9 @@ void HourlyWeeklyLeaks()
 {
 	BOOLEAN fEmailSent = FALSE;
 
-	if( gubFact[ FACT_CONMAN_SAMPLE_SOLD_TO_BUYER ] && !gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && GetWorldHour == 0 )
+	UINT8 ubCurrentProgress = CurrentPlayerProgressPercentage();
+
+	if( gubFact[ FACT_CONMAN_SAMPLE_SOLD_TO_BUYER ] && !gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour )
 	{
 		AddEmail( SAMPLE_BUYER_FARMER_CHEATED, DEMAND_MONEY_BACK_LENGTH, SAMPLE_FARMER_BUYER, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 		SetFactTrue( FACT_BUYER_WANTS_MONEY_BACK );
@@ -781,12 +783,14 @@ void HourlyWeeklyLeaks()
 		return;
 	}
 
-	for ( UINT8 ubCounter = 1; ubCounter < 13 && !fEmailSent; ubCounter++ )
+	for ( UINT8 ubCounter = 1; ubCounter < 13 && !fEmailSent || (gGameExternalOptions.ubWeeklyLeaksFrequency == 0); ubCounter++ )
 	{
 		switch( ubCounter )
 		{
 			case 1:
-				if( gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && !gubFact[ FACT_CONMAN_GAVE_MONEY_BACK ] && gMercProfiles[ CONMAN ].bMercStatus != MERC_IS_DEAD )
+				if(gubFact[ FACT_BUYER_WANTS_MONEY_BACK ] && 
+					!gubFact[ FACT_CONMAN_GAVE_MONEY_BACK ] && 
+					gMercProfiles[ CONMAN ].bMercStatus != MERC_IS_DEAD)
 				{
 					if( gMercProfiles[ CONMAN ].sSectorX == 13 && !gubFact[ FACT_CONMAN_SPOTTED_1_SENT ] )
 					{
@@ -806,7 +810,9 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 2:
-				if( gubFact[ FACT_FAKE_SAMPLE_SOLD_TO_CIA ] && !gubFact[ FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE ] && GetWorldHour() == 0 )
+				if (gubFact[FACT_FAKE_SAMPLE_SOLD_TO_CIA] && 
+					!gubFact[FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE] && 
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( SAMPLE_BUYER_CIA_CHEATED, DEMAND_MONEY_BACK_LENGTH, SAMPLE_CIA_BUYER, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_CIA_DISCOVERED_SAMPLE_IS_FAKE );
@@ -815,7 +821,10 @@ void HourlyWeeklyLeaks()
 				break;
 
 			case 3:
-				if (!gubFact[FACT_WEEKLY_LEAKS_1_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_1_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 1 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_1, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_1_SENT );
@@ -823,7 +832,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 4:
-				if (!gubFact[FACT_WEEKLY_LEAKS_2_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_2_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 2 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_2, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_2_SENT );
@@ -831,7 +843,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 5:
-				if (!gubFact[FACT_WEEKLY_LEAKS_3_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_3_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 3 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_3, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_3_SENT );
@@ -839,7 +854,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 6:
-				if (!gubFact[FACT_WEEKLY_LEAKS_4_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_4_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 4 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_4, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_4_SENT );
@@ -847,7 +865,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 7:
-				if (!gubFact[FACT_WEEKLY_LEAKS_5_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_5_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 5 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_5, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_5_SENT );
@@ -855,7 +876,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 8:
-				if (!gubFact[FACT_WEEKLY_LEAKS_6_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_6_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 6 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_6, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_6_SENT );
@@ -863,7 +887,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 9:
-				if (!gubFact[FACT_WEEKLY_LEAKS_7_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_7_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 7 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_7, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_7_SENT );
@@ -871,7 +898,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 10:
-				if (!gubFact[FACT_WEEKLY_LEAKS_8_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_8_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 8 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_8, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_8_SENT );
@@ -879,7 +909,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 11:
-				if (!gubFact[FACT_WEEKLY_LEAKS_9_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_9_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= (gGameExternalOptions.ubWeeklyLeaksMaximumProgress / 10) * 9 &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_9, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_9_SENT );
@@ -887,7 +920,10 @@ void HourlyWeeklyLeaks()
 				}
 				break;
 			case 12:
-				if (!gubFact[FACT_WEEKLY_LEAKS_10_SENT] && GetWorldDay() % 3 == 0 && GetWorldHour() == 0)
+				if (!gubFact[FACT_WEEKLY_LEAKS_10_SENT] && 
+					(gGameExternalOptions.ubWeeklyLeaksFrequency == 0 || GetWorldDay() % gGameExternalOptions.ubWeeklyLeaksFrequency == 0) &&
+					ubCurrentProgress >= gGameExternalOptions.ubWeeklyLeaksMaximumProgress &&
+					GetWorldHour() == gGameExternalOptions.ubWeeklyLeaksCheckHour)
 				{
 					AddEmail( WEEKLY_LEAKS_10, WEEKLY_LEAKS_LENGTH, WEEKLY_LEAKS, GetWorldTotalMin(), -1, -1, TYPE_EMAIL_EMAIL_EDT );
 					SetFactTrue( FACT_WEEKLY_LEAKS_10_SENT );

@@ -760,14 +760,14 @@ UINT32 GetRenderFlags(void)
 
 void RenderSetShadows(BOOLEAN fShadows)
 {
-	if(fShadows)
+	if(fShadows || gGameExternalOptions.fForceShadowsEvenInDarkness)
 	{
 		gRenderFlags|=RENDER_FLAG_SHADOWS;
 	}
 	else
 	{
 		gRenderFlags&=(~RENDER_FLAG_SHADOWS);
-}
+	}
 }
 
 

@@ -1007,6 +1007,8 @@ void LoadGameExternalOptions()
 	
 	// anv: hide stuff on roof in explored rooms at ground level view (sandbags and other crap)
 	gGameExternalOptions.fHideExploredRoomRoofStructures	= iniReader.ReadBoolean("Graphics Settings", "HIDE_EXPLORED_ROOM_ROOF_STRUCTURES", TRUE);
+	// anv: always show shadows
+	gGameExternalOptions.fForceShadowsEvenInDarkness		= iniReader.ReadBoolean("Graphics Settings", "FORCE_SHADOWS_EVEN_IN_DARKNESS", FALSE);
 
 	//################# Sound Settings #################
 	
@@ -1743,6 +1745,10 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubGameProgressIggyAvaliable			= iniReader.ReadInteger("Strategic Progress Settings","GAME_PROGRESS_IGGY_AVAILABLE",70, 0, 100);
 	gGameExternalOptions.ubGameProgressOffensiveStage1			= iniReader.ReadInteger("Strategic Progress Settings","GAME_PROGRESS_OFFENSIVE_STAGE_1", 65, 0, 100);
 	gGameExternalOptions.ubGameProgressOffensiveStage2			= iniReader.ReadInteger("Strategic Progress Settings","GAME_PROGRESS_OFFENSIVE_STAGE_2", 80, 0, 100);
+
+	gGameExternalOptions.ubWeeklyLeaksFrequency					= iniReader.ReadInteger("Strategic Progress Settings", "WEEKLY_LEAKS_FREQUENCY", 3, 0, 100);
+	gGameExternalOptions.ubWeeklyLeaksMaximumProgress			= iniReader.ReadInteger("Strategic Progress Settings", "WEEKLY_LEAKS_MAXIMUM_PROGRESS", 85, 0, 100);
+	gGameExternalOptions.ubWeeklyLeaksCheckHour					= iniReader.ReadInteger("Strategic Progress Settings", "WEEKLY_LEAKS_CHECK_HOUR", 0, 0, 23);
 
 	//################# Strategic Event Settings ##################
 
