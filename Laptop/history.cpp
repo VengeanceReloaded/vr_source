@@ -1278,6 +1278,9 @@ void ProcessHistoryTransactionString(STR16 pString, HistoryUnitPtr pHistory)
 			//swprintf( pString, pHistoryStrings[ HISTORY_TRACONA_ACCESS ] );
 			swprintf( pString, HistoryName[ HISTORY_TRACONA_ACCESS ].sHistory );
 			break;
+		case HISTORY_SCUD_ACCESS:
+			swprintf(pString, HistoryName[HISTORY_SCUD_ACCESS].sHistory);
+			break;
 
 	}
 }
