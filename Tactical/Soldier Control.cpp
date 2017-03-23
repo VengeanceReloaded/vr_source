@@ -10614,7 +10614,7 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 
 	// Randomize between sounds, if appropriate
 	// anv: but only randomize between files that do exist!
-	CHAR8 ExistingSndsFilesIDs[32][40];
+	CHAR8 ExistingSndsFilesIDs[256][40];
 	UINT8 ExistingSndsFiles = 0;
 	BOOLEAN FallbackToDefault = FALSE;
 
