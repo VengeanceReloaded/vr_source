@@ -1482,7 +1482,7 @@ BOOLEAN PrepareCreaturesForBattle()
 		if ( gbWorldSectorZ > 0 )
 		{
 			UseCreatureMusic(LColors->peBlue);
-			return FALSE;	//Creatures don't attack overworld with this battle code.
+			//return FALSE;	//Creatures don't attack overworld with this battle code.
 		}
 
 		pSector = FindUnderGroundSector( gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
