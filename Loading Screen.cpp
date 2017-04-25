@@ -341,10 +341,31 @@ static void BuildLoadscreenFilename(std::string& dst, const char* path, int reso
 
 	switch (resolution)
 	{
-		case 1:
+		case _800x600:
+		case _1024x600:
+		case _1280x720:
 			dst.append("_800x600");
 			break;
-		case 2:
+		case _1024x768:
+		case _1280x768:
+		case _1360x768:
+		case _1366x768:
+		case _1280x800:
+		case _1440x900:
+		case _1600x900:
+		case _1280x960:
+		case _1440x960:
+		case _1770x1000:
+		case _1280x1024:
+		case _1360x1024:
+		case _1600x1024:
+		case _1440x1050:
+		case _1680x1050:
+		case _1920x1080:
+		case _1600x1200:
+		case _1920x1200:
+		case _2560x1440:
+		case _2560x1600:
 			dst.append("_1024x768");
 			break;
 		default:
@@ -439,30 +460,59 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 		std::string strImage;
 
 		BuildLoadscreenFilename(strImage, imagePath.c_str(), iResolution, imageFormat.c_str());
-		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
+		strImage.copy(vs_desc.ImageFile, strImage.length());
 
-		if ( !FileExists(vs_desc.ImageFile) )
+		// check ignoring resolution
+		if (!FileExists(vs_desc.ImageFile))
 		{
-			std::string strImage("LOADSCREENS\\");
-			
-			BuildLoadscreenFilename(strImage, LoadScreenNames[1], iResolution, imageFormat.c_str());
+			std::string strImage;
+			BuildLoadscreenFilename(strImage, imagePath.c_str(), 0, imageFormat.c_str());
 
-			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
+			strImage.copy(vs_desc.ImageFile, strImage.length());
 		}
 
+		// check in loadscreens
+		if (!FileExists(vs_desc.ImageFile))
+		{
+			std::string strImage("LOADSCREENS\\");
+			
+			BuildLoadscreenFilename(strImage, imagePath.c_str(), iResolution, imageFormat.c_str());
+
+			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
+			strImage.copy(vs_desc.ImageFile, strImage.length());
+		}
+
+		// check in loadscreens but ignore resolution
+		if (!FileExists(vs_desc.ImageFile))
+		{
+			std::string strImage("LOADSCREENS\\");
+
+			BuildLoadscreenFilename(strImage, imagePath.c_str(), 0, imageFormat.c_str());
+
+			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
+			strImage.copy(vs_desc.ImageFile, strImage.length());
+		}
+
+		// then use fallback
 		if ( !FileExists(vs_desc.ImageFile) )
 		{
+			std::string strImage;
 			BuildLoadscreenFilename(strImage, LoadScreenNames[1], 0, imageFormat.c_str());
-			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+
+			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
+			strImage.copy(vs_desc.ImageFile, strImage.length());
 		}	
 		
+		// then use fallback in loadscreens
 		if ( !FileExists(vs_desc.ImageFile) )
 		{
 			std::string strImage("LOADSCREENS\\");
 			
 			BuildLoadscreenFilename(strImage, LoadScreenNames[1], 0, imageFormat.c_str());
 
-			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
+			strImage.copy(vs_desc.ImageFile, strImage.length());
 		}
 	}
 	else
@@ -478,10 +528,12 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 			// for some reason the heli screen is the default
 			BuildLoadscreenFilename(strImage, LoadScreenNames[0], iResolution, "sti");
 		}
-		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
+		memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
+		strImage.copy(vs_desc.ImageFile, strImage.length());
 
 		if ( !FileExists(vs_desc.ImageFile) )
 		{
+			std::string strImage("LOADSCREENS\\");
 			if (LOADINGSCREEN_NOTHING <= ubLoadScreenID && ubLoadScreenID <= LOADINGSCREEN_NIGHTBALIME)
 			{
 				BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
@@ -491,7 +543,8 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 				// for some reason the heli screen is the default
 				BuildLoadscreenFilename(strImage, LoadScreenNames[0], 0, "sti");
 			}
-			strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);		
+			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
+			strImage.copy(vs_desc.ImageFile, strImage.length());
 		}
 	}
 
