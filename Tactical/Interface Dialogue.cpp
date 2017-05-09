@@ -2433,8 +2433,8 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 
 			case NPC_ACTION_DELAYED_MAKE_BRENDA_LEAVE:
 				// set event to invoke Brenda's (#85) record 9 ten minutes from now
-				DeleteTalkingMenu();
-				AddSameDayStrategicEvent( EVENT_SET_BY_NPC_SYSTEM, GetWorldMinutesInDay() + 10, NPC_SYSTEM_EVENT_ACTION_PARAM_BONUS + NPC_ACTION_DELAYED_MAKE_BRENDA_LEAVE );
+				//DeleteTalkingMenu();
+				//AddSameDayStrategicEvent( EVENT_SET_BY_NPC_SYSTEM, GetWorldMinutesInDay() + 10, NPC_SYSTEM_EVENT_ACTION_PARAM_BONUS + NPC_ACTION_DELAYED_MAKE_BRENDA_LEAVE );
 				break;
 
 			case NPC_ACTION_SEX:
@@ -4338,22 +4338,22 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 				break;
 			case NPC_ACTION_TRIGGER_HANS_BY_ROOM:
 				{
-					if ( gpSrcSoldier )
-					{
-						//DBrot: More Rooms
-						//UINT8 ubRoom;
-						UINT16 usRoom;
+					//if ( gpSrcSoldier )
+					//{
+					//	//DBrot: More Rooms
+					//	//UINT8 ubRoom;
+					//	UINT16 usRoom;
 
-						if ( InARoom( gpSrcSoldier->sGridNo, &usRoom ) && (usRoom == gModSettings.usPornShopRoomHans) )
-						{
-							TriggerNPCRecord( HANS, 18 );
-						}
-						else
-						{
-							TriggerNPCRecord( HANS, 14 );
-						}
+					//	if ( InARoom( gpSrcSoldier->sGridNo, &usRoom ) && (usRoom == gModSettings.usPornShopRoomHans) )
+					//	{
+					//		TriggerNPCRecord( HANS, 18 );
+					//	}
+					//	else
+					//	{
+					//		TriggerNPCRecord( HANS, 14 );
+					//	}
 
-					}
+					//}
 				}
 				break;
 			case 	NPC_ACTION_TRIGGER_MADLAB_31:

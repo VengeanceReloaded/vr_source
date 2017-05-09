@@ -3523,15 +3523,15 @@ void HandleNPCTeamMemberDeath( SOLDIERTYPE *pSoldierOld )
         {
 
             case BRENDA:
-                SetFactTrue( FACT_BRENDA_DEAD );
-                {
-                    pOther = FindSoldierByProfileID( HANS, FALSE );
-                    if (pOther && pOther->stats.bLife >= OKLIFE && pOther->aiData.bNeutral && (SpacesAway( pSoldierOld->sGridNo, pOther->sGridNo ) <= 12) )
-                    {
+                //SetFactTrue( FACT_BRENDA_DEAD );
+                //{
+                //    pOther = FindSoldierByProfileID( HANS, FALSE );
+                //    if (pOther && pOther->stats.bLife >= OKLIFE && pOther->aiData.bNeutral && (SpacesAway( pSoldierOld->sGridNo, pOther->sGridNo ) <= 12) )
+                //    {
 
-                        TriggerNPCRecord( HANS, 10 );
-                    }
-                }
+                //        TriggerNPCRecord( HANS, 10 );
+                //    }
+                //}
                 break;
             case PABLO:
                 AddFutureDayStrategicEvent( EVENT_SECOND_AIRPORT_ATTENDANT_ARRIVED, 480 + Random( 60 ), 0, 1 );

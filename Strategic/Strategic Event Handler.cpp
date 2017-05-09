@@ -741,9 +741,9 @@ void HandleNPCSystemEvent( UINT32 uiEvent )
 			case NPC_ACTION_DELAYED_MAKE_BRENDA_LEAVE:
 				// silversurfer: reenabled this
 				// but only play Brendas quote when we are near enough to hear her
-				if ( NumMercsNear( 85, 8 ) > 0 )
-					TriggerNPCRecord( 85, 9 );
-				SetFactTrue( FACT_BRENDA_PATIENCE_TIMER_EXPIRED );
+				//if ( NumMercsNear( 85, 8 ) > 0 )
+				//	TriggerNPCRecord( 85, 9 );
+				//SetFactTrue( FACT_BRENDA_PATIENCE_TIMER_EXPIRED );
 				break;
 			case NPC_ACTION_SET_DELAY_TILL_GIRLS_AVAILABLE:
 				HandleNPCDoAction( 107, NPC_ACTION_SET_GIRLS_AVAILABLE, 0 );
