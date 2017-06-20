@@ -2200,7 +2200,7 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP )
 	{
 		strcat( filename, "\\Hale and Burton\\");
-		sprintf(buf, "%02d", 1+ pCiv->ubID % 2);
+		sprintf(buf, "%02d", 1+ pCiv->ubID % 3);
 		strcat( filename, buf);
 		strcat( filename, "\\");
 	}
@@ -2215,7 +2215,7 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_OPERATIVES_GROUP )
 	{
 		strcat( filename, "\\CIA Operatives\\");
-		sprintf(buf, "%02d", 1+ pCiv->ubID % 2);
+		sprintf(buf, "%02d", 1+ pCiv->ubID % 3);
 		strcat( filename, buf);
 		strcat( filename, "\\");
 	}
