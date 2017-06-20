@@ -293,10 +293,21 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	INT32	iRangeChange, iRangeFactor, iRangeFactorMultiplier;
 	SOLDIERTYPE *pHim;
 
+	// sevenfm
+	INT8	bHisLevel;
+	INT8	bMyLevel;
+	INT32	sDist;
+	UINT8	ubCoverReduction;
+
 	dMyX = dMyY = dHisX = dHisY = -1.0;
 
 	pHim = Threat[uiThreatIndex].pOpponent;
 	sHisGridNo = Threat[uiThreatIndex].sGridNo;
+
+	// sevenfm
+	//bHisLevel = Threat[uiThreatIndex].bLevel;
+	bHisLevel = pHim->pathing.bLevel;
+	bMyLevel = pMe->pathing.bLevel;
 
 	// THE FOLLOWING STUFF IS *VEERRRY SCAARRRY*, BUT SHOULD WORK.	IF YOU REALLY
 	// HATE IT, THEN CHANGE ChanceToGetThrough() TO WORK FROM A GRIDNO TO GRIDNO
@@ -413,11 +424,64 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 		pHim->dYPos = dHisY;					// and the 'y'
 	}
 
+#ifdef ENABLE_ZOMBIES
+	// sevenfm: special calculations for zombies: zombie is very dangerous at close range
+	if( pHim->IsZombie() )
+	{
+		sDist = PythSpacesAway(sMyGridNo, sHisGridNo);
+		if( sDist < DAY_VISION_RANGE / 2 )
+		{
+			// 100 - 25
+			bHisCTGT = 100 - 150 * sDist / DAY_VISION_RANGE;
+		}
+		else
+		{
+			// 25 - 0
+			bHisCTGT = 100 * DAY_VISION_RANGE * DAY_VISION_RANGE / (16 * sDist * sDist);
+		}
+		//ubHisCTH = 100;
+	}
+#endif
+
+	// sevenfm: if soldier has no gun, use different calculation
+	if( !AICheckHasGun(pMe) )
+	{
+		sDist = PythSpacesAway(sMyGridNo, sHisGridNo);
+		if( sDist < DAY_VISION_RANGE / 2 )
+		{
+			bMyCTGT = 100 - 150 * sDist / DAY_VISION_RANGE;
+		}
+		else
+		{
+			bMyCTGT = 100 * DAY_VISION_RANGE * DAY_VISION_RANGE / (16 * sDist * sDist);
+		}
+		//ubMyCTH = 100;
+	}
 
 	// these value should be < 1 million each
 	iHisPosValue = bHisCTGT * Threat[uiThreatIndex].iValue * Threat[uiThreatIndex].iAPs;
 	iMyPosValue =	bMyCTGT *	iMyThreat * iMyAPsLeft;
 
+	// add penalty to enemy position, bonus to my position if soldier has cover at spot
+	// max 25% at DAY_VISION_RANGE/2, 0 at zero range
+#ifdef ENABLE_ZOMBIES
+	if( !pHim->IsZombie() )
+#endif
+	{
+		if( AnyCoverFromSpot(sMyGridNo, bMyLevel, sHisGridNo, bHisLevel) )
+		{
+			ubCoverReduction = 25;
+
+			sDist = PythSpacesAway(sMyGridNo, sHisGridNo);
+
+			if( sDist < DAY_VISION_RANGE / 2 )
+			{
+				ubCoverReduction = ubCoverReduction * 2 * sDist / DAY_VISION_RANGE;
+			}
+			iHisPosValue -= iHisPosValue * ubCoverReduction / 100;
+			iMyPosValue += iMyPosValue * ubCoverReduction / 100;
+		}
+	}
 
 	// try to account for who outnumbers who: the side with the advantage thus
 	// (hopefully) values offense more, while those in trouble will play defense
@@ -449,17 +513,16 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 
 	BOOLEAN fAdvance = TRUE;
 
-	if( pMe->aiData.bNeutral || (pMe->aiData.bUnderFire && pMe->aiData.bShock > 0) )
+	if( pMe->aiData.bNeutral )
 	{
 		fAdvance = FALSE;
 	}
 
 #ifdef ENABLE_ZOMBIES
-	// zombies only try to hide
-	if ( pMe->IsZombie()  )
+	if( pMe->IsZombie() || pHim->IsZombie() )
 	{
 		fAdvance = FALSE;
-	 }
+	}
 #endif
 
 //	if (bHisCTGT < 100 || (morale - 1 < 0))
@@ -480,6 +543,14 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 				DebugAI( String( "CalcCoverValue: iRangeChange %d, iRangeFactor %d\n", iRangeChange, iRangeFactor ) );
 	#endif
 
+				// sevenfm: reduce range bonus depending on cover
+				if( !AnyCoverFromSpot(sMyGridNo, bMyLevel, sHisGridNo, bHisLevel) && 
+					CountSeenEnemiesLastTurn(pMe) > CountNearbyFriends(pMe, sMyGridNo, DAY_VISION_RANGE / 2) )
+					//CountPublicKnownEnemies( pSoldier, sHisGridNo, DAY_VISION_RANGE ) > CountNearbyFriends(pSoldier, sHisGridNo, DAY_VISION_RANGE / 2) )
+				{
+					iRangeFactor = iRangeFactor * (100 - bHisCTGT * __min(Threat[uiThreatIndex].iAPs, APBPConstants[AP_MAXIMUM]) / APBPConstants[AP_MAXIMUM]) / 100;
+				}
+
 				// aggression booster for stupider enemies
 				// sevenfm: disable for zombies, neutrals and soldiers under fire
 				if( fAdvance )
@@ -489,7 +560,7 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 
 				// if factor is positive increase positional value, else decrease it
 				// change both values, since one or the other could be 0
-				if (iRangeFactor > 0)
+				if (iRangeFactor > 0 && fAdvance)
 				{
 
 					iMyPosValue = (iMyPosValue * (100 + iRangeFactor)) / 100;

@@ -5317,3 +5317,57 @@ INT8 FindMaxEnemyInterruptLevel( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 blev
 
 	return bMaxInterruptLevel;
 }
+
+UINT8 CountPublicKnownEnemies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance )
+{
+	CHECKF(pSoldier);
+
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+
+	INT32		sThreatLoc;
+	INT8		iThreatLevel;
+
+	UINT8 ubNum = 0;
+
+	// loop through all the enemies
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
+	{
+		pOpponent = MercSlots[ uiLoop ];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;
+		}
+
+		// if this man is neutral / on the same side, he's not an opponent
+		if( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		{
+			continue;
+		}
+
+		// check if he is captured
+		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
+		sThreatLoc = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
+		iThreatLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID];
+
+		// check distance
+		if( PythSpacesAway(sThreatLoc, sGridNo ) > ubDistance )
+		{
+			continue;
+		}
+
+		// check public knowledge
+		if( gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != NOT_HEARD_OR_SEEN )
+		{
+			ubNum ++;
+		}
+	}
+
+	return ubNum;
+}
