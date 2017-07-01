@@ -1395,10 +1395,11 @@ BOOLEAN CheckForGunJam( SOLDIERTYPE * pSoldier )
 					 
 						// MECHANICAL/DEXTERITY GAIN: Unjammed a gun 
 						
+						// sevenfm: lower chance to gain experience
 						if (bChanceMod < 100) // don't give exp for unjamming an easily unjammable gun
 						{
-							StatChange( pSoldier, MECHANAMT, 5, FALSE ); 
-							StatChange( pSoldier, DEXTAMT, 5, FALSE ); 
+							StatChange( pSoldier, MECHANAMT, 1, FALSE ); 
+							StatChange( pSoldier, DEXTAMT, 1, FALSE ); 
 						}
 					 
 						DirtyMercPanelInterface( pSoldier, DIRTYLEVEL2 ); 
