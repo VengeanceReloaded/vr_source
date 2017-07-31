@@ -1926,6 +1926,8 @@ BOOLEAN RecruitRPC( UINT8 ubCharNum )
 		GiveQuestRewardPoint( pSoldier->sSectorX, pSoldier->sSectorY, 6, MIGUEL );
 	}
 
+	// sevenfm: don't set SOLDIER_COVERT_NPC_SPECIAL flag in VR since NPC's have changed
+	/*
 	// r8405 fix
 	if ( gGameOptions.fNewTraitSystem )
 	{
@@ -1939,6 +1941,7 @@ BOOLEAN RecruitRPC( UINT8 ubCharNum )
 			pNewSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_SOLDIER|SOLDIER_COVERT_NPC_SPECIAL);
 		}
 	}
+	*/
 
 	// handle town loyalty adjustment
 	HandleTownLoyaltyForNPCRecruitment( pNewSoldier );
@@ -2051,7 +2054,6 @@ BOOLEAN RecruitEPC( UINT8 ubCharNum )
 	// Set whatkind of merc am i
 	pNewSoldier->ubWhatKindOfMercAmI = MERC_TYPE__EPC;
 
-	// r8405 fix
 	// Flugente: people recruited in Arulco are known to the enemy as civilians or even soldiers. So they will be covert when recruited. Of course, this is not for the rebels/vehicles/robots
 	if (  gGameOptions.fNewTraitSystem && !(pNewSoldier->flags.uiStatusFlags & (SOLDIER_ROBOT | SOLDIER_VEHICLE) ) )
 	{

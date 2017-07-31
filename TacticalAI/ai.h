@@ -347,6 +347,6 @@ BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, I
 BOOLEAN AICheckNVG( SOLDIERTYPE *pSoldier );
 INT8 AIEstimateInterruptLevel( SOLDIERTYPE *pSoldier );
 INT8 FindMaxEnemyInterruptLevel( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 blevel, UINT8 ubDistance );
-
+UINT8 AIDirection(INT32 sSpot1, INT32 sSpot2);
 
 #endif

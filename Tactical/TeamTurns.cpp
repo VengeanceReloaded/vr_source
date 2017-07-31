@@ -1737,15 +1737,19 @@ BOOLEAN StandardInterruptConditionsMet( SOLDIERTYPE * pSoldier, UINT8 ubOpponent
 
 	// a soldier already engaged in a life & death battle is too busy doing his
 	// best to survive to worry about "getting the jump" on additional threats
-	// sevenfm: check suppression shock instead
-	if( ShockLevelPercent(pSoldier) > 50 )
+	// sevenfm: cannot interrupt if under fire this turn or has high suppression level
+	if( pSoldier->aiData.bUnderFire == 2 ||
+		CoweringShockLevel(pSoldier) )
 	{
 		return(FALSE);
 	}
-	/*if (pSoldier->aiData.bUnderFire)
+
+	// sevenfm: spotting or watching soldier cannot interrupt
+	if( pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0 ||
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 )
 	{
-		return(FALSE);
-	}*/
+		return FALSE;
+	}
 
 	if (pSoldier->bCollapsed)
 	{
@@ -1978,6 +1982,15 @@ INT8 CalcInterruptDuelPts( SOLDIERTYPE * pSoldier, UINT8 ubOpponentID, BOOLEAN f
 			iPoints=(iPoints + cWeaponReadyBonus);
 			
 		}
+	}
+
+	// sevenfm: raised weapon adds bonus/penalty depending on direction
+	if( !TANK( pSoldier ) && !AM_A_ROBOT( pSoldier ) && WeaponReady(pSoldier) )
+	{
+		if( AIDirection(pSoldier->sGridNo, MercPtrs[ ubOpponentID ]->sGridNo) == pSoldier->ubDirection )
+			iPoints++;
+		else
+			iPoints--;
 	}
 
 	// if soldier is still in shock from recent injuries, that penalizes him
@@ -2480,7 +2493,8 @@ void ResolveInterruptsVs( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType)
 				{
 					pOpponent = MercPtrs[ubOpp];
 					AssertNotNIL(pOpponent);
-					if ( pOpponent->bActive && pOpponent->bInSector && (pOpponent->stats.bLife >= OKLIFE) && !(pOpponent->bCollapsed) )
+					// sevenfm: r8401
+					if ( pOpponent->bActive && pOpponent->bInSector && (pOpponent->stats.bLife >= OKLIFE) && (pOpponent->bBreath >= OKBREATH) && !(pOpponent->bCollapsed) )
 					{
 						if ( ubInterruptType == NOISEINTERRUPT )
 						{

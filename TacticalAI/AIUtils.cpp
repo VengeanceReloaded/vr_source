@@ -5429,3 +5429,13 @@ UINT8 CountSeenCovertOpponents( SOLDIERTYPE *pSoldier )
 
 	return cnt;
 }
+
+UINT8 AIDirection(INT32 sSpot1, INT32 sSpot2)
+{
+	if(TileIsOutOfBounds(sSpot1) || TileIsOutOfBounds(sSpot2))
+	{
+		return DIRECTION_IRRELEVANT;
+	}
+
+	return atan8(CenterX(sSpot1),CenterY(sSpot1),CenterX(sSpot2),CenterY(sSpot2));
+}
