@@ -6268,7 +6268,7 @@ void MoveBullet( INT32 iBullet )
 							iNumLocalStructures++;
 						}
 					}
-					else if ( //MercPtrs[ pStructure->usStructureID ]->bVisible == TRUE &&
+					else if ( MercPtrs[ pStructure->usStructureID ]->bVisible == TRUE &&
 						//gAnimControl[ MercPtrs[pStructure->usStructureID]->usAnimState ].ubEndHeight == ANIM_STAND &&
 						(	gAnimControl[ MercPtrs[pStructure->usStructureID]->usAnimState ].ubEndHeight != ANIM_PRONE &&							
 							MercPtrs[pStructure->usStructureID]->usAnimState != COWERING && 

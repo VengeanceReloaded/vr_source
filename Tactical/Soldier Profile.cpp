@@ -1926,14 +1926,18 @@ BOOLEAN RecruitRPC( UINT8 ubCharNum )
 		GiveQuestRewardPoint( pSoldier->sSectorX, pSoldier->sSectorY, 6, MIGUEL );
 	}
 
-	// Flugente: people recruited in Arulco are known to the enemy as civilians or even soldiers. So they will be covert when recruited. Of course, this is not for the rebels...
-	if ( ubCharNum == DEVIN || ubCharNum == HAMOUS || ubCharNum == SLAY || ubCharNum == VINCE || ubCharNum == MADDOG || ubCharNum == MICKY )
+	// r8405 fix
+	if ( gGameOptions.fNewTraitSystem )
 	{
-		pNewSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_CIV|SOLDIER_COVERT_NPC_SPECIAL);
-	}
-	else if ( ubCharNum == IGGY || ubCharNum == CONRAD )
-	{
-		pNewSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_SOLDIER|SOLDIER_COVERT_NPC_SPECIAL);
+		// Flugente: people recruited in Arulco are known to the enemy as civilians or even soldiers. So they will be covert when recruited. Of course, this is not for the rebels...
+		if ( ubCharNum == DEVIN || ubCharNum == HAMOUS || ubCharNum == SLAY || ubCharNum == VINCE || ubCharNum == MADDOG || ubCharNum == MICKY )
+		{
+			pNewSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_CIV|SOLDIER_COVERT_NPC_SPECIAL);
+		}
+		else if ( ubCharNum == IGGY || ubCharNum == CONRAD )
+		{
+			pNewSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_SOLDIER|SOLDIER_COVERT_NPC_SPECIAL);
+		}
 	}
 
 	// handle town loyalty adjustment
@@ -2047,8 +2051,9 @@ BOOLEAN RecruitEPC( UINT8 ubCharNum )
 	// Set whatkind of merc am i
 	pNewSoldier->ubWhatKindOfMercAmI = MERC_TYPE__EPC;
 
+	// r8405 fix
 	// Flugente: people recruited in Arulco are known to the enemy as civilians or even soldiers. So they will be covert when recruited. Of course, this is not for the rebels/vehicles/robots
-	if ( !(pNewSoldier->flags.uiStatusFlags & (SOLDIER_ROBOT | SOLDIER_VEHICLE) ) )
+	if (  gGameOptions.fNewTraitSystem && !(pNewSoldier->flags.uiStatusFlags & (SOLDIER_ROBOT | SOLDIER_VEHICLE) ) )
 	{
 		pNewSoldier->usSoldierFlagMask |= (SOLDIER_COVERT_CIV | SOLDIER_COVERT_NPC_SPECIAL);
 	}

@@ -15862,10 +15862,6 @@ BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
 	if ( !pSoldier )
 		return TRUE;
 
-	// brutal fix: robots cannot be disguised
-	if ( AM_A_ROBOT( pSoldier ) && pSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER | SOLDIER_COVERT_NPC_SPECIAL) )
-		pSoldier->LooseDisguise( );
-
 #ifdef ENABLE_ZOMBIES
 	// zombies don't care about disguises
 	if ( IsZombie() )

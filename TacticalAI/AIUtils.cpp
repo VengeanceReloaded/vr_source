@@ -4247,7 +4247,7 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 				ubSectorData = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
 			if ( NightLight() )			// suspicious at night
 				ubSectorData = __max( ubSectorData, 1 );
-			if ( gbWorldSectorZ > 0 )	// underground we are always suspicious				
+			if ( gbWorldSectorZ > 0 )	// underground we are always suspicious
 				ubSectorData = __max( ubSectorData, 2 );
 
 			// basic value is 1..5
@@ -4293,7 +4293,29 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			{
 				uiValue += 4;
 			}
+			// bonus if weapon raised
+			if( WeaponReady(pSoldier) )
+			{
+				uiValue += 2;
+			}
+			// bonus if spotting
+			if( pSoldier->IsSpotting() )
+			{
+				uiValue += 2;
+			}
+			// bonus if soldier is carrying item with sight bonus in main hand
+			if( pSoldier->inv[HANDPOS].exists() &&
+				Item[ pSoldier->inv[HANDPOS].usItem ].dayvisionrangebonus > 0 || 
+				Item[ pSoldier->inv[HANDPOS].usItem ].brightlightvisionrangebonus > 0 || 
+				Item[ pSoldier->inv[HANDPOS].usItem ].nightvisionrangebonus > 0 || 
+				Item[ pSoldier->inv[HANDPOS].usItem ].cavevisionrangebonus > 0 )
+			{
+				uiValue += 2;
+			}
 			// finally, basic value is 1..20
+
+			// bonus if observing soldier sees more than one covert soldier
+			uiValue = uiValue * CountSeenCovertOpponents(pOpponent);
 
 			// bonus for suspicious movement mode
 			if ( pSoldier->bStealthMode || 
@@ -4306,6 +4328,11 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
 			{
 				uiValue = uiValue * 2;
+			}
+			// increase if spy is civilian and alert is raised
+			if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_CIV && pOpponent->aiData.bAlertStatus >= STATUS_RED )
+			{
+				uiValue = uiValue * 4;
 			}
 			// finally, multiplier can be 1..4
 
@@ -5370,4 +5397,35 @@ UINT8 CountPublicKnownEnemies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDis
 	}
 
 	return ubNum;
+}
+
+UINT8 CountSeenCovertOpponents( SOLDIERTYPE *pSoldier )
+{
+	CHECKF(pSoldier);
+
+	UINT8	ubTeamLoop;
+	UINT8	ubIDLoop;
+	UINT8	cnt = 0;
+
+	for( ubTeamLoop = 0; ubTeamLoop < MAXTEAMS; ubTeamLoop++ )
+	{
+		if( !gTacticalStatus.Team[ubTeamLoop].bTeamActive )
+			continue;
+
+		if( gTacticalStatus.Team[ ubTeamLoop ].bSide != pSoldier->bSide )
+		{
+			// consider guys in this team, which isn't on our side
+			for( ubIDLoop = gTacticalStatus.Team[ ubTeamLoop ].bFirstID; ubIDLoop <= gTacticalStatus.Team[ ubTeamLoop ].bLastID; ubIDLoop++ )
+			{
+				// check that opponent is covert and we see him currently
+				if( pSoldier->aiData.bOppList[ubIDLoop] == SEEN_CURRENTLY &&
+					MercPtrs[ubIDLoop]->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER) )
+				{
+					cnt++;
+				}
+			}
+		}
+	}
+
+	return cnt;
 }

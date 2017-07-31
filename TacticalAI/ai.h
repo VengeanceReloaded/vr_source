@@ -292,6 +292,7 @@ UINT8 CountFriendsFlankSameSpot( SOLDIERTYPE *pSoldier );
 UINT8 CountNearbyFriendsLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier );
 UINT8 CountPublicKnownEnemies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
+UINT8 CountSeenCovertOpponents( SOLDIERTYPE *pSoldier );
 
 UINT8 CountTeamCombat( SOLDIERTYPE *pSoldier );
 UINT8 CountTeamSeeSoldier( INT8 bTeam, SOLDIERTYPE *pSoldier );
