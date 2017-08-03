@@ -364,4 +364,16 @@ void addRocketAmmoToPocketPopup( SOLDIERTYPE *pSoldier, INT16 sPocket, POPUP* po
 void addMiscToPocketPopup( SOLDIERTYPE *pSoldier, INT16 sPocket, POPUP* popup );
 void addKitsToPocketPopup( SOLDIERTYPE *pSoldier, INT16 sPocket, POPUP* popup );
 
+// sevenfm: extended images
+//BOOLEAN LoadExtTileGraphicForItem( OBJECTTYPE *pObject, UINT32 *puiVo );
+
+// sevenfm:
+BOOLEAN LoadTileGraphicForItem( OBJECTTYPE *pObject, UINT32 *puiVo );
+
+void GetVideoObjectDimensions( UINT32 uiImage, UINT16 usGraphicNum, UINT32 &usWidth, UINT32 &usHeight, INT32 &sOffsetX, INT32 &sOffsetY );
+void DrawBufferItemPic(UINT16 usItem, INT16 sCenterX, INT16 sCenterY );
+void DrawBufferCustomPic(OBJECTTYPE* pObject, INT16 sCenterX, INT16 sCenterY);
+void DrawBufferPic(UINT32 uiImage, UINT16 usIndex, INT16 sCenterX, INT16 sCenterY );
+void PrintCustomSaveBuffer( INT32 font, UINT8 ubBColor,  UINT8 ubFColor, INT16 sX, INT16 sY, CHAR16* pStr );
+
 #endif

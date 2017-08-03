@@ -1464,6 +1464,8 @@ typedef struct
 	BOOLEAN fEnemyJams;
 	UINT8	ubChangePaletteLevel;
 
+	BOOLEAN fExtendedItemImages;
+
 } GAME_EXTERNAL_OPTIONS;
 
 typedef struct

@@ -4428,12 +4428,18 @@ void MAPINVRenderItem( UINT32 uiBuffer, SOLDIERTYPE * pSoldier, OBJECTTYPE  *pOb
 	sCenY =  sY + (INT16)( abs( sHeight - (double)usHeight ) / 2 ) - pTrav->sOffsetY;
 
 	// If option, draw item shadow.
-	if(gGameSettings.fOptions[ TOPTION_SHOW_ITEM_SHADOW ])
+	if(gGameSettings.fOptions[ TOPTION_SHOW_ITEM_SHADOW ] && !gGameExternalOptions.fExtendedItemImages)
 	{
 		BltVideoObjectOutlineShadow( guiSAVEBUFFER, hVObject, 0, sCenX - 2, sCenY + 2  );
 	}
+	// sevenfm: extended item images
 	// Draw the item on-screen.
-	BltVideoObject( uiBuffer , hVObject, 0, sCenX, sCenY , VO_BLT_SRCTRANSPARENCY,NULL );
+	if(gGameExternalOptions.fExtendedItemImages)
+		DrawBufferCustomPic( pObject, sX + sWidth/2, sY + sHeight/2);
+	else
+		BltVideoObject( uiBuffer , hVObject, 0, sCenX, sCenY , VO_BLT_SRCTRANSPARENCY,NULL );
+	// Draw the item on-screen.
+	//BltVideoObject( uiBuffer , hVObject, 0, sCenX, sCenY , VO_BLT_SRCTRANSPARENCY,NULL );
 
 	// OUTLINE
 	if (fOutline)
@@ -6736,11 +6742,16 @@ void RenderItemDescriptionBox( )
 		}
 
 		// Display item
-		if(gGameSettings.fOptions[ TOPTION_SHOW_ITEM_SHADOW ])
+		if(gGameSettings.fOptions[ TOPTION_SHOW_ITEM_SHADOW ] && !gGameExternalOptions.fExtendedItemImages)
 		{
 			BltVideoObjectOutlineShadowFromIndex( guiSAVEBUFFER, guiItemGraphic, 0, sCenX - 2, sCenY + 2  );
 		}
-		BltVideoObjectFromIndex( guiSAVEBUFFER, guiItemGraphic, 0, sCenX, sCenY, VO_BLT_SRCTRANSPARENCY, NULL );
+		// sevenfm: extended item images
+		if(gGameExternalOptions.fExtendedItemImages)
+			DrawBufferCustomPic( gpItemDescObject, ITEMDESC_ITEM_X + ITEMDESC_ITEM_WIDTH/2, ITEMDESC_ITEM_Y + ITEMDESC_ITEM_HEIGHT/2);
+		else
+			BltVideoObjectFromIndex( guiSAVEBUFFER, guiItemGraphic, 0, sCenX, sCenY, VO_BLT_SRCTRANSPARENCY, NULL ); 
+		//BltVideoObjectFromIndex( guiSAVEBUFFER, guiItemGraphic, 0, sCenX, sCenY, VO_BLT_SRCTRANSPARENCY, NULL );
 
 		// HEADROCK HAM 5: Superimpose with Transform Icon graphic
 		/* This bit will later be used for manual unjam via transformations. Hopefully. If not, erase it.
@@ -14466,3 +14477,722 @@ BOOLEAN TransformationMenuPopup_Unjam_TestValid(OBJECTTYPE* pObj)
 	}
 }
 
+//**********************************************************************************************
+// Extended item images
+//**********************************************************************************************
+
+BOOLEAN LoadTileGraphicForItem( OBJECTTYPE *pObject, UINT32 *puiVo )
+{
+	/*if( gGameExternalOptions.fExtendedItemImages && LoadExtTileGraphicForItem( pObject, puiVo ) ) 
+		return TRUE;*/
+
+	return LoadTileGraphicForItem( &(Item[ pObject->usItem ]), puiVo );
+}
+
+/*BOOLEAN LoadExtTileGraphicForItem( OBJECTTYPE *pObject, UINT32 *puiVo )
+{
+	UINT32			uiVo;
+	VOBJECT_DESC    VObjectDesc;
+	CHAR8			pStr[256];
+	UINT16			usItem;
+	UINT32			uiBulletsLeft;
+
+	if( !pObject )
+	{
+		return FALSE;
+	}
+
+	usItem = pObject->usItem;
+
+	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
+
+	BOOLEAN found = FALSE;
+	INT32	level = 4;
+
+	while( !found && level>=0 )
+	{
+		sprintf( pStr, "ExtImages\\%d\\%d", usItem, usItem );
+
+		if( Item[pObject->usItem].usItemClass == IC_GUN)
+		{
+			uiBulletsLeft = (*pObject)[0]->data.gun.ubGunShotsLeft;
+
+			if( level>0 && HasAttachmentOfClass(pObject, AC_MAGWELL) && uiBulletsLeft != 0 )
+				strcat( pStr, "_adapter" );						
+
+			if( level>1 && HasAttachmentOfClass(pObject, AC_STOCK) )
+				strcat( pStr, "_stock" );						
+
+			if( level>2 && HasAttachmentOfClass(pObject, AC_SCOPE) )
+				strcat( pStr, "_scope" );
+//			else if( level>2 && HasAttachmentOfClass(pObject, AC_SIGHT) )
+//				strcat( pStr, "_sight" );
+
+			if( level>3 && FindAttachedWeapon(pObject, IC_LAUNCHER) )
+				strcat( pStr, "_gl" );
+//			else if( level>3 && HasAttachmentOfClass(pObject, AC_LASER) )
+//				strcat( pStr, "_laser" );
+
+//			if( level>3 && HasAttachmentOfClass(pObject, AC_SLING) )
+//				strcat( pStr, "_sling" );			
+//			if( level>4 && uiBulletsLeft == 0 )
+//				strcat( pStr, "_nomag" );
+
+		}
+		else
+		{
+			// find first attachment, search for ItemId_AttId
+			level = 0;
+		}
+		strcat( pStr, ".sti" );
+		sprintf( VObjectDesc.ImageFile, pStr);
+
+		if( AddVideoObject( &VObjectDesc, &uiVo) )
+			found = TRUE;
+		level--;
+	}
+
+	if( found )
+	{
+		*puiVo = uiVo;
+		return TRUE;
+	}
+
+	return FALSE;
+}*/
+
+// sevenfm:
+void GetVideoObjectDimensions( UINT32 uiImage, UINT16 usGraphicNum, UINT32 &usWidth, UINT32 &usHeight, INT32 &sOffsetX, INT32 &sOffsetY )
+{
+	HVOBJECT	hPixHandle;
+	ETRLEObject		*pTrav;
+
+	GetVideoObject(&hPixHandle, uiImage);
+
+	if(hPixHandle->ubBitDepth == 8)
+	{
+		pTrav = &(hPixHandle->pETRLEObject[ usGraphicNum ] );
+
+		usHeight				= (UINT32)pTrav->usHeight;
+		usWidth					= (UINT32)pTrav->usWidth;
+		sOffsetX				= (INT32)pTrav->sOffsetX;
+		sOffsetY				= (INT32)pTrav->sOffsetY;
+	}
+	else if(hPixHandle->ubBitDepth == 16 && hPixHandle->p16BPPObject)
+	{
+		usHeight				= hPixHandle->p16BPPObject->usHeight;
+		usWidth					= hPixHandle->p16BPPObject->usWidth;
+		sOffsetX				= hPixHandle->p16BPPObject->sOffsetX;
+		sOffsetY				= hPixHandle->p16BPPObject->sOffsetY;
+	}
+	else if(hPixHandle->ubBitDepth == 32)
+	{
+		usHeight				= hPixHandle->p16BPPObject->usHeight;
+		usWidth					= hPixHandle->p16BPPObject->usWidth;
+		sOffsetX				= hPixHandle->p16BPPObject->sOffsetX;
+		sOffsetY				= hPixHandle->p16BPPObject->sOffsetY;
+	}
+	else
+	{
+		Assert(false);
+	}
+}
+
+void DrawBufferItemPic(UINT16 usItem, INT16 sCenterX, INT16 sCenterY )
+{
+	UINT16		usGraphicNum;
+	INVTYPE		*pItem;
+	UINT32		usWidth, usHeight;
+	INT32		sOffsetX, sOffsetY;
+	INT16		sX, sY;
+	UINT32		uiImage;
+	HVOBJECT	hVObject;
+	
+	pItem = &Item[ usItem ];
+	usGraphicNum = g_bUsePngItemImages ? 0 : pItem->ubGraphicNum;
+
+	uiImage = GetInterfaceGraphicForItem( pItem );
+
+	GetVideoObjectDimensions( uiImage, usGraphicNum, usWidth, usHeight, sOffsetX, sOffsetY );
+	sX = sCenterX - usWidth/2 - sOffsetX;
+	sY = sCenterY - usHeight/2 - sOffsetY;
+	
+	GetVideoObject( &hVObject, GetInterfaceGraphicForItem( pItem ) );
+
+	BltVideoObjectOutlineFromIndex( guiSAVEBUFFER, uiImage, usGraphicNum, sX, sY, Get16BPPColor( FROMRGB( 255, 255, 255 ) ), FALSE );
+}
+
+void DrawBufferPic(UINT32 uiImage, UINT16 usIndex, INT16 sCenterX, INT16 sCenterY )
+{
+	UINT32		usWidth, usHeight;
+	INT32		sOffsetX, sOffsetY;
+	INT16		sX, sY;
+
+	GetVideoObjectDimensions( uiImage, usIndex, usWidth, usHeight, sOffsetX, sOffsetY );
+	sX = sCenterX - usWidth/2 - sOffsetX;
+	sY = sCenterY - usHeight/2 - sOffsetY;
+
+	BltVideoObjectOutlineFromIndex( guiSAVEBUFFER, uiImage, usIndex, sX, sY, Get16BPPColor( FROMRGB( 255, 255, 255 ) ), FALSE );
+	DeleteVideoObjectFromIndex( uiImage );
+}
+
+void DrawBufferCustomPic( OBJECTTYPE* pObject, INT16 sCenterX, INT16 sCenterY)
+{
+//	UINT16			usGraphicNum;
+//	INVTYPE			*pItem;
+//	UINT32			usWidth;
+//	UINT32			usHeight;
+//	INT32			sOffsetX, sOffsetY;
+//	CHAR8			pStr[256];
+//	UINT32			uiBulletsLeft;
+
+	UINT32			uiImage;
+	VOBJECT_DESC    VObjectDesc;
+	UINT16			usItem;
+	BOOLEAN			fBaseImageLoaded;
+
+	OBJECTTYPE		*pStockFound = 0, 
+					*pAdapterFound = 0, 
+					*pSlingFound = 0, 
+					*pScopeFound = 0, 
+					*pSightFound = 0, 
+					*pLaserFound = 0, 
+					*pMuzzleFound = 0, 
+					*pForegripFound = 0,
+					*pBipodFound = 0,
+					*pInternalFound = 0,
+					*pUnderBarrelFound = 0,
+					*pBayonetFound = 0,
+					*pExtenderFound = 0,
+					*pIronSightFound = 0,
+					*pRifleGrenadeFound = 0,
+					*pExternalFound = 0,
+					*pFeederFound = 0;
+
+	// safety check
+	if( !pObject )
+	{
+		return;
+	}
+
+	// initialization
+	usItem = pObject->usItem;
+	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
+
+	for (attachmentList::iterator iter = (*pObject)[0]->attachments.begin(); iter != (*pObject)[0]->attachments.end(); ++iter) 
+	{
+		if( iter->exists() )
+		{
+			if( Item[iter->usItem].attachmentclass & AC_SCOPE )
+			{
+				pScopeFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_SIGHT )
+			{
+				pSightFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_IRONSIGHT )
+			{
+				pIronSightFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_UNDERBARREL )
+			{
+				pUnderBarrelFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_BIPOD )
+			{
+				pBipodFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_FOREGRIP )
+			{
+				pForegripFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_LASER )
+			{
+				pLaserFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_MUZZLE )
+			{
+				pMuzzleFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_EXTENDER )
+			{
+				pExtenderFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_RIFLEGRENADE )
+			{
+				pRifleGrenadeFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_BAYONET )
+			{
+				pBayonetFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_STOCK )
+			{
+				pStockFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_MAGWELL )
+			{
+				pAdapterFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_SLING )
+			{
+				pSlingFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_INTERNAL )
+			{
+				pInternalFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_EXTERNAL )
+			{
+				pExternalFound = &(*iter);
+			}
+			else if( Item[iter->usItem].attachmentclass & AC_FEEDER )
+			{
+				pFeederFound = &(*iter);
+			}
+		}
+	}
+
+	// check different attachment classes
+	//pStockFound = FindAttachmentByAttachmentClass( pObject, AC_STOCK );
+	//pAdapterFound = FindAttachmentByAttachmentClass( pObject, AC_MAGWELL );
+	//pSlingFound = FindAttachmentByAttachmentClass( pObject, AC_SLING );
+	//pScopeFound = FindAttachmentByAttachmentClass( pObject, AC_SCOPE );
+	//pSightFound = FindAttachmentByAttachmentClass( pObject, AC_SIGHT );
+	//pIronSightFound = FindAttachmentByAttachmentClass( pObject, AC_IRONSIGHT );
+	//pForegripFound = FindAttachmentByAttachmentClass( pObject, AC_FOREGRIP );
+	//pLaserFound = FindAttachmentByAttachmentClass( pObject, AC_LASER );	
+	//pMuzzleFound = FindAttachmentByAttachmentClass( pObject, AC_MUZZLE );
+	//pExtenderFound = FindAttachmentByAttachmentClass( pObject, AC_EXTENDER );
+	//pRifleGrenadeFound = FindAttachmentByAttachmentClass( pObject, AC_RIFLEGRENADE );
+	//pBayonetFound = FindAttachmentByAttachmentClass( pObject, AC_BAYONET );	
+	//pUnderBarrelFound = FindAttachmentByAttachmentClass( pObject, AC_UNDERBARREL );
+	//pBipodFound = FindAttachmentByAttachmentClass( pObject, AC_BIPOD );		
+	//pInternalFound = FindAttachmentByAttachmentClass( pObject, AC_INTERNAL );
+	//pExternalFound = FindAttachmentByAttachmentClass( pObject, AC_EXTERNAL );
+	//pFeederFound = FindAttachmentByAttachmentClass( pObject, AC_FEEDER );		
+
+	if( Item[pObject->usItem].usItemClass == IC_GUN)
+	{
+		fBaseImageLoaded = FALSE;
+
+		// base picture uses combined name from adapter/stock
+		if( pStockFound && pAdapterFound )
+		{
+			sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_%d_%d.sti", usItem, pStockFound->usItem, pAdapterFound->usItem );
+			if( AddVideoObject( &VObjectDesc, &uiImage) )
+			{
+				fBaseImageLoaded = TRUE;
+				DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+			}
+			if( !fBaseImageLoaded )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_stock_%d.sti", usItem, pStockFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					fBaseImageLoaded = TRUE;
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}			
+			if( !fBaseImageLoaded )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_%d_adapter.sti", usItem, pAdapterFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					fBaseImageLoaded = TRUE;
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+			if( !fBaseImageLoaded )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_stock_adapter.sti", usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					fBaseImageLoaded = TRUE;
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+		}
+		if ( !fBaseImageLoaded && pStockFound )
+		{
+			sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_%d.sti", usItem, pStockFound->usItem );
+			if( AddVideoObject( &VObjectDesc, &uiImage) )
+			{
+				fBaseImageLoaded = TRUE;
+				DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+			}
+			if( !fBaseImageLoaded )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_stock.sti", usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					fBaseImageLoaded = TRUE;
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+		}
+		if( !fBaseImageLoaded && pAdapterFound )
+		{
+			sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_%d.sti", usItem, pAdapterFound->usItem );
+			if( AddVideoObject( &VObjectDesc, &uiImage) )
+			{
+				fBaseImageLoaded = TRUE;
+				DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+			}
+			if( !fBaseImageLoaded )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base_adapter.sti", usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					fBaseImageLoaded = TRUE;
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+		}
+
+		if( !fBaseImageLoaded )
+		{
+			sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_base.sti", usItem );
+			if( AddVideoObject( &VObjectDesc, &uiImage) )
+			{
+				fBaseImageLoaded = TRUE;
+				DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+			}
+		}
+
+		if( fBaseImageLoaded )
+		{
+			if( pSlingFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pSlingFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_sling.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pScopeFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pScopeFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_scope.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+			else if( pSightFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pSightFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_sight.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+			else if( pIronSightFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pIronSightFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_ironsight.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pForegripFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pForegripFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_grip.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+			
+			if( pLaserFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pLaserFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_laser.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pMuzzleFound )
+			{
+				// specific item
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pMuzzleFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				// sound suppressor									
+				else if( Item[pMuzzleFound->usItem].percentnoisereduction > 20 )
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_silencer.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				// found muzzle flash hider
+				else if( Item[pMuzzleFound->usItem].hidemuzzleflash )
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_sup.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+						DrawBufferPic( uiImage, 0, sCenterX-50, sCenterY );
+				}
+				// muzzle item
+				else 
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_muzzle.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+			else if( pExtenderFound )
+			{
+				// specific item
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pExtenderFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				// muzzle item
+				else 
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_extender.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+			else if( pRifleGrenadeFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pRifleGrenadeFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else 
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%_rgl.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+
+			if( pBayonetFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pBayonetFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_bayonet.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pUnderBarrelFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pUnderBarrelFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_ub.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pBipodFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pBipodFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_bipod.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pInternalFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pInternalFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_internal.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pExternalFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pExternalFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_external.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			if( pFeederFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pFeederFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_feeder.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
+			/*if( FindAttachedWeapon(pObject, IC_LAUNCHER) )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_gl.sti", usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+			}
+			else if( FindAttachedWeapon( pObject, IC_BLADE ) )
+			{
+				// found bayonet
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_bayonet.sti", usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+			}*/			
+		}
+		else
+		{		// load default image
+			LoadTileGraphicForItem( pObject, &uiImage);
+			DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+		}
+	}
+	else
+	{		// load default image
+		LoadTileGraphicForItem( pObject, &uiImage);
+		DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+	}
+}
+
+void PrintCustomSaveBuffer( INT32 font, UINT8 ubBColor,  UINT8 ubFColor, INT16 sX, INT16 sY, CHAR16* pStr )
+{
+	SetFont( font );
+	SetFontBackground( ubBColor );
+	SetFontForeground ( ubFColor );
+	SetFontDestBuffer( guiSAVEBUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, FALSE );
+	mprintf( sX, sY, pStr );
+	gprintfRestore( sX, sY, pStr );
+	SetFontDestBuffer( FRAME_BUFFER, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, FALSE );
+	SetFont( TINYFONT1 );
+}
+
+/*
+#define AC_BIPOD		0x00000001	//1
+#define AC_MUZZLE		0x00000002	//2
+#define AC_LASER		0x00000004	//4
+#define AC_SIGHT		0x00000008	//8
+#define AC_SCOPE		0x00000010	//16
+#define AC_STOCK		0x00000020	//32
+#define AC_MAGWELL   	0x00000040	//64
+#define AC_INTERNAL		0x00000080	//128
+#define AC_EXTERNAL		0x00000100	//256
+#define AC_UNDERBARREL	0x00000200	//512
+#define AC_GRENADE		0x00000400	//1024
+#define AC_ROCKET		0x00000800	//2048
+#define AC_FOREGRIP		0x00001000	//4096
+#define AC_HELMET       0x00002000	//8192
+#define AC_VEST 		0x00004000	//16384
+#define AC_PANTS		0x00008000	//32768
+#define AC_DETONATOR    0x00010000	//65536
+#define AC_BATTERY      0x00020000	//131072
+#define AC_EXTENDER		0x00040000	//262144
+#define AC_SLING		0x00080000	//524288			// rifle sling
+#define AC_REMOTEDET    0x00100000	//1048576			// remote detonator for bombs
+#define AC_DEFUSE		0x00200000	//2097152			// defuse item for bombs
+#define AC_IRONSIGHT	0x00400000	//4194304			// for attachable Iron Sights
+#define AC_FEEDER		0x00800000	//8388608			// allow external feeding
+#define AC_MODPOUCH		0x01000000	//16777216			// for new modular pouches
+#define AC_RIFLEGRENADE	0x02000000	//33554432			// GL, needs a bullet and blocks other firing modes
+#define AC_BAYONET		0x04000000	//67108864
+*/
