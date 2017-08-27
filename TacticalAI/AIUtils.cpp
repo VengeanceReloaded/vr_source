@@ -4243,14 +4243,16 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			UINT8	ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
 			UINT8	ubSectorData = 0;
 
-			if ( ubSectorId >= 0 && ubSectorId < 256  )
-				ubSectorData = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
-			if ( NightLight() )			// suspicious at night
-				ubSectorData = __max( ubSectorData, 1 );
-			if ( gbWorldSectorZ > 0 )	// underground we are always suspicious
-				ubSectorData = __max( ubSectorData, 2 );
+			ubSectorData = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
 
-			// basic value is 1..5
+			if ( NightLight() )			// suspicious at night
+				ubSectorData = max( ubSectorData, 1 );
+			if ( gbWorldSectorZ > 0 )	// underground we are always suspicious				
+				ubSectorData = max( ubSectorData, 2 );
+
+			// -----------------------------------------------------------------------------------------------------
+			// calculate basic value 
+
 			uiValue = 1 + SoldierDifficultyLevel( pOpponent );
 			// add bonus for squad leader
 			if (HAS_SKILL_TRAIT( pOpponent, SQUADLEADER_NT ) )
@@ -4291,11 +4293,6 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			// wearing or carrying backpack is suspicious
 			if ( UsingNewInventorySystem() && FindBackpackOnSoldier( pSoldier ) )
 			{
-				uiValue += 4;
-			}
-			// bonus if weapon raised
-			if( WeaponReady(pSoldier) )
-			{
 				uiValue += 2;
 			}
 			// bonus if spotting
@@ -4312,10 +4309,19 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			{
 				uiValue += 2;
 			}
-			// finally, basic value is 1..20
+
+			// -----------------------------------------------------------------------------------------------------
+			// multipliers
 
 			// bonus if observing soldier sees more than one covert soldier
+			//uiValue = uiValue * (200 - 100 / max(1, CountSeenCovertOpponents(pOpponent))) / 100;
 			uiValue = uiValue * CountSeenCovertOpponents(pOpponent);
+
+			// bonus depending on number of army men already killed
+			if( gTacticalStatus.ubArmyGuysKilled > 0 )
+			{
+				uiValue = uiValue *(UINT32) sqrt((DOUBLE) gTacticalStatus.ubArmyGuysKilled);
+			}			
 
 			// bonus for suspicious movement mode
 			if ( pSoldier->bStealthMode || 
@@ -4324,17 +4330,30 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			{
 				uiValue = uiValue * 2;
 			}			
+
 			// soldier spies cause more suspicion (this can be compensated by skill)
 			if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
 			{
 				uiValue = uiValue * 2;
 			}
+
 			// increase if spy is civilian and alert is raised
 			if( pSoldier->usSoldierFlagMask & SOLDIER_COVERT_CIV && pOpponent->aiData.bAlertStatus >= STATUS_RED )
 			{
 				uiValue = uiValue * 4;
 			}
-			// finally, multiplier can be 1..4
+
+			// bonus if weapon raised
+			if( WeaponReady(pSoldier) )
+			{
+				uiValue = uiValue * 2;
+			}
+
+			// bonus from uniform type (admin - 1, regular - 2, elite - 3)
+			uiValue = uiValue * pSoldier->UniformLevel();
+
+			// -----------------------------------------------------------------------------------------------------
+			// some modifiers can reduce suspicion level
 
 			// reduce 2-4 times if soldier has covert trait
 			if ( HAS_SKILL_TRAIT( pSoldier, COVERT_NT ) )
@@ -4351,11 +4370,19 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 			{
 				uiValue -= uiValue * GetDrunkLevel(pOpponent) * 25 / 100;
 			}
+
 			// finally reduce according to the distance, 4 times at max day vision range
 			if( sDistance > DAY_VISION_RANGE / 4 )
 			{
 				uiValue = uiValue * (DAY_VISION_RANGE / 4) / sDistance;
 			}
+			// bonus to value is very close and alert is raised
+			else if( pOpponent->aiData.bAlertStatus >= STATUS_RED  )
+			{
+				uiValue = uiValue * (DAY_VISION_RANGE / 4) / (max(sDistance, 1));
+			}
+
+			// -----------------------------------------------------------------------------------------------------
 
 			uiTotalValue += uiValue;
 		}

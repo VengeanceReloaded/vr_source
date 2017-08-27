@@ -234,11 +234,11 @@ INT32 HandleItem( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT16 usHa
 	// "attached weapon"
 	pSoldier->usAttackingWeapon = usHandItem;
 
-		// sevenfm: set shift flag for auto-taking of next item from inventory
-		if( fFromUI && _KeyDown(SHIFT) )
-			gfShiftBombPlant = TRUE;
-		else
-			gfShiftBombPlant = FALSE;
+	// sevenfm: set shift flag for auto-taking of next item from inventory
+	if( fFromUI && _KeyDown(SHIFT) )
+		gfShiftBombPlant = TRUE;
+	else
+		gfShiftBombPlant = FALSE;
 
 	// Find soldier flags depend on if it's our own merc firing or a NPC
 	//if ( FindSoldier( sGridNo, &usSoldierIndex, &uiMercFlags, FIND_SOLDIER_GRIDNO )  )
@@ -286,7 +286,11 @@ INT32 HandleItem( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT16 usHa
 		return( ITEM_HANDLE_BROKEN );
 	}
 
-	if ( fFromUI && pSoldier->bTeam == gbPlayerNum && pTargetSoldier && (pTargetSoldier->bTeam == gbPlayerNum || pTargetSoldier->aiData.bNeutral) && pTargetSoldier->ubBodyType != CROW && Item[ usHandItem ].usItemClass != IC_MEDKIT && !ItemCanBeAppliedToOthers(usHandItem) )
+	// sevenfm: r8451
+	if ( fFromUI && pSoldier->bTeam == gbPlayerNum && pTargetSoldier && 
+		(pTargetSoldier->bTeam == gbPlayerNum || pTargetSoldier->aiData.bNeutral) && pTargetSoldier->ubBodyType != CROW && 
+		Item[usHandItem].usItemClass != IC_MEDKIT && !Item[usHandItem].gascan &&
+		!ItemCanBeAppliedToOthers( usHandItem ) )
 	{
 		if ( pSoldier->ubProfile != NO_PROFILE	)
 		{

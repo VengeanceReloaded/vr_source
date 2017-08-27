@@ -6734,7 +6734,7 @@ void SoldierGotHitExplosion( SOLDIERTYPE *pSoldier, UINT16 usWeaponIndex, INT16 
 				// Check behind us!
 				sNewGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ bDirection ] ) );
 				//if ( OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
-				if( sRange <= Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubRadius / 2 &&
+				if( sRange <= max(2, Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubRadius / 2) &&
 					Explosive[ Item[ usWeaponIndex ].ubClassIndex ].ubDamage >= 50 &&
 					OKFallDirection( pSoldier, sNewGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ bDirection ], FLYBACK_HIT ) )
 				{
@@ -10055,11 +10055,8 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sPo
 	// Add shock
 	if ( !AM_A_ROBOT( this ) )
 	{
-		// sevenfm: shock from wounds should be comparable to shock from suppression
-		this->aiData.bShock += ubCombinedLoss*2;
-		this->ubLastShockFromHit += ubCombinedLoss*2;
-		//this->aiData.bShock += ubCombinedLoss;
-		//this->ubLastShockFromHit += ubCombinedLoss;
+		this->aiData.bShock += ubCombinedLoss;
+		this->ubLastShockFromHit += ubCombinedLoss;
 	}
 
 	// start the stopwatch - the blood is gushing!
@@ -15756,21 +15753,18 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 			return FALSE;
 		}
 
-		// if we are disguised as a soldier, elites and officers can uncover us if they are close
-		/*if ( fCloseLook &&
+		// if we are disguised as a soldier and alert is raised, we can be uncovered on close look
+		if ( fCloseLook &&
 			//gSkillTraitValues.fCOElitesDetectNextTile &&
 			pSoldier->aiData.bAlertStatus >= STATUS_RED &&
-			//(pSoldier->ubSoldierClass == SOLDIER_CLASS_ELITE || HAS_SKILL_TRAIT(pSoldier, SQUADLEADER_NT)) &&
-			HAS_SKILL_TRAIT(pSoldier, SQUADLEADER_NT) &&
-			EffectiveExpLevel( pSoldier ) >= EffectiveExpLevel( this ) + NUM_SKILL_TRAITS( this, COVERT_NT ) )
+			(	pSoldier->UniformLevel() > this->UniformLevel() || 
+			pSoldier->UniformLevel() == this->UniformLevel() && EffectiveExpLevel( pSoldier ) > EffectiveExpLevel( this ) ||
+			NUM_SKILL_TRAITS( pSoldier, SQUADLEADER_NT ) > 0 ) 
+			)
 		{
-			// officers can uncover us even if we are disguised as an elite
-			if ( HAS_SKILL_TRAIT(pSoldier, SQUADLEADER_NT) )
-			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"A officer knew %s was unfamiliar!", this->GetName( ) );
-				return FALSE;
-			}
-		}*/
+			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s was uncovered!", this->GetName( ) );
+			return FALSE;
+		}		
 
 		// are we targeting a buddy of our observer?
 		if ( this->ubTargetID != NOBODY && MercPtrs[this->ubTargetID] && MercPtrs[this->ubTargetID]->bTeam == pSoldier->bTeam )
@@ -16042,11 +16036,6 @@ void SOLDIERTYPE::Disguise( void )
 				{
 					this->usSoldierFlagMask |= SOLDIER_COVERT_CIV;
 				}
-				else
-				{
-					if ( this->bTeam == OUR_TEAM )
-						ScreenMsg( FONT_ORANGE, MSG_INTERFACE, L"Cannot use military colors to disguise as civilian!" );
-				}
 			}
 
 			if ( this->bTeam == OUR_TEAM && (this->usSoldierFlagMask & SOLDIER_COVERT_CIV) )
@@ -16104,9 +16093,7 @@ BOOLEAN SOLDIERTYPE::CanInspect( SOLDIERTYPE *pOpponent )
 	}
 
 	// covert soldier can be inspected only by officer of same of higher type
-	if (this->ubSoldierClass == SOLDIER_CLASS_ELITE && pOpponent->GetUniformType( ) <= UNIFORM_ENEMY_ELITE ||
-		this->ubSoldierClass == SOLDIER_CLASS_ARMY && pOpponent->GetUniformType( ) <= UNIFORM_ENEMY_TROOP ||
-		this->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR && pOpponent->GetUniformType( ) == UNIFORM_ENEMY_ADMIN)
+	if( this->UniformLevel() >= pOpponent->UniformLevel() )
 	{
 		return TRUE;
 	}
@@ -22134,3 +22121,21 @@ void StopCoweringAnimation( SOLDIERTYPE* pSoldier)
 	pSoldier->flags.uiStatusFlags &= (~SOLDIER_COWERING );
 }
 
+BOOLEAN SOLDIERTYPE::UniformLevel( void )
+{
+	// covert soldier can be inspected only by officer of same of higher type
+	if ( this->GetUniformType( ) == UNIFORM_ENEMY_ELITE || this->GetUniformType( ) == UNIFORM_MILITIA_ELITE )
+	{
+		return 3;
+	}
+	else if( this->GetUniformType( ) == UNIFORM_ENEMY_TROOP || this->GetUniformType( ) == UNIFORM_MILITIA_REGULAR )
+	{
+		return 2;
+	}
+	else if( this->GetUniformType( ) == UNIFORM_ENEMY_ADMIN || this->GetUniformType( ) == UNIFORM_MILITIA_ROOKIE )
+	{
+		return 1;
+	}
+
+	return 1;
+}

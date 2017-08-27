@@ -14880,6 +14880,23 @@ void DrawBufferCustomPic( OBJECTTYPE* pObject, INT16 sCenterX, INT16 sCenterY)
 				}
 			}
 
+			if( pIronSightFound )
+			{
+				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pIronSightFound->usItem );
+				if( AddVideoObject( &VObjectDesc, &uiImage) )
+				{
+					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+				}
+				else
+				{
+					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_ironsight.sti", usItem );
+					if( AddVideoObject( &VObjectDesc, &uiImage) )
+					{
+						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
+					}
+				}
+			}
+
 			if( pScopeFound )
 			{
 				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pScopeFound->usItem );
@@ -14896,7 +14913,8 @@ void DrawBufferCustomPic( OBJECTTYPE* pObject, INT16 sCenterX, INT16 sCenterY)
 					}
 				}
 			}
-			else if( pSightFound )
+
+			if( pSightFound )
 			{
 				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pSightFound->usItem );
 				if( AddVideoObject( &VObjectDesc, &uiImage) )
@@ -14906,22 +14924,6 @@ void DrawBufferCustomPic( OBJECTTYPE* pObject, INT16 sCenterX, INT16 sCenterY)
 				else
 				{
 					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_sight.sti", usItem );
-					if( AddVideoObject( &VObjectDesc, &uiImage) )
-					{
-						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
-					}
-				}
-			}
-			else if( pIronSightFound )
-			{
-				sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_%d.sti", usItem, pIronSightFound->usItem );
-				if( AddVideoObject( &VObjectDesc, &uiImage) )
-				{
-					DrawBufferPic( uiImage, 0, sCenterX, sCenterY );
-				}
-				else
-				{
-					sprintf( VObjectDesc.ImageFile, "ExtImages\\%d_ironsight.sti", usItem );
 					if( AddVideoObject( &VObjectDesc, &uiImage) )
 					{
 						DrawBufferPic( uiImage, 0, sCenterX, sCenterY );

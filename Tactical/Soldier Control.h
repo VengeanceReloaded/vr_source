@@ -1747,6 +1747,7 @@ public:
 	void MultiplySuspicionByPercent( UINT8 ubPercent );
 	void SetMaxSuspicion( void );
 	BOOLEAN CanInspect( SOLDIERTYPE *pOpponent );
+	BOOLEAN UniformLevel( void );
 
 	// Flugente: prisoner system
 	BOOLEAN		CanProcessPrisoners();
