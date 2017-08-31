@@ -1758,23 +1758,23 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 {
 	// CTH is now used as a Muzzle Sway value. That is, it determines how wide our shot can go off the "center point"
 	// of the attack. Later on, we'll randomize just how far the shot actually goes within that sway radius.
-	UINT32							uiMuzzleSway;
-	INT16								sXMapPos, sYMapPos;
-	INT16								sAPCost;
-	INT32								iBPCost;
-	FLOAT								dTargetX;
-	FLOAT								dTargetY;
-	FLOAT								dTargetZ;
-	UINT16							usItemNum;
-	BOOLEAN							fBuckshot;
-	UINT8								ubVolume;
-	CHAR8								zBurstString[512];
-	UINT8								ubDirection;
-	INT32 sNewGridNo;
-	UINT8								ubMerc;
-	BOOLEAN							fGonnaHit = FALSE;
-	FLOAT							dExpGain = 0;
-	UINT32							uiDepreciateTest;
+	UINT32		uiMuzzleSway;
+	INT16		sXMapPos, sYMapPos;
+	INT16		sAPCost;
+	INT32		iBPCost;
+	FLOAT		dTargetX;
+	FLOAT		dTargetY;
+	FLOAT		dTargetZ;
+	UINT16		usItemNum;
+	BOOLEAN		fBuckshot = FALSE;
+	UINT8		ubVolume;
+	CHAR8		zBurstString[512];
+	UINT8		ubDirection;
+	INT32		sNewGridNo;
+	UINT8		ubMerc;
+	BOOLEAN		fGonnaHit = FALSE;
+	FLOAT		dExpGain = 0;
+	UINT32		uiDepreciateTest;
 
 	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("UseGun") );
 	
