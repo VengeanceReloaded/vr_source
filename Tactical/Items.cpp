@@ -11446,9 +11446,9 @@ INT16 NightBonusScale( INT16 bonus, UINT8 bLightLevel )
 
 INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 {
-	INT16 bonus=0;
+	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
-	UINT16 usItem;
+	UINT16	usItem;
 	INVTYPE *pItem;
 
 	//ADB and AXP 28.03.2007: CtH bug fix: We also want to check on a firing weapon, "raised" alone is not enough ;)
@@ -11476,7 +11476,7 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				!IsWeapon(usItem) && 
+				pItem->usItemClass & IC_MISC &&
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
 			{
@@ -11486,7 +11486,7 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			// Flugente: weapons are checked later on...
 			if (!IsWeapon(usItem))
 			{
-				bonus += BonusReduceMore(
+				sBonus += BonusReduceMore(
 					NightBonusScale( pItem->nightvisionrangebonus, bLightLevel ),
 					(*pObj)[0]->data.objectStatus );
 			}
@@ -11545,17 +11545,17 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		{
 			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		bonus += sScopebonus;
+		sBonus += sScopebonus;
 	}
 
-	return( bonus );
+	return( sBonus );
 }
 
 INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 {
-	INT16 bonus=0;
+	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
-	UINT16 usItem;
+	UINT16	usItem;
 	INVTYPE *pItem;
 
 	//ADB and AXP 28.03.2007: CtH bug fix: We also want to check on a firing weapon, "raised" alone is not enough ;)
@@ -11584,7 +11584,7 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				!IsWeapon(usItem) && 
+				pItem->usItemClass & IC_MISC && 
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
 			{
@@ -11594,7 +11594,7 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			// Flugente: weapons are checked later on...
 			if (!IsWeapon(usItem))
 			{
-				bonus += BonusReduceMore(
+				sBonus += BonusReduceMore(
 					NightBonusScale( pItem->cavevisionrangebonus, bLightLevel ),
 					(*pObj)[0]->data.objectStatus );
 			}
@@ -11653,18 +11653,19 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		{
 			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		bonus += sScopebonus;
+		sBonus += sScopebonus;
 	}
 
-	return( bonus );
+	return( sBonus );
 }
 
 INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 {
-	INT16 bonus=0;
+	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
-	UINT16 usItem;
+	UINT16	usItem;
 	INVTYPE *pItem;
+	INT16	sValue;
 		
 	// Snap: Scale the bonus with the light level
 
@@ -11704,7 +11705,7 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				!IsWeapon(usItem) && 
+				pItem->usItemClass & IC_MISC &&
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
 			{
@@ -11714,9 +11715,20 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			// Flugente: weapons are checked later on...
 			if (!IsWeapon(usItem))
 			{
-				bonus += BonusReduceMore( idiv( pItem->dayvisionrangebonus
-					* lightlevelmultiplier, lightleveldivisor ),
-					(*pObj)[0]->data.objectStatus );
+				sValue = BonusReduceMore( idiv( pItem->dayvisionrangebonus * lightlevelmultiplier, lightleveldivisor ),	(*pObj)[0]->data.objectStatus );
+
+				// sevenfm: bonus for scouts using binocs
+				if( gGameOptions.fNewTraitSystem &&
+					HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) &&
+					pSoldier->bSectorZ == 0 &&
+					(i == HANDPOS || i == SECONDHANDPOS) &&
+					pItem->usItemClass & IC_MISC && 
+					pItem->dayvisionrangebonus > 0 )
+				{
+					sValue += sValue * gSkillTraitValues.usSCSightRangebonusWithBinoculars / 100;
+				}
+
+				sBonus += sValue;
 			}
 		}
 	}
@@ -11774,18 +11786,19 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		{
 			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		bonus += sScopebonus;
+		sBonus += sScopebonus;
 	}
 
-	return( bonus );
+	return( sBonus );
 }
 
 INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 {
-	INT16 bonus=0;
+	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
-	UINT16 usItem;
+	UINT16	usItem;
 	INVTYPE *pItem;
+	INT16	sValue;
 
 	// Snap: Scale the bonus with the light level
 
@@ -11815,7 +11828,7 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				!IsWeapon(usItem) && 
+				pItem->usItemClass & IC_MISC && 
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
 				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
 			{
@@ -11825,9 +11838,20 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 			// Flugente: weapons are checked later on...
 			if (!IsWeapon(usItem))
 			{
-				bonus += BonusReduceMore( idiv( pItem->brightlightvisionrangebonus
-					* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY ),
-					(*pObj)[0]->data.objectStatus );
+				sValue = BonusReduceMore( idiv( pItem->brightlightvisionrangebonus * (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY ), (*pObj)[0]->data.objectStatus );
+
+				// sevenfm: bonus for scouts using binocs
+				if( gGameOptions.fNewTraitSystem &&
+					HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) &&
+					pSoldier->bSectorZ == 0 &&
+					(i == HANDPOS || i == SECONDHANDPOS) &&
+					pItem->usItemClass & IC_MISC && 
+					pItem->brightlightvisionrangebonus > 0 )
+				{
+					sValue += sValue * gSkillTraitValues.usSCSightRangebonusWithBinoculars / 100;
+				}
+
+				sBonus += sValue;
 			}
 		}
 	}
@@ -11884,52 +11908,53 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 		{
 			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		bonus += sScopebonus;
+		sBonus += sScopebonus;
 	}
 
-	return( bonus );
+	return( sBonus );
 }
 
 INT16 GetTotalVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 {
-	INT16 bonus = GetVisionRangeBonus(pSoldier);
+	INT16 sBonus = GetVisionRangeBonus(pSoldier);
 
 	if ( bLightLevel > NORMAL_LIGHTLEVEL_DAY )
 	{
 		if ( pSoldier->pathing.bLevel == 0 )
 		{
-			bonus += GetNightVisionRangeBonus(pSoldier, bLightLevel);
+			sBonus += GetNightVisionRangeBonus(pSoldier, bLightLevel);
 		}
 		else
 		{
-			bonus += GetCaveVisionRangeBonus(pSoldier, bLightLevel);
+			sBonus += GetCaveVisionRangeBonus(pSoldier, bLightLevel);
 		}
 	}
 	else if ( bLightLevel < NORMAL_LIGHTLEVEL_DAY )
 	{
-		bonus += GetBrightLightVisionRangeBonus(pSoldier, bLightLevel);
+		sBonus += GetBrightLightVisionRangeBonus(pSoldier, bLightLevel);
 	}
 
 	if ( bLightLevel < NORMAL_LIGHTLEVEL_NIGHT )
 	{
-		bonus += GetDayVisionRangeBonus(pSoldier, bLightLevel);
+		sBonus += GetDayVisionRangeBonus(pSoldier, bLightLevel);
 	}
 
 	// Flugente: drugs can alter our sight
 	if ( pSoldier->drugs.bDrugEffect[ DRUG_TYPE_VISION ] )
 	{
-		bonus += 10;
+		sBonus += 10;
 	}
 	else if ( pSoldier->drugs.bDrugSideEffect[ DRUG_TYPE_VISION ] )
 	{
-		bonus -= 10;
+		sBonus -= 10;
 	}
 
 	// Flugente: add sight range bonus due to disabilities, traits etc. (not equipment)
-	bonus += pSoldier->GetSightRangeBonus();
+	sBonus += pSoldier->GetSightRangeBonus();
 
 	// SANDRO - STOMP traits - Scouting bonus for sight range with binoculars and similar
-	if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && pSoldier->pathing.bLevel == 0 )
+	// sevenfm: moved to day/bright vision bonus
+	/*if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && pSoldier->pathing.bLevel == 0 )
 	{
 		OBJECTTYPE *pObj = &( pSoldier->inv[HANDPOS]);
 		if (pObj->exists() == true) 
@@ -11941,9 +11966,9 @@ INT16 GetTotalVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 				bonus += gSkillTraitValues.usSCSightRangebonusWithBinoculars;
 			}
 		}
-	}
+	}*/
 
-	return bonus;
+	return sBonus;
 }
 
 UINT8 GetPercentTunnelVision( SOLDIERTYPE * pSoldier )
@@ -12053,14 +12078,16 @@ UINT8 GetPercentTunnelVision( SOLDIERTYPE * pSoldier )
 	bonus = max( bonus_body, bonus_gun );
 
 	// SANDRO - STOMP traits - Scouting tunnel vision reduction with binoculars and similar
-	if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && pSoldier->pathing.bLevel == 0 )
+	if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && pSoldier->bSectorZ == 0 )
 	{
 		OBJECTTYPE *pObj = &( pSoldier->inv[HANDPOS]);
 		if (pObj->exists() == true) 
 		{
 			// we have no pointer to binoculars, so just check any misc items in hands which have some vision bonus
-			if ( Item[pObj->usItem].usItemClass & IC_MISC && (Item[pObj->usItem].brightlightvisionrangebonus > 0 ||
-				Item[pObj->usItem].dayvisionrangebonus > 0 || Item[pObj->usItem].nightvisionrangebonus > 0 || Item[pObj->usItem].visionrangebonus > 0 )) 
+			// sevenfm: check that watching/spotting mode is activated
+			if ( Item[pObj->usItem].usItemClass & IC_MISC && 
+				(Item[pObj->usItem].brightlightvisionrangebonus > 0 || Item[pObj->usItem].dayvisionrangebonus > 0 || Item[pObj->usItem].nightvisionrangebonus > 0 || Item[pObj->usItem].visionrangebonus > 0 ) &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0) )
 			{
 				bonus = max( 0, (bonus - gSkillTraitValues.ubSCTunnelVisionReducedWithBinoculars));
 			}

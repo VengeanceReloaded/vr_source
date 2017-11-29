@@ -533,11 +533,11 @@ void RandomizeNewSoldierStats( SOLDIERCREATE_STRUCT *pCreateStruct )
 	pCreateStruct->bExpLevel							= 1 + (UINT8)Random(4);
 
 	// Randomize skills (for now)
-	pCreateStruct->bMarksmanship					= (UINT8)Random(50)+50;
+	pCreateStruct->bMarksmanship						= (UINT8)Random(40)+60;
 	pCreateStruct->bMedical								= (UINT8)Random(50)+50;
-	pCreateStruct->bMechanical						= (UINT8)Random(50)+50;
-	pCreateStruct->bExplosive							= (UINT8)Random(50)+50;
-	pCreateStruct->bLeadership						= (UINT8)Random(50)+50;
+	pCreateStruct->bMechanical							= (UINT8)Random(50)+50;
+	pCreateStruct->bExplosive							= (UINT8)Random(80)+20;
+	pCreateStruct->bLeadership							= (UINT8)Random(50)+50;
 	pCreateStruct->bStrength							= (UINT8)Random(50)+50;
 	pCreateStruct->bWisdom								= (UINT8)Random(50)+50;
 	pCreateStruct->bAttitude							= (INT8) Random( MAXATTITUDES );
@@ -2468,24 +2468,27 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 	ubStatsLevel = min( 10, ubStatsLevel );	//maximum stats level of 9 // 10 - Madd - this will probably apply to all dif levels though
 
 	//Set the minimum base attribute
-	bBaseAttribute = 45 + ( 4 * ubStatsLevel );		// r8052
+	bBaseAttribute = 65 + ( 2 * ubStatsLevel );
+	INT8 bLowBaseAttribute = 45 + ( 2 * ubStatsLevel );
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("CreateDetailedPlacementGivenBasicPlacementInfo: roll stats and skills"));
 	//Roll soldier's statistics and skills
 	//Stat range is currently 49-100, bell-curved around a range of 16 values dependent on the stats level
-	pp->bLifeMax			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bLife				= pp->bLifeMax;
-	pp->bAgility			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bDexterity		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+	pp->bLifeMax		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+	pp->bLife			= pp->bLifeMax;
 
+	pp->bAgility		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+	pp->bDexterity		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	pp->bMarksmanship	= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bMedical			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bMechanical		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bExplosive		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bLeadership		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bStrength			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bWisdom				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	pp->bMorale				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+	pp->bStrength		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+
+	pp->bMedical		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+	pp->bMechanical		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+	pp->bExplosive		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+	pp->bLeadership		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));	
+	pp->bWisdom			= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+
+	pp->bMorale			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 
 	// CJC: now calculate the REAL experience level if in the really upper end
 	// Madd	
@@ -2747,22 +2750,26 @@ void UpdateSoldierWithStaticDetailedInformation( SOLDIERTYPE *s, SOLDIERCREATE_S
 		INT8 bBaseAttribute;
 		s->stats.bExpLevel = spp->bExpLevel;
 		//Set the minimum base attribute
-		bBaseAttribute = 45 + ( 4 * s->stats.bExpLevel );		// r8052
+		bBaseAttribute = 65 + ( 2 * s->stats.bExpLevel );
+		INT8 bLowBaseAttribute = 45 + ( 2 * s->stats.bExpLevel );
 
 		//Roll enemy's combat statistics, taking bExpLevel into account.
 		//Stat range is currently 40-100, slightly bell-curved around the bExpLevel
-		s->stats.bLifeMax				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+		s->stats.bLifeMax			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 		s->stats.bLife				= s->stats.bLifeMax;
-		s->stats.bAgility				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+
+		s->stats.bAgility			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 		s->stats.bDexterity			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-		s->stats.bMarksmanship	= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-		s->stats.bMedical				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-		s->stats.bMechanical		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-		s->stats.bExplosive			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-		s->stats.bLeadership		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+		s->stats.bMarksmanship		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 		s->stats.bStrength			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-		s->stats.bWisdom				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-		s->aiData.bMorale				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+
+		s->stats.bMedical			= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+		s->stats.bMechanical		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+		s->stats.bExplosive			= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+		s->stats.bLeadership		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));		
+		s->stats.bWisdom			= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+
+		s->aiData.bMorale			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	}
 	//Replace any soldier attributes with any static values in the detailed placement.
 	if( spp->bLife				!= -1 )			s->stats.bLife					= spp->bLife;
@@ -2848,24 +2855,28 @@ void ModifySoldierAttributesWithNewRelativeLevel( SOLDIERTYPE *s, INT8 bRelative
 	s->stats.bExpLevel = min( 10, s->stats.bExpLevel ); //maximum level of 10
 
 	//Set the minimum base attribute
-	bBaseAttribute = 45 + ( 4 * s->stats.bExpLevel );
+	bBaseAttribute = 65 + ( 2 * s->stats.bExpLevel );
+	INT8 bLowBaseAttribute = 45 + ( 2 * s->stats.bExpLevel );
 
 	//Roll enemy's combat statistics, taking bExpLevel into account.
 	//Stat range is currently 40-100, slightly bell-curved around the bExpLevel
-	s->stats.bLifeMax				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+	s->stats.bLifeMax			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	s->stats.bLife				= s->stats.bLifeMax;
 	// added by SANDRO - insta-healable injury zero on soldier creation
 	s->iHealableInjury = 0;
-	s->stats.bAgility				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+
+	s->stats.bAgility			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	s->stats.bDexterity			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	s->stats.bMarksmanship	= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	s->stats.bMedical				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	s->stats.bMechanical		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	s->stats.bExplosive			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	s->stats.bLeadership		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+	s->stats.bMarksmanship		= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 	s->stats.bStrength			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	s->stats.bWisdom				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
-	s->aiData.bMorale				= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
+
+	s->stats.bMedical			= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+	s->stats.bMechanical		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+	s->stats.bExplosive			= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+	s->stats.bLeadership		= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));	
+	s->stats.bWisdom			= (INT8)(bLowBaseAttribute + Random( 9 ) + Random( 8 ));
+
+	s->aiData.bMorale			= (INT8)(bBaseAttribute + Random( 9 ) + Random( 8 ));
 }
 
 

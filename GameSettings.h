@@ -1463,8 +1463,8 @@ typedef struct
 	BOOLEAN fLessJams;
 	BOOLEAN fEnemyJams;
 	UINT8	ubChangePaletteLevel;
-
 	BOOLEAN fExtendedItemImages;
+	BOOLEAN fExtraItems;
 
 } GAME_EXTERNAL_OPTIONS;
 

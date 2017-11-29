@@ -2603,8 +2603,9 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 				PossiblyStartEnemyTaunt( pSoldier, TAUNT_SAY_HI, pOpponent->ubID );
 			}
 
-			ShowRadioLocator( pSoldier->ubID, 1 );
-
+			// sevenfm: disabled for unseen soldiers
+			if( pSoldier->bVisible == TRUE )
+				ShowRadioLocator( pSoldier->ubID, SHOW_LOCATOR_NOISE );
 
 			// if we also haven't seen him earlier this turn
 			if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN)
@@ -6713,6 +6714,7 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume, UINT8 ubNoiseType, UINT8 ubNoiseDir, STR16 zNoiseMessage )
 {
 	UINT8 ubVolumeIndex;
+	BOOLEAN fNoiseMakerSeen = FALSE;
 
 	// CJC: tweaked the noise categories upwards a bit because our movement noises can be louder now.
 	if (ubVolume < 4)
@@ -6732,6 +6734,12 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 		ubVolumeIndex = 3;
 	}
 
+	if( ubNoiseMaker != NOBODY && 
+		(gbPublicOpplist[gbPlayerNum][ubNoiseMaker] == SEEN_CURRENTLY || pSoldier->aiData.bOppList[ubNoiseMaker] == SEEN_CURRENTLY) )
+	{
+		fNoiseMakerSeen = TRUE;
+	}
+
 	// display a message about a noise...
 	// e.g. Sidney hears a loud splash from/to? the north.
 
@@ -6748,8 +6756,7 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 	{
 		// information about direction etc. only displayed if we don't see noise maker
 		// sevenfm: don't show noise messages from militia (if on our side)
-		if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] != SEEN_CURRENTLY &&
-			pSoldier->aiData.bOppList[ubNoiseMaker] != SEEN_CURRENTLY &&
+		if( !fNoiseMakerSeen &&
 			!(ubNoiseMaker != NOBODY && MercPtrs[ubNoiseMaker]->bTeam == MILITIA_TEAM && MercPtrs[ubNoiseMaker]->bSide == 0))
 		{
 			if( bLevel == pSoldier->pathing.bLevel && ubNoiseType == NOISE_VOICE )
@@ -6792,7 +6799,7 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 			else
 			{
 				// do we know who said that?
-				if( gbPublicOpplist[gbPlayerNum][ubNoiseMaker] == SEEN_CURRENTLY || pSoldier->aiData.bOppList[ubNoiseMaker] == SEEN_CURRENTLY )
+				if( fNoiseMakerSeen )
 				{
 					if(  gTauntsSettings.fTauntShowPopupBox == TRUE )
 						ShowTauntPopupBox( MercPtrs[ubNoiseMaker], zNoiseMessage );
@@ -6848,8 +6855,8 @@ void TellPlayerAboutNoise( SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGri
 	// sevenfm: show noise locator
 	if(gGameExternalOptions.fShowNoiseLocator)
 	{
-		if( ubVolumeIndex >= 1 ||
-			ubVolumeIndex >= 0 && FindHearingAid(pSoldier) )
+		// sevenfm: show noise locator
+		if( ubVolumeIndex >= 2 || ubVolumeIndex >= 1 && FindHearingAid(pSoldier) )
 		{
 			if ( ubNoiseMaker < NOBODY )
 			{

@@ -6580,15 +6580,15 @@ void ShowRadioLocator( UINT8 ubID, UINT8 ubLocatorSpeed )
 
 	if ( ubLocatorSpeed == SHOW_LOCATOR_NORMAL )
 	{
-		MercPtrs[ ubID ]->ubNumLocateCycles = 4;
+		MercPtrs[ ubID ]->ubNumLocateCycles = 3;
 	}
 	else if ( ubLocatorSpeed == SHOW_LOCATOR_NOISE )
 	{
-		MercPtrs[ ubID ]->ubNumLocateCycles = 2;
+		MercPtrs[ ubID ]->ubNumLocateCycles = 1;
 	}
 	else
 	{
-		MercPtrs[ ubID ]->ubNumLocateCycles = 3;
+		MercPtrs[ ubID ]->ubNumLocateCycles = 2;
 	}
 }
 

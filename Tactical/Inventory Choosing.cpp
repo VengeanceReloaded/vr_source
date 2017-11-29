@@ -220,7 +220,6 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 	//numbers of items
 	INT8 bAmmoClips = 0;
 	INT8 bGrenades = 0;
-	BOOLEAN fAttachment = FALSE;
 	//item levels
 	INT8 bWeaponClass = 0;
 	INT8 bHelmetClass = 0;
@@ -354,16 +353,16 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			//Headrocktest, remove for release
 			bLBEClass = bRating;
 
-			//Note:  in some cases the class of armour and/or helmet won't be high enough to make
-			//			 the lowest level.
+			//Note:  in some cases the class of armour and/or helmet won't be high enough to make the lowest level.
 			bVestClass = bRating;
 			bHelmetClass = bRating;
+			bAttachClass = bRating / 4;
 			// no leggings
 
 			if( Chance( 30 ) )
 				bKnifeClass = bRating;
 
-			bAmmoClips = (INT8)(3 + Random( 2 ));
+			bAmmoClips = (INT8)(2 + Random( 2 ));
 
 			if( bRating >= GOOD_ADMINISTRATOR_EQUIPMENT_RATING )
 			{
@@ -402,8 +401,6 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			bRating = (INT8)max( MIN_EQUIPMENT_CLASS, min( MAX_EQUIPMENT_CLASS, bRating ) );
 
 			bWeaponClass = bRating;
-			//Headrocktest, remove for release
-			//bLBEClass = bRating;
 
 			//Note:  in some cases the class of armour and/or helmet won't be high enough to make
 			//			 the lowest level.
@@ -413,7 +410,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			if( Chance( 15 ) )
 				bKnifeClass = bRating;
 
-			bAmmoClips = (INT8)(3 + Random( 2 ));
+			bAmmoClips = (INT8)(2 + Random( 2 ));
 
 			if( bRating >= GOOD_ADMINISTRATOR_EQUIPMENT_RATING )
 			{
@@ -457,14 +454,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			// Headrock: Added LBE set to Coolness Rating
 			bLBEClass = bRating;
 			//WarmSteel - attachments don't need to be as high a class, controversional and might be better to externalize?
-			bAttachClass = bRating*3/8;
-
-
-			if( ( bRating >= GOOD_ARMY_EQUIPMENT_RATING ) && Chance(33) )
-			{
-				fAttachment = TRUE;
-				bAttachClass = bRating*5/8;
-			}
+			bAttachClass = bRating / 2;
 
 			bAmmoClips = (INT8)(3 + Random( 2 ));
 
@@ -492,7 +482,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 				}
 			}
 
-			if( Chance( 35 ) )
+			if( Chance( 50 ) )
 				bKnifeClass = bRating;
 
 			// Headrock: Chance for soldier to carry better LBE
@@ -579,14 +569,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			bHelmetClass = bRating;
 			bGrenadeClass = bRating;
 			//WarmSteel - attachments don't need to be as high a class, controversional and might be better to externalize?
-			bAttachClass = bRating*3/8;
-
-
-			if( ( bRating >= GOOD_ARMY_EQUIPMENT_RATING ) && Chance(33) )
-			{
-				fAttachment = TRUE;
-				bAttachClass = bRating*5/8;
-			}
+			bAttachClass = bRating / 4;
 
 			bAmmoClips = (INT8)(3 + Random( 2 ));
 
@@ -683,7 +666,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			bHelmetClass = bRating;
 			bVestClass = bRating;
 			bLeggingClass = bRating;
-			bAttachClass = bRating*7/8;
+			bAttachClass = bRating * 3 / 4;
 			bGrenadeClass = bRating;
 			bKitClass = bRating;
 			bMiscClass = bRating;
@@ -699,13 +682,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			bAmmoClips = (INT8)(3 + Random( 2 ));
 			bGrenades = (INT8)(2 + Random( 3 ));
 
-			if( ( bRating >= AVERAGE_ELITE_EQUIPMENT_RATING ) && Chance(75) )
-			{
-				fAttachment = TRUE;
-				bAttachClass = bRating;
-			}
-
-			if( Chance( 35 ) )
+			if( Chance( 75 ) )
 				bKnifeClass = bRating;
 
 			if( ( bRating > MIN_EQUIPMENT_CLASS ) && bRating < MAX_EQUIPMENT_CLASS )
@@ -781,10 +758,15 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			bHelmetClass = bRating;
 			bVestClass = bRating;
 			bLeggingClass = bRating;
-			bAttachClass = bRating*7/8;
+			bAttachClass = bRating / 2;
 			bGrenadeClass = bRating;
 			bKitClass = bRating;
 			bMiscClass = bRating;
+
+			if( Chance(50) )
+			{
+				bKitClass = bRating;
+			}
 
 			if ( Chance( 25 ) )
 			{
@@ -794,13 +776,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 			bAmmoClips = (INT8)(3 + Random( 2 ));
 			bGrenades = (INT8)(2 + Random( 3 ));
 			
-			if( ( bRating >= AVERAGE_ELITE_EQUIPMENT_RATING ) && Chance(75) )
-			{
-				fAttachment = TRUE;
-				bAttachClass = bRating;
-			}
-
-			if( Chance( 25 ) )
+			if( Chance( 50 ) )
 				bKnifeClass = bRating;
 
 			if( ( bRating > MIN_EQUIPMENT_CLASS ) && bRating < MAX_EQUIPMENT_CLASS )
@@ -960,7 +936,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 
 
 	//Now actually choose the equipment!
-	ChooseWeaponForSoldierCreateStruct( pp, bWeaponClass, bAmmoClips, bAttachClass, fAttachment );
+	ChooseWeaponForSoldierCreateStruct( pp, bWeaponClass, bAmmoClips, bAttachClass );
 	// Headrock: This is where the program calls LBE choosing
 	if ( SOLDIER_CLASS_ENEMY( bSoldierClass )) // BUT ONLY FOR ENEMIES, NOT MILITIA - SANDRO
 	{
@@ -971,15 +947,71 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 	ChooseGrenadesForSoldierCreateStruct( pp, bGrenades, bGrenadeClass, fGrenadeLauncher );
 	ChooseArmourForSoldierCreateStruct( pp, bHelmetClass, bVestClass, bLeggingClass );
 	ChooseFaceGearForSoldierCreateStruct( pp );
-	if (Chance(65))
-	{ ChooseKitsForSoldierCreateStruct( pp, bKitClass ); }	// Kits not so often - SANDRO
+	ChooseKitsForSoldierCreateStruct( pp, bKitClass );
 	ChooseMiscGearForSoldierCreateStruct( pp, bMiscClass );
 	ChooseBombsForSoldierCreateStruct( pp, bBombClass );
-	//ADB why is this here twice?
-	// Headrock: This is where the program calls LBE choosing
-	//ChooseLBEsForSoldierCreateStruct( pp, bLBEClass ); // SANDRO - removed duplicated 
 	ChooseLocationSpecificGearForSoldierCreateStruct( pp );
 	RandomlyChooseWhichItemsAreDroppable( pp, bSoldierClass );
+
+	BOOLEAN fSmokeGrenade = FALSE;
+	BOOLEAN fFlare = FALSE;
+
+	// sevenfm: extra items
+	if( gGameExternalOptions.fExtraItems )
+	{
+		switch( bSoldierClass )
+		{
+		case SOLDIER_CLASS_ELITE:
+			fSmokeGrenade = TRUE;
+			if( NightTime() )
+			{
+				fFlare = TRUE;
+			}			
+			break;
+		case SOLDIER_CLASS_ARMY:
+			if( Chance(50) )
+			{
+				fSmokeGrenade = TRUE;
+			}
+			if( Chance(50) && NightTime() )
+			{
+				fFlare = TRUE;
+			}
+			break;
+		case SOLDIER_CLASS_ADMINISTRATOR:
+			break;
+		}
+
+		// smoke grenade
+		/*if( fSmokeGrenade &&
+			(Item[ SMOKE_GRENADE ].usItemClass & IC_GRENADE) &&
+			Item[ SMOKE_GRENADE ].ubCursor == TOSSCURS &&
+			//GetLauncherFromLaunchable( SMOKE_GRENADE ) == NOTHING &&
+			Explosive[ Item[ SMOKE_GRENADE ].ubClassIndex ].ubType == EXPLOSV_SMOKE )
+		{
+			CreateItems( SMOKE_GRENADE, (INT8)(80 + Random( 20 )), 1 + Random(gGameOptions.ubDifficultyLevel), &gTempObject );
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
+		}*/
+
+		// flare
+		if( fFlare &&
+			(Item[ BREAK_LIGHT ].usItemClass & IC_GRENADE) &&
+			Item[ BREAK_LIGHT ].ubCursor == TOSSCURS &&
+			//GetLauncherFromLaunchable( BREAK_LIGHT ) == NOTHING &&
+			Item[ BREAK_LIGHT ].flare &&
+			Explosive[ Item[ BREAK_LIGHT ].ubClassIndex ].ubType == EXPLOSV_FLARE )
+		{
+			CreateItems( BREAK_LIGHT, (INT8)(80 + Random( 20 )), 1 + Random(gGameOptions.ubDifficultyLevel), &gTempObject );
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
+		}
+
+		// LAW
+		/*CreateItems( 51, (INT8)(80 + Random( 20 )), 1 + Random(gGameOptions.ubDifficultyLevel), &gTempObject );
+		gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+		PlaceObjectInSoldierCreateStruct( pp, &gTempObject );*/
+	}
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("GenerateRandomEquipment done"));
 }
@@ -989,19 +1021,17 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 //selection for that particular type of item, and 1-11 means to choose an item if possible.  1 is
 //the worst class of item, while 11 is the best.
 
-void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponClass,
-																				 INT8 bAmmoClips, INT8 bAttachClass, BOOLEAN fAttachment )
+void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponClass, INT8 bAmmoClips, INT8 bAttachClass )
 {
-	//INVTYPE *pItem;
 	UINT16 i;
-	//UINT16 usRandom;
-	UINT16 usGunIndex = 0;
-	UINT16 usAmmoIndex = 0;
-	UINT16 usAttachIndex = 0;
-	UINT16 usAttachIndex2 = 0;
-	UINT16 usScopeIndex = 0;
-	UINT8 ubChanceStandardAmmo;
-	INT8 bStatus;
+	UINT16	usGunIndex = 0;
+	UINT16	usAmmoIndex = 0;
+	UINT16	usAttachIndex = 0;
+	UINT16	usAttachIndex2 = 0;
+	UINT16	usScopeIndex = 0;
+	UINT8	ubChanceStandardAmmo;
+	INT8	bStatus;
+	UINT8	ubScopeChance;
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"ChooseWeaponForSoldierCreateStruct");
 
@@ -1102,6 +1132,34 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 	// don't allow it to be lower than marksmanship, we don't want it to affect their chances of hitting
 	bStatus = (INT8)max( pp->bMarksmanship, bStatus );
 
+	// determine scope chance
+	switch( pp->ubSoldierClass )
+	{
+	case SOLDIER_CLASS_ADMINISTRATOR:
+		ubScopeChance = 25;
+		break;
+	case SOLDIER_CLASS_ARMY:
+		ubScopeChance = 50;
+		break;
+	case SOLDIER_CLASS_ELITE:
+		ubScopeChance = 100;
+		break;
+	case SOLDIER_CLASS_GREEN_MILITIA:
+		ubScopeChance = 10;
+		break;
+	case SOLDIER_CLASS_REG_MILITIA:	
+		ubScopeChance = 25;
+		break;
+	case SOLDIER_CLASS_ELITE_MILITIA:
+		ubScopeChance = 50;
+		break;
+	case SOLDIER_CLASS_ZOMBIE:
+		ubScopeChance = 0;
+		break;
+	default:
+		ubScopeChance = 50;
+		break;
+	}
 
 	CreateItem( usGunIndex, bStatus, &(pp->Inv[ HANDPOS ]) );
 	pp->Inv[ HANDPOS ].fFlags |= OBJECT_UNDROPPABLE;
@@ -1114,8 +1172,10 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"ChooseWeaponForSoldierCreateStruct: Gun Created");
 	if( !(pp->Inv[ HANDPOS ].fFlags & OBJECT_NO_OVERWRITE) )
-	{ //slot not locked, so add attachments to it
-		if(UsingNewAttachmentSystem()==false){
+	{ 
+		//slot not locked, so add attachments to it
+		if(UsingNewAttachmentSystem()==false)
+		{
 			if ( Weapon[usGunIndex].ubWeaponType == GUN_SN_RIFLE )
 			{
 				usScopeIndex = PickARandomAttachment(SCOPE, pp->ubSoldierClass, usGunIndex,bAttachClass,TRUE);
@@ -1132,13 +1192,17 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 				CreateItem( usScopeIndex, 100, &gTempObject );
 				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
 				pp->Inv[ HANDPOS ].AttachObject( NULL, &gTempObject, FALSE );
-			} else {
+			}
+			else 
+			{
 				usScopeIndex = 0;
 			}
 
 			//Choose attachment
-			if( bAttachClass && ( fAttachment ))
+			if( bAttachClass )
+			{
 				usAttachIndex = PickARandomAttachment(ATTACHMENTS, pp->ubSoldierClass, usGunIndex,bAttachClass,FALSE);
+			}
 
 			if( ValidItemAttachment(&(pp->Inv[ HANDPOS ]),usAttachIndex,TRUE,FALSE))
 			{
@@ -1154,19 +1218,22 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 			if ( ( bAttachClass - Item[usAttachIndex].ubCoolness ) > 0 && Random(2) )
 				usAttachIndex2 = PickARandomAttachment(ATTACHMENTS, pp->ubSoldierClass, usGunIndex,bAttachClass,FALSE);
 
-
 			if( ValidItemAttachment(&(pp->Inv[ HANDPOS ]),usAttachIndex2,TRUE,FALSE))
 			{
 				DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("ChooseWeaponForSoldierCreateStruct: Create 2nd Attachment %d",usAttachIndex2));
 				CreateItem( usAttachIndex2, 100, &gTempObject );
 				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
 				pp->Inv[ HANDPOS ].AttachObject( NULL, &gTempObject, FALSE );
-			} else {
+			}
+			else 
+			{
 				usAttachIndex2 = 0;
 			}
-		} else {
+		} 
+		else 
+		{
 			//The total pool of coolness we have for all the attachments. If fAttachment is true, the chance of getting an attachment is boosted.
-			INT8 iMiscAttachmentChance = 40 + (fAttachment * 20);
+			INT8 iMiscAttachmentChance = 60;
 			//Add a value equal to the avarage amount of attachments that will be on this gun.
 			//Because the guns scope does not subtract from this value, -1.
 			INT16 iAttachmentCoolnessPool = (bAttachClass * (gGameExternalOptions.iMaxEnemyAttachments-1) * iMiscAttachmentChance) / 100;
@@ -1187,7 +1254,9 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 				}
 			//Guns should have a fairly good chance of having a scope. Even when they're not sniper rifles.
 			//They're likely to be crappier, though.
-			} else if (Chance(75) && fAttachment){
+			} 
+			else if (Chance(ubScopeChance))
+			{
 				usScopeIndex = PickARandomAttachment(SCOPE, pp->ubSoldierClass, usGunIndex,bAttachClass-1,FALSE);
 			}
 
@@ -1201,7 +1270,8 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 
 			//Loop for the maximum amount of attachments (-1 because we can already have a scope by here)
 			//cnt = -1 because we start with ++ing it
-			for(INT16 cnt = -1; cnt < (gGameExternalOptions.iMaxEnemyAttachments-1); ){
+			for(INT16 cnt = -1; cnt < (gGameExternalOptions.iMaxEnemyAttachments-1); )
+			{
 				usTryCount++;
 				usAttachIndex = 0;
 
@@ -1248,7 +1318,8 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("ChooseWeaponForSoldierCreateStruct: choose ammo"));
 	if( bAmmoClips )
-	{ //We have a gun, so choose ammo clips
+	{ 
+		//We have a gun, so choose ammo clips
 
 		// check default ammo first...
 		usAmmoIndex = DefaultMagazine( usGunIndex );
@@ -1256,18 +1327,6 @@ void ChooseWeaponForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bWeaponC
 			ubChanceStandardAmmo = 80;
 		else
 			ubChanceStandardAmmo = 100 - (bWeaponClass * 9);
-
-		//switch( Magazine[ Item[ usAmmoIndex ].ubClassIndex ].ubAmmoType )
-		//{
-		//	case AMMO_AP:
-		//	case AMMO_SUPER_AP:
-		//		// assault rifle, rocket rifle (etc) - high chance of having AP ammo
-		//		ubChanceStandardAmmo = 80;
-		//		break;
-		//	default:
-		//		ubChanceStandardAmmo = 100 - (bWeaponClass * 9);
-		//		break;
-		//}
 
 		usAmmoIndex = RandomMagazine( &pp->Inv[HANDPOS], ubChanceStandardAmmo, max(Item[usGunIndex].ubCoolness, HighestPlayerProgressPercentage() / 10 + 3 ), pp->ubSoldierClass);
 
@@ -2077,8 +2136,12 @@ void ChooseFaceGearForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp )
 					usItem = PickARandomItem(GASMASKS, pp->ubSoldierClass);
 					if ( usItem > 0 )
 					{
-						CreateItem( usItem, (INT8)(70+Random(31)), &(pp->Inv[ HEAD1POS ]) );
-						pp->Inv[ HEAD1POS ].fFlags |= OBJECT_UNDROPPABLE;
+						//CreateItem( usItem, (INT8)(70+Random(31)), &(pp->Inv[ HEAD2POS ]) );
+						//pp->Inv[ HEAD2POS ].fFlags |= OBJECT_UNDROPPABLE;
+
+						CreateItem( usItem, (INT8)(70+Random(31)), &gTempObject );
+						gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+						PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
 					}
 				}
 				else
@@ -2122,8 +2185,12 @@ void ChooseFaceGearForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp )
 					usItem = PickARandomItem(GASMASKS, pp->ubSoldierClass);
 					if ( usItem > 0 )
 					{
-						CreateItem( usItem, (INT8)(70+Random(31)), &(pp->Inv[ HEAD1POS ]) );
-						pp->Inv[ HEAD1POS ].fFlags |= OBJECT_UNDROPPABLE;
+						//CreateItem( usItem, (INT8)(70+Random(31)), &(pp->Inv[ HEAD2POS ]) );
+						//pp->Inv[ HEAD2POS ].fFlags |= OBJECT_UNDROPPABLE;
+
+						CreateItem( usItem, (INT8)(70+Random(31)), &gTempObject );
+						gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+						PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
 					}
 				}
 				else
