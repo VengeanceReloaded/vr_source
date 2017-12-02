@@ -52,6 +52,8 @@
 #include "Queen Command.h"
 #include "points.h"
 #include "Soldier Functions.h" // added by SANDRO
+// sevenfm
+#include "english.h"
 #endif
 
 #include "connect.h"
@@ -453,7 +455,9 @@ void HandleSoldierAI( SOLDIERTYPE *pSoldier ) // FIXME - this function is named 
 
 	if (gfTurnBasedAI)
 	{
-		if ( ( GetJA2Clock() - gTacticalStatus.uiTimeSinceMercAIStart	) > ( (UINT32)gGameExternalOptions.gubDeadLockDelay * 1000 ) && !gfUIInDeadlock )
+		if ( ( GetJA2Clock() - gTacticalStatus.uiTimeSinceMercAIStart	) > ( (UINT32)gGameExternalOptions.gubDeadLockDelay * 1000 ) && 
+			!gfUIInDeadlock &&
+			_KeyDown(ESC) )
 		{
 			// ATE: Display message that deadlock occured...
 			LiveMessage( "Breaking Deadlock" );
