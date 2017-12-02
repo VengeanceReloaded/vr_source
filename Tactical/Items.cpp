@@ -13065,7 +13065,9 @@ INT16 GetWornCamo( SOLDIERTYPE * pSoldier )
 	INT8	bLoop;
 	INT16	ttl=0;
 
-	for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	// sevenfm: check camo from face items also	
+	//for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	for (bLoop = HELMETPOS; bLoop <= HEAD2POS; bLoop++)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
@@ -13120,7 +13122,9 @@ INT16 GetWornUrbanCamo( SOLDIERTYPE * pSoldier )
 	INT8	bLoop;
 	INT16	ttl=0;
 
-	for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	// sevenfm: check camo from face items also	
+	//for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	for (bLoop = HELMETPOS; bLoop <= HEAD2POS; bLoop++)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
@@ -13173,7 +13177,9 @@ INT16 GetWornDesertCamo( SOLDIERTYPE * pSoldier )
 	INT8	bLoop;
 	INT16 ttl=0;
 
-	for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	// sevenfm: check camo from face items also	
+	//for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	for (bLoop = HELMETPOS; bLoop <= HEAD2POS; bLoop++)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
@@ -13220,12 +13226,15 @@ INT16 GetWornDesertCamo( SOLDIERTYPE * pSoldier )
 
 	return __min( ttl, 100 );
 }
+
 INT16 GetWornSnowCamo( SOLDIERTYPE * pSoldier )
 {
 	INT8	bLoop;
 	INT16 ttl=0;
 
-	for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	// sevenfm: check camo from face items also	
+	//for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	for (bLoop = HELMETPOS; bLoop <= HEAD2POS; bLoop++)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 		{
@@ -14484,7 +14493,9 @@ INT16 GetWornStealth( SOLDIERTYPE * pSoldier )
 	INT8	bLoop;
 	INT16 ttl=0;
 
-	for (bLoop = HELMETPOS; bLoop <= LEGPOS; ++bLoop)
+	// sevenfm: check stealth from face items also	
+	//for (bLoop = HELMETPOS; bLoop <= LEGPOS; bLoop++)
+	for (bLoop = HELMETPOS; bLoop <= HEAD2POS; bLoop++)
 	{
 		if ( pSoldier->inv[bLoop].exists() == true )
 			ttl += GetStealthBonus(pSoldier, &pSoldier->inv[bLoop]);
