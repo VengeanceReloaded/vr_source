@@ -86,6 +86,8 @@ void EatFromInventory( SOLDIERTYPE *pSoldier, BOOLEAN fcanteensonly = FALSE );
 
 void HourlyFoodUpdate( void );
 
+void HourlyCanteenUpdate( void );
+
 UINT8 GetWaterQuality(INT16 asMapX, INT16 asMapY, INT8 asMapZ);
 
 // a function that tries to fill up all canteens in this sector

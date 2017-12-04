@@ -398,9 +398,10 @@ enum
 // ------------------- more flags for soldiers --------------------
 #define SOLDIER_SNITCHING_OFF				0x00000001	//1				// isn't allowed to snitch
 #define SOLDIER_PREVENT_MISBEHAVIOUR_OFF	0x00000002	//2				// isn't allowed to prevent misbehaviour
-// ----------------------------------------------------------------
 
 #define SOLDIER_COVERT_AUTO_DISGUISE		0x00001000					// auto disguise soldier
+#define SOLDIER_USED_CANTEEN				0x00100000					// prevent multiple canteen use in combat
+// ----------------------------------------------------------------
 // -------- added by Flugente: background property flags --------
 // easier than adding 32 differently named variables. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
 // a merc's background info reveals data about his previous life, like former regiments. These backgrounds add small abilities/disabilities. Nothing substantial, just small bits do

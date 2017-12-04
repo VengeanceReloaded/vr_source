@@ -254,17 +254,17 @@ BOOLEAN ApplyFood( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObject, BOOLEAN fForce, B
 		if ( type == AP_EAT )
 		{
 			// Play sound
-			PlayJA2SampleFromFile( "Sounds\\eat1.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
+			PlayJA2SampleFromFile( "Sounds\\eat1.wav", RATE_11025, LOWVOLUME, 1, MIDDLEPAN );
 		}
 		else
 		{
 			if ( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
 			{
-				  PlayJA2Sample( DRINK_CANTEEN_MALE, RATE_11025, MIDVOLUME, 1, MIDDLEPAN );
+				  PlayJA2Sample( DRINK_CANTEEN_MALE, RATE_11025, LOWVOLUME, 1, MIDDLEPAN );
 			}
 			else
 			{
-				  PlayJA2Sample( DRINK_CANTEEN_FEMALE, RATE_11025, MIDVOLUME, 1, MIDDLEPAN );
+				  PlayJA2Sample( DRINK_CANTEEN_FEMALE, RATE_11025, LOWVOLUME, 1, MIDDLEPAN );
 			}
 		}
 	}
@@ -612,7 +612,7 @@ void HourlyFoodAutoDigestion( SOLDIERTYPE *pSoldier )
 		// search inventory for food, and eat it
 		if ( !eatinginfacility )
 		{
-			SoldierAutoFillCanteens(pSoldier);
+			//SoldierAutoFillCanteens(pSoldier);
 
 			EatFromInventory( pSoldier, FALSE );
 		}
@@ -744,6 +744,30 @@ void HourlyFoodUpdate( void )
 
 			// if hungry, eat something automatically from the inventory
 			HourlyFoodAutoDigestion( pSoldier );
+		}
+	}
+}
+
+void HourlyCanteenUpdate( void )
+{
+	INT8									bMercID, bLastTeamID;
+	SOLDIERTYPE *							pSoldier = NULL;
+
+	bMercID = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
+	bLastTeamID = gTacticalStatus.Team[ gbPlayerNum ].bLastID;
+
+	// loop through all mercs to calculate their morale
+	for ( pSoldier = MercPtrs[ bMercID ]; bMercID <= bLastTeamID; ++bMercID, ++pSoldier)
+	{
+		//if the merc is active, and in Arulco
+		if( pSoldier && 
+			pSoldier->bActive && 
+			!AM_AN_EPC(pSoldier) && 
+			pSoldier->ubProfile != ROBOT && 
+			!IsVehicle(pSoldier) && 
+			!(pSoldier->bAssignment == IN_TRANSIT || pSoldier->bAssignment == ASSIGNMENT_DEAD ) )
+		{			
+			SoldierAutoFillCanteens(pSoldier);
 		}
 	}
 }

@@ -83,6 +83,9 @@ CHAR16	zString[128];
 	// hourly update of town loyalty
 	HandleTownLoyalty();
 
+	// sevenfm: auto refill canteens
+	HourlyCanteenUpdate();
+
 	// Flugente: food update
 	if ( gGameOptions.fFoodSystem )
 		HourlyFoodUpdate();

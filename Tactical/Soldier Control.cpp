@@ -7579,6 +7579,9 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 		this->aiData.bUnderFire--;
 	}
 
+	// sevenfm: reset soldier flags
+	this->usSoldierFlagMask2 &= ~SOLDIER_USED_CANTEEN;
+
 	// Flugente: reset extra stats. Currently they only depend on drug effects, and those are reset every turn
 	this->ResetExtraStats();
 
@@ -17500,10 +17503,10 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 	}
 
 	// sevenfm: auto refill canteens if no hostile enemy in sector
-	if( !EnemyAlerted(this) )
+	/*if( !EnemyAlerted(this) )
 	{
 		SoldierAutoFillCanteens( this );
-	}	
+	}*/	
 }
 
 // check if Soldier can use the spell skillwise, with fAPCheck = TRUE also check current APs

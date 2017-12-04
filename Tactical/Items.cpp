@@ -9952,15 +9952,22 @@ BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGood
 		return( TRUE );
 	}
 
+	// sevenfm: don't allow more than one canteen use/turn
+	if( (pSoldier->usSoldierFlagMask2 & SOLDIER_USED_CANTEEN) &&
+		(gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT) )
+	{
+		return FALSE;
+	}
+
 	if ( pSoldier->bTeam == gbPlayerNum )
 	{
 		if ( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
 		{
-			PlayJA2Sample( DRINK_CANTEEN_MALE, RATE_11025, MIDVOLUME, 1, MIDDLEPAN );
+			PlayJA2Sample( DRINK_CANTEEN_MALE, RATE_11025, LOWVOLUME, 1, MIDDLEPAN );
 		}
 		else
 		{
-			PlayJA2Sample( DRINK_CANTEEN_FEMALE, RATE_11025, MIDVOLUME, 1, MIDDLEPAN );
+			PlayJA2Sample( DRINK_CANTEEN_FEMALE, RATE_11025, LOWVOLUME, 1, MIDDLEPAN );
 		}
 	}
 
@@ -9971,6 +9978,9 @@ BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGood
 		DeductPoints( pSoldier, APBPConstants[AP_DRINK], (INT16) (2 * sPointsToUse * -(100 - pSoldier->bBreath) ) );
 
 	UseKitPoints( pObj, sPointsToUse, pSoldier );
+
+	// remember we used canteen this turn
+	pSoldier->usSoldierFlagMask2 |= SOLDIER_USED_CANTEEN;
 
 	return( TRUE );
 }
