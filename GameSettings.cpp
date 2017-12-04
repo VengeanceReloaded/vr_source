@@ -980,6 +980,8 @@ void LoadGameExternalOptions()
 
 	gGameExternalOptions.gfUseExternalLoadscreens		= iniReader.ReadBoolean("Graphics Settings","USE_EXTERNALIZED_LOADSCREENS", FALSE);
 	
+	gGameExternalOptions.ubLoadscreenStretchMode = iniReader.ReadInteger("Graphics Settings", "LOADSCREEN_STRETCH_MODE", 0, 0, 2);
+
 	if (!is_networked)
 		gGameExternalOptions.gfUseLoadScreenHints		= iniReader.ReadBoolean("Graphics Settings","USE_LOADSCREENHINTS", TRUE);
 	else

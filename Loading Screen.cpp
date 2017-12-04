@@ -565,18 +565,55 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 									
 			//Blit the background image
 			GetVideoSurface(&hVSurface, uiLoadScreen);
-			
-			// Stretch the background image
-			SrcRect.iLeft = 0;
-			SrcRect.iTop = 0;
-			SrcRect.iRight = hVSurface->usWidth;
-			SrcRect.iBottom = hVSurface->usHeight;
-			
-			DstRect.iLeft = 0;
-			DstRect.iTop = 0;
-			DstRect.iRight = SCREEN_WIDTH;
-			DstRect.iBottom = SCREEN_HEIGHT;
-			
+
+			if(gGameExternalOptions.ubLoadscreenStretchMode == 1)
+			{
+				// fit by image height, preserve aspect ratio (black bars on sides in wider resolutions)
+				FLOAT fImageAspectRatio = (FLOAT)hVSurface->usHeight / (FLOAT)hVSurface->usWidth;
+				INT32 iCalculatedWidth = INT32((FLOAT)SCREEN_WIDTH * fImageAspectRatio);
+
+				SrcRect.iLeft = 0;
+				SrcRect.iTop = 0;
+				SrcRect.iRight = hVSurface->usWidth;
+				SrcRect.iBottom = hVSurface->usHeight;
+
+				DstRect.iLeft = (SCREEN_WIDTH - iCalculatedWidth) / 2;
+				DstRect.iTop = 0;
+				DstRect.iRight = SCREEN_WIDTH - ((SCREEN_WIDTH - iCalculatedWidth) / 2);
+				DstRect.iBottom = SCREEN_HEIGHT;
+			}
+			else if(gGameExternalOptions.ubLoadscreenStretchMode == 2)
+			{
+				// fit by image width, preserve aspect ratio (might cut off top and bottom in wider resolutions)
+				FLOAT fScale = (FLOAT)SCREEN_WIDTH / (FLOAT)hVSurface->usWidth;
+				INT32 iDesiredHeight = (INT32)((FLOAT)hVSurface->usHeight * fScale);
+				INT32 iCalculatedHeight = (INT32)((FLOAT)hVSurface->usHeight * ((FLOAT)SCREEN_HEIGHT / (FLOAT)iDesiredHeight));
+
+				SrcRect.iLeft = 0;
+				SrcRect.iTop = (hVSurface->usHeight - iCalculatedHeight) / 2;
+				SrcRect.iRight = hVSurface->usWidth;
+				SrcRect.iBottom = hVSurface->usHeight - ((hVSurface->usHeight - iCalculatedHeight) / 2);
+
+				DstRect.iLeft = 0;
+				DstRect.iTop = 0;
+				DstRect.iRight = SCREEN_WIDTH;
+				DstRect.iBottom = SCREEN_HEIGHT;
+			}
+			else
+			{
+				// vanilla (stretch to fit)
+				// Stretch the background image
+				SrcRect.iLeft = 0;
+				SrcRect.iTop = 0;
+				SrcRect.iRight = hVSurface->usWidth;
+				SrcRect.iBottom = hVSurface->usHeight;
+
+				DstRect.iLeft = 0;
+				DstRect.iTop = 0;
+				DstRect.iRight = SCREEN_WIDTH;
+				DstRect.iBottom = SCREEN_HEIGHT;
+			}
+
 			BltStretchVideoSurface( FRAME_BUFFER, uiLoadScreen, 0, 0, 0, &SrcRect, &DstRect );
 						
 			DeleteVideoSurfaceFromIndex( uiLoadScreen );			
