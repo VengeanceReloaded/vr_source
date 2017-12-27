@@ -9829,11 +9829,6 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 		return( FALSE );
 	}
 
-	// sevenfm: loose disguise every time we apply clothes
-	pSoldier->LooseDisguise();
-
-	// also stop auto disguise
-	pSoldier->usSoldierFlagMask2 &= ~SOLDIER_COVERT_AUTO_DISGUISE;
 			
 	// determine clothes type
 	UINT32 clothestype = Item[pObj->usItem].clothestype;
@@ -9859,6 +9854,12 @@ BOOLEAN ApplyClothes( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fUseAPs
 	
 	if ( newvest || newpants )
 	{
+		// sevenfm: loose disguise every time we apply clothes
+		pSoldier->LooseDisguise();
+
+		// also stop auto disguise
+		pSoldier->usSoldierFlagMask2 &= ~SOLDIER_COVERT_AUTO_DISGUISE;
+
 		UINT16 usPaletteAnimSurface = LoadSoldierAnimationSurface( pSoldier, pSoldier->usAnimState );
 
 		if ( usPaletteAnimSurface != INVALID_ANIMATION_SURFACE )
