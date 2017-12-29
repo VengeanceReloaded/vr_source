@@ -15983,8 +15983,8 @@ void SOLDIERTYPE::Disguise( void )
 		return;
 	}
 
-	// check that no enemy can see us
-	if ( EnemySeenSoldierRecently(this) )
+	// check that no alerted enemy can see us
+	if ( EnemySeenSoldierRecently(this, SEEN_3_TURNS_AGO, TRUE) )
 	{
 		return;
 	}
@@ -17478,10 +17478,10 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 		}
 		else
 		{
-			if( EnemyAlerted(this) && ( EnemySeenSoldierRecently(this) || EnemyHeardSoldierRecently(this) ))
+			if( EnemySeenSoldierRecently(this, SEEN_3_TURNS_AGO, TRUE) || EnemyHeardSoldierRecently(this, HEARD_2_TURNS_AGO, TRUE) )
 				// -10% each turn if alert is raised in sector and enemy heard or seen this soldier
 				MultiplySuspicionByPercent( 90 );
-			else if( EnemySeenSoldierRecently(this) )
+			else if( EnemySeenSoldierRecently(this, SEEN_3_TURNS_AGO, FALSE) )
 				// -25% each turn
 				MultiplySuspicionByPercent( 75 );
 			else

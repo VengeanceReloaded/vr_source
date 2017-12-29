@@ -4317,7 +4317,7 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 
 			// bonus if observing soldier sees more than one covert soldier
 			//uiValue = uiValue * (200 - 100 / max(1, CountSeenCovertOpponents(pOpponent))) / 100;
-			uiValue = uiValue * CountSeenCovertOpponents(pOpponent);
+			uiValue = uiValue * max(1, CountSeenCovertOpponents(pOpponent));
 
 			// bonus depending on number of army men already killed
 			if( gTacticalStatus.ubArmyGuysKilled > 0 )
@@ -4393,7 +4393,7 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 	return uiTotalValue;
 }
 
-BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
+BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax, BOOLEAN fOnlyAlerted )
 {
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
@@ -4423,6 +4423,11 @@ BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
 
 		// check if he is captured
 		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
+		if( fOnlyAlerted && pOpponent->aiData.bAlertStatus < STATUS_RED )
 		{
 			continue;
 		}
@@ -4440,7 +4445,7 @@ BOOLEAN EnemySeenSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
 	return FALSE;
 }
 
-BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
+BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax, BOOLEAN fOnlyAlerted )
 {
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
@@ -4470,6 +4475,11 @@ BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax )
 
 		// check if he is captured
 		if(pOpponent->usSoldierFlagMask & SOLDIER_POW)
+		{
+			continue;
+		}
+
+		if( fOnlyAlerted && pOpponent->aiData.bAlertStatus < STATUS_RED )
 		{
 			continue;
 		}
