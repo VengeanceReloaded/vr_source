@@ -17467,6 +17467,7 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 				{
 					// in turnbased add rest of action points on end of turn
 					AddSuspicion( uiValue * __max(0, this->bActionPoints - APBPConstants[MAX_AP_CARRIED]) );
+					//AddSuspicion( uiValue * min(APBPConstants[MAX_AP_CARRIED], this->bActionPoints) );
 				}
 				else
 				{

@@ -4235,7 +4235,9 @@ UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 		}
 
 		// check that this opponent sees us
-		if( pOpponent->aiData.bOppList[ pSoldier->ubID ] == SEEN_CURRENTLY )
+		if( pOpponent->aiData.bOppList[ pSoldier->ubID ] == SEEN_CURRENTLY || 
+			pOpponent->aiData.bAlertStatus >= STATUS_RED && 
+			( pOpponent->aiData.bOppList[ pSoldier->ubID ] == SEEN_THIS_TURN || pOpponent->aiData.bOppList[ pSoldier->ubID ] == HEARD_THIS_TURN ) )
 		{
 			UINT8	ubCovertLevel = NUM_SKILL_TRAITS( pSoldier, COVERT_NT );
 			INT16	sDistance = PythSpacesAway(pSoldier->sGridNo, pOpponent->sGridNo);
