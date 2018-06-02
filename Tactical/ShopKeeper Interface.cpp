@@ -3284,7 +3284,7 @@ UINT32 CalcShopKeeperItemPrice( BOOLEAN fDealerSelling, BOOLEAN fUnitPriceOnly, 
 	UINT8		ubCnt;
 	UINT32	uiUnitPrice = 0;
 	UINT32	uiTotalPrice = 0;
-	UINT32	uiDiscountValue = 0;
+	INT32	iDiscountValue = 0;
 //	UINT32	uiDifFrom10 = 0;
 #ifdef JA2UB
 UINT8		ubItemsNotCounted = 0; //ja25 UB
@@ -3380,37 +3380,37 @@ UINT8		ubItemsNotCounted = 0; //ja25 UB
 		if ( Item [ usItemID ].usItemClass & (IC_GUN|IC_AMMO) )
 		{
 			if ( gpSMCurrentMerc->GetBackgroundValue(BG_PERC_PRICES_GUNS) )
-				uiDiscountValue = ( uiItemPrice[ubCnt] * gpSMCurrentMerc->GetBackgroundValue(BG_PERC_PRICES_GUNS) ) / 100;
+				iDiscountValue = INT32(uiItemPrice[ubCnt]) * gpSMCurrentMerc->GetBackgroundValue(BG_PERC_PRICES_GUNS) / 100;
 			// if we play without backgrounds, Flo gets the hardcoded bonus
 			else if ( gpSMCurrentMerc->ubProfile == FLO )
-				uiDiscountValue = ( uiItemPrice[ubCnt] * FLO_DISCOUNT_PERCENTAGE ) / 100;
+				iDiscountValue = uiItemPrice[ubCnt] * FLO_DISCOUNT_PERCENTAGE / 100;
 
 			// she gets a discount!  Read her M.E.R.C. profile to understand why
 			if ( fDealerSelling )
 			{
 				// she buys for less...
-				uiItemPrice[ubCnt] -= uiDiscountValue;
+				uiItemPrice[ubCnt] -= iDiscountValue;
 			}
 			else
 			{
 				// and sells for more!
-				uiItemPrice[ubCnt] += uiDiscountValue;
+				uiItemPrice[ubCnt] += iDiscountValue;
 			}
 		}
 		// Flugente: backgrounds
 		else if ( Item [ usItemID ].usItemClass & (IC_MAPFILTER_MELEE|IC_MAPFILTER_KIT|IC_MAPFILTER_LBE|IC_MAPFILTER_ARMOR|IC_MAPFILTER_MISC) )
 		{
-			uiDiscountValue = ( uiItemPrice[ubCnt] * gpSMCurrentMerc->GetBackgroundValue(BG_PERC_PRICES) ) / 100;
+			iDiscountValue = INT32(uiItemPrice[ubCnt]) * gpSMCurrentMerc->GetBackgroundValue(BG_PERC_PRICES) / 100;
 
 			if ( fDealerSelling )
 			{
 				// buy for less...
-				uiItemPrice[ubCnt] -= uiDiscountValue;
+				uiItemPrice[ubCnt] -= iDiscountValue;
 			}
 			else
 			{
 				// and sell for more!
-				uiItemPrice[ubCnt] += uiDiscountValue;
+				uiItemPrice[ubCnt] += iDiscountValue;
 			}
 		}
 
