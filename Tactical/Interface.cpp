@@ -1943,8 +1943,7 @@ void DrawSelectedUIAboveGuy( UINT16 usSoldierID )
 	{
 		UINT8 ubRed, ubGreen, ubBlue;
 
-		if( //pSoldier->usSoldierFlagMask & ( SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER ) &&
-			!pSoldier->SeemsLegit( pSoldier->ubID, FALSE ) )
+		if( !pSoldier->SeemsLegit( pSoldier->ubID, FALSE ) )
 		{
 			//SetFontForeground( FONT_MCOLOR_WHITE );
 			SetFontForeground( FONT_RED );

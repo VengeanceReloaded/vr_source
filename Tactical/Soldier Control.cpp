@@ -15347,7 +15347,8 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 		break;
 	default:
 		// we do not wear a proper army uniform, uncover us. Note: This should never happen - if this message shows, somewhere, something is wrong
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNIFORM_NOORDER], this->GetName() );
+		if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_UNIFORM_NOORDER], this->GetName());
+		//ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"uniform type %d", uniformtype);
 		return TRUE;
 		break;
 	}
@@ -15436,7 +15437,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 
 						if ( numberofguns > 2 )
 						{
-							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYGUNS], this->GetName() );
+							if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYGUNS], this->GetName());
 							return TRUE;
 						}
 					}
@@ -15450,7 +15451,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 							// loop over every item and its attachments
 							if ( Item[pObj->usItem].ubCoolness > maxcoolnessallowed )
 							{
-								ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[pObj->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+								if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[pObj->usItem].szItemName, pCountryNames[COUNTRY_NOUN]);
 								return TRUE;
 							}
 
@@ -15464,7 +15465,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 									// loop over every item and its attachments
 									if ( Item[iter->usItem].ubCoolness > maxcoolnessallowed )
 									{
-										ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[iter->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+										if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[iter->usItem].szItemName, pCountryNames[COUNTRY_NOUN]);
 										return TRUE;
 									}
 					
@@ -15474,7 +15475,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 									// no ordinary soldier is allowed that many attachments -> not covert
 									if ( fCloselook && numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
 									{
-										ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName );
+										if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName);
 										return TRUE;
 									}
 								}
@@ -15501,7 +15502,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 
 						if ( numberofguns > 2 )
 						{
-							ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYGUNS], this->GetName() );
+							if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYGUNS], this->GetName());
 							return TRUE;
 						}
 
@@ -15514,7 +15515,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 								// loop over every item and its attachments
 								if ( Item[pObj->usItem].ubCoolness > maxcoolnessallowed )
 								{
-									ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[pObj->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+									if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[pObj->usItem].szItemName, pCountryNames[COUNTRY_NOUN]);
 									return TRUE;
 								}
 
@@ -15528,7 +15529,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 										// loop over every item and its attachments
 										if ( Item[iter->usItem].ubCoolness > maxcoolnessallowed )
 										{
-											ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[iter->usItem].szItemName, pCountryNames[COUNTRY_NOUN] );
+											if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ITEMSTOOGOOD], this->GetName(), Item[iter->usItem].szItemName, pCountryNames[COUNTRY_NOUN]);
 											return TRUE;
 										}
 					
@@ -15540,7 +15541,7 @@ BOOLEAN		SOLDIERTYPE::EquipmentTooGood( BOOLEAN fCloselook, BOOLEAN fShowResult 
 								// no ordinary soldier is allowed that many attachments > not covert
 								if ( fCloselook && numberofattachments > gGameExternalOptions.iMaxEnemyAttachments )
 								{
-									ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName );
+									if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_TOOMANYATTACHMENTS], this->GetName(), Item[pObj->usItem].szItemName);
 									return TRUE;
 								}
 							}
@@ -15601,7 +15602,6 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		this->usAnimState == PUNCH ||
 		this->usAnimState == PUNCH_BREATH ||
 		this->usAnimState == KICK_DOOR ||
-		this->usAnimState == CUTTING_FENCE ||
 		this->usAnimState == PLANT_BOMB ||
 		this->usAnimState == USE_REMOTE ||
 		this->usAnimState == STEAL_ITEM ||
@@ -15616,18 +15616,21 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		this->usAnimState == HTH_KICK ||
 		this->usAnimState == FOCUSED_HTH_KICK ||
 		this->usAnimState == LONG_JUMP ||
-		this->usAnimState == THROW_GRENADE_STANCE ||
 		this->usAnimState == LOB_GRENADE_STANCE ||
 		this->usAnimState == THROW_ITEM ||
 		this->usAnimState == LOB_ITEM ||
-		this->usAnimState == THROW_ITEM_CROUCHED ||
-		this->usAnimState == SHOOT_ROCKET_CROUCHED
-		)
+		this->usAnimState == THROW_ITEM_CROUCHED )
 	{
 		if(fShowResult) ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, szCovertTextStr[STR_COVERT_ACTIVITIES], this->GetName() );
 		return FALSE;
 	}
 	
+	// sevenfm: assassins are only uncovered when doing suspicious action
+	if (this->IsAssassin())
+	{
+		return TRUE;
+	}
+
 	// if we are trying to dress like a civilian, but aren't successful: not covert
 	if ( this->usSoldierFlagMask & SOLDIER_COVERT_CIV && !(this->LooksLikeACivilian( fShowResult )) )
 	{
@@ -15765,7 +15768,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 			NUM_SKILL_TRAITS( pSoldier, SQUADLEADER_NT ) > 0 ) 
 			)
 		{
-			ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s was uncovered!", this->GetName( ) );
+			if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s was uncovered!", this->GetName());
 			return FALSE;
 		}		
 
@@ -15840,7 +15843,7 @@ BOOLEAN		SOLDIERTYPE::SeemsLegit( UINT8 ubObserverID, BOOLEAN fShowResult )
 		(NightLight( ) || gbWorldSectorZ > 0) &&
 		this->GetBestEquippedFlashLightRange( ) > 0 )
 	{
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s has flashlight!", this->GetName( ) );
+		if (fShowResult) ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s has flashlight!", this->GetName());
 		return FALSE;
 	}
 
