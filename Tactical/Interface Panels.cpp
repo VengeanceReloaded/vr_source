@@ -8416,7 +8416,7 @@ EXTENDED_PANEL_STRING GetTimesWoundedString(SOLDIERTYPE* pSoldier)
 	swprintf(exps.sPanelStringLeft, L"%s", pPersonnelScreenStrings[PRSNL_TXT_TIMES_WOUNDED]);
 	swprintf(exps.sPanelStringRight, L"%d",gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedShot//wounds
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedStabbed
-						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedPunched/2,
+						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedPunched/2
 						+gMercProfiles[pSoldier->ubProfile].records.usTimesWoundedBlasted);
 	exps.uiFontColorLeft = gExtendedPanelsSettings.uepDescriptionColor;
 	exps.uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
