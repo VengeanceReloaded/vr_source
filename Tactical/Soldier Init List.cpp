@@ -2820,7 +2820,7 @@ void SectorAddAssassins( INT16 sMapX, INT16 sMapY, INT16 sMapZ )
 	SOLDIERTYPE* pTeamSoldier = NULL;
 	INT32 cnt = gTacticalStatus.Team[ CIV_TEAM ].bFirstID;
 	INT32 lastid = gTacticalStatus.Team[ CIV_TEAM ].bLastID;
-	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+	for (pTeamSoldier = MercPtrs[cnt]; cnt <= lastid; ++cnt, ++pTeamSoldier)
 	{
 		// check if teamsoldier exists in this sector
 		if ( pTeamSoldier && pTeamSoldier->bActive && pTeamSoldier->bInSector && pTeamSoldier->sSectorX == sMapX && pTeamSoldier->sSectorY == sMapY && pTeamSoldier->bSectorZ == sMapZ )
@@ -2891,7 +2891,7 @@ void SectorAddPrisonersofWar( INT16 sMapX, INT16 sMapY, INT16 sMapZ )
 	SOLDIERTYPE* pTeamSoldier = NULL;
 	INT32 cnt = gTacticalStatus.Team[ CIV_TEAM ].bFirstID;
 	INT32 lastid = gTacticalStatus.Team[ CIV_TEAM ].bLastID;
-	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+	for (pTeamSoldier = MercPtrs[cnt]; cnt <= lastid; ++cnt, ++pTeamSoldier)
 	{
 		// check if teamsoldier exists in this sector
 		if ( pTeamSoldier && pTeamSoldier->bActive && pTeamSoldier->bInSector && pTeamSoldier->sSectorX == sMapX && pTeamSoldier->sSectorY == sMapY && pTeamSoldier->bSectorZ == sMapZ )

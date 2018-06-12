@@ -53,7 +53,7 @@ void ExitBoxing( void )
 	for( ubPass = 0; ubPass < 2; ++ubPass )
 	{
 		// because boxer could die, loop through all soldier ptrs
-		for ( uiLoop = 0; uiLoop < gTacticalStatus.Team[ CIV_TEAM ].bLastID; ++uiLoop )
+		for (uiLoop = 0; uiLoop <= gTacticalStatus.Team[CIV_TEAM].bLastID; ++uiLoop)
 		{
 			pSoldier = MercPtrs[ uiLoop ];
 
@@ -482,10 +482,9 @@ BOOLEAN AnotherFightPossible( void )
 	}
 
 	// Loop through all mercs on player team
-	ubLoop = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
-	pSoldier = MercPtrs[ ubLoop ];
-	for ( ; ubLoop <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; ++ubLoop, pSoldier++ )
+	for (ubLoop = gTacticalStatus.Team[gbPlayerNum].bFirstID; ubLoop <= gTacticalStatus.Team[gbPlayerNum].bLastID; ++ubLoop)
 	{
+		pSoldier = MercPtrs[ubLoop];
 		if ( pSoldier->bActive && pSoldier->bInSector && pSoldier->stats.bLife > (OKLIFE + 5) && !pSoldier->bCollapsed )
 		{
 			return( TRUE );

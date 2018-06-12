@@ -1681,9 +1681,7 @@ INT32 ClosestPC( SOLDIERTYPE *pSoldier, INT32 * psDistance )
 	INT32					sGridNo = NOWHERE;
 
 	// Loop through all mercs on player team
-	ubLoop = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
-
-	for ( ; ubLoop <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; ubLoop++)
+	for (ubLoop = gTacticalStatus.Team[gbPlayerNum].bFirstID; ubLoop <= gTacticalStatus.Team[gbPlayerNum].bLastID; ubLoop++)
 	{
 		pTargetSoldier = Menptr + ubLoop;
 

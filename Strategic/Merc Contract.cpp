@@ -1463,16 +1463,13 @@ void FindOutIfAnyMercAboutToLeaveIsGonnaRenew( void )
 {
 	// find out is something was said
 	SOLDIERTYPE *pSoldier = NULL, *pSoldierWhoWillQuit = NULL;
-	INT32				iCounter= 0, iNumberOnTeam = 0;
-// WDS - make number of mercenaries, etc. be configurable
+	INT32				iCounter = 0;
+	// WDS - make number of mercenaries, etc. be configurable
 	UINT8				ubPotentialMercs[ CODE_MAXIMUM_NUMBER_OF_PLAYER_SLOTS ] = { 0 };
 	UINT8				ubNumMercs = 0;
 	UINT8				ubChosenMerc;
 
 	gfFirstMercSayQuote = FALSE;
-
-	pSoldier = &Menptr[ 0 ];
-	iNumberOnTeam =gTacticalStatus.Team[ OUR_TEAM ].bLastID;
 
 	// run through list of grunts whoose contract are up in the next 2 hours
 	// ATE: AND - build list THEN choose one!
@@ -1480,7 +1477,7 @@ void FindOutIfAnyMercAboutToLeaveIsGonnaRenew( void )
 	// to stay if offered. Durning that process, also check if there
 	// is any merc that does not want to stay and only display that quote
 	// if they are the only one here....
-	for( iCounter = 0; iCounter < iNumberOnTeam; iCounter++ )
+	for (iCounter = 0; iCounter <= gTacticalStatus.Team[OUR_TEAM].bLastID; iCounter++)
 	{
 		pSoldier = &Menptr[ iCounter ];
 

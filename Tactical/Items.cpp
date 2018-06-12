@@ -15908,7 +15908,7 @@ OBJECTTYPE* GetExternalFeedingObject(SOLDIERTYPE* pSoldier, OBJECTTYPE * pObject
 		SOLDIERTYPE* pTeamSoldier = NULL;
 		INT32 cnt = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID;
 		INT32 lastid = gTacticalStatus.Team[ pSoldier->bTeam ].bLastID;
-		for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+		for (pTeamSoldier = MercPtrs[cnt]; cnt <= lastid; ++cnt, ++pTeamSoldier)
 		{
 			// check if teamsoldier exists in this sector
 			if ( !pTeamSoldier || !pTeamSoldier->bActive || !pTeamSoldier->bInSector || pTeamSoldier->stats.bLife < OKLIFE || pTeamSoldier->sSectorX != pSoldier->sSectorX || pTeamSoldier->sSectorY != pSoldier->sSectorY || pTeamSoldier->bSectorZ != pSoldier->bSectorZ )

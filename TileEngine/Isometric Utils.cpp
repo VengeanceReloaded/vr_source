@@ -1428,7 +1428,7 @@ BOOLEAN GridNoNearPlayerMercs( INT32 sGridNo, INT16 sRadius )
 	SOLDIERTYPE* pTeamSoldier = NULL;
 	INT32 cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID;
 	INT32 lastid = gTacticalStatus.Team[ OUR_TEAM ].bLastID;
-	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+	for (pTeamSoldier = MercPtrs[cnt]; cnt <= lastid; ++cnt, ++pTeamSoldier)
 	{
 		if ( pTeamSoldier && pTeamSoldier->bActive && pTeamSoldier->bInSector )
 		{

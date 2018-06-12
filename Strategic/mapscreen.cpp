@@ -942,9 +942,6 @@ void DisplayCharacterInfo( void );
 void UpDateStatusOfContractBox( void );
 void DrawMPPlayerList (); // OJW - 20081201
 
-// get which index in the mapscreen character list is this guy
-INT32 GetIndexForthis( SOLDIERTYPE *pSoldier );
-
 void CheckForAndRenderNewMailOverlay();
 
 BOOLEAN MapCharacterHasAccessibleInventory( INT8 bCharNumber );
@@ -3745,13 +3742,11 @@ void RemoveCharacter(UINT16 uiCharPosition)
 void LoadCharacters( void )
 {
 	UINT16 uiCount=0;
-	SOLDIERTYPE *pSoldier, *pTeamSoldier;
-	INT32 cnt=0;
+	SOLDIERTYPE *pTeamSoldier;
+	INT32 cnt = gTacticalStatus.Team[OUR_TEAM].bFirstID;
 
-	pSoldier = MercPtrs[ 0 ];
-
-	// fills array with pressence of player controlled characters
-	for ( pTeamSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID; cnt++,pTeamSoldier++)
+	// fills array with presence of player controlled characters
+	for (pTeamSoldier = MercPtrs[cnt]; cnt <= gTacticalStatus.Team[OUR_TEAM].bLastID; cnt++, pTeamSoldier++)
 	{
 		if(pTeamSoldier->bActive)
 		{
@@ -11425,32 +11420,6 @@ void TeamListContractRegionMvtCallBack(MOUSE_REGION *pRegion, INT32 iReason )
 		}
 	}
 }
-
-
-
-INT32 GetIndexForthis( SOLDIERTYPE *pSoldier )
-{
-	INT32 iLastGuy;
-	INT32 iIndex = 0;
-	INT32 iCounter = 0;
-
-	// get the index into the characters list for this soldier type
-	iLastGuy = gTacticalStatus.Team[ OUR_TEAM ].bLastID;
-
-	for( iCounter = 0; iCounter < iLastGuy; iCounter++ )
-	{
-		if( gCharactersList[ iCounter ].fValid == TRUE )
-		{
-			if( ( &Menptr[ gCharactersList[ iCounter ].usSolID ] ) == pSoldier )
-			{
-				iIndex = iCounter;
-				iCounter = iLastGuy;
-			}
-		}
-	}
-	return( iIndex );
-}
-
 
 
 BOOLEAN IsCursorWithInRegion(INT16 sLeft, INT16 sRight, INT16 sTop, INT16 sBottom )

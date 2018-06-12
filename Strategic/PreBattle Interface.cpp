@@ -1958,17 +1958,13 @@ void PutNonSquadMercsInPlayerGroupOnSquads( GROUP *pGroup, BOOLEAN fExitVehicles
 
 void WakeUpAllMercsInSectorUnderAttack( void )
 {
-	INT32 iCounter = 0, iNumberOfMercsOnTeam = 0;
+	INT32 iCounter = 0;
 	SOLDIERTYPE *pSoldier = NULL;
 
-
-	// get number of possible grunts on team
-	iNumberOfMercsOnTeam = gTacticalStatus.Team[ OUR_TEAM ].bLastID;
-
 	// any mercs not on duty should be added to the first avail squad
-	for( iCounter = 0; iCounter < iNumberOfMercsOnTeam; iCounter++ )
+	for (iCounter = 0; iCounter <= gTacticalStatus.Team[OUR_TEAM].bLastID; iCounter++)
 	{
-		pSoldier = &( Menptr[ iCounter ] );
+		pSoldier = MercPtrs[iCounter];
 
 		if ( pSoldier->bActive && pSoldier->stats.bLife && !( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
 		{

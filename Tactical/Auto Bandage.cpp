@@ -490,9 +490,7 @@ void AutoBandage( BOOLEAN fStart )
 			}
 		}
 
-
-		ubLoop = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;
-		for ( ; ubLoop <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; ubLoop++)
+		for (ubLoop = gTacticalStatus.Team[gbPlayerNum].bFirstID; ubLoop <= gTacticalStatus.Team[gbPlayerNum].bLastID; ubLoop++)
 		{
 			ActionDone( MercPtrs[ ubLoop ] );
 
@@ -560,10 +558,8 @@ void BeginAutoBandageCallBack( UINT8 bExitValue )
 
 void SetUpAutoBandageUpdatePanel( void )
 {
-
 	INT32 iNumberDoctoring = 0;
 	INT32 iNumberPatienting = 0;
-	INT32 iNumberOnTeam = 0;
 	INT32 iCounterA = 0;
 
 	// WDS - make number of mercenaries, etc. be configurable
@@ -577,14 +573,10 @@ void SetUpAutoBandageUpdatePanel( void )
 //	memset( iDoctorList, -1,	sizeof( iDoctorList ) );
 //	memset( iPatientList, -1,	sizeof( iPatientList ) );
 
-
-	// grab number of potential grunts on players team
-	iNumberOnTeam = gTacticalStatus.Team[ gbPlayerNum ].bLastID;
-
 	// run through mercs on squad...if they can doctor, add to list
-	for( iCounterA = 0; iCounterA < iNumberOnTeam; iCounterA++ )
+	for (iCounterA = 0; iCounterA <= gTacticalStatus.Team[gbPlayerNum].bLastID; iCounterA++)
 	{
-		if( CanCharacterAutoBandageTeammate( &Menptr[ iCounterA ] ) )
+		if (CanCharacterAutoBandageTeammate(MercPtrs[iCounterA]))
 		{
 			// add to list, up the count
 			iDoctorList[ iNumberDoctoring ] = iCounterA;
@@ -594,7 +586,7 @@ void SetUpAutoBandageUpdatePanel( void )
 	}
 
 	// run through mercs on squad, if they can patient, add to list
-	for( iCounterA = 0; iCounterA < iNumberOnTeam; iCounterA++ )
+	for (iCounterA = 0; iCounterA <= gTacticalStatus.Team[gbPlayerNum].bLastID; iCounterA++)
 	{
 		if( CanCharacterBeAutoBandagedByTeammate( &Menptr[ iCounterA ] ) )
 		{

@@ -14839,7 +14839,7 @@ BOOLEAN		SOLDIERTYPE::IsFeedingExternal(UINT8* pubId1, UINT16* pGunSlot1, UINT16
 		SOLDIERTYPE* pTeamSoldier = NULL;
 		INT32 cnt = gTacticalStatus.Team[ this->bTeam ].bFirstID;
 		INT32 lastid = gTacticalStatus.Team[ this->bTeam ].bLastID;
-		for ( pTeamSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pTeamSoldier)
+		for ( pTeamSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pTeamSoldier)
 		{
 			// check if teamsoldier exists in this sector
 			if ( !pTeamSoldier || !pTeamSoldier->bActive || !pTeamSoldier->bInSector || pTeamSoldier->sSectorX != this->sSectorX || pTeamSoldier->sSectorY != this->sSectorY || pTeamSoldier->bSectorZ != this->bSectorZ )
@@ -18116,7 +18116,7 @@ BOOLEAN SOLDIERTYPE::OrderArtilleryStrike( UINT32 usSectorNr, INT32 sTargetGridN
 		SOLDIERTYPE* pSoldier = NULL;
 		INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
 		INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
-		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		for ( pSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pSoldier)
 		{
 			// check if soldier exists in this sector
 			if ( !pSoldier || !pSoldier->bActive || pSoldier->sSectorX != sSectorX || pSoldier->sSectorY != sSectorY || pSoldier->bSectorZ != bSectorZ|| pSoldier->bAssignment > ON_DUTY )
@@ -18213,7 +18213,7 @@ BOOLEAN SOLDIERTYPE::OrderArtilleryStrike( UINT32 usSectorNr, INT32 sTargetGridN
 		
 		// second loop: check for all mortar shells and 'fire' them		
 		cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
-		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		for ( pSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pSoldier)
 		{
 			// check if soldier exists in this sector
 			if ( !pSoldier || !pSoldier->bActive || pSoldier->sSectorX != sSectorX || pSoldier->sSectorY != sSectorY || pSoldier->bSectorZ != bSectorZ|| pSoldier->bAssignment > ON_DUTY )
@@ -21840,7 +21840,7 @@ BOOLEAN GetRadioOperatorSignal(UINT8 usOwner, INT32* psTargetGridNo)
 		SOLDIERTYPE* pSoldier = NULL;
 		INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
 		INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
-		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		for ( pSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pSoldier)
 		{
 			if ( pSoldier && pSoldier->CanUseRadio(FALSE) && pSoldier->bActive && pSoldier->bInSector && ( pSoldier->sSectorX == gWorldSectorX ) && ( pSoldier->sSectorY == gWorldSectorY ) && ( pSoldier->bSectorZ == gbWorldSectorZ) )
 			{
@@ -21910,7 +21910,7 @@ BOOLEAN IsValidArtilleryOrderSector( INT16 sSectorX, INT16 sSectorY, INT8 bSecto
 		SOLDIERTYPE* pSoldier = NULL;
 		INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
 		INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
-		for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+		for ( pSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pSoldier)
 		{
 			// check if soldier exists in this sector, and is on duty
 			if ( !pSoldier || !pSoldier->bActive || pSoldier->sSectorX != sSectorX || pSoldier->sSectorY != sSectorY || pSoldier->bSectorZ != bSectorZ || pSoldier->bAssignment > ON_DUTY )
@@ -21951,7 +21951,7 @@ BOOLEAN PlayerTeamIsScanning()
 	SOLDIERTYPE* pSoldier = NULL;
 	INT32 cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID;
 	INT32 lastid = gTacticalStatus.Team[ OUR_TEAM ].bLastID;
-	for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pSoldier)
 	{
 		if ( pSoldier->sSectorX == gWorldSectorX && pSoldier->sSectorY == gWorldSectorY && pSoldier->bSectorZ == gbWorldSectorZ && pSoldier->stats.bLife > 0 && pSoldier->IsScanning() )
 			return TRUE;
@@ -21968,7 +21968,7 @@ UINT16	GridNoSpotterCTHBonus( SOLDIERTYPE* pSniper, INT32 sGridNo, UINT bTeam)
 	SOLDIERTYPE* pSoldier = NULL;
 	INT32 cnt = gTacticalStatus.Team[ bTeam ].bFirstID;
 	INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
-	for ( pSoldier = MercPtrs[ cnt ]; cnt < lastid; ++cnt, ++pSoldier)
+	for ( pSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pSoldier)
 	{
 		if ( pSoldier != pSniper && pSoldier->sSectorX == gWorldSectorX && pSoldier->sSectorY == gWorldSectorY && pSoldier->bSectorZ == gbWorldSectorZ 
 			&& pSoldier->IsSpotting() 
