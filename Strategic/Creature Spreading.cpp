@@ -765,15 +765,9 @@ void AddCreaturesToBattle( UINT8 ubNumYoungMales, UINT8 ubNumYoungFemales, UINT8
 		}
 		else
 		{
-			gsCreatureInsertionCode = 0;
-			gsCreatureInsertionGridNo = 0;
-			gubNumCreaturesAttackingTown = 0;
-			gubYoungMalesAttackingTown = 0;
-			gubYoungFemalesAttackingTown = 0;
-			gubAdultMalesAttackingTown = 0;
-			gubAdultFemalesAttackingTown = 0;
-			gubCreatureBattleCode = CREATURE_BATTLE_CODE_NONE;
-			gubSectorIDOfCreatureAttack = 0;
+			// r8559
+			ResetCreatureAttackVariables();
+
 			AllTeamsLookForAll( FALSE );
 
 			Assert(0);
@@ -800,15 +794,9 @@ void AddCreaturesToBattle( UINT8 ubNumYoungMales, UINT8 ubNumYoungFemales, UINT8
 		}
 		UpdateMercInSector( pSoldier, gWorldSectorX, gWorldSectorY, 0 );
 	}
-	gsCreatureInsertionCode = 0;
-	gsCreatureInsertionGridNo = 0;
-	gubNumCreaturesAttackingTown = 0;
-	gubYoungMalesAttackingTown = 0;
-	gubYoungFemalesAttackingTown = 0;
-	gubAdultMalesAttackingTown = 0;
-	gubAdultFemalesAttackingTown = 0;
-	gubCreatureBattleCode = CREATURE_BATTLE_CODE_NONE;
-	gubSectorIDOfCreatureAttack = 0;
+	// r8559
+	ResetCreatureAttackVariables();
+
 	AllTeamsLookForAll( FALSE );
 }
 
@@ -2136,4 +2124,18 @@ BOOLEAN GetWarpOutOfMineCodes( INT16 *psSectorX, INT16 *psSectorY, INT8 *pbSecto
 	}
 
 	return( FALSE );
+}
+
+// Flugente: reset code for creature attacks
+void ResetCreatureAttackVariables()
+{
+	gsCreatureInsertionCode = 0;
+	gsCreatureInsertionGridNo = 0;
+	gubNumCreaturesAttackingTown = 0;
+	gubYoungMalesAttackingTown = 0;
+	gubYoungFemalesAttackingTown = 0;
+	gubAdultMalesAttackingTown = 0;
+	gubAdultFemalesAttackingTown = 0;
+	gubCreatureBattleCode = CREATURE_BATTLE_CODE_NONE;
+	gubSectorIDOfCreatureAttack = 0;
 }

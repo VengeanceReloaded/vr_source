@@ -814,8 +814,6 @@ BOOLEAN LoadMercProfiles(void)
 			return(FALSE);
 		}
 
-		
-		
 		// WANNE: For the new WF merc, there is no entry in prof.dat, so we have to reset some flags manually!		
 		if (uiLoop >= 170)
 		{
@@ -825,6 +823,25 @@ BOOLEAN LoadMercProfiles(void)
 
 			gMercProfiles[uiLoop].uiTotalCostToDate = 0;
 			gMercProfiles[uiLoop].iMercMercContractLength = 0;
+
+			// r8566
+			// Flugente: as this data is not in the xml, we set dummy values
+			if (gMercProfiles[uiLoop].ubApproachVal[0] == 0 &&
+				gMercProfiles[uiLoop].ubApproachVal[1] == 0 &&
+				gMercProfiles[uiLoop].ubApproachVal[2] == 0 &&
+				gMercProfiles[uiLoop].ubApproachVal[3] == 0)
+			{
+				for (int i = 0; i < 4; ++i)
+				{
+					// with ubApproachVal of 50 and ubApproachMod of 100, approach value towards an NPC will be the merc's effective leadership, which seems like a reasonable default
+					gMercProfiles[uiLoop].ubApproachVal[i] = 50;
+
+					for (int j = 0; j < 3; ++j)
+					{
+						gMercProfiles[uiLoop].ubApproachMod[j][i] = 100;
+					}
+				}
+			}
 		}
 
 		// WANNE - BMP: DONE!

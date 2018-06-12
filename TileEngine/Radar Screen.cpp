@@ -670,6 +670,16 @@ void RenderRadarScreen( )
 								usLineColor = Get16BPPColor( FROMRGB( 0, 0, 255 ) );
 						}
 
+						// r8553
+						// Flugente 18-04-15: observed an odd bug: if we play with a release build and see a creature for the first time, 
+						// their overhead/radar map pins do not have the correct colour.
+						// Bizarrely enough, the issue seems dependent on the colour value (pink, RGB: 255/0/255) itself.
+						// Saving and reloading solves the issue, but I am not sure why. As a fix we now use a slightly dampened pink.
+						if (pSoldier->bTeam == CREATURE_TEAM)
+						{
+							usLineColor = Get16BPPColor(FROMRGB(247, 0, 247));
+						}
+
 						// Flugente: if we are a (still covert) enemy assassin, colour us like militia, so that the player wont notice us
 						if ( pSoldier->usSoldierFlagMask & SOLDIER_ASSASSIN && pSoldier->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER )
 							usLineColor = Get16BPPColor( gTacticalStatus.Team[ MILITIA_TEAM ].RadarColor );
@@ -704,14 +714,10 @@ void RenderRadarScreen( )
 	if( ( guiTacticalInterfaceFlags & INTERFACE_MAPSCREEN ) && ( fShowMapInventoryPool == TRUE ) )
 	{
 		// CHRISL:
-		InvalidateRegion( gsRadarX, gsRadarY,
-										gsRadarX + RADAR_WINDOW_WIDTH,
-										gsRadarY + RADAR_WINDOW_HEIGHT );
+		InvalidateRegion(gsRadarX, gsRadarY, gsRadarX + RADAR_WINDOW_WIDTH, gsRadarY + RADAR_WINDOW_HEIGHT);
 	}
 
 	return;
-
-
 }
 
 

@@ -9960,6 +9960,8 @@ BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGood
 		return FALSE;
 	}
 
+	// r8557
+	/*
 	if ( pSoldier->bTeam == gbPlayerNum )
 	{
 		if ( gMercProfiles[ pSoldier->ubProfile ].bSex == MALE )
@@ -9971,6 +9973,7 @@ BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGood
 			PlayJA2Sample( DRINK_CANTEEN_FEMALE, RATE_11025, LOWVOLUME, 1, MIDDLEPAN );
 		}
 	}
+	*/
 
 	sPointsToUse = __min( 20, usTotalKitPoints );
 

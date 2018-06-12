@@ -25,6 +25,7 @@
 	#include "renderworld.h"		// added by Flugente
 	#include "Vehicles.h"			// added by Flugente
 	#include "CampaignStats.h"		// added by Flugente
+	#include "Cheats.h"				// sevenfm
 #endif
 
 #ifdef JA2UB
@@ -1720,13 +1721,21 @@ void AddSoldierToSectorGridNo( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDir
 				// ary-05/05/2009 : add forced turn mode : note : not for bloodcats..
 				//  : note : no forced turn mode option for Multi Player
 				if ( is_networked ) gGameSettings.fOptions[ TOPTION_TOGGLE_TURN_MODE ] = FALSE;
+
 				if ( gGameSettings.fOptions[ TOPTION_TOGGLE_TURN_MODE ])
 				{
-					ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_FTM_ENTER_COMBAT ] );
-					if( Random( 100 ) >= Random( 100 ) ) // give a chance for either to go first
-						EnterCombatMode( OUR_TEAM );
+					if (!((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT)))
+						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_FTM_ENTER_COMBAT ] );
+
+					// r8544
+					// Flugente 2018-03-11: this part is problematic. If the enemy enters combat first, it is possible for enemy groups 
+					// that are already present to be counted as pending
+					// reinforcements, causing them to spawn at the edges of a sector instead.
+					// I am thus changing this so that the player team always gets the first turn if combat has not yet been started
+					if (CHEATER_CHEAT_LEVEL() || !(gTacticalStatus.uiFlags & INCOMBAT))
+						EnterCombatMode(OUR_TEAM);
 					else
-						EnterCombatMode( ENEMY_TEAM );
+						EnterCombatMode(ENEMY_TEAM);
 				}
 			}
 		}

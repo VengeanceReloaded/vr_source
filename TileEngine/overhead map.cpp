@@ -1536,20 +1536,23 @@ void RenderOverheadOverlays()
 			sY += iOffsetVertical;
 		}
 
-		#ifdef JA2EDITOR
+#ifdef JA2EDITOR
 		if( gfEditMode && gpSelected && gpSelected->pSoldier == pSoldier )
 		{ //editor:	show the selected edited merc as the yellow one.
 			Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, 0 );
 		}
 		else
-		#endif
+#endif
 		if( !gfTacticalPlacementGUIActive )
-		{ //normal
+		{ 
+			//normal
 			if(is_networked)
 			{
 				if(pSoldier->bTeam != OUR_TEAM)
 				{
-					if(pSoldier->bSide==1)
+					// r8553
+					//if(pSoldier->bSide==1)
+					if (pSoldier->bSide == 1 || pSoldier->bSide == 3)
 					{
 						// Civ (white)
 						if (pSoldier->bTeam == CIV_TEAM)
@@ -1583,8 +1586,21 @@ void RenderOverheadOverlays()
 					Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, MILITIA_TEAM );
 				else if ( pSoldier->bTeam == CIV_TEAM && gGameExternalOptions.fKnownNPCsUseDifferentColour && pSoldier->aiData.bNeutral && pSoldier->ubProfile != NO_PROFILE && !zHiddenNames[pSoldier->ubProfile].Hidden )
 					Blt8BPPDataTo16BPPBufferTransparent( (UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, PLAYER_PLAN );
+				// r8553
+				//else
+				//	Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, pSoldier->bTeam );
+				// Flugente 18-04-15: observed an odd bug: if we play with a release build and see a creature for the first time, 
+				// their overhead/radar map pins do not have the correct colour.
+				// Bizarrely enough, the issue seems dependent on the colour value (pink, RGB: 255/0/255) itself.
+				// Saving and reloading solves the issue, but I am not sure why. As a fix we now use a slightly dampened pink.
+				else if (pSoldier->bTeam == CREATURE_TEAM)
+				{
+					Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, 12);
+				}
 				else
-					Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, pSoldier->bTeam );
+				{
+					Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, pSoldier->bTeam);
+				}
 
 				RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, sX, sY, (INT16)(sX + 3), (INT16)(sY + 9));
 			}
@@ -1609,13 +1625,18 @@ void RenderOverheadOverlays()
 			RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, (INT16)(sX-2), (INT16)(sY-2), (INT16)(sX + 5), (INT16)(sY + 11));
 		}
 		else
-		{ //normal
+		{ 
+			//normal
 			if(is_networked)
 			{
 				if(pSoldier->bTeam!=0)
 				{
-					if(pSoldier->bSide==1)
-						continue;//dont render enemy
+					// r8553
+					//if(pSoldier->bSide==1)
+					if (pSoldier->bSide == 1 || pSoldier->bSide == 3)
+					{
+						continue; //dont render enemy
+					}
 
 					// Green
 					// Other clients
@@ -1625,12 +1646,17 @@ void RenderOverheadOverlays()
 						Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, personIndex );
 					}
 				}
-				else 
+				else
+				{
 					// Color depends on the bTeam
-					Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, pSoldier->bTeam );
+					Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, pSoldier->bTeam);
+				}
 			}
 			else
-			Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, pSoldier->bTeam );
+			{
+				Blt8BPPDataTo16BPPBufferTransparent((UINT16*)pDestBuf, uiDestPitchBYTES, hVObject, sX, sY, pSoldier->bTeam);
+			}
+			
 			RegisterBackgroundRect(BGND_FLAG_SINGLE, NULL, sX, sY, (INT16)(sX + 3), (INT16)(sY + 9));
 		}
 

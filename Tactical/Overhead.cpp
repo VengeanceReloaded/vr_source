@@ -111,6 +111,7 @@
 #include "bullets.h"
 #include "Inventory Choosing.h"			// added by Flugente for TakeMilitiaEquipmentfromSector()
 #include "CampaignStats.h"				// added by Flugente
+#include "Creature Spreading.h"			// added by Flugente forResetCreatureAttackVariables()
 #endif
 #include "connect.h"
 
@@ -7053,18 +7054,22 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
         //Whenever returning TRUE, make sure you clear gfBlitBattleSectorLocator;
         LogBattleResults( LOG_DEFEAT );
         gfBlitBattleSectorLocator = FALSE;
+
+		// r8559
+		// Flugente: in any case, reset creature attack variables
+		ResetCreatureAttackVariables();
+
 		// If we are the server, we escape this function at the top if we think the game should still be running
         // hence if we get here the game is over for all clients and we should report it
         if (is_networked && is_server)
             game_over();
+
         return( TRUE );
     }
-
 
     // If battle won, do stuff right away!
     if ( fBattleWon )
     {
-
         if ( gTacticalStatus.bBoxingState == NOT_BOXING ) // if boxing don't do any of this stuff
         {
             gTacticalStatus.fLastBattleWon = TRUE;
@@ -7250,7 +7255,6 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
             HandleMilitiaStatusInCurrentMapBeforeLoadingNewMap();
             //gfStrategicMilitiaChangesMade = TRUE;
 
-
             // Loop through all militia and restore them to peaceful status
             cnt = gTacticalStatus.Team[ MILITIA_TEAM ].bFirstID;
             for ( pTeamSoldier = MercPtrs[ cnt ]; cnt <= gTacticalStatus.Team[ MILITIA_TEAM ].bLastID; cnt++,pTeamSoldier++)
@@ -7327,17 +7331,21 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
         //Whenever returning TRUE, make sure you clear gfBlitBattleSectorLocator;
         gfBlitBattleSectorLocator = FALSE;
 
-
         // Kaiden: More UB Reveal All Items after combat code.
         //When all the enemy gets killed, reveal the items they dropped
         //But only if the option is turned ON.
         if(gGameExternalOptions.gfRevealItems)
             RevealAllDroppedEnemyItems();
+
+		// r8559
+		// Flugente: in any case, reset creature attack variables
+		ResetCreatureAttackVariables();
 		
         // If we are the server, we escape this function at the top if we think the game should still be running
         // hence if we get here the game is over for all clients and we should report it
         if (is_networked && is_server)
             game_over();
+
         return( TRUE );
     }
     // If we are the server, we escape this function at the top if we think the game should still be running

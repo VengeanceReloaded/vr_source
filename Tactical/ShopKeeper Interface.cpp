@@ -3382,7 +3382,7 @@ UINT8		ubItemsNotCounted = 0; //ja25 UB
 			if ( gpSMCurrentMerc->GetBackgroundValue(BG_PERC_PRICES_GUNS) )
 				iDiscountValue = INT32(uiItemPrice[ubCnt]) * gpSMCurrentMerc->GetBackgroundValue(BG_PERC_PRICES_GUNS) / 100;
 			// if we play without backgrounds, Flo gets the hardcoded bonus
-			else if ( gpSMCurrentMerc->ubProfile == FLO )
+			else if (!gGameOptions.fBackGround && gpSMCurrentMerc->ubProfile == FLO)
 				iDiscountValue = uiItemPrice[ubCnt] * FLO_DISCOUNT_PERCENTAGE / 100;
 
 			// she gets a discount!  Read her M.E.R.C. profile to understand why

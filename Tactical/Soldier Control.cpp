@@ -15886,7 +15886,7 @@ BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
 
 	// hack: if this is attacking us at this very moment by punching, do not recognize him...
 	// this resolves the problem that we attack someone from behind and kill him instantly, but the game mechanic forces him to turn before
-	// only allow this if we are not yet alerted (we are suprised, so we don't recognize him in the moment of the attack)
+	// only allow this if we are not yet alerted (we are surprised, so we don't recognize him in the moment of the attack)
 	// also: only allow if he's next to us
 	if ( this->aiData.bAlertStatus < STATUS_RED && pSoldier->ubTargetID == this->ubID )
 	{
