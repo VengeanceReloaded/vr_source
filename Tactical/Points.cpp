@@ -910,6 +910,12 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 		}
 	}
 
+	// switch off radio if we cannot use it anymore
+	if (pSoldier->IsUsingRadio() && !pSoldier->CanUseRadio(FALSE))
+	{
+		pSoldier->SwitchOffRadio();
+	}
+
 	// in real time, there IS no AP cost, (only breath cost)
 	if (!(gTacticalStatus.uiFlags & TURNBASED) || !(gTacticalStatus.uiFlags & INCOMBAT ) )
 	{

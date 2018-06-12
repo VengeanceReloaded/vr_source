@@ -1768,7 +1768,6 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 		return;
 	}
 
-
 	//Update the position of the group
 	pGroup->ubPrevX = pGroup->ubSectorX;
 	pGroup->ubPrevY = pGroup->ubSectorY;
@@ -1777,6 +1776,14 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 	pGroup->ubNextX = 0;
 	pGroup->ubNextY = 0;
 
+	// sevenfm: GROUNDBARRIER fix
+	if (!pGroup->fPlayer && !pGroup->ubGroupSize)
+	{
+		RemovePGroup(pGroup);
+		fMapPanelDirty = TRUE;
+		fMapScreenBottomDirty = TRUE;
+		return;
+	}
 
 	if( pGroup->fPlayer )
 	{
@@ -5652,21 +5659,13 @@ BOOLEAN ScoutIsPresentInSquad( INT16 ubSectorNumX, INT16 ubSectorNumY )
 			MercPtrs[ i ]->stats.bLife >= OKLIFE &&
 			MercPtrs[ i ]->sSectorX == ubSectorNumX &&
 			MercPtrs[ i ]->sSectorY == ubSectorNumY &&			
-			MercPtrs[ i ]->bAssignment < ON_DUTY &&			
+			(MercPtrs[i]->bAssignment < ON_DUTY || MercPtrs[i]->bAssignment == VEHICLE) &&
 			!MercPtrs[ i ]->flags.fMercAsleep &&			
 			HAS_SKILL_TRAIT( MercPtrs[ i ], SCOUTING_NT ) )
 		{
 			fScoutPresent = TRUE;
 		}
 	}
-
-	//MercPtrs[ i ]->bAssignment != ASSIGNMENT_POW &&
-	//MercPtrs[ i ]->bAssignment != IN_TRANSIT &&
-	//MercPtrs[ i ]->bAssignment != ASSIGNMENT_DEAD &&
-	//MercPtrs[ i ]->bAssignment != VEHICLE &&
-	//MercPtrs[ i ]->iVehicleId != iHelicopterVehicleId &&
-	//!MercPtrs[ i ]->flags.fBetweenSectors &&
-	//!(MercPtrs[ i ]->flags.uiStatusFlags & SOLDIER_VEHICLE) &&			
 
 	return ( fScoutPresent );
 }

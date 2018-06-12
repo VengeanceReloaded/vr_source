@@ -5072,6 +5072,8 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 			DeductPoints(pSoldier, GetAPsToWatch(pSoldier), 0, 0);
 			pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 1;
 			DirtyMercPanelInterface( pSoldier, DIRTYLEVEL1 );
+			// update vision
+			HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 
 			return TRUE;
 		}		

@@ -3425,12 +3425,21 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 				}
 			}
 
-						// WDS 07/19/2008 - Random number use fix
+			// WDS 07/19/2008 - Random number use fix
 			// Do we have the chance to steal more than 1 item?
 			// SANDRO - taking items from collapsed soldiers is treated differently
 			// Flugente: if we are on the same team, allow guaranteed full access
-			if ( AllowedToStealFromTeamMate(pSoldier->ubID, pTargetSoldier->ubID) || ( fSoldierCollapsed || (!gGameExternalOptions.fEnhancedCloseCombatSystem && iDiceRoll < (iHitChance * 2 / 3))) && pSoldier->bTeam == gbPlayerNum )
+			// otherwise, if we are the player, we can steal multiple items if the other guy is collapsed, or we are succesful, and
+			// if using fEnhancedCloseCombatSystem, only allow this if the other guy is not alerted
+			if (AllowedToStealFromTeamMate(pSoldier->ubID, pTargetSoldier->ubID) ||
+				(pSoldier->bTeam == gbPlayerNum &&
+				(fSoldierCollapsed ||
+				(iDiceRoll < (iHitChance * 2 / 3) &&
+				(!gGameExternalOptions.fEnhancedCloseCombatSystem ||
+				pTargetSoldier->aiData.bAlertStatus < STATUS_RED)))))
 			{
+				fStealAttempt = TRUE;
+
 				// first, charge extra Aps, because it's difficlut to pickup from other soldier
 				if (gGameExternalOptions.fEnhancedCloseCombatSystem)
 					DeductPoints( pSoldier, (GetBasicAPsToPickupItem( pSoldier ) * 2), 0, AFTERACTION_INTERRUPT );
@@ -3686,6 +3695,13 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 							StatChange( pSoldier, DEXTAMT, 10, FALSE );
 							StatChange( pSoldier, AGILAMT, 10, FALSE );
 						}
+
+						// r8526
+						if (!fStealAttempt || pTargetSoldier->aiData.bAlertStatus >= STATUS_RED)
+						{
+							// anv: enemy taunt on getting robbed
+							PossiblyStartEnemyTaunt(pTargetSoldier, TAUNT_GOT_ROBBED, pSoldier->ubID);
+						}
 					}
 					else
 					{
@@ -3718,20 +3734,19 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 				}
 			}
 
-			// SANDRO - Enhanced Close Combat System - Notice merc after stealing
-			// sevenfm: don't turn when lying prone
-			if (gGameExternalOptions.fEnhancedCloseCombatSystem && gAnimControl[ pTargetSoldier->usAnimState ].ubEndHeight != ANIM_PRONE)
-				pTargetSoldier->EVENT_SetSoldierDesiredDirection( GetDirectionFromGridNo( pSoldier->sGridNo, pTargetSoldier ) );
+			// Flugente: no turning if the other guy doesn't notice us...
+			if (fFailure || !fStealAttempt || pTargetSoldier->aiData.bAlertStatus >= STATUS_RED)
+			{
+				// SANDRO - Enhanced Close Combat System - Notice merc after stealing
+				// sevenfm: don't turn when lying prone
+				if (gGameExternalOptions.fEnhancedCloseCombatSystem && gAnimControl[pTargetSoldier->usAnimState].ubEndHeight != ANIM_PRONE)
+				{
+					pTargetSoldier->EVENT_SetSoldierDesiredDirection(GetDirectionFromGridNo(pSoldier->sGridNo, pTargetSoldier));
+				}
 
-			// 0verhaul:  Also handled in the animation transition
-			// #ifdef JA2BETAVERSION
-			//	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("@@@@@@@ Freeing up attacker - steal") );
-			// #endif
-			// FreeUpAttacker( (UINT8) pSoldier->ubID );
-
-			// anv: enemy taunt on steal
-			PossiblyStartEnemyTaunt( pSoldier, TAUNT_STEAL, pTargetSoldier->ubID );
-
+				// anv: enemy taunt on steal
+				PossiblyStartEnemyTaunt(pSoldier, TAUNT_STEAL, pTargetSoldier->ubID);
+			}
 		}
 
 		// -----------------------------------
@@ -3964,7 +3979,6 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 	{
 		pSoldier->aiData.bMonsterSmell--;
 	}
-
 
 	return( TRUE );
 }

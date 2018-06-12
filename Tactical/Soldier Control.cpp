@@ -17418,6 +17418,18 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 	if ( this->stats.bLife < OKLIFE )
 		this->SwitchOffRadio();
 
+	// switch off radio listening if soldier is unconscious
+	if (this->bCollapsed && this->IsRadioListening())
+	{
+		this->SwitchOffRadio();
+	}
+
+	// if for some reason we cannot use radio anymore, switch off
+	if (this->IsUsingRadio() && !this->CanUseRadio(FALSE))
+	{
+		this->SwitchOffRadio();
+	}
+
 	// if we are an enemy radio operator, and we are jamming frequencies, there is a slight chance that we set off remote-controlled bombs/defuses!
 	if ( !gSkillTraitValues.fVOJammingBlocksRemoteBombs && gSkillTraitValues.fVOEnemyVOSetsOffRemoteBombs && this->bTeam == ENEMY_TEAM && IsJamming() && Chance(5) )
 		SetOffBombsByFrequency( this->ubID, 1 + Random(8) );
@@ -18496,6 +18508,16 @@ BOOLEAN SOLDIERTYPE::SwitchOffRadio()
 	return TRUE;
 }
 
+BOOLEAN SOLDIERTYPE::IsUsingRadio()
+{
+	if (usSoldierFlagMask & (SOLDIER_RADIO_OPERATOR_JAMMING | SOLDIER_RADIO_OPERATOR_SCANNING | SOLDIER_RADIO_OPERATOR_LISTENING))
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 // display and error sound used either when the radio set fails or the sector is jammed - the player knows of the error, but cannot be sure of the cause
 void
 SOLDIERTYPE::RadioFail()
@@ -18671,9 +18693,8 @@ BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 	// stop any multi-turn action
 	CancelMultiTurnAction(FALSE);
 	
-	// sevenfm: additional visual effects
-	//DirtyMercPanelInterface( this, DIRTYLEVEL1 );
-	//BeginMultiPurposeLocator(sTargetGridNo, this->pathing.bLevel, FALSE);
+	// sevenfm: update vision
+	HandleSight(this, SIGHT_LOOK | SIGHT_INTERRUPT);
 
 	return TRUE;
 }

@@ -3507,6 +3507,14 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 		// skip ourselves
 		if (pFriend->ubID == pSoldier->ubID)
 			continue;
+
+		// this is not for tanks
+		if (TANK(pFriend))
+			return FALSE;
+
+		// skip if this guy is dead
+		if (pFriend->stats.bLife < OKLIFE)
+			continue;
 				
 		// if we're not already neighbors
 		if (SpacesAway(pSoldier->sGridNo, pFriend->sGridNo) < range)

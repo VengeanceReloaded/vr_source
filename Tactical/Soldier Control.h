@@ -1829,6 +1829,7 @@ public:
 	BOOLEAN IsScanning();
 	BOOLEAN ScanForJam();
 	BOOLEAN IsRadioListening();
+	BOOLEAN IsUsingRadio();
 	BOOLEAN RadioListen();
 	BOOLEAN RadioCallReinforcements( UINT32 usSector, UINT16 sNumber );
 	BOOLEAN SwitchOffRadio();
