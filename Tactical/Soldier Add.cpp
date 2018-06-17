@@ -1047,7 +1047,7 @@ INT32 FindRandomGridNoFromSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, 
 // Flugente: I've altered this function in two ways:
 // 1. The gridno is now drawn from the entirety of the circle - not just for sX and sY being positive
 // 2. The direction now points to sSweetGridNo, center of the circle, instead of the map center
-INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, INT8 ubRadius, UINT8 *pubDirection )
+/*INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, INT8 ubRadius, UINT8 *pubDirection )
 {
 	INT16	sX, sY;
 	INT32	sGridNo = NOWHERE;
@@ -1106,19 +1106,6 @@ INT32 FindRandomGridNoBetweenCircles( INT32 sCenterGridNo, UINT8 uInnerRadius, U
 
 	do
 	{
-		/*sX = (UINT16)Random( 2 * (uOuterRadius - uInnerRadius) ) - (uOuterRadius - uInnerRadius);
-		sY = (UINT16)Random( 2 * (uOuterRadius - uInnerRadius) ) - (uOuterRadius - uInnerRadius);
-
-		if ( sX > 0 )
-			sX += uInnerRadius;
-		else
-			sX -= uInnerRadius;
-
-		if ( sY > 0 )
-			sY += uInnerRadius;
-		else
-			sY -= uInnerRadius;*/
-
 		sX = (UINT16)Random( 2 * uOuterRadius ) - uOuterRadius;
 		sY = (UINT16)Random( 2 * uOuterRadius ) - uOuterRadius;
 		
@@ -1150,9 +1137,9 @@ INT32 FindRandomGridNoBetweenCircles( INT32 sCenterGridNo, UINT8 uInnerRadius, U
 	urDirection = (UINT8)GetDirectionToGridNoFromGridNo( sGridNo, sCenterGridNo );
 
 	return(sGridNo);
-}
+}*/
 
-/*INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, INT8 ubRadius, UINT8 *pubDirection )
+INT32 FindRandomGridNoFromSweetSpotExcludingSweetSpot( SOLDIERTYPE *pSoldier, INT32 sSweetGridNo, INT8 ubRadius, UINT8 *pubDirection )
 {
 	INT16		sX, sY;
 	INT32	sGridNo = NOWHERE;
@@ -1197,8 +1184,7 @@ INT32 FindRandomGridNoBetweenCircles( INT32 sCenterGridNo, UINT8 uInnerRadius, U
 	*pubDirection =	(UINT8)GetDirectionToGridNoFromGridNo( sGridNo, ( ( ( WORLD_ROWS / 2 ) * WORLD_COLS ) + ( WORLD_COLS / 2 ) ) );
 
 	return( sGridNo );
-
-}*/
+}
 
 
 BOOLEAN InternalAddSoldierToSector( UINT8 ubID, BOOLEAN fCalculateDirection, BOOLEAN fUseAnimation, UINT16 usAnimState, UINT16 usAnimCode )

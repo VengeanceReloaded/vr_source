@@ -771,7 +771,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 		}
 
 		// Flugente: if this is an enemy, and we are using ambush code, place us somewhat away from the map center, where the player will be
-		if ( (tempDetailedPlacement.bTeam == ENEMY_TEAM && gubEnemyEncounterCode == ENEMY_AMBUSH_CODE) || 
+		/*if ( (tempDetailedPlacement.bTeam == ENEMY_TEAM && gubEnemyEncounterCode == ENEMY_AMBUSH_CODE) || 
 			(tempDetailedPlacement.bTeam == CREATURE_TEAM && gubEnemyEncounterCode == BLOODCAT_AMBUSH_CODE) )
 		{
 			// sevenfm: improved ambush
@@ -794,7 +794,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 				// have the soldier look inward. We add + 100 because later on we use this to signify that we want really enforce this direction
 				tempDetailedPlacement.ubDirection = (UINT8)GetDirectionToGridNoFromGridNo( tempDetailedPlacement.sInsertionGridNo, gMapInformation.sCenterGridNo ) + 100;
 			}
-		}
+		}*/
 	}
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("AddPlacementToWorld: create soldier"));

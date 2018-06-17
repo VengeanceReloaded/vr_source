@@ -3379,16 +3379,17 @@ void UpdateMercsInSector( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ )
 							(gubEnemyEncounterCode == ENEMY_AMBUSH_CODE || gubEnemyEncounterCode == BLOODCAT_AMBUSH_CODE) && pSoldier->bTeam != CIV_TEAM )
 					{
 						// Flugente: improved ambush
-						UINT8 ubDirection;
+						/*UINT8 ubDirection;
 
 						pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
 						pSoldier->usStrategicInsertionData = FindRandomGridNoFromSweetSpotExcludingSweetSpot( pSoldier, gMapInformation.sCenterGridNo, DAY_VISION_RANGE / 4, &ubDirection );
 
 						// have the merc look outward. We add + 100 because later on we use this to signify that we want really enforce this direction
 						pSoldier->ubInsertionDirection = (UINT8)GetDirectionToGridNoFromGridNo( gMapInformation.sCenterGridNo, pSoldier->usStrategicInsertionData ) + 100;
+						*/
 
-						/*pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
-						pSoldier->usStrategicInsertionData = gMapInformation.sCenterGridNo;*/
+						pSoldier->ubStrategicInsertionCode = INSERTION_CODE_GRIDNO;
+						pSoldier->usStrategicInsertionData = gMapInformation.sCenterGridNo;
 					}
 					else if( gfOverrideInsertionWithExitGrid )
 					{
