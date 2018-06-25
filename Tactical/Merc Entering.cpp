@@ -40,6 +40,8 @@
 	#include "Tactical Save.h"
 	// HEADROCK HAM 3.5: Need this to see if enemies present at starting sector
 	#include "Overhead.h"
+	// sevenfm
+	#include "opplist.h"
 #endif
 
 #ifdef JA2UB
@@ -932,6 +934,8 @@ void HandleFirstHeliDropOfGame( )
 
 	// Send message to turn on ai again....
 	CharacterDialogueWithSpecialEvent( 0, 0, 0, DIALOGUE_TACTICAL_UI , FALSE , FALSE , DIALOGUE_SPECIAL_EVENT_ENABLE_AI ,0, 0 );
+	// sevenfm: look around
+	AllTeamsLookForAll(TRUE);
 }
 
 

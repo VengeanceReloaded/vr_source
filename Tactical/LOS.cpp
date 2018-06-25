@@ -2034,6 +2034,10 @@ INT32 SoldierToSoldierLineOfSightTest( SOLDIERTYPE * pStartSoldier, SOLDIERTYPE 
 	// TO ADD: if in tear gas, reduce sight limit to 2 tiles
 	CHECKF( pStartSoldier );
 	CHECKF( pEndSoldier );
+	if (TileIsOutOfBounds(pStartSoldier->sGridNo) || TileIsOutOfBounds(pEndSoldier->sGridNo))
+	{
+		return 0;
+	}
 	fOk = CalculateSoldierZPos( pStartSoldier, LOS_POS, &dStartZPos );
 	CHECKF( fOk );
 
@@ -2196,6 +2200,12 @@ INT32 SoldierToLocationWindowTest( SOLDIERTYPE * pStartSoldier, INT32 sEndGridNo
 	INT32			iRet;
 
 	CHECKF( pStartSoldier );
+
+	if (TileIsOutOfBounds(sEndGridNo) || TileIsOutOfBounds(pStartSoldier->sGridNo))
+	{
+		return 0;
+	}
+
 	dStartZPos = FixedToFloat( ((gqStandardWindowTopHeight + gqStandardWindowBottomHeight) / 2) );
 	if (pStartSoldier->pathing.bLevel > 0)
 	{ // on a roof
@@ -2225,9 +2235,13 @@ INT32 SoldierTo3DLocationLineOfSightTest( SOLDIERTYPE * pStartSoldier, INT32 sGr
 
 	CHECKF( pStartSoldier );
 
+	if (TileIsOutOfBounds(sGridNo) || TileIsOutOfBounds(pStartSoldier->sGridNo))
+	{
+		return 0;
+	}
+
 	fOk = CalculateSoldierZPos( pStartSoldier, LOS_POS, &dStartZPos );
 	CHECKF( fOk );
-
 
 	if (bCubeLevel > 0)
 	{
@@ -2269,6 +2283,11 @@ INT32 SoldierToVirtualSoldierLineOfSightTest( SOLDIERTYPE * pStartSoldier, INT32
 	BOOLEAN					fOk;
 
 	CHECKF( pStartSoldier );
+
+	if (TileIsOutOfBounds(sGridNo) || TileIsOutOfBounds(pStartSoldier->sGridNo))
+	{
+		return 0;
+	}
 
 	fOk = CalculateSoldierZPos( pStartSoldier, LOS_POS, &dStartZPos );
 	CHECKF( fOk );
@@ -2314,6 +2333,14 @@ INT32 LocationToLocationLineOfSightTest( INT32 sStartGridNo, INT8 bStartLevel, I
 	FLOAT						dStartZPos, dEndZPos;
 	INT16						sStartXPos, sStartYPos, sEndXPos, sEndYPos;
 	//UINT8						ubStartID;
+
+	// sevenfm: r8404
+	// Bob: prevent access violation 
+	if (TileIsOutOfBounds(sStartGridNo) || TileIsOutOfBounds(sEndGridNo))
+	{
+		// ScreenMsg(FONT_MCOLOR_LTRED, MSG_INTERFACE, L"LocationToLocationLineOfSightTest: Caught bad LOS check!");
+		return 0;
+	}
 
 	// sevenfm: always use standing heights
 	/*ubStartID = WhoIsThere2( sStartGridNo, bStartLevel );
@@ -2660,6 +2687,13 @@ BOOLEAN BulletHitMerc( BULLET * pBullet, STRUCTURE * pStructure, BOOLEAN fIntend
 			// shouldn't happen but
 			iImpact = 0;
 		}
+
+		// sevenfm: reduce sHitBy when shooting beyond weapon range
+		if (pBullet->iLoop > pBullet->iRange)
+		{
+			sHitBy = sHitBy * pBullet->iRange / max(1, pBullet->iLoop);
+		}
+
 		// HEADROCK HAM 5: Added argument
 		iDamage = BulletImpact( pFirer, pBullet, pTarget, ubHitLocation, iImpact, sHitBy, &ubSpecial );
 		// handle hit here...
@@ -6146,8 +6180,9 @@ void MoveBullet( INT32 iBullet )
 		// HEADROCK HAM 5: Fragments have 100% Chance to Hit.
 		if (pBullet->fFragment == TRUE)
 		{
-			fIntended = TRUE;
-			uiChanceOfHit = 100;
+			// sevenfm: disable
+			//fIntended = TRUE;
+			//uiChanceOfHit = 100;
 		}
 		//check for structures at target, and calc chance to hit
 		//hayden, disable any structure t avoid collision

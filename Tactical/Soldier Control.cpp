@@ -10101,10 +10101,12 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sPo
 		}
 	}
 
-	// OK, if here, let's see if we should drop our weapon....
-	if ( ubReason != TAKE_DAMAGE_BLOODLOSS && !(AM_A_ROBOT( this )) )
+	// OK, if here, let's see if we should drop our weapon....	
+	// sevenfm: civilians with profile should not drop items from hand as it may break quests
+	//if ( ubReason != TAKE_DAMAGE_BLOODLOSS && !(AM_A_ROBOT( this )) )
+	if (ubReason != TAKE_DAMAGE_BLOODLOSS && !AM_A_ROBOT(this) && !(this->bTeam == CIV_TEAM && this->ubProfile != NO_PROFILE))
 	{
-		INT16 sTestOne, sTestTwo, sChanceToDrop;
+		INT16	sTestOne, sTestTwo, sChanceToDrop;
 		INT8	bVisible = -1;
 
 		sTestOne = EffectiveStrength( this, FALSE );

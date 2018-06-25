@@ -27,7 +27,7 @@
 #define OK_CONTROL_MERC( p ) ( p->stats.bLife >= OKLIFE && p->bActive && p->bInSector && p->bTeam == gbPlayerNum )
 
 // Checkf if our guy can be selected and is not in a position where our team has an interupt and he does not have one...
-#define OK_INTERRUPT_MERC( p ) ( ( INTERRUPT_QUEUED != 0 ) ? ( ( p->aiData.bMoved ) ? FALSE : TRUE ) : TRUE )
+#define OK_INTERRUPT_MERC( p ) ( ( INTERRUPT_QUEUED ) ? ( ( p->aiData.bMoved ) ? FALSE : TRUE ) : TRUE )
 
 #define CREATURE_OR_BLOODCAT( p ) ( (p->flags.uiStatusFlags & SOLDIER_MONSTER) || p->ubBodyType == BLOODCAT )
 

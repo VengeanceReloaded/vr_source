@@ -1885,25 +1885,25 @@ FLOAT CalculateLaunchItemAngle( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubHe
 	return( dAngle );
 }
 
-
-
-void CalculateLaunchItemBasicParams( SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, INT32 sGridNo, UINT8 ubLevel, INT16 sEndZ,  FLOAT *pdMagForce, FLOAT *pdDegrees, INT32 *psFinalGridNo, BOOLEAN fArmed )
+void CalculateLaunchItemBasicParams(SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, INT32 sGridNo, UINT8 ubLevel, INT16 sEndZ, FLOAT *pdMagForce, FLOAT *pdDegrees, INT32 *psFinalGridNo, BOOLEAN fArmed)
 {
-	INT32		sInterGridNo = NOWHERE;
-	INT16		sStartZ;
-	FLOAT		dMagForce, dMaxForce, dMinForce;
-	FLOAT		dDegrees, dNewDegrees;
-	BOOLEAN	fThroughIntermediateGridNo = FALSE;
+	INT32	sInterGridNo = NOWHERE;
+	INT16	sStartZ;
+	FLOAT	dMagForce, dMaxForce, dMinForce;
+	FLOAT	dDegrees, dNewDegrees;
 	UINT16	usLauncher;
 	BOOLEAN	fIndoors = FALSE;
-	BOOLEAN	fLauncher = FALSE;
-	BOOLEAN	fMortar		= FALSE;
+	BOOLEAN	fMortar = FALSE;
 	BOOLEAN	fGLauncher = FALSE;
-	INT16		sMinRange = 0;
+	INT16	sMinRange = 0, sRange;
 
 	// Start with default degrees/ force
 	dDegrees = OUTDOORS_START_ANGLE;
-	sStartZ	= GET_SOLDIER_THROW_HEIGHT( pSoldier->pathing.bLevel );
+
+	if (gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_STAND)
+		sStartZ = GET_SOLDIER_THROW_HEIGHT(pSoldier->pathing.bLevel);
+	else
+		sStartZ = GET_THROW_HEIGHT(pSoldier->pathing.bLevel) + (INT16)CROUCHED_HEIGHT;
 
 	// Are we armed, and are we throwing a LAUNCHABLE?
 
@@ -1912,8 +1912,8 @@ void CalculateLaunchItemBasicParams( SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, I
 	//MM: Replacement:
 	OBJECTTYPE *pObj = NULL;
 	usLauncher = 0;
-	pObj = pSoldier->GetUsedWeapon( &pSoldier->inv[pSoldier->ubAttackingHand] );
-	if ( pObj != NULL )
+	pObj = pSoldier->GetUsedWeapon(&pSoldier->inv[pSoldier->ubAttackingHand]);
+	if (pObj != NULL)
 	{
 		if (Item[pObj->usItem].usItemClass == IC_LAUNCHER)
 			usLauncher = pObj->usItem;
@@ -1922,51 +1922,55 @@ void CalculateLaunchItemBasicParams( SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, I
 			usLauncher = GetAttachedGrenadeLauncher(pObj);
 		}
 	}
-	if ( usLauncher == 0) // fail back to the original
-		usLauncher = GetLauncherFromLaunchable( pItem->usItem );
+	if (usLauncher == 0) // fail back to the original
+		usLauncher = GetLauncherFromLaunchable(pItem->usItem);
 
-
-	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("physics.cpp line 1741"));
-	if ( fArmed && ( Item[usLauncher].mortar || Item[pItem->usItem].mortar ) )
+	DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("physics.cpp line 1741"));
+	if (fArmed && (Item[usLauncher].mortar || Item[pItem->usItem].mortar))
 	{
 		// Start at 0....
-		sStartZ = ( pSoldier->pathing.bLevel * 256 );
+		sStartZ = (pSoldier->pathing.bLevel * 256);
 		fMortar = TRUE;
 		sMinRange = MIN_MORTAR_RANGE;
-		//fLauncher = TRUE;
 	}
-	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("physics.cpp line 1750"));
+	DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("physics.cpp line 1750"));
 
-	if ( fArmed && ( Item[usLauncher].grenadelauncher || Item[pItem->usItem].grenadelauncher ) )
+	if (fArmed && (Item[usLauncher].grenadelauncher || Item[pItem->usItem].grenadelauncher))
 	{
 		// OK, look at target level and decide angle to use...
-		if ( ubLevel == 1 )
+		if (ubLevel > pSoldier->pathing.bLevel)
 		{
-			dDegrees	= GLAUNCHER_HIGHER_LEVEL_START_ANGLE;
+			dDegrees = GLAUNCHER_HIGHER_LEVEL_START_ANGLE;
 		}
 		else
 		{
-			dDegrees	= GLAUNCHER_START_ANGLE;
+			dDegrees = GLAUNCHER_START_ANGLE;
 		}
-		fGLauncher = TRUE;
-		sMinRange	= MIN_MORTAR_RANGE/2;
 
-		if ( (gGameSettings.fOptions[TOPTION_GL_HIGH_ANGLE] && pSoldier->bTeam == OUR_TEAM) || ( pSoldier->bTeam == ENEMY_TEAM && gGameOptions.ubDifficultyLevel >= DIF_LEVEL_HARD ) )
-			dDegrees *= 2;
-		//fLauncher = TRUE;
+		sRange = (INT16)GetRangeInCellCoordsFromGridNoDiff(pSoldier->sGridNo, sGridNo);
+
+		if (sRange > 250)
+			dDegrees = dDegrees * 2;
+		else if (sRange > 150)
+			dDegrees = dDegrees * 3 / 2;
+		else if (sRange < 100 && ubLevel <= pSoldier->pathing.bLevel)
+			dDegrees = dDegrees / 2;
+
+		fGLauncher = TRUE;
+		sMinRange = MIN_MORTAR_RANGE / 2;
 	}
 
 	// CHANGE DEGREE VALUES BASED ON IF WE ARE INSIDE, ETC
 	// ARE WE INSIDE?
 
-	if ( gfCaves || gfBasement	)
+	if ((gfCaves || gfBasement) && !fMortar && !fGLauncher)
 	{
 		// Adjust angle....
 		dDegrees = INDOORS_START_ANGLE;
 		fIndoors = TRUE;
 	}
 
-	if ( ( IsRoofPresentAtGridNo( pSoldier->sGridNo ) ) && pSoldier->pathing.bLevel == 0 )
+	if (IsRoofPresentAtGridNo(pSoldier->sGridNo) &&	pSoldier->pathing.bLevel == 0 && !fMortar && !fGLauncher)
 	{
 		// Adjust angle....
 		dDegrees = INDOORS_START_ANGLE;
@@ -1974,120 +1978,44 @@ void CalculateLaunchItemBasicParams( SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, I
 	}
 
 	// IS OUR TARGET INSIDE?
-	if ( IsRoofPresentAtGridNo( sGridNo ) && ubLevel == 0 )
+	if (IsRoofPresentAtGridNo(sGridNo) && ubLevel == 0 && !fMortar && !fGLauncher)
 	{
 		// Adjust angle....
 		dDegrees = INDOORS_START_ANGLE;
 		fIndoors = TRUE;
 	}
 
+	// Find force for basic
+	FindBestForceForTrajectory(pSoldier->sGridNo, sGridNo, sStartZ, sEndZ, dDegrees, pItem, psFinalGridNo, &dMagForce);
 
-	// OK, look if we can go through a windows here...
-	if ( ubLevel == 0 )
-	{
-		sInterGridNo = SoldierToLocationWindowTest( pSoldier, sGridNo );
+	// Adjust due to max range....
+	dMaxForce = CalculateSoldierMaxForce(pSoldier, dDegrees, pItem, fArmed);
 
-		// Lesh: fixing nasty freeze when throwing item through window
-		// sometimes SoldierToLocationWindowTest returns same value as pSoldier->sGridNo
-		// this leads to fault in FindBestAngleForTrajectory function and it subroutines loops
-		// supplied by invalid data
-		if ( pSoldier->sGridNo == sInterGridNo )
-		{
-			// bad news - i can't throw item at myself
-			// so use dir incrementer
-			UINT8	ubDir = atan8( CenterX(pSoldier->sGridNo), CenterY(pSoldier->sGridNo), CenterX(sGridNo), CenterY(sGridNo) );
-			sInterGridNo += DirIncrementer[ubDir];
-		}
-	}
-	else
+	if (fIndoors)
 	{
-		sInterGridNo = NOWHERE;
-	}
-	
-	if (!TileIsOutOfBounds(sInterGridNo))
-	{
-		// IF so, adjust target height, gridno....
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_TESTVERSION, L"Through a window!" );
-
-		fThroughIntermediateGridNo = TRUE;
+		dMaxForce = dMaxForce * 2;
 	}
 
-	if ( !fLauncher )
+	if (dMagForce > dMaxForce)
 	{
-		// Find force for basic
-		FindBestForceForTrajectory( pSoldier->sGridNo, sGridNo, sStartZ, sEndZ, dDegrees, pItem, psFinalGridNo, &dMagForce );
-
-		// Adjust due to max range....
-		dMaxForce	= CalculateSoldierMaxForce( pSoldier, dDegrees, pItem, fArmed );
-
-		if ( fIndoors )
-		{
-			dMaxForce = dMaxForce * 2;
-		}
-
-		if ( dMagForce > dMaxForce )
-		{
-			dMagForce = dMaxForce;
-		}
-
-		// ATE: If we are a mortar, make sure we are at min.
-		if ( fMortar || fGLauncher )
-		{
-			// find min force
-			dMinForce = CalculateForceFromRange( pItem->usItem, (INT16)( sMinRange / 10 ), (FLOAT)( PI / 4 ) );
-
-			if ( dMagForce < dMinForce )
-			{
-				dMagForce = dMinForce;
-			}
-		}
-
-		if ( fThroughIntermediateGridNo )
-		{
-			// Given this power, now try and go through this window....
-			dDegrees = FindBestAngleForTrajectory( pSoldier->sGridNo, sInterGridNo, GET_SOLDIER_THROW_HEIGHT( pSoldier->pathing.bLevel ), 150, dMagForce, pItem, psFinalGridNo );
-		}
-	}
-	else
-	{
-		// Use MAX force, vary angle....
-		dMagForce	= CalculateSoldierMaxForce( pSoldier, dDegrees, pItem, fArmed );
-
-		if ( ubLevel == 0 )
-		{
-			dMagForce		=	(float)( dMagForce * 1.25 );
-		}
-
-		FindTrajectory( pSoldier->sGridNo, sGridNo, sStartZ, sEndZ, dMagForce, dDegrees, pItem, psFinalGridNo );
-
-		if ( ubLevel == 1 && !fThroughIntermediateGridNo )
-		{
-			// Is there a guy here...?
-			if ( WhoIsThere2( sGridNo, ubLevel ) != NOBODY )
-			{
-				dMagForce		=	(float)( dMagForce * 0.85 );
-
-				// Yep, try to get angle...
-				dNewDegrees = FindBestAngleForTrajectory( pSoldier->sGridNo, sGridNo, GET_SOLDIER_THROW_HEIGHT( pSoldier->pathing.bLevel ), 150, dMagForce, pItem, psFinalGridNo );
-
-				if ( dNewDegrees != 0 )
-				{
-					dDegrees = dNewDegrees;
-				}
-			}
-		}
-
-		if ( fThroughIntermediateGridNo )
-		{
-			dDegrees = FindBestAngleForTrajectory( pSoldier->sGridNo, sInterGridNo, GET_SOLDIER_THROW_HEIGHT( pSoldier->pathing.bLevel ), 150, dMagForce, pItem, psFinalGridNo );
-		}
+		dMagForce = dMaxForce;
 	}
 
+	// ATE: If we are a mortar, make sure we are at min.
+	if (fMortar || fGLauncher)
+	{
+		// find min force
+		dMinForce = CalculateForceFromRange(pItem->usItem, (INT16)(sMinRange / 10), (FLOAT)(PI / 4));
+
+		if (dMagForce < dMinForce)
+		{
+			dMagForce = dMinForce;
+		}
+	}
 
 	(*pdMagForce) = dMagForce;
-	(*pdDegrees )	= dDegrees;
+	(*pdDegrees) = dDegrees;
 }
-
 
 BOOLEAN CalculateLaunchItemChanceToGetThrough( SOLDIERTYPE *pSoldier, OBJECTTYPE *pItem, INT32 sGridNo, UINT8 ubLevel, INT16 sEndZ,	INT32 *psFinalGridNo, BOOLEAN fArmed, INT8 *pbLevel, BOOLEAN fFromUI )
 {
