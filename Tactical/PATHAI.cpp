@@ -3101,6 +3101,16 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 				}
 			}
 
+			// sevenfm: neutral civilians avoid all mines
+			if ((gpWorldLevelData[newLoc].uiFlags & (MAPELEMENT_ENEMY_MINE_PRESENT | MAPELEMENT_PLAYER_MINE_PRESENT)) &&
+				s->bTeam == CIV_TEAM &&
+				s->ubCivilianGroup == NON_CIV_GROUP &&
+				//s->aiData.bNeutral &&
+				s->ubProfile == NO_PROFILE)
+			{
+				goto NEXTDIR;
+			}
+
 			// sevenfm: skip deep water if not in deep water already
 			if( !(s->flags.uiStatusFlags & SOLDIER_PC) &&
 				s->ubProfile == NO_PROFILE &&

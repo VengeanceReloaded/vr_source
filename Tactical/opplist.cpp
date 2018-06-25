@@ -3401,7 +3401,8 @@ void InitOpponentKnowledgeSystem(void)
 
 void InitSoldierOppList(SOLDIERTYPE *pSoldier)
 {
-	memset(pSoldier->aiData.bOppList,NOT_HEARD_OR_SEEN,sizeof(pSoldier->aiData.bOppList));
+	//memset(pSoldier->aiData.bOppList,NOT_HEARD_OR_SEEN,sizeof(pSoldier->aiData.bOppList));
+	memset(pSoldier->aiData.bOppList, NOT_HEARD_OR_SEEN, MAX_NUM_SOLDIERS);
 	pSoldier->aiData.bOppCnt = 0;
 	ResetLastKnownLocs(pSoldier);
 	memset(gbSeenOpponents[pSoldier->ubID],0,TOTAL_SOLDIERS);
@@ -3413,45 +3414,39 @@ void BetweenTurnsVisibilityAdjustments(void)
 	INT32 cnt;
 	SOLDIERTYPE *pSoldier;
 
-
 	// make all soldiers on other teams that are no longer seen not visible
-	for (cnt = 0, pSoldier = Menptr; cnt < MAXMERCS; cnt++,pSoldier++)
+	//for (cnt = 0, pSoldier = Menptr; cnt < MAXMERCS; cnt++,pSoldier++)
+	for (cnt = 0, pSoldier = Menptr; cnt < TOTAL_SOLDIERS; cnt++, pSoldier++)
 	{
 		if (pSoldier->bActive && pSoldier->bInSector && pSoldier->stats.bLife)
 		{
 			BOOLEAN SEE_MENT = FALSE;
 
 #ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
-		if(is_networked &&  pSoldier->bSide == 0)//haydent
-		{
-			//stay visible
-		}
-		else
-#endif
-		{
-			
-			if (gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
-			{if (!PTR_OURTEAM && pSoldier->bTeam != MILITIA_TEAM)
-			SEE_MENT = TRUE;
+			if (is_networked &&  pSoldier->bSide == 0)//haydent
+			{
+				//stay visible
 			}
 			else
-			{ if (!PTR_OURTEAM) SEE_MENT = TRUE;
-			}
-
-		}//haydent
-			
-/*comm by ddd
-#ifdef WE_SEE_WHAT_MILITIA_SEES_AND_VICE_VERSA
-			if (!PTR_OURTEAM && pSoldier->bTeam != MILITIA_TEAM)
-#else
-			if (!PTR_OURTEAM)
 #endif
-				*/
+			{
 
-			if(SEE_MENT)
+				if (gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
+				{
+					if (!PTR_OURTEAM && pSoldier->bTeam != MILITIA_TEAM)
+						SEE_MENT = TRUE;
+				}
+				else
+				{
+					if (!PTR_OURTEAM) SEE_MENT = TRUE;
+				}
+
+			}//haydent
+
+			if (SEE_MENT)
 			{
 				// check if anyone on our team currently sees him (exclude NOBODY)
-				if (TeamNoLongerSeesMan(gbPlayerNum,pSoldier,NOBODY,0))
+				if (TeamNoLongerSeesMan(gbPlayerNum, pSoldier, NOBODY, 0))
 				{
 					// then our team has lost sight of him
 					pSoldier->bVisible = -1;		// make him fully invisible

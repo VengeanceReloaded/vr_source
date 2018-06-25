@@ -1389,6 +1389,13 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 								sActionGridNo =  FindAdjacentGridEx( pSoldier, sGridNo, &ubDirection, &sAdjustedGridNo, TRUE, FALSE );
 								if ( sActionGridNo != -1 )
 								{
+									// sevenfm: change from stationary/patrol etc
+									pTMilitiaSoldier->aiData.bOrders = FARPATROL;
+									pTMilitiaSoldier->aiData.bAttitude = DEFENSIVE;
+
+									// sevenfm: set this spot as original point
+									pTMilitiaSoldier->aiData.sPatrolGrid[0] = pSoldier->sGridNo;
+
 									// SEND PENDING ACTION
 									//pTMilitiaSoldier->ubPendingAction = MERC_STEAL;
 									pTMilitiaSoldier->aiData.sPendingActionData2  = pSoldier->sGridNo;
@@ -1477,6 +1484,10 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 						{
 							INT16 sActionGridNo;
 							INT32 iDummy;						
+
+							// sevenfm: make soldier defensive to take cover instead of attacking
+							pTMilitiaSoldier->aiData.bAttitude = DEFENSIVE;
+							pTMilitiaSoldier->aiData.bAIMorale = MORALE_WORRIED;
 
 							//sActionGridNo =  FindBestNearbyCover(pTMilitiaSoldier,pTMilitiaSoldier->aiData.bAIMorale,&iDummy);
 							sActionGridNo =  FindBestNearbyCover(pTMilitiaSoldier,MORALE_WORRIED,&iDummy);
@@ -1664,6 +1675,13 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 									sActionGridNo =  FindAdjacentGridEx( pSoldier, sGridNo, &ubDirection, &sAdjustedGridNo, TRUE, FALSE );
 									if ( sActionGridNo != -1 )
 									{
+										// sevenfm: change from stationary/patrol etc
+										pTeamSoldier->aiData.bOrders = FARPATROL;
+										pTeamSoldier->aiData.bAttitude = DEFENSIVE;
+
+										// sevenfm: set this spot as original point
+										pTeamSoldier->aiData.sPatrolGrid[0] = pSoldier->sGridNo;
+
 										// SEND PENDING ACTION
 										pTeamSoldier->aiData.sPendingActionData2  = pSoldier->sGridNo;
 										//pTeamSoldier->bPendingActionData3  = ubDirection;
@@ -1710,6 +1728,8 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 						{
 							if ( (pTeamSoldier->bActive) && (pTeamSoldier->bInSector) && (pTeamSoldier->stats.bLife >= OKLIFE) )
 							{
+								// sevenfm: change from stationary/patrol etc
+								pTeamSoldier->aiData.bOrders = FARPATROL;
 
 								// See if we can get there
 								sActionGridNo =  RandDestWithinRange( pTeamSoldier );
@@ -1829,6 +1849,10 @@ void MilitiaControlMenuBtnCallBack( MOUSE_REGION * pRegion, INT32 iReason )
 						{
 							if ( (pTeamSoldier->bActive) && (pTeamSoldier->bInSector) && (pTeamSoldier->stats.bLife >= OKLIFE) )
 							{
+								// sevenfm: make soldier defensive to take cover instead of attacking
+								pTeamSoldier->aiData.bAttitude = DEFENSIVE;
+								pTeamSoldier->aiData.bAIMorale = MORALE_WORRIED;
+
 								// See if we can get there
 								//sActionGridNo =  FindBestNearbyCover(pTeamSoldier,pTeamSoldier->aiData.bAIMorale,&iDummy);
 								sActionGridNo =  FindBestNearbyCover(pTeamSoldier,MORALE_WORRIED,&iDummy);
