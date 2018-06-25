@@ -2443,6 +2443,8 @@ void SoldierGetItemFromWorld( SOLDIERTYPE *pSoldier, INT32 iItemIndex, INT32 sGr
 	{
 		//deduct Points
 		DeductPoints( pSoldier, sAPCost, 0 );
+		// sevenfm: update flashlights
+		pSoldier->HandleFlashLights();
 	}
 
 	// OK, check if potentially a good candidate for cool quote

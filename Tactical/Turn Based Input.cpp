@@ -8501,6 +8501,8 @@ void HandleTacticalDropItem( UINT8 ubSlot )
 		SoldierDropItem( pSoldier, &pSoldier->inv[ ubSlot ] );
 		DeleteObj( &(pSoldier->inv[ ubSlot ]) );
 	}
+
+	pSoldier->HandleFlashLights();
 }
 
 void HandleTacticalTakeItem( void )

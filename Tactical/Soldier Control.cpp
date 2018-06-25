@@ -10155,12 +10155,15 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sPo
 						//add a flag to the item so when all enemies are killed, we can run through and reveal all the enemies items
 						usItemFlags |= WORLD_ITEM_DROPPED_FROM_ENEMY;
 					}
-					if(UsingNewAttachmentSystem()==true){
+					if(UsingNewAttachmentSystem()==true)
+					{
 						ReduceAttachmentsOnGunForNonPlayerChars(this, &(this->inv[ HANDPOS ]));
 					}
 					AddItemToPool( this->sGridNo, &(this->inv[ HANDPOS ]), bVisible, this->pathing.bLevel, usItemFlags, -1 ); //Madd: added usItemFlags to function arguments
 					DeleteObj( &(this->inv[HANDPOS]) );
 				}
+				// set flag to update flashlight
+				this->usSoldierFlagMask |= SOLDIER_REDOFLASHLIGHT;
 			}
 		}
 	}
@@ -10283,7 +10286,14 @@ UINT8 SOLDIERTYPE::SoldierTakeDamage( INT8 bHeight, INT16 sLifeDeduct, INT16 sPo
 	{
 		DecayIndividualOpplist( this );
 	}
-	
+
+	// sevenfm: stop flashlights on death
+	if( this->stats.bLife < OKLIFE )
+	{
+		// set flag to update flashlight
+		this->usSoldierFlagMask |= SOLDIER_REDOFLASHLIGHT;
+	}
+
 #ifdef JA2UB	
 	//if the attacker is MORRIS, AND he didnt kill the person
 	if( Menptr[ ubAttacker ].ubProfile == MORRIS_UB )	//MORRIS
@@ -17083,105 +17093,104 @@ void SOLDIERTYPE::HandleFlashLights()
 	// no more need to redo this check
 	this->usSoldierFlagMask &= ~SOLDIER_REDOFLASHLIGHT;
 
-	// we must be active and in a sector (not travelling) in a valid position
-	if ( !bActive || !bInSector || TileIsOutOfBounds(this->sGridNo) )
+	// we must be active and in a sector (not traveling) in a valid position
+	if (!bActive || !bInSector)
+	{
 		return;
+	}
 
-	// no flashlight stuff if it isn't night, and we aren't underground
-	if ( !NightTime() && !gbWorldSectorZ )
-		return;
-
-	// take note of wether we changed light
+	// take note of whether we changed light
 	BOOLEAN fLightChanged = FALSE;
 
 	// remove existing lights we 'own'
-	if ( this->usSoldierFlagMask & SOLDIER_LIGHT_OWNER )
+	if (this->usSoldierFlagMask & SOLDIER_LIGHT_OWNER)
 	{
-		RemovePersonalLights( this->ubID );
-
+		RemovePersonalLights(this->ubID);
 		this->usSoldierFlagMask &= ~SOLDIER_LIGHT_OWNER;
-
 		fLightChanged = TRUE;
 	}
-			
+
 	// not possible to get this bonus on a roof, due to our lighting system
-	if ( !this->pathing.bLevel )
+	if (this->pathing.bLevel == 0 &&
+		!TileIsOutOfBounds(this->sGridNo) &&
+		this->stats.bLife >= OKLIFE &&
+		(NightLight() || gbWorldSectorZ))
 	{
 		UINT8 flashlightrange = this->GetBestEquippedFlashLightRange();
 
 		// if no flashlight is found, this will be 0
-		if ( flashlightrange )
+		if (flashlightrange)
 		{
 			// the range at which we create additional light sources to the side
-			UINT8 firstexpand  = 8;
+			UINT8 firstexpand = 8;
 			UINT8 secondexpand = 12;
 
 			// depending on our direction, alter range
-			if ( this->ubDirection == NORTHEAST || this->ubDirection == NORTHWEST || this->ubDirection == SOUTHEAST || this->ubDirection == SOUTHWEST )
+			if (this->ubDirection == NORTHEAST || this->ubDirection == NORTHWEST || this->ubDirection == SOUTHEAST || this->ubDirection == SOUTHWEST)
 			{
-				flashlightrange = sqrt( (FLOAT)flashlightrange*(FLOAT)flashlightrange / 2.0f );
-				firstexpand		= sqrt( (FLOAT)firstexpand*(FLOAT)firstexpand / 2.0f );
-				secondexpand	= sqrt( (FLOAT)secondexpand*(FLOAT)secondexpand / 2.0f );
+				flashlightrange = sqrt((FLOAT)flashlightrange*(FLOAT)flashlightrange / 2.0f);
+				firstexpand = sqrt((FLOAT)firstexpand*(FLOAT)firstexpand / 2.0f);
+				secondexpand = sqrt((FLOAT)secondexpand*(FLOAT)secondexpand / 2.0f);
 			}
 
 			// we determine the height of the next tile in our direction. Because of the way structures are handled, we sometimes have to take the very tile we're occupying right now
 			INT32 nextGridNoinSight = this->sGridNo;
 
-			for(UINT8 i = 0; i < flashlightrange; ++i)
+			for (UINT8 i = 0; i < flashlightrange; ++i)
 			{
-				nextGridNoinSight = NewGridNo( nextGridNoinSight, DirectionInc( this->ubDirection ) );
+				nextGridNoinSight = NewGridNo(nextGridNoinSight, DirectionInc(this->ubDirection));
 
-				if ( SoldierToVirtualSoldierLineOfSightTest( this, nextGridNoinSight, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE ) )
-					CreatePersonalLight( nextGridNoinSight, this->ubID );
+				if (SoldierToVirtualSoldierLineOfSightTest(this, nextGridNoinSight, this->pathing.bLevel, gAnimControl[this->usAnimState].ubEndHeight, FALSE))
+					CreatePersonalLight(nextGridNoinSight, this->ubID);
 
 				// after a certain range, add new lights to the side to simulate a light cone
-				if ( i > firstexpand )
+				if (i > firstexpand)
 				{
 					INT8 sidedir1 = (this->ubDirection + 2) % NUM_WORLD_DIRECTIONS;
 					INT8 sidedir2 = (this->ubDirection - 2) % NUM_WORLD_DIRECTIONS;
 
-					INT32 sideGridNo1 = NewGridNo( nextGridNoinSight, DirectionInc( sidedir1 ) );
-					sideGridNo1 = NewGridNo( sideGridNo1, DirectionInc( sidedir1 ) );
+					INT32 sideGridNo1 = NewGridNo(nextGridNoinSight, DirectionInc(sidedir1));
+					sideGridNo1 = NewGridNo(sideGridNo1, DirectionInc(sidedir1));
 
-					if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo1, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
-						CreatePersonalLight( sideGridNo1, this->ubID );
+					if (SoldierToVirtualSoldierLineOfSightTest(this, sideGridNo1, this->pathing.bLevel, gAnimControl[this->usAnimState].ubEndHeight, FALSE, NO_DISTANCE_LIMIT))
+						CreatePersonalLight(sideGridNo1, this->ubID);
 
-					if ( i > secondexpand )
+					if (i > secondexpand)
 					{
-						sideGridNo1 = NewGridNo( sideGridNo1, DirectionInc( sidedir1 ) );
+						sideGridNo1 = NewGridNo(sideGridNo1, DirectionInc(sidedir1));
 
-						if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo1, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
-							CreatePersonalLight( sideGridNo1, this->ubID );
+						if (SoldierToVirtualSoldierLineOfSightTest(this, sideGridNo1, this->pathing.bLevel, gAnimControl[this->usAnimState].ubEndHeight, FALSE, NO_DISTANCE_LIMIT))
+							CreatePersonalLight(sideGridNo1, this->ubID);
 					}
 
-					INT32 sideGridNo2 = NewGridNo( nextGridNoinSight, DirectionInc( sidedir2 ) );
-					sideGridNo2 = NewGridNo( sideGridNo2, DirectionInc( sidedir2 ) );
+					INT32 sideGridNo2 = NewGridNo(nextGridNoinSight, DirectionInc(sidedir2));
+					sideGridNo2 = NewGridNo(sideGridNo2, DirectionInc(sidedir2));
 
-					if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo2, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
-						CreatePersonalLight( sideGridNo2, this->ubID );
+					if (SoldierToVirtualSoldierLineOfSightTest(this, sideGridNo2, this->pathing.bLevel, gAnimControl[this->usAnimState].ubEndHeight, FALSE, NO_DISTANCE_LIMIT))
+						CreatePersonalLight(sideGridNo2, this->ubID);
 
-					if ( i > secondexpand )
+					if (i > secondexpand)
 					{
-						sideGridNo2 = NewGridNo( sideGridNo2, DirectionInc( sidedir2 ) );
+						sideGridNo2 = NewGridNo(sideGridNo2, DirectionInc(sidedir2));
 
-						if ( SoldierToVirtualSoldierLineOfSightTest( this, sideGridNo2, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, NO_DISTANCE_LIMIT ) )
-							CreatePersonalLight( sideGridNo2, this->ubID );
+						if (SoldierToVirtualSoldierLineOfSightTest(this, sideGridNo2, this->pathing.bLevel, gAnimControl[this->usAnimState].ubEndHeight, FALSE, NO_DISTANCE_LIMIT))
+							CreatePersonalLight(sideGridNo2, this->ubID);
 					}
 				}
 			}
 
 			// take note: we own a light source
 			this->usSoldierFlagMask |= SOLDIER_LIGHT_OWNER;
-
 			fLightChanged = TRUE;
 		}
-	}	
-	
-	if ( fLightChanged )
+	}
+
+	if (fLightChanged)
 	{
 		// refresh sight for everybody
-		AllTeamsLookForAll( TRUE );
-		
+		//AllTeamsLookForAll( TRUE );
+		HandleSight(this, SIGHT_LOOK | SIGHT_INTERRUPT);
+
 		SetRenderFlags(RENDER_FLAG_FULL);
 	}
 }

@@ -7019,9 +7019,11 @@ void DecayIndividualOpplist(SOLDIERTYPE *pSoldier)
 				HandleManNoLongerSeen( pSoldier, MercPtrs[ uiLoop ], &(pSoldier->aiData.bOppList[ uiLoop ]), &(gbPublicOpplist[ pSoldier->bTeam ][ uiLoop ]) );
 			}
 		}
-	//void HandleManNoLongerSeen( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pOpponent, INT8 * pPersOL, INT8 * pbPublOL )
+		//void HandleManNoLongerSeen( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pOpponent, INT8 * pPersOL, INT8 * pbPublOL )
 
-		memset(pSoldier->aiData.bOppList,NOT_HEARD_OR_SEEN,sizeof(pSoldier->aiData.bOppList));
+		//memset(pSoldier->aiData.bOppList,NOT_HEARD_OR_SEEN,sizeof(pSoldier->aiData.bOppList));
+		memset(pSoldier->aiData.bOppList, NOT_HEARD_OR_SEEN, MAX_NUM_SOLDIERS);
+
 		pSoldier->aiData.bOppCnt = 0;
 		return;
 	}
