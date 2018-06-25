@@ -6445,6 +6445,10 @@ BOOLEAN HandleDefiniteUnloadingOfWorld( UINT8 ubUnloadCode )
 
 	RemoveAllActiveTimedBombs();
 
+	// r8026
+	// Flugente: remove any marker that an explosion is active but has not yet occurred (to be used when leaving a sector)
+	RemoveActiveExplosionMarkers();
+
 	// handle any quest stuff here so world items can be affected
 	HandleQuestCodeOnSectorExit( gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
 

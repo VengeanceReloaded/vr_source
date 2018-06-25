@@ -553,8 +553,8 @@ BUILDING * GenerateBuilding( INT32 sDesiredSpot )
 	// something that has gone pear shaped
 	if(uiLoop2 >= WORLD_MAX)
 	{
-		UINT8 x = 0;
-		UINT8 y = 0;
+		INT32 x = 0;
+		INT32 y = 0;
 		while((sDesiredSpot - ((y + 1) * WORLD_COLS)) >= 0)
 		{
 			y++;

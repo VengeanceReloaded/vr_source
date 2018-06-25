@@ -1985,6 +1985,9 @@ void SetAttributes( void )
 		if ( iHealthMinimum > gGameExternalOptions.iMaxAttribute )
 			iHealthMinimum = gGameExternalOptions.iMaxAttribute;
 
+		// Flugente: make sure we have at least OKLIFE hp, otherwise we'll be useless
+		iHealthMinimum = max(OKLIFE, iHealthMinimum);
+
 		iCurrentHealth = iHealthMinimum; 
 		iCurrentBonusPoints -= iHealthMinimum;
 
@@ -2078,7 +2081,7 @@ void SetAttributes( void )
 		iStrengthMinimum = gGameExternalOptions.iMinAttribute;
 		iAgilityMinimum	 = gGameExternalOptions.iMinAttribute;
 		iDexterityMinimum	= gGameExternalOptions.iMinAttribute;
-		iHealthMinimum		= gGameExternalOptions.iMinAttribute;
+		iHealthMinimum = max(OKLIFE, gGameExternalOptions.iMinAttribute);
 		iLeaderShipMinimum	= gGameExternalOptions.iMinAttribute;
 		iWisdomMinimum		= gGameExternalOptions.iMinAttribute;
 		
