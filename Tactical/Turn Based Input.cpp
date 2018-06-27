@@ -3969,7 +3969,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				}
 				else
 				{
-					if ( gGameSettings.fOptions[TOPTION_GL_HIGH_ANGLE] )
+					/*if ( gGameSettings.fOptions[TOPTION_GL_HIGH_ANGLE] )
 					{
 						gGameSettings.fOptions[TOPTION_GL_HIGH_ANGLE] = FALSE;
 						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_GL_LOW_ANGLE ] );
@@ -3978,7 +3978,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 					{
 						gGameSettings.fOptions[TOPTION_GL_HIGH_ANGLE] = TRUE;
 						ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, pMessageStrings[ MSG_GL_HIGH_ANGLE ] );
-					}
+					}*/
 				}
 				break;
 			

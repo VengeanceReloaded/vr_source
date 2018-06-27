@@ -12548,10 +12548,6 @@ void GunIncreaseHeat( OBJECTTYPE *pObj, SOLDIERTYPE* pSoldier )
 		  FLOAT newguntemperature = min(guntemperature + singleshottemperature, OVERHEATING_MAX_TEMPERATURE );					// ... calculate new temperature ...
 
 		  (*pObj)[0]->data.bTemperature = newguntemperature;									// ... apply new temperature
-
-#ifdef JA2TESTVERSION
-		  ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Gun temperature increased from %4.2f to %4.2f", guntemperature, newguntemperature );
-#endif
 		}
 	}
 
