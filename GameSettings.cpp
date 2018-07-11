@@ -2271,6 +2271,8 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubChangePaletteLevel		= iniReader.ReadInteger("Extended Options", "CHANGE_PALETTE_LEVEL", 50, 10, 100);
 	gGameExternalOptions.fExtendedItemImages		= iniReader.ReadBoolean("Extended Options", "EXTENDED_ITEM_IMAGES", FALSE, FALSE);
 	gGameExternalOptions.fExtraItems				= iniReader.ReadBoolean("Extended Options", "EXTRA_ITEMS", true, false);
+	gGameExternalOptions.fRedTracer					= iniReader.ReadBoolean("Extended Options", "RED_TRACER", TRUE);
+	gGameExternalOptions.fTracerLight				= iniReader.ReadBoolean("Extended Options", "TRACER_LIGHT", TRUE);
 }
 
 

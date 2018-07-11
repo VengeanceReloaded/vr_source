@@ -368,7 +368,12 @@ void UpdateBullets( )
 					
 					else
 					{
-						pNode = AddStructToTail( gBullets[ uiCount ].sGridNo, BULLETTILE1 );
+						// sevenfm: red tracers
+						if (gBullets[uiCount].fTracer && gGameExternalOptions.fRedTracer)
+							pNode = AddStructToTail(gBullets[uiCount].sGridNo, BULLETTILE2);
+						else
+							pNode = AddStructToTail(gBullets[uiCount].sGridNo, BULLETTILE1);
+
 						pNode->ubShadeLevel=DEFAULT_SHADE_LEVEL;
 						pNode->ubNaturalShadeLevel=DEFAULT_SHADE_LEVEL;
 						pNode->uiFlags |= ( LEVELNODE_USEABSOLUTEPOS | LEVELNODE_IGNOREHEIGHT );
@@ -377,8 +382,9 @@ void UpdateBullets( )
 						pNode->sRelativeZ = (INT16) CONVERT_HEIGHTUNITS_TO_PIXELS( FIXEDPT_TO_INT32( gBullets[ uiCount ].qCurrZ ) );
 
 						//afp-start - add new tail /tracer
-						// HEADROCK HAM 5: No tail for fragments.				
-						if (gGameSettings.fOptions[TOPTION_ALTERNATE_BULLET_GRAPHICS] && gBullets[ uiCount ].fFragment == false)	
+						// HEADROCK HAM 5: No tail for fragments.
+						// sevenfm: red tracers
+						if ((gGameSettings.fOptions[TOPTION_ALTERNATE_BULLET_GRAPHICS] || gBullets[uiCount].fTracer && gGameExternalOptions.fRedTracer) && gBullets[uiCount].fFragment == false)
 						{
   							if ((lastX != 0)  || (lastY != 0))
 							{
@@ -403,12 +409,16 @@ void UpdateBullets( )
 
 								for (int i = 0; i < BULLET_TRACER_MAX_LENGTH; i++)
 								{
-									if (gXPATH[i] == 0)
-										if (gYPATH[i] == 0)
-											break;
+									if (gXPATH[i] == 0 && gYPATH[i] == 0)
+										break;
 									
 									// add all points along the path between bullets as bullets
-									pNode = AddStructToTail( gBullets[ uiCount ].sGridNo, BULLETTILE1 );
+									// sevenfm:red tracers
+									if (gBullets[uiCount].fTracer && gGameExternalOptions.fRedTracer)
+										pNode = AddStructToTail(gBullets[uiCount].sGridNo, BULLETTILE2);
+									else
+										pNode = AddStructToTail(gBullets[uiCount].sGridNo, BULLETTILE1);
+
 									pNode->ubShadeLevel=DEFAULT_SHADE_LEVEL;
 									pNode->ubNaturalShadeLevel=DEFAULT_SHADE_LEVEL;
 									pNode->uiFlags |= ( LEVELNODE_USEABSOLUTEPOS | LEVELNODE_IGNOREHEIGHT );
@@ -425,7 +435,8 @@ void UpdateBullets( )
 						//afp-end
 						// Display shadow
 						// afp - no more shadow if tracer enabled
-						if (!gGameSettings.fOptions[TOPTION_ALTERNATE_BULLET_GRAPHICS])	
+						// sevenfm: disable shadow as it's used for tracers
+						/*if (!gGameSettings.fOptions[TOPTION_ALTERNATE_BULLET_GRAPHICS])	
 						{
 							pNode = AddStructToTail( gBullets[ uiCount ].sGridNo, BULLETTILE2 );
 							pNode->ubShadeLevel=DEFAULT_SHADE_LEVEL;
@@ -434,7 +445,7 @@ void UpdateBullets( )
 							pNode->sRelativeX	= (INT16) FIXEDPT_TO_INT32( gBullets[ uiCount ].qCurrX );
 							pNode->sRelativeY	= (INT16) FIXEDPT_TO_INT32( gBullets[ uiCount ].qCurrY );
 							pNode->sRelativeZ = (INT16)gpWorldLevelData[ gBullets[ uiCount ].sGridNo ].sHeight;
-						}
+						}*/
 					}
 				}
 			}
@@ -537,31 +548,25 @@ void AddMissileTrail( BULLET *pBullet, FIXEDPT qCurrX, FIXEDPT qCurrY, FIXEDPT q
 	// The condition now reads that flag and creates a lightshow only for tracer bullets. This flag is only
 	// used if the new Tracer System is on.
 	// else if (fTracer == TRUE)
-	else if ((gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && pBullet->fTracer == TRUE) || (gGameExternalOptions.ubRealisticTracers == 0 && fTracer == TRUE))
+	else if (gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && pBullet->fTracer == TRUE || 
+			gGameExternalOptions.ubRealisticTracers == 0 && fTracer == TRUE)
 	{
 		INT16 sXPos, sYPos;
 
-		strcpy( AniParams.zCachedFile, "TILECACHE\\BULLET_TRACER.STI" );
-		AniParams.uiFlags |= ANITILE_LIGHT;
-		AniParams.sDelay							= 10000; // Test this out
-
-		if (!pBullet->pAniTile)
+		if (gGameExternalOptions.fTracerLight)
 		{
-			pBullet->pAniTile = CreateAnimationTile( &AniParams );
-		}
+			strcpy(AniParams.zCachedFile, "TILECACHE\\BULLET_TRACER.STI");
+			AniParams.uiFlags |= ANITILE_LIGHT;
+			AniParams.sDelay = 10000; // Test this out
 
-		ConvertGridNoToCenterCellXY( pBullet->sGridNo, &sXPos, &sYPos );
-		LightSpritePosition( pBullet->pAniTile->lightSprite, (INT16)(sXPos/CELL_X_SIZE), (INT16)(sYPos/CELL_Y_SIZE));
-
-#if 0
-		if ( pBullet->pFirer->pathing.bLevel > 0 ) // if firer on roof then
-		{
-			if ( FindBuilding(AniParams.sGridNo) != NULL ) // if this spot is still within the building's grid area
+			if (!pBullet->pAniTile)
 			{
-				LightSpritePower( pBullet->pAniTile->lightSprite, FALSE);
+				pBullet->pAniTile = CreateAnimationTile(&AniParams);
 			}
+
+			ConvertGridNoToCenterCellXY(pBullet->sGridNo, &sXPos, &sYPos);
+			LightSpritePosition(pBullet->pAniTile->lightSprite, (INT16)(sXPos / CELL_X_SIZE), (INT16)(sYPos / CELL_Y_SIZE));
 		}
-#endif
 
 		return;
 	}

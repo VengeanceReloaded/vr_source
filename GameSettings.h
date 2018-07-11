@@ -1466,6 +1466,8 @@ typedef struct
 	UINT8	ubChangePaletteLevel;
 	BOOLEAN fExtendedItemImages;
 	BOOLEAN fExtraItems;
+	BOOLEAN fRedTracer;
+	BOOLEAN fTracerLight;
 
 } GAME_EXTERNAL_OPTIONS;
 

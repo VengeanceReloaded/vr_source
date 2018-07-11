@@ -5526,25 +5526,6 @@ INT8 FireBulletGivenTargetTrapOnly( SOLDIERTYPE* pThrower, OBJECTTYPE* pObj, INT
 		ubSpreadIndex = 2;
 	}
 
-	// no option to use fire bursts or autofire yet
-	/*// HEADROCK HAM B2.5: Set tracer effect on/off for individual bullets in a Tracer Magazine, as part of the
-	// New Tracer System.
-	else if (gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && (pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0)
-		&& AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
-	{
-		UINT16 iBulletsLeft, iBulletsPerTracer;
-		iBulletsPerTracer = gGameExternalOptions.ubNumBulletsPerTracer;
-		iBulletsLeft = (*pObjAttHand)[0]->data.gun.ubGunShotsLeft + pFirer->bDoBurst;
-
-		if ((((iBulletsLeft - (pFirer->bDoBurst - 1)) / iBulletsPerTracer) - ((iBulletsLeft - pFirer->bDoBurst) / iBulletsPerTracer)) == 1)
-		{
-			fTracer = TRUE;
-		}
-		else
-		{
-			fTracer = FALSE;
-		}
-	}*/
 	else if ( AmmoTypes[ (*pObj)[0]->data.gun.ubGunAmmoType ].tracerEffect && gGameSettings.fOptions[ TOPTION_TRACERS_FOR_SINGLE_FIRE ] )
 	{
 		//usBulletFlags |= BULLET_FLAG_TRACER;
@@ -5849,27 +5830,6 @@ INT8 FireBulletGivenTargetTrapOnly( SOLDIERTYPE* pThrower, OBJECTTYPE* pObj, INT
 						
 		pBullet->bStartCubesAboveLevelZ = (INT8) CONVERT_HEIGHTUNITS_TO_INDEX( (INT32)dStartZ );
 		pBullet->bEndCubesAboveLevelZ = (INT8) CONVERT_HEIGHTUNITS_TO_INDEX( (INT32)dEndZ );
-
-		// HEADROCK HAM BETA2.5: New method for signifying whether a bullet is a tracer or not, using an individual
-		// bullet structure flag. Hehehehe, I think this is kind of reverting to old code, isn't it?
-		/*if (gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && (pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0)
-			&& AmmoTypes[ (*pObj)[0]->data.gun.ubGunAmmoType ].tracerEffect )
-		{
-			UINT16 iBulletsLeft, iBulletsPerTracer;
-			iBulletsPerTracer = gGameExternalOptions.ubNumBulletsPerTracer;
-			iBulletsLeft = (*pObj)[0]->data.gun.ubGunShotsLeft + pFirer->bDoBurst;
-
-			// Is this specific bullet a tracer? - based on how many tracers there are per regular bullets in
-			// a tracer magazine (INI-settable).
-			if ((((iBulletsLeft - (pFirer->bDoBurst - 1)) / iBulletsPerTracer) - ((iBulletsLeft - pFirer->bDoBurst) / iBulletsPerTracer)) == 1)
-			{
-				pBullet->fTracer = TRUE;
-			}
-			else
-			{
-				pBullet->fTracer = FALSE;
-			}
-		}*/
 				
 		if(is_client)send_bullet( pBullet, pObj->usItem );
 		FireBullet( pThrower->ubID, pBullet, FALSE );
