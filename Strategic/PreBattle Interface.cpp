@@ -48,6 +48,7 @@
 	#include "Tactical Save.h"
 	#include "message.h"
 	#include "CampaignStats.h"				// added by Flugente
+	#include "SkillCheck.h"					// added by Flugente
 #endif
 
 #ifdef JA2UB

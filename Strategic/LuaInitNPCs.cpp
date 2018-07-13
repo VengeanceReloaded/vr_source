@@ -2791,8 +2791,6 @@ SOLDIERTYPE * FindSoldierByProfileID2( UINT8 ubProfileID, BOOLEAN fPlayerMercsOn
 
 BOOLEAN FindSoldier( SOLDIERTYPE **ppSoldier, UINT16 usSoldierIndex, BOOLEAN fPlayerMercsOnly)
 {
-	SOLDIERTYPE	 Menptr[ TOTAL_SOLDIERS ];
-
 	*ppSoldier = NULL;
 
 	if ( usSoldierIndex < 0 || usSoldierIndex > TOTAL_SOLDIERS-1 )
@@ -11900,13 +11898,17 @@ static int l_SetStartMission(lua_State *L)
 		if (i == 1 ) idMission = lua_tointeger(L,i);
 	}
 	
-	if ( idMission != -1 ) 
+	if (idMission != -1)
 	{
-	if ( gBriefingRoomData[idMission].CheckMission != MISSIONSTART || gBriefingRoomData[idMission].CheckMission != MISSIONEND || gBriefingRoomData[idMission].CheckMission == MISSIONNOSTARTED ) 
-	{
-		gBriefingRoomData[idMission].CheckMission = MISSIONSTART; //set start mission 
-		gBriefingRoomData[idMission].Hidden = TRUE; // set next mission
-	}
+		if (
+			(gBriefingRoomData[idMission].CheckMission != MISSIONSTART)
+			|| (gBriefingRoomData[idMission].CheckMission != MISSIONEND)
+			|| (gBriefingRoomData[idMission].CheckMission == MISSIONNOSTARTED)
+			)
+		{
+			gBriefingRoomData[idMission].CheckMission = MISSIONSTART; //set start mission 
+			gBriefingRoomData[idMission].Hidden = TRUE; // set next mission
+		}
 	}
 	 
 	return 0;

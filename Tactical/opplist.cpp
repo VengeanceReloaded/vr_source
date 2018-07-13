@@ -983,7 +983,8 @@ void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 				else if ( gGameOptions.ubDifficultyLevel >= DIF_LEVEL_MEDIUM )
 				{
 					// don't allow admins to radio
-					if ( pThem->bTeam == ENEMY_TEAM && gTacticalStatus.Team[ ENEMY_TEAM ].bAwareOfOpposition && pThem->ubSoldierClass != SOLDIER_CLASS_ADMINISTRATOR )
+					// sevenfm: why not?
+					if (pThem->bTeam == ENEMY_TEAM && gTacticalStatus.Team[ENEMY_TEAM].bAwareOfOpposition) //&& pThem->ubSoldierClass != SOLDIER_CLASS_ADMINISTRATOR )
 					{
 						RadioSightings(pThem,EVERYBODY, pThem->bTeam );
 					}
@@ -1231,6 +1232,12 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 	if( pSoldier->usSoldierFlagMask & SOLDIER_POW )
 	{
 		return( 0 );
+	}
+
+	// Bob: if gridNo isn't set, this would cause a access violation later on
+	if (pSoldier->sGridNo < 0) {
+		// ScreenMsg(FONT_MCOLOR_LTRED, MSG_INTERFACE, L"DistanceVisible(): Caught bad LOS distance check!");
+		return(0);
 	}
 
 	if ( bFacingDir == DIRECTION_IRRELEVANT && TANK( pSoldier ) )

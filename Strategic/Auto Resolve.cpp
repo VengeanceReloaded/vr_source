@@ -813,21 +813,21 @@ void AssociateEnemiesWithStrategicGroups()
 			{
 				if( !(gpEnemies[ i ].uiFlags & CELL_ASSIGNED) )
 				{
-					if( ubNumElites && ubNumElitesInGroup )
+					if (ubNumElites && ubNumElitesInGroup && gpEnemies[i].uiFlags & CELL_ELITE)
 					{
 						gpEnemies[ i ].pSoldier->ubGroupID = pGroup->ubGroupID;
 						gpEnemies[ i ].uiFlags |= CELL_ASSIGNED;
 						ubNumElites--;
 						ubNumElitesInGroup--;
 					}
-					else if( ubNumTroops && ubNumTroopsInGroup )
+					else if (ubNumTroops && ubNumTroopsInGroup && gpEnemies[i].uiFlags & CELL_TROOP)
 					{
 						gpEnemies[ i ].pSoldier->ubGroupID = pGroup->ubGroupID;
 						gpEnemies[ i ].uiFlags |= CELL_ASSIGNED;
 						ubNumTroops--;
 						ubNumTroopsInGroup--;
 					}
-					else if( ubNumAdmins && ubNumAdminsInGroup )
+					else if (ubNumAdmins && ubNumAdminsInGroup && gpEnemies[i].uiFlags & CELL_ADMIN)
 					{
 						gpEnemies[ i ].pSoldier->ubGroupID = pGroup->ubGroupID;
 						gpEnemies[ i ].uiFlags |= CELL_ASSIGNED;
@@ -854,21 +854,21 @@ void AssociateEnemiesWithStrategicGroups()
 			{
 				if( !(gpEnemies[ i ].uiFlags & CELL_ASSIGNED) )
 				{
-					if( ubNumElites && ubNumElitesInGroup )
+					if (ubNumElites && ubNumElitesInGroup &&  gpEnemies[i].uiFlags & CELL_ELITE)
 					{
 						gpEnemies[ i ].pSoldier->ubGroupID = pGroup->ubGroupID;
 						gpEnemies[ i ].uiFlags |= CELL_ASSIGNED;
 						ubNumElites--;
 						ubNumElitesInGroup--;
 					}
-					else if( ubNumTroops && ubNumTroopsInGroup )
+					else if (ubNumTroops && ubNumTroopsInGroup &&  gpEnemies[i].uiFlags & CELL_TROOP)
 					{
 						gpEnemies[ i ].pSoldier->ubGroupID = pGroup->ubGroupID;
 						gpEnemies[ i ].uiFlags |= CELL_ASSIGNED;
 						ubNumTroops--;
 						ubNumTroopsInGroup--;
 					}
-					else if( ubNumAdmins && ubNumAdminsInGroup )
+					else if (ubNumAdmins && ubNumAdminsInGroup &&  gpEnemies[i].uiFlags & CELL_ADMIN)
 					{
 						gpEnemies[ i ].pSoldier->ubGroupID = pGroup->ubGroupID;
 						gpEnemies[ i ].uiFlags |= CELL_ASSIGNED;
@@ -929,7 +929,6 @@ void AssociateEnemiesWithStrategicGroups()
 			}
 		}
 	}
-
 }
 
 

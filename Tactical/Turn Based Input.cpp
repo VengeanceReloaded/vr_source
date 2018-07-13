@@ -2177,7 +2177,15 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				{
 					if ( !InKeyRingPopup( ) )
 					{
-						if ( _KeyDown( SHIFT ) )
+						if (_KeyDown(CTRL))
+						{
+							checkLBEArrayIntegrity();
+						}
+						else if (_KeyDown(ALT))
+						{
+							checkLBEArrayIntegrity(true);
+						}
+						else if (_KeyDown(SHIFT))
 						{
 							SOLDIERTYPE *pNewSoldier;
 							INT32		iCurrentSquad;
@@ -5481,14 +5489,11 @@ void HandleHandCursorClick( INT32 usMapPos, UINT32 *puiNewEvent )
 			}
 			else if ( UIOkForItemPickup( pSoldier, sActionGridNo ) )
 			{
-				INT8 bZLevel;
+				INT8 bZLevel = GetLargestZLevelOfItemPool(pItemPool);
 
-				bZLevel = GetZLevelOfItemPoolGivenStructure( sActionGridNo, pSoldier->pathing.bLevel, pStructure );
-
-				SoldierPickupItem( pSoldier, pItemPool->iItemIndex, sActionGridNo, bZLevel );
+				SoldierPickupItem(pSoldier, pItemPool->iItemIndex, sActionGridNo, bZLevel);
 
 				*puiNewEvent = A_CHANGE_TO_MOVE;
-
 			}
 		}
 		else
@@ -6532,6 +6537,19 @@ void SeperateItems()
 							if(uiLoopCnt > 100)
 								break;
 						}
+					}
+					// Bob: also empty out LBE items in sector inventory
+					if (gWorldItems[uiLoop].object.IsActiveLBE(x)) {
+						LBENODE * lbePtr = gWorldItems[uiLoop].object.GetLBEPointer(x);
+
+						for (auto lbeInvIter = lbePtr->inv.begin(); lbeInvIter != lbePtr->inv.end(); lbeInvIter++) {
+							OBJECTTYPE * LBEStack = lbeInvIter._Ptr;
+
+							if (LBEStack->usItem != 0 && LBEStack->exists()) {
+								AddItemToPool(gWorldItems[uiLoop].sGridNo, LBEStack, 1, gWorldItems[uiLoop].ubLevel, WORLD_ITEM_REACHABLE, -1);
+							}
+						}
+						DestroyLBE(&(gWorldItems[uiLoop].object), x);
 					}
 				}
 			}

@@ -2681,7 +2681,12 @@ UINT16 CalculateHealingPointsForDoctor(SOLDIERTYPE *pDoctor, UINT16 *pusMaxPts, 
 
 	// calculate normal doctoring rate - what it would be if his stats were "normal" (ignoring drugs, fatigue, equipment condition)
 	// and equipment was not a hindrance
-	*pusMaxPts = ( pDoctor->stats.bMedical * (( pDoctor->stats.bDexterity + pDoctor->stats.bWisdom ) / 2 ) * (100 + ( 5 * pDoctor->stats.bExpLevel) ) ) / gGameExternalOptions.ubDoctoringRateDivisor;
+	INT16 dexterity = (pDoctor->stats.bDexterity * (100 + pDoctor->GetBackgroundValue(BG_DEXTERITY))) / 100;
+	INT16 medical = (pDoctor->stats.bMedical * (100 + pDoctor->GetBackgroundValue(BG_MEDICAL))) / 100;
+	INT16 wisdom = (pDoctor->stats.bWisdom * (100 + pDoctor->GetBackgroundValue(BG_WISDOM))) / 100;
+
+	//*pusMaxPts = ( pDoctor->stats.bMedical * (( pDoctor->stats.bDexterity + pDoctor->stats.bWisdom ) / 2 ) * (100 + ( 5 * pDoctor->stats.bExpLevel) ) ) / gGameExternalOptions.ubDoctoringRateDivisor;
+	*pusMaxPts = (medical * ((dexterity + wisdom) / 2) * (100 + (5 * pDoctor->stats.bExpLevel))) / gGameExternalOptions.ubDoctoringRateDivisor;
 	*pusMaxPts = __max(0,*pusMaxPts);
 
 	// SANDRO - New Doctor Trait
@@ -2777,7 +2782,9 @@ UINT8 CalculateRepairPointsForRepairman(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts
 
 	// calculate normal repair rate - what it would be if his stats were "normal" (ignoring drugs, fatigue, equipment condition)
 	// and equipment was not a hindrance
-	*pusMaxPts = ( pSoldier->stats.bMechanical * pSoldier->stats.bDexterity * (100 + ( 5 * pSoldier->stats.bExpLevel) ) ) / ( gGameExternalOptions.ubRepairRateDivisor * gGameExternalOptions.ubAssignmentUnitsPerDay );
+	INT16 mechanical = (pSoldier->stats.bMechanical * (100 + pSoldier->GetBackgroundValue(BG_MECHANICAL))) / 100;
+	INT16 dexterity = (pSoldier->stats.bDexterity * (100 + pSoldier->GetBackgroundValue(BG_DEXTERITY))) / 100;
+	*pusMaxPts = (mechanical * dexterity * (100 + (5 * pSoldier->stats.bExpLevel))) / (gGameExternalOptions.ubRepairRateDivisor * gGameExternalOptions.ubAssignmentUnitsPerDay);
 
 	// SANDRO - Technician trait gives a good bonus to repair items
 	if ( gGameOptions.fNewTraitSystem )
@@ -2912,13 +2919,10 @@ UINT32 CalculateInterrogationValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts )
 }
 
 // Flugente: calculate prison guard value
-UINT32 CalculatePrisonGuardValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts )
+UINT32 CalculatePrisonGuardValue(SOLDIERTYPE *pSoldier)
 {
 	// this is not an assignment. Simply being in the sector will allow us to be counted as guards
 	UINT32 usValue = 0;	
-
-	// for max points we display the maximum amount of prisoners instead
-	*pusMaxPts = 0;
 
 	if ( pSoldier->flags.fMercAsleep )
 		return 0;
@@ -2947,13 +2951,10 @@ UINT32 CalculatePrisonGuardValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts )
 	return( usValue );
 }
 
-UINT32 CalculateSnitchGuardValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts )
+UINT32 CalculateSnitchGuardValue(SOLDIERTYPE *pSoldier)
 {
 	// this is an assignment
 	UINT32 usValue = 0;	
-
-	// for max points we display the maximum amount of prisoners instead
-	*pusMaxPts = 0;
 
 	if ( pSoldier->flags.fMercAsleep )
 		return 0;
@@ -2999,8 +3000,7 @@ UINT32 CalculateAllGuardsValueInPrison( INT16 sMapX, INT16 sMapY, INT8 bZ )
 	{
 		if( pSoldier->bActive && ( pSoldier->sSectorX == sMapX ) && ( pSoldier->sSectorY == sMapY ) && ( pSoldier->bSectorZ == bZ) && pSoldier->flags.fMercAsleep == FALSE )
 		{
-			UINT16 tmp;
-			prisonguardvalue += CalculatePrisonGuardValue(pSoldier, &tmp );
+			prisonguardvalue += CalculatePrisonGuardValue(pSoldier);
 		}
 	}
 
@@ -3024,8 +3024,7 @@ UINT32 CalculateAllSnitchesGuardValueInPrison( INT16 sMapX, INT16 sMapY, INT8 bZ
 	{
 		if( pSoldier->bActive && ( pSoldier->sSectorX == sMapX ) && ( pSoldier->sSectorY == sMapY ) && ( pSoldier->bSectorZ == bZ) && pSoldier->flags.fMercAsleep == FALSE )
 		{
-			UINT16 tmp;
-			prisonguardvalue += CalculateSnitchGuardValue(pSoldier, &tmp );
+			prisonguardvalue += CalculateSnitchGuardValue(pSoldier);
 		}
 	}
 
@@ -3132,41 +3131,6 @@ UINT32 CalculateSnitchInterrogationValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPt
 
 	// return current repair pts
 	return( usInterrogationPoints );
-}
-
-// anv: totally not a copy of CalculatePrisonGuardValue
-UINT32 CalculateSnitchPrisonGuardValue(SOLDIERTYPE *pSoldier, UINT16 *pusMaxPts )
-{
-	UINT32 usValue = 0;	
-
-	// for max points we display the maximum amount of prisoners instead
-	*pusMaxPts = 0;
-
-	if ( pSoldier->flags.fMercAsleep )
-		return 0;
-
-	if ( !CanCharacterSnitchInPrison(pSoldier) )
-		return 0;
-
-	usValue = ( 15 * EffectiveExpLevel( pSoldier ) + 2 * EffectiveLeadership( pSoldier ) + EffectiveWisdom( pSoldier ) );
-
-	// no bonuses for snitch trait, as merc has to have it to take this assignment anyway
-	if (gGameOptions.fNewTraitSystem)
-	{
-		usValue += 25 * NUM_SKILL_TRAITS( pSoldier, COVERT_NT ) + 10 * HAS_SKILL_TRAIT( pSoldier, STEALTHY_NT );
-	}
-	else
-	{
-		usValue += 10 * HAS_SKILL_TRAIT( pSoldier, STEALTHY_OT );
-	}
-
-	usValue = (UINT32)(gSkillTraitValues.fSNTPrisonSnitchGuardStrengthMultiplier * usValue);
-
-	// adjust for fatigue
-	ReducePointsForFatigue( pSoldier, &usValue );
-
-	// return current repair pts
-	return( usValue );
 }
 
 // anv: handle prisoners exposing snitch as a snitch
@@ -4346,7 +4310,7 @@ OBJECTTYPE* FindRepairableItemOnOtherSoldier( SOLDIERTYPE * pSoldier, SOLDIERTYP
 		}
 	}
 
-	return( 0 );
+	return(NULL);
 }
 
 OBJECTTYPE* FindRepairableItemInLBENODE(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, UINT8 subObject)
@@ -4361,6 +4325,9 @@ OBJECTTYPE* FindRepairableItemInLBENODE(SOLDIERTYPE * pSoldier, OBJECTTYPE * pOb
 	if(pObj->IsActiveLBE(subObject) == true)
 	{
 		LBENODE* pLBE = pObj->GetLBEPointer(subObject);
+
+		if (!pLBE) return(NULL);
+
 		UINT8 invsize = pLBE->inv.size();
 		for(UINT8 lbePocket = 0; lbePocket < invsize; ++lbePocket)
 		{
@@ -4382,7 +4349,7 @@ OBJECTTYPE* FindRepairableItemInLBENODE(SOLDIERTYPE * pSoldier, OBJECTTYPE * pOb
 			}
 		}
 	}
-	return( 0 );
+	return(NULL);
 }
 
 OBJECTTYPE* FindRepairableItemInSpecificPocket(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, UINT8 subObject)
@@ -4401,7 +4368,7 @@ OBJECTTYPE* FindRepairableItemInSpecificPocket(SOLDIERTYPE * pSoldier, OBJECTTYP
 		}
 	}
 
-	return( 0 );
+	return(NULL);
 }
 
 // Flugente: changed this function so that it repairs items up to a variable threshold instead of always 100%. This will only happen if the option gGameExternalOptions.fAdvRepairSystem is used
@@ -4579,19 +4546,23 @@ BOOLEAN RepairObject( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pOwner, OBJECTTYPE *
 		}
 
 		//CHRISL: Now check and see if this is an LBENODE with items that need repairing
-		if(UsingNewInventorySystem() == true && Item[pObj->usItem].usItemClass == IC_LBEGEAR && pObj->IsActiveLBE(ubLoop) == true)
+		if (UsingNewInventorySystem() == true && Item[pObj->usItem].usItemClass == IC_LBEGEAR && pObj->IsActiveLBE(ubLoop) == true)
 		{
 			LBENODE* pLBE = pObj->GetLBEPointer(ubLoop);
-			UINT8 invsize = pLBE->inv.size();
-			for(lbeLoop = 0; lbeLoop < invsize; ++lbeLoop)
-			{
-				if(RepairObject(pSoldier, pOwner, &pLBE->inv[lbeLoop], pubRepairPtsLeft))
+
+			// sevenfm: r8399
+			if (pLBE) {
+				UINT8 invsize = pLBE->inv.size();
+				for (lbeLoop = 0; lbeLoop < invsize; ++lbeLoop)
 				{
-					fSomethingWasRepaired = true;
-					if ( *pubRepairPtsLeft == 0 )
+					if (RepairObject(pSoldier, pOwner, &pLBE->inv[lbeLoop], pubRepairPtsLeft))
 					{
-						// we're out of points!
-						return true;
+						fSomethingWasRepaired = true;
+						if (*pubRepairPtsLeft == 0)
+						{
+							// we're out of points!
+							return true;
+						}
 					}
 				}
 			}
@@ -5283,11 +5254,6 @@ void HandleTrainingInSector( INT16 sMapX, INT16 sMapY, INT8 bZ )
 						// if this stat HAS a trainer in sector at all
 						if (pTrainer != NULL)
 						{
-/* Assignment distance limits removed.	Sep/11/98.	ARM
-							// if this sector either ISN'T currently loaded, or it is but the trainer is close enough to the student
-							if ( ( sMapX != gWorldSectorX ) || ( sMapY != gWorldSectorY ) || ( pStudent->bSectorZ != gbWorldSectorZ ) ||
-									( PythSpacesAway( pStudent->sGridNo, pTrainer->sGridNo ) < MAX_DISTANCE_FOR_TRAINING ) && ( EnoughTimeOnAssignment( pTrainer ) ) )
-*/
 							// NB this EnoughTimeOnAssignment() call is redundent since it is called up above
 							//if ( EnoughTimeOnAssignment( pTrainer ) )
 							{
@@ -6782,9 +6748,9 @@ void HandleEquipmentMove( INT16 sMapX, INT16 sMapY, INT8 bZ )
 	std::map<UINT8, UINT8> sectormercmap;		// this map uses the sectors we take stuff from as keys and the number of mercs as elements
 
 	// we need a gridno to which we drop stuff
-	INT32 sDropOffGridNo = gMapInformation.sCenterGridNo;
-	if ( !GridNoOnVisibleWorldTile( sDropOffGridNo ) )
-		sDropOffGridNo = RandomGridNo();
+	INT32 sDropOffGridNo = NOWHERE;
+	if ((gWorldSectorX == sMapX) && (gWorldSectorY == sMapY) && (gbWorldSectorZ == bZ))
+		sDropOffGridNo = gMapInformation.sCenterGridNo;
 
 	SOLDIERTYPE *pSoldier = NULL;
 	UINT32 uiCnt = 0;
@@ -6804,7 +6770,7 @@ void HandleEquipmentMove( INT16 sMapX, INT16 sMapY, INT8 bZ )
 				else
 					sectormercmap[targetsector] = 1;
 
-				if ( pSoldier->sGridNo != NOWHERE )
+				if (TileIsOutOfBounds(sDropOffGridNo) && !TileIsOutOfBounds(pSoldier->sGridNo))
 					sDropOffGridNo = pSoldier->sGridNo;
 			}
 		}
@@ -6816,6 +6782,13 @@ void HandleEquipmentMove( INT16 sMapX, INT16 sMapY, INT8 bZ )
 
 	CHAR16 wSectorName[ 64 ];
 	GetShortSectorString( sMapX, sMapY, wSectorName );
+
+	// if we don't have a valid spot to drop gear at, don't do so - better than having tons of items unreachable
+	if (TileIsOutOfBounds(sDropOffGridNo))
+	{
+		ScreenMsg(FONT_MCOLOR_RED, MSG_INTERFACE, L"Items cannot be moved to %s, as no valid dropoff point was found. Please enter map to resolve this issue.", wSectorName);
+		return;
+	}
 
 	std::vector<WORLDITEM> pWorldItem_Target;//dnl ch75 271013
 
@@ -6913,16 +6886,28 @@ void HandleEquipmentMove( INT16 sMapX, INT16 sMapY, INT8 bZ )
 		}
 
 		// move
-		if( ( gWorldSectorX == sMapX )&&( gWorldSectorY == sMapY ) && (gbWorldSectorZ == bZ ) )
+		if ((gWorldSectorX == sMapX) && (gWorldSectorY == sMapY) && (gbWorldSectorZ == bZ))
 		{
-			for (UINT16 i = 0; i < moveobjectcounter; ++i )
+			// r8136
+			UINT16 flags = (WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO | WORLD_ITEM_REACHABLE);
+			if (TileIsOutOfBounds(sDropOffGridNo))
+				flags |= WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT;
+
+			for (UINT16 i = 0; i < moveobjectcounter; ++i)
 			{
-				AddItemToPool( sDropOffGridNo, &(pObjectToMove[i]), 1 , 0, (WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO|WORLD_ITEM_REACHABLE), -1 );
+				AddItemToPool(sDropOffGridNo, &(pObjectToMove[i]), 1, 0, flags, -1);
+				//AddItemToPool( sDropOffGridNo, &(pObjectToMove[i]), 1 , 0, (WOLRD_ITEM_FIND_SWEETSPOT_FROM_GRIDNO|WORLD_ITEM_REACHABLE), -1 );
 			}
 		}
 		else
 		{
-			AddItemsToUnLoadedSector( sMapX, sMapY, bZ, sDropOffGridNo, moveobjectcounter, pObjectToMove, 0, WORLD_ITEM_REACHABLE, 0, 1, FALSE );
+			// r8136
+			UINT16 flags = WORLD_ITEM_REACHABLE;
+			if (TileIsOutOfBounds(sDropOffGridNo))
+				flags |= WORLD_ITEM_GRIDNO_NOT_SET_USE_ENTRY_POINT;
+
+			AddItemsToUnLoadedSector(sMapX, sMapY, bZ, sDropOffGridNo, moveobjectcounter, pObjectToMove, 0, flags, 0, 1, FALSE);
+			//AddItemsToUnLoadedSector( sMapX, sMapY, bZ, sDropOffGridNo, moveobjectcounter, pObjectToMove, 0, WORLD_ITEM_REACHABLE, 0, 1, FALSE );
 		}
 
 		if ( pObjectToMove )
@@ -7007,7 +6992,10 @@ INT16 GetTownTrainPtsForCharacter( SOLDIERTYPE *pTrainer, UINT16 *pusMaxPts )
 //	UINT8 ubTownId = 0;
 
 	// calculate normal training pts - what it would be if his stats were "normal" (ignoring drugs, fatigue)
-	*pusMaxPts = ( pTrainer->stats.bWisdom + pTrainer->stats.bLeadership + ( 10 * pTrainer->stats.bExpLevel ) ) * gGameExternalOptions.ubTownMilitiaTrainingRate;
+	INT16 wisdom = (pTrainer->stats.bWisdom * (100 + pTrainer->GetBackgroundValue(BG_WISDOM))) / 100;
+	INT16 leadership = (pTrainer->stats.bLeadership * (100 + pTrainer->GetBackgroundValue(BG_LEADERSHIP))) / 100;
+
+	*pusMaxPts = (wisdom + leadership + (10 * pTrainer->stats.bExpLevel)) * gGameExternalOptions.ubTownMilitiaTrainingRate;
 
 	// calculate effective training points (this is hundredths of pts / hour)
 	// typical: 300/hr, maximum: 600/hr
@@ -7292,7 +7280,7 @@ void HandleHealingByNaturalCauses( SOLDIERTYPE *pSoldier )
 		return;
 	}
 
-	// any bleeding pts - can' recover if still bleeding!
+	// any bleeding pts - can't recover if still bleeding!
 	if( pSoldier->bBleeding != 0 )
 	{
 		return;
@@ -7300,14 +7288,14 @@ void HandleHealingByNaturalCauses( SOLDIERTYPE *pSoldier )
 
 	// not bleeding and injured...
 
-	if( pSoldier->bAssignment == ASSIGNMENT_POW )
+	if ((pSoldier->flags.fMercAsleep == TRUE) || (pSoldier->bAssignment == PATIENT  && pSoldier->bAssignment != DOCTOR) || (pSoldier->bAssignment == ASSIGNMENT_HOSPITAL))
+	{
+		bActivityLevelDivisor = gGameExternalOptions.ubLowActivityLevel;
+	}
+	else if (pSoldier->bAssignment == ASSIGNMENT_POW)
 	{
 		// use high activity level to simulate stress, torture, poor conditions for healing
 		bActivityLevelDivisor = gGameExternalOptions.ubHighActivityLevel;
-	}
-	if( ( pSoldier->flags.fMercAsleep == TRUE ) || ( pSoldier->bAssignment == PATIENT ) || ( pSoldier->bAssignment == ASSIGNMENT_HOSPITAL ) )
-	{
-		bActivityLevelDivisor = gGameExternalOptions.ubLowActivityLevel;
 	}
 	else if ( pSoldier->bAssignment < ON_DUTY )
 	{
@@ -7429,6 +7417,10 @@ void UpDateSoldierLife( SOLDIERTYPE *pSoldier )
 		pSoldier->bPoisonLife = 0;
 		pSoldier->bPoisonBleeding = 0;*/
 	}
+
+	// Autobandage assigned patients - they might still show bleeding for the first minute, but I haven't seen them lose life from it yet.
+	if (pSoldier->bBleeding > 0)
+		AddStrategicEvent(EVENT_BANDAGE_BLEEDING_MERCS, GetWorldTotalMin() + 1, 0);
 
 	// SANDRO - when being healed normally, reduce insta-healable HPs value 
 	if ( gGameOptions.fNewTraitSystem && pSoldier->iHealableInjury > 0 ) 
@@ -10868,7 +10860,7 @@ void TrainingMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason )
 					MakeSoldiersTacticalAnimationReflectAssignment( pSoldier );
 
 					// stop showing menu
-				fShowAssignmentMenu = FALSE;
+					fShowAssignmentMenu = FALSE;
 					giAssignHighLine = -1;
 
 					// remove from squad
@@ -11325,14 +11317,6 @@ void AssignmentMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason )
 						// can character doctor?
 					if( CanCharacterPatient( pSoldier ) )
 					{
-
-/* Assignment distance limits removed.	Sep/11/98.	ARM
-						if( IsSoldierCloseEnoughToADoctor( pSoldier ) == FALSE )
-						{
-							return;
-						}
-*/
-
 						pSoldier->bOldAssignment = pSoldier->bAssignment;
 
 						if( ( pSoldier->bAssignment != PATIENT ) )
@@ -11431,7 +11415,7 @@ void AssignmentMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason )
 				case( EPC_MENU_REMOVE ):
 
 					fShowAssignmentMenu = FALSE;
-			UnEscortEPC( pSoldier );
+					UnEscortEPC( pSoldier );
 				break;
 
 				case( EPC_MENU_CANCEL ):
@@ -11532,14 +11516,6 @@ void AssignmentMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason )
 					// can character patient?
 					if( CanCharacterPatient( pSoldier ) )
 					{
-
-/* Assignment distance limits removed.	Sep/11/98.	ARM
-						if( IsSoldierCloseEnoughToADoctor( pSoldier ) == FALSE )
-						{
-							return;
-						}
-*/
-
 						pSoldier->bOldAssignment = pSoldier->bAssignment;
 
 						if( ( pSoldier->bAssignment != PATIENT ) )
@@ -13682,17 +13658,6 @@ BOOLEAN CanCharacterRepairVehicle( SOLDIERTYPE *pSoldier, INT32 iVehicleId )
 		return( FALSE );
 	}
 
-/* Assignment distance limits removed.	Sep/11/98.	ARM
-	// if currently loaded sector, are we close enough?
-	if( ( pSoldier->sSectorX == gWorldSectorX ) && ( pSoldier->sSectorY == gWorldSectorY ) && ( pSoldier->bSectorZ == gbWorldSectorZ ) )
-	{
-		if( PythSpacesAway( pSoldier->sGridNo, pVehicleList[ iVehicleId ].sGridNo ) > MAX_DISTANCE_FOR_REPAIR )
-		{
-		return( FALSE );
-		}
-	}
-*/
-
 	return( TRUE );
 }
 
@@ -13766,17 +13731,6 @@ BOOLEAN CanCharacterRepairRobot( SOLDIERTYPE *pSoldier )
 	{
 		return( FALSE );
 	}
-
-/* Assignment distance limits removed.	Sep/11/98.	ARM
-	// if that sector is currently loaded, check distance to robot
-	if( ( pSoldier->sSectorX == gWorldSectorX ) && ( pSoldier->sSectorY == gWorldSectorY ) && ( pSoldier->bSectorZ == gbWorldSectorZ ) )
-	{
-		if( PythSpacesAway( pSoldier->sGridNo, pRobot->sGridNo ) > MAX_DISTANCE_FOR_REPAIR )
-		{
-		return( FALSE );
-		}
-	}
-*/
 
 	return( TRUE );
 }
@@ -13883,15 +13837,7 @@ void SetSoldierAssignment( SOLDIERTYPE *pSoldier, INT8 bAssignment, INT32 iParam
 			{
 				// set as doctor
 
-/* Assignment distance limits removed.	Sep/11/98.	ARM
-				if( IsSoldierCloseEnoughToADoctor( pSoldier ) == FALSE )
-				{
-					return;
-				}
-*/
-
 				pSoldier->bOldAssignment = pSoldier->bAssignment;
-
 
 				// set dirty flag
 				fTeamPanelDirty = TRUE;
@@ -15377,7 +15323,6 @@ void BandageBleedingDyingPatientsBeingTreated( )
 	UINT32 uiKitPtsUsed;
 	BOOLEAN fSomeoneStillBleedingDying = FALSE;
 
-
 	for( iCounter = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; iCounter <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; iCounter++ )
 	{
 		// get the soldier
@@ -15392,61 +15337,55 @@ void BandageBleedingDyingPatientsBeingTreated( )
 		// and he is bleeding or dying
 		if( ( pSoldier->bBleeding ) || ( pSoldier->stats.bLife < OKLIFE ) )
 		{
-			// if soldier is receiving care
-			if( ( pSoldier->bAssignment == PATIENT ) || ( pSoldier->bAssignment == ASSIGNMENT_HOSPITAL ) || ( pSoldier->bAssignment == DOCTOR ) )
+			// if in the hospital
+			if (pSoldier->bAssignment == ASSIGNMENT_HOSPITAL)
 			{
-				// if in the hospital
-				if ( pSoldier->bAssignment == ASSIGNMENT_HOSPITAL )
+				// this is instantaneous, and doesn't use up any bandages!
+
+				// stop bleeding automatically
+				pSoldier->bBleeding = 0;
+
+				if (pSoldier->stats.bLife < OKLIFE)
 				{
-					// this is instantaneous, and doesn't use up any bandages!
-
-					// stop bleeding automatically
-					pSoldier->bBleeding = 0;
-					pSoldier->bPoisonBleeding = 0;
-
-					if ( pSoldier->stats.bLife < OKLIFE )
+					// SANDRO - added to alter the value of insta-healable injuries for doctors
+					if (pSoldier->iHealableInjury > 0)
 					{
-						// SANDRO - added to alter the value of insta-healable injuries for doctors
-						if (pSoldier->iHealableInjury > 0)
-						{
-							pSoldier->iHealableInjury -= ((OKLIFE - pSoldier->stats.bLife) * 100);
-						}
-
-						// convert poison points to poison life points
-						INT8 oldlife = pSoldier->stats.bLife;
-
-						pSoldier->stats.bLife = OKLIFE;
-
-						INT8 lifegained = OKLIFE - oldlife;
-						pSoldier->bPoisonLife = min(pSoldier->bPoisonSum, pSoldier->bPoisonLife + lifegained); 
+						pSoldier->iHealableInjury -= ((OKLIFE - pSoldier->stats.bLife) * 100);
 					}
+
+					pSoldier->stats.bLife = OKLIFE;
 				}
-				else	// assigned to DOCTOR/PATIENT
+			}
+			// if treated by fellow merc
+			else if ((pSoldier->bAssignment == DOCTOR) || (pSoldier->bAssignment == PATIENT))
+			{
+				// see if there's a doctor around who can help him
+				pDoctor = AnyDoctorWhoCanHealThisPatient(pSoldier, HEALABLE_EVER);
+				if (pDoctor != NULL)
 				{
-					// see if there's a doctor around who can help him
-					pDoctor = AnyDoctorWhoCanHealThisPatient( pSoldier, HEALABLE_EVER );
-					if ( pDoctor != NULL )
+					iKitSlot = FindObjClass(pDoctor, IC_MEDKIT);
+					if (iKitSlot != NO_SLOT)
 					{
-						iKitSlot = FindObjClass( pDoctor, IC_MEDKIT );
-						if( iKitSlot != NO_SLOT )
+						pKit = &(pDoctor->inv[iKitSlot]);
+
+						usKitPts = TotalPoints(pKit);
+						if (usKitPts)
 						{
-							pKit = &( pDoctor->inv[ iKitSlot ] );
+							uiKitPtsUsed = VirtualSoldierDressWound(pDoctor, pSoldier, pKit, usKitPts, usKitPts, FALSE); // SANDRO - added variable
+							UseKitPoints(pKit, (UINT16)uiKitPtsUsed, pDoctor);
 
-							usKitPts = TotalPoints( pKit );
-							if( usKitPts )
+							// if he is STILL bleeding or dying
+							if ((pSoldier->bBleeding) || (pSoldier->stats.bLife < OKLIFE))
 							{
-								uiKitPtsUsed = VirtualSoldierDressWound( pDoctor, pSoldier, pKit, usKitPts, usKitPts, FALSE ); // SANDRO - added variable
-								UseKitPoints( pKit, (UINT16)uiKitPtsUsed, pDoctor );
-
-								// if he is STILL bleeding or dying
-								if( ( pSoldier->bBleeding ) || ( pSoldier->stats.bLife < OKLIFE ) )
-								{
-									fSomeoneStillBleedingDying = TRUE;
-								}
+								fSomeoneStillBleedingDying = TRUE;
 							}
 						}
 					}
 				}
+			}
+			else
+			{
+				// soldier is not receiving care
 			}
 		}
 	}
@@ -15468,6 +15407,15 @@ void ReEvaluateEveryonesNothingToDo()
 	INT32 iCounter = 0;
 	SOLDIERTYPE *pSoldier = NULL;
 	BOOLEAN fNothingToDo;
+	INT16 targetX;
+	INT16 targetY;
+
+	UINT32 numberOfMovableItemsCache[MAXIMUM_VALID_X_COORDINATE][MAXIMUM_VALID_Y_COORDINATE];
+	for (int i = 0; i < MAXIMUM_VALID_X_COORDINATE; i++) {
+		for (int j = 0; j < MAXIMUM_VALID_Y_COORDINATE; j++) {
+			numberOfMovableItemsCache[i][j] = INT_MAX;
+		}
+	}
 
 	for (iCounter = 0; iCounter <= gTacticalStatus.Team[OUR_TEAM].bLastID; iCounter++)
 	{
@@ -15545,7 +15493,15 @@ void ReEvaluateEveryonesNothingToDo()
 					break;
 
 				case MOVE_EQUIPMENT:
-					fNothingToDo = FALSE;
+					targetX = SECTORX(pSoldier->usItemMoveSectorID) - 1;
+					targetY = SECTORY(pSoldier->usItemMoveSectorID) - 1;
+
+					if (numberOfMovableItemsCache[targetX][targetY] == INT_MAX)
+					{
+						numberOfMovableItemsCache[targetX][targetY] = GetNumberOfMovableItems(targetX + 1, targetY + 1, 0);
+					}
+
+					fNothingToDo = (numberOfMovableItemsCache[targetX][targetY] == 0);
 					break;
 
 				case VEHICLE:
@@ -15635,7 +15591,7 @@ void SetAssignmentForList( INT8 bAssignment, INT8 bParam )
 			{
 				case( DOCTOR ):
 					// can character doctor?
-					if( CanCharacterDoctor( pSoldier ) )
+					if (CanCharacterDoctor(pSoldier) && (pSoldier->sFacilityTypeOperated <= 0 || CanCharacterFacility(pSoldier, bParam, FAC_DOCTOR)))
 					{
 						// set as doctor
 						pSoldier->bOldAssignment = pSoldier->bAssignment;
@@ -15645,7 +15601,7 @@ void SetAssignmentForList( INT8 bAssignment, INT8 bParam )
 					break;
 				case( PATIENT ):
 					// can character patient?
-					if( CanCharacterPatient( pSoldier ) )
+					if (CanCharacterPatient(pSoldier) && (pSoldier->sFacilityTypeOperated <= 0 || CanCharacterFacility(pSoldier, bParam, FAC_PATIENT)))
 					{
 						// set as patient
 						pSoldier->bOldAssignment = pSoldier->bAssignment;
@@ -15681,11 +15637,15 @@ void SetAssignmentForList( INT8 bAssignment, INT8 bParam )
 */
 						if ( pSelectedSoldier->bVehicleUnderRepairID != -1 )
 						{
-							fCanFixSpecificTarget = CanCharacterRepairVehicle( pSoldier, pSelectedSoldier->bVehicleUnderRepairID );
+							fCanFixSpecificTarget = CanCharacterRepairVehicle(pSoldier, pSelectedSoldier->bVehicleUnderRepairID) && (pSoldier->sFacilityTypeOperated <= 0 || CanCharacterFacility(pSoldier, bParam, FAC_REPAIR_VEHICLE));
 						}
 						else if( pSoldier->flags.fFixingRobot )
 						{
-							fCanFixSpecificTarget = CanCharacterRepairRobot( pSoldier );
+							fCanFixSpecificTarget = CanCharacterRepairRobot(pSoldier) && (pSoldier->sFacilityTypeOperated <= 0 || CanCharacterFacility(pSoldier, bParam, FAC_REPAIR_ROBOT));
+						}
+						else
+						{
+							fCanFixSpecificTarget = (pSoldier->sFacilityTypeOperated <= 0 || CanCharacterFacility(pSoldier, bParam, FAC_REPAIR_ITEMS));
 						}
 
 						if ( fCanFixSpecificTarget )
@@ -15931,36 +15891,7 @@ void SetAssignmentForList( INT8 bAssignment, INT8 bParam )
 		}
 	}
 	// reset list
-//	ResetSelectedListForMapScreen( );
-
-	//CHRISL: When setting mercs to a squad, resort the Squad list so we're in ubID order so team panel appears the same
-	//	when switching between squads
-	switch( bAssignment )
-	{
-		case( SQUAD_1 ):
-		case( SQUAD_2 ):
-		case( SQUAD_3 ):
-		case( SQUAD_4 ):
-		case( SQUAD_5 ):
-		case( SQUAD_6 ):
-		case( SQUAD_7 ):
-		case( SQUAD_8 ):
-		case( SQUAD_9 ):
-		case( SQUAD_10 ):
-		case( SQUAD_11 ):
-		case( SQUAD_12 ):
-		case( SQUAD_13 ):
-		case( SQUAD_14 ):
-		case( SQUAD_15 ):
-		case( SQUAD_16 ):
-		case( SQUAD_17 ):
-		case( SQUAD_18 ):
-		case( SQUAD_19 ):
-		case( SQUAD_20 ):
-			SortSquadByID(bAssignment);
-			break;
-	}
-
+	// ResetSelectedListForMapScreen( );
 
 	// check if we should start/stop flashing any mercs' assignment strings after these changes
 	gfReEvaluateEveryonesNothingToDo = TRUE;
@@ -16142,7 +16073,7 @@ BOOLEAN CharacterIsTakingItEasy( SOLDIERTYPE *pSoldier )
 		}
 
 		// and healing up?
-		if ( ( pSoldier->bAssignment == PATIENT ) || ( pSoldier->bAssignment == ASSIGNMENT_HOSPITAL ) )
+		if ((pSoldier->bAssignment == PATIENT && pSoldier->bAssignment != DOCTOR) || (pSoldier->bAssignment == ASSIGNMENT_HOSPITAL))
 		{
 			return( TRUE );
 		}
@@ -19412,7 +19343,7 @@ void FacilityAssignmentMenuBtnCallback ( MOUSE_REGION * pRegion, INT32 iReason )
 			}
 			
 			// Flugente: I guess this piece of code is here to get a group Id for the soldier, which must not be there for movement specifically. Just my understanding, in case anybody else coming here wonders
-			// why we get movement related stuff when we were jsut ordered to stay in a facility
+			// why we get movement related stuff when we were just ordered to stay in a facility
 			AssignMercToAMovementGroup( pSoldier );			
 			MakeSoldiersTacticalAnimationReflectAssignment( pSoldier );
 

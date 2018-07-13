@@ -1788,13 +1788,13 @@ void AddSoldierToSectorGridNo( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDir
 				{
 					InternalSoldierInSectorSleep( pSoldier, pSoldier->sInsertionGridNo, FALSE );
 				}
-				else if ( pSoldier->bAssignment == PATIENT )
-				{
-					SoldierInSectorPatient( pSoldier, pSoldier->sInsertionGridNo );
-				}
 				else if ( pSoldier->bAssignment == DOCTOR )
 				{
 					SoldierInSectorDoctor( pSoldier, pSoldier->sInsertionGridNo );
+				}
+				else if (pSoldier->bAssignment == PATIENT)
+				{
+					SoldierInSectorPatient(pSoldier, pSoldier->sInsertionGridNo);
 				}
 				else if ( pSoldier->bAssignment == REPAIR )
 				{

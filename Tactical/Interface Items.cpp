@@ -593,6 +593,25 @@ INT16 getStatusOfLeastDamagedItemInStack( OBJECTTYPE * stack );
 // BOB : globals for telling attachment popups _where_ should the attachment go
 UINT8	gubPopupStatusIndex;
 UINT32	guiPopupItemPos;
+
+// BOB : common class for attachment popup callbacks.
+class PopupAttachmentInfo {
+public:
+	INT16 usAttachment;	// attachment being attached
+
+	OBJECTTYPE * pObj;	// object it is being attached to
+	UINT8 subObject;	// in case we're in an object stack
+	INT16 slotCount;	// the attachment slot that's being attached to
+
+	POPUP_OPTION * o;	// option that's doing the attaching
+	POPUP * p;			// the popup that's tied to the attachment slot
+
+	PopupAttachmentInfo() {};
+	PopupAttachmentInfo(INT16 usAttachment, OBJECTTYPE * pObj, UINT8 subObject, INT16 slotCount, POPUP_OPTION * o, POPUP * p) :
+		usAttachment(usAttachment), pObj(pObj), subObject(subObject), slotCount(slotCount), o(o), p(p) {}
+};
+std::vector<PopupAttachmentInfo*> gPopupAttachmentInfos;
+
 void popupCallbackItem(INT16 itemId){
 
 	OBJECTTYPE* bestStack;
@@ -669,30 +688,22 @@ void popupCallbackItem(INT16 itemId){
 		//UpdateAttachmentTooltips(gpItemDescObject, gubItemDescStatusIndex);
 		return;
 	}
-/*
-	for(UINT16 i = 0; i < pInventoryPoolList.size(); i++){
-		if( pInventoryPoolList[i].object.usItem == itemId ) {
-			
-			gpItemPointer = &pInventoryPoolList[i].object;				// pick up the object (or stack)
-			DoAttachment((UINT8)gubPopupStatusIndex, guiPopupItemPos);	// try to attach it
-			gpItemPointer = NULL;										// and drop it
-
-			gItemDescAttachmentPopups[giActiveAttachmentPopup]->hide();
-			RenderItemDescriptionBox();
-			giActiveAttachmentPopup = -1;
-
-			//UpdateAttachmentTooltips(gpItemDescObject, gubItemDescStatusIndex);
-			return;
-			
-		}
-	}
-*/
 }
 
-bool popupCallbackItemInSector(INT16 itemId){
-	for(UINT16 i = 0; i < pInventoryPoolList.size(); i++)
-		if( pInventoryPoolList[i].object.usItem == itemId ) return true;
+bool popupCallbackItemInSector(PopupAttachmentInfo * pai) {
+	for (UINT16 i = 0; i < pInventoryPoolList.size(); i++) {
+		if (pInventoryPoolList[i].object.usItem == pai->usAttachment) {
+			if (ValidItemAttachmentSlot(pai->pObj, pai->usAttachment, true, false, pai->subObject, pai->slotCount, false, NULL, GetItemSlots(pai->pObj))) {
+				return true;
+			}
+			else {
+				pai->o->color_shade = COLOR_RED;
+				return false;
+			}
+		}
+	}
 
+	pai->o->color_shade = COLOR_DKGREY;
 	return false;
 }
 
@@ -1877,7 +1888,11 @@ void popupCallbackAmmo(UINT16 item, UINT16 pocket, SOLDIERTYPE* pSoldier ){
 		{
 			clipCreated = false;
 			bLoop = tempStack.ubNumberOfObjects;
-			while(tempStack.ubNumberOfObjects > 0)
+
+			// Flugente: This is just asking for trouble if AddObjectsToStack(...) fails. 
+			// As we don't know from its return value whether it worked (wtf?), we exit in a different way
+			int loopcnt = bLoop;
+			while (tempStack.ubNumberOfObjects > 0 && loopcnt > 0)
 			{
 				if(pocket != -1)
 				{
@@ -1889,6 +1904,7 @@ void popupCallbackAmmo(UINT16 item, UINT16 pocket, SOLDIERTYPE* pSoldier ){
 				}
 				if(bLoop < 1)
 					break;
+				--loopcnt;
 			}
 			if(tempStack.ubNumberOfObjects < 1)
 				clipCreated = true;
@@ -5603,6 +5619,11 @@ void UpdateAttachmentTooltips(OBJECTTYPE *pObject, UINT8 ubStatusIndex)
 	}
 	gItemDescAttachmentPopupsInitialized = TRUE;
 
+	for (auto iter = gPopupAttachmentInfos.begin(); iter != gPopupAttachmentInfos.end(); iter++) {
+		delete (*iter);
+	}
+	gPopupAttachmentInfos.clear();
+
 	//now, create new regions
 	for (slotCount = 0; ;++slotCount )
 	{
@@ -5807,30 +5828,44 @@ void UpdateAttachmentTooltips(OBJECTTYPE *pObject, UINT8 ubStatusIndex)
 
 						if (showAttachmentPopups)
 						{	// add the current attachment to the popup assigned to this attachment slot
-							POPUP_OPTION * o = new POPUP_OPTION(	&std::wstring( Item[ usAttachment ].szItemName ), 
-																	new popupCallbackFunction<void,UINT16>(&popupCallbackItem,usAttachment));
-							// set an availiability callback to gray out any compatible attachments not found in this sector
-							o->setAvail( new popupCallbackFunction<bool,UINT16>(&popupCallbackItemInSector,usAttachment) );
-						
+							POPUP_OPTION * o = new POPUP_OPTION(&std::wstring(Item[usAttachment].szItemName),
+								new popupCallbackFunction<void, UINT16>(&popupCallbackItem, usAttachment));
+
+							gPopupAttachmentInfos.push_back(new PopupAttachmentInfo(usAttachment, pObject, ubStatusIndex, slotCount, o, gItemDescAttachmentPopups[slotCount]));
+
+							// set an availability callback to gray out any compatible attachments not found in this sector
+							o->setAvail(new popupCallbackFunction<bool, PopupAttachmentInfo*>(&popupCallbackItemInSector, (gPopupAttachmentInfos.back())));
+
 							if (loop == 11 && attachList.size() > 11){ // if there's too much stuff to list, we create a subpopup for the rest
-								gItemDescAttachmentPopups[slotCount]->addSubMenuOption( &std::wstring(L"More...") );
+								gItemDescAttachmentPopups[slotCount]->addSubMenuOption(&std::wstring(L"More..."));
 								POPUP_SUB_POPUP_OPTION * tmp = gItemDescAttachmentPopups[slotCount]->getSubPopupOption(0);
 
+								// sevenfm: r8399
 								// positioning sub popups is handled through the option that holds them
-								tmp->setPopupPosition(	(gsInvDescX + gItemDescAttachmentsXY[slotCount].sX),
-													(gsInvDescY + gItemDescAttachmentsXY[slotCount].sY) + 32 ,
-													POPUP_POSITION_TOP_RIGHT);	// put it to the right of the main box
+								if (gItemDescAttachmentPopups[slotCount]->Position.iX + 200 > SCREEN_WIDTH) {
+									// near screen edge, put it below the original box					
+									tmp->setPopupPosition(
+										gItemDescAttachmentPopups[slotCount]->Position.iX,
+										gItemDescAttachmentPopups[slotCount]->Position.iY + gItemDescAttachmentPopups[slotCount]->getCurrentHeight(),
+										POPUP_POSITION_TOP_LEFT
+										);
+								}
+								else { // we still got room, position the next box to the right of the previous one									
+									tmp->setPopupPosition(10, 0, POPUP_POSITION_RELATIVE);
+								}
 
 								// hide the other box too
 								// note that we're working with the sub popup options's sub-popup here, not the option itself
-								tmp->subPopup->setCallback( POPUP_CALLBACK_HIDE, new popupCallbackFunction<void,UINT32>( &hideOtherAttachmentPopups, usAttachmentSlotIndexVector.size() ) );
+								tmp->subPopup->setCallback(POPUP_CALLBACK_HIDE, new popupCallbackFunction<void, UINT32>(&hideOtherAttachmentPopups, usAttachmentSlotIndexVector.size()));
 
 								// finally add the option
 								tmp->subPopup->addOption(*o);
 
-							} else if (loop > 11){	// add surplus options to the subpopup
+							}
+							else if (loop > 11){	// add surplus options to the subpopup
 								gItemDescAttachmentPopups[slotCount]->getSubPopupOption(0)->subPopup->addOption(*o);
-							} else {	// options 0-11 go into the main popup
+							}
+							else {	// options 0-11 go into the main popup
 								gItemDescAttachmentPopups[slotCount]->addOption(*o);
 							}
 						}
@@ -6283,8 +6318,61 @@ void ItemDescAttachmentsCallback( MOUSE_REGION * pRegion, INT32 iReason )
 					return;
 				}
 
+				// silversurfer: if the attachment is an LBE item we need to make sure that nothing is "inside" otherwise the contents will be lost
+				if (Item[pAttachment->usItem].usItemClass == IC_LBEGEAR)
+				{
+					std::vector<INT8> pocketKey;
+					switch (LoadBearingEquipment[Item[gpItemDescObject->usItem].ubClassIndex].lbeClass)
+					{
+					case THIGH_PACK:
+						GetLBESlots(LTHIGHPOCKPOS, pocketKey);
+						break;
+					case VEST_PACK:
+						GetLBESlots(VESTPOCKPOS, pocketKey);
+						break;
+					case COMBAT_PACK:
+						GetLBESlots(CPACKPOCKPOS, pocketKey);
+						break;
+					case BACKPACK:
+						GetLBESlots(BPACKPOCKPOS, pocketKey);
+						break;
+						// this should never happen
+					default:
+						return;
+					}
+					UINT8 slotCount = 0;
+					for (std::list<OBJECTTYPE>::iterator iter = (*gpItemDescObject)[gubItemDescStatusIndex]->attachments.begin(); iter != (*gpItemDescObject)[gubItemDescStatusIndex]->attachments.end(); ++iter, ++slotCount)
+					{
+						// compare the adress
+						if (&(*iter) == pAttachment)
+						{
+							std::vector<UINT16>	usAttachmentSlotIndexVector = GetItemSlots(gpItemDescObject);
+
+							if (gpItemDescObject->IsActiveLBE(gubItemDescStatusIndex)) // not worn by the soldier
+							{
+								LBENODE* pLBE = gpItemDescObject->GetLBEPointer(gubItemDescStatusIndex);
+								// we have an item in this pocket
+								if (pLBE && pLBE->inv[(AttachmentSlots[usAttachmentSlotIndexVector[slotCount]].ubPocketMapping - 1)].exists()) {
+									// place item on the ground
+									AutoPlaceObjectToWorld(gpItemDescSoldier, &pLBE->inv[(AttachmentSlots[usAttachmentSlotIndexVector[slotCount]].ubPocketMapping - 1)], TRUE);
+								}
+							}
+							else // the soldier is wearing the LBE
+							{
+								// we have an item in this pocket
+								if (gpItemDescSoldier->inv[pocketKey[(AttachmentSlots[usAttachmentSlotIndexVector[slotCount]].ubPocketMapping - 1)]].exists())
+									// place in soldiers inventory
+								if (!AutoPlaceObject(gpItemDescSoldier, &gpItemDescSoldier->inv[pocketKey[(AttachmentSlots[usAttachmentSlotIndexVector[slotCount]].ubPocketMapping - 1)]], FALSE))
+									// that didn't work. Place on ground instead.
+									AutoPlaceObjectToWorld(gpItemDescSoldier, &gpItemDescSoldier->inv[pocketKey[(AttachmentSlots[usAttachmentSlotIndexVector[slotCount]].ubPocketMapping - 1)]], TRUE);
+							}
+							break;
+						}
+					}
+				}
+
 				// Get attachment if there is one
-				// The follwing function will handle if no attachment is here
+				// The following function will handle if no attachment is here
 				if ( gpItemDescObject->RemoveAttachment( pAttachment, &gItemPointer, ubStatusIndex, gpItemDescSoldier ) )
 				{
 					gpItemPointer = &gItemPointer;
@@ -6292,14 +6380,23 @@ void ItemDescAttachmentsCallback( MOUSE_REGION * pRegion, INT32 iReason )
 
 					if( guiCurrentItemDescriptionScreen == MAP_SCREEN )
 					{
-						// Set mouse
-						guiExternVo = GetInterfaceGraphicForItem( &(Item[ gpItemPointer->usItem ]) );
-						gusExternVoSubIndex = g_bUsePngItemImages ? 0 : Item[ gpItemPointer->usItem ].ubGraphicNum;
+						// sevenfm: r8400
+						//Autoplace to map sector inventory
+						if (_KeyDown(CTRL))
+						{
+							AutoPlaceObjectToWorld(gpItemPointerSoldier, gpItemPointer);
+							gpItemPointer = NULL;
+						}
+						else {
+							// Set mouse
+							guiExternVo = GetInterfaceGraphicForItem(&(Item[gpItemPointer->usItem]));
+							gusExternVoSubIndex = g_bUsePngItemImages ? 0 : Item[gpItemPointer->usItem].ubGraphicNum;
 
-						MSYS_ChangeRegionCursor( &gMPanelRegion , EXTERN_CURSOR );
-						MSYS_SetCurrentCursor( EXTERN_CURSOR );
-						fMapInventoryItem=TRUE;
-						fTeamPanelDirty=TRUE;
+							MSYS_ChangeRegionCursor(&gMPanelRegion, EXTERN_CURSOR);
+							MSYS_SetCurrentCursor(EXTERN_CURSOR);
+							fMapInventoryItem = TRUE;
+							fTeamPanelDirty = TRUE;
+						}
 					}
 										
 					//if we are currently in the shopkeeper interface
@@ -6569,12 +6666,16 @@ INT8 DetermineShowLBE( )
 		}
 		else
 		{
-			if(gpItemDescObject->IsActiveLBE(gubItemDescStatusIndex))
-				return (gpItemDescObject->GetLBEPointer(gubItemDescStatusIndex)->lbeClass - 1);
-			else if(Item[gpItemDescObject->usItem].usItemClass == IC_LBEGEAR)
+			if (gpItemDescObject->IsActiveLBE(gubItemDescStatusIndex)) {
+				LBENODE* pLBE = gpItemDescObject->GetLBEPointer(gubItemDescStatusIndex);
+				return pLBE ? (pLBE->lbeClass - 1) : -1;
+			}
+			else if (Item[gpItemDescObject->usItem].usItemClass == IC_LBEGEAR) {
 				return (LoadBearingEquipment[Item[gpItemDescObject->usItem].ubClassIndex].lbeClass - 1);
-			else
+			}
+			else {
 				return -1;
+			}
 		}
 	}
 }
@@ -8000,9 +8101,8 @@ void RenderLBENODEItems( OBJECTTYPE *pObj, int subObject )
 	}
 
 	LBENODE* pLBE = NULL;
-	if(activeNode == true)
+	if (activeNode == true && (pLBE = pObj->GetLBEPointer(subObject)) != NULL)
 	{
-		pLBE = pObj->GetLBEPointer(subObject);
 		lClass = pLBE->lbeClass;
 	}
 	else {

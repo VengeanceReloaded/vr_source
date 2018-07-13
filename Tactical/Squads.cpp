@@ -378,11 +378,14 @@ BOOLEAN AddCharacterToSquad( SOLDIERTYPE *pCharacter, INT8 bSquadValue )
 				pCharacter->bOldAssignment = bSquadValue;
 			}
 
-			// if current tactical sqaud...upadte panel
+			// if current tactical squad...update panel
 			if( NumberOfPeopleInSquad( ( INT8 )iCurrentTacticalSquad ) == 0 )
 			{
 				SetCurrentSquad( bSquadValue, TRUE );
 			}
+
+			// silversurfer: We need to sort the squad here. Otherwise it will have a random sort order when we force exit a vehicle in an enemy sector.
+			SortSquadByID(bSquadValue);
 
 			if( bSquadValue == ( INT8 ) iCurrentTacticalSquad )
 			{
@@ -1655,23 +1658,32 @@ BOOLEAN DoesVehicleExistInSquad( INT8 bSquadValue )
 	return(FALSE );
 }
 
-void CheckSquadMovementGroups( void )
+void CheckSquadMovementGroups(void)
 {
-	INT32			iSquad;
+	INT32		iSquad;
+	INT8		iSoldier;
 	GROUP *		pGroup;
 
-	for( iSquad = 0; iSquad < NUMBER_OF_SQUADS; iSquad++ )
+	for (iSquad = 0; iSquad < NUMBER_OF_SQUADS; iSquad++)
 	{
-		pGroup = GetGroup( SquadMovementGroups[ iSquad ] );
-		if ( pGroup == NULL )
+		pGroup = GetGroup(SquadMovementGroups[iSquad]);
+		if (pGroup == NULL)
 		{
 			// recreate group
-			SquadMovementGroups[ iSquad ] = CreateNewPlayerGroupDepartingFromSector( 1, 1 );
+			SquadMovementGroups[iSquad] = CreateNewPlayerGroupDepartingFromSector(1, 1);
 
 			// Set persistent....
-			pGroup = GetGroup( SquadMovementGroups[ iSquad ] );
-			Assert( pGroup );
+			pGroup = GetGroup(SquadMovementGroups[iSquad]);
+			Assert(pGroup);
 			pGroup->fPersistant = TRUE;
+		}
+
+		// Bob: propagate the group id to the squad members
+		for (INT8 iSoldier = 0; iSoldier < NUMBER_OF_SOLDIERS_PER_SQUAD; iSoldier++) {
+			if (Squad[iSquad][iSoldier] != NULL)
+			{
+				Squad[iSquad][iSoldier]->ubGroupID = pGroup->ubGroupID;
+			}
 		}
 	}
 }

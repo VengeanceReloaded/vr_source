@@ -52,6 +52,7 @@
 #include "Sound Control.h"		// added by Flugente
 #include "Soldier Functions.h"	// added by Flugente for DoesSoldierWearGasMask(...)
 #include "CampaignStats.h"		// added by Flugente
+#include "SkillCheck.h"			// added by Flugente
 #include "AIInternals.h"//dnl ch61 180813
 
 //forward declarations of common classes to eliminate includes
@@ -2020,7 +2021,15 @@ BOOLEAN CalculateSoldierZPos( SOLDIERTYPE * pSoldier, UINT8 ubPosType, FLOAT * p
 		*pdZPos = ( WALL_HEIGHT_UNITS * 2 ) - 1;
 	}
 
-	*pdZPos += CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[pSoldier->sGridNo].sHeight );
+	// Bob: check if sGridNo is set, otherwise bail out to avoid access violation
+	INT32 grid = pSoldier->sGridNo;
+	if (grid > 0) {
+		*pdZPos += CONVERT_PIXELS_TO_HEIGHTUNITS(gpWorldLevelData[grid].sHeight);
+	}
+	else {
+		// ScreenMsg(FONT_MCOLOR_LTRED, MSG_INTERFACE, L"CalculateSoldierZPos: Caught bad LOS height check!");
+	}
+
 	return( TRUE );
 }
 

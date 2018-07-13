@@ -893,24 +893,28 @@ void MercComplainAboutEquipment( UINT8 ubProfile )
 	// Are we dead/ does merc still exist?
 	pSoldier = FindSoldierByProfileID( ubProfile, FALSE );
 
-	if ( pSoldier != NULL )
+	if (pSoldier != NULL && pSoldier->stats.bLife >= OKLIFE)
 	{
-		if ( pSoldier->stats.bLife >= OKLIFE && pSoldier->flags.fMercAsleep != TRUE && pSoldier->bAssignment < ON_DUTY )
+		if (pSoldier->flags.fMercAsleep != TRUE && pSoldier->bAssignment < ON_DUTY)
 		{
 			//ATE: Double check that this problem still exists!
-			if ( SoldierHasWorseEquipmentThanUsedTo( pSoldier ) )
+			if (SoldierHasWorseEquipmentThanUsedTo(pSoldier))
 			{
 				// Say quote!
-				TacticalCharacterDialogue( pSoldier, QUOTE_WHINE_EQUIPMENT );
+				TacticalCharacterDialogue(pSoldier, QUOTE_WHINE_EQUIPMENT);
+
 				// anv: morale hit
-				HandleMoraleEvent( pSoldier, MORALE_BAD_EQUIPMENT, pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ );
+				HandleMoraleEvent(pSoldier, MORALE_BAD_EQUIPMENT, pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ);
 				ModifyPlayerReputation(REPUTATION_TOWN_LOST);
+			}
+			// if we can't complain right now, do it later
+			else
+			{
+				AddStrategicEvent(EVENT_MERC_COMPLAIN_EQUIPMENT, GetWorldTotalMin() + 60, ubProfile);
 			}
 		}
 	}
 }
-
-
 
 void UpdateBuddyAndHatedCounters( void )
 {

@@ -367,10 +367,13 @@ void RemoveCoverObjectsFromViewArea()
 					INT32& sGridNo = gCoverViewArea[ ubX ][ ubY ][ ubZ ].sGridNo;
 					BOOLEAN& fInverseColor = gCoverViewArea[ ubX ][ ubY ][ ubZ ].fInverseColor;
 
-					TileDefines tile = GetTileCoverIndex(!fInverseColor ? bCover : MAX_COVER - bCover);
-					RemoveCoverObjectFromWorld( sGridNo, tile, (BOOLEAN) ubZ );
-					bCover = -1;
-					fChanged = TRUE;
+					if (!TileIsOutOfBounds(sGridNo))
+					{
+						TileDefines tile = GetTileCoverIndex(!fInverseColor ? bCover : MAX_COVER - bCover);
+						RemoveCoverObjectFromWorld(sGridNo, tile, (BOOLEAN)ubZ);
+						bCover = -1;
+						fChanged = TRUE;
+					}
 				}
 			}
 		}

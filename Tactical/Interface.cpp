@@ -62,6 +62,7 @@
 	#include "weapons.h"
 	#include "Map Screen Interface.h"	// added by Flugente for SquadNames
 	#include "environment.h"
+	#include "SkillCheck.h"				// added by Flugente
 	// sevenfm: needed for _KeyDown(SHIFT)
 	#include "english.h"
 	#include "DisplayCover.h"

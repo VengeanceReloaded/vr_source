@@ -6424,10 +6424,6 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 	INT16			usX, usY;
 	INT16			ubAttackAPs;
 	UINT8			ubNumLine;
-	INT16			sTop;
-	INT16			sHeight;
-	INT16			sLeft;
-	INT16			sWidth;
 
 	OBJECTTYPE *gpComparedItemDescObject = NULL;
 
@@ -7895,7 +7891,7 @@ void DrawWeaponValues( OBJECTTYPE * gpItemDescObject )
 			INT16 iFinalAutoAPCost = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
 					+ CalcAPsToAutofire( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, 3, NULL );
 			// Get base Autofire Cost
-			INT16 iAutoAPCost = BaseAPsToShootOrStabNoModifier( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject );
+			INT16 iAutoAPCost = BaseAPsToShootOrStabNoModifier( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject )
 				+ CalcAPsToAutofireNoModifier( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, 3 );
 			// Get Autofire Cost Modifier
 			INT16 iAutoAPCostModifier = iFinalAutoAPCost - iAutoAPCost;
@@ -8554,7 +8550,7 @@ void DrawAmmoValues( OBJECTTYPE * gpItemDescObject, int shotsLeft )
 	INT16				usY;
 	INT16				usX;
 	UINT8				ubNumLine;
-	INT16				sLeft, sTop, sWidth, sHeight;
+	INT16				sTop, sHeight;
 
 	OBJECTTYPE *gpComparedItemDescObject = NULL;
 
@@ -8849,7 +8845,7 @@ void DrawExplosiveValues( OBJECTTYPE * gpItemDescObject )
 	INT16				usY;
 	INT16				usX;
 	UINT8				ubNumLine;
-	INT16				sLeft, sTop, sWidth, sHeight;
+	INT16				sTop, sHeight;
 
 	OBJECTTYPE *gpComparedItemDescObject = NULL;
 
@@ -9494,7 +9490,6 @@ void DrawArmorValues( OBJECTTYPE * gpItemDescObject )
 	INT16				usY;
 	INT16				usX;
 	UINT8				ubNumLine;
-	INT16				sLeft, sTop, sWidth, sHeight;
 
 	OBJECTTYPE *gpComparedItemDescObject = NULL;
 
@@ -10828,7 +10823,7 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 					else
 					{
 						SetFontForeground( 5 );
-						swprintf( pStr, L"=", iFloatModifier[cnt2] );
+						swprintf(pStr, L"=");
 					}
 					FindFontCenterCoordinates( sLeft, sTop, sWidth, sHeight, pStr, BLOCKFONT2, &usX, &usY);
 				}
@@ -11842,12 +11837,12 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 					if (iModifier[cnt2])
 					{
 						SetFontForeground( 5 );
-						swprintf( pStr, L"=", iModifier[cnt2] );
+						swprintf(pStr, L"=");
 					}
 					else
 					{
 						SetFontForeground( ITEMDESC_FONTPOSITIVE );
-						swprintf( pStr, L"Y", iModifier[cnt2] );
+						swprintf(pStr, L"Y");
 					}
 					FindFontCenterCoordinates( sLeft, sTop, sWidth, sHeight, pStr, BLOCKFONT2, &usX, &usY);
 				}
@@ -11860,7 +11855,7 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 				else if (iModifier[cnt2])
 				{
 					SetFontForeground( ITEMDESC_FONTPOSITIVE );
-					swprintf( pStr, L"Y", iModifier[cnt2] ); // FIXME: unused param
+					swprintf(pStr, L"Y");
 					FindFontCenterCoordinates( sLeft, sTop, sWidth, sHeight, pStr, BLOCKFONT2, &usX, &usY);
 				}
 				else

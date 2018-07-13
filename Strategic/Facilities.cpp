@@ -802,18 +802,6 @@ INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 	INT8 bAssignment = pSoldier->bAssignment;
 	INT8 bAssignmentIndex = -1; // Return variable. -1 = Non-facility assignment.
 
-	if (bAssignment <= ON_DUTY ||
-		bAssignment == PATIENT ||
-		bAssignment == VEHICLE ||
-		bAssignment == IN_TRANSIT ||
-		bAssignment == TRAIN_TOWN ||
-		bAssignment == TRAIN_MOBILE ||
-		( bAssignment > FACILITY_REST && ( bAssignment < FACILITY_PRISON_SNITCH || bAssignment > FACILITY_GATHER_RUMOURS ) && bAssignment < FACILITY_MANAGE_MINE ))
-	{
-		// Soldier is performing a distinctly NON-FACILITY assignment.
-		return (-1);
-	}
-
 	if (pSoldier->sFacilityTypeOperated == -1)
 	{
 		// Soldier is not set to work at a facility...
@@ -979,6 +967,7 @@ INT8 GetSoldierFacilityAssignmentIndex( SOLDIERTYPE *pSoldier )
 			bAssignmentIndex = FAC_MANAGE_OIL_RIG;
 			break;
 		default:
+			// Soldier is performing a distinctly NON-FACILITY assignment.
 			bAssignmentIndex = -1;
 			break;
 	}

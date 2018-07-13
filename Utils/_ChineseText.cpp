@@ -3653,7 +3653,7 @@ STR16 pMapScreenInvenButtonHelpText[] =
 	L"合并堆叠同类的物品", // HEADROCK HAM 5: Stack and Merge
 	L"|L|e|f|t |C|l|i|c|k: 将子弹分类装入弹箱\n|R|i|g|h|t |C|l|i|c|k: 将子弹分类装入纸盒", // HEADROCK HAM 5: Sort ammo
 	// 6 - 10
-	L"移除所有物品的附件", // HEADROCK HAM 5: Separate Attachments
+	L"|鼠|标|左|击: 移除所有物品的附件\n|鼠|标|右|击: empty LBE in sector", // HEADROCK HAM 5: Separate Attachments
 	L"退出所有武器的子弹", //HEADROCK HAM 5: Eject Ammo
 	L"|L|e|f|t |C|l|i|c|k: 显示全部物品\n|R|i|g|h|t |C|l|i|c|k: 隐藏全部物品", // HEADROCK HAM 5: Filter Button
 	L"|L|e|f|t |C|l|i|c|k: 切换是否显示武器\n|R|i|g|h|t |C|l|i|c|k|: 只显示武器", // HEADROCK HAM 5: Filter Button
@@ -7916,6 +7916,13 @@ STR16 gzMapInventorySortingMessage[] =
 	L"已完成 移除所有物品上的附件 在区域 %c%d.",
 	L"已完成 退出所有武器里的子弹 在区域 %c%d.",
 	L"已完成 合并后堆叠了所有物品 在区域 %c%d.",
+	// Bob: new strings for emptying LBE items
+	L"Finished emptying LBE items in sector %c%d.",
+	L"Dropped %i item(s) from %s",	// Bunch of stuff removed from LBE item %s
+	L"No droppable items in %s!",	// LBE item %s had a LBENode assigned but it contained no items (error!)
+	L"%s is now empty.",			// LBE item %s contained stuff and was emptied
+	L"Cannot empty %s!",			// Removed everything we could from LBE item %s but it's still not marked as empty (error!)
+	L"%s contents lost!",			// LBE item %s not marked as empty but LBENode not found (error!!!)
 };
 
 STR16 gzMapInventoryFilterOptions[] =

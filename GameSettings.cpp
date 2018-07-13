@@ -2285,7 +2285,7 @@ void LoadSkillTraitsExternalSettings()
 	gSkillTraitValues.ubNumberOfMajorTraitsAllowed = iniReader.ReadInteger("Generic Traits Settings","NUMBER_OF_MAJOR_TRAITS_ALLOWED", 3, 2, 20);
 
 	gSkillTraitValues.ubMaxNumberOfTraitsForIMP = iniReader.ReadInteger("Generic Traits Settings","MAX_NUMBER_OF_TRAITS_FOR_IMP", 3, 2, 30);
-	gSkillTraitValues.ubNumberOfMajorTraitsAllowedForIMP = iniReader.ReadInteger("Generic Traits Settings","NUMBER_OF_MAJOR_TRAITS_ALLOWED_FOR_IMP", 2, 2, 20);
+	gSkillTraitValues.ubNumberOfMajorTraitsAllowedForIMP = iniReader.ReadInteger("Generic Traits Settings", "NUMBER_OF_MAJOR_TRAITS_ALLOWED_FOR_IMP", 2, 2, min(gSkillTraitValues.ubNumberOfMajorTraitsAllowed, gSkillTraitValues.ubMaxNumberOfTraitsForIMP - 1));
 
 	// Allow an exception in number of traits for Special Merc?
 	//gSkillTraitValues.fAllowSpecialMercTraitsException = iniReader.ReadBoolean("Generic Traits Settings","ALLOW_EXCEPTION_FOR_SPECIAL_MERC", TRUE); 
@@ -4086,24 +4086,24 @@ void DisplayGameSettings( )
 	ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s", gzGIOScreenText[ GIO_DIF_LEVEL_TEXT ], gzGIOScreenText[ gGameOptions.ubDifficultyLevel + GIO_EASY_TEXT - 1 ] );
 
 	//Bobby Ray option 1
-	if ( gGameOptions.ubBobbyRayQuality >= BR_GOOD && gGameOptions.ubBobbyRayQuality < BR_GREAT )
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[ GIO_BR_QUALITY_TEXT ], gzGIOScreenText[ GIO_BR_GOOD_TEXT ], BR_GOOD );
-	else if ( gGameOptions.ubBobbyRayQuality >= BR_GREAT && gGameOptions.ubBobbyRayQuality < BR_EXCELLENT )
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[ GIO_BR_QUALITY_TEXT ], gzGIOScreenText[ GIO_BR_GREAT_TEXT ], BR_GREAT );
-	else if ( gGameOptions.ubBobbyRayQuality >= BR_EXCELLENT && gGameOptions.ubBobbyRayQuality < BR_AWESOME )
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[ GIO_BR_QUALITY_TEXT ], gzGIOScreenText[ GIO_BR_EXCELLENT_TEXT ], BR_EXCELLENT );
+	if (gGameOptions.ubBobbyRayQuality >= BR_GOOD && gGameOptions.ubBobbyRayQuality < BR_GREAT)
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[GIO_BR_QUALITY_TEXT], gzGIOScreenText[GIO_BR_GOOD_TEXT], gGameOptions.ubBobbyRayQuality);
+	else if (gGameOptions.ubBobbyRayQuality >= BR_GREAT && gGameOptions.ubBobbyRayQuality < BR_EXCELLENT)
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[GIO_BR_QUALITY_TEXT], gzGIOScreenText[GIO_BR_GREAT_TEXT], gGameOptions.ubBobbyRayQuality);
+	else if (gGameOptions.ubBobbyRayQuality >= BR_EXCELLENT && gGameOptions.ubBobbyRayQuality < BR_AWESOME)
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[GIO_BR_QUALITY_TEXT], gzGIOScreenText[GIO_BR_EXCELLENT_TEXT], gGameOptions.ubBobbyRayQuality);
 	else
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[ GIO_BR_QUALITY_TEXT ], gzGIOScreenText[ GIO_BR_AWESOME_TEXT ], BR_AWESOME );
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%d)", gzGIOScreenText[GIO_BR_QUALITY_TEXT], gzGIOScreenText[GIO_BR_AWESOME_TEXT], gGameOptions.ubBobbyRayQuality);
 
 	//Bobby Ray option 2
-	if ( gGameOptions.ubBobbyRayQuantity >= BR_GOOD && gGameOptions.ubBobbyRayQuantity < BR_GREAT )
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[ GIO_BR_QUANTITY_TEXT ], gzGIOScreenText[ GIO_BR_GOOD_TEXT ], BR_GOOD );
-	else if ( gGameOptions.ubBobbyRayQuantity >= BR_GREAT && gGameOptions.ubBobbyRayQuantity < BR_EXCELLENT )
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[ GIO_BR_QUANTITY_TEXT ], gzGIOScreenText[ GIO_BR_GREAT_TEXT ], BR_GREAT );
-	else if ( gGameOptions.ubBobbyRayQuantity >= BR_EXCELLENT && gGameOptions.ubBobbyRayQuantity < BR_AWESOME )
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[ GIO_BR_QUANTITY_TEXT ], gzGIOScreenText[ GIO_BR_EXCELLENT_TEXT ], BR_EXCELLENT );
+	if (gGameOptions.ubBobbyRayQuantity >= BR_GOOD && gGameOptions.ubBobbyRayQuantity < BR_GREAT)
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[GIO_BR_QUANTITY_TEXT], gzGIOScreenText[GIO_BR_GOOD_TEXT], gGameOptions.ubBobbyRayQuality);
+	else if (gGameOptions.ubBobbyRayQuantity >= BR_GREAT && gGameOptions.ubBobbyRayQuantity < BR_EXCELLENT)
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[GIO_BR_QUANTITY_TEXT], gzGIOScreenText[GIO_BR_GREAT_TEXT], gGameOptions.ubBobbyRayQuality);
+	else if (gGameOptions.ubBobbyRayQuantity >= BR_EXCELLENT && gGameOptions.ubBobbyRayQuantity < BR_AWESOME)
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[GIO_BR_QUANTITY_TEXT], gzGIOScreenText[GIO_BR_EXCELLENT_TEXT], gGameOptions.ubBobbyRayQuality);
 	else
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[ GIO_BR_QUANTITY_TEXT ], gzGIOScreenText[ GIO_BR_AWESOME_TEXT ], BR_AWESOME );
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"%s: %s (%dx)", gzGIOScreenText[GIO_BR_QUANTITY_TEXT], gzGIOScreenText[GIO_BR_AWESOME_TEXT], gGameOptions.ubBobbyRayQuality);
 
 	// Item Progress Speed Option
 	switch( gGameOptions.ubProgressSpeedOfItemsChoices )

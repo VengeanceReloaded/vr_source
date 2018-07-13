@@ -94,6 +94,7 @@
 #include "CampaignStats.h"		// added by Flugente
 #include "Interface Panels.h"
 #include "ai.h"					// sevenfm
+#include "Queen Command.h" // sevenfm: for r8380
 #endif
 
 #include "ub_config.h"
@@ -5828,6 +5829,13 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 		else
 			sBreathLoss = APBPConstants[BP_GET_HIT]; 
 		ubReason = TAKE_DAMAGE_BLADE;
+
+		// Flugente: check whether we can make this blade bloody
+		if (ubAttackerID != NOBODY && MercPtrs[ubAttackerID]->inv[HANDPOS].exists() && Item[MercPtrs[ubAttackerID]->inv[HANDPOS].usItem].bloodieditem > 0)
+		{
+			// magic happens
+			MercPtrs[ubAttackerID]->inv[HANDPOS].usItem = Item[MercPtrs[ubAttackerID]->inv[HANDPOS].usItem].bloodieditem;
+		}
 	}
 	else if ( Item[ usWeaponIndex ].usItemClass & IC_PUNCH )
 	{
@@ -21894,7 +21902,7 @@ BOOLEAN IsValidArtilleryOrderSector( INT16 sSectorX, INT16 sSectorY, INT8 bSecto
 
 	UINT16 usEnemies = (UINT16)NumEnemiesInAnySector( sSectorX, sSectorY, bSectorZ );
 	UINT16 usMilitia = (UINT16)GetNumberOfMilitiaInSector( sSectorX, sSectorY, (INT16)bSectorZ );
-	UINT16 usMercs   = (UINT16)PlayerMercsInSector( (UINT8)sSectorX, (UINT8)sSectorY, (UINT8)bSectorZ );
+	UINT16 usMercs = (UINT16)PlayerMercsInSector((UINT8)sSectorX, (UINT8)sSectorY, (UINT8)bSectorZ);
 
 	SECTORINFO *pSectorInfo = &(SectorInfo[SECTOR( sSectorX, sSectorY )]);
 

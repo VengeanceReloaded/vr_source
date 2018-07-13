@@ -532,7 +532,7 @@ void HandleOverheadMap( )
 					sActionGridNo = sIntTileGridNo;
 				}
 
-				bZLevel = GetZLevelOfItemPoolGivenStructure( sActionGridNo, 0, pStructure );
+				bZLevel = GetLargestZLevelOfItemPool(pItemPool);
 
 				if ( AnyItemsVisibleOnLevel( pItemPool, bZLevel ) )
 				{
@@ -2069,6 +2069,10 @@ BOOLEAN GetOverheadMouseGridNo( INT32 *psGridNo )
 
 		// Get gridNo
 		(*psGridNo ) = MAPROWCOLTOPOS( ( uiCellY / CELL_Y_SIZE ), ( uiCellX / CELL_X_SIZE ) );
+
+		if ((*psGridNo) == -1) {
+			return(FALSE);
+		}
 
 		// Adjust for height.....
 		sWorldScreenY = sWorldScreenY + gpWorldLevelData[ (*psGridNo) ].sHeight;

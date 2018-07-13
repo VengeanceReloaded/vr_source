@@ -1078,7 +1078,10 @@ BOOLEAN LoadExternalGameplayData(STR directoryName)
 		char tauntFileNamePattern[MAX_PATH];
 		strcpy(tauntFileNamePattern, directoryName);
 		strcat(tauntFileNamePattern, TAUNTSFOLDERNAME);
-		strcat(tauntFileNamePattern, TAUNTSFILENAMEBEGINNING"*"TAUNTSFILENAMEENDING);
+		strcat(tauntFileNamePattern, TAUNTSFILENAMEBEGINNING);
+		strcat(tauntFileNamePattern, "*");
+		strcat(tauntFileNamePattern, TAUNTSFILENAMEENDING);
+
 		if( GetFileFirst(tauntFileNamePattern, &FileInfo) )
 		{
 			strcpy(fileName, directoryName);

@@ -251,8 +251,8 @@ UINT32 i,NUM_TEMP;
   	for(i=0; i<NUM_TEMP; i++)
 	{
 			gbriefingRoomDataTemp[i].uiIndex = i;		
-			gbriefingRoomDataTemp[i].Name[ENCYCLOPEDIA_NAME_SIZE]  = '\0';	
-			gbriefingRoomDataTemp[i].sCode[ENCYCLOPEDIA_DECRIPTION_SIZE] = '\0';	
+			gbriefingRoomDataTemp[i].Name[ENCYCLOPEDIA_NAME_SIZE - 1] = '\0';
+			gbriefingRoomDataTemp[i].sCode[ENCYCLOPEDIA_DECRIPTION_SIZE - 1] = '\0';
 			gbriefingRoomDataTemp[i].sImagePositionX[0] = 0;
 			gbriefingRoomDataTemp[i].sImagePositionY[0] = 0;	
 			gbriefingRoomDataTemp[i].Hidden = FALSE;
@@ -504,7 +504,8 @@ BOOLEAN EnterEncyclopediaLocation()
 	if ( MaxLocation == -1 || MaxLocation == 0 || MaxLocation == 1 ) 
 		DisableButton( guiEncyclopediaLocationPageButton[2] );
 
-		sprintf(str, "BriefingRoom\\mission%d.wav", gbriefingRoomDataTemp[LocationID].MissionID,IDimage);
+		sprintf(str, "BriefingRoom\\mission%d.wav", gbriefingRoomDataTemp[LocationID].MissionID);
+
 		if( FileExists(str)  )
 			EnableButton ( guiSoundButtons[0] );
 		else

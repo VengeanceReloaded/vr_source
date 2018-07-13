@@ -2227,8 +2227,8 @@ void DisplayMercStats()
 
 		// Numbers for above.	Health, Agility, dexterity, strength, leadership, wisdom
 
-		ubColor = GetStatColor( gMercProfiles[gbCurrentSoldier].bLife );
-		DrawNumeralsToScreen( gMercProfiles[gbCurrentSoldier].bLife, 3, STATS_FIRST_NUM_NSGI, HEALTH_Y_NSGI, AIM_M_NUMBER_FONT, ubColor	);
+		ubColor = GetStatColor(gMercProfiles[gbCurrentSoldier].bLifeMax);
+		DrawNumeralsToScreen(gMercProfiles[gbCurrentSoldier].bLifeMax, 3, STATS_FIRST_NUM_NSGI, HEALTH_Y_NSGI, AIM_M_NUMBER_FONT, ubColor);
 
 		ubColor = GetStatColor( gMercProfiles[gbCurrentSoldier].bAgility );
 		DrawNumeralsToScreen(gMercProfiles[gbCurrentSoldier].bAgility, 3, STATS_FIRST_NUM_NSGI, AGILITY_Y_NSGI, AIM_M_NUMBER_FONT, ubColor	);
@@ -3326,12 +3326,9 @@ UINT8 WillMercAcceptCall()
 
 BOOLEAN CanMercBeHired()
 {
-	UINT8	i,j;
 	UINT8	bMercID;
 	BOOLEAN fRetVal = FALSE;
 	BOOLEAN	fBuddyOnTeam=FALSE;
-
-
 
 	StopMercTalking();
 
@@ -3346,7 +3343,7 @@ BOOLEAN CanMercBeHired()
 
 
 	// loop through the list of people the merc hates
-	for(i=0; i< NUMBER_HATED_MERCS_ONTEAM; i++)
+	for (UINT8 i = 0; i < NUMBER_HATED_MERCS_ONTEAM; i++)
 	{
 		//see if someone the merc hates is on the team
 		if( i< NUMBER_HATED_MERCS_ONTEAM - 1 )
@@ -3356,6 +3353,7 @@ BOOLEAN CanMercBeHired()
 		else
 		{
 			bMercID = gMercProfiles[ gbCurrentSoldier ].bLearnToHate;
+
 			// ignore learn to hate, if he's not a foe yet
 			if( gMercProfiles[ gbCurrentSoldier ].bLearnToHateCount > 0 )
 				continue;
@@ -3374,16 +3372,17 @@ BOOLEAN CanMercBeHired()
 		if( IsMercOnTeamAndInOmertaAlready( bMercID ) )
 		{
 			//if the merc hates someone on the team, see if a buddy is on the team
-			for(j=0; j< NUMBER_HATED_MERCS_ONTEAM; j++)
+			for (UINT8 j = 0; j < NUMBER_HATED_MERCS_ONTEAM; j++)
 			{
 				//if a buddy is on the team, the merc will join
-				if( i< NUMBER_HATED_MERCS_ONTEAM - 1 )
+				if (j < NUMBER_HATED_MERCS_ONTEAM - 1)
 				{
 					bMercID = gMercProfiles[ gbCurrentSoldier ].bBuddy[j];
 				}
 				else
 				{
 					bMercID = gMercProfiles[ gbCurrentSoldier ].bLearnToLike;
+
 					// ignore learn to like, if he's not a buddy yet
 					if( gMercProfiles[ gbCurrentSoldier ].bLearnToLikeCount > 0 )
 						continue;
@@ -3394,23 +3393,23 @@ BOOLEAN CanMercBeHired()
 
 				if( IsMercOnTeam( bMercID ) && !IsMercDead( bMercID ) )
 				{
-					if(j == 0 )
+					if (j == 0)
 					{
 						InitVideoFaceTalking(gbCurrentSoldier, QUOTE_JOINING_CAUSE_BUDDY_1_ON_TEAM);
 					}
-					else if(j == 1 )
+					else if (j == 1)
 					{
 						InitVideoFaceTalking(gbCurrentSoldier, QUOTE_JOINING_CAUSE_BUDDY_2_ON_TEAM);
 					}
-					else if(j == 2 )
+					else if (j == 2)
 					{
 						InitVideoFaceTalking(gbCurrentSoldier, QUOTE_JOINING_CAUSE_BUDDY_3_ON_TEAM);
 					}
-					else if(j == 3 )
+					else if (j == 3)
 					{
 						InitVideoFaceTalking(gbCurrentSoldier, QUOTE_JOINING_CAUSE_BUDDY_4_ON_TEAM);
 					}
-					else if(j == 4 )
+					else if (j == 4)
 					{
 						InitVideoFaceTalking(gbCurrentSoldier, QUOTE_JOINING_CAUSE_BUDDY_5_ON_TEAM);
 					}
@@ -3532,9 +3531,6 @@ BOOLEAN CanMercBeHired()
 
 	return(TRUE);
 }
-
-
-
 
 BOOLEAN DisplaySnowBackground()
 {

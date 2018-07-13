@@ -1245,7 +1245,13 @@ void ChooseMapEdgepoints( MAPEDGEPOINTINFO *pMapEdgepointInfo, UINT8 ubStrategic
 	psArray = psTempArray;
 	for (i = 0; i < usArraySize; i++)
 	{
-		if (TERRAIN_IS_HIGH_WATER( GetTerrainType(psArray[ i ]) ) )
+		// Flugente: if troops spawn at the very northern edge of a sector, we often barely see them, and cannot target their head or torso.
+		// To stop that from happening, also remove these spawning points
+		INT32 nextgridno = NewGridNo(psArray[i], DirectionInc(NORTHWEST));
+
+		if (TERRAIN_IS_HIGH_WATER(GetTerrainType(psArray[i])) ||
+			gubWorldMovementCosts[(psArray[i] + DirectionInc(NORTHWEST))][NORTHWEST][0] == TRAVELCOST_OFF_MAP ||
+			gubWorldMovementCosts[(nextgridno + DirectionInc(NORTHWEST))][NORTHWEST][0] == TRAVELCOST_OFF_MAP)
 		{
 			if (i == usArraySize - 1)
 			{

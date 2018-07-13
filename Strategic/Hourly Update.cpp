@@ -19,6 +19,8 @@
 	#include "Dialogue Control.h"
 	#include "Strategic AI.h"
 	#include "Tactical Save.h"	// added by Flugente
+	#include "SkillCheck.h"			// added by Flugente
+	#include "Drugs And Alcohol.h"	
 #endif
 
 #include "Luaglobal.h"
@@ -381,11 +383,37 @@ void HourlyLarryUpdate()
 					}
 				}
 
+				// sevenfm: initialize for every soldier
+				fBar = FALSE;
+
 				// check to see if we're in a bar sector, if we are, we have access to alcohol
 				// which may be better than anything we've got...
 				if ( usTemptation < BAR_TEMPTATION && GetCurrentBalance() >= Item[ ALCOHOL ].usPrice )
 				{
-					if ( pSoldier->bSectorZ == 0 &&
+					// sevenfm: check facility
+					if (pSoldier->bSectorZ == 0)
+					{
+						for (UINT16 usFacilityType = 0; usFacilityType < NUM_FACILITY_TYPES; usFacilityType++)
+						{
+							//for( UINT8 ubAssignmentType = FAC_AMBIENT; ubAssignmentType < NUM_FACILITY_ASSIGNMENTS; ubAssignmentType++ )
+							// Is this facility here?
+							if (gFacilityLocations[SECTOR(pSoldier->sSectorX, pSoldier->sSectorY)][usFacilityType].fFacilityHere)
+							{
+								// is it a bar?
+								if (gFacilityTypes[usFacilityType].AssignmentData[FAC_FOOD].Risk[RISK_DRUNK].usChance > 0 ||
+									gFacilityTypes[usFacilityType].AssignmentData[FAC_REST].Risk[RISK_DRUNK].usChance > 0)
+								{
+									// Cool.
+									fBar = TRUE;
+									usTemptation = BAR_TEMPTATION;
+									// sevenfm: stop searching
+									break;
+								}
+							}
+						}
+					}
+
+					/*if ( pSoldier->bSectorZ == 0 &&
 								( ( pSoldier->sSectorX == 13 && pSoldier->sSectorY == MAP_ROW_D) ||
 									( pSoldier->sSectorX == 13 && pSoldier->sSectorY == MAP_ROW_C) ||
 									( pSoldier->sSectorX == 5 && pSoldier->sSectorY == MAP_ROW_C) ||
@@ -398,7 +426,7 @@ void HourlyLarryUpdate()
 						// in a bar!
 						fBar = TRUE;
 						usTemptation = BAR_TEMPTATION;
-					}
+					}*/
 				}
 
 				if ( usTemptation > 0 )
@@ -677,6 +705,11 @@ void HourlyStealUpdate()
 #else 
 void HourlyCheckIfSlayAloneSoHeCanLeave()
 {
+	if (gGameExternalOptions.fEnableSlayForever)
+	{
+		return;
+	}
+
 	SOLDIERTYPE *pSoldier;
 	pSoldier = FindSoldierByProfileID( SLAY, TRUE );
 	if( !pSoldier )
@@ -721,7 +754,7 @@ void HourlyHelicopterRepair()
 	{
 		return;
 	}
-	if( pVehicleList[ iHelicopterVehicleId ].sSectorX == gMercProfiles[ WALDO ].sSectorX && pVehicleList[ iHelicopterVehicleId ].sSectorX == gMercProfiles[ WALDO ].sSectorX )
+	if (pVehicleList[iHelicopterVehicleId].sSectorX == gMercProfiles[WALDO].sSectorX && pVehicleList[iHelicopterVehicleId].sSectorY == gMercProfiles[WALDO].sSectorY)
 	{
 		gubHelicopterHoursToRepair--;
 	}

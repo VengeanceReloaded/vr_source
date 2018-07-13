@@ -4971,7 +4971,46 @@ BOOLEAN OBJECTTYPE::AttachObjectNAS( SOLDIERTYPE * pSoldier, OBJECTTYPE * pAttac
 						pAttachment->RemoveObjectsFromStack(1);
 					newAttachment->MoveThisObjectTo(attachmentObject,1,pSoldier,NUM_INV_SLOTS,1);
 				} else {
-					pAttachment->MoveThisObjectTo(attachmentObject,1,pSoldier,NUM_INV_SLOTS,1);
+					// if this is an active LBE (holding an item) it must be a MOLLE pocket. We need to move the item out of this pocket or it will be invisible.
+					if (pAttachment->IsActiveLBE(subObject))
+					{
+						std::vector<INT8> LBESlots;
+						switch (LoadBearingEquipment[Item[pAttachment->usItem].ubClassIndex].lbeClass)
+						{
+						case THIGH_PACK:
+							GetLBESlots(LTHIGHPOCKPOS, LBESlots);
+							break;
+						case VEST_PACK:
+							GetLBESlots(VESTPOCKPOS, LBESlots);
+							break;
+						case COMBAT_PACK:
+							GetLBESlots(CPACKPOCKPOS, LBESlots);
+							break;
+						case BACKPACK:
+							GetLBESlots(BPACKPOCKPOS, LBESlots);
+							break;
+							// this should never happen
+						default:
+							return FALSE;
+						}
+
+						LBENODE* pLBE = pAttachment->GetLBEPointer(0);
+						for (unsigned int i = 0; pLBE && i < LBESlots.size(); i++)
+						{
+							// Is there an item in this LBE pocket?
+							if (pLBE->inv[i].exists())
+							{
+								// place in soldiers inventory
+								if (!AutoPlaceObject(pSoldier, &pLBE->inv[i], FALSE))
+									// that didn't work. Place it on the ground instead.
+									AutoPlaceObjectToWorld(pSoldier, &pLBE->inv[i], TRUE);
+							}
+						}
+						// finished removing items. Now attach the MOLLE pocket to its carrier.
+						pAttachment->MoveThisObjectTo(attachmentObject, 1, pSoldier, NUM_INV_SLOTS, 1);
+					}
+					else
+						pAttachment->MoveThisObjectTo(attachmentObject, 1, pSoldier, NUM_INV_SLOTS, 1);
 				}
 			} else {
 				pAttachment->MoveThisObjectTo(attachmentObject,1,pSoldier,NUM_INV_SLOTS,1);
@@ -8407,7 +8446,8 @@ BOOLEAN ArmBomb( OBJECTTYPE * pObj, INT8 bSetting )
 	return( TRUE );
 }
 
-BOOLEAN OBJECTTYPE::RemoveAttachment( OBJECTTYPE* pAttachment, OBJECTTYPE * pNewObj, UINT8 subObject, SOLDIERTYPE * pSoldier, BOOLEAN fForceInseperable, BOOLEAN fRemoveProhibited )
+// pAttachment will be filled with garbage data, pass a new OBJECTTYPE as pNewObj to get the removed attachment or pass NULL to indicate the attachment is to be deleted
+BOOLEAN OBJECTTYPE::RemoveAttachment(OBJECTTYPE * pAttachment, OBJECTTYPE * pNewObj, UINT8 subObject, SOLDIERTYPE * pSoldier, BOOLEAN fForceInseperable, BOOLEAN fRemoveProhibited)
 {
 	BOOLEAN		objDeleted = FALSE;
 	std::vector<UINT16> usAttachmentSlotIndexVector;
@@ -8449,6 +8489,7 @@ BOOLEAN OBJECTTYPE::RemoveAttachment( OBJECTTYPE* pAttachment, OBJECTTYPE * pNew
 				break;
 			}
 	}
+
 	//It is possible that the previous loop did not find the EXACT attachment we wanted to delete, look if there is one that is at least equal in data.
 	if(!objDeleted){
 		for (std::list<OBJECTTYPE>::iterator iter = (*this)[subObject]->attachments.begin();
@@ -8464,6 +8505,7 @@ BOOLEAN OBJECTTYPE::RemoveAttachment( OBJECTTYPE* pAttachment, OBJECTTYPE * pNew
 				}
 		}
 	}
+
 	if(!objDeleted)
 		return( FALSE );
 
@@ -8558,14 +8600,10 @@ BOOLEAN OBJECTTYPE::RemoveAttachment( OBJECTTYPE* pAttachment, OBJECTTYPE * pNew
 		RemoveProhibitedAttachments(pSoldier, &removedAttachment, removedAttachment.usItem);
 		RemoveProhibitedAttachments(pSoldier, this, this->usItem);
 	}
-	if(pNewObj != NULL)
+
+	if (pNewObj != NULL){
 		*pNewObj = removedAttachment;
-
-
-	// Why is this here? By now, the object, pAttachment had been pointing to, has already been deconstructed via RemoveAttachmentAtIter.
-	// (Commenting out the following two lines)
-	//if(pAttachment->exists() && (pAttachment->usItem == 0 || pAttachment->usItem == removedAttachment.usItem ))
-	//	*pAttachment = removedAttachment;
+	}
 
 	if (pNewObj->exists() && Item[pNewObj->usItem].grenadelauncher )//UNDER_GLAUNCHER)
 	{
@@ -8574,9 +8612,6 @@ BOOLEAN OBJECTTYPE::RemoveAttachment( OBJECTTYPE* pAttachment, OBJECTTYPE * pNew
 		OBJECTTYPE* pGrenade = FindAttachmentByClass( this, IC_GRENADE );
 		if (pGrenade->exists())
 		{
-			//ADB ubWeight has been removed, see comments in OBJECTTYPE
-			//pNewObj->ubWeight = CalculateObjectWeight( pNewObj );
-
 			// we might have to do it in this order, because if we attach first,
 			// the object is pretty much gone and RemoveAttachment won't work (returns right away)
 			OBJECTTYPE tmp;
@@ -8589,8 +8624,6 @@ BOOLEAN OBJECTTYPE::RemoveAttachment( OBJECTTYPE* pAttachment, OBJECTTYPE * pNew
 		RemoveProhibitedAttachments(pSoldier, this, this->usItem);
 	}
 
-	//ADB ubWeight has been removed, see comments in OBJECTTYPE
-	//this->ubWeight = CalculateObjectWeight( this );
 	return( TRUE );
 }
 

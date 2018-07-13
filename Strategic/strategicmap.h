@@ -220,4 +220,7 @@ void HandleSectorSpecificModificatioToMap( INT16 sMapX, INT16 sMapY, INT8 bMapZ,
 void HandleEmailBeingSentWhenEnteringSector( INT16 sMapX, INT16 sMapY, INT8 bMapZ, BOOLEAN fLaptopJustGotFixed );
 #endif
 
+// Bob: check and try to fix issues with squad and group assignment
+UINT8 tryToRecoverSquadsAndMovementGroups(SOLDIERTYPE* pCharacter);
+
 #endif

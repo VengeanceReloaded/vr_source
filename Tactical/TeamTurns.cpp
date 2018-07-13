@@ -1223,10 +1223,13 @@ void StartInterrupt( void )
 	if ( !gfHiddenInterrupt )
 	{
 		// Stop this guy....
-		if (MercPtrs[LATEST_INTERRUPT_GUY]->exists() )//MM: this was crashing if the LATEST_INTERRUPT_GUY wasn't set
+		if (LATEST_INTERRUPT_GUY != END_OF_INTERRUPTS && // BOB: is this just a blank?
+			LATEST_INTERRUPT_GUY <= TOTAL_SOLDIERS && // BOB: sanity check
+			MercPtrs[LATEST_INTERRUPT_GUY]->exists()	//MM: this was crashing if the LATEST_INTERRUPT_GUY wasn't set
+			)
 		{
-			MercPtrs[ LATEST_INTERRUPT_GUY ]->AdjustNoAPToFinishMove( TRUE );
-			MercPtrs[ LATEST_INTERRUPT_GUY ]->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_OFF;
+			MercPtrs[LATEST_INTERRUPT_GUY]->AdjustNoAPToFinishMove(TRUE);
+			MercPtrs[LATEST_INTERRUPT_GUY]->flags.bTurningFromPronePosition = TURNING_FROM_PRONE_OFF;
 		}
 	}
 
@@ -2494,7 +2497,7 @@ void ResolveInterruptsVs( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType)
 					pOpponent = MercPtrs[ubOpp];
 					AssertNotNIL(pOpponent);
 					// sevenfm: r8401
-					if ( pOpponent->bActive && pOpponent->bInSector && (pOpponent->stats.bLife >= OKLIFE) && (pOpponent->bBreath >= OKBREATH) && !(pOpponent->bCollapsed) )
+					if (pOpponent->bActive && pOpponent->bInSector && (pOpponent->stats.bLife >= OKLIFE) && (pOpponent->bBreath >= OKBREATH) && !(pOpponent->bCollapsed))
 					{
 						if ( ubInterruptType == NOISEINTERRUPT )
 						{
