@@ -572,7 +572,6 @@ void AddMissileTrail( BULLET *pBullet, FIXEDPT qCurrX, FIXEDPT qCurrY, FIXEDPT q
 	}
 
 	CreateAnimationTile( &AniParams );
-
 }
 
 

@@ -4372,8 +4372,10 @@ INT8 FireBulletGivenTargetNCTH( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, 
 	}
 	// HEADROCK HAM B2.5: Set tracer effect on/off for individual bullets in a Tracer Magazine, as part of the
 	// New Tracer System.
-	else if (gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && (pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0)
-		&& AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
+	else if (gGameExternalOptions.ubRealisticTracers > 0 && 
+			gGameExternalOptions.ubNumBulletsPerTracer > 0 && 
+			(pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0) &&
+			AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
 	{
 		UINT16 iBulletsLeft, iBulletsPerTracer;
 		iBulletsPerTracer = gGameExternalOptions.ubNumBulletsPerTracer;
@@ -4689,8 +4691,10 @@ INT8 FireBulletGivenTargetNCTH( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, 
 		pBullet->iDistanceLimit = iDistance;
 		// HEADROCK HAM BETA2.5: New method for signifying whether a bullet is a tracer or not, using an individual
 		// bullet structure flag. Hehehehe, I think this is kind of reverting to old code, isn't it?
-		if (gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && (pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0)
-			&& AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
+		if (gGameExternalOptions.ubRealisticTracers > 0 && 
+			gGameExternalOptions.ubNumBulletsPerTracer > 0 && 
+			(pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0) &&
+			AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
 		{
 			UINT16 iBulletsLeft, iBulletsPerTracer;
 			iBulletsPerTracer = gGameExternalOptions.ubNumBulletsPerTracer;
@@ -4707,6 +4711,12 @@ INT8 FireBulletGivenTargetNCTH( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, 
 				pBullet->fTracer = FALSE;
 			}
 		}
+		else if (AmmoTypes[(*pObjAttHand)[0]->data.gun.ubGunAmmoType].tracerEffect && 
+				(pFirer->bDoBurst || gGameSettings.fOptions[TOPTION_TRACERS_FOR_SINGLE_FIRE]))
+		{
+			pBullet->fTracer = TRUE;
+		}
+
 		if (fFake)
 		{
 			bCTGT = FireBullet( pFirer->ubID, pBullet, TRUE );
@@ -4860,8 +4870,10 @@ INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOA
 	}
 	// HEADROCK HAM B2.5: Set tracer effect on/off for individual bullets in a Tracer Magazine, as part of the
 	// New Tracer System.
-	else if (gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && (pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0)
-		&& AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
+	else if (gGameExternalOptions.ubRealisticTracers > 0 && 
+			gGameExternalOptions.ubNumBulletsPerTracer > 0 && 
+			(pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0) &&
+			AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
 	{
 		UINT16 iBulletsLeft, iBulletsPerTracer;
 		iBulletsPerTracer = gGameExternalOptions.ubNumBulletsPerTracer;
@@ -4876,7 +4888,8 @@ INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOA
 			fTracer = FALSE;
 		}
 	}
-	else if ( AmmoTypes[ pFirer->inv[pFirer->ubAttackingHand][0]->data.gun.ubGunAmmoType ].tracerEffect && (pFirer->bDoBurst || gGameSettings.fOptions[ TOPTION_TRACERS_FOR_SINGLE_FIRE ]) )
+	else if (AmmoTypes[ pFirer->inv[pFirer->ubAttackingHand][0]->data.gun.ubGunAmmoType ].tracerEffect && 
+			(pFirer->bDoBurst || gGameSettings.fOptions[ TOPTION_TRACERS_FOR_SINGLE_FIRE ]))
 	{
 		//usBulletFlags |= BULLET_FLAG_TRACER;
 		fTracer = TRUE;
@@ -5203,8 +5216,10 @@ INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOA
 		pBullet->iDistanceLimit = iDistance;
 		// HEADROCK HAM BETA2.5: New method for signifying whether a bullet is a tracer or not, using an individual
 		// bullet structure flag. Hehehehe, I think this is kind of reverting to old code, isn't it?
-		if (gGameExternalOptions.ubRealisticTracers > 0 && gGameExternalOptions.ubNumBulletsPerTracer > 0 && (pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0)
-			&& AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
+		if (gGameExternalOptions.ubRealisticTracers > 0 && 
+			gGameExternalOptions.ubNumBulletsPerTracer > 0 && 
+			(pFirer->bDoAutofire > 0 || pFirer->bDoBurst > 0) && 
+			AmmoTypes[ (*pObjAttHand)[0]->data.gun.ubGunAmmoType ].tracerEffect )
 		{
 			UINT16 iBulletsLeft, iBulletsPerTracer;
 			iBulletsPerTracer = gGameExternalOptions.ubNumBulletsPerTracer;
@@ -5221,6 +5236,12 @@ INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOA
 				pBullet->fTracer = FALSE;
 			}
 		}
+		else if (AmmoTypes[(*pObjAttHand)[0]->data.gun.ubGunAmmoType].tracerEffect &&
+				(pFirer->bDoBurst || gGameSettings.fOptions[TOPTION_TRACERS_FOR_SINGLE_FIRE]))
+		{
+			pBullet->fTracer = TRUE;
+		}
+
 		if (fFake)
 		{
 			bCTGT = FireBullet( pFirer->ubID, pBullet, TRUE );
