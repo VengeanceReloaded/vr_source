@@ -1900,7 +1900,12 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 					(*pObjHand)[0]->data.gun.ubGunShotsLeft == 1 )					
 				{					
 					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].silencedSound], zBurstString, " LAST" );
-					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					if (FileExists(zBurstString))
+					{
+						// play custom " LAST" sound
+						PlayJA2SampleFromFile(zBurstString, RATE_11025, SoundVolume(HIGHVOLUME, pSoldier->sGridNo), 1, SoundDir(pSoldier->sGridNo));
+					}
+					else
 					{
 						// play default sound
 						PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
@@ -1921,7 +1926,12 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 					(*pObjHand)[0]->data.gun.ubGunShotsLeft == 1 )					
 				{					
 					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].sSound], zBurstString, " LAST" );
-					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					if (FileExists(zBurstString))
+					{
+						// play custom " LAST" sound
+						PlayJA2SampleFromFile(zBurstString, RATE_11025, SoundVolume(volume, pSoldier->sGridNo), 1, SoundDir(pSoldier->sGridNo));
+					}
+					else
 					{
 						// play default sound
 						PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
@@ -2516,7 +2526,12 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 					(*pObjUsed)[0]->data.gun.ubGunShotsLeft == 1 )					
 				{					
 					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].silencedSound], zBurstString, " LAST" );
-					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					if (FileExists(zBurstString))
+					{
+						// play custom " LAST" sound
+						PlayJA2SampleFromFile(zBurstString, RATE_11025, SoundVolume(HIGHVOLUME, pSoldier->sGridNo), 1, SoundDir(pSoldier->sGridNo));
+					}
+					else
 					{
 						// play default sound
 						PlayJA2Sample( uiSound, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
@@ -2537,8 +2552,12 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 					(*pObjUsed)[0]->data.gun.ubGunShotsLeft == 1 )
 				{					
 					MakeCustomSoundFileName( szSoundEffects[ Weapon[ usUBItem ].sSound], zBurstString, " LAST" );
-
-					if(PlayJA2SampleFromFile( zBurstString, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) ) == SOUND_ERROR)
+					if (FileExists(zBurstString))
+					{
+						// play custom " LAST" sound
+						PlayJA2SampleFromFile(zBurstString, RATE_11025, SoundVolume(volume, pSoldier->sGridNo), 1, SoundDir(pSoldier->sGridNo));
+					}
+					else
 					{
 						// play default sound
 						PlayJA2Sample( Weapon[ usUBItem ].sSound, RATE_11025, SoundVolume( volume, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );
