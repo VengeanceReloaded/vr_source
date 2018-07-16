@@ -2135,6 +2135,7 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	CHAR16 noise[1024];
 	CHAR8 buf[1024];
 	INT32 iRandomTaunt = 0;
+	UINT8 ubExtraTaunts = 0;
 
 	if( !gGameExternalOptions.fVoiceTaunts )
 	{
@@ -2188,10 +2189,24 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	{
 		strcat( filename, "\\Female\\");
 	}
+	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA)
+	{
+		strcat(filename, "\\MilitiaElite\\");
+		sprintf(buf, "%02d", 1 + pCiv->ubID % 2);
+		strcat(filename, buf);
+		strcat(filename, "\\");
+	}
+	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubSoldierClass == SOLDIER_CLASS_REG_MILITIA)
+	{
+		strcat(filename, "\\MilitiaRegular\\");
+		sprintf(buf, "%02d", 1 + pCiv->ubID % 2);
+		strcat(filename, buf);
+		strcat(filename, "\\");
+	}
 	else if( pCiv->bTeam == MILITIA_TEAM )
 	{
 		strcat( filename, "\\Militia\\");
-		sprintf(buf, "%02d", 1+ pCiv->ubID % 3);
+		sprintf(buf, "%02d", 1+ pCiv->ubID % 5);
 		strcat( filename, buf);
 		strcat( filename, "\\");
 	}
@@ -2265,31 +2280,29 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	
 	strcat( filename, VoiceTauntFileName[iTauntType] );
 
-	// make a filename for extra taunt (1..4)
-	// if random number is 0, use default taunt
-	if( gGameExternalOptions.fExtraVoiceTaunts )
+	// count possible extra filenames
+	for (ubExtraTaunts = 1; ubExtraTaunts <= 10; ubExtraTaunts++)
 	{
-		iRandomTaunt = Random(5);
-		strcpy( filenameExtra, filename );
-		if( iRandomTaunt > 0 )
+		// check extra taunt file
+		strcpy(filenameExtra, filename);
+		sprintf(buf, " %d", ubExtraTaunts);
+		strcat(filenameExtra, buf);
+		strcat(filenameExtra, ".ogg");
+		if (!FileExists(filenameExtra))
 		{
-			sprintf(buf, " %d", iRandomTaunt);
-			strcat( filenameExtra, buf );
+			break;
 		}
-		strcat( filenameExtra, ".ogg");
+	}
+
+	// possibly use extra taunt
+	iRandomTaunt = Random(ubExtraTaunts);
+	if( iRandomTaunt > 0 )
+	{
+		sprintf(buf, " %d", iRandomTaunt);
+		strcat(filename, buf);
 	}
 
 	strcat( filename, ".ogg");
-
-	// if extra taunt exists, replace filename with filenameExtra
-	if( gGameExternalOptions.fExtraVoiceTaunts && FileExists(filenameExtra) )
-	{
-		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
-		{
-			ScreenMsg(FONT_GREEN, MSG_INTERFACE, L"Use extra taunt");
-		}		
-		strcpy( filename, filenameExtra );
-	}
 
 	// log taunt file names
 	if( gGameExternalOptions.fVoiceTauntsDebugInfo )

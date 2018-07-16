@@ -1455,7 +1455,6 @@ typedef struct
 	// sevenfm: extended options
 	BOOLEAN fVoiceTaunts;
 	BOOLEAN fVoiceTauntsDebugInfo;
-	BOOLEAN fExtraVoiceTaunts;
 	BOOLEAN fShowNoiseLocator;
 	BOOLEAN fShowXRayLocator;
 	BOOLEAN fExtraBattleSounds;
