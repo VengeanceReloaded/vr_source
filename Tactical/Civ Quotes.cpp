@@ -2137,6 +2137,8 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	INT32 iRandomTaunt = 0;
 	UINT8 ubExtraTaunts = 0;
 
+	CHECKF(pCiv);
+
 	if( !gGameExternalOptions.fVoiceTaunts )
 	{
 		return FALSE;
@@ -2159,15 +2161,7 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	}
 
 	strcpy(filename, "Voice");
-
-	if( !pCiv )
-	{
-		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
-		{			
-			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad soldier pointer" );
-		}
-		return FALSE;
-	}
+	
 	if( iTauntType < TAUNT_FIRE_GUN || iTauntType > TAUNT_RIPOSTE )
 	{
 		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
@@ -2281,7 +2275,8 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	strcat( filename, VoiceTauntFileName[iTauntType] );
 
 	// count possible extra filenames
-	for (ubExtraTaunts = 1; ubExtraTaunts <= 10; ubExtraTaunts++)
+	ubExtraTaunts = 0;
+	for (UINT8 ubCheck = 1; ubCheck <= 10; ubCheck++)
 	{
 		// check extra taunt file
 		strcpy(filenameExtra, filename);
@@ -2292,10 +2287,11 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 		{
 			break;
 		}
+		ubExtraTaunts = ubCheck;
 	}
 
 	// possibly use extra taunt
-	iRandomTaunt = Random(ubExtraTaunts);
+	iRandomTaunt = Random(ubExtraTaunts + 1);
 	if( iRandomTaunt > 0 )
 	{
 		sprintf(buf, " %d", iRandomTaunt);
