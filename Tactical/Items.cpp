@@ -7537,15 +7537,25 @@ UINT16 UseKitPoints( OBJECTTYPE * pObj, UINT16 usPoints, SOLDIERTYPE *pSoldier )
 {
 	// start consuming from the last kit in, so we end up with fewer fuller kits rather than
 	// lots of half-empty ones.
-	INT8		bLoop;
-	UINT16 usOriginalPoints = usPoints;
+	INT8	bLoop;
+	UINT16	usOriginalPoints = usPoints;
+	INT16	sPercentDrain = max(1, 100 - Item[pObj->usItem].percentstatusdrainreduction);
+	INT16	sStatus;
+	UINT16	sConsume;
+
+	// sevenfm: check
+	if (usPoints == 0)
+		return 0;
 
 	for (bLoop = pObj->ubNumberOfObjects - 1; bLoop >= 0; bLoop--)
 	{
-		// SANDRO - revisited this code, make the percentstatusdrainreduction count always
-		if( (usPoints * (max( 0, (100 - Item[pObj->usItem].percentstatusdrainreduction)))/100) < (*pObj)[bLoop]->data.objectStatus )
+		sStatus = (*pObj)[bLoop]->data.objectStatus;
+		// sevenfm: always consume at least 1 point of status
+		sConsume = max(1, usPoints * sPercentDrain / 100);
+
+		if (sConsume < sStatus)
 		{
-			(*pObj)[bLoop]->data.objectStatus -= (INT8)(usPoints * (max( 0, (100 - Item[pObj->usItem].percentstatusdrainreduction) ) )/100);
+			(*pObj)[bLoop]->data.objectStatus -= sConsume;
 
 			// Flugente: campaign stats
 			if ( Item[pObj->usItem].foodtype || Item[pObj->usItem].canteen)
@@ -7554,44 +7564,25 @@ UINT16 UseKitPoints( OBJECTTYPE * pObj, UINT16 usPoints, SOLDIERTYPE *pSoldier )
 				gCampaignStats.AddConsumption(CAMPAIGN_CONSUMED_MEDICAL, (FLOAT)(usOriginalPoints * Item[pObj->usItem].ubWeight / 100.0) );
 			else if ( Item[pObj->usItem].toolkit || HasItemFlag(pObj->usItem, CLEANING_KIT) )
 				gCampaignStats.AddConsumption(CAMPAIGN_CONSUMED_REPAIR, (FLOAT)(usOriginalPoints * Item[pObj->usItem].ubWeight / 100.0) );
-
+			
+			// consumed all points
 			return( usOriginalPoints );
 		}
-		// Flugente: we no longer destroy canteens upon emtptying them - as we can now refill them
+		// Flugente: we no longer destroy canteens upon emptying them - as we can now refill them
 		else if ( Item[pObj->usItem].canteen == TRUE )
 		{
-			// consume this kit totally
-			usPoints -= (((*pObj)[bLoop]->data.objectStatus - 1) / ((max( 0, (100 - Item[pObj->usItem].percentstatusdrainreduction))) /100));
+			// consume sStatus - 1
+			usPoints -= min(usPoints, max(1, 100 * (sStatus - 1) / sPercentDrain));
 			(*pObj)[bLoop]->data.objectStatus = 1;
 		}
 		else
 		{
 			// consume this kit totally
-			usPoints -= (((*pObj)[bLoop]->data.objectStatus) / ((max( 0, (100 - Item[pObj->usItem].percentstatusdrainreduction))) /100));
+			usPoints -= min(usPoints, max(1, 100 * sStatus / sPercentDrain));
 			(*pObj)[bLoop]->data.objectStatus = 0;
 
 			pObj->ubNumberOfObjects--;
 		}
-		/*
-		// SANDRO - heh, this is not very right solution.. in second case, the percentstatusdrainreduction should be taken into account too
-		if (Item[pObj->usItem].percentstatusdrainreduction  > 0 && ((usPoints * (100 - Item[pObj->usItem].percentstatusdrainreduction))/100) < (*pObj)[bLoop]->data.objectStatus )
-		{
-			(*pObj)[bLoop]->data.objectStatus -= (INT8) ((usPoints * (100 - Item[pObj->usItem].percentstatusdrainreduction ) )/100);
-			return( usOriginalPoints );
-		}
-		else if (usPoints < (UINT16) (*pObj)[bLoop]->data.objectStatus)
-		{
-			(*pObj)[bLoop]->data.objectStatus -= (INT8) usPoints;
-			return( usOriginalPoints );
-		}
-		else
-		{
-			// consume this kit totally
-			usPoints -= (*pObj)[bLoop]->data.objectStatus;
-			(*pObj)[bLoop]->data.objectStatus = 0;
-
-			pObj->ubNumberOfObjects--;
-		}*/
 	}
 
 	// Flugente: campaign stats

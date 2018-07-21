@@ -5922,16 +5922,20 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 					sBreathLoss = 30000;
 					ubReason = TAKE_DAMAGE_ELECTRICITY;
 
+					INT16 sPercentDrain = max(1, 100 - Item[(*pBatteries)[0]->data.objectStatus].percentstatusdrainreduction);
+
 					// use up 8-12 percent of batteries
 					if ( Item[pBatteries->usItem].percentstatusdrainreduction > 0 )
-						(*pBatteries)[0]->data.objectStatus -= (INT8)( (8 + Random( 5 )) * (100 - Item[(*pBatteries)[0]->data.objectStatus].percentstatusdrainreduction)/100 );
+						(*pBatteries)[0]->data.objectStatus -= max(1, (8 + Random(5)) * sPercentDrain / 100);
 					else
-						(*pBatteries)[0]->data.objectStatus -= (INT8)( (8 + Random( 5 )) );
+						(*pBatteries)[0]->data.objectStatus -= 8 + Random( 5 );
+
 					if ( (*pBatteries)[0]->data.objectStatus <= 0 )
 					{
 						// destroy batteries
 						pBatteries->RemoveObjectsFromStack(1);
-						if (pBatteries->exists() == false) {
+						if (pBatteries->exists() == false) 
+						{
 							MercPtrs[ubAttackerID]->inv[HANDPOS].RemoveAttachment(pBatteries);
 						}
 					}
