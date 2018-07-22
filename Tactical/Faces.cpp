@@ -1840,13 +1840,12 @@ void HandleRenderFaceAdjustments( FACETYPE *pFace, BOOLEAN fDisplayBuffer, BOOLE
 	
 		//------------------------------------Legion 2 by jazz--------------------------------
 
-		UINT8 faceProfileId = MercPtrs[ pFace->ubSoldierID ]->ubProfile;
+		UINT8 faceProfileId = gMercProfiles[MercPtrs[pFace->ubSoldierID]->ubProfile].ubFaceIndex;
 		BOOLEAN isIMP = FALSE;
 		
 		//IMP
 		if ( gProfilesIMP[ MercPtrs[ pFace->ubSoldierID ]->ubProfile ].ProfilId == MercPtrs[ pFace->ubSoldierID ]->ubProfile )
 		{
-			faceProfileId = gMercProfiles[MercPtrs[ pFace->ubSoldierID ]->ubProfile].ubFaceIndex;	
 			isIMP = TRUE;
 		}
 
