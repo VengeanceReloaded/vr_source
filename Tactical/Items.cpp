@@ -9964,8 +9964,9 @@ BOOLEAN ApplyCanteen( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN *pfGood
 		return( FALSE );
 	}
 
-	usTotalKitPoints = TotalPoints( pObj );
-	if (usTotalKitPoints == 0)
+	usTotalKitPoints = TotalPoints( pObj );	
+	// sevenfm: canteen with status = 1 is considered empty
+	if (usTotalKitPoints <= 1)
 	{
 		// HUH???
 		return( FALSE );

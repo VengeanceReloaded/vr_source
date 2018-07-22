@@ -15074,7 +15074,7 @@ OBJECTTYPE* SOLDIERTYPE::GetCleaningKit()
 
 	for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)						// ... for all items in our inventory ...
 	{
-		// ... if Item exists and is canteen (that can have drink points) ...
+		// ... if Item exists and is cleaning kit
 		if (inv[bLoop].exists() == true && HasItemFlag(inv[bLoop].usItem, CLEANING_KIT) )
 		{
 			pObj = &(inv[bLoop]);							// ... get pointer for this item ...
@@ -17540,12 +17540,6 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 			this->Disguise();
 		}
 	}
-
-	// sevenfm: auto refill canteens if no hostile enemy in sector
-	/*if( !EnemyAlerted(this) )
-	{
-		SoldierAutoFillCanteens( this );
-	}*/	
 }
 
 // check if Soldier can use the spell skillwise, with fAPCheck = TRUE also check current APs
@@ -19737,10 +19731,10 @@ void SOLDIERTYPE::EVENT_SoldierApplyItemToPerson( INT32 sGridNo, UINT8 ubDirecti
 			{
 				BOOLEAN success = TRUE;
 
-				// if the other guy is not on our side, and he is concious, he resists
+				// if the other guy is not on our side, and he is conscious, he resists
 				if ( this->bSide != pSoldier->bSide && !pSoldier->bCollapsed )
 				{
-					// wether we are sucessful depends on dexterity, and his alert status (he gets a malus on green state)
+					// whether we are successful depends on dexterity, and his alert status (he gets a malus on green state)
 					UINT32 attackervalue = 30 + 4 * EffectiveExpLevel( this ) + EffectiveDexterity( this, FALSE ) + 20 * HAS_SKILL_TRAIT(this, STEALTHY_NT);
 					UINT32 defendervalue = 100 + 3 * EffectiveExpLevel( pSoldier ) + 100 * (pSoldier->aiData.bAlertStatus - 1);
 					

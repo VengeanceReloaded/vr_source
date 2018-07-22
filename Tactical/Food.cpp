@@ -105,10 +105,10 @@ BOOLEAN ApplyFood( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObject, BOOLEAN fForce, B
 	static UINT16 lastitem = 0;
 
 	// how did this even happen?
-	if ( !pSoldier || !pObject || !(pObject->exists() ) || (*pObject)[0]->data.objectStatus < 1 )
+	if (!pSoldier || !pObject || !(pObject->exists()) || (*pObject)[0]->data.objectStatus < 1)
 		return( FALSE);
 
-	// dont feed our machines
+	// don't feed our machines
 	if ( pSoldier->ubProfile == ROBOT || IsVehicle(pSoldier) )
 		return( FALSE);
 
