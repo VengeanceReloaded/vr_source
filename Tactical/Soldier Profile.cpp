@@ -2364,11 +2364,10 @@ BOOLEAN MercIsInTropicalSector( SOLDIERTYPE * pSoldier )
 
 SOLDIERTYPE * SwapLarrysProfiles( SOLDIERTYPE * pSoldier )
 {
-	UINT8	ubSrcProfile;
+	UINT8	ubSrcProfile = pSoldier->ubProfile;
 	UINT8	ubDestProfile;
 	MERCPROFILESTRUCT * pNewProfile;
 
-	ubSrcProfile = pSoldier->ubProfile;
 	if ( ubSrcProfile == LARRY_NORMAL)
 	{
 		ubDestProfile = LARRY_DRUNK;
@@ -2446,38 +2445,41 @@ SOLDIERTYPE * SwapLarrysProfiles( SOLDIERTYPE * pSoldier )
 	pNewProfile->bSectorZ = gMercProfiles[ ubSrcProfile ].bSectorZ;
 	pNewProfile->usStrategicInsertionData = gMercProfiles[ ubSrcProfile ].usStrategicInsertionData;
 	pNewProfile->sTrueSalary = gMercProfiles[ ubSrcProfile ].sTrueSalary;
+
+	// the goodguy property is permanent and shouldn't carry over, so check for that
+	BOOLEAN goodguy = (gMercProfiles[ubDestProfile].ubMiscFlags3 & PROFILE_MISC_FLAG3_GOODGUY) ? TRUE : FALSE;
+
 	pNewProfile->ubMiscFlags3 = gMercProfiles[ ubSrcProfile ].ubMiscFlags3;
+
+	pNewProfile->ubMiscFlags3 &= ~PROFILE_MISC_FLAG3_GOODGUY;
+	if (goodguy) pNewProfile->ubMiscFlags3 |= PROFILE_MISC_FLAG3_GOODGUY;
+
 	pNewProfile->ubDaysOfMoraleHangover = gMercProfiles[ ubSrcProfile ].ubDaysOfMoraleHangover;
 	pNewProfile->ubNumTimesDrugUseInLifetime = gMercProfiles[ ubSrcProfile ].ubNumTimesDrugUseInLifetime;
 	pNewProfile->uiPrecedentQuoteSaid = gMercProfiles[ ubSrcProfile ].uiPrecedentQuoteSaid;
 	pNewProfile->sPreCombatGridNo = gMercProfiles[ ubSrcProfile ].sPreCombatGridNo;
+	pNewProfile->ubSnitchExposedCooldown = gMercProfiles[ubSrcProfile].ubSnitchExposedCooldown;
 
-// CJC: this is causing problems so just skip the transfer of exp...
-/*
-	pNewProfile->sLifeGain = gMercProfiles[ ubSrcProfile ].sLifeGain;
-	pNewProfile->sAgilityGain = gMercProfiles[ ubSrcProfile ].sAgilityGain;
-	pNewProfile->sDexterityGain = gMercProfiles[ ubSrcProfile ].sDexterityGain;
-	pNewProfile->sStrengthGain = gMercProfiles[ ubSrcProfile ].sStrengthGain;
-	pNewProfile->sLeadershipGain = gMercProfiles[ ubSrcProfile ].sLeadershipGain;
-	pNewProfile->sWisdomGain = gMercProfiles[ ubSrcProfile ].sWisdomGain;
-	pNewProfile->sExpLevelGain = gMercProfiles[ ubSrcProfile ].sExpLevelGain;
-	pNewProfile->sMarksmanshipGain = gMercProfiles[ ubSrcProfile ].sMarksmanshipGain;
-	pNewProfile->sMedicalGain = gMercProfiles[ ubSrcProfile ].sMedicalGain;
-	pNewProfile->sMechanicGain = gMercProfiles[ ubSrcProfile ].sMechanicGain;
-	pNewProfile->sExplosivesGain = gMercProfiles[ ubSrcProfile ].sExplosivesGain;
+	pNewProfile->sLifeGain = gMercProfiles[ubSrcProfile].sLifeGain;
+	pNewProfile->sAgilityGain = gMercProfiles[ubSrcProfile].sAgilityGain;
+	pNewProfile->sDexterityGain = gMercProfiles[ubSrcProfile].sDexterityGain;
+	pNewProfile->sStrengthGain = gMercProfiles[ubSrcProfile].sStrengthGain;
+	pNewProfile->sWisdomGain = gMercProfiles[ubSrcProfile].sWisdomGain;
+	pNewProfile->sExpLevelGain = gMercProfiles[ubSrcProfile].sExpLevelGain;
 
-	pNewProfile->bLifeDelta = gMercProfiles[ ubSrcProfile ].bLifeDelta;
-	pNewProfile->bAgilityDelta = gMercProfiles[ ubSrcProfile ].bAgilityDelta;
-	pNewProfile->bDexterityDelta = gMercProfiles[ ubSrcProfile ].bDexterityDelta;
-	pNewProfile->bStrengthDelta = gMercProfiles[ ubSrcProfile ].bStrengthDelta;
-	pNewProfile->bLeadershipDelta = gMercProfiles[ ubSrcProfile ].bLeadershipDelta;
-	pNewProfile->bWisdomDelta = gMercProfiles[ ubSrcProfile ].bWisdomDelta;
-	pNewProfile->bExpLevelDelta = gMercProfiles[ ubSrcProfile ].bExpLevelDelta;
-	pNewProfile->bMarksmanshipDelta = gMercProfiles[ ubSrcProfile ].bMarksmanshipDelta;
-	pNewProfile->bMedicalDelta = gMercProfiles[ ubSrcProfile ].bMedicalDelta;
-	pNewProfile->bMechanicDelta = gMercProfiles[ ubSrcProfile ].bMechanicDelta;
-	pNewProfile->bExplosivesDelta = gMercProfiles[ ubSrcProfile ].bExplosivesDelta;
-	*/
+	pNewProfile->bLifeDelta = gMercProfiles[ubSrcProfile].bLifeDelta;
+	pNewProfile->bAgilityDelta = gMercProfiles[ubSrcProfile].bAgilityDelta;
+	pNewProfile->bDexterityDelta = gMercProfiles[ubSrcProfile].bDexterityDelta;
+	pNewProfile->bStrengthDelta = gMercProfiles[ubSrcProfile].bStrengthDelta;
+	pNewProfile->bWisdomDelta = gMercProfiles[ubSrcProfile].bWisdomDelta;
+	pNewProfile->bExpLevelDelta = gMercProfiles[ubSrcProfile].bExpLevelDelta;
+
+	pNewProfile->bLife = gMercProfiles[ubSrcProfile].bLife;
+	pNewProfile->bAgility = gMercProfiles[ubSrcProfile].bAgility;
+	pNewProfile->bDexterity = gMercProfiles[ubSrcProfile].bDexterity;
+	pNewProfile->bStrength = gMercProfiles[ubSrcProfile].bStrength;
+	pNewProfile->bWisdom = gMercProfiles[ubSrcProfile].bWisdom;
+	pNewProfile->bExpLevel = gMercProfiles[ubSrcProfile].bExpLevel;
 
 	pNewProfile->bInvStatus = gMercProfiles[ ubSrcProfile ].bInvStatus;
 	pNewProfile->bInvNumber = gMercProfiles[ ubSrcProfile ].bInvNumber;
@@ -2498,11 +2500,11 @@ SOLDIERTYPE * SwapLarrysProfiles( SOLDIERTYPE * pSoldier )
 	pSoldier->stats.bStrength =			pNewProfile->bStrength + pNewProfile->bStrengthDelta;
 	pSoldier->stats.bDexterity =		pNewProfile->bDexterity + pNewProfile->bDexterityDelta;
 	pSoldier->stats.bAgility =			pNewProfile->bAgility + pNewProfile->bAgilityDelta;
-	pSoldier->stats.bWisdom =				pNewProfile->bWisdom + pNewProfile->bWisdomDelta;
+	pSoldier->stats.bWisdom =			pNewProfile->bWisdom + pNewProfile->bWisdomDelta;
 	pSoldier->stats.bExpLevel =			pNewProfile->bExpLevel + pNewProfile->bExpLevelDelta;
 	pSoldier->stats.bLeadership =		pNewProfile->bLeadership + pNewProfile->bLeadershipDelta;
 
-	pSoldier->stats.bMarksmanship =	pNewProfile->bMarksmanship + pNewProfile->bMarksmanshipDelta;
+	pSoldier->stats.bMarksmanship =		pNewProfile->bMarksmanship + pNewProfile->bMarksmanshipDelta;
 	pSoldier->stats.bMechanical =		pNewProfile->bMechanical + pNewProfile->bMechanicDelta;
 	pSoldier->stats.bMedical =			pNewProfile->bMedical + pNewProfile->bMedicalDelta;
 	pSoldier->stats.bExplosive =		pNewProfile->bExplosive + pNewProfile->bExplosivesDelta;
@@ -2522,7 +2524,7 @@ SOLDIERTYPE * SwapLarrysProfiles( SOLDIERTYPE * pSoldier )
 		}
 #endif
 	}
-	else
+	else if (pSoldier->ubProfile == LARRY_NORMAL)
 	{
 		SetFactFalse( FACT_LARRY_CHANGED );
 	}
