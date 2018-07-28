@@ -1034,9 +1034,7 @@ BOOLEAN WriteInAirportInfo(STR fileName)
 	if ( !hFile )
 		return( FALSE );
 
-	UINT32 x, y;
 	INT8 cnt;
-
 
 	FilePrintf(hFile,"<AIRPORT_INFO>\r\n");
 	for(cnt = 0; cnt < NUMBER_OF_AIRPORTS; cnt++)
@@ -3499,9 +3497,19 @@ void UpdateMercInSector( SOLDIERTYPE *pSoldier, INT16 sSectorX, INT16 sSectorY, 
 				pSoldier->aiData.bOrders = STATIONARY;
 			}
 
+			// r8589
+			if (pSoldier->ubStrategicInsertionCode == INSERTION_CODE_SECONDARY_EDGEINDEX && (
+				(gubTacticalDirection == NORTH && gus2ndNorthEdgepointArraySize == 0)
+				|| (gubTacticalDirection == EAST && gus2ndEastEdgepointArraySize == 0)
+				|| (gubTacticalDirection == SOUTH && gus2ndSouthEdgepointArraySize == 0)
+				|| (gubTacticalDirection == WEST && gus2ndWestEdgepointArraySize == 0)
+				))
+			{
+				pSoldier->ubStrategicInsertionCode = INSERTION_CODE_PRIMARY_EDGEINDEX;
+			}
 
 			// Use insertion direction from loaded map!
-			switch( pSoldier->ubStrategicInsertionCode )
+			switch(pSoldier->ubStrategicInsertionCode)
 			{
 				case INSERTION_CODE_NORTH:
 					pSoldier->sInsertionGridNo = gMapInformation.sNorthGridNo;
@@ -4485,6 +4493,8 @@ void AllMercsWalkedToExitGrid()
 	BOOLEAN fEnemiesInLoadedSector = FALSE;
 	if( NumEnemiesInAnySector( gWorldSectorX, gWorldSectorY, gbWorldSectorZ ) )
 	{
+		Assert(gpAdjacentGroup);
+
 		fEnemiesInLoadedSector = TRUE;
 		////////////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - if enemies are in sector, handle morale hit for fleeing
@@ -4517,7 +4527,7 @@ void AllMercsWalkedToExitGrid()
 	if( gubAdjacentJumpCode == JUMP_ALL_NO_LOAD || gubAdjacentJumpCode == JUMP_SINGLE_NO_LOAD )
 	{
 		Assert( gpAdjacentGroup );
-		//pPlayer = gpAdjacentGroup->pPlayerList; // SANDRO - why was this here twice?
+
 		pPlayer = gpAdjacentGroup->pPlayerList;
 		while( pPlayer )
 		{
@@ -4549,6 +4559,8 @@ void AllMercsWalkedToExitGrid()
 	}
 	else
 	{
+		Assert(gpAdjacentGroup);
+
 		// SANDRO - reset number of enemies here, we are about to load a new sector
 		memset( &(gTacticalStatus.bNumFoughtInBattle), 0, MAXTEAMS ); 
 
@@ -4581,8 +4593,7 @@ void AllMercsWalkedToExitGrid()
 			}
 		}
 
-		// OK, Set insertion direction for all these guys....
-		Assert( gpAdjacentGroup );
+		// OK, Set insertion direction for all these guys....		
 		pPlayer = gpAdjacentGroup->pPlayerList;
 		while( pPlayer )
 		{
@@ -6517,51 +6528,62 @@ BOOLEAN HandleDefiniteUnloadingOfWorld( UINT8 ubUnloadCode )
 
 BOOLEAN HandlePotentialBringUpAutoresolveToFinishBattle(int pSectorX, int pSectorY, int pSectorZ)
 {
+	BOOLEAN fFoundEnemy = FALSE;
+
 	//We don't have mercs in the sector.  Now, we check to see if there are BOTH enemies and militia.  If both
 	//co-exist in the sector, then make them fight for control of the sector via autoresolve.
-	for( int i = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID; i <= gTacticalStatus.Team[ CREATURE_TEAM ].bLastID; i++ )
+	for (int i = gTacticalStatus.Team[ENEMY_TEAM].bFirstID; i <= gTacticalStatus.Team[CREATURE_TEAM].bLastID; i++)
 	{
-		if( MercPtrs[ i ]->bActive && MercPtrs[ i ]->stats.bLife )
+		if (MercPtrs[i]->bActive && MercPtrs[i]->stats.bLife)
 		{
-			if( MercPtrs[ i ]->sSectorX == pSectorX &&
-					MercPtrs[ i ]->sSectorY == pSectorY &&
-					MercPtrs[ i ]->bSectorZ == pSectorZ )
-			{ //We have enemies, now look for militia!
-				for( i = gTacticalStatus.Team[ MILITIA_TEAM ].bFirstID; i <= gTacticalStatus.Team[ MILITIA_TEAM ].bLastID; i++ )
-				{
-					if( MercPtrs[ i ]->bActive && MercPtrs[ i ]->stats.bLife && MercPtrs[ i ]->bSide == OUR_TEAM )
-					{
-						if( MercPtrs[ i ]->sSectorX == pSectorX &&
-								MercPtrs[ i ]->sSectorY == pSectorY &&
-								MercPtrs[ i ]->bSectorZ == pSectorZ )
-						{ //We have militia and enemies and no mercs!  Let's finish this battle in autoresolve.
-							gfEnteringMapScreen = TRUE;
-							gfEnteringMapScreenToEnterPreBattleInterface = TRUE;
-							gfAutomaticallyStartAutoResolve = TRUE;
-							gfUsePersistantPBI = FALSE;
-							gubPBSectorX = (UINT8)pSectorX;
-							gubPBSectorY = (UINT8)pSectorY;
-							gubPBSectorZ = (UINT8)pSectorZ;
-							gfBlitBattleSectorLocator = TRUE;
-							gfTransferTacticalOppositionToAutoResolve = TRUE;
-							if( gubEnemyEncounterCode != CREATURE_ATTACK_CODE )
-							{
-								gubEnemyEncounterCode = ENEMY_INVASION_CODE; //has to be, if militia are here.
-							}
-							else
-							{
-								//DoScreenIndependantMessageBox( gzLateLocalizedString[ 39 ], MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
-							}
+			if (MercPtrs[i]->sSectorX == pSectorX &&
+				MercPtrs[i]->sSectorY == pSectorY &&
+				MercPtrs[i]->bSectorZ == pSectorZ)
+			{
+				fFoundEnemy = TRUE;
+				break;				
+			}
+		}
+	}
 
-              return( TRUE );
-						}
+	if (fFoundEnemy)
+	{
+		//We have enemies, now look for militia!
+		for (int i = gTacticalStatus.Team[MILITIA_TEAM].bFirstID; i <= gTacticalStatus.Team[MILITIA_TEAM].bLastID; i++)
+		{
+			if (MercPtrs[i]->bActive && MercPtrs[i]->stats.bLife && MercPtrs[i]->bSide == OUR_TEAM)
+			{
+				if (MercPtrs[i]->sSectorX == pSectorX &&
+					MercPtrs[i]->sSectorY == pSectorY &&
+					MercPtrs[i]->bSectorZ == pSectorZ)
+				{
+					//We have militia and enemies and no mercs!  Let's finish this battle in autoresolve.
+					gfEnteringMapScreen = TRUE;
+					gfEnteringMapScreenToEnterPreBattleInterface = TRUE;
+					gfAutomaticallyStartAutoResolve = TRUE;
+					gfUsePersistantPBI = FALSE;
+					gubPBSectorX = (UINT8)pSectorX;
+					gubPBSectorY = (UINT8)pSectorY;
+					gubPBSectorZ = (UINT8)pSectorZ;
+					gfBlitBattleSectorLocator = TRUE;
+					gfTransferTacticalOppositionToAutoResolve = TRUE;
+
+					if (gubEnemyEncounterCode != CREATURE_ATTACK_CODE)
+					{
+						gubEnemyEncounterCode = ENEMY_INVASION_CODE; //has to be, if militia are here.
 					}
+					else
+					{
+						//DoScreenIndependantMessageBox( gzLateLocalizedString[ 39 ], MSG_BOX_FLAG_OK, MapScreenDefaultOkBoxCallback );
+					}
+
+					return(TRUE);
 				}
 			}
 		}
-  }
+	}	
 
-  return( FALSE );
+	return(FALSE);
 }
 
 
