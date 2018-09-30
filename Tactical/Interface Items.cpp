@@ -6877,9 +6877,11 @@ void RenderItemDescriptionBox( )
 			// sevenfm: add unjam transformation
 			BOOLEAN renderTransformIcon = FALSE;
 			if ( ( (guiCurrentScreen == GAME_SCREEN || guiCurrentScreen == MAP_SCREEN) && gpItemDescObject->ubNumberOfObjects == 1 ) &&
-				( (Item[gpItemDescObject->usItem].usItemClass == IC_GRENADE) || 
-				( (Item[gpItemDescObject->usItem].usItemClass == IC_BOMB) && HasAttachmentOfClass( gpItemDescObject, (AC_DETONATOR | AC_REMOTEDET)) ) ||
-				(Item[gpItemDescObject->usItem].usItemClass == IC_GUN && (*gpItemDescObject)[0]->data.gun.bGunAmmoStatus < 0 )    ) )
+				(
+				(Item[gpItemDescObject->usItem].usItemClass == IC_GRENADE && !Item[gpItemDescObject->usItem].flare) ||
+				(Item[gpItemDescObject->usItem].usItemClass == IC_BOMB && !Item[gpItemDescObject->usItem].flare && HasAttachmentOfClass(gpItemDescObject, (AC_DETONATOR | AC_REMOTEDET))) ||
+				(Item[gpItemDescObject->usItem].usItemClass == IC_GUN && (*gpItemDescObject)[0]->data.gun.bGunAmmoStatus < 0 )    
+				) )
 			{
 				renderTransformIcon = TRUE;
 			}
@@ -13406,7 +13408,7 @@ void ItemDescTransformRegionCallback( MOUSE_REGION *pRegion, INT32 reason )
 			BOOLEAN fHaveToDisarm = FALSE;		// important check: if item is an armed bomb, we have to disarm it prior to any transformation
 			if ( ((guiCurrentScreen == GAME_SCREEN) || (guiCurrentScreen == MAP_SCREEN)) && gpItemDescObject->ubNumberOfObjects == 1 )
 			{
-				if ( Item[gpItemDescObject->usItem].usItemClass == IC_BOMB && HasAttachmentOfClass( gpItemDescObject, (AC_DETONATOR | AC_REMOTEDET)) )
+				if (Item[gpItemDescObject->usItem].usItemClass == IC_BOMB && !Item[gpItemDescObject->usItem].flare && HasAttachmentOfClass(gpItemDescObject, (AC_DETONATOR | AC_REMOTEDET)))
 				{
 					iTransformIndex++;
 					
@@ -13454,7 +13456,7 @@ void ItemDescTransformRegionCallback( MOUSE_REGION *pRegion, INT32 reason )
 					// Set this flag so we know we have at least one Transformation available.
 					fFoundTransformations = true;
 				}
-				else if ( Item[gpItemDescObject->usItem].usItemClass == IC_GRENADE )
+				else if (Item[gpItemDescObject->usItem].usItemClass == IC_GRENADE && !Item[gpItemDescObject->usItem].flare)
 				{
 					iTransformIndex++;
 

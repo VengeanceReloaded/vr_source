@@ -8300,7 +8300,8 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
             // Points we have, the most APs we're going to lose. Tolerance mitigates this by making the graph angle
             // more shallow. 
             // The relation between AP Loss and Suppression Points is LINEAR.
-            ubPointsLost = ( ( (pSoldier->ubSuppressionPoints * APBPConstants[AP_SUPPRESSION_MOD]) / (bTolerance + 6) ) * 2 + 1 ) / 2;
+            //ubPointsLost = ( ( (pSoldier->ubSuppressionPoints * APBPConstants[AP_SUPPRESSION_MOD]) / (bTolerance + 6) ) * 2 + 1 ) / 2;
+			ubPointsLost = (2 * pSoldier->ubSuppressionPoints * APBPConstants[AP_SUPPRESSION_MOD] / (bTolerance + 6) + 1) / 2;
 
             // Flugente: added ini options for suppression effectiveness for player team and everybody else
             if ( pSoldier->bTeam == gbPlayerNum )
