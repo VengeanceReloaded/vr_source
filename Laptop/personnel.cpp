@@ -1896,7 +1896,7 @@ void DisplayCharStats(INT32 iId, INT32 iSlot)
 
 							for ( UINT8 ubCnt = 0; ubCnt < bNumSkillTraits; ubCnt++ )
 							{
-								if ( ubCnt >= 4 && bNumSkillTraits > 5 )
+								if ( ubCnt >= 3 && bNumSkillTraits > 4 )
 								{
 									fDisplayMoreTraits = TRUE;
 									swprintf( sString, L"%s\n", gzMercSkillTextNew[ ubTempSkillArray[ubCnt] ] );
@@ -1966,30 +1966,30 @@ void DisplayCharStats(INT32 iId, INT32 iSlot)
 							// if we have more skills than we can display, show "more" and create a tooltip box with the rest of them
 							if ( fDisplayMoreTraits )
 							{
-								swprintf( sString, L"%s", gzMercSkillTextNew[ 2 * NEWTRAIT_MERCSKILL_OFFSET_ALL + 1 ]); // display "More..."
+								swprintf( sString, L"%s", gzMercSkillTextNew[ 2 * NEWTRAIT_MERCSKILL_EXPERTOFFSET + 1 ]); // display "More..."
 								FindFontRightCoordinates((INT16)(pPersonnelScreenPoints[19].x+(iSlot*TEXT_BOX_WIDTH)),0,TEXT_BOX_WIDTH-20,0,sString, PERS_FONT,	&sX, &sY);
 								if( sX <= iMinimumX )
 								{
 									FindFontRightCoordinates((INT16)(pPersonnelScreenPoints[19].x+(iSlot*TEXT_BOX_WIDTH) + TEXT_BOX_WIDTH-20 +TEXT_DELTA_OFFSET),0,30,0,sString, PERS_FONT,	&sX, &sY);
 									sX = (INT16)max( sX, iMinimumX );
 								}
-								sY = (INT16)(pPersonnelScreenPoints[19].y + 48);
+								sY = (INT16)(pPersonnelScreenPoints[19].y + 36);
 
 								mprintf(sX,sY,sString);
 
 								// Add specific region for fast help window
-								if( fAddedTraitRegion[4] )
+								if( fAddedTraitRegion[3] )
 								{
-									MSYS_RemoveRegion( &gSkillTraitHelpTextRegion[4] );
+									MSYS_RemoveRegion( &gSkillTraitHelpTextRegion[3] );
 								}
-								MSYS_DefineRegion( &gSkillTraitHelpTextRegion[4], ( sX ), ( sY ),
+								MSYS_DefineRegion( &gSkillTraitHelpTextRegion[3], ( sX ), ( sY ),
 												( sX + StringPixLength(sString,PERS_FONT) ), ( sY + 7 ), MSYS_PRIORITY_HIGH,
 													MSYS_NO_CURSOR, MSYS_NO_CALLBACK, NULL );
-								MSYS_AddRegion( &gSkillTraitHelpTextRegion[4] );
-								fAddedTraitRegion[4] = TRUE;
+								MSYS_AddRegion( &gSkillTraitHelpTextRegion[3] );
+								fAddedTraitRegion[3] = TRUE;
 								// Set region help text
-								SetRegionFastHelpText( &(gSkillTraitHelpTextRegion[4]), sString2 );
-								SetRegionHelpEndCallback( &gSkillTraitHelpTextRegion[4], MSYS_NO_CALLBACK );
+								SetRegionFastHelpText( &(gSkillTraitHelpTextRegion[3]), sString2 );
+								SetRegionHelpEndCallback( &gSkillTraitHelpTextRegion[3], MSYS_NO_CALLBACK );
 							}
 						}
 					}

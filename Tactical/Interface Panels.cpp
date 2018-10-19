@@ -8479,7 +8479,7 @@ EXTENDED_PANEL_STRING *GetSkillsStrings(SOLDIERTYPE* pSoldier, UINT16 uiSkills)
 						else
 							swprintf( sRet[ubCnt].sPanelStringLeft, L"" );
 						sRet[ubCnt].uiFontColorRight = gExtendedPanelsSettings.uepNormalColor;
-						swprintf( sRet[ubCnt].sPanelStringRight, L"%s", gzMercSkillTextNew[ 2 * NEWTRAIT_MERCSKILL_OFFSET_ALL + 1 ] );
+						swprintf( sRet[ubCnt].sPanelStringRight, L"%s", gzMercSkillTextNew[ 2 * NEWTRAIT_MERCSKILL_EXPERTOFFSET + 1 ] );
 					}
 					else
 					{
