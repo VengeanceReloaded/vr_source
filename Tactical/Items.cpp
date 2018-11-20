@@ -2301,7 +2301,7 @@ UINT8 AttachmentAPCost( UINT16 usAttachment, UINT16 usItem, SOLDIERTYPE * pSoldi
 	{
 		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
 		{
-			ubAPCost = (UINT8)((ubAPCost * (100 - gSkillTraitValues.ubAMAttachingItemsAPsReduction) / 100) + 0.5);
+			ubAPCost = (UINT8)(((FLOAT)ubAPCost * (FLOAT)(100 - gSkillTraitValues.ubAMAttachingItemsAPsReduction) / 100.0f) + 0.5f);
 		}
 	}
 
@@ -2320,7 +2320,7 @@ UINT8 AttachmentAPCost( UINT16 usAttachment, OBJECTTYPE * pObj, SOLDIERTYPE * pS
 	{
 		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
 		{
-			ubAPCost = (UINT8)((ubAPCost * (100 - gSkillTraitValues.ubAMAttachingItemsAPsReduction) / 100) + 0.5);
+			ubAPCost = (UINT8)(((FLOAT)ubAPCost * (FLOAT)(100 - gSkillTraitValues.ubAMAttachingItemsAPsReduction) / 100.0f) + 0.5f);
 		}
 	}
 
@@ -3071,7 +3071,7 @@ UINT16 CalculateAmmoWeight( UINT16 usGunAmmoItem, UINT16 ubShotsLeft )
 	}
 
 	//Temporary calculation for minWeight. 0.2*ubWeight rounded correctly
-	UINT32 uiMinWeight = (UINT32)((Item[usGunAmmoItem].ubWeight / 5.0) + 0.5);
+	UINT32 uiMinWeight = (UINT32)(((FLOAT)Item[usGunAmmoItem].ubWeight / 5.0f) + 0.5f);
 	if( uiMinWeight < 1 || uiMinWeight > Item[usGunAmmoItem].ubWeight)
 	{
 		uiMinWeight = 1;

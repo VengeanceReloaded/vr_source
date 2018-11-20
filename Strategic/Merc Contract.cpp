@@ -1148,7 +1148,7 @@ void CalculateMedicalDepositRefund( SOLDIERTYPE *pSoldier )
 	else
 	{
 		// use the medical deposit in pSoldier, not in profile, which goes up with leveling
-		iRefundAmount = (INT32) ( ( pSoldier->stats.bLife / ( FLOAT ) pSoldier->stats.bLifeMax ) * pSoldier->usMedicalDeposit + 0.5 );
+		iRefundAmount = (INT32)(((FLOAT)pSoldier->stats.bLife / (FLOAT)pSoldier->stats.bLifeMax) * (FLOAT)pSoldier->usMedicalDeposit + 0.5f);
 
 		//add an entry in the finacial page for a PARTIAL refund of the medical deposit
 		AddTransactionToPlayersBook( PARTIAL_MEDICAL_REFUND, pSoldier->ubProfile, GetWorldTotalMin(), iRefundAmount );

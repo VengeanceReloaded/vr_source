@@ -4937,7 +4937,7 @@ void RestCharacter( SOLDIERTYPE *pSoldier )
 	bDivisor = __min(18, __max(3, bDivisor));
 
 	// round up so the bonuses above make more sense
-	bMaxBreathRegain = ( 50 / bDivisor + 0.5 );
+	bMaxBreathRegain = (INT8)(50.0f / (FLOAT)bDivisor + 0.5);
 	
 	// Limit so that characters can't regain faster than 3 hours, ever
 	if (bMaxBreathRegain > 17)
@@ -19727,7 +19727,7 @@ void RecordNumMilitiaTrainedForMercs( INT16 sX, INT16 sY, INT8 bZ, UINT8 ubMilit
 
 			if( usTrainerEffectiveLeadership > 0 )
 			{
-				gMercProfiles[ pTrainer->ubProfile ].records.usMilitiaTrained += (UINT16)((double)((double)(ubMilitiaTrained * usTrainerEffectiveLeadership) / usTotalLeadershipValue) + 0.5);
+				gMercProfiles[pTrainer->ubProfile].records.usMilitiaTrained += (UINT16)((double)((double)(ubMilitiaTrained * (double)usTrainerEffectiveLeadership) / (double)usTotalLeadershipValue) + 0.5f);
 			}
 		}
 	}

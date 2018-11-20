@@ -342,7 +342,7 @@ INT16 TerrainBreathPoints(SOLDIERTYPE * pSoldier, INT32 sGridNo, INT8 bDir, UINT
 	// SANDRO - STOMP traits - Athletics reduce breath points spent for moving
 	if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, ATHLETICS_NT ))
 	{
-		iPoints = max(1, (INT16)((iPoints * (100 - gSkillTraitValues.ubATBPsMovementReduction) / 100) + 0.5));
+		iPoints = max(1, (INT16)(((FLOAT)iPoints * (FLOAT)(100 - gSkillTraitValues.ubATBPsMovementReduction) / 100.0f) + 0.5f));
 	}
 
 	// Flugente: scuba fins reduce movement cost in water, but increase cost on land
@@ -602,7 +602,6 @@ INT16 EstimateActionPointCost( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, 
 	// Get switch value...
 	sSwitchValue = gubWorldMovementCosts[ sGridNo ][ bDir ][ pSoldier->pathing.bLevel ];
 
-#if 1 //Moa: set to 0 to use original copy and paste code from ActionPointCost()
 	if ( sSwitchValue == TRAVELCOST_FENCE )
 	{
 		// If we are changeing stance ( either before or after getting there....
@@ -646,182 +645,6 @@ INT16 EstimateActionPointCost( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, 
 	sPoints += ActionPointCost( pSoldier, sGridNo, bDir, usMovementMode );
 
 	return (sPoints);
-#else
-	// Tile cost should not be reduced based on movement mode...
-	if ( sSwitchValue == TRAVELCOST_FENCE )
-	{
-		return( sTileCost );
-	}
-
-
-	// WANNE.WATER: If our soldier is not on the ground level and the tile is a "water" tile, then simply set the tile to "FLAT_GROUND"
-	// This should fix "problems" for special modified maps
-	UINT8 ubTerrainID = gpWorldLevelData[ sGridNo ].ubTerrainID;
-
-	if ( TERRAIN_IS_WATER( ubTerrainID) && pSoldier->pathing.bLevel > 0 )
-		ubTerrainID = FLAT_GROUND;
-
-	// ATE - MAKE MOVEMENT ALWAYS WALK IF IN WATER
-	if ( TERRAIN_IS_WATER( ubTerrainID) )
-	{
-		usMovementMode = WALKING;
-	}
-
-	// so, then we must modify it for other movement styles and accumulate
-	// CHRISL: Adjusted system to use different move costs while wearing a backpack
-	if (sTileCost > 0)
-	{
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////
-		// SANDRO - This part have been modified "a bit" 
-		// Check movement modifiers
-		switch( usMovementMode )
-		{
-			case RUNNING:
-			case ADULTMONSTER_WALKING:
-			case BLOODCAT_RUN:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_RUN];
-				break;
-			case CROW_FLY:
-			case SIDE_STEP:
-			case WALK_BACKWARDS:
-			case ROBOT_WALK:
-			case BLOODCAT_WALK_BACKWARDS:
-			case MONSTER_WALK_BACKWARDS:
-			case LARVAE_WALK:
-			case WALKING :
-			case WALKING_ALTERNATIVE_RDY :
-			case SIDE_STEP_ALTERNATIVE_RDY :
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_WALK];
-				if (!(pSoldier->MercInWater()) && ( (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_FIREREADY ) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_FIRE ) ) && !(gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ALT_WEAPON_HOLDING ) )
-				{
-					sPoints += APBPConstants[AP_MODIFIER_READY];	
-				}
-				break;
-			case SIDE_STEP_WEAPON_RDY:
-			case SIDE_STEP_DUAL_RDY:
-			case WALKING_WEAPON_RDY:
-			case WALKING_DUAL_RDY:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_WALK] + APBPConstants[AP_MODIFIER_READY];
-				break;
-			case START_SWAT:
-			case SWAT_BACKWARDS:
-			case SWATTING:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_SWAT];
-				break;
-			case CRAWLING:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_CRAWL];
-				break;
-
-			default:
-
-				// Invalid movement mode
-				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Invalid movement mode %d used in ActionPointCost", usMovementMode	) );
-				sPoints = sTileCost;
-				break;
-		}
-				
-		// Check for reverse mode
-		if ( pSoldier->bReverse || gUIUseReverse )
-			sPoints += APBPConstants[AP_REVERSE_MODIFIER];
-
-		// STOMP traits - Athletics trait decreases movement cost
-		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, ATHLETICS_NT ))
-		{
-			sPoints = max(1, (INT16)((sPoints * (100 - gSkillTraitValues.ubATAPsMovementReduction) / 100) + 0.5));
-		}
-		// Check if doors if not player's merc (they have to open them manually)
-		if ( sSwitchValue == TRAVELCOST_DOOR && pSoldier->bTeam != gbPlayerNum )
-		{
-			sPoints += GetAPsToOpenDoor( pSoldier ) + GetAPsToOpenDoor( pSoldier ); // Include open and close costs!
-		}
-		// Check for stealth mode
-		if ( pSoldier->bStealthMode )
-		{
-			 // STOMP traits - Stealthy trait decreases stealth AP modifier
-			if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, STEALTHY_NT ))
-			{
-				 sPoints += (max(0, (INT16)((APBPConstants[AP_STEALTH_MODIFIER] * (100 - gSkillTraitValues.ubSTStealthModeSpeedBonus) / 100) + 0.5)));
-			}
-			else
-			{
-				sPoints += APBPConstants[AP_STEALTH_MODIFIER];
-			}
-		}
-		// Check for backpack
-		if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( pSoldier ) != ITEM_NOT_FOUND )
-			sPoints += APBPConstants[AP_MODIFIER_PACK];
-
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////
-	}
-
-	// Get switch value...
-	sSwitchValue = gubWorldMovementCosts[ sGridNo ][ bDir ][ pSoldier->pathing.bLevel ];
-
-	// ATE: If we have a 'special cost, like jump fence...
-	if ( sSwitchValue == TRAVELCOST_FENCE )
-	{
-		// If we are changeing stance ( either before or after getting there....
-		// We need to reflect that...
-		switch(usMovementMode)
-		{
-			case SIDE_STEP:
-			case SIDE_STEP_WEAPON_RDY:
-			case SIDE_STEP_DUAL_RDY:
-			case WALK_BACKWARDS:
-			case RUNNING:
-			case WALKING :
-			case WALKING_WEAPON_RDY:
-			case WALKING_DUAL_RDY:
-			case WALKING_ALTERNATIVE_RDY :
-			case SIDE_STEP_ALTERNATIVE_RDY:
-
-				// Add here cost to go from crouch to stand AFTER fence hop....
-				// Since it's AFTER.. make sure we will be moving after jump...
-				if ( ( bPathIndex + 2 ) < bPathLength )
-				{
-					sPoints += GetAPsCrouch(pSoldier, TRUE); // SANDRO changed..
-				}
-				break;
-
-			case SWATTING:
-			case START_SWAT:
-			case SWAT_BACKWARDS:
-
-				// Add cost to stand once there BEFORE....
-				sPoints += GetAPsCrouch(pSoldier, TRUE); // SANDRO changed..
-				break;
-
-			case CRAWLING:
-
-				// Can't do it here.....
-				break;
-		}
-	}
-	else if (sSwitchValue == TRAVELCOST_NOT_STANDING)
-	{
-		switch(usMovementMode)
-		{
-			case RUNNING:
-			case WALKING :
-			case WALKING_WEAPON_RDY:
-			case WALKING_DUAL_RDY:
-			case SIDE_STEP:
-			case SIDE_STEP_WEAPON_RDY:
-			case SIDE_STEP_DUAL_RDY:
-			case WALK_BACKWARDS:
-			case WALKING_ALTERNATIVE_RDY :
-			case SIDE_STEP_ALTERNATIVE_RDY:
-				// charge crouch APs for ducking head!
-				sPoints += GetAPsCrouch(pSoldier, TRUE); // SANDRO changed..
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	return( sPoints );
-#endif
 }
 
 
@@ -1156,7 +979,7 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 				else
 					ubPointsRegistered = max( 10, min( 100, ubPointsRegistered ) ); // 10% is minimum on hearing
 				ubPointsRegistered = min( 100, ubPointsRegistered ); // 100% is maximum ofc
-				ubPointsRegistered = (UINT8)((sAPCost * ubPointsRegistered / 100) + 0.5); // now calc how many APs we will award
+				ubPointsRegistered = (UINT8)(((FLOAT)sAPCost * (FLOAT)ubPointsRegistered / 100.0f) + 0.5f); // now calc how many APs we will award
 
 				// increase the counter
 				if ( ubPointsRegistered )
@@ -2393,7 +2216,7 @@ INT16 MinAPsToShootOrStab(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 bAimTime, 
 		// SANDRO - STOMP traits - reduced APs needed to fire underbarrel grenade launchers for Heavy Weapons trait
 		if ( HAS_SKILL_TRAIT( pSoldier, HEAVY_WEAPONS_NT ) && gGameOptions.fNewTraitSystem )
 		{
-			bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubHWGrenadeLaunchersAPsReduction * NUM_SKILL_TRAITS( pSoldier, HEAVY_WEAPONS_NT ) ) / 100)+ 0.5); 
+			bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubHWGrenadeLaunchersAPsReduction * NUM_SKILL_TRAITS(pSoldier, HEAVY_WEAPONS_NT)) / 100.0f) + 0.5f);
 		}
 	}
 	else if ( pSoldier->IsValidSecondHandShot( ) )
@@ -2404,9 +2227,9 @@ INT16 MinAPsToShootOrStab(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 bAimTime, 
 			INT16 bcst1 = BaseAPsToShootOrStab( bFullAPs, bAimSkill, &(pSoldier->inv[HANDPOS]), pSoldier );
 			INT16 bcst2 = BaseAPsToShootOrStab( bFullAPs, bAimSkill, &(pSoldier->inv[SECONDHANDPOS]), pSoldier );
 			if ( Weapon[ usItem ].ubWeaponType == GUN_PISTOL )
-				bcst1 = (INT16)((bcst1 * ( 100 - gSkillTraitValues.ubGSFiringSpeedBonusPistols) / 100)+ 0.5);
+				bcst1 = (INT16)(((FLOAT)bcst1 * (FLOAT)(100 - gSkillTraitValues.ubGSFiringSpeedBonusPistols) / 100.0f) + 0.5f);
 			if ( Weapon[ pSoldier->inv[SECONDHANDPOS].usItem ].ubWeaponType == GUN_PISTOL ) 
-				bcst2 = (INT16)((bcst2 * ( 100 - gSkillTraitValues.ubGSFiringSpeedBonusPistols) / 100)+ 0.5);
+				bcst2 = (INT16)(((FLOAT)bcst2 * (FLOAT)(100 - gSkillTraitValues.ubGSFiringSpeedBonusPistols) / 100.0f) + 0.5f);
 
 			bAPCost += __max( bcst1, bcst2 );
 		}
@@ -2432,7 +2255,7 @@ INT16 MinAPsToShootOrStab(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 bAimTime, 
 		// If we are using alternative weapon holding (from hip rifle/one-handed pistol), the shot can be faster if set in the ini
 		if ( gGameExternalOptions.ubAltWeaponHoldingFireSpeedBonus > 0 && pSoldier->IsValidAlternativeFireMode( bAimTime, sGridNo ))
 		{
-			bAPCost = (INT16)((bAPCost * (100 - gGameExternalOptions.ubAltWeaponHoldingFireSpeedBonus ) / 100)+ 0.5);
+			bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gGameExternalOptions.ubAltWeaponHoldingFireSpeedBonus) / 100.0f) + 0.5f);
 		}
 		/////////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - STOMP traits
@@ -2442,44 +2265,37 @@ INT16 MinAPsToShootOrStab(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 bAimTime, 
 			// Decreased APs needed for LMG - Auto Weapons
 			if (Weapon[usUBItem].ubWeaponType == GUN_LMG && (pSoldier->bDoBurst || pSoldier->bDoAutofire) && ( HAS_SKILL_TRAIT( pSoldier, AUTO_WEAPONS_NT ) ) )
 			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubAWFiringSpeedBonusLMGs ) / 100)+ 0.5);
+				bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubAWFiringSpeedBonusLMGs) / 100.0f) + 0.5f);
 			}
-#if 0//dnl ch73 021013 relocate this to MinAPsToPunch
-			// Decreased APs needed for melee attacks - Melee (Blade only)
-			else if ( Item[ usUBItem ].usItemClass == IC_BLADE && ( HAS_SKILL_TRAIT( pSoldier, MELEE_NT ) ) )
-			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubMEBladesAPsReduction ) / 100)+ 0.5);
-			}
-#endif
 			// Decreased APs needed for throwing knives - Throwing
 			else if ( Item[ usUBItem ].usItemClass == IC_THROWING_KNIFE && ( HAS_SKILL_TRAIT( pSoldier, THROWING_NT ) ) )
 			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubTHBladesAPsReduction ) / 100)+ 0.5);
+				bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubTHBladesAPsReduction) / 100.0f) + 0.5f);
 			}
 			// Decreased APs needed for launchers - Heavy Weapons
 			else if ( (Item[ usUBItem ].usItemClass == IC_LAUNCHER || Item[usUBItem].grenadelauncher ) && !(Item[usUBItem].rocketlauncher) && !(Item[usUBItem].mortar) && ( HAS_SKILL_TRAIT( pSoldier, HEAVY_WEAPONS_NT ) ))
 			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubHWGrenadeLaunchersAPsReduction * NUM_SKILL_TRAITS( pSoldier, HEAVY_WEAPONS_NT ) ) / 100)+ 0.5);
+				bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubHWGrenadeLaunchersAPsReduction * NUM_SKILL_TRAITS(pSoldier, HEAVY_WEAPONS_NT)) / 100.0f) + 0.5f);
 			}
 			// Decreased APs needed for launchers - Heavy Weapons
 			else if (( Item[usUBItem].rocketlauncher || Item[usUBItem].singleshotrocketlauncher ) && !(Item[usUBItem].mortar) && ( HAS_SKILL_TRAIT( pSoldier, HEAVY_WEAPONS_NT ) ))
 			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubHWRocketLaunchersAPsReduction * NUM_SKILL_TRAITS( pSoldier, HEAVY_WEAPONS_NT ) ) / 100)+ 0.5);
+				bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubHWRocketLaunchersAPsReduction * NUM_SKILL_TRAITS(pSoldier, HEAVY_WEAPONS_NT)) / 100.0f) + 0.5f);
 			}
 			// Decreased APs needed for mortar - Heavy Weapons
 			else if ( Item[usUBItem].mortar )
 			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubHWMortarAPsReduction * NUM_SKILL_TRAITS( pSoldier, HEAVY_WEAPONS_NT ) + pSoldier->GetBackgroundValue(BG_ARTILLERY) ) / 100)+ 0.5);
+				bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubHWMortarAPsReduction * NUM_SKILL_TRAITS(pSoldier, HEAVY_WEAPONS_NT) + pSoldier->GetBackgroundValue(BG_ARTILLERY)) / 100.0f) + 0.5f);
 			}
 			// Decreased APs needed for pistols and machine pistols - Gunslinger
 			else if (Weapon[ usUBItem ].ubWeaponType == GUN_PISTOL && HAS_SKILL_TRAIT( pSoldier, GUNSLINGER_NT ) )
 			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubGSFiringSpeedBonusPistols * NUM_SKILL_TRAITS( pSoldier, GUNSLINGER_NT ) ) / 100)+ 0.5);
+				bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubGSFiringSpeedBonusPistols * NUM_SKILL_TRAITS(pSoldier, GUNSLINGER_NT)) / 100.0f) + 0.5f);
 			}
 			// Decrease APs needed for Shotguns - Ranger
 			else if (Weapon[ usUBItem ].ubWeaponType == GUN_SHOTGUN && HAS_SKILL_TRAIT( pSoldier, RANGER_NT ) )
 			{
-				bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubRAFiringSpeedBonusShotguns * NUM_SKILL_TRAITS( pSoldier, RANGER_NT ) ) / 100)+ 0.5);
+				bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubRAFiringSpeedBonusShotguns * NUM_SKILL_TRAITS(pSoldier, RANGER_NT)) / 100.0f) + 0.5f);
 			}
 		}
 		/////////////////////////////////////////////////////////////////////////////////////
@@ -2614,7 +2430,7 @@ INT16 MinAPsToPunch(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubAddTurningCost
 		bAPCost += BaseAPsToShootOrStab(bFullAPs, bAimSkill, pObjUsed, pSoldier);
 		// Decreased APs needed for melee attacks - Melee (Blade only)
 		if(Item[usItem].usItemClass == IC_BLADE && (HAS_SKILL_TRAIT(pSoldier, MELEE_NT)))
-			bAPCost = (INT16)((bAPCost * (100 - gSkillTraitValues.ubMEBladesAPsReduction) / 100) + 0.5);
+			bAPCost = (INT16)(((FLOAT)bAPCost * (FLOAT)(100 - gSkillTraitValues.ubMEBladesAPsReduction) / 100.0f) + 0.5f);
 	}
 	// sevenfm: check enemy only if we have correct gridNo
 	if( !TileIsOutOfBounds(sGridNo) )
@@ -2668,7 +2484,7 @@ INT16 ApsToPunch( SOLDIERTYPE *pSoldier )
 {
 	if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ))
 	{
-		return ( max( 1, (INT16)((APBPConstants[AP_PUNCH] * (100 - gSkillTraitValues.ubMAPunchAPsReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT ))/ 100) + 0.5)) );
+		return (max(1, (INT16)(((FLOAT)APBPConstants[AP_PUNCH] * (FLOAT)(100 - gSkillTraitValues.ubMAPunchAPsReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)));
 	}
 	else
 	{
@@ -3046,10 +2862,10 @@ INT16 GetAPsToReloadGunWithAmmo( SOLDIERTYPE *pSoldier, OBJECTTYPE * pGun, OBJEC
 		{
 			// if pistol or revolver
 			if ( HAS_SKILL_TRAIT( pSoldier, GUNSLINGER_NT ) && ( Weapon[ pGun->usItem ].ubWeaponType == GUN_PISTOL || Weapon[ pGun->usItem ].ubWeaponType == GUN_M_PISTOL ) )
-				return(INT16)(( GetAPsToReload(pGun) * max(0,(100 - gSkillTraitValues.ubGSRealoadSpeedHandgunsBonus * NUM_SKILL_TRAITS( pSoldier, GUNSLINGER_NT ) - (HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) ? gSkillTraitValues.ubAMReloadSpeedMagazines : 0 )))/100 ) + 0.5);
+				return(INT16)(((FLOAT)GetAPsToReload(pGun) * (FLOAT)max(0, (100 - gSkillTraitValues.ubGSRealoadSpeedHandgunsBonus * NUM_SKILL_TRAITS(pSoldier, GUNSLINGER_NT) - (HAS_SKILL_TRAIT(pSoldier, AMBIDEXTROUS_NT) ? gSkillTraitValues.ubAMReloadSpeedMagazines : 0))) / 100.0f) + 0.5f);
 			// other weapons for ambidextrous
 			else if (HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ))
-				return(INT16)(( GetAPsToReload(pGun) * max(0,(100 - gSkillTraitValues.ubAMReloadSpeedMagazines ))/100) + 0.5);
+				return(INT16)(((FLOAT)GetAPsToReload(pGun) * (FLOAT)max(0, (100 - gSkillTraitValues.ubAMReloadSpeedMagazines)) / 100.0f) + 0.5f);
 			// normal case
 			else
 				return GetAPsToReload(pGun);
@@ -3061,7 +2877,7 @@ INT16 GetAPsToReloadGunWithAmmo( SOLDIERTYPE *pSoldier, OBJECTTYPE * pGun, OBJEC
 	{
 		// wrong size ammo item
 		if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) ) // SANDRO - added Ambidextrous check
-			return (INT16)((((GetAPsToReload(pGun) * APBPConstants[AP_WRONG_MAG])/10)*(100 - gSkillTraitValues.ubAMReloadSpeedLoose)/100) + 0.5);
+			return (INT16)(((((FLOAT)GetAPsToReload(pGun) * (FLOAT)APBPConstants[AP_WRONG_MAG]) / 10.0f)*(FLOAT)(100 - gSkillTraitValues.ubAMReloadSpeedLoose) / 100.0f) + 0.5f);
 		else
 			return (INT16)((GetAPsToReload(pGun) * APBPConstants[AP_WRONG_MAG])/10);
 	}
@@ -3086,7 +2902,7 @@ INT16 GetAPsToReloadGunWithAmmo( SOLDIERTYPE *pSoldier, OBJECTTYPE * pGun, OBJEC
 				// SANDRO - added Ambidextrous check
 				if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
 				{
-					if(EnoughPoints(pSoldier,(reload + (i * (INT16)((APBPConstants[AP_RELOAD_LOOSE]*(100 - gSkillTraitValues.ubAMReloadSpeedLoose)/100) + 0.5))),0,FALSE) == FALSE)
+					if (EnoughPoints(pSoldier, (reload + (i * (INT16)(((FLOAT)APBPConstants[AP_RELOAD_LOOSE] * (FLOAT)(100 - gSkillTraitValues.ubAMReloadSpeedLoose) / 100.0f) + 0.5f))), 0, FALSE) == FALSE)
 					{
 						rounds = i-1;
 						break;
@@ -3107,7 +2923,7 @@ INT16 GetAPsToReloadGunWithAmmo( SOLDIERTYPE *pSoldier, OBJECTTYPE * pGun, OBJEC
 
 		// SANDRO - added Ambidextrous check
 		if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-			return (reload + ((INT16) (rounds * (APBPConstants[AP_RELOAD_LOOSE]*(100 - gSkillTraitValues.ubAMReloadSpeedLoose)/100) + 0.5)));
+			return (reload + ((INT16)(rounds * ((FLOAT)APBPConstants[AP_RELOAD_LOOSE] * (FLOAT)(100 - gSkillTraitValues.ubAMReloadSpeedLoose) / 100.0f) + 0.5f)));
 		else
 			return (reload + (rounds * APBPConstants[AP_RELOAD_LOOSE]));
 	}
@@ -3143,10 +2959,10 @@ INT16 GetAPsToAutoReload( SOLDIERTYPE * pSoldier )
 		{
 			// Sniper trait makes chambering a round faster
 			if (( Weapon[Item[(pObj)->usItem].ubClassIndex].ubWeaponType == GUN_SN_RIFLE || Weapon[Item[(pObj)->usItem].ubClassIndex].ubWeaponType == GUN_RIFLE ) && HAS_SKILL_TRAIT( pSoldier, SNIPER_NT ))
-				return ( (INT16)(((sModifiedReloadAP * (100 - gSkillTraitValues.ubSNChamberRoundAPsReduction * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT )))/100) + 0.5));
+				return ((INT16)((((FLOAT)sModifiedReloadAP * (FLOAT)(100 - gSkillTraitValues.ubSNChamberRoundAPsReduction * NUM_SKILL_TRAITS(pSoldier, SNIPER_NT))) / 100.0f) + 0.5f));
 			// Ranger trait makes pumping shotguns faster
 			else if (( Weapon[Item[(pObj)->usItem].ubClassIndex].ubWeaponType == GUN_SHOTGUN ) && HAS_SKILL_TRAIT( pSoldier, RANGER_NT ))
-				return ( (INT16)(((sModifiedReloadAP * (100 - gSkillTraitValues.ubRAPumpShotgunsAPsReduction * NUM_SKILL_TRAITS( pSoldier, RANGER_NT )))/100) + 0.5));
+				return ((INT16)((((FLOAT)sModifiedReloadAP * (FLOAT)(100 - gSkillTraitValues.ubRAPumpShotgunsAPsReduction * NUM_SKILL_TRAITS(pSoldier, RANGER_NT))) / 100.0f) + 0.5f));
 			else
 				return (sModifiedReloadAP);
 		}
@@ -3327,14 +3143,14 @@ INT16 GetAPsToLook( SOLDIERTYPE *pSoldier )
 		// Now change to appropriate animation
 		case ANIM_STAND:
 			if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-				return( max( 1, (INT16)((APBPConstants[AP_LOOK_STANDING] * (100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 )));
+				return(max(1, (INT16)(((FLOAT)APBPConstants[AP_LOOK_STANDING] * (FLOAT)(100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)));
 			else
 				return( APBPConstants[AP_LOOK_STANDING] );
 			break;
 
 		case ANIM_CROUCH:
 			if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-				return( max( 1, (INT16)((APBPConstants[AP_LOOK_CROUCHED] * (100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 )));
+				return(max(1, (INT16)(((FLOAT)APBPConstants[AP_LOOK_CROUCHED] * (FLOAT)(100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)));
 			else
 				return( APBPConstants[AP_LOOK_CROUCHED] );
 			break;
@@ -3344,7 +3160,7 @@ INT16 GetAPsToLook( SOLDIERTYPE *pSoldier )
 			// crouched, turn, and then go back down.	Hence you go up (APBPConstants[AP_PRONE]), turn (APBPConstants[AP_LOOK_PRONE]) and down (APBPConstants[AP_PRONE]).
 			//dnl ch70 160913 because of backpack cost for going up is 2
 			if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-				return( max( 1, (INT16)((APBPConstants[AP_LOOK_PRONE] * (100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5)) + GetAPsProne(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE*2) );
+				return(max(1, (INT16)(((FLOAT)APBPConstants[AP_LOOK_PRONE] * (FLOAT)(100 - gSkillTraitValues.ubMAApsTurnAroundReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)) + GetAPsProne(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE * 2));
 			else 
 				return( APBPConstants[AP_LOOK_PRONE] + GetAPsProne(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE*2) );
 			break;
@@ -3536,7 +3352,7 @@ INT16 GetAPsToClimbRoof( SOLDIERTYPE *pSoldier, BOOLEAN fClimbDown )
 	if ( !fClimbDown )
 	{
 		if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-			iAPsToClimb = max( 1, (INT16)((APBPConstants[AP_CLIMBROOF] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5)); // -25% per trait
+			iAPsToClimb = max(1, (INT16)(((FLOAT)APBPConstants[AP_CLIMBROOF] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)); // -25% per trait
 		else
 			iAPsToClimb = APBPConstants[AP_CLIMBROOF];
 
@@ -3546,7 +3362,7 @@ INT16 GetAPsToClimbRoof( SOLDIERTYPE *pSoldier, BOOLEAN fClimbDown )
 	else
 	{
 		if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-			iAPsToClimb = max( 1, (INT16)((APBPConstants[AP_CLIMBOFFROOF] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5)); // -25% per trait
+			iAPsToClimb = max(1, (INT16)(((FLOAT)APBPConstants[AP_CLIMBOFFROOF] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)); // -25% per trait
 		else
 			iAPsToClimb = APBPConstants[AP_CLIMBOFFROOF];
 
@@ -3570,7 +3386,7 @@ INT16 GetAPsToJumpWall( SOLDIERTYPE *pSoldier, BOOLEAN fClimbDown )
 	if ( !fClimbDown )
 	{
 		if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-			iAPsToClimb = max( 1, (INT16)((APBPConstants[AP_JUMPWALL] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5)); // -25% per trait
+			iAPsToClimb = max(1, (INT16)(((FLOAT)APBPConstants[AP_JUMPWALL] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)); // -25% per trait
 		else
 			iAPsToClimb = APBPConstants[AP_JUMPWALL];
 
@@ -3580,7 +3396,7 @@ INT16 GetAPsToJumpWall( SOLDIERTYPE *pSoldier, BOOLEAN fClimbDown )
 	else
 	{
 		if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-			iAPsToClimb = max( 1, (INT16)((APBPConstants[AP_JUMPOFFWALL] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5)); // -25% per trait
+			iAPsToClimb = max(1, (INT16)(((FLOAT)APBPConstants[AP_JUMPOFFWALL] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)); // -25% per trait
 		else
 			iAPsToClimb = APBPConstants[AP_JUMPOFFWALL];
 
@@ -3602,15 +3418,14 @@ INT16 GetAPsToJumpThroughWindows( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack )
 	if ( !fWithBackpack )
 	{
 		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ))
-			return( max( 1, (INT16)((APBPConstants[AP_JUMPWINDOW] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 ))); // -25% per trait
+			return(max(1, (INT16)(((FLOAT)APBPConstants[AP_JUMPWINDOW] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f))); // -25% per trait
 		else
 			return( APBPConstants[AP_JUMPWINDOW] );
-
 	}
 	else
 	{
 		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ))
-			return( max( 1, (INT16)((APBPConstants[AP_JUMPWINDOW] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 ))); // -25% per trait
+			return(max(1, (INT16)(((FLOAT)APBPConstants[AP_JUMPWINDOW] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f))); // -25% per trait
 		else
 			return( APBPConstants[AP_JUMPWINDOW] );
 	}
@@ -3644,7 +3459,7 @@ INT16 GetAPsToJumpFence( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack )
 	if ( !fWithBackpack )
 	{
 		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ))
-			return( max( 1, (INT16)((APBPConstants[AP_JUMPFENCE] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 ))); // -25% per trait
+			return(max(1, (INT16)(((FLOAT)APBPConstants[AP_JUMPFENCE] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f))); // -25% per trait
 		else
 			return( APBPConstants[AP_JUMPFENCE] );
 
@@ -3652,7 +3467,7 @@ INT16 GetAPsToJumpFence( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack )
 	else
 	{
 		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ))
-			return( max( 1, (INT16)((APBPConstants[AP_JUMPFENCEBPACK] * ( 100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 ))); // -25% per trait
+			return(max(1, (INT16)(((FLOAT)APBPConstants[AP_JUMPFENCEBPACK] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f))); // -25% per trait
 		else
 			return( APBPConstants[AP_JUMPFENCEBPACK] );
 	}
@@ -3895,7 +3710,7 @@ INT16 GetAPsToDropBomb( SOLDIERTYPE *pSoldier )
 {
 	// SANDRO - STOMP traits - Ambidextrous bonus
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_DROP_BOMB] * (100 - gSkillTraitValues.ubAMHandleBombsAPsReduction)/100 ) + 0.5)) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_DROP_BOMB] * (FLOAT)(100 - gSkillTraitValues.ubAMHandleBombsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_DROP_BOMB] );
 }
@@ -3904,7 +3719,7 @@ INT16 GetAPsToPlantMine( SOLDIERTYPE *pSoldier )
 {
 	// SANDRO - STOMP traits - Ambidextrous bonus
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_BURY_MINE] * (100 - gSkillTraitValues.ubAMHandleBombsAPsReduction)/100 ) + 0.5)) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_BURY_MINE] * (FLOAT)(100 - gSkillTraitValues.ubAMHandleBombsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_BURY_MINE] );
 }
@@ -3952,7 +3767,7 @@ INT16 GetAPsToStealItem( SOLDIERTYPE *pSoldier, SOLDIERTYPE *pTargetSoldier, INT
 	}
 	else if (HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && ( gGameOptions.fNewTraitSystem ))
 	{
-		sAPCost += max( 1, (INT16)((APBPConstants[AP_STEAL_ITEM] *  (100 - gSkillTraitValues.ubMAReducedAPsToSteal * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT ))/ 100) + 0.5));
+		sAPCost += max(1, (INT16)(((FLOAT)APBPConstants[AP_STEAL_ITEM] * (FLOAT)(100 - gSkillTraitValues.ubMAReducedAPsToSteal * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f));
 	}
 	else
 	{
@@ -4062,7 +3877,7 @@ INT16 GetAPsToJumpOver( SOLDIERTYPE *pSoldier )
 {
 	// -25% APs needed to for MA traits
 	if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && gGameOptions.fNewTraitSystem )
-		return( GetAPsToChangeStance( pSoldier, ANIM_STAND ) + max( 1, (INT16)((APBPConstants[AP_JUMP_OVER] * (100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT ))/100) + 0.5)));
+		return(GetAPsToChangeStance(pSoldier, ANIM_STAND) + max(1, (INT16)(((FLOAT)APBPConstants[AP_JUMP_OVER] * (FLOAT)(100 - gSkillTraitValues.ubMAAPsClimbOrJumpReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f)));
 	else
 		return(	GetAPsToChangeStance( pSoldier, ANIM_STAND ) + APBPConstants[AP_JUMP_OVER] );
 }
@@ -4184,7 +3999,7 @@ INT16 GetAPsCrouch( SOLDIERTYPE *pSoldier, BOOLEAN fBackpackCheck )
 
 	// -x% APs needed to change stance for MA trait
 	if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && ( gGameOptions.fNewTraitSystem ))
-		iFinalAPsToCrouch = (INT16)((iFinalAPsToCrouch * ( 100 - gSkillTraitValues.ubMAAPsChangeStanceReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 );
+		iFinalAPsToCrouch = (INT16)(((FLOAT)iFinalAPsToCrouch * (FLOAT)(100 - gSkillTraitValues.ubMAAPsChangeStanceReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.f) + 0.5f);
 
 	if (iFinalAPsToCrouch < 1 )
 		iFinalAPsToCrouch = 1;
@@ -4204,7 +4019,7 @@ INT16 GetAPsProne( SOLDIERTYPE *pSoldier, BOOLEAN fBackpackCheck )
 
 	// -x% APs needed to change stance for MA trait
 	if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && ( gGameOptions.fNewTraitSystem ))
-		iFinalAPsToLieDown = (INT16)((iFinalAPsToLieDown * ( 100 - gSkillTraitValues.ubMAAPsChangeStanceReduction * NUM_SKILL_TRAITS( pSoldier, MARTIAL_ARTS_NT )) / 100) + 0.5 );
+		iFinalAPsToLieDown = (INT16)(((FLOAT)iFinalAPsToLieDown * (FLOAT)(100 - gSkillTraitValues.ubMAAPsChangeStanceReduction * NUM_SKILL_TRAITS(pSoldier, MARTIAL_ARTS_NT)) / 100.0f) + 0.5f);
 
 	if (iFinalAPsToLieDown < 1 )
 		iFinalAPsToLieDown = 1;
@@ -4216,7 +4031,7 @@ INT16 GetAPsStartRun( SOLDIERTYPE *pSoldier )
 {
 	// Athletics trait
 	if ( HAS_SKILL_TRAIT( pSoldier, ATHLETICS_NT ) && gGameOptions.fNewTraitSystem )
-		return( max( 1, (INT16)((APBPConstants[AP_START_RUN_COST] * (100 - gSkillTraitValues.ubATAPsMovementReduction)/100) + 0.5 )) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_START_RUN_COST] * (100.0f - (FLOAT)gSkillTraitValues.ubATAPsMovementReduction) / 100.0f) + 0.5f)));
 	else
 		return(	APBPConstants[AP_START_RUN_COST] );
 }
@@ -4225,7 +4040,7 @@ INT16 GetAPsStartRun( SOLDIERTYPE *pSoldier )
 INT16 GetAPsToOpenDoor( SOLDIERTYPE *pSoldier )
 {
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_OPEN_DOOR] * (100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction)/100) + 0.5 )) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_OPEN_DOOR] * (FLOAT)(100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_OPEN_DOOR] );
 }
@@ -4234,7 +4049,7 @@ INT16 GetAPsToOpenDoor( SOLDIERTYPE *pSoldier )
 INT16 GetAPsToPicklock( SOLDIERTYPE *pSoldier )
 {
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_PICKLOCK] * (100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction)/100) + 0.5 )) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_PICKLOCK] * (FLOAT)(100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_PICKLOCK] );
 }
@@ -4243,7 +4058,7 @@ INT16 GetAPsToPicklock( SOLDIERTYPE *pSoldier )
 INT16 GetAPsToBombDoor( SOLDIERTYPE *pSoldier )
 {
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_EXPLODE_DOOR] * (100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction)/100) + 0.5 )) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_EXPLODE_DOOR] * (FLOAT)(100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_EXPLODE_DOOR] );
 }
@@ -4252,7 +4067,7 @@ INT16 GetAPsToBombDoor( SOLDIERTYPE *pSoldier )
 INT16 GetAPsToUntrapDoor( SOLDIERTYPE *pSoldier )
 {
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_UNTRAP_DOOR] * (100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction)/100) + 0.5 )) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_UNTRAP_DOOR] * (FLOAT)(100 - gSkillTraitValues.ubAMHandleDoorsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_UNTRAP_DOOR] );
 }
@@ -4261,7 +4076,7 @@ INT16 GetAPsToUntrapDoor( SOLDIERTYPE *pSoldier )
 INT16 GetBasicAPsToPickupItem( SOLDIERTYPE *pSoldier )
 {
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_PICKUP_ITEM] * (100 - gSkillTraitValues.ubAMPickItemsAPsReduction)/100) + 0.5 )) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_PICKUP_ITEM] * (FLOAT)(100 - gSkillTraitValues.ubAMPickItemsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_PICKUP_ITEM] );
 }
@@ -4270,7 +4085,7 @@ INT16 GetBasicAPsToPickupItem( SOLDIERTYPE *pSoldier )
 INT16 GetAPsToDisarmMine( SOLDIERTYPE *pSoldier )
 {
 	if( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, AMBIDEXTROUS_NT ) )
-		return( max( 1, (INT16)((APBPConstants[AP_DISARM_MINE] * (100 - gSkillTraitValues.ubAMHandleBombsAPsReduction)/100) + 0.5 )) );
+		return(max(1, (INT16)(((FLOAT)APBPConstants[AP_DISARM_MINE] * (FLOAT)(100 - gSkillTraitValues.ubAMHandleBombsAPsReduction) / 100.0f) + 0.5f)));
 	else
 		return( APBPConstants[AP_DISARM_MINE] );
 }

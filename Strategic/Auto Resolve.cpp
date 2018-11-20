@@ -559,9 +559,9 @@ void DoTransitionFromPreBattleInterfaceToAutoResolve()
 		//Factor the percentage so that it is modified by a gravity falling acceleration effect.
 		iFactor = (iPercentage - 50) * 2;
 		if( iPercentage < 50 )
-			iPercentage = (UINT32)(iPercentage + iPercentage * iFactor * 0.01 + 0.5);
+			iPercentage = (UINT32)((FLOAT)iPercentage + (FLOAT)iPercentage * (FLOAT)iFactor * 0.01f + 0.5f);
 		else
-			iPercentage = (UINT32)(iPercentage + (100-iPercentage) * iFactor * 0.01 + 0.05);
+			iPercentage = (UINT32)((FLOAT)iPercentage + (FLOAT)(100 - iPercentage) * (FLOAT)iFactor * 0.01f + 0.05f);
 
 		//Calculate the center point.
 		iLeft = sStartLeft + (sEndLeft-sStartLeft+1) * iPercentage / 100;

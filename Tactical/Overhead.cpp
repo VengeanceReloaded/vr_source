@@ -8429,20 +8429,20 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
                     // Squadleader's resistance to cowering
                     if ( HAS_SKILL_TRAIT( pSoldier, SQUADLEADER_NT ))
                     {
-                        bShockForCower = (INT8)((bShockForCower * (100 - gSkillTraitValues.ubSLFearResistance * NUM_SKILL_TRAITS( pSoldier, SQUADLEADER_NT )) /100) + 0.5);
+                        bShockForCower = (INT8)(((FLOAT)bShockForCower * (FLOAT)(100 - gSkillTraitValues.ubSLFearResistance * NUM_SKILL_TRAITS( pSoldier, SQUADLEADER_NT )) /100.0f) + 0.5f);
                     }
                     // Check for character traits
                     if ( gMercProfiles[pSoldier->ubProfile].bCharacterTrait == CHAR_TRAIT_INTELLECTUAL )
                     {
-                        bShockForCower = (INT8)((bShockForCower * 23 / 20 ) + 0.5); // +15% as shock
+                        bShockForCower = (INT8)(((FLOAT)bShockForCower * 23.0f / 20.0f ) + 0.5f); // +15% as shock
                     }
                     else if ( gMercProfiles[pSoldier->ubProfile].bCharacterTrait == CHAR_TRAIT_DAUNTLESS )
                     {
-                        bShockForCower = (INT8)((bShockForCower * 17 / 20 ) + 0.5); // -15% as shock                
+                        bShockForCower = (INT8)(((FLOAT)bShockForCower * 17.0f / 20.0f ) + 0.5f); // -15% as shock                
                     }
 
 					// Flugente: personal fear resistance
-					bShockForCower = (INT8)((bShockForCower * (100 - pSoldier->GetFearResistanceBonus()) / 100 ) + 0.5);
+					bShockForCower = (INT8)(((FLOAT)bShockForCower * (FLOAT)(100 - pSoldier->GetFearResistanceBonus()) / 100.0f ) + 0.5f);
                 }
 				*/
                 if ( CoweringShockLevel(pSoldier) )

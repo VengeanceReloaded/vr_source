@@ -4715,9 +4715,9 @@ void AnimateZoomInventory ( UINT16 iLocationInPool, UINT16 iCounter, INT32 iStar
 		INT32 iScalePercentage = iPercentage;
 		INT32 iFactor = (iScalePercentage - 50) * 2;
 		if( iScalePercentage < 50 )
-			iScalePercentage = (UINT32)(iScalePercentage + iScalePercentage * iFactor * 0.01 + 0.5);
+			iScalePercentage = (UINT32)((FLOAT)iScalePercentage + (FLOAT)iScalePercentage * (FLOAT)iFactor * 0.01f + 0.5f);
 		else
-			iScalePercentage = (UINT32)(iScalePercentage + (100-iScalePercentage) * iFactor * 0.01 + 0.5);
+			iScalePercentage = (UINT32)((FLOAT)iScalePercentage + (FLOAT)(100 - iScalePercentage) * (FLOAT)iFactor * 0.01f + 0.5f);
 
 		// Find the width and height the sprite at this time.
 		iWidth = (INT32)(uiOrigWidth + (INT32)(( iDeltaWidth * iScalePercentage ) / 100));
