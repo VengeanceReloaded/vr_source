@@ -35,7 +35,8 @@ inline BOOLEAN Chance( UINT32 uiChance )
 
 inline UINT32 PreRandom(UINT32 uiRange)
 {
-	return(GetRndNum(uiRange));
+	return Random(uiRange);
+	//return(GetRndNum(uiRange));
 }
 
 inline BOOLEAN PreChance( UINT32 uiChance )
