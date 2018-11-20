@@ -785,20 +785,28 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 			Soldier.iFaceIndex = InitSoldierFace( &Soldier );
 		}
 
-		Soldier.bActionPoints					= Soldier.CalcActionPoints(	);
-		Soldier.bInitialActionPoints	= Soldier.bActionPoints;
-		Soldier.bSide									= gTacticalStatus.Team[ Soldier.bTeam ].bSide;
-		Soldier.bActive								= TRUE;
-		Soldier.sSectorX							= pCreateStruct->sSectorX;
-		Soldier.sSectorY							= pCreateStruct->sSectorY;
-		Soldier.bSectorZ							= pCreateStruct->bSectorZ;
-		Soldier.ubInsertionDirection	= pCreateStruct->ubDirection;
-		Soldier.pathing.bDesiredDirection			= pCreateStruct->ubDirection;
-		Soldier.aiData.bDominantDir					= pCreateStruct->ubDirection;
-		Soldier.ubDirection						= pCreateStruct->ubDirection;
+		Soldier.bActionPoints				= Soldier.CalcActionPoints(	);
+		Soldier.bInitialActionPoints		= Soldier.bActionPoints;
+		Soldier.bSide						= gTacticalStatus.Team[ Soldier.bTeam ].bSide;
+		Soldier.bActive						= TRUE;
+		Soldier.sSectorX					= pCreateStruct->sSectorX;
+		Soldier.sSectorY					= pCreateStruct->sSectorY;
+		Soldier.bSectorZ					= pCreateStruct->bSectorZ;
+		Soldier.ubInsertionDirection		= pCreateStruct->ubDirection;
+		Soldier.pathing.bDesiredDirection	= pCreateStruct->ubDirection;
+		Soldier.aiData.bDominantDir			= pCreateStruct->ubDirection;
+		Soldier.ubDirection					= pCreateStruct->ubDirection;
 
 		Soldier.sInsertionGridNo			= pCreateStruct->sInsertionGridNo;
-		Soldier.bOldLife							= Soldier.stats.bLifeMax;
+		Soldier.bOldLife					= Soldier.stats.bLifeMax;
+
+		// set custom side for civilian group
+		if (Soldier.bTeam == CIV_TEAM &&
+			Soldier.ubCivilianGroup != NON_CIV_GROUP &&
+			zCivGroupName[Soldier.ubCivilianGroup].bSide != 0)
+		{
+			Soldier.bSide = zCivGroupName[Soldier.ubCivilianGroup].bSide;
+		}
 
 		// If a civvy, set neutral
 		if ( Soldier.bTeam == CIV_TEAM )

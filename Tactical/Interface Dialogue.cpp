@@ -2946,7 +2946,7 @@ void HandleNPCDoAction( UINT8 ubTargetNPC, UINT16 usActionCode, UINT8 ubQuoteNum
 					else
 					{
 						// make hostile
-						MakeCivHostile( pSoldier, 2 );
+						MakeCivHostile(pSoldier);
 					}
 					DeleteTalkingMenu();
 					if ( ! ( gTacticalStatus.uiFlags & INCOMBAT ) )

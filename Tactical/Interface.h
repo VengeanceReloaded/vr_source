@@ -82,8 +82,8 @@ typedef struct
 	BOOLEAN		Enabled; //add
 	BOOLEAN Loyalty;
 	BOOLEAN AddToBattle;
+	INT8	bSide;
 	CHAR16	szCurGroup[MAX_ENEMY_NAMES_CHARS];
-
 } CIV_NAMES_VALUES;
 
 extern CIV_NAMES_VALUES zCivGroupName[NUM_CIV_GROUPS];

@@ -49,6 +49,7 @@ civGroupNamesStartElementHandle(void *userData, const XML_Char *name, const XML_
 				strcmp(name, "Enabled") == 0 ||
 				strcmp(name, "Loyalty") == 0 ||
 				strcmp(name, "AddToBattle") == 0 ||
+				strcmp(name, "Side") == 0 ||
 				strcmp(name, "szGroup") == 0 ))
 		{
 			pData->curElement = ELEMENT_PROPERTY;
@@ -98,6 +99,7 @@ civGroupNamesEndElementHandle(void *userData, const XML_Char *name)
 					
 					zCivGroupName[pData->curCivGroupNames.uiIndex].AddToBattle = pData->curCivGroupNames.AddToBattle;
 					zCivGroupName[pData->curCivGroupNames.uiIndex].Loyalty = pData->curCivGroupNames.Loyalty;
+					zCivGroupName[pData->curCivGroupNames.uiIndex].bSide = pData->curCivGroupNames.bSide;
 				}
 				else
 				{
@@ -124,6 +126,11 @@ civGroupNamesEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curCivGroupNames.AddToBattle	= (BOOLEAN) atol(pData->szCharData);
+		}
+		else if (strcmp(name, "Side") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curCivGroupNames.bSide = (INT8)atol(pData->szCharData);
 		}
 		else if(strcmp(name, "szGroup") == 0 )
 		{
