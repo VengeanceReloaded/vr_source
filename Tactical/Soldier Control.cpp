@@ -3802,13 +3802,17 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			if ( this->usAnimState != RUNNING )
 			{
 				// CHRISL
-				if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( this ) != ITEM_NOT_FOUND)
+				// sevenfm: removed +2 bonus
+				/*if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( this ) != ITEM_NOT_FOUND)
 				{
-					sAPCost = GetAPsStartRun( this ) + 2; // changed by SANDRO
-					sBPCost += 2;
+				sAPCost = GetAPsStartRun( this ) + 2; // changed by SANDRO
+				sBPCost += 2;
 				}
 				else
-					sAPCost = GetAPsStartRun( this ); // changed by SANDRO
+				sAPCost = GetAPsStartRun( this ); // changed by SANDRO
+				*/
+				sAPCost = GetAPsStartRun(this);
+
 				DeductPoints( this, sAPCost, sBPCost, MOVEMENT_INTERRUPT );
 			}
 			// Set pending action count to 0

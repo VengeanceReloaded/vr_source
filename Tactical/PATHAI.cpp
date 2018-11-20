@@ -3483,71 +3483,18 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 
 					case TRAVELCOST_DEEPWATER:ubAPCost = APBPConstants[AP_MOVEMENT_OCEAN]; // can swim, so it's faster than wading
 																		break;
-					//case TRAVELCOST_VEINEND	:
-					//case TRAVELCOST_VEINMID	: ubAPCost = APBPConstants[AP_MOVEMENT_FLAT];
-					//													break;
-
-					//case TRAVELCOST_DOOR		:	ubAPCost = APBPConstants[AP_MOVEMENT_FLAT];
-					//													break;
-
-					case TRAVELCOST_FENCE		: 
+					case TRAVELCOST_FENCE: 
 						// SANDRO - slightly changed
 						if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( s ) != ITEM_NOT_FOUND )
 							ubAPCost = GetAPsToJumpFence( s, TRUE ); 
 						else
 							ubAPCost = GetAPsToJumpFence( s, FALSE );
 			
-/*
-			if ( sSwitchValue == TRAVELCOST_FENCE )
-			{
-				sPoints += sTileCost;
-
-				// If we are changeing stance ( either before or after getting there....
-				// We need to reflect that...
-				switch(usMovementMode)
-				{
-					case RUNNING:
-					case WALKING :
-
-						// Add here cost to go from crouch to stand AFTER fence hop....
-						// Since it's AFTER.. make sure we will be moving after jump...
-						if ( ( iCnt + 2 ) < iLastGrid )
-						{
-							sPoints += APBPConstants[AP_CROUCH];
-						}
-						break;
-
-					case SWATTING:
-
-						// Add cost to stand once there BEFORE....
-						sPoints += AP_CROUCH;
-						break;
-
-					case CRAWLING:
-
-						// Can't do it here.....
-						break;
-
-				}
-			}
-
-*/
-
 																		break;
 
 					case TRAVELCOST_OBSTACLE:
 					default									:	goto NEXTDIR;	// Cost too much to be considered!
 																		break;
-				}
-
-
-			// don't make the mistake of adding directly to
-			// ubCurAPCost, that must be preserved for remaining dirs!
-				if (iCnt & 1)
-				{
-					//ubAPCost++;
-					//ubAPCost = gubDiagCost[ubAPCost];
-					ubAPCost = (ubAPCost * 14) / 10;
 				}
 
 		usMovementModeToUseForAPs = usMovementMode;
@@ -3598,34 +3545,11 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 						break;
 				}
 
-				///////////////////////////////////////////////////////////////////////////////////////////////
-				// SANDRO - STOMP traits - Athletics trait decreases movement cost
-				if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( s, ATHLETICS_NT ))
-				{
-					ubAPCost = max(1, (INT16)((ubAPCost * (100 - gSkillTraitValues.ubATAPsMovementReduction) / 100) + 0.5));
-				}
-
-				// Moa: scuba fins and swimming background
-				if ( s->inv[LEGPOS].exists() && HasItemFlag( s->inv[LEGPOS].usItem, SCUBA_FINS ) )
-				{
-					if ( TERRAIN_IS_HIGH_WATER( gpWorldLevelData[ newLoc ].ubTerrainID) )
-					{
-						ubAPCost /= 2;
-					}
-					else
-					{
-						ubAPCost *= 2;
-					}
-				}
-				if ( TERRAIN_IS_HIGH_WATER( gpWorldLevelData[ newLoc ].ubTerrainID ) )
-					ubAPCost = (ubAPCost * (100 + s->GetBackgroundValue(BG_SWIMMING))) / 100;
+				// Check for reverse mode
+				if (s->bReverse)
+					ubAPCost += APBPConstants[AP_REVERSE_MODIFIER];
 
 				// SANDRO - moved backpack check to here
-				// Moa: backpack penalty
-				//if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( s ) != ITEM_NOT_FOUND )
-				//{
-				//	ubAPCost += APBPConstants[AP_MODIFIER_PACK];
-				//}
 				if ( UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP )
 				{
 					INT8 bSlot= FindBackpackOnSoldier( s );
@@ -3654,6 +3578,52 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 						}
 						ubAPCost += usBPPenalty;
 					}
+				}
+
+				///////////////////////////////////////////////////////////////////////////////////////////////
+				// SANDRO - STOMP traits - Athletics trait decreases movement cost
+				if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT(s, ATHLETICS_NT))
+				{
+					ubAPCost = max(1, (INT16)(((FLOAT)ubAPCost * (100.0f - (FLOAT)gSkillTraitValues.ubATAPsMovementReduction) / 100.0f) + 0.5f));
+				}
+
+				// Moa: scuba fins and swimming background
+				if (s->inv[LEGPOS].exists() && HasItemFlag(s->inv[LEGPOS].usItem, SCUBA_FINS))
+				{
+					if (TERRAIN_IS_HIGH_WATER(gpWorldLevelData[newLoc].ubTerrainID))
+					{
+						ubAPCost /= 2;
+					}
+					else
+					{
+						ubAPCost *= 2;
+					}
+				}
+
+				if (TERRAIN_IS_HIGH_WATER(gpWorldLevelData[newLoc].ubTerrainID))
+				{
+					ubAPCost = (ubAPCost * (100 + s->GetBackgroundValue(BG_SWIMMING))) / 100;
+				}
+
+				// Check for stealth mode
+				if (s->bStealthMode)
+				{
+					// STOMP traits - Stealthy trait decreases stealth AP modifier
+					if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT(s, STEALTHY_NT))
+					{
+						ubAPCost += (max(0, (INT16)(((FLOAT)APBPConstants[AP_STEALTH_MODIFIER] * (FLOAT)(100 - gSkillTraitValues.ubSTStealthModeSpeedBonus) / 100.0f) + 0.5f)));
+					}
+					else
+					{
+						ubAPCost += APBPConstants[AP_STEALTH_MODIFIER];
+					}
+				}
+
+				// don't make the mistake of adding directly to
+				// ubCurAPCost, that must be preserved for remaining dirs!
+				if (iCnt & 1)
+				{
+					ubAPCost = ubAPCost * 14 / 10;
 				}
 
 				if (nextCost == TRAVELCOST_FENCE)
@@ -3704,9 +3674,7 @@ if(!GridNoOnVisibleWorldTile(iDestination))
 					fGoingThroughDoor = FALSE;
 				}
 
-
 			ubNewAPCost = ubCurAPCost + ubAPCost;
-
 
 			if (ubNewAPCost > gubNPCAPBudget)
 			 goto NEXTDIR;
@@ -4408,8 +4376,7 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
  INT32 sOldGrid=0;
 	INT16 sFootOrderIndex;
 	INT16 sSwitchValue;
-	INT16 sFootOrder[5] = {	GREENSTEPSTART, PURPLESTEPSTART, BLUESTEPSTART, 
-		ORANGESTEPSTART, REDSTEPSTART };
+	INT16 sFootOrder[5] = {	GREENSTEPSTART, PURPLESTEPSTART, BLUESTEPSTART, ORANGESTEPSTART, REDSTEPSTART };
 	UINT16	usTileIndex;
 	UINT16	usTileNum;
 	LEVELNODE	*pNode;
@@ -4488,12 +4455,9 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 			}
 */
 
-		sPoints				= sPoints + sAnimCost;
-		gusAPtsToMove = gusAPtsToMove + sAnimCost;
-
-
-
-
+		// r8634
+		//sPoints = sPoints + sAnimCost;
+		//gusAPtsToMove = gusAPtsToMove + sAnimCost;
 
 	if (bStayOn)
 		{
@@ -4519,7 +4483,6 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 			sSwitchValue = gubWorldMovementCosts[ sTempGrid ][ (INT8)guiPathingData[iCnt] ][ pSold->pathing.bLevel];
 
 			usMovementModeToUseForAPs = usMovementMode;
-
 
 			// WANNE.WATER: If our soldier is not on the ground level and the tile is a "water" tile, then simply set the tile to "FLAT_GROUND"
 			// This should fix "problems" for special modified maps
@@ -4551,7 +4514,7 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 
 				bIgnoreNextCost = TRUE;
 
-				// If we are changeing stance ( either before or after getting there....
+				// If we are changing stance ( either before or after getting there....
 				// We need to reflect that...
 				switch( usMovementModeToUseForAPs )
 				{
@@ -4567,10 +4530,12 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 						{
 							sExtraCostStand += GetAPsCrouch(pSold, TRUE);
 
-				// ATE: if running, charge extra point to srart again
+				// ATE: if running, charge extra point to start again
 				if ( usMovementModeToUseForAPs== RUNNING )
 				{
-					sExtraCostStand++;
+					// sevenfm: use GetAPsStartRun()
+					//sExtraCostStand++;
+					sExtraCostStand += GetAPsStartRun(pSold);
 				}
 
 						sPoints = sPoints + sExtraCostStand;              
@@ -4580,7 +4545,7 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 					case SWATTING:
 
 						// Add cost to stand once there BEFORE....
-						sExtraCostSwat += GetAPsCrouch(pSold, TRUE);
+						sExtraCostSwat = GetAPsCrouch(pSold, TRUE);
 						sPoints = sPoints + sExtraCostSwat;              
 						break;
 
@@ -4594,25 +4559,7 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 			else if (sTileCost > 0)
 			{
 				// else, movement is adjusted based on mode...
-
-				if (sSwitchValue == TRAVELCOST_NOT_STANDING)
-				{
-					switch( usMovementModeToUseForAPs )
-					{
-						case RUNNING:
-						case WALKING :
-						case WALKING_WEAPON_RDY:
-						case WALKING_DUAL_RDY:
-						case WALKING_ALTERNATIVE_RDY :
-							// charge crouch APs for ducking head!
-							sExtraCostStand += GetAPsCrouch(pSold, TRUE);
-							break;
-
-						default:
-							break;
-					}
-				}
-
+				
 				// so, then we must modify it for other movement styles and accumulate
 				  // CHRISL: Force display path to calculate AP cost differently if we're wearing a backpack
 				///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4655,6 +4602,39 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 				if ( pSold->bReverse || bReverse )
 					sMovementAPsCost += APBPConstants[AP_REVERSE_MODIFIER];
 
+				// Check for backpack
+				//if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( pSold ) != ITEM_NOT_FOUND )
+				//	sMovementAPsCost += APBPConstants[AP_MODIFIER_PACK];
+				if (UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP)
+				{
+					INT8 bSlot = FindBackpackOnSoldier(pSold);
+					if (bSlot != ITEM_NOT_FOUND)
+					{
+						UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
+						if (bSlot == BPACKPOCKPOS) //Backpack caried on back
+						{
+							OBJECTTYPE * pObj = &(pSold->inv[BPACKPOCKPOS]);
+							UINT16 usBackPackWeight = CalculateObjectWeight(pObj);
+							// CalculateObjectWeight checks for active LBE gear. Unfortunatly our backpack is not active since we are carying it.
+							// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
+							// are activated where something can be carried. So we have to add the weights of those slots as well.
+							std::vector<INT8> vbLBESlots;
+							GetLBESlots(BPACKPOCKPOS, vbLBESlots);
+							for (UINT8 i = 0; i < vbLBESlots.size(); i++)
+							{
+								pObj = &(pSold->inv[vbLBESlots[i]]);
+								usBackPackWeight += CalculateObjectWeight(pObj);
+							}
+							usBPPenalty = min((usBackPackWeight / 50), usBPPenalty); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
+						}
+						else //Backpack carried not on back (maybe somewhere inside another LBE or in Hand?)
+						{
+							//apply full penalty
+						}
+						sMovementAPsCost += usBPPenalty;
+					}
+				}
+
 				// STOMP traits - Athletics trait decreases movement cost
 				if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSold, ATHLETICS_NT ))
 				{
@@ -4669,14 +4649,12 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 					else
 						sMovementAPsCost *= 2;
 				}
-				if ( TERRAIN_IS_HIGH_WATER( ubTerrainID) )
-					sMovementAPsCost = (sMovementAPsCost * (100 + pSold->GetBackgroundValue(BG_SWIMMING))) / 100;
 
-				// Check if doors if not player's merc (they have to open them manually)
-				if ( sSwitchValue == TRAVELCOST_DOOR && pSold->bTeam != gbPlayerNum )
+				if (TERRAIN_IS_HIGH_WATER(ubTerrainID))
 				{
-					sMovementAPsCost += GetAPsToOpenDoor( pSold ) + GetAPsToOpenDoor( pSold ); // Include open and close costs!
+					sMovementAPsCost = (sMovementAPsCost * (100 + pSold->GetBackgroundValue(BG_SWIMMING))) / 100;
 				}
+				
 				// Check for stealth mode
 				if ( pSold->bStealthMode || bStealth )
 				{
@@ -4690,36 +4668,34 @@ INT32 PlotPath( SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPl
 						sMovementAPsCost += APBPConstants[AP_STEALTH_MODIFIER];
 					}
 				}
-				// Check for backpack
-				//if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( pSold ) != ITEM_NOT_FOUND )
-				//	sMovementAPsCost += APBPConstants[AP_MODIFIER_PACK];
-				if ( UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP )
+
+				// moving diagonally
+				if (guiPathingData[iCnt] & 1)
 				{
-					INT8 bSlot= FindBackpackOnSoldier( pSold );
-					if ( bSlot != ITEM_NOT_FOUND )
+					sMovementAPsCost = sMovementAPsCost * 14 / 10;
+				}
+
+				// Check if doors if not player's merc (they have to open them manually)
+				if (sSwitchValue == TRAVELCOST_DOOR && pSold->bTeam != gbPlayerNum)
+				{
+					sMovementAPsCost += GetAPsToOpenDoor(pSold) + GetAPsToOpenDoor(pSold); // Include open and close costs!
+				}
+
+				if (sSwitchValue == TRAVELCOST_NOT_STANDING)
+				{
+					switch (usMovementModeToUseForAPs)
 					{
-						UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
-						if ( bSlot == BPACKPOCKPOS ) //Backpack caried on back
-						{
-							OBJECTTYPE * pObj = &( pSold->inv[ BPACKPOCKPOS ] );
-							UINT16 usBackPackWeight = CalculateObjectWeight( pObj );
-							// CalculateObjectWeight checks for active LBE gear. Unfortunatly our backpack is not active since we are carying it.
-							// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
-							// are activated where something can be carried. So we have to add the weights of those slots as well.
-							std::vector<INT8> vbLBESlots;
-							GetLBESlots( BPACKPOCKPOS, vbLBESlots );
-							for ( UINT8 i = 0; i < vbLBESlots.size() ; i++ )
-							{
-								pObj = &( pSold->inv[ vbLBESlots[ i ] ] );
-								usBackPackWeight += CalculateObjectWeight( pObj );
-							}
-							usBPPenalty = min( ( usBackPackWeight / 50 ), usBPPenalty ); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
-						}
-						else //Backpack caried not on back (maybe somewhere inside another LBE or in Hand?)
-						{
-							//apply full penalty
-						}
-						sMovementAPsCost += usBPPenalty;
+					case RUNNING:
+					case WALKING:
+					case WALKING_WEAPON_RDY:
+					case WALKING_DUAL_RDY:
+					case WALKING_ALTERNATIVE_RDY:
+						// charge crouch APs for ducking head!
+						sExtraCostStand += GetAPsCrouch(pSold, TRUE);
+						break;
+
+					default:
+						break;
 					}
 				}
 

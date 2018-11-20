@@ -8136,10 +8136,11 @@ INT8 CalcSuppressionTolerance( SOLDIERTYPE * pSoldier )
     }
 
     // HEADROCK HAM 3.2: This is actually a feature from HAM 2.9. It adds bonuses/penalties for nearby friends.
-    if (gGameExternalOptions.fFriendliesAffectTolerance)
+	// sevenfm: disable
+    /*if (gGameExternalOptions.fFriendliesAffectTolerance)
     {
         bTolerance += CheckStatusNearbyFriendlies( pSoldier );
-    }
+    }*/
 
     // HEADROCK HAM 3.3: Moving rapidly makes one less prone to suppression.
     if (gGameExternalOptions.ubTilesMovedPerBonusTolerancePoint > 0)
@@ -8158,7 +8159,8 @@ INT8 CalcSuppressionTolerance( SOLDIERTYPE * pSoldier )
 	}
 
     // SANDRO - STOMP traits - squadleader's bonus to suppression tolerance
-    if ( gGameOptions.fNewTraitSystem && IS_MERC_BODY_TYPE(pSoldier) && 
+	// svenemf: disable as EffectiveExpLevel and morale bonus also affect tolerance
+    /*if ( gGameOptions.fNewTraitSystem && IS_MERC_BODY_TYPE(pSoldier) && 
             (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == gbPlayerNum) )
     {
         UINT8 ubNumberOfSL = GetSquadleadersCountInVicinity( pSoldier, FALSE, FALSE );
@@ -8170,10 +8172,10 @@ INT8 CalcSuppressionTolerance( SOLDIERTYPE * pSoldier )
             ubNumberOfSL = min( gSkillTraitValues.ubSLMaxBonuses, (ubNumberOfSL + NUM_SKILL_TRAITS( pSoldier, SQUADLEADER_NT )) );
         }
         bTolerance += (bTolerance * gSkillTraitValues.ubSLOverallSuppresionBonusPercent * ubNumberOfSL / 100);
-    }
+    }*/
 
 	// Flugente: add personal bonus to suppresion tolerance
-	bTolerance = (bTolerance * (100 + pSoldier->GetSuppressionResistanceBonus() ) / 100);
+	//bTolerance = (bTolerance * (100 + pSoldier->GetSuppressionResistanceBonus() ) / 100);
 
 	// HEADROCK HAM 3.6: This value has moved here. It reduces tolerance if the character is massively shocked.
 	// sevenfm: moved to the end of calculation
@@ -8227,7 +8229,8 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // SANDRO - modify suppression effectiveness based on weapon caliber (i.e. damage)
-    INT16 sFinalSuppressionEffectiveness = gGameExternalOptions.sSuppressionEffectiveness;
+	INT16 sFinalSuppressionEffectiveness = 100;
+
     pSoldier = MercPtrs[ubCausedAttacker];
     if ( Item[ pSoldier->inv[pSoldier->ubAttackingHand].usItem ].usItemClass == IC_GUN )
     {
@@ -8272,7 +8275,7 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
     }
 
 	// remember effectiveness at this point before modyfing it depending on target's team
-	INT16 sFinalShooterDependentEffectiveness = sFinalSuppressionEffectiveness;
+	INT16 sFinalShooterDependentEffectiveness = sFinalSuppressionEffectiveness * gGameExternalOptions.sSuppressionEffectiveness / 100;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 

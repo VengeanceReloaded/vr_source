@@ -275,6 +275,12 @@ INT16 TerrainBreathPoints(SOLDIERTYPE * pSoldier, INT32 sGridNo, INT8 bDir, UINT
 		case TRAVELCOST_DEEPWATER	: iPoints = APBPConstants[BP_MOVEMENT_OCEAN];	break;	// can swim, so it's faster than wading
 	//	case TRAVELCOST_VEINEND		:
 	//	case TRAVELCOST_VEINMID		: iPoints = APBPConstants[BP_MOVEMENT_FLAT];		break;
+		case TRAVELCOST_FENCE:
+			if (FindBackpackOnSoldier(pSoldier) != ITEM_NOT_FOUND)
+				iPoints = APBPConstants[BP_JUMPFENCEBPACK];
+			else
+				iPoints = APBPConstants[BP_JUMPFENCE];
+			break;
 		default:
 			if ( IS_TRAVELCOST_DOOR( ubMovementCost ) )
 			{
@@ -365,45 +371,46 @@ INT16 TerrainBreathPoints(SOLDIERTYPE * pSoldier, INT32 sGridNo, INT8 bDir, UINT
 		iPoints	= (INT32)( iPoints * APBPConstants[BP_RT_BREATH_DEDUCT_MODIFIER] / 100 );
 	 }
 
-	return( (INT16) iPoints);
+	 // r8634
+	 // moving diagonally
+	 if (bDir & 1)
+		 iPoints = iPoints * 14 / 10;
+
+	 return((INT16)iPoints);
 }
 
 
-INT16 ActionPointCost( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, UINT16 usMovementMode )
+INT16 ActionPointCost(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, UINT16 usMovementMode)
 {
-	INT16 sTileCost, sPoints, sSwitchValue;
-
-	sPoints = 0;
+	INT16 sTileCost, sSwitchValue;
+	INT16 sPoints = 0;
 
 	// get the tile cost for that tile based on WALKING
-	sTileCost = TerrainActionPoints( pSoldier, sGridNo, bDir, pSoldier->pathing.bLevel );
+	sTileCost = TerrainActionPoints(pSoldier, sGridNo, bDir, pSoldier->pathing.bLevel);
+
 	if (sTileCost == -1)
 	{
 		return 100;
 	}
 
-
-
 	// Get switch value...
-	sSwitchValue = gubWorldMovementCosts[ sGridNo ][ bDir ][ pSoldier->pathing.bLevel ];
+	sSwitchValue = gubWorldMovementCosts[sGridNo][bDir][pSoldier->pathing.bLevel];
 
 	// Tile cost should not be reduced based on movement mode...
-	if ( sSwitchValue == TRAVELCOST_FENCE )
+	if (sSwitchValue == TRAVELCOST_FENCE)
 	{
-		return( sTileCost );
+		return(sTileCost);
 	}
 
-	
 	// WANNE.WATER: If our soldier is not on the ground level and the tile is a "water" tile, then simply set the tile to "FLAT_GROUND"
 	// This should fix "problems" for special modified maps
-	UINT8 ubTerrainID = gpWorldLevelData[ sGridNo ].ubTerrainID;
+	UINT8 ubTerrainID = gpWorldLevelData[sGridNo].ubTerrainID;
 
-	if ( TERRAIN_IS_WATER( ubTerrainID) && pSoldier->pathing.bLevel > 0 )
+	if (TERRAIN_IS_WATER(ubTerrainID) && pSoldier->pathing.bLevel > 0)
 		ubTerrainID = FLAT_GROUND;
 
-
 	// ATE - MAKE MOVEMENT ALWAYS WALK IF IN WATER
-	if ( TERRAIN_IS_WATER( ubTerrainID) )
+	if (TERRAIN_IS_WATER(ubTerrainID))
 	{
 		usMovementMode = WALKING;
 	}
@@ -415,65 +422,96 @@ INT16 ActionPointCost( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, UINT16 u
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - This part have been modified "a bit" 
 		// Check movement modifiers
-		switch( usMovementMode )
+		switch (usMovementMode)
 		{
-			case RUNNING:
-			case ADULTMONSTER_WALKING:
-			case BLOODCAT_RUN:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_RUN];
-				break;
-			case CROW_FLY:
-			case SIDE_STEP:
-			case WALK_BACKWARDS:
-			case ROBOT_WALK:
-			case BLOODCAT_WALK_BACKWARDS:
-			case MONSTER_WALK_BACKWARDS:
-			case LARVAE_WALK:
-			case WALKING :
-			case WALKING_ALTERNATIVE_RDY:
-			case SIDE_STEP_ALTERNATIVE_RDY:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_WALK];
-				if ( usMovementMode == WALKING && !(pSoldier->MercInWater()) && ( (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_FIREREADY ) || (gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_FIRE ) ))
-				{
-					sPoints += APBPConstants[AP_MODIFIER_READY];	
-				}
-				break;
-			case SIDE_STEP_WEAPON_RDY:
-			case SIDE_STEP_DUAL_RDY:
-			case WALKING_WEAPON_RDY:
-			case WALKING_DUAL_RDY:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_WALK] + APBPConstants[AP_MODIFIER_READY];
-				break;
-			case START_SWAT:
-			case SWAT_BACKWARDS:
-			case SWATTING:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_SWAT];
-				break;
-			case CRAWLING:
-				sPoints = sTileCost + APBPConstants[AP_MODIFIER_CRAWL];
-				break;
-
-			default:
-
-				// Invalid movement mode
-				DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Invalid movement mode %d used in ActionPointCost", usMovementMode	) );
-				sPoints = sTileCost;
-				break;
+		case RUNNING:
+		case ADULTMONSTER_WALKING:
+		case BLOODCAT_RUN:
+			sPoints = sTileCost + APBPConstants[AP_MODIFIER_RUN];
+			break;
+		case CROW_FLY:
+		case SIDE_STEP:
+		case WALK_BACKWARDS:
+		case ROBOT_WALK:
+		case BLOODCAT_WALK_BACKWARDS:
+		case MONSTER_WALK_BACKWARDS:
+		case LARVAE_WALK:
+		case WALKING:
+		case WALKING_ALTERNATIVE_RDY:
+		case SIDE_STEP_ALTERNATIVE_RDY:
+			sPoints = sTileCost + APBPConstants[AP_MODIFIER_WALK];
+			if (usMovementMode == WALKING && !(pSoldier->MercInWater()) && ((gAnimControl[pSoldier->usAnimState].uiFlags & ANIM_FIREREADY) || (gAnimControl[pSoldier->usAnimState].uiFlags & ANIM_FIRE)))
+			{
+				sPoints += APBPConstants[AP_MODIFIER_READY];
+			}
+			break;
+		case SIDE_STEP_WEAPON_RDY:
+		case SIDE_STEP_DUAL_RDY:
+		case WALKING_WEAPON_RDY:
+		case WALKING_DUAL_RDY:
+			sPoints = sTileCost + APBPConstants[AP_MODIFIER_WALK] + APBPConstants[AP_MODIFIER_READY];
+			break;
+		case START_SWAT:
+		case SWAT_BACKWARDS:
+		case SWATTING:
+			sPoints = sTileCost + APBPConstants[AP_MODIFIER_SWAT];
+			break;
+		case CRAWLING:
+			sPoints = sTileCost + APBPConstants[AP_MODIFIER_CRAWL];
+			break;
+		default:
+			// Invalid movement mode
+			DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("Invalid movement mode %d used in ActionPointCost", usMovementMode));
+			sPoints = sTileCost;
+			break;
 		}
+
 		// Check for reverse mode
-		if ( pSoldier->bReverse || gUIUseReverse )
+		if (pSoldier->bReverse || gUIUseReverse)
 			sPoints += APBPConstants[AP_REVERSE_MODIFIER];
 
-		// STOMP traits - Athletics trait decreases movement cost
-		if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, ATHLETICS_NT ))
+		// Check for backpack
+		// Moa: apply penalty for heavily packed backpack (wobble penalty)
+		if (UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP)
 		{
-			sPoints = max(1, (INT16)((sPoints * (100 - gSkillTraitValues.ubATAPsMovementReduction) / 100) + 0.5));
+			INT8 bSlot = FindBackpackOnSoldier(pSoldier);
+			if (bSlot != ITEM_NOT_FOUND)
+			{
+				UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
+				if (bSlot == BPACKPOCKPOS) //Backpack caried on back
+				{
+					OBJECTTYPE * pObj = &(pSoldier->inv[BPACKPOCKPOS]);
+					UINT16 usBackPackWeight = CalculateObjectWeight(pObj);
+					// CalculateObjectWeight checks for active LBE gear. Unfortunately our backpack is not active since we are carrying it.
+					// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
+					// are activated where something can be carried. So we have to add the weights of those slots as well.
+					std::vector<INT8> vbLBESlots;
+					GetLBESlots(BPACKPOCKPOS, vbLBESlots);
+					for (UINT8 i = 0; i < vbLBESlots.size(); i++)
+					{
+						pObj = &(pSoldier->inv[vbLBESlots[i]]);
+						usBackPackWeight += CalculateObjectWeight(pObj);
+					}
+					usBPPenalty = min((usBackPackWeight / 50), usBPPenalty); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
+				}
+				else //Backpack carried not on back (maybe somewhere inside another LBE or in Hand?)
+				{
+					//apply full penalty
+				}
+				sPoints += usBPPenalty;
+			}
+		}
+
+		// STOMP traits - Athletics trait decreases movement cost
+		if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT(pSoldier, ATHLETICS_NT))
+		{
+			sPoints = max(1, (INT16)(((FLOAT)sPoints * (100.0f - (FLOAT)gSkillTraitValues.ubATAPsMovementReduction) / 100.0f) + 0.5f));
 		}
 
 		// Flugente: scuba fins reduce movement cost in water, but increase cost on land
-		if ( pSoldier->inv[LEGPOS].exists() && HasItemFlag( pSoldier->inv[LEGPOS].usItem, SCUBA_FINS ) )
+		if (pSoldier->inv[LEGPOS].exists() && HasItemFlag(pSoldier->inv[LEGPOS].usItem, SCUBA_FINS))
 		{
-			if ( TERRAIN_IS_HIGH_WATER( ubTerrainID) )
+			if (TERRAIN_IS_HIGH_WATER(ubTerrainID))
 			{
 				sPoints /= 2;
 			}
@@ -484,87 +522,67 @@ INT16 ActionPointCost( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, UINT16 u
 		}
 
 		// Flugente: swimming background
-		if ( TERRAIN_IS_HIGH_WATER( ubTerrainID) )
+		if (TERRAIN_IS_HIGH_WATER(ubTerrainID))
+		{
 			sPoints = (sPoints * (100 + pSoldier->GetBackgroundValue(BG_SWIMMING))) / 100;
-
-		// Check if doors if not player's merc (they have to open them manually)
-		if ( sSwitchValue == TRAVELCOST_DOOR && pSoldier->bTeam != gbPlayerNum )
-		{
-			sPoints += GetAPsToOpenDoor( pSoldier ) + GetAPsToOpenDoor( pSoldier ); // Include open and close costs!
 		}
+
 		// Check for stealth mode
-		if ( pSoldier->bStealthMode )
+		if (pSoldier->bStealthMode)
 		{
-			 // STOMP traits - Stealthy trait decreases stealth AP modifier
-			if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, STEALTHY_NT ))
+			// STOMP traits - Stealthy trait decreases stealth AP modifier
+			if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT(pSoldier, STEALTHY_NT))
 			{
-				 sPoints += (max(0, (INT16)((APBPConstants[AP_STEALTH_MODIFIER] * (100 - gSkillTraitValues.ubSTStealthModeSpeedBonus) / 100) + 0.5)));
+				sPoints += (max(0, (INT16)(((FLOAT)APBPConstants[AP_STEALTH_MODIFIER] * (FLOAT)(100 - gSkillTraitValues.ubSTStealthModeSpeedBonus) / 100.0f) + 0.5f)));
 			}
 			else
 			{
 				sPoints += APBPConstants[AP_STEALTH_MODIFIER];
 			}
 		}
-		// Check for backpack
-		// Moa: apply penalty for heavily packed backpack (wobble penalty)
-		if ( UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP )
+
+		// r8634
+		// moving diagonally
+		if (bDir & 1)
 		{
-			INT8 bSlot= FindBackpackOnSoldier( pSoldier );
-			if ( bSlot != ITEM_NOT_FOUND )
-			{
-				UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
-				if ( bSlot == BPACKPOCKPOS ) //Backpack caried on back
-				{
-					OBJECTTYPE * pObj = &( pSoldier->inv[ BPACKPOCKPOS ] );
-					UINT16 usBackPackWeight = CalculateObjectWeight( pObj );
-					// CalculateObjectWeight checks for active LBE gear. Unfortunatly our backpack is not active since we are carying it.
-					// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
-					// are activated where something can be carried. So we have to add the weights of those slots as well.
-					std::vector<INT8> vbLBESlots;
-					GetLBESlots( BPACKPOCKPOS, vbLBESlots );
-					for ( UINT8 i = 0; i < vbLBESlots.size() ; i++ )
-					{
-						pObj = &( pSoldier->inv[ vbLBESlots[ i ] ] );
-						usBackPackWeight += CalculateObjectWeight( pObj );
-					}
-					usBPPenalty = min( ( usBackPackWeight / 50 ), usBPPenalty ); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
-				}
-				else //Backpack caried not on back (maybe somewhere inside another LBE or in Hand?)
-				{
-					//apply full penalty
-				}
-				sPoints += usBPPenalty;
-			}
+			sPoints = sPoints * 14 / 10;
 		}
 
+		// fixed bonus
+		// Check if doors if not player's merc (they have to open them manually)
+		if (sSwitchValue == TRAVELCOST_DOOR && pSoldier->bTeam != gbPlayerNum)
+		{
+			sPoints += GetAPsToOpenDoor(pSoldier) + GetAPsToOpenDoor(pSoldier); // Include open and close costs!
+		}
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
 
+	// fixed bonus
 	if (sSwitchValue == TRAVELCOST_NOT_STANDING)
 	{
-		switch(usMovementMode)
+		switch (usMovementMode)
 		{
-			case RUNNING:
-			case WALKING :
-			case WALKING_WEAPON_RDY:
-			case WALKING_DUAL_RDY:
-			case LARVAE_WALK:
-			case SIDE_STEP:
-			case SIDE_STEP_WEAPON_RDY:
-			case SIDE_STEP_DUAL_RDY:
-			case WALK_BACKWARDS:
-			case WALKING_ALTERNATIVE_RDY:
-			case SIDE_STEP_ALTERNATIVE_RDY:
-				// charge crouch APs for ducking head!
-				sPoints += GetAPsCrouch(pSoldier, TRUE); // SANDRO changed
-				break;
+		case RUNNING:
+		case WALKING:
+		case WALKING_WEAPON_RDY:
+		case WALKING_DUAL_RDY:
+		case LARVAE_WALK:
+		case SIDE_STEP:
+		case SIDE_STEP_WEAPON_RDY:
+		case SIDE_STEP_DUAL_RDY:
+		case WALK_BACKWARDS:
+		case WALKING_ALTERNATIVE_RDY:
+		case SIDE_STEP_ALTERNATIVE_RDY:
+			// charge crouch APs for ducking head!
+			sPoints += GetAPsCrouch(pSoldier, TRUE); // SANDRO changed
+			break;
 
-			default:
-				break;
+		default:
+			break;
 		}
 	}
 
-	return( sPoints );
+	return(sPoints);
 }
 
 INT16 EstimateActionPointCost( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, UINT16 usMovementMode, INT8 bPathIndex, INT8 bPathLength )
