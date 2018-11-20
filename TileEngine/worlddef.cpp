@@ -900,9 +900,6 @@ void CompileTileMovementCosts( INT32 usGridNo )
 
 	UINT8			ubDirLoop;
 
-/*
-*/
-
 	if ( GridNoOnVisibleWorldTile( usGridNo ) )
 	{
 		// check for land of a different height in adjacent locations
@@ -1018,11 +1015,16 @@ void CompileTileMovementCosts( INT32 usGridNo )
 								SET_CURRMOVEMENTCOST( WEST, TRAVELCOST_OBSTACLE );
 								SET_CURRMOVEMENTCOST( NORTHWEST, TRAVELCOST_OBSTACLE );
 								// set values for the tiles EXITED from this location
-								FORCE_SET_MOVEMENTCOST( usGridNo - WORLD_COLS, NORTH, 0, TRAVELCOST_NONE );
+								// r8640
+								// silversurfer: make sure that there is no obstacle in the target tile!
+								if (gubWorldMovementCosts[usGridNo - WORLD_COLS][NORTH][0] < TRAVELCOST_BLOCKED)
+									FORCE_SET_MOVEMENTCOST( usGridNo - WORLD_COLS, NORTH, 0, TRAVELCOST_NONE );
 								SET_MOVEMENTCOST( usGridNo - WORLD_COLS + 1, NORTHEAST, 0, TRAVELCOST_OBSTACLE );
 								SET_MOVEMENTCOST( usGridNo + 1, EAST, 0, TRAVELCOST_OBSTACLE );
 								SET_MOVEMENTCOST( usGridNo + WORLD_COLS + 1, SOUTHEAST, 0, TRAVELCOST_OBSTACLE );
-								FORCE_SET_MOVEMENTCOST( usGridNo + WORLD_COLS, SOUTH, 0, TRAVELCOST_NONE );
+								// r8640
+								if (gubWorldMovementCosts[usGridNo + WORLD_COLS][SOUTH][0] < TRAVELCOST_BLOCKED)
+									FORCE_SET_MOVEMENTCOST( usGridNo + WORLD_COLS, SOUTH, 0, TRAVELCOST_NONE );
 								SET_MOVEMENTCOST( usGridNo + WORLD_COLS - 1, SOUTHWEST, 0, TRAVELCOST_OBSTACLE );
 								SET_MOVEMENTCOST( usGridNo - 1, WEST, 0, TRAVELCOST_OBSTACLE );
 								SET_MOVEMENTCOST( usGridNo - WORLD_COLS - 1, NORTHWEST, 0, TRAVELCOST_OBSTACLE );
