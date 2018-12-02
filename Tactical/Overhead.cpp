@@ -3086,8 +3086,21 @@ void InternalSelectSoldier( UINT16 usSoldierID, BOOLEAN fAcknowledge, BOOLEAN fF
 
     gusSelectedSoldier = (UINT16)usSoldierID;
 
-    // find which squad this guy is, then set selected squad to this guy
-    SetCurrentSquad( pSoldier -> bAssignment, FALSE );
+	// r7819
+	// find which squad this guy is, then set selected squad to this guy
+	if (pSoldier->bAssignment == VEHICLE)
+	{
+		SOLDIERTYPE* pVehicle = GetSoldierStructureForVehicle(pSoldier->iVehicleId);
+
+		if (pVehicle)
+			SetCurrentSquad(pVehicle->bAssignment, FALSE);
+		else
+			SetCurrentSquad(pSoldier->bAssignment, FALSE);
+	}
+	else
+	{
+		SetCurrentSquad(pSoldier->bAssignment, FALSE);
+	}
 
     if ( pSoldier->pathing.bLevel == 0 )
     {

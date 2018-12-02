@@ -3510,7 +3510,7 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 
 		// this is not for tanks
 		if (TANK(pFriend))
-			return FALSE;
+			continue;
 
 		// skip if this guy is dead
 		if (pFriend->stats.bLife < OKLIFE)

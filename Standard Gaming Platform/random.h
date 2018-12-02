@@ -9,8 +9,8 @@
 //IMPORTANT: Changing this define will invalidate the JA2 save.	If this is necessary, please ifdef your own value.
 #define MAX_PREGENERATED_NUMS 256		
 
-
-#ifdef BMP_RANDOM//dnl ch55 111009 !!!Do not undefine this if plan play Big maps, old random generator not work properly and return only 2^15 different values although seems that should return all posible INT32 values
+//dnl ch55 111009 !!!Do not undefine this if plan play Big maps, old random generator not work properly and return only 2^15 different values although seems that should return all possible INT32 values
+#ifdef BMP_RANDOM
 
 extern UINT32 guiPreRandomIndex;
 extern UINT32 guiPreRandomNums[MAX_PREGENERATED_NUMS];
@@ -18,14 +18,12 @@ extern void InitializeRandom(void);
 extern UINT32 GetRndNum(UINT32 maxnum);
 extern bool gfMPDebugOutputRandoms;
 
+UINT32 NewRandom(UINT32 max);
+
 inline UINT32 Random(UINT32 uiRange)
 {
-	return(GetRndNum(uiRange));
-}
-
-inline INT32 iRandom(UINT32 uiRange)
-{
-	return(GetRndNum(uiRange));
+	return NewRandom(uiRange);
+	//return(GetRndNum(uiRange));
 }
 
 inline BOOLEAN Chance( UINT32 uiChance )
@@ -62,16 +60,6 @@ extern void InitializeRandom(void);
 //   NOTE THE -1!  So if you call Random(100) the numbers returned will
 //   be between 0 and 99 inclusive.
 inline UINT32 Random(UINT32 uiRange)
-{
-	// Always return 0, if no range given (it's not an error)
-	if (uiRange == 0)
-		return(0);
-	return rand() * uiRange / RAND_MAX % uiRange;
-}
-
-
-// Returns a pseudo-random integer between 0 and uiRange-1
-inline INT32 iRandom(UINT32 uiRange)
 {
 	// Always return 0, if no range given (it's not an error)
 	if (uiRange == 0)
