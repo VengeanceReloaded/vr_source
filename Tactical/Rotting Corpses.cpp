@@ -1905,9 +1905,9 @@ BOOLEAN DecapitateCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel )
 				usHeadIndex = HEAD_4;
 				break;
 
-			case 112:
-				usHeadIndex = HEAD_5;
-				break;
+			//case 112:
+			//	usHeadIndex = HEAD_5;
+			//	break;
 
 			case 82:
 				usHeadIndex = HEAD_6;
@@ -1917,6 +1917,13 @@ BOOLEAN DecapitateCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel )
 				usHeadIndex = HEAD_7;
 				break;
 
+			// anv: VR specific decapitations
+			case 112: // Mendax
+				usHeadIndex = MENDAX_HEAD;
+				break;
+			case 141: // Morris
+				usHeadIndex = MORRIS_HEAD;
+				break;
 		}
 
 		if (  pCorpse->def.ubType == BLOODCAT_DEAD )

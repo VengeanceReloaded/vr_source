@@ -1669,6 +1669,11 @@ typedef enum
 	DEFAULT_CPACK = 442,
 	DEFAULT_BPACK = 448,
 
+	// anv: VR specific items
+	MORRIS_HEAD = 3012,
+	MENDAX_HEAD = 3029,
+
+
 	MAXITEMS = 16001
 } ITEMDEFINE;
 
