@@ -3767,10 +3767,9 @@ UINT8 CalcChanceToGetThrough( BULLET * pBullet )
 		pBullet->sGridNo = MAPROWCOLTOPOS( pBullet->iCurrTileY , pBullet->iCurrTileX );
 
 		// HEADROCK HAM 4: Using new gravity constant from INI. See also a second change below.
-		// sevenfm: start drop at iRange * 1.5 in OCTH
-		//if ((UsingNewCTHSystem() == false && pBullet->iLoop > pBullet->iRange * 2) ||
-		if ((UsingNewCTHSystem() == false && pBullet->iLoop > 3*pBullet->iRange/2) ||
-			(UsingNewCTHSystem() == true && pBullet->iLoop > (INT32)(pBullet->iRange * gGameCTHConstants.RANGE_COEFFICIENT)))
+		if (pBullet->fFragment && pBullet->iLoop > pBullet->iRange / 2 ||
+			!UsingNewCTHSystem() && pBullet->iLoop > pBullet->iRange ||
+			UsingNewCTHSystem() && pBullet->iLoop > (INT32)(pBullet->iRange * gGameCTHConstants.RANGE_COEFFICIENT))
 		{
 			// beyond max effective range, bullet starts to drop!
 			// since we're doing an increment based on distance, not time, the
@@ -3780,9 +3779,13 @@ UINT8 CalcChanceToGetThrough( BULLET * pBullet )
 				pBullet->iRange = 1;
 			}
 
-			// sevenfm: always use gravity coefficient from NCTH
-			//pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * (UsingNewCTHSystem()?gGameCTHConstants.GRAVITY_COEFFICIENT:2));
-			pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * gGameCTHConstants.GRAVITY_COEFFICIENT);
+			// sevenfm: use 4 for OCTH, 2 for fragments
+			if (pBullet->fFragment)
+				pBullet->qIncrZ -= INT32_TO_FIXEDPT(100) / (pBullet->iRange * 2);
+			else if (UsingNewCTHSystem())
+				pBullet->qIncrZ -= INT32_TO_FIXEDPT(100) / (pBullet->iRange * 4);
+			else
+				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * gGameCTHConstants.GRAVITY_COEFFICIENT);
 		}
 
 		// end of the tile...
@@ -6926,8 +6929,7 @@ void MoveBullet( INT32 iBullet )
 			// sevenfm: first check for flame
 			if ( (pBullet->usFlags & BULLET_FLAG_FLAME) && (dDistanceMoved > pBullet->iRange) )
 			{
-				//pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * 2);
-				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * (gGameCTHConstants.GRAVITY_COEFFICIENT / 2) );
+				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * 2);
 			}
 			else if ( (dDistanceMoved > (FLOAT)pBullet->iRange*gGameCTHConstants.RANGE_COEFFICIENT) )
 			{
@@ -6941,21 +6943,21 @@ void MoveBullet( INT32 iBullet )
 		else 
 		{
 			// sevenfm: first check for flame
-			if ( (pBullet->usFlags & BULLET_FLAG_FLAME) && ( pBullet->iLoop > pBullet->iRange ) )
+			if (pBullet->fFragment && pBullet->iLoop > pBullet->iRange / 2)
 			{
-				//pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * 2);
-				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * (gGameCTHConstants.GRAVITY_COEFFICIENT / 2) );
+				pBullet->qIncrZ -= INT32_TO_FIXEDPT(100) / (pBullet->iRange * 2);
 			}
-			// sevenfm: start drop at iRange * 1.5
-			//if ( (pBullet->iLoop > pBullet->iRange * 2) )
-			else if ( (pBullet->iLoop > 3*pBullet->iRange/2 ) )
+			else if ((pBullet->usFlags & BULLET_FLAG_FLAME) && pBullet->iLoop > pBullet->iRange)
+			{
+				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * 2);
+			}
+			else if (pBullet->iLoop > pBullet->iRange)
 			{
 				// beyond max effective range, bullet starts to drop!
 				// since we're doing an increment based on distance, not time, the
 				// decrement is scaled down depending on how fast the bullet is (effective range)
-				// sevenfm: use NCTH gravity coefficient
-				//pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * 2);
-				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * gGameCTHConstants.GRAVITY_COEFFICIENT); 
+				// sevenfm: for OCTH, use 4
+				pBullet->qIncrZ -= INT32_TO_FIXEDPT( 100 ) / (pBullet->iRange * 4); 
 			}
 		}
 
