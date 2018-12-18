@@ -374,7 +374,9 @@ INT16 TerrainBreathPoints(SOLDIERTYPE * pSoldier, INT32 sGridNo, INT8 bDir, UINT
 	 // r8634
 	 // moving diagonally
 	 if (bDir & 1)
-		 iPoints = iPoints * 14 / 10;
+	 {
+		 iPoints = (INT32)(iPoints * 14.0f / 10.0f + 0.5f);
+	 }
 
 	 return((INT16)iPoints);
 }
@@ -545,7 +547,7 @@ INT16 ActionPointCost(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, UINT16 us
 		// moving diagonally
 		if (bDir & 1)
 		{
-			sPoints = sPoints * 14 / 10;
+			sPoints = (INT16)(sPoints * 14.0f / 10.0f + 0.5f);
 		}
 
 		// fixed bonus

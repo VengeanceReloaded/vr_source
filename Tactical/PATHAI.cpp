@@ -3618,7 +3618,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 				// ubCurAPCost, that must be preserved for remaining dirs!
 				if (iCnt & 1)
 				{
-					ubAPCost = ubAPCost * 14 / 10;
+					ubAPCost = (INT16)(ubAPCost * 14.0f / 10.0f + 0.5f);
 				}
 
 				if (nextCost == TRAVELCOST_FENCE)
@@ -3744,7 +3744,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 			{
 				// moving on a diagonal
 				//nextCost = gubDiagCost[nextCost];
-				nextCost = nextCost * 14 / 10;
+				nextCost = (INT32)(nextCost * 14.0f / 10.0f + 0.5f);
 				//nextCost++;
 			}
 
@@ -4667,7 +4667,7 @@ INT32 PlotPath(SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPlo
 					// moving diagonally
 					if (guiPathingData[iCnt] & 1)
 					{
-						sMovementAPsCost = sMovementAPsCost * 14 / 10;
+						sMovementAPsCost = (INT16)(sMovementAPsCost * 14.0f / 10.0f + 0.5f);
 					}
 
 					// Check if doors if not player's merc (they have to open them manually)
