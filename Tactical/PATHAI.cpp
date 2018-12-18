@@ -3544,36 +3544,8 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 				if (s->bReverse)
 					ubAPCost += APBPConstants[AP_REVERSE_MODIFIER];
 
-				// SANDRO - moved backpack check to here
-				if (UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP)
-				{
-					INT8 bSlot = FindBackpackOnSoldier(s);
-					if (bSlot != ITEM_NOT_FOUND)
-					{
-						UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
-						if (bSlot == BPACKPOCKPOS) //Backpack caried on back
-						{
-							OBJECTTYPE * pObj = &(s->inv[BPACKPOCKPOS]);
-							UINT16 usBackPackWeight = CalculateObjectWeight(pObj);
-							// CalculateObjectWeight checks for active LBE gear. Unfortunatly our backpack is not active since we are carying it.
-							// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
-							// are activated where something can be carried. So we have to add the weights of those slots as well.
-							std::vector<INT8> vbLBESlots;
-							GetLBESlots(BPACKPOCKPOS, vbLBESlots);
-							for (UINT8 i = 0; i < vbLBESlots.size(); i++)
-							{
-								pObj = &(s->inv[vbLBESlots[i]]);
-								usBackPackWeight += CalculateObjectWeight(pObj);
-							}
-							usBPPenalty = min((usBackPackWeight / 50), usBPPenalty); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
-						}
-						else //Backpack caried not on back (maybe somewhere inside another LBE or in Hand?)
-						{
-							//apply full penalty
-						}
-						ubAPCost += usBPPenalty;
-					}
-				}
+				// Check for backpack
+				ubAPCost += BackpackMovementPenalty(s);
 
 				///////////////////////////////////////////////////////////////////////////////////////////////
 				// SANDRO - STOMP traits - Athletics trait decreases movement cost
@@ -4598,37 +4570,7 @@ INT32 PlotPath(SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPlo
 						sMovementAPsCost += APBPConstants[AP_REVERSE_MODIFIER];
 
 					// Check for backpack
-					//if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( pSold ) != ITEM_NOT_FOUND )
-					//	sMovementAPsCost += APBPConstants[AP_MODIFIER_PACK];
-					if (UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP)
-					{
-						INT8 bSlot = FindBackpackOnSoldier(pSold);
-						if (bSlot != ITEM_NOT_FOUND)
-						{
-							UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
-							if (bSlot == BPACKPOCKPOS) //Backpack caried on back
-							{
-								OBJECTTYPE * pObj = &(pSold->inv[BPACKPOCKPOS]);
-								UINT16 usBackPackWeight = CalculateObjectWeight(pObj);
-								// CalculateObjectWeight checks for active LBE gear. Unfortunatly our backpack is not active since we are carying it.
-								// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
-								// are activated where something can be carried. So we have to add the weights of those slots as well.
-								std::vector<INT8> vbLBESlots;
-								GetLBESlots(BPACKPOCKPOS, vbLBESlots);
-								for (UINT8 i = 0; i < vbLBESlots.size(); i++)
-								{
-									pObj = &(pSold->inv[vbLBESlots[i]]);
-									usBackPackWeight += CalculateObjectWeight(pObj);
-								}
-								usBPPenalty = min((usBackPackWeight / 50), usBPPenalty); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
-							}
-							else //Backpack carried not on back (maybe somewhere inside another LBE or in Hand?)
-							{
-								//apply full penalty
-							}
-							sMovementAPsCost += usBPPenalty;
-						}
-					}
+					sMovementAPsCost += BackpackMovementPenalty(pSold);
 
 					// STOMP traits - Athletics trait decreases movement cost
 					if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT(pSold, ATHLETICS_NT))
@@ -4780,47 +4722,13 @@ INT32 PlotPath(SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bPlo
 						sPointsRun += APBPConstants[AP_STEALTH_MODIFIER];
 					}
 				}
+
 				// Check for backpack
-				//if((UsingNewInventorySystem() == true) && FindBackpackOnSoldier( pSold ) != ITEM_NOT_FOUND )
-				//{
-				//	sPointsWalk += APBPConstants[AP_MODIFIER_PACK];
-				//	sPointsCrawl += APBPConstants[AP_MODIFIER_PACK];
-				//	sPointsSwat += APBPConstants[AP_MODIFIER_PACK];
-				//	sPointsRun += APBPConstants[AP_MODIFIER_PACK];
-				//}
-				// Moa: apply penalty for heavily packed backpack (wobble penalty)
-				if (UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP)
-				{
-					INT8 bSlot = FindBackpackOnSoldier(pSold);
-					if (bSlot != ITEM_NOT_FOUND)
-					{
-						UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
-						if (bSlot == BPACKPOCKPOS) //Backpack caried on back
-						{
-							OBJECTTYPE * pObj = &(pSold->inv[BPACKPOCKPOS]);
-							UINT16 usBackPackWeight = CalculateObjectWeight(pObj);
-							// CalculateObjectWeight checks for active LBE gear. Unfortunatly our backpack is not active since we are carying it.
-							// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
-							// are activated where something can be carried. So we have to add the weights of those slots as well.
-							std::vector<INT8> vbLBESlots;
-							GetLBESlots(BPACKPOCKPOS, vbLBESlots);
-							for (UINT8 i = 0; i < vbLBESlots.size(); i++)
-							{
-								pObj = &(pSold->inv[vbLBESlots[i]]);
-								usBackPackWeight += CalculateObjectWeight(pObj);
-							}
-							usBPPenalty = min((usBackPackWeight / 50), usBPPenalty); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
-						}
-						else //Backpack caried not on back (maybe somewhere inside another LBE or in Hand?)
-						{
-							//apply full penalty
-						}
-						sPointsWalk += usBPPenalty;
-						sPointsCrawl += usBPPenalty;
-						sPointsSwat += usBPPenalty;
-						sPointsRun += usBPPenalty;
-					}
-				}
+				sPointsWalk += BackpackMovementPenalty(pSold);
+				sPointsCrawl += BackpackMovementPenalty(pSold);
+				sPointsSwat += BackpackMovementPenalty(pSold);
+				sPointsRun += BackpackMovementPenalty(pSold);
+
 				if (sExtraCostStand)
 				{
 					sPointsWalk += sExtraCostStand;

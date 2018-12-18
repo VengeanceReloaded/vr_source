@@ -4652,48 +4652,47 @@ BOOLEAN SoldierCanAffordNewStance( SOLDIERTYPE *pSoldier, UINT8 ubDesiredStance 
 	switch( bCurrentHeight )
 	{
 	case ANIM_STAND - ANIM_CROUCH:
-		if((UsingNewInventorySystem() == true))
+		/*if((UsingNewInventorySystem() == true))
 			if(pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-				bAP = bBP = 1;
+				bAP = bBP = 1;*/
 		bAP += GetAPsCrouch(pSoldier, FALSE);
 		bBP += APBPConstants[BP_CROUCH];
 		break;
 	case ANIM_CROUCH - ANIM_STAND:
-		if((UsingNewInventorySystem() == true))
+		/*if((UsingNewInventorySystem() == true))
 			if(pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-				bAP = bBP = 2;
+				bAP = bBP = 2;*/
 		bAP += GetAPsCrouch(pSoldier, FALSE);
 		bBP += APBPConstants[BP_CROUCH];
 		break;
 	case ANIM_STAND - ANIM_PRONE:
-		if((UsingNewInventorySystem() == true))
+		/*if((UsingNewInventorySystem() == true))
 			if(pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-				bAP = bBP = 2;
+				bAP = bBP = 2;*/
 		bAP += GetAPsCrouch(pSoldier, FALSE) + GetAPsProne(pSoldier, FALSE);
 		bBP += APBPConstants[BP_CROUCH] + APBPConstants[BP_PRONE];
 		break;
 	case ANIM_PRONE - ANIM_STAND:
-		if((UsingNewInventorySystem() == true))
+		/*if((UsingNewInventorySystem() == true))
 			if(pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-				bAP = bBP = 4;
+				bAP = bBP = 4;*/
 		bAP += GetAPsCrouch(pSoldier, FALSE) + GetAPsProne(pSoldier, FALSE);
 		bBP += APBPConstants[BP_CROUCH] + APBPConstants[BP_PRONE];
 		break;
 	case ANIM_CROUCH - ANIM_PRONE:
-		if((UsingNewInventorySystem() == true))
+		/*if((UsingNewInventorySystem() == true))
 			if(pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-				bAP = bBP = 1;
+				bAP = bBP = 1;*/
 		bAP += GetAPsProne(pSoldier, FALSE);
 		bBP += APBPConstants[BP_PRONE];
 		break;
 	case ANIM_PRONE - ANIM_CROUCH:
-		if((UsingNewInventorySystem() == true))
+		/*if((UsingNewInventorySystem() == true))
 			if(pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-				bAP = bBP = 2;
+				bAP = bBP = 2;*/
 		bAP += GetAPsProne(pSoldier, FALSE);
 		bBP += APBPConstants[BP_PRONE];
 		break;
-
 	}
 
 	return ( EnoughPoints( pSoldier, bAP, bBP , TRUE ) );

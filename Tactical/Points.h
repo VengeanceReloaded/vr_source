@@ -333,6 +333,9 @@ INT16 GetBPsToJumpThroughWindows( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack )
 INT16 GetAPsToJumpFence( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack );
 INT16 GetBPsToJumpFence( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack );
 
+// sevenfm
+INT16 BackpackMovementPenalty(SOLDIERTYPE *pSoldier);
+
 INT16 GetAPsToCutFence( SOLDIERTYPE *pSoldier );
 INT16 GetAPsToBeginFirstAid( SOLDIERTYPE *pSoldier );
 INT16 GetAPsToBeginRepair( SOLDIERTYPE *pSoldier );

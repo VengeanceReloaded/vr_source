@@ -473,36 +473,7 @@ INT16 ActionPointCost(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, UINT16 us
 			sPoints += APBPConstants[AP_REVERSE_MODIFIER];
 
 		// Check for backpack
-		// Moa: apply penalty for heavily packed backpack (wobble penalty)
-		if (UsingNewInventorySystem() == true && gGameExternalOptions.fBackPackWeightLowersAP)
-		{
-			INT8 bSlot = FindBackpackOnSoldier(pSoldier);
-			if (bSlot != ITEM_NOT_FOUND)
-			{
-				UINT16 usBPPenalty = APBPConstants[AP_MODIFIER_PACK];
-				if (bSlot == BPACKPOCKPOS) //Backpack caried on back
-				{
-					OBJECTTYPE * pObj = &(pSoldier->inv[BPACKPOCKPOS]);
-					UINT16 usBackPackWeight = CalculateObjectWeight(pObj);
-					// CalculateObjectWeight checks for active LBE gear. Unfortunately our backpack is not active since we are carrying it.
-					// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
-					// are activated where something can be carried. So we have to add the weights of those slots as well.
-					std::vector<INT8> vbLBESlots;
-					GetLBESlots(BPACKPOCKPOS, vbLBESlots);
-					for (UINT8 i = 0; i < vbLBESlots.size(); i++)
-					{
-						pObj = &(pSoldier->inv[vbLBESlots[i]]);
-						usBackPackWeight += CalculateObjectWeight(pObj);
-					}
-					usBPPenalty = min((usBackPackWeight / 50), usBPPenalty); //1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
-				}
-				else //Backpack carried not on back (maybe somewhere inside another LBE or in Hand?)
-				{
-					//apply full penalty
-				}
-				sPoints += usBPPenalty;
-			}
-		}
+		sPoints += BackpackMovementPenalty(pSoldier);
 
 		// STOMP traits - Athletics trait decreases movement cost
 		if (gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT(pSoldier, ATHLETICS_NT))
@@ -3516,6 +3487,44 @@ INT16 GetBPsToJumpFence( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack )
 	}
 }
 
+INT16 BackpackMovementPenalty(SOLDIERTYPE *pSoldier)
+{
+	INT16 sBPPenalty = 0;
+	// SANDRO - moved backpack check to here
+	if (UsingNewInventorySystem() && gGameExternalOptions.fBackPackWeightLowersAP)
+	{
+		INT8 bSlot = FindBackpackOnSoldier(pSoldier);
+		if (bSlot != ITEM_NOT_FOUND)
+		{
+			sBPPenalty = APBPConstants[AP_MODIFIER_PACK];
+
+			if (bSlot == BPACKPOCKPOS) //Backpack carried on back
+			{
+				OBJECTTYPE * pObj = &(pSoldier->inv[BPACKPOCKPOS]);
+				UINT16 usBackPackWeight = CalculateObjectWeight(pObj);
+				// CalculateObjectWeight checks for active LBE gear. Unfortunately our backpack is not active since we are carrying it.
+				// Sounds not intuitive at all, active means the LBE caries items (marked with blue *), but when put on the LBE adittional slots of our soldier
+				// are activated where something can be carried. So we have to add the weights of those slots as well.
+				std::vector<INT8> vbLBESlots;
+				GetLBESlots(BPACKPOCKPOS, vbLBESlots);
+				for (UINT8 i = 0; i < vbLBESlots.size(); i++)
+				{
+					pObj = &(pSoldier->inv[vbLBESlots[i]]);
+					usBackPackWeight += CalculateObjectWeight(pObj);
+				}
+				//1 AP penalty for each 5kg of weight up to the penalty defined by AP_MODIFIER_PACK (default = 4)
+				sBPPenalty = min((usBackPackWeight / 50), sBPPenalty);
+			}
+			else
+				//Backpack carried not on back (maybe somewhere inside another LBE or in Hand?)
+			{
+				//apply full penalty
+			}
+		}
+	}
+	return sBPPenalty;
+}
+
 // SANDRO - added function to calculate BPs for jumping over fence
 INT16 GetBPsToJumpThroughWindows( SOLDIERTYPE *pSoldier, BOOLEAN fWithBackpack )
 {
@@ -3996,8 +4005,8 @@ INT16 GetAPsCrouch( SOLDIERTYPE *pSoldier, BOOLEAN fBackpackCheck )
 	iFinalAPsToCrouch = APBPConstants[AP_CROUCH];
 
 	// if backpack and new inventory
-	if ( fBackpackCheck && (UsingNewInventorySystem() == true) && pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-		iFinalAPsToCrouch += fBackpackCheck;//dnl ch70 160913 was 1
+	//if ( fBackpackCheck && (UsingNewInventorySystem() == true) && pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
+		//iFinalAPsToCrouch += fBackpackCheck;//dnl ch70 160913 was 1
 
 	// -x% APs needed to change stance for MA trait
 	if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && ( gGameOptions.fNewTraitSystem ))
@@ -4016,8 +4025,8 @@ INT16 GetAPsProne( SOLDIERTYPE *pSoldier, BOOLEAN fBackpackCheck )
 	iFinalAPsToLieDown = APBPConstants[AP_PRONE];
 
 	// if backpack and new inventory
-	if ( fBackpackCheck && (UsingNewInventorySystem() == true) && pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
-		iFinalAPsToLieDown += fBackpackCheck;//dnl ch70 160913 was 1
+	//if ( fBackpackCheck && (UsingNewInventorySystem() == true) && pSoldier->inv[BPACKPOCKPOS].exists() == true && !pSoldier->flags.ZipperFlag)
+		//iFinalAPsToLieDown += fBackpackCheck;//dnl ch70 160913 was 1
 
 	// -x% APs needed to change stance for MA trait
 	if ( HAS_SKILL_TRAIT( pSoldier, MARTIAL_ARTS_NT ) && ( gGameOptions.fNewTraitSystem ))
