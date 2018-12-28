@@ -196,11 +196,14 @@ INT16 TerrainActionPoints( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bDir, INT8
 
 	}
 
+	// r8634
+	// silversurfer: don't multiply here or the following bonus/penalty calculations will all be wrong and cause our mercs to spend too many APs
+	// direction is now taken into account in function "ActionPointCost"
 	// SANDRO - note: as it is, the modifiers for walking/running/etc are not multiplied for diagonal movement, but is it intentional?
-	if (bDir & 1)
+	/*if (bDir & 1)
 	{
 		sAPCost = (sAPCost * 14) / 10;
-	}
+	}*/
 
 	return(sAPCost);
 
