@@ -1200,6 +1200,9 @@ UINT8 NPCConsiderReceivingItemFromMerc( UINT8 ubNPC, UINT8 ubMerc, OBJECTTYPE * 
 		case HEAD_5:
 		case HEAD_6:
 		case HEAD_7:
+			// anv: VR specific decapitations
+		case MENDAX_HEAD: // Mendax
+		case MORRIS_HEAD: // Morris
 			// all treated the same in the NPC code
 			usItemToConsider = HEAD_2;
 			break;
