@@ -4114,7 +4114,7 @@ void HandleExplosionQueue( void )
 							if (gWorldSectorX == 15)//N15
 							{
 								int targets[] = { 11451, 9685, 9541, 8411 };
-								targetGrid = targets[PreRandom(3)];
+								targetGrid = targets[PreRandom(4)];
 							}
 							else//N16
 							{
