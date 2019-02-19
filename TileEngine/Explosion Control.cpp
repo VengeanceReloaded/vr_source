@@ -4107,8 +4107,39 @@ void HandleExplosionQueue( void )
 						((gWorldSectorX == 15 || gWorldSectorX == 16) && gWorldSectorY == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_MLRS_UNLOCKED, NO_PROFILE)
 						|| (gWorldSectorY == 8 || gWorldSectorY == 9) && gWorldSectorX == 14 && gbWorldSectorZ == 0 && CheckFact(FACT_SCUD_UNLOCKED, NO_PROFILE)))
 					{
-						for (UINT8 i = 0; i < 8; ++i)
-							ArtilleryStrike(pObj->usItem, usOwner, sGridNo, RandomGridFromRadius(7290, 1, 10));
+						int targetGrid = 12557;
+
+						if (gWorldSectorY == 14)
+						{
+							if (gWorldSectorX == 15)//N15
+							{
+								int targets[] = { 11451, 9685, 9541, 8411 };
+								targetGrid = targets[PreRandom(3)];
+							}
+							else//N16
+							{
+								int targets[] = { 11316, 12225, 12247, 12843 };
+								targetGrid = targets[PreRandom(4)];
+							}
+						}
+						else
+						{
+							if (gWorldSectorY == 8)//H14
+							{
+								targetGrid = 20401;
+							}
+							else//I14
+							{
+								int targets[] = { 11426, 10469, 9992 };
+								targetGrid = targets[PreRandom(3)];
+							}
+						}
+
+						for (UINT8 i = 0; i < 8; ++i)//7290
+						{
+							ArtilleryStrike(pObj->usItem, usOwner, sGridNo, RandomGridFromRadius(targetGrid, 1, 10));
+						}
+							
 					}
 					else
 					{
