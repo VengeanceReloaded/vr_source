@@ -2171,7 +2171,21 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 		return FALSE;
 	}
 
-	if( pCiv->ubBodyType == REGFEMALE && pCiv->bTeam == MILITIA_TEAM )
+	if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE && pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA)
+	{
+		strcat(filename, "\\MilitiaFemaleElite\\");
+		sprintf(buf, "%02d", 1 + pCiv->ubID % 2);
+		strcat(filename, buf);
+		strcat(filename, "\\");
+	}
+	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE && pCiv->ubSoldierClass == SOLDIER_CLASS_REG_MILITIA)
+	{
+		strcat(filename, "\\MilitiaFemaleRegular\\");
+		sprintf(buf, "%02d", 1 + pCiv->ubID % 2);
+		strcat(filename, buf);
+		strcat(filename, "\\");
+	} 
+	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE)
 	{
 		strcat( filename, "\\MilitiaFemale\\");
 	}
