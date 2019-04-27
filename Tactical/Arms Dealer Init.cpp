@@ -626,10 +626,11 @@ BOOLEAN AdjustCertainDealersInventory( )
 	}
 
 	//If the player hasn't bought a video camera from Franz yet, make sure Franz has one to sell
-	if( !( gArmsDealerStatus[ ARMS_DEALER_FRANZ ].ubSpecificDealerFlags & ARMS_DEALER_FLAG__FRANZ_HAS_SOLD_VIDEO_CAMERA_TO_PLAYER ) )
+	// sevenfm: disable adding VIDEO_CAMERA
+	/*if( !( gArmsDealerStatus[ ARMS_DEALER_FRANZ ].ubSpecificDealerFlags & ARMS_DEALER_FLAG__FRANZ_HAS_SOLD_VIDEO_CAMERA_TO_PLAYER ) )
 	{
 		GuaranteeAtLeastXItemsOfIndex( ARMS_DEALER_FRANZ, VIDEO_CAMERA, 1 );
-	}
+	}*/
 #ifdef JA2UB
 	//------------UB---------------------
 	
