@@ -2179,7 +2179,7 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 	{
 		strcat(filename, "\\MilitiaFemaleRegular\\");
 	} 
-	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE)
+	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE && pCiv->ubSoldierClass == SOLDIER_CLASS_GREEN_MILITIA)
 	{
 		strcat( filename, "\\MilitiaFemale\\");
 	}
