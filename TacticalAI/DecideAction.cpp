@@ -3478,6 +3478,13 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					bHelpPts = -99;
 				}
 
+				// sevenfm: only seek/help at the start of the turn
+				if (gfTurnBasedAI && pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
+				{
+					bSeekPts = -99;
+					bHelpPts = -99;
+				}
+
 				// sevenfm: disable watching if soldier is under fire or in dangerous place
 				// don't watch if some friends can see my closest opponent
 				if( fDangerousSpot ||
@@ -3491,7 +3498,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				if( !InARoom(pSoldier->sGridNo, NULL) )
 				{
 					bWatchPts -= CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8);
-				}
+				}				
 
 				// sevenfm: penalize watching if some friends see enemy at watched location
 				bHighestWatchLoc = GetHighestVisibleWatchedLoc( pSoldier->ubID );
