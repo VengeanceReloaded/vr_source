@@ -1109,6 +1109,19 @@ void SOLDIERTYPE::initialize()
 	memset( &drugs, 0, sizeof(STRUCT_Drugs) );
 	memset( &stats, 0, sizeof(STRUCT_Statistics) );
 	memset( &pathing, 0, sizeof(STRUCT_Pathing) );
+
+	// sevenfm:initialize additional data
+	this->ubLastShock = 0;
+	this->ubLastSuppression = 0;
+	this->ubLastAP = 0;
+	this->ubLastMorale = 0;
+	this->ubLastShockFromHit = 0;
+	this->ubLastMoraleFromHit = 0;
+	this->ubLastAPFromHit = 0;
+	this->iLastBulletImpact = 0;
+	this->iLastArmourProtection = 0;
+	this->usQuickItemId = 0;
+	this->ubQuickItemSlot = 0;
 }
 
 bool SOLDIERTYPE::exists()
@@ -4549,7 +4562,7 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 		this->sOldGridNo = this->sGridNo;
 
 		// sevenfm: reduce camo when crawling
-		if( gGameExternalOptions.fCamoRemoving &&
+		/*if( gGameExternalOptions.fCamoRemoving &&
 			this->usUIMovementMode == CRAWLING &&
 			!ProfileHasCamouflagedTrait(this->ubProfile) )
 		{
@@ -4579,7 +4592,7 @@ void SOLDIERTYPE::SetSoldierGridNo( INT32 sNewGridNo, BOOLEAN fForceRemove )
 					this->CreateSoldierPalettes( );
 				}
 			}
-		}
+		}*/
 
 		if ( this->ubBodyType == QUEENMONSTER )
 		{
@@ -5079,9 +5092,21 @@ void SOLDIERTYPE::EVENT_FireSoldierWeapon( INT32 sTargetGridNo )
 					// Set flag indicating we are about to shoot once destination direction is hit
 					this->flags.fTurningToShoot = TRUE;
 
-					if ( this->bTeam != gbPlayerNum  && this->bVisible != -1)
+					if (this->bTeam != gbPlayerNum)
 					{
-						LocateSoldier( this->ubID, DONTSETLOCATOR );
+						if (this->bVisible != -1)
+						{
+							LocateSoldier(this->ubID, DONTSETLOCATOR);
+						}
+						else if (!TileIsOutOfBounds(sTargetGridNo) && !GridNoOnScreen(sTargetGridNo))
+						{
+							INT16 sNewCenterWorldX = CenterX(sTargetGridNo);
+							INT16 sNewCenterWorldY = CenterY(sTargetGridNo);
+							SetRenderCenter(sNewCenterWorldX, sNewCenterWorldY);
+
+							// Plot new path!
+							gfPlotNewMovement = TRUE;
+						}
 					}
 				}
 			}
@@ -21571,8 +21596,9 @@ BOOLEAN ResolvePendingInterrupt( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType )
 			/////////////////////////////////////////////////////////////
 
 			// set base value ( interrupt per every X APs an enemy uses )
-			// if not seen but just heard... we interrupt only if they attack us (or if they are very close) in that case
-			if (( pInterrupter->aiData.bOppList[pSoldier->ubID] == SEEN_CURRENTLY ) || ( pInterrupter->aiData.bOppList[pSoldier->ubID] == HEARD_THIS_TURN && (ubInterruptType == AFTERSHOT_INTERRUPT || ubInterruptType == AFTERACTION_INTERRUPT || PythSpacesAway( pInterrupter->sGridNo, pSoldier->sGridNo) < 3) ))
+			// sevenfm: only seen interrupts
+			//if (( pInterrupter->aiData.bOppList[pSoldier->ubID] == SEEN_CURRENTLY ) || ( pInterrupter->aiData.bOppList[pSoldier->ubID] == HEARD_THIS_TURN && (ubInterruptType == AFTERSHOT_INTERRUPT || ubInterruptType == AFTERACTION_INTERRUPT || PythSpacesAway( pInterrupter->sGridNo, pSoldier->sGridNo) < 3) ))
+			if (pInterrupter->aiData.bOppList[pSoldier->ubID] == SEEN_CURRENTLY)
 			{
 				uiReactionTime = gGameExternalOptions.ubBasicReactionTimeLengthIIS;
 			}

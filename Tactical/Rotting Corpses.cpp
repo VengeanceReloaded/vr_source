@@ -812,15 +812,15 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 		return( FALSE );
 	}
 
- 	ROTTING_CORPSE_DEFINITION		Corpse;
-	UINT8												ubType;
-	UINT32												cnt;
-	UINT16											usItemFlags = 0; //WORLD_ITEM_DONTRENDER;
-	INT32												iCorpseID;
-	INT8												bVisible = -1;
-	OBJECTTYPE									*pObj;
-	UINT8						ubNumGoo;
-  INT32 sNewGridNo;
+ 	ROTTING_CORPSE_DEFINITION Corpse;
+	UINT8		ubType;
+	UINT32		cnt;
+	UINT16		usItemFlags = 0; //WORLD_ITEM_DONTRENDER;
+	INT32		iCorpseID;
+	INT8		bItemVisible = -1;
+	OBJECTTYPE	*pObj;
+	UINT8		ubNumGoo;
+	INT32		sNewGridNo;
  // ATE: Change to fix crash when item in hand
 	if ( gpItemPointer != NULL && gpItemPointerSoldier == pSoldier )
 	{
@@ -829,17 +829,16 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 
 	// Setup some values!
 	memset( &Corpse, 0, sizeof( Corpse ) );
-	Corpse.ubBodyType							= pSoldier->ubBodyType;
-	Corpse.sGridNo								= pSoldier->sGridNo;		
-	Corpse.dXPos									= pSoldier->dXPos;
-	Corpse.dYPos									= pSoldier->dYPos;
-	Corpse.bLevel									= pSoldier->pathing.bLevel;
-	Corpse.ubProfile							= pSoldier->ubProfile;
-///ddd{ for the enemy to be able to detect corpses
+	Corpse.ubBodyType	= pSoldier->ubBodyType;
+	Corpse.sGridNo		= pSoldier->sGridNo;		
+	Corpse.dXPos		= pSoldier->dXPos;
+	Corpse.dYPos		= pSoldier->dYPos;
+	Corpse.bLevel		= pSoldier->pathing.bLevel;
+	Corpse.ubProfile	= pSoldier->ubProfile;
+	Corpse.bVisible		= pSoldier->bVisible;		// sevenfm: set visibility
+
 	if ( pSoldier->bTeam != gbPlayerNum )
-	Corpse.ubAIWarningValue = 1;
-		//def.ubAIWarningValue = 1; //not used value!
-///ddd}
+		Corpse.ubAIWarningValue = 1;
 	
 	if ( Corpse.bLevel > 0 )
 	{
@@ -964,7 +963,7 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	// make items visible because it ruins end sequence....
 	if ( pSoldier->ubProfile == QUEEN || pSoldier->bTeam == gbPlayerNum )
 	{
-		bVisible = 1;
+		bItemVisible = 1;
 	}
 
 	// Not for a robot...
@@ -984,7 +983,7 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 		{
 				CreateItem( JAR_QUEEN_CREATURE_BLOOD, 100, &gTempObject );
 
-			AddItemToPool( sNewGridNo, &gTempObject, bVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
+			AddItemToPool( sNewGridNo, &gTempObject, bItemVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
 		}
 	}
 	else
@@ -1040,14 +1039,14 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 						if (!(gGameExternalOptions.ubMilitiaDropEquipment == 0 && pSoldier->bTeam == MILITIA_TEAM ) &&
 							!(gGameExternalOptions.ubMilitiaDropEquipment == 1 && pSoldier->bTeam == MILITIA_TEAM && Menptr[ pSoldier->ubAttackerID ].bTeam == OUR_TEAM ))
 						{
-							AddItemToPool( pSoldier->sGridNo, pObj, bVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
+							AddItemToPool( pSoldier->sGridNo, pObj, bItemVisible , pSoldier->pathing.bLevel, usItemFlags, -1 );
 						}
 					}
 				}
 			}
 		}
 
-		DropKeysInKeyRing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, bVisible, FALSE, 0, FALSE );
+		DropKeysInKeyRing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel, bItemVisible, FALSE, 0, FALSE );
 
 		// Flugente: even if we forbid militia from dropping their equipment, they will still drop what they took via sector inventory (this functions only drops what they took)
 		pSoldier->DropSectorEquipment();
@@ -1111,9 +1110,9 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 
 	// If this is our guy......make visible...
 	//if ( pSoldier->bTeam == gbPlayerNum )
-	{
+	/*{
 		MakeCorpseVisible( pSoldier, &( gRottingCorpse[ iCorpseID ] ) );
-	}
+	}*/
 
 	return( TRUE );
 }
@@ -2619,6 +2618,8 @@ UINT8 GetNearestRottingCorpseAIWarning( INT32 sGridNo )
 	return( ubHighestWarning );
 }
 
+extern UNDERGROUND_SECTORINFO* FindUnderGroundSector(INT16 sMapX, INT16 sMapY, UINT8 bMapZ);
+
 #ifdef ENABLE_ZOMBIES
 	// Flugente Zombies: resurrect zombies
 	void RaiseZombies( void )
@@ -2632,6 +2633,10 @@ UINT8 GetNearestRottingCorpseAIWarning( INT32 sGridNo )
 				ROTTING_CORPSE *	pCorpse;
 				BOOLEAN				zombieshaverisen = FALSE;
 
+				// silversurfer: We need to check if we are above or below ground or we will modify the wrong sector counters!
+				// above ground
+				if (!gbWorldSectorZ)
+				{
 				SECTORINFO *pSector = &SectorInfo[ SECTOR( gWorldSectorX, gWorldSectorY ) ];
 
 				for ( INT32 cnt = giNumRottingCorpse - 1; cnt >= 0; --cnt )
@@ -2670,6 +2675,50 @@ UINT8 GetNearestRottingCorpseAIWarning( INT32 sGridNo )
 					{
 						// if there is no more room, we can skip this
 						break;
+					}
+				}
+				}
+				else // below ground
+				{
+					UNDERGROUND_SECTORINFO *pSector = FindUnderGroundSector(gWorldSectorX, gWorldSectorY, gbWorldSectorZ);
+
+					for (INT32 cnt = giNumRottingCorpse - 1; cnt >= 0; --cnt)
+					{
+						if (pSector && pSector->ubNumCreatures < gGameExternalOptions.ubGameMaximumNumberOfCreatures)			// ... if there is still room for more zombies (zombies count as creatures until a separate ZOMBIE_TEAM is implemented)...
+						{
+							pCorpse = &(gRottingCorpse[cnt]);
+
+							// if zombies should spawn individually, roll for every corpse individually
+							if (gGameExternalOptions.fZombieSpawnWaves || (!gGameExternalOptions.fZombieSpawnWaves && (INT8)(Random(100)) > 100 - gGameExternalOptions.sZombieRiseWaveFrequency))
+							{
+								if (pCorpse->fActivated && !(pCorpse->def.usFlags & (ROTTING_CORPSE_HEAD_TAKEN | ROTTING_CORPSE_NEVER_RISE_AGAIN)))	// ... if corpse is active, and still has a head and can rise again...
+								{
+									if (!TileIsOutOfBounds(pCorpse->def.sGridNo))											// ... if corpse is on existing coordinates ...
+									{
+										if (WhoIsThere2(pCorpse->def.sGridNo, pCorpse->def.bLevel) == NOBODY)				// ... if nobody else is on that position ...
+										{
+											UINT16 recanimstate = STANDING;
+
+											if (CorpseOkToSpawnZombie(pCorpse, &recanimstate))								// ... a zombie can be created from this corpse, in the corresponding animstate ...
+											{
+												zombieshaverisen = TRUE;
+												CreateZombiefromCorpse(pCorpse, recanimstate);
+
+												pSector->ubNumCreatures++;
+												pSector->ubCreaturesInBattle++;
+
+												RemoveCorpse(cnt);
+											}
+										}
+									}
+								}
+							}
+						}
+						else
+						{
+							// if there is no more room, we can skip this
+							break;
+						}
 					}
 				}
 

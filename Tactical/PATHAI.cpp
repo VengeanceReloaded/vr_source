@@ -4928,7 +4928,18 @@ INT32 UIPlotPath(SOLDIERTYPE *pSold, INT32 sDestGridNo, INT8 bCopyRoute, INT8 bP
 		bPlot = TRUE;
 	}
 
+	// sevenfm: ignore person at destination
+	UINT8 ubPerson = WhoIsThere2(sDestGridNo, pSold->pathing.bLevel);
+	if (ubPerson != NOBODY &&
+		MercPtrs[ubPerson] &&
+		MercPtrs[ubPerson]->bVisible < 0 &&
+		!SoldierToSoldierLineOfSightTest(pSold, MercPtrs[ubPerson], TRUE, CALC_FROM_ALL_DIRS))
+	{
+		gfEstimatePath = TRUE;
+	}
 	sRet = PlotPath(pSold, sDestGridNo, bCopyRoute, bPlot, bStayOn, usMovementMode, bStealth, bReverse, sAPBudget);
+	gfEstimatePath = FALSE;
+
 	gfPlotDirectPath = FALSE;
 	return(sRet);
 }

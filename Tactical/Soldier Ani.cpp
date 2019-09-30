@@ -3148,15 +3148,12 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				// Flyback hit - do blood!
 				// PLace in existing tile and one back...
 				{
-						INT32 sNewGridNo;
-
-					InternalDropBlood( pSoldier->sGridNo, pSoldier->pathing.bLevel, 0, (UINT8)(MAXBLOODQUANTITY), 1 );
-
+					INT32 sNewGridNo;
+					// sevenfm: correctly set visibility
+					InternalDropBlood(pSoldier->sGridNo, pSoldier->pathing.bLevel, 0, (UINT8)(MAXBLOODQUANTITY), pSoldier->bVisible);
 					// Move forward one gridno....
-						sNewGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ pSoldier->ubDirection ] ) );
-
+					sNewGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ pSoldier->ubDirection ] ) );
 					InternalDropBlood( sNewGridNo, pSoldier->pathing.bLevel, 0, (UINT8)(MAXBLOODQUANTITY), 1 );
-
 				}
 				break;
 

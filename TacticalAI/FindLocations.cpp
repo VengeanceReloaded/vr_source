@@ -485,7 +485,7 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 
 	// try to account for who outnumbers who: the side with the advantage thus
 	// (hopefully) values offense more, while those in trouble will play defense
-	if (pHim->aiData.bOppCnt > 1)
+	/*if (pHim->aiData.bOppCnt > 1)
 	{
 		iHisPosValue /= pHim->aiData.bOppCnt;
 	}
@@ -493,6 +493,17 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	if (pMe->aiData.bOppCnt > 1)
 	{
 		iMyPosValue /= pMe->aiData.bOppCnt;
+	}*/
+	UINT8 ubMySide = CountSeenEnemiesLastTurn(pHim);
+	if (ubMySide > 0)
+	{
+		iHisPosValue = iHisPosValue / ubMySide;
+	}
+
+	UINT8 ubHisSide = CountSeenEnemiesLastTurn(pMe);
+	if (ubHisSide > 0)
+	{
+		iMyPosValue = iMyPosValue / ubHisSide;
 	}
 
 
@@ -506,7 +517,6 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	 // the farther away we are, the bigger a difference crouching will make!
 	 iMyPosValue -= ((iMyPosValue * (AIM_PENALTY_TARGET_CROUCHED + (iRange / CELL_X_SIZE))) / 100);
 	}
-
 
 	// high morale prefers decreasing the range (positive factor), while very
 	// low morale (HOPELESS) prefers increasing it

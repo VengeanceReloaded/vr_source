@@ -684,6 +684,10 @@ BOOLEAN AddSoldierToVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 			// Remove soldier's graphic
 			pSoldier->RemoveSoldierFromGridNo( );
 
+			// r8689 fix
+			// anyone entering a vehicle will be reset to ground level
+			pSoldier->SetSoldierHeight(FIRST_LEVEL);
+
 			if ( pVehicleSoldier )
 			{
 				// Set gridno for vehicle.....

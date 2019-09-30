@@ -961,7 +961,11 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 				if ( ubPointsRegistered )
 				{
 					pOpponent->aiData.ubInterruptCounter[pSoldier->ubID] += ubPointsRegistered;
-					fFoundInterrupter = TRUE;
+					// sevenfm: no interrupts on hearing in IIS
+					if (pOpponent->aiData.bOppList[pSoldier->ubID] == SEEN_CURRENTLY)
+					{
+						fFoundInterrupter = TRUE;
+					}
 				}
 			}	
 		}

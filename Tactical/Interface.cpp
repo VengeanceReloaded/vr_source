@@ -2563,7 +2563,7 @@ BOOLEAN DrawCTHIndicator()
 	if (gGameExternalOptions.fUseNewCTHCalculation)
 	{
 		// iron sights can get a percentage bonus to make them overall better but only when not shooting from hip
-		if ( gCTHDisplay.ScopeMagFactor <= 1.0 && !pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, gCTHDisplay.iTargetGridNo ) )
+		if (gCTHDisplay.ScopeMagFactor <= 1.0 && !pSoldier->IsValidAlternativeFireMode(pSoldier->aiData.bShownAimTime, gCTHDisplay.iTargetGridNo))
 
 			iBasicAperture = iBasicAperture * (FLOAT)( (100 - gGameCTHConstants.IRON_SIGHT_PERFORMANCE_BONUS) / 100);
 
@@ -2579,7 +2579,7 @@ BOOLEAN DrawCTHIndicator()
 			{
 				FLOAT fLaserBonus = 0;
 				// which bonus do we want to apply?
-				if ( pSoldier->IsValidAlternativeFireMode( pSoldier->aiData.bAimTime, gCTHDisplay.iTargetGridNo ) )
+				if (pSoldier->IsValidAlternativeFireMode(pSoldier->aiData.bShownAimTime, gCTHDisplay.iTargetGridNo))
 					// shooting from hip
 					fLaserBonus = gGameCTHConstants.LASER_PERFORMANCE_BONUS_HIP;
 				else if ( gCTHDisplay.ScopeMagFactor <= 1.0 )
@@ -2616,7 +2616,7 @@ BOOLEAN DrawCTHIndicator()
 	// is a divisor to the sway of the muzzle. It's about the same as multiplying CTH by a certain amount.
 	// Note that both optical magnification devices (like scopes) and dot-projection devices (like lasers and 
 	// reflex sights) provide this sort of bonus.
-	FLOAT iMagFactor = CalcMagFactor( pSoldier, pWeapon, d2DDistance, gCTHDisplay.iTargetGridNo, (UINT8)pSoldier->aiData.bAimTime );
+	FLOAT iMagFactor = CalcMagFactor(pSoldier, pWeapon, d2DDistance, gCTHDisplay.iTargetGridNo, (UINT8)pSoldier->aiData.bShownAimTime);
 
 	// Get effective mag factor for this shooter. This represents his ability to use scopes.
 	FLOAT fEffectiveMagFactor = CalcEffectiveMagFactor( pSoldier, iMagFactor );

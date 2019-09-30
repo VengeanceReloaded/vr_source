@@ -711,6 +711,12 @@ BOOLEAN LoadWorldItemsFromTempItemFile( INT16 sMapX, INT16 sMapY, INT8 bMapZ, st
 			FileClose( hFile );
 			return( FALSE );
 		}
+		// inaccessible items fix by MH17
+		if (pData[x].fExists && !pData[x].sGridNo && pData[x].object.exists())
+		{
+			pData[x].usFlags |= WORLD_ITEM_REACHABLE;
+			pData[x].sGridNo = NOWHERE; // gMapInformation.sCenterGridNo;
+		}
 	}
 
 	FileClose( hFile );

@@ -1768,6 +1768,10 @@ INT32 LineOfSightTest( FLOAT dStartX, FLOAT dStartY, FLOAT dStartZ, FLOAT dEndX,
 				{
 					iAdjSightLimit = 0;
 				}
+				else
+				{
+					iAdjSightLimit -= iAdjSightLimit / 6;
+				}
 				// unpopular
 				/*
 				else
@@ -2987,8 +2991,8 @@ BOOLEAN BulletHitMerc( BULLET * pBullet, STRUCTURE * pStructure, BOOLEAN fIntend
 
 		if ( fCanSpewBlood )
 		{
-			// Drop blood dude!
-			InternalDropBlood( sNewGridNo, bSpewBloodLevel, 0, (UINT8)(MAXBLOODQUANTITY), 1 );
+			// sevenfm: correctly set visibility
+			InternalDropBlood(sNewGridNo, bSpewBloodLevel, 0, (UINT8)(MAXBLOODQUANTITY), pTarget->bVisible);
 		}
 	}
 
@@ -3973,11 +3977,14 @@ UINT8 AISoldierToSoldierChanceToGetThrough( SOLDIERTYPE * pStartSoldier, SOLDIER
 
 	// set startsoldier's target ID ... need an ID stored in case this
 	// is the AI calculating cover to a location where he might not be any more
-	pStartSoldier->ubCTGTTargetID = NOBODY;
+	// sevenfm: use real target ID
+	//pStartSoldier->ubCTGTTargetID = NOBODY;
+	pStartSoldier->ubCTGTTargetID = pEndSoldier->ubID;
 
 	ubChance = ChanceToGetThrough( pStartSoldier, (FLOAT) CenterX( pEndSoldier->sGridNo ), (FLOAT) CenterY( pEndSoldier->sGridNo ), dEndZPos );
 	pStartSoldier->usAnimState = usTrueState;
-	return( ubChance );
+
+	return ubChance;
 }
 
 UINT8 AISoldierToLocationChanceToGetThrough( SOLDIERTYPE * pStartSoldier, INT32 sGridNo, INT8 bLevel, INT8 bCubeLevel )

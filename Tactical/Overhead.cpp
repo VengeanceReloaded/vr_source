@@ -142,13 +142,13 @@ UINT8   giMAXIMUM_NUMBER_OF_CREATURES = CODE_MAXIMUM_NUMBER_OF_CREATURES;
 UINT8   giMAXIMUM_NUMBER_OF_REBELS = CODE_MAXIMUM_NUMBER_OF_REBELS;
 UINT8   giMAXIMUM_NUMBER_OF_CIVS = CODE_MAXIMUM_NUMBER_OF_CIVS;
 
+extern void UpdateFastForwardMode(SOLDIERTYPE* pSoldier, INT8 bAction);
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
 class SOLDIERTYPE;
 
 extern void HandleBestSightingPositionInRealtime();
-extern void UpdateFastForwardMode( SOLDIERTYPE* pSoldier ); // sevenfm: to call in HandleAtNewGridNo
 
 extern UINT8    gubAICounter;
 
@@ -2694,7 +2694,7 @@ BOOLEAN HandleAtNewGridNo( SOLDIERTYPE *pSoldier, BOOLEAN *pfKeepMoving )
     }
 
 	// sevenfm: additional check for auto fast forwarding
-	UpdateFastForwardMode( pSoldier );
+	UpdateFastForwardMode(pSoldier, AI_ACTION_NONE);
 
     // ATE: Put some stuff in here to not handle certain things if we are
     // traversing...
@@ -6901,6 +6901,9 @@ void RemoveStaticEnemiesFromSectorInfo( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 
 		pSectorInfo->ubNumAdmins = pSectorInfo->ubNumTroops = pSectorInfo->ubNumElites = 0;
 		pSectorInfo->ubAdminsInBattle = pSectorInfo->ubTroopsInBattle = pSectorInfo->ubElitesInBattle = 0;
+		// sevenfm: fix for remaining creatures
+		pSectorInfo->ubNumCreatures = 0;
+		pSectorInfo->ubCreaturesInBattle = 0;
 	}
 	else
 	{
@@ -6909,6 +6912,9 @@ void RemoveStaticEnemiesFromSectorInfo( INT16 sMapX, INT16 sMapY, INT8 bMapZ )
 		pSectorInfo = FindUnderGroundSector( sMapX, sMapY, bMapZ );
 		pSectorInfo->ubNumAdmins = pSectorInfo->ubNumTroops = pSectorInfo->ubNumElites = 0;
 		pSectorInfo->ubAdminsInBattle = pSectorInfo->ubTroopsInBattle = pSectorInfo->ubElitesInBattle = 0;
+		// sevenfm: fix for remaining creatures
+		pSectorInfo->ubNumCreatures = 0;
+		pSectorInfo->ubCreaturesInBattle = 0;
 	}
 }
 
@@ -6982,7 +6988,8 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
     }
 
     //NEW (Nov 24, 98)  by Kris
-    if( !gbWorldSectorZ && fBattleWon )
+	// sevenfm: disable to prevent bug with enemy appearing in sector after the battle end
+    /*if( !gbWorldSectorZ && fBattleWon )
     { //Check to see if more enemy soldiers exist in the strategic layer
         //It is possible to have more than 20 enemies in a sector.  By failing here,
         //it gives the engine a chance to add these soldiers as reinforcements. This
@@ -6992,7 +6999,7 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
         {
             fBattleWon = FALSE;
         }
-    }
+    }*/
 
     if ( fBattleLost || fBattleWon )
     {
@@ -7028,12 +7035,18 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
             ExitCombatMode();
         }
 
-        HandleMoraleEvent( NULL, MORALE_HEARD_BATTLE_LOST, gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
-        HandleGlobalLoyaltyEvent( GLOBAL_LOYALTY_BATTLE_LOST, gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
+		// sevenfm: only apply morale and loyalty penalty if enemy is alerted
+		if (gTacticalStatus.Team[ENEMY_TEAM].bAwareOfOpposition || gTacticalStatus.Team[CIV_TEAM].bAwareOfOpposition)
+		{
+			HandleMoraleEvent(NULL, MORALE_HEARD_BATTLE_LOST, gWorldSectorX, gWorldSectorY, gbWorldSectorZ);
+			HandleGlobalLoyaltyEvent(GLOBAL_LOYALTY_BATTLE_LOST, gWorldSectorX, gWorldSectorY, gbWorldSectorZ);
+		}
 
         // SANDRO - end quest if cleared the sector after interrogation (sector N7 by Meduna)
-        if ( gWorldSectorX == gModSettings.ubMeanwhileInterrogatePOWSectorX && gWorldSectorY == gModSettings.ubMeanwhileInterrogatePOWSectorY &&
-			gbWorldSectorZ == 0 && gubQuest[ QUEST_INTERROGATION ] == QUESTINPROGRESS )
+        if ( gWorldSectorX == gModSettings.ubMeanwhileInterrogatePOWSectorX && 
+			gWorldSectorY == gModSettings.ubMeanwhileInterrogatePOWSectorY &&
+			gbWorldSectorZ == 0 && 
+			gubQuest[ QUEST_INTERROGATION ] == QUESTINPROGRESS )
         {
             // Quest failed
             InternalEndQuest( QUEST_INTERROGATION, gWorldSectorX, gWorldSectorY, FALSE );
@@ -7097,11 +7110,12 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
         {
             gTacticalStatus.fLastBattleWon = TRUE;
 
-            // OK, KILL any enemies that are incompacitated
+            // OK, KILL any enemies that are incapacitated
             if ( KillIncompacitatedEnemyInSector( ) )
             {
 				// silversurfer: Why this? The rest of our enemies just bled to death so go on with the code!
-                //return( FALSE );
+				// sevenfm: this may be the reason of bug when last enemy bleeds to death instead of being killed
+                return( FALSE );
             }
         }
 

@@ -818,89 +818,98 @@ BOOLEAN PrepareEnemyForSectorBattle()
 	//Now, we have to go through all of the enemies in the new map, and assign their respective groups if
 	//in a mobile group, but only for the ones that were assigned from the
 	sNumSlots = mapMaximumNumberOfEnemies - totalCountOfStationaryEnemies;
-
 	pGroup = gpGroupList;
-	while( pGroup && sNumSlots > 0 )
+	// r8686
+	unsigned firstSlot = gTacticalStatus.Team[ENEMY_TEAM].bFirstID;
+	unsigned lastSlot = gTacticalStatus.Team[ENEMY_TEAM].bLastID;
+	unsigned slotsAvailable = lastSlot - firstSlot + 1;
+
+	while (pGroup && sNumSlots > 0)
 	{
-		if( !pGroup->fPlayer && !pGroup->fVehicle &&
-				 pGroup->ubSectorX == gWorldSectorX && pGroup->ubSectorY == gWorldSectorY && !gbWorldSectorZ )
+		if (!pGroup->fPlayer && !pGroup->fVehicle && pGroup->ubSectorX == gWorldSectorX && pGroup->ubSectorY == gWorldSectorY && !gbWorldSectorZ)
 		{
 			ubNumAdmins = pGroup->pEnemyGroup->ubAdminsInBattle;
 			ubNumTroops = pGroup->pEnemyGroup->ubTroopsInBattle;
 			ubNumElites = pGroup->pEnemyGroup->ubElitesInBattle;
 			unsigned num = ubNumAdmins + ubNumTroops + ubNumElites;
 
-			unsigned firstSlot = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID;
-			unsigned lastSlot = gTacticalStatus.Team[ ENEMY_TEAM ].bLastID;
-			unsigned slotsAvailable = lastSlot-firstSlot+1;
 			AssertGE((int)slotsAvailable, sNumSlots);
 
-			for (unsigned slot = firstSlot;
-				(slot <= lastSlot) && (num > 0);
-				++slot)
+			for (unsigned slot = firstSlot; (slot <= lastSlot) && num && sNumSlots; ++slot)
 			{
-				pSoldier = &Menptr[ slot ];
+				pSoldier = &Menptr[slot];
 
 				// Skip inactive and already grouped soldiers
 				if (!pSoldier->bActive || pSoldier->ubGroupID)
 				{
+					// if this guy already has an ID, reduce the number of people who still need one
+					num--;
+					sNumSlots--;
+					firstSlot = slot + 1;
+
 					continue;
 				}
 
 				// At this point we should not have added more soldiers than are in slots
-				AssertGT( sNumSlots, 0 );
+				AssertGT(sNumSlots, 0);
 
-				switch( pSoldier->ubSoldierClass )
+				switch (pSoldier->ubSoldierClass)
 				{
-					case SOLDIER_CLASS_ADMINISTRATOR:
-						if( ubNumAdmins )
-						{
-							num--;
-							sNumSlots--;
-							ubNumAdmins--;
-							pSoldier->ubGroupID = pGroup->ubGroupID;
-						}
-						break;
-					case SOLDIER_CLASS_ARMY:
-						if( ubNumTroops )
-						{
-							num--;
-							sNumSlots--;
-							ubNumTroops--;
-							pSoldier->ubGroupID = pGroup->ubGroupID;
-						}
-						break;
-					case SOLDIER_CLASS_ELITE:
-						if( ubNumElites )
+				case SOLDIER_CLASS_ADMINISTRATOR:
+					if (ubNumAdmins)
+					{
+						num--;
+						sNumSlots--;
+						ubNumAdmins--;
+						pSoldier->ubGroupID = pGroup->ubGroupID;
+						firstSlot = slot + 1;
+					}
+					break;
+				case SOLDIER_CLASS_ARMY:
+					if (ubNumTroops)
+					{
+						num--;
+						sNumSlots--;
+						ubNumTroops--;
+						pSoldier->ubGroupID = pGroup->ubGroupID;
+						firstSlot = slot + 1;
+					}
+					break;
+				case SOLDIER_CLASS_ELITE:
+					if (ubNumElites)
+					{
+						num--;
+						sNumSlots--;
+						ubNumElites--;
+						pSoldier->ubGroupID = pGroup->ubGroupID;
+						firstSlot = slot + 1;
+					}
+					break;
+					// silversurfer: bugfix for Jaggzilla bug #623
+					// Mike or Iggy can be part of the enemy team and they are created from an Elite but they don't have SOLDIER_CLASS_ELITE.
+					// Therefore once this for loop was done ubNumElites was still 1 which caused an assertion error.
+				case SOLDIER_CLASS_NONE:
+					if (ubNumElites)
+					{
+						if (pSoldier->ubProfile == MIKE || pSoldier->ubProfile == IGGY)
 						{
 							num--;
 							sNumSlots--;
 							ubNumElites--;
 							pSoldier->ubGroupID = pGroup->ubGroupID;
+							firstSlot = slot + 1;
 						}
-						break;
-					// silversurfer: bugfix for Jaggzilla bug #623
-					// Mike or Iggy can be part of the enemy team and they are created from an Elite but they don't have SOLDIER_CLASS_ELITE.
-					// Therefore once this for loop was done ubNumElites was still 1 which caused an assertion error.
-					case SOLDIER_CLASS_NONE:
-						if( ubNumElites )
-						{
-							if ( pSoldier->ubProfile == MIKE || pSoldier->ubProfile == IGGY )
-							{
-								num--;
-								sNumSlots--;
-								ubNumElites--;
-								pSoldier->ubGroupID = pGroup->ubGroupID;
-							}
-						}
-						break;
+					}
+					break;
 				}
 			}
 
-			AssertEQ( ubNumElites , 0);
+			// Flugente: instead of just crashing the game without any explanation to the user, ignore this issue if it still exists.
+			// The worst that should happen is a warning that a soldier has no group id.
+			/*AssertEQ( ubNumElites , 0);
 			AssertEQ( ubNumTroops , 0);
 			AssertEQ( ubNumAdmins , 0);
-			AssertEQ( num , 0);
+			AssertEQ( num , 0);*/
 		}
 		pGroup = pGroup->next;
 	}
@@ -1149,7 +1158,8 @@ void ProcessQueenCmdImplicationsOfDeath( SOLDIERTYPE *pSoldier )
 		}
 	}
 	else
-	{ //The enemy was in a stationary defence group
+	{ 
+		//The enemy was in a stationary defence group
 		if( !gbWorldSectorZ || IsAutoResolveActive() )
 		{ //ground level (SECTORINFO)
 			SECTORINFO *pSector;
@@ -1237,6 +1247,7 @@ void ProcessQueenCmdImplicationsOfDeath( SOLDIERTYPE *pSoldier )
 					}
 					break;
 				case SOLDIER_CLASS_CREATURE:
+				case SOLDIER_CLASS_ZOMBIE:	// r8686
 					if( pSoldier->ubBodyType != BLOODCAT )
 					{
 						#ifdef JA2BETAVERSION
@@ -1277,7 +1288,8 @@ void ProcessQueenCmdImplicationsOfDeath( SOLDIERTYPE *pSoldier )
 			RecalculateSectorWeight( (UINT8)SECTOR( pSoldier->sSectorX, pSoldier->sSectorY ) );
 		}
 		else
-		{ //basement level (UNDERGROUND_SECTORINFO)
+		{ 
+			//basement level (UNDERGROUND_SECTORINFO)
 			UNDERGROUND_SECTORINFO *pSector = FindUnderGroundSector( gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
 			#ifdef JA2BETAVERSION
 			UINT32 ubTotalEnemies = pSector->ubNumAdmins + pSector->ubNumTroops + pSector->ubNumElites;
@@ -1341,6 +1353,7 @@ void ProcessQueenCmdImplicationsOfDeath( SOLDIERTYPE *pSoldier )
 						}
 						break;
 					case SOLDIER_CLASS_CREATURE:
+					case SOLDIER_CLASS_ZOMBIE:	// r8686
 						if (pSoldier->ubBodyType == BLOODCAT)
 						{
 							if( pSector->ubNumBloodcats > 0 )

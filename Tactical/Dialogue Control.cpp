@@ -1710,6 +1710,12 @@ BOOLEAN CharacterDialogueWithSpecialEvent( UINT8 ubCharacterNum, UINT16 usQuoteN
 	// Add to queue
 	ghDialogueQ = AddtoQueue( ghDialogueQ, &QItem );
 
+	// sevenfm: disable FF for dialogues
+	if (IsFastForwardMode())
+	{
+		SetFastForwardMode(FALSE);
+	}
+
 	if ( uiFlag & DIALOGUE_SPECIAL_EVENT_PCTRIGGERNPC )
 	{
 		// Increment refrence count...
@@ -1988,10 +1994,15 @@ BOOLEAN ExecuteCharacterDialogue( UINT8 ubCharacterNum, UINT16 usQuoteNum, INT32
 	// Check face index
 	CHECKF( iFaceIndex != -1 );
 
-	if ( !GetDialogue( ubCharacterNum,
-					usQuoteNum, DIALOGUESIZE, gzQuoteStr, &uiSoundID, zSoundString) )
+	if ( !GetDialogue( ubCharacterNum, usQuoteNum, DIALOGUESIZE, gzQuoteStr, &uiSoundID, zSoundString) )
 	{
-	return( FALSE );
+		return( FALSE );
+	}
+
+	// sevenfm: stop high speed timer for any talking face
+	if (IsFastForwardMode())
+	{
+		SetFastForwardMode(FALSE);
 	}
 
 	if( bUIHandlerID == DIALOGUE_EXTERNAL_NPC_UI )

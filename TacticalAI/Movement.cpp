@@ -69,9 +69,9 @@ int LegalNPCDestination(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubPathMode, 
 	 // Nov 28 98: skip people in destination tile if in turnbased
 	// sevenfm: also check for bomb nearby, check for red smoke danger
 	if ( NewOKDestination(pSoldier, sGridNo, fSkipTilesWithMercs, pSoldier->pathing.bLevel ) &&
-		!InGas( pSoldier, sGridNo ) &&
-		!FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE/8, FALSE ) &&
-		RedSmokeDanger(sGridNo, pSoldier->pathing.bLevel) == 0 &&
+		//!InGas( pSoldier, sGridNo ) &&
+		//!FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE/8, FALSE ) &&
+		//RedSmokeDanger(sGridNo, pSoldier->pathing.bLevel) == 0 &&
 		sGridNo != pSoldier->sGridNo &&
 		sGridNo != pSoldier->pathing.sBlackList )
 	{

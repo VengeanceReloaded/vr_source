@@ -75,7 +75,7 @@ extern void AdjustNoAPToFinishMove( SOLDIERTYPE *pSoldier, BOOLEAN fSet );
 void TurnBasedHandleNPCAI(SOLDIERTYPE *pSoldier);
 void HandleAITacticalTraversal( SOLDIERTYPE * pSoldier );
 
-void UpdateFastForwardMode( SOLDIERTYPE* pSoldier );
+void UpdateFastForwardMode(SOLDIERTYPE* pSoldier, INT8 bAction);
 
 extern UINT8 gubElementsOnExplosionQueue;
 
@@ -1259,6 +1259,11 @@ void CancelAIAction(SOLDIERTYPE *pSoldier, UINT8 ubForce)
 	pSoldier->aiData.bBypassToGreen = FALSE;
 
 	ActionDone(pSoldier);
+
+	// sevenfm: reset next action
+	pSoldier->aiData.bNextAction = AI_ACTION_NONE;
+	pSoldier->aiData.usNextActionData = 0;
+	pSoldier->aiData.bNextTargetLevel = 0;
 }
 
 
@@ -1648,7 +1653,7 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 	// relying on a stored path from there is a bad idea.
 	pSoldier->pathing.usPathDataSize = pSoldier->pathing.usPathIndex = pSoldier->pathing.bPathStored = 0;
 
-	UpdateFastForwardMode( pSoldier );
+	UpdateFastForwardMode(pSoldier, pSoldier->aiData.bAction);
 
 	switch (pSoldier->aiData.bAction)
     {
@@ -2619,122 +2624,53 @@ void HandleAITacticalTraversal( SOLDIERTYPE * pSoldier )
 	CheckForEndOfBattle( TRUE );
 }
 
-void UpdateFastForwardMode( SOLDIERTYPE* pSoldier )
+extern FACETYPE	*gpCurrentTalkingFace;
+
+void UpdateFastForwardMode(SOLDIERTYPE* pSoldier, INT8 bAction)
 {
 	BOOLEAN action = FALSE;
-	BOOLEAN forward = FALSE;
-	BOOLEAN found = FALSE;
-	UINT16 cnt;
-	SOLDIERTYPE * ps;
-	
-	if( ( gGameExternalOptions.ubAutoFastForwardEnemies == 0 && gGameExternalOptions.ubAutoFastForwardMilitia == 0 ) ||
-		!gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE] ||
-		is_networked ||
-		!( gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT ) ||
-		pSoldier->bTeam == OUR_TEAM )
-		return;
 
-	switch ( pSoldier->aiData.bAction )
+	// check if fast forward mode disabled - do nothing
+	if (!gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE] || is_networked)
+	{
+		return;
+	}
+
+	// if [-] key is pressed - do nothing
+	if (IsFastForwardKeyPressed())
+	{
+		return;
+	}
+
+	switch (bAction)
 	{
 	case AI_ACTION_TOSS_PROJECTILE:
 	case AI_ACTION_KNIFE_MOVE:
 	case AI_ACTION_FIRE_GUN:
 	case AI_ACTION_THROW_KNIFE:
-	case AI_ACTION_PULL_TRIGGER:
-	case AI_ACTION_USE_DETONATOR:
-	case AI_ACTION_OPEN_OR_CLOSE_DOOR:
-	case AI_ACTION_LOWER_GUN:
-	case AI_ACTION_RAISE_GUN:
-	case AI_ACTION_CLIMB_ROOF:
 	case AI_ACTION_STEAL_MOVE:
-	case AI_ACTION_JUMP_WINDOW:
-	case AI_ACTION_USE_SKILL:
 		action = TRUE;
 		break;
 	}
 
-	if ( pSoldier->bTeam == MILITIA_TEAM )
+	// fast forward mode is only possible in turnbased combat only for invisible opponents
+	if (!(gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT) ||
+		pSoldier->flags.uiStatusFlags & SOLDIER_PC ||
+		pSoldier->bVisible == TRUE ||
+		gTacticalStatus.ubCurrentTeam == gbPlayerNum ||
+		gTacticalStatus.bBoxingState != NOT_BOXING ||
+		gTacticalStatus.uiFlags & ENGAGED_IN_CONV ||
+		gpCurrentTalkingFace != NULL && gpCurrentTalkingFace->fTalking ||
+		action)
 	{
-		switch( gGameExternalOptions.ubAutoFastForwardMilitia )
+		if (IsFastForwardMode())
 		{
-		case 0:				// default mode
-			forward = gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE];
-			break;
-		case 1:				// auto fast forward this militiaman if he does not see opponents
-			if( pSoldier->aiData.bOppCnt == 0 )
-				forward = TRUE && !action;
-			break;
-		case 2:				// auto fast forward all militia
-			forward = TRUE && !action;
-			break;
+			SetFastForwardMode(FALSE);
 		}
-	}
-	else if ( pSoldier->bTeam == CIV_TEAM )
-	{
-		switch( gGameExternalOptions.ubAutoFastForwardCivs )
-		{
-		case 0:				// default mode
-			forward = gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE];
-			break;
-		case 1:				// auto fast forward only invisible civs
-			if( pSoldier->bVisible == -1 )
-				forward = TRUE && !action;
-			break;
-		case 2:				// auto fast forward civs always
-			forward = TRUE && !action;
-			break;
-		}
-	}
-	else if ( pSoldier->bTeam == CREATURE_TEAM )
-	{
-		switch( gGameExternalOptions.ubAutoFastForwardCreatures )
-		{
-		case 0:				// default mode
-			forward = gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE];
-			break;
-		case 1:				// auto fast forward only invisible
-			if( pSoldier->bVisible == -1 )
-				forward = TRUE && !action;
-			break;
-		case 2:				// auto fast forward always
-			forward = TRUE && !action;
-			break;
-		}
-	}
-	else
-	{
-		switch ( gGameExternalOptions.ubAutoFastForwardEnemies )
-		{
-		case 0:				// default mode
-			forward = gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE];
-			break;
-		case 1:					// auto fast forward enemy soldier only if player team does not see him
-			for ( cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; cnt <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; cnt++ )
-			{
-				ps = MercPtrs[ cnt ];
-				found= FALSE;
-				if (ps->bActive && ps->bInSector && ps->stats.bLife >= OKLIFE)
-				{
-					if (ps->aiData.bOppList[ pSoldier->ubID ] == SEEN_CURRENTLY)
-					{
-						found= TRUE;
-						break;
-					}						
-				}
-			}
-			forward = !found && !action;
-			break;
-		case 2:					// auto fast forward only invisible enemies
-			if( pSoldier->bVisible == -1 )
-				forward = TRUE && !action;
-			break;
-		case 3:					// always auto fast forward movements
-			forward = TRUE && !action;
-			break;
-		}
-	}			
 
-	if ( IsFastForwardMode() != forward )
-		SetFastForwardMode( forward );
+		return;
+	}
+
+	// invisible opponent in turnbased combat - enable fast forward mode
+	SetFastForwardMode(TRUE);
 }
-
