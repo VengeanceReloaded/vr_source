@@ -447,7 +447,7 @@ BOOLEAN AddCharacterToAnySquad( SOLDIERTYPE *pCharacter )
 	}
 
 	// should never happen!
-	Assert( FALSE );
+	//Assert( FALSE );
 	return( FALSE );
 }
 

@@ -1102,9 +1102,11 @@ void UpdateSMPanel( )
 	else
 	{
 		// Enable some buttons!
-		// Changed by ADB, rev 1513
-		//if ( ((IsGunAutofireCapable( gpSMCurrentMerc, HANDPOS ) || IsGunBurstCapable( gpSMCurrentMerc, HANDPOS , FALSE )) && !Weapon[gpSMCurrentMerc->inv[HANDPOS].usItem].NoSemiAuto ) || IsGrenadeLauncherAttached ( &(gpSMCurrentMerc->inv[HANDPOS]) ) )
-		if ( ((IsGunAutofireCapable( &gpSMCurrentMerc->inv[HANDPOS] ) || IsGunBurstCapable( &gpSMCurrentMerc->inv[HANDPOS], FALSE, gpSMCurrentMerc )) && !Weapon[gpSMCurrentMerc->inv[HANDPOS].usItem].NoSemiAuto ) || IsGrenadeLauncherAttached ( &(gpSMCurrentMerc->inv[HANDPOS]) ) || IsWeaponAttached( &(gpSMCurrentMerc->inv[HANDPOS]), IC_GUN ) )
+		// r8700
+		if (((IsGunAutofireCapable(&gpSMCurrentMerc->inv[HANDPOS]) || IsGunBurstCapable(&gpSMCurrentMerc->inv[HANDPOS], FALSE, gpSMCurrentMerc)) && !Weapon[gpSMCurrentMerc->inv[HANDPOS].usItem].NoSemiAuto)
+			|| IsGrenadeLauncherAttached(&(gpSMCurrentMerc->inv[HANDPOS]))
+			|| IsWeaponAttached(&(gpSMCurrentMerc->inv[HANDPOS]), IC_GUN)
+			|| IsWeaponAttached(&(gpSMCurrentMerc->inv[HANDPOS]), IC_BLADE))
 		{
 			EnableButton( iSMPanelButtons[ BURSTMODE_BUTTON ] );
 		}

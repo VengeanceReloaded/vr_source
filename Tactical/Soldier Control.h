@@ -571,6 +571,7 @@ enum {
 	SOLDIER_COUNTER_SPOTTER,				// used to determine whether we are a spotter
 	SOLDIER_COUNTER_WATCH,					// vision bonus from binocs
 	SOLDIER_COUNTER_SUSPICION,				// suspicion counter
+	SOLDIER_COUNTER_COVER,					// number of times soldier executed AI_ACTION_TAKE_COVER this turn
 	
 	SOLDIER_COUNTER_MAX = 20,				// enough space for fillers
 };

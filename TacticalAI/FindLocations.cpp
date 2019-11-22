@@ -676,6 +676,9 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 	UINT8 ubDiff = SoldierDifficultyLevel( pSoldier );
 	INT32 iTileSightLimit;
 
+	INT32 iMinPercentbetter = MIN_PERCENT_BETTER;
+	iMinPercentbetter += iMinPercentbetter * pSoldier->usSkillCounter[SOLDIER_COUNTER_COVER];
+
 	// There's no cover when boxing!
 	if (gTacticalStatus.bBoxingState == BOXING)
 	{
@@ -1216,21 +1219,6 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 
 			if (iCoverValue > iBestCoverValue)
 			{
-				// ONLY DO THIS CHECK HERE IF WE'RE WAITING FOR OPPCHANCETODECIDE,
-				// OTHERWISE IT WOULD USUALLY BE A WASTE OF TIME
-				// ok to comment out for now?
-				/*
-				if (Status.team[Net.turnActive].allowOppChanceToDecide)
-				{
-					// if this cover value qualifies as "better" enough to get used
-					if (CalcPercentBetter( iCurrentCoverValue,iCoverValue,iCurrentScale,iCoverScale) >= MIN_PERCENT_BETTER)
-					{
-						// then we WILL do something (take this cover, at least)
-						NPCDoesAct(pSoldier);
-					}
-				}
-				*/
-
 #ifdef DEBUGDECISIONS
 				STR tempstr;
 				sprintf( tempstr,"FBNC: NEW BEST iCoverValue at gridno %d is %d\n",sGridNo,iCoverValue );
@@ -1281,7 +1269,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 		*piPercentBetter = CalcPercentBetter(iCurrentCoverValue,iBestCoverValue,iCurrentScale,iBestCoverScale);
 
 		// if best cover value found was at least 5% better than our current cover
-		if (*piPercentBetter >= MIN_PERCENT_BETTER)
+		if (*piPercentBetter >= iMinPercentbetter)
 		{
 #ifdef DEBUGDECISIONS
 			STR tempstr;

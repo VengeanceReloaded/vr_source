@@ -5358,11 +5358,11 @@ void DebugSoldierPage4( )
 
 #define MAX_MOVEMENT_NOISE 9
 
-UINT8 MovementNoise( SOLDIERTYPE *pSoldier )
+UINT8 MovementNoise(SOLDIERTYPE *pSoldier)
 {
 	INT32	iStealthSkill, iRoll;
-	UINT8	ubMaxVolume, ubVolume, ubBandaged, ubEffLife;
-	INT8		bInWater = FALSE;
+	INT16	sMaxVolume, sVolume;
+	INT8	bBandaged, bEffLife;
 
 	if ( pSoldier->bTeam == ENEMY_TEAM )
 	{
@@ -5395,15 +5395,14 @@ UINT8 MovementNoise( SOLDIERTYPE *pSoldier )
 
  //NumMessage("Base Stealth = ",stealthSkill);
 
-
-	ubBandaged = pSoldier->stats.bLifeMax - pSoldier->stats.bLife - pSoldier->bBleeding;
-	ubEffLife = pSoldier->stats.bLife + (ubBandaged / 2);
+	bBandaged = pSoldier->stats.bLifeMax - pSoldier->stats.bLife - pSoldier->bBleeding;
+	bEffLife = pSoldier->stats.bLife + (bBandaged / 2);
 
  // IF "SNEAKER'S" "EFFECTIVE LIFE" IS AT LESS THAN 50
-	if (ubEffLife < 50)
+	if (bEffLife < 50)
 	{
 		// reduce effective stealth skill by up to 50% for low life
-		iStealthSkill -= (iStealthSkill * (50 - ubEffLife)) / 100;
+		iStealthSkill -= (iStealthSkill * (50 - bEffLife)) / 100;
 	}
 
 	// if breath is below 50%
@@ -5429,45 +5428,39 @@ UINT8 MovementNoise( SOLDIERTYPE *pSoldier )
 		iStealthSkill -= 3 * pSoldier->drugs.bDrugEffect[ DRUG_TYPE_ADRENALINE ];
 	}
 
-/*
-	// if sneaker is too eager and impatient to "do it right"
-	if ((pSoldier->bTrait == OVER_ENTHUS) || (pSoldier->aiData.bAttitude == AGGRESSIVE))
-	{
-		ubStealthSkill -= 10;	// 10% penalty
-	}
-*/
  //NumMessage("Modified Stealth = ",stealthSkill);
 
 	iStealthSkill = __max( iStealthSkill, 0 );
 
 	if (!pSoldier->bStealthMode)	// REGULAR movement
 	{
-		ubMaxVolume = MAX_MOVEMENT_NOISE - (iStealthSkill / 16);	// 9 - (0 to 6) => 3 to 9
+		sMaxVolume = MAX_MOVEMENT_NOISE - (iStealthSkill / 16);	// 9 - (0 to 6) => 3 to 9
 
-		if (bInWater)
+		if (Water(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 		{
-			ubMaxVolume++;		// in water, can be even louder
+			sMaxVolume++;		// in water, can be even louder
 		}
-		switch (pSoldier->usAnimState)
+		switch (pSoldier->usUIMovementMode)
 		{
 			case CRAWLING:
-				ubMaxVolume -= 2;
+				sMaxVolume -= 2;
 				break;
 			case SWATTING:
-				ubMaxVolume -= 1;
+			case SWATTING_WK:
+				sMaxVolume -= 1;
 				break;
 			case RUNNING:
-				ubMaxVolume += 3;
+				sMaxVolume += 3;
 				break;
 		}
 
-		if (ubMaxVolume < 2)
+		if (sMaxVolume < 2)
 		{
-			ubVolume = ubMaxVolume;
+			sVolume = sMaxVolume;
 		}
 		else
 		{
-			ubVolume = 1 + (UINT8) PreRandom(ubMaxVolume);	// actual volume is 1 to max volume
+			sVolume = 1 + (UINT8) PreRandom(sMaxVolume);	// actual volume is 1 to max volume
 		}
 	}
 	else			// in STEALTH mode
@@ -5481,38 +5474,33 @@ UINT8 MovementNoise( SOLDIERTYPE *pSoldier )
 
 		if (iRoll < iStealthSkill)
 		{
-			ubVolume = 0;	// made it, stayed quiet moving through this tile
+			sVolume = 0;	// made it, stayed quiet moving through this tile
 		}
 		else	// OOPS!
 		{
-			ubVolume = 1 + ((iRoll - iStealthSkill + 1) / 16);	// volume is 1 - 7 ...
-			switch (pSoldier->usAnimState)
+			sVolume = 1 + ((iRoll - iStealthSkill + 1) / 16);	// volume is 1 - 7 ...
+			switch (pSoldier->usUIMovementMode)
 			{
 				case CRAWLING:
-					ubVolume -= 2;
+					sVolume -= 2;
 					break;
 				case SWATTING:
-					ubVolume -= 1;
+				case SWATTING_WK:
+					sVolume -= 1;
 					break;
 				case RUNNING:
-					ubVolume += 3;
+					sVolume += 3;
 					break;
 			}
-			if (ubVolume < 1)
-			{
-				ubVolume = 0;
-			}
-
-			// randomize at which movement step the sneaking failure will happen
-//			Status.stepsTilNoise = Random(MAXMOVESTEPS);	// 0 - 6
 		}
 	}
 
 	//NumMessage("Volume = ",volume);
 
-	// save noise volume where stepped HandleSteppedLook can back get at it later
-//	Status.moveNoiseVolume = ubVolume;
-	return( ubVolume );
+	sVolume = max(0, sVolume);
+	sVolume = min(255, sVolume);
+
+	return (UINT8)sVolume;
 }
 
 UINT8 DoorOpeningNoise( SOLDIERTYPE *pSoldier )
@@ -7327,9 +7315,9 @@ void RecalculateOppCntsDueToBecomingNeutral( SOLDIERTYPE * pSoldier )
 
 void NoticeUnseenAttacker( SOLDIERTYPE * pAttacker, SOLDIERTYPE * pDefender, INT8 bReason )
 {
-	INT8		bOldOppList;
+	INT8	bOldOppList;
 	BOOLEAN fSeesAttacker = FALSE;
-	INT8		bDirection;
+	INT8	bDirection;
 	BOOLEAN	fMuzzleFlash = FALSE;
 
 	if ( !(gTacticalStatus.uiFlags & INCOMBAT) )
@@ -7337,7 +7325,8 @@ void NoticeUnseenAttacker( SOLDIERTYPE * pAttacker, SOLDIERTYPE * pDefender, INT
 		return;
 	}
 
-	if ( pAttacker->usAttackingWeapon == DART_GUN )
+	//if ( pAttacker->usAttackingWeapon == DART_GUN )
+	if (AmmoTypes[pAttacker->inv[pAttacker->ubAttackingHand][0]->data.gun.ubGunAmmoType].dart)
 	{
 		// rarely noticed
 		if ( SkillCheck( pDefender, NOTICE_DART_CHECK, 0 ) < 0)

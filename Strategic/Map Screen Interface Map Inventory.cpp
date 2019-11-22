@@ -4181,11 +4181,15 @@ INT32 SellItem( OBJECTTYPE& object, BOOLEAN fAll, BOOLEAN useModifier )
 	//CHRISL: make price modifier based on current game progress
 	if(iPriceModifier == 0)
 	{
-		iPriceModifier = __max(1, (INT16)((CurrentPlayerProgressPercentage()/5)+.5));
+		// sevenfm: start with 4
+		//iPriceModifier = __max(1, (INT16)((CurrentPlayerProgressPercentage()/5)+.5));
+		iPriceModifier = 4 + CurrentPlayerProgressPercentage() / 5;
 	}
 	else if(iPriceModifier == -1)
 	{
-		iPriceModifier = __max(1, (INT16)(((100-CurrentPlayerProgressPercentage())/5)+.5));
+		// sevenfm: start with 4
+		//iPriceModifier = __max(1, (INT16)(((100-CurrentPlayerProgressPercentage())/5)+.5));
+		iPriceModifier = 4 + (100 - CurrentPlayerProgressPercentage()) / 5;
 	}
 
 	if( Item[ usItemType ].usItemClass == IC_AMMO )

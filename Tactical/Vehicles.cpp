@@ -478,8 +478,14 @@ BOOLEAN AddSoldierToVehicle( SOLDIERTYPE *pSoldier, INT32 iId )
 	UINT32 vCount = 0;
 	SOLDIERTYPE *pVehicleSoldier = NULL;
 
+	// sevenfm: only allow assigning soldier to vehicle from squad
+	if (pSoldier->bAssignment >= ON_DUTY)
+	{
+		ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"You need to assign soldier to squad first");
+		return(FALSE);
+	}
 
-	// Add Soldierto Vehicle
+	// Add Soldier to Vehicle
 	if( ( iId >= ubNumberOfVehicles ) || ( iId < 0 ) )
 	{
 		return ( FALSE );

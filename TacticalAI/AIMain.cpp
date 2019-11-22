@@ -1720,6 +1720,12 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
         case AI_ACTION_LEAVE_WATER_GAS:       // seek nearest spot of ungassed land
         case AI_ACTION_SEEK_NOISE:            // seek most important noise heard
         case AI_ACTION_RUN_AWAY:              // run away from nearby opponent(s)
+			// sevenfm: set flag to skip cover check next time
+			if (pSoldier->aiData.bAction == AI_ACTION_TAKE_COVER)
+			{
+				//pSoldier->usSoldierFlagMask2 |= SOLDIER_SKIP_COVER_CHECK;
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_COVER]++;
+			}
 
 			if (!is_networked)
 			{

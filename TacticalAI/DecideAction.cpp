@@ -3495,7 +3495,14 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				}
 
 				// sevenfm: only seek/help at the start of the turn
-				if (gfTurnBasedAI && pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
+				/*if (gfTurnBasedAI && pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
+				{
+					bSeekPts = -99;
+					bHelpPts = -99;
+				}*/
+
+				// sevenfm: disable seek/help if soldier executed AI_ACTION_TAKE_COVER this turn
+				if (pSoldier->usSkillCounter[SOLDIER_COUNTER_COVER])
 				{
 					bSeekPts = -99;
 					bHelpPts = -99;
@@ -3861,6 +3868,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 					guiRedHelpTimeTotal += (uiEndTime - uiStartTime);
 					guiRedHelpCounter++;
 #endif
+
+					// sevenfm: disable seek if help decided to prevent AI from going back and forth
+					bSeekPts = -99;
+
 					//WarmSteel - Dont try if we're already quite close to our friend
 					// sevenfm: removed distance limit
 					if (!TileIsOutOfBounds(sClosestFriend))
@@ -3932,6 +3943,17 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 				// if HIDING is possible and at least as desirable as seeking or helping
 				if ((bHidePts > -90) && (bHidePts >= bSeekPts) && (bHidePts >= bHelpPts) && (bHidePts >= bWatchPts ))
 				{
+					// disable help if hiding is preferred action
+					bHelpPts = -99;
+					// disable seek if soldier is in safe spot
+					if ((fProneSightCover || AnyCoverAtSpot(pSoldier, pSoldier->sGridNo)) && 
+						!pSoldier->aiData.bUnderFire && 
+						!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) && 
+						GetNearestRottingCorpseAIWarning(pSoldier->sGridNo) == 0)
+					{
+						bSeekPts = -99;
+					}
+
 					sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
 					// if an opponent is known (not necessarily reachable or conscious)					
 					if (!SkipCoverCheck && !TileIsOutOfBounds(sClosestOpponent))
