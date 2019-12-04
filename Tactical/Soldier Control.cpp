@@ -226,8 +226,8 @@ UINT8 gExtOneCDirection[ EX_NUM_WORLD_DIRECTIONS ] =
 
 typedef struct
 {
-	CHAR8				zName[20];
-	UINT8				ubRandomVal;
+	CHAR8			zName[20];
+	UINT8			ubRandomVal;
 	BOOLEAN			fPreload;
 	BOOLEAN			fBadGuy;
 	BOOLEAN			fDontAllowTwoInRow;
@@ -257,6 +257,8 @@ BATTLESNDS_STRUCT	 gBattleSndsData[] =
 	"locked",		0,				0,			0,		1,		0,
 	"enem",			2,				1,			1,		1,		0,
 	"enemy",		0,				1,			1,		1,		0,
+	"punch",		1,				0,			0,		0,		0,
+	"knife",		1,				0,			0,		0,		0,
 };
 
 extern void ReduceAttachmentsOnGunForNonPlayerChars(SOLDIERTYPE *pSoldier, OBJECTTYPE * pObj);
@@ -10594,10 +10596,10 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 	if ( SoundIsPlaying( pSoldier->uiBattleSoundID ) )
 	{
 		// We can do a few things here....
-		// Is this a crutial one...?
+		// Is this a crucial one...?
 		if ( gBattleSndsData[ ubBattleSoundID ].fStopDialogue == 1 )
 		{
-			// Stop playing origonal
+			// Stop playing original
 			SoundStop( pSoldier->uiBattleSoundID );
 		}
 		else
@@ -10613,7 +10615,7 @@ BOOLEAN SOLDIERTYPE::InternalDoMercBattleSound( UINT8 ubBattleSoundID, INT8 bSpe
 		// We can do a couple of things now...
 		if ( gBattleSndsData[ ubBattleSoundID ].fStopDialogue == 1 )
 		{
-			// Stop dialigue...
+			// Stop dialogue...
 			DialogueAdvanceSpeech( );
 		}
 		else if ( gBattleSndsData[ ubBattleSoundID ].fStopDialogue == 2 )

@@ -261,6 +261,8 @@ enum
 	BATTLE_SOUND_LOCKED,
 	BATTLE_SOUND_ENEMY,
 	BATTLE_SOUND_ENEMY2,
+	BATTLE_SOUND_PUNCH,				// Flugente: attacking with punch attack
+	BATTLE_SOUND_KNIFE,				// Flugente: attacking with knife attack
 	NUM_MERC_BATTLE_SOUNDS
 };
 

@@ -8700,6 +8700,12 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
                 gTacticalStatus.ubAttackBusyCount++;
                 DebugAttackBusy( String( "Attack busy %d due to suppression fire on %d\n", gTacticalStatus.ubAttackBusyCount, pSoldier->ubID ));
 
+				// switch scope mode
+				if (pSoldier->bScopeMode == USE_ALT_WEAPON_HOLD)
+				{
+					pSoldier->bScopeMode = USE_BEST_SCOPE;
+				}
+
                 DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("HandleSuppressionFire: change stance"));
                 pSoldier->ChangeSoldierStance( ubNewStance );
 
