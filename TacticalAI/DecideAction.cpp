@@ -5229,6 +5229,22 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		// CHOOSE THE BEST TYPE OF ATTACK OUT OF THOSE FOUND TO BE POSSIBLE
 		//////////////////////////////////////////////////////////////////////////
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"CHOOSE THE BEST TYPE OF ATTACK OUT OF THOSE FOUND TO BE POSSIBLE");
+
+#ifdef ENABLE_ZOMBIES
+		// sevenfm: special code to attack zombies, disable shooting since we cannot kill lying zombie with bullets
+		if (BestShot.ubPossible &&
+			BestShot.ubOpponent != NOBODY &&
+			MercPtrs[BestShot.ubOpponent] &&
+			MercPtrs[BestShot.ubOpponent]->IsZombie() &&
+			gAnimControl[MercPtrs[BestShot.ubOpponent]->usAnimState].ubEndHeight == ANIM_PRONE &&
+			gGameExternalOptions.fZombieOnlyHeadshotsWork &&
+			BestStab.ubPossible &&
+			Item[pSoldier->inv[BestStab.bWeaponIn].usItem].usItemClass & IC_BLADE)
+		{
+			BestShot.ubPossible = FALSE;
+		}
+#endif
+
 		if (BestShot.ubPossible)
 		{
 			BestAttack.iAttackValue = BestShot.iAttackValue;
@@ -5252,6 +5268,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		{
 			BestAttack.iAttackValue = 0;
 		}
+
 		if (BestStab.ubPossible && ((BestStab.iAttackValue > BestAttack.iAttackValue) || (ubBestAttackAction == AI_ACTION_NONE)))
 		{
 			BestAttack.iAttackValue = BestStab.iAttackValue;
@@ -5282,7 +5299,11 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 			}
 			////////////////////////////////////////////////////////////////////////////////////
 		}
-		if (BestThrow.ubPossible && ((BestThrow.iAttackValue > BestAttack.iAttackValue) || (ubBestAttackAction == AI_ACTION_NONE)) && !(TANK(pSoldier) && ubBestAttackAction == AI_ACTION_FIRE_GUN && BestShot.ubChanceToReallyHit > 20 && Random(2)))//dnl ch64 290813 tank always had better chance to fire from cannon so this will increase probabilty to use machinegun too
+
+		if (BestThrow.ubPossible &&
+			((BestThrow.iAttackValue > BestAttack.iAttackValue) || (ubBestAttackAction == AI_ACTION_NONE)) &&
+			!(TANK(pSoldier) && ubBestAttackAction == AI_ACTION_FIRE_GUN && BestShot.ubChanceToReallyHit > 20 && Random(2)))
+			//dnl ch64 290813 tank always had better chance to fire from cannon so this will increase probability to use machinegun too
 		{
 			ubBestAttackAction = AI_ACTION_TOSS_PROJECTILE;
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"best action = throw something");
@@ -5329,8 +5350,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 				}
 			}
 		}
-
-
 
 		// copy the information on the best action selected into BestAttack struct
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"copy the information on the best action selected into BestAttack struct");
@@ -5769,18 +5788,21 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 							// if we just hit our enemy, aim at head if have good CTH
 							if( pSoldier->sLastTarget == BestAttack.sTarget && pSoldier->aiData.bLastAttackHit )
 							{
-								ubChanceHead += ubRealCTH / 2;
+								ubChanceHead += ubRealCTH / 4;
 							}
 
 #ifdef ENABLE_ZOMBIES
-							if( MercPtrs[BestAttack.ubOpponent]->IsZombie() )
+							if (MercPtrs[BestAttack.ubOpponent]->IsZombie())
 							{
-								ubChanceHead += 50;
+								if (gGameExternalOptions.fZombieOnlyHeadshotsWork)
+									ubChanceHead += 50;
+								else if (gGameExternalOptions.fZombieOnlyHeadShotsPermanentlyKill)
+									ubChanceHead += 25;
 							}
 #endif
-						
+
 							// don't waste bullets shooting at heads with low CTH
-							ubChanceHead = ubChanceHead * ubRealCTH / 100;
+							ubChanceHead = ubChanceHead * (100 + ubRealCTH) / 200;
 						}
 					}					
 

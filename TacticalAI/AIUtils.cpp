@@ -409,7 +409,7 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 			INT32 sClosestThreat =	ClosestKnownOpponent( pSoldier, NULL, NULL );
 
 			if ( IS_MERC_BODY_TYPE( pSoldier ) &&
-				pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+				pSoldier->aiData.bAlertStatus >= STATUS_YELLOW &&
 				!InWaterGasOrSmoke( pSoldier, pSoldier->sGridNo ) &&
 				!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) &&				
 				!TileIsOutOfBounds(sClosestThreat) &&

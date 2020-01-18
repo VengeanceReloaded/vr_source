@@ -987,6 +987,15 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 		continue;			// next soldier
 		*/
 
+		bPersOL = pSoldier->aiData.bOppList[pOpponent->ubID];
+		bPublOL = gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID];
+
+		// we know nothing about this opponent
+		if (bPersOL == NOT_HEARD_OR_SEEN && bPublOL == NOT_HEARD_OR_SEEN)
+		{
+			continue;
+		}
+
 		// if this man is neutral / on the same side, he's not an opponent
 		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
 		{
@@ -1003,12 +1012,87 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 			continue;	// next opponent
 		}
 
+		// sevenfm: additional restrictions
 
-		bPersOL = pSoldier->aiData.bOppList[pOpponent->ubID];
+		// blinded soldier can only attack recently seen/heard opponents
+		if (pSoldier->bBlindedCounter > 0 &&
+			bPersOL != SEEN_CURRENTLY &&
+			bPersOL != SEEN_THIS_TURN &&
+			bPersOL != HEARD_THIS_TURN)
+		{
+			continue;
+		}
+
+		// don't use gas/flashbang against zombies
+		if (usGrenade != NOTHING &&
+			!Item[usGrenade].flare &&
+			Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_NORMAL &&
+			Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_CREATUREGAS &&
+			Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_BURNABLEGAS &&
+			pOpponent->IsZombie())
+		{
+			continue;
+		}
+
+		// limit smoke grenade use
+		if (usGrenade != NOTHING &&
+			Explosive[Item[usGrenade].ubClassIndex].ubType == EXPLOSV_SMOKE &&
+			(!AICheckHasGun(pOpponent) ||
+			(pSoldier->usAnimState == COWERING || pSoldier->usAnimState == COWERING_PRONE) ||
+			ShockLevelPercent(pOpponent) > 50 ||
+			EffectiveMarksmanship(pOpponent) < 90 && !AICheckIsSniper(pOpponent) && !pOpponent->aiData.bLastAttackHit && !AICheckIsMachinegunner(pOpponent) && !pOpponent->IsSpotting()))
+		{
+			continue;
+		}
+
+		// only normal type explosives against robots, vehicles and tanks
+		if (usGrenade != NOTHING &&
+			!Item[usGrenade].flare &&
+			Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_NORMAL &&
+			Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_CREATUREGAS &&
+			Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_BURNABLEGAS &&
+			(TANK(pOpponent) || pOpponent->flags.uiStatusFlags & SOLDIER_VEHICLE || AM_A_ROBOT(pOpponent)))
+		{
+			continue;
+		}
+
+		// don't use grenades against dying enemies
+		if (pOpponent->stats.bLife < OKLIFE && !pOpponent->IsZombie())
+		{
+			continue;
+		}
+
+		// don't use stun/gas grenades against collapsed enemies
+		if (usGrenade != NOTHING &&
+			!Item[usGrenade].flare &&
+			!pOpponent->IsZombie() &&
+			//Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_NORMAL &&
+			//Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_CREATUREGAS &&
+			//Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_BURNABLEGAS &&
+			//Explosive[Item[usGrenade].ubClassIndex].ubType != EXPLOSV_MUSTGAS &&
+			(pOpponent->bCollapsed || pOpponent->bBreathCollapsed))
+		{
+			continue;
+		}
+
+		// don't use flare if soldier is in light
+		if (usGrenade != NOTHING &&
+			Item[usGrenade].flare &&
+			InLightAtNight(pOpponent->sGridNo, pOpponent->pathing.bLevel))
+		{
+			continue;
+		}
+
+		// don't use flares against opponents on roof
+		if (usGrenade != NOTHING &&
+			Item[usGrenade].flare &&
+			pOpponent->pathing.bLevel > 0)
+		{
+			continue;
+		}
 
 		if ((Item[usInHand].mortar ) || (Item[usInHand].grenadelauncher ) )
 		{
-			bPublOL = gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID];
 			// allow long range firing, where target doesn't PERSONALLY see opponent
 			if ((bPersOL != SEEN_CURRENTLY) && (bPublOL != SEEN_CURRENTLY))
 			{

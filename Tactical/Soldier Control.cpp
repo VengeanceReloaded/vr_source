@@ -14664,13 +14664,14 @@ INT16 SOLDIERTYPE::GetSoldierCriticalDamageBonus( void )
 	return val;
 }
 
-
+BOOLEAN SOLDIERTYPE::IsZombie( void )
+{
 #ifdef ENABLE_ZOMBIES
-	BOOLEAN SOLDIERTYPE::IsZombie( void )
-	{
-		return( ubSoldierClass == SOLDIER_CLASS_ZOMBIE );
-	}
+	if (ubSoldierClass == SOLDIER_CLASS_ZOMBIE)
+		return TRUE;
 #endif
+	return FALSE;
+}
 
 INT16	SOLDIERTYPE::GetPoisonResistance( void )
 {
