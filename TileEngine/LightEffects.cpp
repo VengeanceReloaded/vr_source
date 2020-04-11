@@ -212,7 +212,7 @@ void DecayLightEffects( UINT32 uiTime )
 	BOOLEAN fAnyUpdate = FALSE;
 	UINT16	usNumUpdates = 1;
 
-	// age all active tear gas clouds, deactivate those that are just dispersing
+	// age all active light effects, deactivate those that are just dispersing
 	for ( cnt = 0; cnt < guiNumLightEffects; ++cnt )
 	{
 		pLight = &gLightEffectData[ cnt ];
@@ -229,8 +229,8 @@ void DecayLightEffects( UINT32 uiTime )
 			{
 				fUpdate = TRUE;
 			}
-			// ATE: Do this every so ofte, to acheive the effect we want...
-			else if ( (uiTime - pLight->uiTimeOfLastUpdate) > 10 )
+			// ATE: Do this every so often, to achieve the effect we want...
+			else if ( (uiTime - pLight->uiTimeOfLastUpdate) >= 10 )
 			{
 				fUpdate = TRUE;
 				usNumUpdates = (UINT16)((uiTime - pLight->uiTimeOfLastUpdate) / 10);
@@ -247,17 +247,20 @@ void DecayLightEffects( UINT32 uiTime )
 					if ( pLight->ubDuration <= 0 )
 						fDelete = TRUE;
 
-					// if this cloud remains effective (duration not reached)
-					if ( pLight->bAge < pLight->ubDuration)
+					// if this light remains effective (duration not reached)
+					if (pLight->bAge < pLight->ubDuration)
 					{
-						// calculate the new cloud radius
-						// cloud expands by 1 every turn outdoors, and every other turn indoors
-						if ( ( pLight->bAge % 2 ) )
+						// calculate the new light radius
+						/*if ( ( pLight->bAge % 2 ) )
 						{
 							--pLight->bRadius;
+						}*/
+						if (pLight->ubDuration - pLight->bAge < pLight->bRadius)
+						{
+							pLight->bRadius--;
 						}
 
-						if ( pLight->bRadius == 0 )
+						if (pLight->bRadius == 0)
 						{
 							// Delete...
 							fDelete = TRUE;
@@ -265,7 +268,7 @@ void DecayLightEffects( UINT32 uiTime )
 						}
 						else
 						{
-							UpdateLightingSprite( pLight );
+							UpdateLightingSprite(pLight);
 						}
 					}
 					else

@@ -463,9 +463,8 @@ void EndTurnEvents( void )
 	DecaySmells();
 	// decay bomb timers and maybe set some off!
 	DecayBombTimers();
-
+	DecayLightEffects(GetWorldTotalSeconds());
 	DecaySmokeEffects( GetWorldTotalSeconds( ) );
-	DecayLightEffects( GetWorldTotalSeconds( ) );
 
 	SOLDIERTYPE* pSoldier = NULL;
 	UINT32 cnt = gTacticalStatus.Team[ gbPlayerNum ].bFirstID;

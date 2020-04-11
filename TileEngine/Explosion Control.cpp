@@ -416,13 +416,13 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 	}
 
 	// sevenfm: add light for fire effects
-	if( (NightLight() || gbWorldSectorZ) && 
+	/*if( (NightLight() || gbWorldSectorZ) && 
 		Explosive[ Item[ usItem ].ubClassIndex ].ubType == EXPLOSV_BURNABLEGAS &&
 		!Water(sGridNo, bLevel) )
 	{
 		// add light
 		NewLightEffect( sGridNo, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubDuration+2, (UINT8)Explosive[ Item[ usItem ].ubClassIndex ].ubRadius +1 );
-	}
+	}*/
 }
 
 
@@ -2026,8 +2026,8 @@ BOOLEAN DishOutGasDamage( SOLDIERTYPE * pSoldier, EXPLOSIVETYPE * pExplosive, IN
 			fGasDamageModifier = gItemSettings.fDamageHealthMoveModifierExplosive;
 			fGasBreathDamageModifier = gItemSettings.fDamageBreathMoveModifierExplosive;
 			// modify damage values
-			sWoundAmt *= fGasDamageModifier;
-			sBreathAmt *= fGasBreathDamageModifier;
+			sWoundAmt = (INT16)(sWoundAmt * fGasDamageModifier);
+			sBreathAmt = (INT16)(sBreathAmt * fGasBreathDamageModifier);
 			//return( fRecompileMovementCosts );
 		}
 	}
@@ -2095,8 +2095,8 @@ BOOLEAN DishOutGasDamage( SOLDIERTYPE * pSoldier, EXPLOSIVETYPE * pExplosive, IN
 		}
 
 		// modify damage values
-		sWoundAmt *= fGasDamageModifier;
-		sBreathAmt *= fGasBreathDamageModifier;
+		sWoundAmt = (INT16)(sWoundAmt * fGasDamageModifier);
+		sBreathAmt = (INT16)(sBreathAmt * fGasBreathDamageModifier);
 
 		bPosOfMask = FindGasMask(pSoldier);
 		if(!DoesSoldierWearGasMask(pSoldier))//dnl ch40 200909
@@ -2962,22 +2962,26 @@ void SpreadEffect( INT32 sGridNo, UINT8 ubRadius, UINT16 usItem, UINT8 ubOwner, 
 
 	switch( Explosive[Item[usItem].ubClassIndex].ubType	)
 	{
-
 	case EXPLOSV_MUSTGAS:
 	case EXPLOSV_BURNABLEGAS:
 	case EXPLOSV_TEARGAS:
 	case EXPLOSV_SMOKE:
 	case EXPLOSV_CREATUREGAS:
 	case EXPLOSV_SIGNAL_SMOKE:
-
 		fSmokeEffect = TRUE;
 		break;
 	}
-/*if(is_networked)
-{
-	ScreenMsg( FONT_LTBLUE, MSG_MPSYSTEM, L"explosives not coded in MP");
-	return;
-}*/
+
+	// sevenfm: create light effect for fire and signal smoke
+	if (fSubsequent != ERASE_SPREAD_EFFECT &&
+		(NightLight() || gbWorldSectorZ) &&
+		(Explosive[Item[usItem].ubClassIndex].ubType == EXPLOSV_BURNABLEGAS || Explosive[Item[usItem].ubClassIndex].ubType == EXPLOSV_SIGNAL_SMOKE) &&
+		bLevel == 0 &&
+		!Water(sGridNo, bLevel))
+	{
+		NewLightEffect(sGridNo, 1, ubRadius);
+	}
+
 	// Set values for recompile region to optimize area we need to recompile for MPs
 	gsRecompileAreaTop = sGridNo / WORLD_COLS;
 	gsRecompileAreaLeft = sGridNo % WORLD_COLS;
@@ -2992,7 +2996,6 @@ void SpreadEffect( INT32 sGridNo, UINT8 ubRadius, UINT16 usItem, UINT8 ubOwner, 
 	{
 		fRecompileMovement = TRUE;
 	}
-
 
 	for (ubDir = NORTH; ubDir <= NORTHWEST; ubDir++ )
 	{
@@ -4098,9 +4101,9 @@ void HandleExplosionQueue( void )
 					// if we cannot even find a radio operator, all bets are off - target a random gridno
 					// the usual +/- 2 shenanigans
 					// sevenfm: r7818 fix
-					UINT16 usOwner = NOBODY;
+					UINT8 ubOwner = NOBODY;
 					if ((*pObj)[0]->data.misc.ubBombOwner > 1)
-						usOwner = (*pObj)[0]->data.misc.ubBombOwner - 2;
+						ubOwner = (*pObj)[0]->data.misc.ubBombOwner - 2;
 
 					// anv: VR - special MLRS attack in N15 and N16
 					if ((*pObj)[0]->data.misc.ubBombOwner == NOBODY &&
@@ -4137,17 +4140,16 @@ void HandleExplosionQueue( void )
 
 						for (UINT8 i = 0; i < 8; ++i)//7290
 						{
-							ArtilleryStrike(pObj->usItem, usOwner, sGridNo, RandomGridFromRadius(targetGrid, 1, 10));
+							ArtilleryStrike(pObj->usItem, ubOwner, sGridNo, RandomGridFromRadius(targetGrid, 1, 10));
 						}
-							
 					}
 					else
 					{
 						INT32 sTargetGridNo = NOWHERE;
-						if (GetRandomSignalSmokeGridNo(&sTargetGridNo) || GetRadioOperatorSignal(usOwner, &sTargetGridNo) || (sTargetGridNo = RandomGridNo()))
+						if (GetRandomSignalSmokeGridNo(&sTargetGridNo) || GetRadioOperatorSignal(ubOwner, &sTargetGridNo) || (sTargetGridNo = RandomGridNo()))
 						{
 							for (UINT8 i = 0; i < cnt; ++i)
-								ArtilleryStrike(pObj->usItem, usOwner, sGridNo, sTargetGridNo);
+								ArtilleryStrike(pObj->usItem, ubOwner, sGridNo, sTargetGridNo);
 						}
 					}
 
@@ -5134,7 +5136,7 @@ void FireFragments( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, UINT16 usItem, 
 
 	// on some maps, the floor height is not 0 (example is Drassen D13). We have to account for that with an offset
 	INT32 gridno = GETWORLDINDEXFROMWORLDCOORDS( sY, sX );
-	UINT32 z_offset = CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[gridno].sHeight );
+	FLOAT z_offset = CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[gridno].sHeight );
 
 	// sevenfm: for maps with sZ == -1, move to zero level
 	sZ = max(0, sZ);
@@ -5248,7 +5250,7 @@ void FireFragmentsTrapGun( SOLDIERTYPE* pThrower, INT32 gridno, INT16 sZ, OBJECT
 	AssertMsg( ubFragRange > 0 , "Fragmentation data lacks range property!" );
 
 	// on some maps, the floor height is not 0 (example is Drassen D13). We have to account for that with an offset
-	UINT32 z_offset = CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[gridno].sHeight );
+	FLOAT z_offset = CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[gridno].sHeight );
 
 	for (UINT16 x = 0; x < usNumFragments; ++x)
 	{
@@ -5310,7 +5312,7 @@ void FireFragmentsTrapGun( SOLDIERTYPE* pThrower, INT32 gridno, INT16 sZ, OBJECT
 		FLOAT dEndY = (FLOAT)(sY + (dDeltaY * dRangeMultiplier));
 		FLOAT dEndZ = (FLOAT)(sZ + (dDeltaZ * dRangeMultiplier));
 
-		FireBulletGivenTargetTrapOnly( pThrower, pObj, gridno, 150 + z_offset, dEndX, dEndY, dEndZ + z_offset, 100 );
+		FireBulletGivenTargetTrapOnly( pThrower, pObj, gridno, 150.0f + z_offset, dEndX, dEndY, dEndZ + z_offset, 100 );
 	}
 }
 

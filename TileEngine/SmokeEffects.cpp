@@ -596,8 +596,8 @@ void DecaySmokeEffects( UINT32 uiTime )
 			}
 			else
 			{
-				// ATE: Do this every so ofte, to acheive the effect we want...
-				if ( ( uiTime - pSmoke->uiTimeOfLastUpdate ) > 10 )
+				// ATE: Do this every so often, to achieve the effect we want...
+				if ( ( uiTime - pSmoke->uiTimeOfLastUpdate ) >= 10 )
 				{
 					fUpdate = TRUE;
 					usNumUpdates = ( UINT16 ) ( ( uiTime - pSmoke->uiTimeOfLastUpdate ) / 10 );

@@ -162,10 +162,8 @@ void HandleTacticalEndTurn( )
 	}
 
 	DecayBombTimers( );
-
-	DecaySmokeEffects( uiTime );
-
-	DecayLightEffects( uiTime );
+	DecayLightEffects(uiTime);
+	DecaySmokeEffects( uiTime );	
 
 	// Decay smells
 	//DecaySmells();
