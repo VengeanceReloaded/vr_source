@@ -40,6 +40,10 @@
 #include "gamesettings.h"
 #include "Buildings.h"
 #include "soldier profile.h" // added by SANDRO
+// sevenfm
+#include "Soldier macros.h"
+#include "AIinternals.h"
+#include "Rotting Corpses.h"
 #endif
 #include "connect.h"
 
@@ -61,6 +65,7 @@ extern UINT16 gubAnimSurfaceIndex[TOTALBODYTYPES][NUMANIMATIONSTATES];
 
 // sevenfm:
 extern BOOLEAN InGas(SOLDIERTYPE *pSoldier, INT32 sGridNo);
+extern BOOLEAN InGasSpot(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel);
 
 //extern UINT8 gubDiagCost[20];
 // skiplist has extra level of pointers every 4 elements, so a level 5is optimized for
@@ -2466,7 +2471,7 @@ void ShutDownPathAI(void)
 ///////////////////////////////////////////////////////////////////////
 //	FINDBESTPATH													/
 ////////////////////////////////////////////////////////////////////////
-INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMovementMode, INT8 bCopy, UINT8 fFlags)
+INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMovementMode, INT8 bCopy, UINT8 fFlags)
 {
 	s->sPlotSrcGrid = s->sGridNo;
 
@@ -2475,7 +2480,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 	CHAR8 errorBuf[511]; UINT32 b,e;
 	b=GetJA2Clock();//return s->sGridNo+6;
 
-	int retVal = ASTAR::AStarPathfinder::GetInstance().GetPath(s, sDestination, ubLevel, usMovementMode, bCopy, fFlags);
+	int retVal = ASTAR::AStarPathfinder::GetInstance().GetPath(s, sDestination, bLevel, usMovementMode, bCopy, fFlags);
 
 	e=GetJA2Clock();sprintf(errorBuf, "timefind bestpath= %d",e-b );LiveMessage(errorBuf);
 
@@ -2607,7 +2612,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 #endif
 		return(0);
 	}
-	else if (s->pathing.bLevel != ubLevel)
+	else if (s->pathing.bLevel != bLevel)
 	{
 		// pathing to a different level... bzzzt!
 		return(0);
@@ -2629,7 +2634,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 	fNonSwimmer = !(IS_MERC_BODY_TYPE(s));
 	if (fNonSwimmer)
 	{
-		if (Water(sDestination, ubLevel))
+		if (Water(sDestination, bLevel))
 		{
 			return(0);
 		}
@@ -2692,7 +2697,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 	else
 	{
 		// the very first thing to do is make sure the destination tile is reachable
-		if (!NewOKDestination(s, sDestination, fConsiderPersonAtDestAsObstacle, ubLevel))
+		if (!NewOKDestination(s, sDestination, fConsiderPersonAtDestAsObstacle, bLevel))
 		{
 			gubNPCAPBudget = 0;
 			gubNPCDistLimit = 0;
@@ -2827,7 +2832,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 	}
 	else
 	{
-		if (ISWATER(gubWorldMovementCosts[iOrigination][0][ubLevel]) && ISWATER(gubWorldMovementCosts[iDestination][0][ubLevel]))
+		if (ISWATER(gubWorldMovementCosts[iOrigination][0][bLevel]) && ISWATER(gubWorldMovementCosts[iDestination][0][bLevel]))
 			iWaterToWater = 1;
 		else
 			iWaterToWater = 0;
@@ -2879,7 +2884,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 		sCurPathNdx = pCurrPtr->sPathNdx;
 
 		// remember the cost used to get here...
-		prevCost = gubWorldMovementCosts[trailTree[sCurPathNdx].sGridNo][trailTree[sCurPathNdx].stepDir][ubLevel];
+		prevCost = gubWorldMovementCosts[trailTree[sCurPathNdx].sGridNo][trailTree[sCurPathNdx].stepDir][bLevel];
 
 #if defined( PATHAI_VISIBLE_DEBUG )
 		if (gfDisplayCoverValues && gfDrawPathPoints)
@@ -3014,7 +3019,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 				{
 					if (iCnt != iLastDir)
 					{
-						if (!OkayToAddStructureToWorld(curLoc, ubLevel, &(pStructureFileRef->pDBStructureRef[iStructIndex]), usOKToAddStructID))
+						if (!OkayToAddStructureToWorld(curLoc, bLevel, &(pStructureFileRef->pDBStructureRef[iStructIndex]), usOKToAddStructID))
 						{
 							// we have to abort this loop and possibly reset the loop conditions to
 							// search in the other direction (if we haven't already done the other dir)
@@ -3053,7 +3058,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 				else if (pStructureFileRef)
 				{
 					// check to make sure it's okay for us to turn to the new direction in our current tile
-					if (!OkayToAddStructureToWorld(curLoc, ubLevel, &(pStructureFileRef->pDBStructureRef[iStructIndex]), usOKToAddStructID))
+					if (!OkayToAddStructureToWorld(curLoc, bLevel, &(pStructureFileRef->pDBStructureRef[iStructIndex]), usOKToAddStructID))
 					{
 						goto NEXTDIR;
 					}
@@ -3122,9 +3127,9 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 			if (!(s->flags.uiStatusFlags & SOLDIER_PC) &&
 				s->ubProfile == NO_PROFILE &&
 				s->aiData.bOrders != SEEKENEMY &&
-				DeepWater(newLoc, ubLevel) &&
-				!DeepWater(s->sGridNo, ubLevel) &&
-				!FindNotDeepWaterNearby(newLoc, ubLevel))
+				DeepWater(newLoc, bLevel) &&
+				!DeepWater(s->sGridNo, bLevel) &&
+				!FindNotDeepWaterNearby(newLoc, bLevel))
 			{
 				goto NEXTDIR;
 			}
@@ -3165,7 +3170,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 			//how much is admission to the next tile
 			if (gfPathAroundObstacles)
 			{
-				nextCost = gubWorldMovementCosts[newLoc][iCnt][ubLevel];
+				nextCost = gubWorldMovementCosts[newLoc][iCnt][bLevel];
 
 				//ATE:	Check for differences from reality
 				// Is next cost an obstcale
@@ -3425,7 +3430,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 				// then 0 1 2 3 4 5 6), we must subtract 1 from the direction
 				// ATE: Send in our existing structure ID so it's ignored!
 
-				if (!OkayToAddStructureToWorld(newLoc, ubLevel, &(pStructureFileRef->pDBStructureRef[iStructIndex]), usOKToAddStructID))
+				if (!OkayToAddStructureToWorld(newLoc, bLevel, &(pStructureFileRef->pDBStructureRef[iStructIndex]), usOKToAddStructID))
 				{
 					goto NEXTDIR;
 				}
@@ -3730,24 +3735,24 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 
 			newTotCost = curCost + nextCost;
 
-			/*
-			// no diagonal bias - straightforward costing regardless of direction
-			newTotCost = curCost + nextCost;
-
-
-			// NOTE: ON JAN 6TH, 1995, IAN COMMENTED OUT THE DIAGONAL BIAS AND
-			//		UNCOMMENTED THE "NO DIAGONAL BIAS"
-			//diagonal bias - this makes diagonal moves cost more
-
-
-			if (iCnt & 1)
-			// diagonal move costs 70 percent
-			//newTotCost += (nextCost/PATHFACTOR);
-			newTotCost += 1;
-			//				newTotCost = curCost + ((prevCost+nextCost)*7)/10;
-			//			else	// non-diagonal costs only 50%
-			//				newTotCost = curCost + (prevCost+nextCost)/2;
-			*/
+			// sevenfm: experimental AI path tweaks
+			if (s->bTeam != gbPlayerNum && IS_MERC_BODY_TYPE(s))
+			{
+				if (InGasSpot(s, newLoc, bLevel))
+				{
+					nextCost += 40;
+				}
+				else if (DeepWater(newLoc, bLevel) && (s->numFlanks == 0 || s->numFlanks >= MAX_FLANKS_RED))
+				{
+					nextCost += 20;
+				}
+				else if (s->bTeam == ENEMY_TEAM &&
+					s->aiData.bAlertStatus >= STATUS_RED &&
+					(InLightAtNight(newLoc, bLevel) || GetNearestRottingCorpseAIWarning(newLoc) > 0))
+				{
+					nextCost += 20;
+				}
+			}
 
 			// have we found a path to the current location that
 			// costs less than the best so far to the same location?

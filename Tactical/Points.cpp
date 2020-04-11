@@ -1417,7 +1417,7 @@ INT16 CalcAPsToBurst( INT16 bBaseActionPoints, OBJECTTYPE * pObj, SOLDIERTYPE* p
 	iModifiedAPs = Weapon[ pObj->usItem ].bBurstAP;
 	// modify by ini values
 	if ( Item[ pObj->usItem ].usItemClass == IC_GUN )
-		iModifiedAPs *= gItemSettings.fBurstAPModifierGun[ Weapon[ pObj->usItem ].ubWeaponType ];
+		iModifiedAPs = (INT16)(iModifiedAPs * gItemSettings.fBurstAPModifierGun[Weapon[pObj->usItem].ubWeaponType]);
 	// base APs is what you'd get from CalcActionPoints();
 	// NB round UP, so 21-25 APs pay full
 	aps =	( iModifiedAPs * bBaseActionPoints + (APBPConstants[AP_MAXIMUM] - 1) ) / APBPConstants[AP_MAXIMUM];
@@ -1458,7 +1458,7 @@ INT16 CalcAPsToBurstNoModifier( INT16 bBaseActionPoints, OBJECTTYPE * pObj )
 	// modify by ini values
 	// although the function says "no modifier" the ini values represent our new base value
 	if ( Item[ pObj->usItem ].usItemClass == IC_GUN )
-		iModifiedAPs *= gItemSettings.fBurstAPModifierGun[ Weapon[ pObj->usItem ].ubWeaponType ];
+		iModifiedAPs = (INT16)(iModifiedAPs * gItemSettings.fBurstAPModifierGun[Weapon[pObj->usItem].ubWeaponType]);
 
 	aps =	( iModifiedAPs * bBaseActionPoints + (APBPConstants[AP_MAXIMUM] - 1) ) / APBPConstants[AP_MAXIMUM];
 
@@ -2929,9 +2929,9 @@ INT16 GetAPsToAutoReload( SOLDIERTYPE * pSoldier )
 
 		// modify by ini values
 		if ( Item[ pObj->usItem ].usItemClass == IC_GUN )
-			sModifiedReloadAP *= gItemSettings.fAPtoReloadManuallyModifierGun[ Weapon[ pObj->usItem ].ubWeaponType ];
+			sModifiedReloadAP = (INT16)(sModifiedReloadAP * gItemSettings.fAPtoReloadManuallyModifierGun[Weapon[pObj->usItem].ubWeaponType]);
 		else if ( Item[ pObj->usItem ].usItemClass == IC_LAUNCHER )
-			sModifiedReloadAP *= gItemSettings.fAPtoReloadManuallyModifierLauncher;
+			sModifiedReloadAP = (INT16)(sModifiedReloadAP * gItemSettings.fAPtoReloadManuallyModifierLauncher);
 
 		////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// STOMP traits - SANDRO
@@ -4451,9 +4451,9 @@ INT16 GetUnjamAP( SOLDIERTYPE* pSoldier, OBJECTTYPE* pObj )
 	{		
 		// modify by ini values
 		if ( Item[ pObj->usItem ].usItemClass == IC_GUN )
-			sManualAP *= gItemSettings.fAPtoReloadManuallyModifierGun[ Weapon[ pObj->usItem ].ubWeaponType ];
+			sManualAP = (INT16)(sManualAP * gItemSettings.fAPtoReloadManuallyModifierGun[Weapon[pObj->usItem].ubWeaponType]);
 		else if ( Item[ pObj->usItem ].usItemClass == IC_LAUNCHER )
-			sManualAP *= gItemSettings.fAPtoReloadManuallyModifierLauncher;
+			sManualAP = (INT16)(sManualAP * gItemSettings.fAPtoReloadManuallyModifierLauncher);
 
 		if ( gGameOptions.fNewTraitSystem )
 		{

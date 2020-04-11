@@ -447,7 +447,7 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 	if( !AICheckHasGun(pMe) )
 	{
 		sDist = PythSpacesAway(sMyGridNo, sHisGridNo);
-		if( sDist < DAY_VISION_RANGE / 2 )
+		if( sDist < (INT32)(DAY_VISION_RANGE / 2) )
 		{
 			bMyCTGT = 100 - 150 * sDist / DAY_VISION_RANGE;
 		}
@@ -474,7 +474,7 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 
 			sDist = PythSpacesAway(sMyGridNo, sHisGridNo);
 
-			if( sDist < DAY_VISION_RANGE / 2 )
+			if( sDist < (INT32)(DAY_VISION_RANGE / 2) )
 			{
 				ubCoverReduction = ubCoverReduction * 2 * sDist / DAY_VISION_RANGE;
 			}
@@ -2735,7 +2735,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			// sevenfm: don't go into deep water for flanking
-			if (DeepWater(sGridNo, pSoldier->pathing.bLevel)
+			if (DeepWater(sGridNo, pSoldier->pathing.bLevel))
 			{
 				continue;
 			}
