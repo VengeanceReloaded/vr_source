@@ -62,7 +62,7 @@ UINT32 guiRedSeekCounter = 0, guiRedHelpCounter = 0; guiRedHideCounter = 0;
 #ifdef ENABLE_ZOMBIES
 	INT8 ZombieDecideActionGreen(SOLDIERTYPE *pSoldier);
 	INT8 ZombieDecideActionYellow(SOLDIERTYPE *pSoldier);
-	INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK);
+	INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier);
 	INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier);
 #endif
 
@@ -688,7 +688,7 @@ INT8 DecideActionNamedNPC( SOLDIERTYPE * pSoldier )
 INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 {
 	DOUBLE iChance, iSneaky = 10;
-	INT8  bInWater,bInGas;
+	INT8  bInWater, bInDeepWater, bInGas;
 #ifdef DEBUGDECISIONS
 	STR16 tempstr;
 #endif
@@ -791,6 +791,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 
 	bInWater = DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+	bInDeepWater = DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel);
 
 	// check if standing in tear gas without a gas mask on
 	bInGas = InGas( pSoldier, pSoldier->sGridNo );
@@ -870,7 +871,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 		// if not in the way, do nothing most of the time
 		// unless in water (could've started there), then we better swim to shore!
 
-		if (!(bInWater) && PreRandom( 5 ) )
+		if (!(bInDeepWater) && PreRandom(5))
 		{
 			// don't do nuttin!
 			return( AI_ACTION_NONE );
@@ -1039,7 +1040,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionGreen: get out of water and gas"));
 
-	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
+	if (bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 		
@@ -2433,7 +2434,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 }
 
 
-INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
+INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 {
 	INT8 bActionReturned;
 	INT32 iDummy;
@@ -2539,8 +2540,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 
 	// determine if we happen to be in water (in which case we're in BIG trouble!)
 	bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
-	// sevenfm: changed Water() to DeepWater()
-	bInDeepWater = WaterTooDeepForAttacks( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+	bInDeepWater = DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel);
 
 	// check if standing in tear gas without a gas mask on
 	bInGas = InGas( pSoldier, pSoldier->sGridNo );
@@ -2566,6 +2566,18 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	////////////////////////////////////////////////////////////////////////////
 	// WHEN IN GAS, GO TO NEAREST REACHABLE SPOT OF UNGASSED LAND
 	////////////////////////////////////////////////////////////////////////////
+
+	// when in deep water, move to closest opponent
+	if (ubCanMove && bInDeepWater && !pSoldier->aiData.bNeutral && pSoldier->aiData.bOrders == SEEKENEMY)
+	{
+		// find closest reachable opponent, excluding opponents in deep water
+		pSoldier->aiData.usActionData = ClosestReachableDisturbance(pSoldier, &fClimb);
+
+		if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+		{
+			return(AI_ACTION_LEAVE_WATER_GAS);
+		}
+	}
 
 	if ( ubCanMove && (bInGas || bInDeepWater || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)) )
 	{
@@ -2761,13 +2773,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 			}
 		}
 
-	//}//hayden
-
-
-
-
 		// SNIPER!
-		CheckIfShotPossible(pSoldier,&BestShot,FALSE);
+		CheckIfShotPossible(pSoldier,&BestShot);
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: is sniper shot possible? = %d, CTH = %d",BestShot.ubPossible,BestShot.ubChanceToReallyHit));
 
 		// sevenfm: changed sniper shot min CTH to 25%
@@ -2890,7 +2897,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		// sevenfm: set bAimShotLocation
 		pSoldier->bAimShotLocation = AIM_SHOT_RANDOM;
 
-		CheckIfShotPossible(pSoldier,&BestShot,TRUE); //WarmSteel - No longer returns 0 when there IS actually a chance to hit.
+		CheckIfShotPossible(pSoldier, &BestShot); //WarmSteel - No longer returns 0 when there IS actually a chance to hit.
 
 		// sevenfm: check that we have a clip to reload
 		BOOLEAN fExtraClip = FALSE;
@@ -3219,7 +3226,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 		////////////////////////////////////////////////////////////////////////////
 
 		// get the location of the closest reachable opponent
-		sClosestDisturbance = ClosestReachableDisturbance(pSoldier,ubUnconsciousOK, &fClimb);
+		sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
 
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: check to continue flanking");
 		// continue flanking
@@ -3976,7 +3983,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 						// let's be a bit cautious about going right up to a location without enough APs to shoot						
 						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 						{
-							sClosestDisturbance = ClosestReachableDisturbance(pSoldier, ubUnconsciousOK, &fClimb);							
+							sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
 							if (!TileIsOutOfBounds(sClosestDisturbance) && ( SpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || SpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) + 5 < SpacesAway( pSoldier->sGridNo, sClosestDisturbance ) ) )
 							{
 								// either moving significantly closer or into very close range
@@ -4298,7 +4305,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	////////////////////////////////////////////////////////////////////////////
 
 	// if not in combat or under fire, and we COULD have moved, just chose not to	
-	if ( (pSoldier->aiData.bAlertStatus != STATUS_BLACK) && !pSoldier->aiData.bUnderFire && ubCanMove && (!gfTurnBasedAI || pSoldier->bActionPoints >= pSoldier->bInitialActionPoints) && ( TileIsOutOfBounds(ClosestReachableDisturbance(pSoldier, TRUE, &fClimb))) )
+	if ( (pSoldier->aiData.bAlertStatus != STATUS_BLACK) && !pSoldier->aiData.bUnderFire && ubCanMove && (!gfTurnBasedAI || pSoldier->bActionPoints >= pSoldier->bInitialActionPoints) && ( TileIsOutOfBounds(ClosestReachableDisturbance(pSoldier, &fClimb))) )
 	{
 		// addition:  if soldier is bleeding then reduce bleeding and do nothing
 		if ( pSoldier->bBleeding > MIN_BLEEDING_THRESHOLD )
@@ -4644,6 +4651,18 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	// STUCK IN WATER OR GAS, NO COVER, GO TO NEAREST SPOT OF UNGASSED LAND
 	////////////////////////////////////////////////////////////////////////////
 
+	// when in deep water, move to closest opponent
+	if (ubCanMove && bInDeepWater && !pSoldier->aiData.bNeutral && pSoldier->aiData.bOrders == SEEKENEMY)
+	{
+		// find closest reachable opponent, excluding opponents in deep water
+		pSoldier->aiData.usActionData = ClosestReachableDisturbance(pSoldier, &fClimb);
+
+		if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+		{
+			return(AI_ACTION_LEAVE_WATER_GAS);
+		}
+	}
+
 	// if soldier in water/gas has enough APs left to move at least 1 square
 	if ( ( bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)) && ubCanMove)
 	{
@@ -4919,88 +4938,49 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		//////////////////////////////////////////////////////////////////////////
 		// FIRE A GUN AT AN OPPONENT
 		//////////////////////////////////////////////////////////////////////////
-		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"FIRE A GUN AT AN OPPONENT");
+		DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "FIRE A GUN AT AN OPPONENT");
 
-		bWeaponIn = FindAIUsableObjClass( pSoldier, IC_GUN );
+		CheckIfShotPossible(pSoldier, &BestShot);
 
-		if (bWeaponIn != NO_SLOT)
+		if (BestShot.ubFriendlyFireChance)	//dnl ch61 180813
 		{
-			BestShot.bWeaponIn = bWeaponIn;
-			// if it's in another pocket, swap it into his hand temporarily
-			if (bWeaponIn != HANDPOS)
+			// determine chance to shoot
+			INT32 iChanceToShoot;
+
+			iChanceToShoot = 100 - BestShot.ubFriendlyFireChance;
+			iChanceToShoot = iChanceToShoot * iChanceToShoot / 100;
+
+			if (Chance(100 - iChanceToShoot))
 			{
-				DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionblack: swap gun into hand");
-				RearrangePocket(pSoldier,HANDPOS,bWeaponIn,TEMPORARILY);
+				BestShot.ubPossible = FALSE;
+			}
+		}
+
+		if (BestShot.ubPossible)
+		{
+			// if the selected opponent is not a threat (unconscious & !serviced)
+			// (usually, this means all the guys we see are unconscious, but, on
+			//  rare occasions, we may not be able to shoot a healthy guy, too)
+			if ((Menptr[BestShot.ubOpponent].stats.bLife < OKLIFE) &&
+				!Menptr[BestShot.ubOpponent].bService &&
+				(pSoldier->aiData.bAttitude != AGGRESSIVE || Chance((100 - BestShot.ubChanceToReallyHit) / 2)))
+			{
+				// get the location of the closest CONSCIOUS reachable opponent
+				sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
+
+				// if we found one								
+				if (!TileIsOutOfBounds(sClosestDisturbance))
+				{
+					// don't bother checking GRENADES/KNIVES, he can't have conscious targets
+					// then make decision as if at alert status RED
+					return DecideActionRed(pSoldier);
+				}
+				// else kill the guy, he could be the last opponent alive in this sector
 			}
 
-			// now it better be a gun, or the guy can't shoot (but has other attack(s))
-			if (Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_GUN && pSoldier->inv[HANDPOS][0]->data.gun.bGunStatus >= USABLE)
-			{
-				// get the minimum cost to attack the same target with this gun
-				ubMinAPCost = MinAPsToAttack(pSoldier,pSoldier->sLastTarget,ADDTURNCOST,0);
-
-				// if we have enough action points to shoot with this gun
-				if (pSoldier->bActionPoints >= ubMinAPCost)
-				{
-					// look around for a worthy target (which sets BestShot.ubPossible)
-					BOOLEAN shootUnseen = FALSE;
-					///ddd
-					//if (gGameOptions.ubDifficultyLevel > DIF_LEVEL_MEDIUM ) //comm by ddd
-					if (gGameOptions.ubDifficultyLevel > DIF_LEVEL_MEDIUM || gGameExternalOptions.bNewTacticalAIBehavior)
-						shootUnseen = TRUE;
-
-					CalcBestShot(pSoldier,&BestShot,shootUnseen);
-
-					if (pSoldier->bTeam == gbPlayerNum && pSoldier->aiData.bRTPCombat == RTP_COMBAT_CONSERVE)
-					{
-						if (BestShot.ubChanceToReallyHit < 30)
-						{
-							// skip firing, our chance isn't good enough
-							BestShot.ubPossible = FALSE;
-						}
-					}
-
-					if(BestShot.ubFriendlyFireChance)//dnl ch61 180813
-					{
-						if(BestShot.ubFriendlyFireChance == 100)
-						{
-							if(pSoldier->aiData.bAttitude == AGGRESSIVE)
-								iChance = 5;
-						}
-						else
-						{
-							switch(pSoldier->aiData.bAttitude)
-							{
-							case DEFENSIVE:iChance = 15;break;
-							case BRAVESOLO:iChance = 25;break;
-							case BRAVEAID:iChance = 20;break;
-							case CUNNINGSOLO:iChance = 35;break;
-							case CUNNINGAID:iChance = 30;break;
-							case AGGRESSIVE:iChance = 45;break;
-							case ATTACKSLAYONLY:iChance = 40;break;
-							default:iChance = 10;break;
-							}
-						}
-						if(!((INT32)Random(100) < iChance))
-							BestShot.ubPossible = FALSE;
-					}
-
-					if (BestShot.ubPossible)
-					{
-						// now we KNOW FOR SURE that we will do something (shoot, at least)
-						NPCDoesAct(pSoldier);
-						DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"NPC decided to shoot (or something)");
-					}
-				}
-
-				// if it was in his holster, swap it back into his holster for now
-				if (bWeaponIn != HANDPOS)
-				{
-					DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionblack: swap gun into holster");
-					RearrangePocket(pSoldier,HANDPOS,bWeaponIn,TEMPORARILY);
-				}
-
-			}
+			// now we KNOW FOR SURE that we will do something (shoot, at least)
+			NPCDoesAct(pSoldier);
+			DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "NPC decided to shoot (or something)");
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -5088,7 +5068,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 					// throwing knife code works like shooting
 
 					// look around for a worthy target (which sets BestStab.ubPossible)
-					CalcBestShot(pSoldier,&BestStab,FALSE);
+					CalcBestShot(pSoldier,&BestStab);
 
 					if (BestStab.ubPossible)
 					{
@@ -7383,7 +7363,7 @@ INT8 ZombieDecideActionYellow(SOLDIERTYPE *pSoldier)
 }
 
 
-INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
+INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier)
 {
 	INT32 iDummy;
 	INT32 iChance,sClosestOpponent,sClosestFriend;
@@ -7429,7 +7409,7 @@ INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 	////////////////////////////////////////////////////////////////////////////
 
 	// get the location of the closest reachable opponent
-	sClosestDisturbance = ClosestReachableDisturbance(pSoldier,ubUnconsciousOK, &fClimb);
+	sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
 	sClosestOpponent = ClosestKnownOpponent(pSoldier, NULL, NULL);
 	sMostImportantNoise = MostImportantNoiseHeard( pSoldier, NULL, NULL, NULL );
 
@@ -7839,7 +7819,7 @@ INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier)
 		!gfHiddenInterrupt &&
 		pSoldier->bActionPoints > APBPConstants[MAX_AP_CARRIED] )
 	{
-		sClosestDisturbance = ClosestReachableDisturbance(pSoldier, TRUE, &fClimb);
+		sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
 		//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] cannot find disturbance!", pSoldier->ubID);
 
 		// if there is an opponent reachable					
@@ -8044,7 +8024,7 @@ INT8 ZombieDecideAction( SOLDIERTYPE *pSoldier )
 		break;
 
 	case STATUS_RED:
-		bAction = ZombieDecideActionRed(pSoldier, TRUE);
+		bAction = ZombieDecideActionRed(pSoldier);
 		break;
 
 	case STATUS_BLACK:

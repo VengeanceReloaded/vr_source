@@ -1112,31 +1112,29 @@ INT32 RandDestWithinRange(SOLDIERTYPE *pSoldier)
 	return(sRandDest); // defaults to NOWHERE
 }
 
-INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, BOOLEAN * pfChangeLevel )
+INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, BOOLEAN * pfChangeLevel)
 {
 	INT32		*psLastLoc, *pusNoiseGridNo;
 	INT8		*pbLastLevel;
-	INT32		sGridNo=-1;
+	INT32		sGridNo = -1;
 	INT8		bLevel, bClosestLevel = -1;
 	BOOLEAN		fClimbingNecessary, fClosestClimbingNecessary = FALSE;
 	INT32		iPathCost;
 	INT32		sClosestDisturbance = NOWHERE;
 	UINT32		uiLoop;
-	UINT32		closestConscious = NOWHERE,closestUnconscious = NOWHERE;
+	UINT32		closestConscious = NOWHERE, closestUnconscious = NOWHERE;
 	INT32		iShortestPath = 1000;
-	INT32		iShortestPathConscious = 1000,iShortestPathUnconscious = 1000;
+	INT32		iShortestPathConscious = 1000, iShortestPathUnconscious = 1000;
 	UINT8		*pubNoiseVolume;
 	INT8		*pbNoiseLevel;
-	INT8		*pbPersOL,*pbPublOL;
+	INT8		*pbPersOL, *pbPublOL;
 	INT32		sClimbGridNo;
-	SOLDIERTYPE * pOpp;
-
-	// CJC: can't trace a path to every known disturbance!
-	// for starters, try the closest one as the crow flies
-	INT32		sClosestEnemy = NOWHERE, sDistToClosestEnemy = 1000, sDistToEnemy;
+	SOLDIERTYPE *pOpponent;
+	SOLDIERTYPE	*pClosestOpponent = NULL;
+	INT32		sDistToEnemy, sDistToClosestEnemy = 10000;
 
 	// sevenfm: safety check
-	if ( pfChangeLevel )
+	if (pfChangeLevel)
 	{
 		*pfChangeLevel = FALSE;
 	}
@@ -1146,43 +1144,52 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 	pbNoiseLevel = &gbPublicNoiseLevel[pSoldier->bTeam];
 
 	// hang pointers at start of this guy's personal and public opponent opplists
-//	pbPersOL = &pSoldier->aiData.bOppList[0];
-//	pbPublOL = &(gbPublicOpplist[pSoldier->bTeam][0]);
-//	psLastLoc = &(gsLastKnownOppLoc[pSoldier->ubID][0]);
+	//	pbPersOL = &pSoldier->aiData.bOppList[0];
+	//	pbPublOL = &(gbPublicOpplist[pSoldier->bTeam][0]);
+	//	psLastLoc = &(gsLastKnownOppLoc[pSoldier->ubID][0]);
 
 	// look through this man's personal & public opplists for opponents known
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
-		pOpp = MercSlots[ uiLoop ];
+		pOpponent = MercSlots[uiLoop];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpp)
+		if (!pOpponent)
 		{
 			continue;			// next merc
 		}
 
 		// if this merc is neutral/on same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpp ) || (pSoldier->bSide == pOpp->bSide) )
+		if (CONSIDERED_NEUTRAL(pSoldier, pOpponent) || (pSoldier->bSide == pOpponent->bSide))
 		{
 			continue;			// next merc
 		}
 
-		// sevenfm: ignore empty vehicles
-		if( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
+		// silversurfer: ignore empty vehicles
+		if (pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle(pOpponent->bVehicleID) == 0)
 		{
 			continue;
 		}
 
-		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
-		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpp->ubID;
-		psLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpp->ubID;
-		pbLastLevel = gbLastKnownOppLevel[pSoldier->ubID] + pOpp->ubID;
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
+		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
+		psLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpponent->ubID;
+		pbLastLevel = gbLastKnownOppLevel[pSoldier->ubID] + pOpponent->ubID;
 
 		// if this opponent is unknown personally and publicly
 		if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
 		{
 			continue;			// next merc
 		}
+
+		// this is possible if get here from BLACK AI in one of those rare
+		// instances when we couldn't get a meaningful shot off at a guy in sight
+		/*if ((*pbPersOL == SEEN_CURRENTLY) && (pOpponent->stats.bLife >= OKLIFE))
+		{
+		// don't allow this to return any valid values, this guy remains a
+		// serious threat and the last thing we want to do is approach him!
+		return(NOWHERE);
+		}*/
 
 		// if personal knowledge is more up to date or at least equal
 		if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) ||
@@ -1195,8 +1202,8 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		else
 		{
 			// using public knowledge, obtain opponent's "best guess" gridno
-			sGridNo = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpp->ubID];
-			bLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpp->ubID];
+			sGridNo = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
+			bLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID];
 		}
 
 		// if we are standing at that gridno (!, obviously our info is old...)
@@ -1204,59 +1211,60 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		{
 			continue;			// next merc
 		}
-		
+
 		if (TileIsOutOfBounds(sGridNo))
 		{
 			// huh?
 			continue;
 		}
 
-		iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
-
-		// if we can get there and it's first reachable enemy or closer than other known enemies
-		if( iPathCost != 0 &&
-			(TileIsOutOfBounds(sClosestDisturbance) || iPathCost < iShortestPath) ) 
+		// sevenfm: if soldier is zombie and he cannot climb, skip location
+		if (pSoldier->IsZombie() && pSoldier->pathing.bLevel != bLevel && !gGameExternalOptions.fZombieCanClimb)
 		{
-			if (fClimbingNecessary)
-			{
-				sClosestDisturbance = sClimbGridNo;
-			}
-			else
-			{
-				sClosestDisturbance = sGridNo;
-			}
-
-			iShortestPath = iPathCost;
-			fClosestClimbingNecessary = fClimbingNecessary;
+			continue;
 		}
 
-		/*sDistToEnemy = PythSpacesAway( pSoldier->sGridNo, sGridNo );
-		if (sDistToEnemy < sDistToClosestEnemy )
+		// sevenfm: zombies do not attack vehicles
+		if (pSoldier->IsZombie() && (TANK(pOpponent) || (pOpponent->flags.uiStatusFlags & SOLDIER_VEHICLE)))
 		{
-			sClosestEnemy = sGridNo;
-			bClosestLevel = bLevel;
-			sDistToClosestEnemy = sDistToEnemy;
-		}*/
+			continue;
+		}
+
+		// sevenfm: when in deep water, skip opponents in deep water
+		if (DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel) && DeepWater(sGridNo, bLevel))
+		{
+			continue;
+		}
+
+		// sevenfm: if we found reachable enemy, check other enemies only if they are closer
+		sDistToEnemy = PythSpacesAway(pSoldier->sGridNo, sGridNo);
+		if (sDistToEnemy < sDistToClosestEnemy || TileIsOutOfBounds(sClosestDisturbance))
+		{
+			iPathCost = EstimatePathCostToLocation(pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo);
+
+			// if we can get there and it's first reachable enemy or closer than other known enemies
+			if (iPathCost != 0 &&
+				(!pClosestOpponent || pClosestOpponent->stats.bLife < OKLIFE || pOpponent->stats.bLife >= OKLIFE) &&
+				(TileIsOutOfBounds(sClosestDisturbance) ||
+				iPathCost < iShortestPath ||
+				pClosestOpponent && !pClosestOpponent->IsZombie() && pClosestOpponent->stats.bLife < OKLIFE && pOpponent->stats.bLife >= OKLIFE))
+			{
+				if (fClimbingNecessary)
+				{
+					sClosestDisturbance = sClimbGridNo;
+				}
+				else
+				{
+					sClosestDisturbance = sGridNo;
+				}
+
+				pClosestOpponent = pOpponent;
+				sDistToClosestEnemy = sDistToEnemy;
+				iShortestPath = iPathCost;
+				fClosestClimbingNecessary = fClimbingNecessary;
+			}
+		}
 	}
-	
-	/*if (!TileIsOutOfBounds(sClosestEnemy))
-	{
-		iPathCost = EstimatePathCostToLocation( pSoldier, sClosestEnemy, bClosestLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
-		// if we can get there
-		if (iPathCost != 0)
-		{
-			if (fClimbingNecessary)
-			{
-				sClosestDisturbance = sClimbGridNo;
-			}
-			else
-			{
-				sClosestDisturbance = sClosestEnemy;
-			}
-			iShortestPath = iPathCost;
-			fClosestClimbingNecessary = fClimbingNecessary;
-		}
-	}*/
 
 	// if any "misc. noise" was also heard recently	
 	if (!TileIsOutOfBounds(pSoldier->aiData.sNoiseGridno) && pSoldier->aiData.sNoiseGridno != sClosestDisturbance)
@@ -1268,13 +1276,13 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		// if we are there (at the noise gridno)
 		if (sGridNo == pSoldier->sGridNo)
 		{
-			for(uiLoop=0; uiLoop<guiNumMercSlots; uiLoop++)//dnl ch58 160813
+			for (uiLoop = 0; uiLoop<guiNumMercSlots; uiLoop++)//dnl ch58 160813
 			{
-				pOpp = MercSlots[uiLoop];
-				if(pOpp && pSoldier->bSide == pOpp->bSide && pSoldier->ubID != pOpp->ubID&& pSoldier->aiData.sNoiseGridno == pOpp->aiData.sNoiseGridno)
+				pOpponent = MercSlots[uiLoop];
+				if (pOpponent && pSoldier->bSide == pOpponent->bSide && pSoldier->ubID != pOpponent->ubID&& pSoldier->aiData.sNoiseGridno == pOpponent->aiData.sNoiseGridno)
 				{
-					pOpp->aiData.sNoiseGridno = NOWHERE;// Erase for all from the same team as it not useful anymore, this will avoid others to check already tested location
-					pOpp->aiData.ubNoiseVolume = 0;
+					pOpponent->aiData.sNoiseGridno = NOWHERE;// Erase for all from the same team as it not useful anymore, this will avoid others to check already tested location
+					pOpponent->aiData.ubNoiseVolume = 0;
 				}
 			}
 			pSoldier->aiData.sNoiseGridno = NOWHERE;		// wipe it out, not useful anymore
@@ -1283,7 +1291,7 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		else
 		{
 			// get the AP cost to get to the location of the noise
-			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
+			iPathCost = EstimatePathCostToLocation(pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo);
 			// if we can get there
 			// sevenfm: only if we don't know enemy location or noise source is close and we have not seen enemy recently
 			if (iPathCost != 0 &&
@@ -1304,18 +1312,21 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 		}
 	}
 
+
 	// if any PUBLIC "misc. noise" was also heard recently	
-	if (!TileIsOutOfBounds(*pusNoiseGridNo) && *pusNoiseGridNo != sClosestDisturbance )
+	if (!TileIsOutOfBounds(*pusNoiseGridNo) && *pusNoiseGridNo != sClosestDisturbance)
 	{
 		// test this gridno, too
 		sGridNo = *pusNoiseGridNo;
 		bLevel = *pbNoiseLevel;
 
 		// if we are not NEAR the noise gridno...
-		if ( pSoldier->pathing.bLevel != bLevel || PythSpacesAway( pSoldier->sGridNo, sGridNo ) >= 6 || SoldierTo3DLocationLineOfSightTest( pSoldier, sGridNo, bLevel, 0, FALSE, NO_DISTANCE_LIMIT ) == 0 )
+		if (pSoldier->pathing.bLevel != bLevel || PythSpacesAway(pSoldier->sGridNo, sGridNo) >= 6 || SoldierTo3DLocationLineOfSightTest(pSoldier, sGridNo, bLevel, 0, FALSE, NO_DISTANCE_LIMIT) == 0)
+			// if we are NOT there (at the noise gridno)
+			//	if (sGridNo != pSoldier->sGridNo)
 		{
 			// get the AP cost to get to the location of the noise
-			iPathCost = EstimatePathCostToLocation( pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo );
+			iPathCost = EstimatePathCostToLocation(pSoldier, sGridNo, bLevel, FALSE, &fClimbingNecessary, &sClimbGridNo);
 			// if we can get there
 			// sevenfm: only if we don't know enemy location or noise source is close and we have not seen enemy recently
 			if (iPathCost != 0 &&
@@ -1339,7 +1350,7 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 			// degrade our public noise a bit
 			//dnl ch58 160813
 			//*pusNoiseGridNo -= 2;
-			if(*pubNoiseVolume > 1)
+			if (*pubNoiseVolume > 1)
 				(*pubNoiseVolume)--;
 		}
 	}
@@ -1347,12 +1358,12 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 #ifdef DEBUGDECISIONS	
 	if (!TileIsOutOfBounds(sClosestDisturbance))
 	{
-		AINumMessage("CLOSEST DISTURBANCE is at gridno ",sClosestDisturbance);
+		AINumMessage("CLOSEST DISTURBANCE is at gridno ", sClosestDisturbance);
 	}
 #endif
 
 	// sevenfm: safety check
-	if ( pfChangeLevel )
+	if (pfChangeLevel)
 	{
 		*pfChangeLevel = fClosestClimbingNecessary;
 	}
@@ -1360,18 +1371,17 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK, 
 	return(sClosestDisturbance);
 }
 
-
 INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel)
 {
-	INT32 *psLastLoc,sGridNo, sClosestOpponent = NOWHERE;
+	INT32 *psLastLoc, sGridNo, sClosestOpponent = NOWHERE;
 	UINT32 uiLoop;
 	INT32 iRange, iClosestRange = 1500;
-	INT8	*pbPersOL,*pbPublOL;
+	INT8	*pbPersOL, *pbPublOL;
 	INT8	bLevel, bClosestLevel;
-	SOLDIERTYPE * pOpp;
+	SOLDIERTYPE *pOpponent;
+	SOLDIERTYPE *pClosestOpponent = NULL;
 
 	bClosestLevel = -1;
-
 
 	// NOTE: THIS FUNCTION ALLOWS RETURN OF UNCONSCIOUS AND UNREACHABLE OPPONENTS
 	psLastLoc = &(gsLastKnownOppLoc[pSoldier->ubID][0]);
@@ -1383,33 +1393,33 @@ INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLev
 	// look through this man's personal & public opplists for opponents known
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
-		pOpp = MercSlots[ uiLoop ];
+		pOpponent = MercSlots[uiLoop];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpp)
+		if (!pOpponent)
 		{
 			continue;			// next merc
 		}
 
 		// if this merc is neutral/on same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpp ) || (pSoldier->bSide == pOpp->bSide))
+		if (CONSIDERED_NEUTRAL(pSoldier, pOpponent) || (pSoldier->bSide == pOpponent->bSide))
 		{
 			continue;			// next merc
 		}
 
 		// silversurfer: ignore empty vehicles
-		if ( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
+		if (pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle(pOpponent->bVehicleID) == 0)
 			continue;
 
 		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != SLAY)
+		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
 		{
 			continue;	// next opponent
 		}
 
-		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
-		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpp->ubID;
-		psLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpp->ubID;
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
+		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
+		psLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpponent->ubID;
 
 		// if this opponent is unknown personally and publicly
 		if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
@@ -1422,14 +1432,14 @@ INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLev
 			(*pbPersOL == *pbPublOL))
 		{
 			// using personal knowledge, obtain opponent's "best guess" gridno
-			sGridNo = gsLastKnownOppLoc[pSoldier->ubID][pOpp->ubID];
-			bLevel = gbLastKnownOppLevel[pSoldier->ubID][pOpp->ubID];
+			sGridNo = gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID];
+			bLevel = gbLastKnownOppLevel[pSoldier->ubID][pOpponent->ubID];
 		}
 		else
 		{
 			// using public knowledge, obtain opponent's "best guess" gridno
-			sGridNo = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpp->ubID];
-			bLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpp->ubID];
+			sGridNo = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
+			bLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID];
 		}
 
 		// if we are standing at that gridno(!, obviously our info is old...)
@@ -1441,27 +1451,30 @@ INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLev
 		// this function is used only for turning towards closest opponent or changing stance
 		// as such, if they AI is in a building,
 		// we should ignore people who are on the roof of the same building as the AI
-		if ( (bLevel != pSoldier->pathing.bLevel) && SameBuilding( pSoldier->sGridNo, sGridNo ) )
+		if ((bLevel != pSoldier->pathing.bLevel) && SameBuilding(pSoldier->sGridNo, sGridNo))
 		{
 			continue;
 		}
 
 		// I hope this will be good enough; otherwise we need a fractional/world-units-based 2D distance function
 		//sRange = PythSpacesAway( pSoldier->sGridNo, sGridNo);
-		iRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sGridNo );
+		iRange = GetRangeInCellCoordsFromGridNoDiff(pSoldier->sGridNo, sGridNo);
 
-		if (iRange < iClosestRange)
+		if (sClosestOpponent == NOWHERE ||
+			iRange < iClosestRange ||
+			pClosestOpponent && !pClosestOpponent->IsZombie() && !(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) && pClosestOpponent->stats.bLife < OKLIFE && pOpponent->stats.bLife >= OKLIFE)
 		{
 			iClosestRange = iRange;
 			sClosestOpponent = sGridNo;
 			bClosestLevel = bLevel;
+			pClosestOpponent = pOpponent;
 		}
 	}
 
 #ifdef DEBUGDECISIONS	
 	if (!TileIsOutOfBounds(sClosestOpponent))
 	{
-		AINumMessage("CLOSEST OPPONENT is at gridno ",sClosestOpponent);
+		AINumMessage("CLOSEST OPPONENT is at gridno ", sClosestOpponent);
 	}
 #endif
 
@@ -1473,7 +1486,7 @@ INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLev
 	{
 		*pbLevel = bClosestLevel;
 	}
-	return( sClosestOpponent );
+	return(sClosestOpponent);
 }
 
 INT32 ClosestSeenOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel)
@@ -4987,69 +5000,71 @@ BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier )
 }
 
 // danger percent based on distance to closest smoke effect
-UINT8 RedSmokeDanger( INT32 sGridNo, INT8 bLevel )
+UINT8 RedSmokeDanger(INT32 sGridNo, INT8 bLevel)
 {
 	UINT32	uiCnt;
-	INT32	sDist, sClosestDist, sMaxDist = DAY_VISION_RANGE / 2;
+	INT32	sDist;
+	INT32	sClosestDist;
+	INT32	sMaxDist = min(gSkillTraitValues.usVOMortarRadius, DAY_VISION_RANGE / 2);
 	INT32	sClosestSmoke = NOWHERE;
 	UINT8	ubDangerPercent = 0;
 
-	if( TileIsOutOfBounds(sGridNo) )
+	if (TileIsOutOfBounds(sGridNo))
 	{
 		return 0;
 	}
 
-	if ( !gSkillTraitValues.fROAllowArtillery )
+	if (!gSkillTraitValues.fROAllowArtillery)
 	{
 		return 0;
 	}
 
 	// no artillery strike danger underground
-	if ( gbWorldSectorZ > 0 )
+	if (gbWorldSectorZ > 0)
 	{
-		return( FALSE );
+		return 0;
 	}
 
 	// check if artillery strike was ordered by any team
-	if( !CheckArtilleryStrike() )
+	if (!CheckArtilleryStrike())
 	{
-		return FALSE;
+		return 0;
+	}
+
+	// no danger when in a building
+	if (bLevel == 0 && CheckRoof(sGridNo))
+	{
+		return 0;
+	}
+
+	// deep water should be safe
+	if (DeepWater(sGridNo, bLevel))
+	{
+		return 0;
 	}
 
 	//loop through all red smoke effects and find closest
-	for( uiCnt=0; uiCnt < guiNumSmokeEffects; uiCnt++)
+	for (uiCnt = 0; uiCnt < guiNumSmokeEffects; uiCnt++)
 	{
-		if( gSmokeEffectData[ uiCnt ].fAllocated &&
-			gSmokeEffectData[ uiCnt ].bType == SIGNAL_SMOKE_EFFECT &&
-			!TileIsOutOfBounds(gSmokeEffectData[ uiCnt ].sGridNo) )
+		if (gSmokeEffectData[uiCnt].fAllocated &&
+			gSmokeEffectData[uiCnt].bType == SIGNAL_SMOKE_EFFECT &&
+			!TileIsOutOfBounds(gSmokeEffectData[uiCnt].sGridNo))
 		{
-			sDist = PythSpacesAway(gSmokeEffectData[ uiCnt ].sGridNo, sGridNo);
+			sDist = PythSpacesAway(gSmokeEffectData[uiCnt].sGridNo, sGridNo);
 
-			if( sClosestSmoke == NOWHERE || sDist < sClosestDist )
+			if (sClosestSmoke == NOWHERE || sDist < sClosestDist)
 			{
 				sClosestDist = sDist;
-				sClosestSmoke = gSmokeEffectData[ uiCnt ].sGridNo;
+				sClosestSmoke = gSmokeEffectData[uiCnt].sGridNo;
 			}
 		}
 	}
 
 	// if we found red smoke, calculate danger percent based on distance
 	// 0% at DAY_VISION_RANGE/2, 100% at zero range
-	if( sClosestSmoke != NOWHERE )
+	if (sClosestSmoke != NOWHERE)
 	{
-		ubDangerPercent = 100 * (sMaxDist - __min(sMaxDist, sClosestDist)) / sMaxDist;
-
-		// reduce danger in water
-		if( Water(sGridNo, bLevel) && ubDangerPercent < 25 )
-		{
-			ubDangerPercent = 0;
-		}
-
-		// no danger when in a building
-		if( bLevel == 0 && CheckRoof(sGridNo) )
-		{
-			ubDangerPercent = 0;
-		}		
+		ubDangerPercent = 100 * (sMaxDist - min(sMaxDist, sClosestDist)) / sMaxDist;
 	}
 
 	return ubDangerPercent;

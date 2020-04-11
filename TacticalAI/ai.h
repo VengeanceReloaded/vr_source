@@ -175,7 +175,7 @@ INT8	DecideAction(SOLDIERTYPE *pSoldier);
 INT8 DecideActionBlack(SOLDIERTYPE *pSoldier);
 INT8 DecideActionEscort(SOLDIERTYPE *pSoldier);
 INT8 DecideActionGreen(SOLDIERTYPE *pSoldier);
-INT8 DecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK);
+INT8 DecideActionRed(SOLDIERTYPE *pSoldier);
 INT8 DecideActionYellow(SOLDIERTYPE *pSoldier);
 
 INT16 DistanceToClosestFriend( SOLDIERTYPE * pSoldier );

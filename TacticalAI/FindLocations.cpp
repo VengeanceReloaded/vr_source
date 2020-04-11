@@ -1639,7 +1639,11 @@ INT32 FindNearestUngassedLand(SOLDIERTYPE *pSoldier)
 			}
 		}
 
+		gubNPCAPBudget = 0;
+		gubNPCDistLimit = (UINT8)iSearchRange;
 		FindBestPath( pSoldier, GRIDSIZE, pSoldier->pathing.bLevel, DetermineMovementMode( pSoldier, AI_ACTION_LEAVE_WATER_GAS ), COPYREACHABLE, 0 );//dnl ch50 071009
+		gubNPCAPBudget = 0;
+		gubNPCDistLimit = 0;
 
 		// Turn off the "reachable" flag for his current location
 		// so we don't consider it
@@ -1776,7 +1780,11 @@ INT16 FindNearbyDarkerSpot( SOLDIERTYPE *pSoldier )
 			}
 		}
 
+		gubNPCAPBudget = 0;
+		gubNPCDistLimit = (UINT8)iSearchRange;
 		FindBestPath( pSoldier, GRIDSIZE, pSoldier->pathing.bLevel, DetermineMovementMode( pSoldier, AI_ACTION_LEAVE_WATER_GAS ), COPYREACHABLE, 0 );//dnl ch50 071009
+		gubNPCAPBudget = 0;
+		gubNPCDistLimit = 0;
 
 		// Turn off the "reachable" flag for his current location
 		// so we don't consider it
@@ -2727,7 +2735,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			// sevenfm: don't go into deep water for flanking
-			if( DeepWater( sGridNo, pSoldier->pathing.bLevel ) )
+			if (DeepWater(sGridNo, pSoldier->pathing.bLevel)
 			{
 				continue;
 			}

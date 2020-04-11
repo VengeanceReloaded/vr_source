@@ -161,7 +161,7 @@ void ResetWeaponMode( SOLDIERTYPE * pSoldier )
 }
 //</SB>
 
-void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUnseen)
+void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 {
 	UINT32 uiLoop;
 	INT32 iAttackValue, iThreatValue, iHitRate, iBestHitRate, iPercentBetter, iEstDamage, iTrueLastTarget;
@@ -214,11 +214,11 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 			continue;			// next merc
 
 		// if this opponent is not currently in sight (ignore known but unseen!)
-		if ((pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY && !shootUnseen)) //guys we can't see
+		/*if ((pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY && !shootUnseen)) //guys we can't see
 		{
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CalcBestShot: soldier = %d, target = %d, skip guys we can't see, shootUnseen = %d, personal opplist = %d",pSoldier->ubID, pOpponent->ubID, shootUnseen, pSoldier->aiData.bOppList[pOpponent->ubID]));
 			continue;	// next opponent
-		}
+		}*/
 		
 		if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY &&
 			// sevenfm: allow suppression fire on recently seen targets (uses fake AICTH = 1)
@@ -226,7 +226,7 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 			pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_LAST_TURN &&
 			gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY ) // guys nobody sees
 		{
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CalcBestShot: soldier = %d, target = %d, skip guys nobody sees, shootUnseen = %d, public opplist = %d",pSoldier->ubID, pOpponent->ubID, shootUnseen,gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID]));
+			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CalcBestShot: soldier = %d, target = %d, skip guys nobody sees, public opplist = %d",pSoldier->ubID, pOpponent->ubID, gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID]));
 			continue;	// next opponent
 		}
 
@@ -659,6 +659,18 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 			iAttackValue /= 2;
 		}
 
+		// sevenfm: empty vehicles have very low priority
+		if ( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
+		{
+			iAttackValue /= 4;
+		}
+
+		// sevenfm: dying, cowering or unconscious soldiers have very low priority
+		if (pOpponent->stats.bLife < OKLIFE || pOpponent->bCollapsed || pOpponent->bBreathCollapsed)
+		{
+			iAttackValue /= 4;
+		}
+
 #ifdef DEBUGATTACKS
 		DebugAI( String( "CalcBestShot: best AttackValue vs %d = %d\n",uiLoop,iAttackValue ) );
 #endif
@@ -674,14 +686,32 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 				iPercentBetter = ((ubChanceToReallyHit * 100) / pBestShot->ubChanceToReallyHit) - 100;
 
 				//dnl ch62 180813 ignore firing into breathless targets if there are targets in better condition
-				if((Menptr[pBestShot->ubOpponent].bCollapsed || Menptr[pBestShot->ubOpponent].bBreathCollapsed) && Menptr[pBestShot->ubOpponent].bBreath < OKBREATH && Menptr[pBestShot->ubOpponent].bBreath < pOpponent->bBreath)
+				// sevenfm: check that best opponent exists
+				if (pBestShot->ubOpponent != NOBODY &&
+					(Menptr[pBestShot->ubOpponent].bCollapsed || Menptr[pBestShot->ubOpponent].bBreathCollapsed) &&
+					Menptr[pBestShot->ubOpponent].bBreath < OKBREATH
+					&& Menptr[pBestShot->ubOpponent].bBreath < pOpponent->bBreath)
+				{
 					iPercentBetter = PERCENT_TO_IGNORE_THREAT;
+				}
+
+				// sevenfm: if best opponent is dying and new opponent is ok, use new opponent
+				if (pBestShot->ubOpponent != NOBODY &&
+					Menptr[pBestShot->ubOpponent].stats.bLife < OKLIFE &&
+					pOpponent->stats.bLife >= OKLIFE)
+				{
+					iPercentBetter = PERCENT_TO_IGNORE_THREAT;
+				}
 
 				// if this chance to really hit is more than 50% worse, and the other
 				// guy is conscious at all
-				if ((iPercentBetter < -PERCENT_TO_IGNORE_THREAT) && (Menptr[pBestShot->ubOpponent].stats.bLife >= OKLIFE))
+				if (iPercentBetter < -PERCENT_TO_IGNORE_THREAT &&
+					pBestShot->ubOpponent != NOBODY &&
+					Menptr[pBestShot->ubOpponent].stats.bLife >= OKLIFE)
+				{
 					// then stick with the older guy as the better target
 					continue;
+				}
 
 				// if this chance to really hit between 50% worse to 50% better
 				if (iPercentBetter < PERCENT_TO_IGNORE_THREAT)
@@ -692,9 +722,15 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN shootUns
 						continue;			// next opponent
 				}
 			}
-			//dnl ch62 180813 ignore firing into dying targets
-			if((pOpponent->bCollapsed || pOpponent->bBreathCollapsed) && pOpponent->stats.bLife < OKLIFE/* && !(pSoldier->aiData.bAttitude == AGGRESSIVE && Random(100) < 20)*/)
+
+			// sevenfm: if new opponent is dying and best opponent is ok, ignore new opponent
+			if (pBestShot->ubOpponent != NOBODY &&
+				Menptr[pBestShot->ubOpponent].stats.bLife >= OKLIFE &&
+				pOpponent->stats.bLife < OKLIFE)
+			{
+				//DebugShot(pSoldier, String("new opponent is dying, best opponent is ok - skip"));
 				continue;
+			}
 
 			// OOOF!	That was a lot of work!	But we've got a new best target!
 			pBestShot->ubPossible			= TRUE;
@@ -1840,17 +1876,23 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 
 				// if this chance to really hit is more than 50% worse, and the other
 				// guy is conscious at all
-				if ((iPercentBetter < -PERCENT_TO_IGNORE_THREAT) && (Menptr[pBestStab->ubOpponent].stats.bLife >= OKLIFE))
+				if (iPercentBetter < -PERCENT_TO_IGNORE_THREAT &&
+					pBestStab->ubOpponent != NOBODY &&
+					Menptr[pBestStab->ubOpponent].stats.bLife >= OKLIFE)
+				{
 					// then stick with the older guy as the better target
 					continue;
+				}
 
 				// if this chance to really hit between 50% worse to 50% better
 				if (iPercentBetter < PERCENT_TO_IGNORE_THREAT)
 				{
 					// then the one with the higher ATTACK VALUE is the better target
 					if (iAttackValue < pBestStab->iAttackValue)
+					{
 						// the previous guy is more important since he's more dangerous
 						continue;			// next opponent
+					}
 				}
 			}
 
@@ -2048,7 +2090,8 @@ UINT8 NumMercsCloseTo( INT32 sGridNo, UINT8 ubMaxDist )
 	{
 		pSoldier = MercSlots[ uiLoop ];
 
-		if ( pSoldier && pSoldier->bTeam == gbPlayerNum && pSoldier->stats.bLife >= OKLIFE )
+		// sevenfm: count all teams except creatures
+		if (pSoldier && pSoldier->bTeam != CREATURE_TEAM && pSoldier->stats.bLife >= OKLIFE)
 		{
 			if (PythSpacesAway( sGridNo, pSoldier->sGridNo ) <= ubMaxDist)
 			{
@@ -3061,75 +3104,65 @@ INT16 AdvanceToFiringRange( SOLDIERTYPE * pSoldier, INT16 sClosestOpponent )
 
 }
 
-
-
-void CheckIfShotPossible(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot, BOOLEAN suppressionFire)
+void CheckIfShotPossible(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 {
-	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"CheckIfShotPossible");
 	INT16 ubMinAPcost;
 	pBestShot->ubPossible = FALSE;
-	pBestShot->bWeaponIn = NO_SLOT;
+	pBestShot->bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN);
 
-	if ( !TANK( pSoldier ) )
-	{
-		// AIs never have more than one gun anyway
-		pBestShot->bWeaponIn = FindAIUsableObjClass( pSoldier, IC_GUN );
-	}
-
-	// if the soldier does have a long range rifle
+	// if the soldier does have a gun
 	if (pBestShot->bWeaponIn != NO_SLOT)
 	{
-		OBJECTTYPE * pObj = &pSoldier->inv[pBestShot->bWeaponIn];
-		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CheckIfShotPossible: found a gun item # %d",pObj->usItem ));
-
-		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CheckIfShotPossible: weapon type %d",Weapon [pObj->usItem ].ubWeaponType ));
-
 		// if it's in his holster, swap it into his hand temporarily
 		if (pBestShot->bWeaponIn != HANDPOS)
 		{
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"CheckIfShotPossible: Rearranging pocket");
 			RearrangePocket(pSoldier, HANDPOS, pBestShot->bWeaponIn, TEMPORARILY);
 		}
 
-		BOOLEAN fEnableAISuppression = FALSE;
+		// get the minimum cost to attack with this item
+		ubMinAPcost = MinAPsToAttack(pSoldier, pSoldier->sLastTarget, ADDTURNCOST, 0);
 
-		// CHRISL: Changed from a simple flag to two externalized values for more modder control over AI suppression
-		if ( suppressionFire &&
-			IsGunAutofireCapable(&pSoldier->inv[pBestShot->bWeaponIn]) &&
-			GetMagSize(pObj) >= gGameExternalOptions.ubAISuppressionMinimumMagSize &&
-			(*pObj)[0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo )
+		// if we can afford the minimum AP cost
+		if (pSoldier->bActionPoints >= ubMinAPcost)
 		{
-			fEnableAISuppression = TRUE;
+			// then look around for a worthy target (which sets bestThrow.ubPossible)
+			CalcBestShot(pSoldier, pBestShot);
 		}
 
-		// sevenfm: allow any soldier with long range weapon to shoot in RED state (if he can hit)
-		if ( !suppressionFire &&
-			GunRange(pObj, pSoldier) > DAY_VISION_RANGE )
-		{
-			fEnableAISuppression = TRUE;
-		}
-		
-		if (fEnableAISuppression)
-		{
-			// get the minimum cost to attack with this item
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"CheckIfShotPossible: getting min aps");
-			ubMinAPcost = MinAPsToAttack( pSoldier, pSoldier->sLastTarget, ADDTURNCOST,pBestShot->ubAimTime);
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CheckIfShotPossible: min AP cost: %d", ubMinAPcost));
-
-			// if we can afford the minimum AP cost
-			if (pSoldier->bActionPoints >= ubMinAPcost)
-			{
-				DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CheckIfShotPossible: CalcBestShot"));
-				// then look around for a worthy target (which sets bestThrow.ubPossible)
-				CalcBestShot( pSoldier, pBestShot,TRUE);
-				DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("CheckIfShotPossible: CalcBestShot done"));
-			}
-		}
 		// if it was in his holster, swap it back into his holster for now
 		if (pBestShot->bWeaponIn != HANDPOS)
 		{
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"CheckIfShotPossible: Rearranging pocket");
-			RearrangePocket( pSoldier, HANDPOS, pBestShot->bWeaponIn, TEMPORARILY );
+			RearrangePocket(pSoldier, HANDPOS, pBestShot->bWeaponIn, TEMPORARILY);
+		}
+
+		// try to use sidearm
+		if (pSoldier->bActionPoints < ubMinAPcost && IS_MERC_BODY_TYPE(pSoldier))
+		{
+			pBestShot->bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN, TRUE);
+
+			if (pBestShot->bWeaponIn != NO_SLOT)
+			{
+				// if it's in his holster, swap it into his hand temporarily
+				if (pBestShot->bWeaponIn != HANDPOS)
+				{
+					RearrangePocket(pSoldier, HANDPOS, pBestShot->bWeaponIn, TEMPORARILY);
+				}
+
+				// get the minimum cost to attack with this item
+				ubMinAPcost = MinAPsToAttack(pSoldier, pSoldier->sLastTarget, ADDTURNCOST, 0);
+
+				if (pSoldier->bActionPoints >= ubMinAPcost)
+				{
+					// then look around for a worthy target (which sets bestThrow.ubPossible)
+					CalcBestShot(pSoldier, pBestShot);
+				}
+
+				// if it was in his holster, swap it back into his holster for now
+				if (pBestShot->bWeaponIn != HANDPOS)
+				{
+					RearrangePocket(pSoldier, HANDPOS, pBestShot->bWeaponIn, TEMPORARILY);
+				}
+			}
 		}
 	}
 }

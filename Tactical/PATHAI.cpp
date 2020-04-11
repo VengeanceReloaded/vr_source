@@ -3102,6 +3102,12 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 				}
 			}
 
+			// AI check for mines
+			if (gpWorldLevelData[newLoc].uiFlags & MAPELEMENT_ENEMY_MINE_PRESENT && s->bSide != 0)
+			{
+				goto NEXTDIR;
+			}
+
 			// sevenfm: neutral civilians avoid all mines
 			if ((gpWorldLevelData[newLoc].uiFlags & (MAPELEMENT_ENEMY_MINE_PRESENT | MAPELEMENT_PLAYER_MINE_PRESENT)) &&
 				s->bTeam == CIV_TEAM &&
@@ -3115,27 +3121,23 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 ubLevel, INT16 usMov
 			// sevenfm: skip deep water if not in deep water already
 			if (!(s->flags.uiStatusFlags & SOLDIER_PC) &&
 				s->ubProfile == NO_PROFILE &&
+				s->aiData.bOrders != SEEKENEMY &&
 				DeepWater(newLoc, ubLevel) &&
 				!DeepWater(s->sGridNo, ubLevel) &&
 				!FindNotDeepWaterNearby(newLoc, ubLevel))
 			{
 				goto NEXTDIR;
 			}
+
 			// sevenfm: skip gas if not in gas already
 			if (!(s->flags.uiStatusFlags & SOLDIER_PC) &&
 				InGas(s, newLoc) &&
 				!InGas(s, s->sGridNo))
 			{
 				goto NEXTDIR;
-			}
+			}			
 
-			// AI check for mines
-			if (gpWorldLevelData[newLoc].uiFlags & MAPELEMENT_ENEMY_MINE_PRESENT && s->bSide != 0)
-			{
-				goto NEXTDIR;
-			}
-
-			// WANNE: Know mines (for enemy or player) do not explode - BEGIN
+			// WANNE: Known mines (for enemy or player) do not explode - BEGIN
 			if (gpWorldLevelData[newLoc].uiFlags & (MAPELEMENT_ENEMY_MINE_PRESENT | MAPELEMENT_PLAYER_MINE_PRESENT))
 			{
 				if (s->bSide == 0)
