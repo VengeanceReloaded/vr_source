@@ -2993,6 +2993,7 @@ void recieveGRENADE (RPCParameters *rpcParameters)
 					pThrower->pThrowParams->uiActionData = gren->uiActionData;
 				}
 
+				pThrower->usGrenadeItem = 0;
 				HandleSoldierThrowItem( pThrower, gren->sTargetGridNo );
 			}
 		}

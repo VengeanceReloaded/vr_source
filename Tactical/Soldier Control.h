@@ -1520,6 +1520,7 @@ public:
 	UINT16	usQuickItemId;
 	UINT8	ubQuickItemSlot;
 
+	UINT16	usGrenadeItem;
 public:
 	// CREATION FUNCTIONS
 	BOOLEAN DeleteSoldier( void );
