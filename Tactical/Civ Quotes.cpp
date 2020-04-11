@@ -1941,7 +1941,7 @@ void StartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTar
 		uiTauntFinishTimes[pCiv->ubID] = GetJA2Clock() + min( gTauntsSettings.sMaxDelay , max( gTauntsSettings.sMinDelay, FindDelayForString( gzTauntQuote ) + gTauntsSettings.sModDelay ) ); 
 
 		if( gTauntsSettings.fTauntMakeNoise == TRUE )
-			MakeNoise( pCiv->ubID, pCiv->sGridNo, pCiv->pathing.bLevel, pCiv->bOverTerrainType, gTauntsSettings.sVolume, NOISE_VOICE, gzTauntQuote );
+			MakeNoise( pCiv->ubID, pCiv->sGridNo, pCiv->pathing.bLevel, pCiv->bOverTerrainType, (UINT8)gTauntsSettings.sVolume, NOISE_VOICE, gzTauntQuote );
 		else
 		{
 			if(gTauntsSettings.fTauntShowPopupBox == TRUE)
@@ -2128,7 +2128,7 @@ STR VoiceTauntFileName[] =
 };
 
 // sevenfm: voice taunts
-BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTarget )
+BOOLEAN PlayVoiceTaunt(SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTarget)
 {
 	CHAR8 filename[1024];
 	CHAR8 filenameExtra[1024];
@@ -2139,148 +2139,168 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 
 	CHECKF(pCiv);
 
-	if( !gGameExternalOptions.fVoiceTaunts )
+	if (!gGameExternalOptions.fVoiceTaunts)
 	{
 		return FALSE;
 	}
 
 	// show some information about taunts
-	if( gGameExternalOptions.fVoiceTauntsDebugInfo )
-	{			
-		ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Soldier [%d] TauntType %d", pCiv->ubID, iTauntType );
+	if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+	{
+		ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Soldier [%d] TauntType %d", pCiv->ubID, iTauntType);
 	}
 
 	// cannot taunt when dead or collapsed
-	if( pCiv->stats.bLife < OKLIFE || pCiv->bCollapsed || pCiv->bBreathCollapsed)
+	if (pCiv->stats.bLife < OKLIFE || pCiv->bCollapsed || pCiv->bBreathCollapsed)
 	{
-		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
-		{			
-			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad soldier state (dying or collapsed)" );
+		if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+		{
+			ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad soldier state (dying or collapsed)");
 		}
 		return FALSE;
 	}
 
 	strcpy(filename, "Voice");
-	
-	if( iTauntType < TAUNT_FIRE_GUN || iTauntType > TAUNT_RIPOSTE )
+
+	if (iTauntType < TAUNT_FIRE_GUN || iTauntType > TAUNT_RIPOSTE)
 	{
-		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+		if (gGameExternalOptions.fVoiceTauntsDebugInfo)
 		{
-			ScreenMsg( FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad taunt" );
+			ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Bad taunt");
 		}
 		return FALSE;
 	}
 
-	if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE && pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA)
+	if (pCiv->bTeam == MILITIA_TEAM)
 	{
-		strcat(filename, "\\MilitiaFemaleElite\\");
+		strcat(filename, "\\Militia\\");
+
+		if (pCiv->ubBodyType == REGFEMALE)
+			strcat(filename, "Female\\");
+		else
+			strcat(filename, "Male\\");
+
+		if (pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA)
+			strcat(filename, "Elite\\");
+		else if (pCiv->ubSoldierClass == SOLDIER_CLASS_REG_MILITIA)
+			strcat(filename, "Regular\\");
+		else if (pCiv->ubSoldierClass == SOLDIER_CLASS_GREEN_MILITIA)
+			strcat(filename, "Green\\");
 	}
-	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE && pCiv->ubSoldierClass == SOLDIER_CLASS_REG_MILITIA)
+	else if (pCiv->bTeam == ENEMY_TEAM)
 	{
-		strcat(filename, "\\MilitiaFemaleRegular\\");
-	} 
-	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubBodyType == REGFEMALE && pCiv->ubSoldierClass == SOLDIER_CLASS_GREEN_MILITIA)
-	{
-		strcat( filename, "\\MilitiaFemale\\");
+		strcat(filename, "\\Army\\");
+
+		if (pCiv->ubBodyType == REGFEMALE)
+			strcat(filename, "Female\\");
+		else
+			strcat(filename, "Male\\");
+
+		if (pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE)
+			strcat(filename, "Elite\\");
+		else if (pCiv->ubSoldierClass == SOLDIER_CLASS_ARMY)
+			strcat(filename, "Regular\\");
+		else if (pCiv->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR)
+			strcat(filename, "Admin\\");
 	}
-	else if( pCiv->ubBodyType == REGFEMALE && pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == WARDEN_CIV_GROUP )
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == WARDEN_CIV_GROUP)
 	{
-		strcat( filename, "\\WardenFemale\\");
+		strcat(filename, "\\Warden\\");
+
+		if (pCiv->ubBodyType == REGFEMALE)
+			strcat(filename, "Female\\");
+		else
+			strcat(filename, "Male\\");
 	}
-	else if( pCiv->ubBodyType == REGFEMALE )
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP)
 	{
-		strcat( filename, "\\Female\\");
+		strcat(filename, "\\Kingpin\\");
 	}
-	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubSoldierClass == SOLDIER_CLASS_ELITE_MILITIA)
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP)
 	{
-		strcat(filename, "\\MilitiaElite\\");
-		sprintf(buf, "%02d", 1 + pCiv->ubID % 2);
-		strcat(filename, buf);
-		strcat(filename, "\\");
+		strcat(filename, "\\Hale and Burton\\");
 	}
-	else if (pCiv->bTeam == MILITIA_TEAM && pCiv->ubSoldierClass == SOLDIER_CLASS_REG_MILITIA)
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == UNNAMED_CIV_GROUP_16)
 	{
-		strcat(filename, "\\MilitiaRegular\\");
-		sprintf(buf, "%02d", 1 + pCiv->ubID % 2);
-		strcat(filename, buf);
-		strcat(filename, "\\");
+		strcat(filename, "\\Traconian Army\\");
 	}
-	else if( pCiv->bTeam == MILITIA_TEAM )
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_OPERATIVES_GROUP)
 	{
-		strcat( filename, "\\Militia\\");
-		sprintf(buf, "%02d", 1+ pCiv->ubID % 5);
-		strcat( filename, buf);
-		strcat( filename, "\\");
+		strcat(filename, "\\CIA Operatives\\");
 	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP )
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_OPERATIVES_GROUP)
 	{
-		strcat( filename, "\\Kingpin\\");
-		sprintf(buf, "%02d", 1 + pCiv->ubID % 2);
-		strcat(filename, buf);
-		strcat(filename, "\\");
+		strcat(filename, "\\Tracona Operatives\\");
 	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP )
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == COCKEYE_THUGS)
 	{
-		strcat( filename, "\\Hale and Burton\\");
-		sprintf(buf, "%02d", 1+ pCiv->ubID % 3);
-		strcat( filename, buf);
-		strcat( filename, "\\");
+		strcat(filename, "\\Cockeye Thugs\\");
 	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == UNNAMED_CIV_GROUP_16 )
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_STANLEY_GROUP)
 	{
-		strcat( filename, "\\Traconian Army\\");
+		strcat(filename, "\\CIA Stanley\\");
 	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == WARDEN_CIV_GROUP )
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_DRAGON_GROUP)
 	{
-		strcat( filename, "\\Warden\\");
+		strcat(filename, "\\TracOps Dragon\\");
 	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_OPERATIVES_GROUP )
+	else if (pCiv->bTeam == CIV_TEAM)
 	{
-		strcat( filename, "\\CIA Operatives\\");
-		sprintf(buf, "%02d", 1+ pCiv->ubID % 3);
-		strcat( filename, buf);
-		strcat( filename, "\\");
-	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
-	{
-		strcat( filename, "\\Tracona Operatives\\");
-	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == COCKEYE_THUGS )
-	{
-		strcat( filename, "\\Cockeye Thugs\\");
-	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == CIA_STANLEY_GROUP )
-	{
-		strcat( filename, "\\CIA Stanley\\");
-	}
-	else if ( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == TRACONA_DRAGON_GROUP )
-	{
-		strcat( filename, "\\TracOps Dragon\\");
-	}
-	else if( pCiv->ubBodyType == BIGMALE )
-	{
-		strcat( filename, "\\Bigmale\\");
-		sprintf(buf, "%02d", 1+ pCiv->ubID % 2);
-		strcat( filename, buf);
-		strcat( filename, "\\");
-	}
-	else if( pCiv->ubBodyType == REGMALE || pCiv->ubBodyType == STOCKYMALE )
-	{
-		strcat( filename, "\\Male\\");
-		sprintf(buf, "%02d", 1 + pCiv->ubID % 7);
-		strcat( filename, buf);
-		strcat( filename, "\\");
+		strcat(filename, "\\Civilian\\");
+
+		if (pCiv->ubBodyType == REGFEMALE)
+			strcat(filename, "Female\\");
+		else
+			strcat(filename, "Male\\");
 	}
 	else
 	{
-		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
-		{			
-			ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Taunt: incorrect bodytype" );
+		if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+		{
+			ScreenMsg(FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Taunt: incorrect bodytype");
 		}
 		return FALSE;
 	}
-	
-	strcat( filename, VoiceTauntFileName[iTauntType] );
+
+	// count possible voices
+	UINT8 ubVoiceCount;
+	for (ubVoiceCount = 1; ubVoiceCount < 100; ubVoiceCount++)
+	{
+		sprintf(buf, "%s%02d", filename, ubVoiceCount);
+		strcat(buf, "\\alert.ogg");
+
+		// check that folder exists
+		if (!FileExists(buf))
+		{
+			if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+			{
+				mbstowcs(noise, buf, strlen(buf) + 1);
+				ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
+			}
+
+			break;
+		}
+	}
+	// find last good number
+	ubVoiceCount--;
+
+	if (ubVoiceCount < 1)
+	{
+		if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+			ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Could not find any voice folder");
+
+		return FALSE;
+	}
+
+	if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+		ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"found %d voices", ubVoiceCount);
+
+	// prepare voice folder name
+	sprintf(buf, "%02d", 1 + pCiv->ubID % ubVoiceCount);
+	strcat(filename, buf);
+	strcat(filename, "\\");
+
+	strcat(filename, VoiceTauntFileName[iTauntType]);
 
 	// count possible extra filenames
 	ubExtraTaunts = 0;
@@ -2300,60 +2320,60 @@ BOOLEAN PlayVoiceTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pT
 
 	// possibly use extra taunt
 	iRandomTaunt = Random(ubExtraTaunts + 1);
-	if( iRandomTaunt > 0 )
+	if (iRandomTaunt > 0)
 	{
 		sprintf(buf, " %d", iRandomTaunt);
 		strcat(filename, buf);
 	}
 
-	strcat( filename, ".ogg");
+	strcat(filename, ".ogg");
 
 	// log taunt file names
-	if( gGameExternalOptions.fVoiceTauntsDebugInfo )
+	if (gGameExternalOptions.fVoiceTauntsDebugInfo)
 	{
 		FILE	*OutFile;
 		if ((OutFile = fopen("VoiceTauntLog.txt", "a+t")) != NULL)
-		{ 
+		{
 			fprintf(OutFile, "Soldier [%d] TauntType %d %s\n",
 				pCiv->ubID,
 				iTauntType,
-				filename );
+				filename);
 			fclose(OutFile);
 		}
 
 		// show some information about taunts	
-		mbstowcs( noise, filename, strlen(filename)+1 );
+		mbstowcs(noise, filename, strlen(filename) + 1);
 		ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
 	}
 
 	// check that taunt file exists
-	if( !FileExists(filename) )
+	if (!FileExists(filename))
 	{
-		if( gGameExternalOptions.fVoiceTauntsDebugInfo )
-		{			
-			mbstowcs( noise, filename, strlen(filename)+1 );
+		if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+		{
+			mbstowcs(noise, filename, strlen(filename) + 1);
 			ScreenMsg(FONT_GREEN, MSG_INTERFACE, noise);
-			ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Taunt: no file %s", noise );
+			ScreenMsg(FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Taunt: no file %s", noise);
 		}
 
 		return FALSE;
 	}
 
-	if( gTauntsSettings.fTauntMakeNoise == TRUE )
+	if (gTauntsSettings.fTauntMakeNoise == TRUE)
 	{
 		// convert char to char16
-		mbstowcs( noise, filename, strlen(filename)+1 );
+		mbstowcs(noise, filename, strlen(filename) + 1);
 		// use filename as taunt text, play sound later
-		MakeNoise( pCiv->ubID, pCiv->sGridNo, pCiv->pathing.bLevel, pCiv->bOverTerrainType, gTauntsSettings.sVolume, NOISE_VOICE, noise );
+		MakeNoise(pCiv->ubID, pCiv->sGridNo, pCiv->pathing.bLevel, pCiv->bOverTerrainType, (UINT8)gTauntsSettings.sVolume, NOISE_VOICE, noise);
 	}
 	else
 	{
 		// play voice taunt
-		if(PlayJA2SampleFromFile( filename, RATE_11025, SoundVolume( HIGHVOLUME, pCiv->sGridNo ), 1, SoundDir( pCiv->sGridNo ) ) == SOUND_ERROR)
+		if (PlayJA2SampleFromFile(filename, RATE_11025, SoundVolume(HIGHVOLUME, pCiv->sGridNo), 1, SoundDir(pCiv->sGridNo)) == SOUND_ERROR)
 		{
-			if( gGameExternalOptions.fVoiceTauntsDebugInfo )
-			{			
-				ScreenMsg( FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Failed to play taunt" );
+			if (gGameExternalOptions.fVoiceTauntsDebugInfo)
+			{
+				ScreenMsg(FONT_MCOLOR_LTRED, MSG_INTERFACE, L"Failed to play taunt");
 			}
 			return FALSE;
 		}
