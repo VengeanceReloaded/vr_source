@@ -851,239 +851,311 @@ BOOLEAN	GetNextCreditFromTextFile()
 
 	if (gfModCredits == FALSE)
 	{
-		switch(guiCurrentCreditRecord)
+		switch (guiCurrentCreditRecord)
 		{
 			// 2.)	1.13 Credits
-			case 0:
-				wcscpy(zOriginalString, L"@T,C208,R134,D16,B40,S10,J1,};");
+		case 0:
+			wcscpy(zOriginalString, L"@T,C208,R134,D16,B40,S10,J1,};");
 			break;
 
-			case 1:
-				wcscpy(zOriginalString, pCreditsJA2113[0]);
+		case 1:
+			wcscpy(zOriginalString, pCreditsJA2113[0]);
 			break;
 
-			case 2:
-				wcscpy(zOriginalString, L"@};");
+		case 2:
+			wcscpy(zOriginalString, L"@};");
 			break;
 
-			case 3:
-				wcscpy(zOriginalString, pCreditsJA2113[1]);
+		case 3:
+			wcscpy(zOriginalString, pCreditsJA2113[1]);
 			break;
 
-			case 4:
-				wcscpy(zOriginalString, L"Bugmonster");
+		case 4:
+			wcscpy(zOriginalString, L"anv");
 			break;
 
-			case 5:
-				wcscpy(zOriginalString, L"ChrisL");
+		case 5:
+			wcscpy(zOriginalString, L"BirdFlu");
 			break;
 
-			case 6:
-				wcscpy(zOriginalString, L"Jazz");
+		case 6:
+			wcscpy(zOriginalString, L"Buggler");
 			break;
 
-			case 7:
-				wcscpy(zOriginalString, L"Kaiden");
+		case 7:
+			wcscpy(zOriginalString, L"Bugmonster");
 			break;
 
-			case 8:
-				wcscpy(zOriginalString, L"Lesh");
+		case 8:
+			wcscpy(zOriginalString, L"ChrisL");
 			break;
 
-			case 9:
-				wcscpy(zOriginalString, L"Little Alien");
+		case 9:
+			wcscpy(zOriginalString, L"Flugente");
 			break;
 
-			case 10:
-				wcscpy(zOriginalString, L"Madd Mugsy");
+		case 10:
+			wcscpy(zOriginalString, L"haydent");
 			break;
 
-			case 11:
-				wcscpy(zOriginalString, L"Overhaul");
+		case 11:
+			wcscpy(zOriginalString, L"Jazz");
 			break;
 
-			case 12:
-				wcscpy(zOriginalString, L"RoWa21 aka Roman aka Wanne");
+		case 12:
+			wcscpy(zOriginalString, L"Kaiden");
 			break;
 
-			case 13:
-				wcscpy(zOriginalString, L"Sergeant Kolja");
+		case 13:
+			wcscpy(zOriginalString, L"Kriplo");
 			break;
 
-			case 14:
-				wcscpy(zOriginalString, L"Space Viking");
+		case 14:
+			wcscpy(zOriginalString, L"Lesh");
 			break;
 
-			case 15:
-				wcscpy(zOriginalString, L"@};Zathras");
+		case 15:
+			wcscpy(zOriginalString, L"Little Alien");
 			break;
 
-			case 16:
-				wcscpy(zOriginalString, pCreditsJA2113[2]);
+		case 16:
+			wcscpy(zOriginalString, L"Madd Mugsy");
 			break;
 
-			case 17:
-				wcscpy(zOriginalString, L"BulletSix");
+		case 17:
+			wcscpy(zOriginalString, L"Overhaul");
 			break;
 
-			case 18:
-				wcscpy(zOriginalString, L"Corpse");
+		case 18:
+			wcscpy(zOriginalString, L"RoWa21 aka Wanne");
 			break;
 
-			case 19:
-				wcscpy(zOriginalString, L"John Wright");
+		case 19:
+			wcscpy(zOriginalString, L"Sandro");
 			break;
 
-			case 20:
-				wcscpy(zOriginalString, L"Khor");
+		case 20:
+			wcscpy(zOriginalString, L"silversurfer");
 			break;
 
-			case 21:
-				wcscpy(zOriginalString, L"Lisac");
+		case 21:
+			wcscpy(zOriginalString, L"Space Viking");
 			break;
 
-			case 22:
-				wcscpy(zOriginalString, L"Madd Mugsy");
+		case 22:
+			wcscpy(zOriginalString, L"@};Zathras");
 			break;
 
-			case 23:
-				wcscpy(zOriginalString, L"Marlboro Man");
+		case 23:
+			wcscpy(zOriginalString, pCreditsJA2113[2]);
 			break;
 
-			case 24:
-				wcscpy(zOriginalString, L"PasHancock");
+		case 24:
+			wcscpy(zOriginalString, L"BulletSix");
 			break;
 
-			case 25:
-				wcscpy(zOriginalString, L"Scorpion");
+		case 25:
+			wcscpy(zOriginalString, L"coolberg");
 			break;
 
-			case 26:
-				wcscpy(zOriginalString, L"Starwalker");
+		case 26:
+			wcscpy(zOriginalString, L"Corpse");
 			break;
 
-			case 27:
-				wcscpy(zOriginalString, L"Tbird94lx");
+		case 27:
+			wcscpy(zOriginalString, L"John Wright");
 			break;
 
-			case 28:
-				wcscpy(zOriginalString, L"Terry Thorne");
+		case 28:
+			wcscpy(zOriginalString, L"Kaerar");
 			break;
 
-			case 29:
-				wcscpy(zOriginalString, pCreditsJA2113[3]);
+		case 29:
+			wcscpy(zOriginalString, L"Kazuya");
 			break;
 
-			case 30:
-				wcscpy(zOriginalString, pCreditsJA2113[4]);
+		case 30:
+			wcscpy(zOriginalString, L"Khor");
 			break;
 
-			case 31:
-				wcscpy(zOriginalString, L"Madd Mugsy");
+		case 31:
+			wcscpy(zOriginalString, L"Lisac");
 			break;
 
-			case 32:
-				wcscpy(zOriginalString,	L"Starwalker");
+		case 32:
+			wcscpy(zOriginalString, L"Madd Mugsy");
 			break;
 
-			case 33:
-				wcscpy(zOriginalString, L"@};Lisac");
+		case 33:
+			wcscpy(zOriginalString, L"Marlboro Man");
 			break;
 
-			case 34:
-				wcscpy(zOriginalString, pCreditsJA2113[5]);
+		case 34:
+			wcscpy(zOriginalString, L"PasHancock");
 			break;
 
-			case 35:
-				wcscpy(zOriginalString, L"BearPit");
+		case 35:
+			wcscpy(zOriginalString, L"Scorpion");
 			break;
 
-			case 36:
-				wcscpy(zOriginalString, L"Captain J");
+		case 36:
+			wcscpy(zOriginalString, L"smeagol");
 			break;
 
-			case 37:
-				wcscpy(zOriginalString, L"DeFrog");
+		case 37:
+			wcscpy(zOriginalString, L"Starwalker");
 			break;
 
-			case 38:
-				wcscpy(zOriginalString, L"Farmer Toby");
+		case 38:
+			wcscpy(zOriginalString, L"Tbird94lx");
 			break;
 
-			case 39:
-				wcscpy(zOriginalString, L"Headrock");
+		case 39:
+			wcscpy(zOriginalString, L"Terry Thorne");
 			break;
 
-			case 40:
-				wcscpy(zOriginalString, L"inshy");
+		case 40:
+			wcscpy(zOriginalString, pCreditsJA2113[3]);
 			break;
 
-			case 41:
-				wcscpy(zOriginalString, L"JAPH");
+		case 41:
+			wcscpy(zOriginalString, pCreditsJA2113[4]);
 			break;
 
-			case 42:
-				wcscpy(zOriginalString, L"Jones");
+		case 42:
+			wcscpy(zOriginalString, L"Madd Mugsy");
 			break;
 
-			case 43:
-				wcscpy(zOriginalString, L"Judge");
+		case 43:
+			wcscpy(zOriginalString, L"Starwalker");
 			break;
 
-			case 44:
-				wcscpy(zOriginalString, L"Miro");
+		case 44:
+			wcscpy(zOriginalString, L"@};Lisac");
 			break;
 
-			case 45:
-				wcscpy(zOriginalString, L"Nitrat");
+		case 45:
+			wcscpy(zOriginalString, pCreditsJA2113[5]);
 			break;
 
-			case 46:
-				wcscpy(zOriginalString, L"Pulmu");
+		case 46:
+			wcscpy(zOriginalString, L"BearPit");
 			break;
 
-			case 47:
-				wcscpy(zOriginalString, L"Scorpion");
+		case 47:
+			wcscpy(zOriginalString, L"Captain J");
 			break;
 
-			case 48:
-				wcscpy(zOriginalString, L"ShadoWarrior");
+		case 48:
+			wcscpy(zOriginalString, L"DeFrog");
 			break;
 
-			case 49:
-				wcscpy(zOriginalString, L"Snap");
+		case 49:
+			wcscpy(zOriginalString, L"DepressivesBrot");
 			break;
 
-			case 50:
-				wcscpy(zOriginalString, L"TheDrill");
+		case 50:
+			wcscpy(zOriginalString, L"Dimitri");
 			break;
 
-			case 51:
-				wcscpy(zOriginalString, L"Wil473");
+		case 51:
+			wcscpy(zOriginalString, L"Farmer Toby");
 			break;
 
-			case 52:
-				wcscpy(zOriginalString, pCreditsJA2113[6]);
+		case 52:
+			wcscpy(zOriginalString, L"Headrock");
+			break;
+
+		case 53:
+			wcscpy(zOriginalString, L"inshy");
+			break;
+
+		case 54:
+			wcscpy(zOriginalString, L"JAPH");
+			break;
+
+		case 55:
+			wcscpy(zOriginalString, L"JMich");
+			break;
+
+		case 56:
+			wcscpy(zOriginalString, L"Jones");
+			break;
+
+		case 57:
+			wcscpy(zOriginalString, L"Judge");
+			break;
+
+		case 58:
+			wcscpy(zOriginalString, L"Kermi");
+			break;
+
+		case 59:
+			wcscpy(zOriginalString, L"Miro");
+			break;
+
+		case 60:
+			wcscpy(zOriginalString, L"Pulmu");
+			break;
+
+		case 61:
+			wcscpy(zOriginalString, L"Scheinworld");
+			break;
+
+		case 62:
+			wcscpy(zOriginalString, L"Scorpion");
+			break;
+
+		case 63:
+			wcscpy(zOriginalString, L"Sergeant Kolja");
+			break;
+
+		case 64:
+			wcscpy(zOriginalString, L"ShadoWarrior");
+			break;
+
+		case 65:
+			wcscpy(zOriginalString, L"Shanga");
+			break;
+
+		case 66:
+			wcscpy(zOriginalString, L"Snap");
+			break;
+
+		case 67:
+			wcscpy(zOriginalString, L"TheDrill");
+			break;
+
+		case 68:
+			wcscpy(zOriginalString, L"WarmSteel");
+			break;
+
+		case 69:
+			wcscpy(zOriginalString, L"Wil473");
+			break;
+
+		case 70:
+			wcscpy(zOriginalString, pCreditsJA2113[6]);
 			break;
 
 			// Additonal lines for free space
-			case 53:
-				wcscpy(zOriginalString, L"@T,B40,C208,{; ");
+		case 71:
+			wcscpy(zOriginalString, L"@T,B40,C208,{; ");
 			break;
 
-			case 54:
-				wcscpy(zOriginalString, L"@}; ");
+		case 72:
+			wcscpy(zOriginalString, L"@}; ");
 			break;
 
 			// 3.)	Sir-Tech Credits
-			default:
-				//Get the current Credit record
-				uiStartLoc = CREDITS_LINESIZE * (guiCurrentCreditRecord-55);
-				if( !LoadEncryptedDataFromFile( CRDT_NAME_OF_CREDIT_FILE, zOriginalString, uiStartLoc, CREDITS_LINESIZE ) )
-				{
-					//there are no more credits
-					return( FALSE );
-				}
+		default:
+			//Get the current Credit record
+			uiStartLoc = CREDITS_LINESIZE * (guiCurrentCreditRecord - (72 + 1));
+			if (!LoadEncryptedDataFromFile(CRDT_NAME_OF_CREDIT_FILE, zOriginalString, uiStartLoc, CREDITS_LINESIZE))
+			{
+				//there are no more credits
+				return(FALSE);
+			}
 		}
 	}
 
