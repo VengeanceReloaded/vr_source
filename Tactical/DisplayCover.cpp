@@ -594,72 +594,107 @@ void CalculateCoverFromSoldier( SOLDIERTYPE* pFromSoldier, const INT32& sTargetG
 	}
 }
 
-void DisplayRangeToTarget( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
+void DisplayRangeToTarget(SOLDIERTYPE *pSoldier, INT32 sTargetGridNo)
 {
-	UINT16 usRange=0;
+	UINT16 usRange = 0;
 	CHAR16	zOutputString[512];
 	UINT8	title = (UsingNewCTHSystem() == true ? DC_MSG__NCTH_GUN_RANGE_INFORMATION : DC_MSG__GUN_RANGE_INFORMATION);
 
-	if( sTargetGridNo == NOWHERE || sTargetGridNo == 0 )
+	if (sTargetGridNo == NOWHERE || sTargetGridNo == 0)
 	{
 		return;
 	}
 
-	{
-		UINT8 ubLightLevel = LightTrueLevel(sTargetGridNo, gsInterfaceLevel);
-		UINT8 ubBrightness = 100 - 100 * (ubLightLevel-SHADE_MAX)/(SHADE_MIN-SHADE_MAX); // percentage
-		INT8 ubTerrainType = GetTerrainTypeForGrid(sTargetGridNo, gsInterfaceLevel);
+	UINT8 ubLightLevel = LightTrueLevel(sTargetGridNo, gsInterfaceLevel);
+	UINT8 ubBrightness = 100 - 100 * (ubLightLevel - SHADE_MAX) / (SHADE_MIN - SHADE_MAX); // percentage
+	INT8 ubTerrainType = GetTerrainTypeForGrid(sTargetGridNo, gsInterfaceLevel);
 
-		INT8 ubCover = - GetSightAdjustment(pSoldier, sTargetGridNo, gsInterfaceLevel);
+	INT8 ubCover = -GetSightAdjustment(pSoldier, sTargetGridNo, gsInterfaceLevel);
 
-		//display a string with cover value of current selected merc and brightness
-		//swprintf( zOutputString, gzDisplayCoverText[DC_MSG__COVER_INFORMATION], ubCover, GetTerrainName(ubTerrainType), ubBrightness );
-
-		//Display the msg
-		//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, zOutputString );
-
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE,
-			gzDisplayCoverText[DC_MSG__COVER_INFORMATION],
-			ubCover, GetTerrainName(ubTerrainType), ubBrightness );
-	}
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzDisplayCoverText[DC_MSG__COVER_INFORMATION], ubCover, GetTerrainName(ubTerrainType), ubBrightness);
 
 	//Get the range to the target location
-	usRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sTargetGridNo );
+	usRange = GetRangeInCellCoordsFromGridNoDiff(pSoldier->sGridNo, sTargetGridNo);
+	UINT8 ubItemCursor = GetActionModeCursor(pSoldier);
+	UINT32 uiHitChance = 0;
+	UINT16 usGunRange = 0;
+	INT8 bTempTargetLevel = pSoldier->bTargetLevel;
+	UINT16 usTempAttackingWeapon = pSoldier->usAttackingWeapon;
+
+	pSoldier->usAttackingWeapon = 0;
+	//AXP 30.03.2007: Fix CtH calculation for first shot after changing aim level (roof/ground)
+	pSoldier->bTargetLevel = (INT8)gsInterfaceLevel;
 
 	//if the soldier has a weapon in hand, display gun range and chance to hit
-	if( WeaponInHand( pSoldier ) )
+	if (WeaponInHand(pSoldier))
 	{
-		UINT32 uiHitChance;
-		//AXP 30.03.2007: Fix CtH calculation for first shot after changing aim level (roof/ground)
-		INT8 bTempTargetLevel = pSoldier->bTargetLevel;
-		pSoldier->bTargetLevel = (INT8)gsInterfaceLevel;
-		uiHitChance = CalcChanceToHitGun( pSoldier, sTargetGridNo, (INT8)(pSoldier->aiData.bShownAimTime ), pSoldier->bAimShotLocation );
-		// HEADROCK HAM B2.7: CTH approximation?
-		if (gGameExternalOptions.fApproximateCTH)
-		{	
-			uiHitChance = ChanceToHitApproximation( pSoldier, uiHitChance );
-		}
-		pSoldier->bTargetLevel = bTempTargetLevel;
-
-		// HEADROCK HAM 3.6: Calculate Gun Range using formula.
 		// Flugente: we might be equipped with an underbarrel gun....
 		OBJECTTYPE* pObjhand = pSoldier->GetUsedWeapon(&pSoldier->inv[HANDPOS]);
-		UINT16 usGunRange = GunRange(pObjhand, pSoldier ); // SANDRO - added argument
+		UINT32 usItemClass = Item[pObjhand->usItem].usItemClass;
 
-		swprintf( zOutputString, gzDisplayCoverText[title], usRange / 10, usGunRange / 10, uiHitChance );
-		//Display the msg
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, zOutputString );
+		pSoldier->usAttackingWeapon = pObjhand->usItem;
+
+		// sevenfm: if using launcher or throwing knife, use CalcThrownChanceToHit
+		if (ubItemCursor == TRAJECTORYCURS || usItemClass == IC_THROWING_KNIFE)
+		{
+			uiHitChance = CalcThrownChanceToHit(pSoldier, sTargetGridNo, pSoldier->aiData.bShownAimTime, pSoldier->bAimShotLocation);
+			usGunRange = CalcMaxTossRange(pSoldier, pObjhand->usItem, TRUE) * CELL_X_SIZE;
+		}
+		else if (usItemClass == IC_BLADE)
+		{
+			if (gfUIFullTargetFound && MercPtrs[gusUIFullTargetID])
+				uiHitChance = CalcChanceToStab(pSoldier, MercPtrs[gusUIFullTargetID], pSoldier->aiData.bShownAimTime);
+			else
+				uiHitChance = 0;
+			usGunRange = 15;
+			swprintf(zOutputString, gzDisplayCoverText[title], usRange / 10, usGunRange / 10, uiHitChance);
+		}
+		else if (ubItemCursor == TOSSCURS)
+		{
+			uiHitChance = CalcThrownChanceToHit(pSoldier, sTargetGridNo, pSoldier->aiData.bShownAimTime, pSoldier->bAimShotLocation);
+			usGunRange = CalcMaxTossRange(pSoldier, pSoldier->inv[HANDPOS].usItem, TRUE) * CELL_X_SIZE;
+			swprintf(zOutputString, gzDisplayCoverText[title], usRange / 10, usGunRange / 10, uiHitChance);
+		}
+		else
+		{
+			uiHitChance = CalcChanceToHitGun(pSoldier, sTargetGridNo, (INT8)(pSoldier->aiData.bShownAimTime), pSoldier->bAimShotLocation);
+			// HEADROCK HAM B2.7: CTH approximation?
+			if (gGameExternalOptions.fApproximateCTH)
+			{
+				uiHitChance = ChanceToHitApproximation(pSoldier, uiHitChance);
+			}
+			// HEADROCK HAM 3.6: Calculate Gun Range using formula.		
+			usGunRange = GunRange(pObjhand, pSoldier); // SANDRO - added argument		
+		}
+		swprintf(zOutputString, gzDisplayCoverText[title], usRange / 10, usGunRange / 10, uiHitChance);
+	}
+	else if (pSoldier->inv[HANDPOS].exists() && ubItemCursor == TOSSCURS)
+	{
+		pSoldier->usAttackingWeapon = pSoldier->inv[HANDPOS].usItem;
+		uiHitChance = CalcThrownChanceToHit(pSoldier, sTargetGridNo, pSoldier->aiData.bShownAimTime, pSoldier->bAimShotLocation);
+		usGunRange = CalcMaxTossRange(pSoldier, pSoldier->inv[HANDPOS].usItem, TRUE) * CELL_X_SIZE;
+		swprintf(zOutputString, gzDisplayCoverText[title], usRange / 10, usGunRange / 10, uiHitChance);
+	}
+	else if ((!pSoldier->inv[HANDPOS].exists() || Item[pSoldier->inv[HANDPOS].usItem].usItemClass == IC_PUNCH) && gfUIFullTargetFound && MercPtrs[gusUIFullTargetID])
+	{
+		if (pSoldier->inv[HANDPOS].exists())
+			pSoldier->usAttackingWeapon = pSoldier->inv[HANDPOS].usItem;
+		else
+			pSoldier->usAttackingWeapon = 0;
+		uiHitChance = CalcChanceToPunch(pSoldier, MercPtrs[gusUIFullTargetID], pSoldier->aiData.bShownAimTime);
+		usGunRange = 15;
+		swprintf(zOutputString, gzDisplayCoverText[title], usRange / 10, usGunRange / 10, uiHitChance);
 	}
 	else
 	{
-		swprintf( zOutputString, gzDisplayCoverText[title], usRange / 10, 0, 0 );
-
-		//Display the msg
-		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, zOutputString );
+		swprintf(zOutputString, gzDisplayCoverText[title], usRange / 10, 0, 0);
 	}
 
-	//increment the display gun range counter ( just seeing how many times people use it )
-	//gJa25SaveStruct.uiDisplayGunRangeCounter++;
+	pSoldier->bTargetLevel = bTempTargetLevel;
+	pSoldier->usAttackingWeapon = usTempAttackingWeapon;
+
+	//Display the msg
+	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, zOutputString);
 }
 
 BOOLEAN IsTheRoofVisible( const INT32& sGridNo )
