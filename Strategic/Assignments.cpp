@@ -6381,6 +6381,7 @@ BOOLEAN TrainTownInSector( SOLDIERTYPE *pTrainer, INT16 sMapX, INT16 sMapY, INT1
 }
 
 extern INT32 giReinforcementPool;
+extern BOOLEAN gfUnlimitedTroops;
 
 // handle processing of prisoners
 void HandlePrisonerProcessingInSector( INT16 sMapX, INT16 sMapY, INT8 bZ )
@@ -6568,7 +6569,8 @@ void HandlePrisonerProcessingInSector( INT16 sMapX, INT16 sMapY, INT8 bZ )
 		}
 
 		// there is a chance that escaped prisoners may return to the queen...
-		if ( Random( 100 ) < gGameExternalOptions.ubPrisonerReturntoQueenChance )
+		// sevenfm: don't change reinforcement pool when unlimited reinforcements enabled
+		if (Random(100) < gGameExternalOptions.ubPrisonerReturntoQueenChance && !gfUnlimitedTroops)
 			++giReinforcementPool;
 	}
 		

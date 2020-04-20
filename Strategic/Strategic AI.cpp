@@ -3288,12 +3288,13 @@ void EvaluateQueenSituation()
 			break;
 	}
 
-	if( !giReinforcementPool )
-	{ //Queen has run out of reinforcements.	Simulate recruiting and training new troops
+	// sevenfm: allow recruiting when pool size drops below QUEEN_POOL_INCREMENT_PER_DIFFICULTY_LEVEL, this should result in more stable strategic AI behavior
+	if (giReinforcementPool <= 0 || !gfUnlimitedTroops && giReinforcementPool < gGameExternalOptions.guiBaseQueenPoolIncrement)
+	{
+		//Queen has run out of reinforcements. Simulate recruiting and training new troops.
 		uiOffset *= 10;
-		//Madd: don't need an unlimited troops check here, since they can never run out like this
-		giReinforcementPool += ( gGameExternalOptions.guiBaseQueenPoolIncrement * gGameOptions.ubDifficultyLevel ) * ( 100 + CurrentPlayerProgressPercentage() ) / 100 ;
-		AddStrategicEvent( EVENT_EVALUATE_QUEEN_SITUATION, GetWorldTotalMin() + uiOffset, 0 );
+		giReinforcementPool += (gGameExternalOptions.guiBaseQueenPoolIncrement * gGameOptions.ubDifficultyLevel) * (100 + CurrentPlayerProgressPercentage()) / 100;
+		AddStrategicEvent(EVENT_EVALUATE_QUEEN_SITUATION, GetWorldTotalMin() + uiOffset, 0);
 		return;
 	}
 
