@@ -1057,7 +1057,8 @@ void GenerateConsString( STR16 zItemCons, OBJECTTYPE * pObject, UINT32 uiPixLimi
 BOOLEAN UseNASDesc(OBJECTTYPE *pObject){
 	if(pObject->exists() == FALSE)
 		return FALSE;
-	if(guiCurrentScreen == MAP_SCREEN && Item[pObject->usItem].usItemClass == IC_LBEGEAR && UsingNewAttachmentSystem()==true && gGameSettings.fOptions[TOPTION_SHOW_LBE_CONTENT])
+	// silversurfer: We allow it now but only in EDB.
+	if (guiCurrentScreen == MAP_SCREEN && !UsingEDBSystem()) //Item[pObject->usItem].usItemClass == IC_LBEGEAR && UsingNewAttachmentSystem()==true && gGameSettings.fOptions[TOPTION_SHOW_LBE_CONTENT])
 		return FALSE;	// the map screen can't support NAS and LBEGEAR.
 	return (/*Item[pObject->usItem].usItemClass != IC_LBEGEAR && Item[pObject->usItem].usItemClass != IC_MONEY && */UsingNewAttachmentSystem()==true);
 }
@@ -6335,15 +6336,16 @@ void ItemDescAttachmentsCallback( MOUSE_REGION * pRegion, INT32 iReason )
 						break;
 					case BACKPACK:
 						GetLBESlots(BPACKPOCKPOS, pocketKey);
-						break;
-						// this should never happen
+						break;						
 					default:
+						// this should never happen
 						return;
 					}
+
 					UINT8 slotCount = 0;
 					for (std::list<OBJECTTYPE>::iterator iter = (*gpItemDescObject)[gubItemDescStatusIndex]->attachments.begin(); iter != (*gpItemDescObject)[gubItemDescStatusIndex]->attachments.end(); ++iter, ++slotCount)
 					{
-						// compare the adress
+						// compare the address
 						if (&(*iter) == pAttachment)
 						{
 							std::vector<UINT16>	usAttachmentSlotIndexVector = GetItemSlots(gpItemDescObject);
@@ -8201,7 +8203,12 @@ void RenderLBENODEItems( OBJECTTYPE *pObj, int subObject )
 			BltVideoObjectFromIndex( guiSAVEBUFFER, guiAttachmentSlot, LBEInvPocketXY[cnt].fBigPocket, sX-7, sY-1, VO_BLT_SRCTRANSPARENCY, NULL );
 		lbePocket = LoadBearingEquipment[Item[pObj->usItem].ubClassIndex].lbePocketIndex[icPocket[pocketKey[cnt]]];
 		if( lbePocket == 0 && LoadBearingEquipment[Item[pObj->usItem].ubClassIndex].lbePocketsAvailable & (UINT16)pow((double)2, icPocket[pocketKey[cnt]]))
-			lbePocket = GetPocketFromAttachment(&pSoldier->inv[icLBE[pocketKey[cnt]]], icPocket[pocketKey[cnt]]);
+		{
+			if (wornItem)
+				lbePocket = GetPocketFromAttachment(&pSoldier->inv[icLBE[pocketKey[cnt]]], icPocket[pocketKey[cnt]], subObject);
+			else
+				lbePocket = GetPocketFromAttachment(pObj, icPocket[pocketKey[cnt]], subObject);
+		}
 		
 		pObject = NULL;
 		if(wornItem == true)
@@ -9502,9 +9509,10 @@ BOOLEAN HandleItemPointerClick( INT32 usMapPos )
 			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("Incremtning ABC: Throw item to %d", gTacticalStatus.ubAttackBusyCount) );
 			DebugAttackBusy( "Incrementing ABC: Throw item\n" );
 
-
 			// Given our gridno, throw grenate!
-			CalculateLaunchItemParamsForThrow( gpItemPointerSoldier, sGridNo, gpItemPointerSoldier->pathing.bLevel, (INT16)( ( gsInterfaceLevel * 256 ) + sEndZ ), gpItemPointer, 0, ubThrowActionCode, uiThrowActionData );
+			// sevenfm: use target level to calculate throw params
+			CalculateLaunchItemParamsForThrow(gpItemPointerSoldier, sGridNo, (UINT8)gsInterfaceLevel, (INT16)((gsInterfaceLevel * 256) + sEndZ), gpItemPointer, 0, ubThrowActionCode, uiThrowActionData);
+			//CalculateLaunchItemParamsForThrow(gpItemPointerSoldier, sGridNo, gpItemPointerSoldier->pathing.bLevel, (INT16)((gsInterfaceLevel * 256) + sEndZ), gpItemPointer, 0, ubThrowActionCode, uiThrowActionData);
 
 			// OK, goto throw animation
 			gpItemPointerSoldier->usGrenadeItem = 0;
