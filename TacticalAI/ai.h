@@ -329,6 +329,10 @@ BOOLEAN EnemyAlerted( SOLDIERTYPE *pSoldier );
 #define NIGHT_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO )
 #define VISION_RANGE MaxNormalVisionDistance()
 
+// sevenfm: distance for tactical AI checks, roughly equal to normal day vision range
+#define TACTICAL_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO * 2)
+#define BOMB_DETECTION_RANGE (TACTICAL_RANGE / 4)
+
 // sevenfm: limit min/max flank distance depending on sight range and time of day
 #define MIN_FLANK_DIST_YELLOW (DAY_VISION_RANGE/2)
 #define MAX_FLANK_DIST_YELLOW (VISION_RANGE + 20)

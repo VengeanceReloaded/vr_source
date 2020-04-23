@@ -825,29 +825,29 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 {
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcbestthrow");
 	// September 9, 1998: added code for LAWs (CJC)
-	UINT8 ubLoop, ubLoop2;
-	INT32 iAttackValue;
-	INT32 iHitRate, iThreatValue, iTotalThreatValue,iOppThreatValue[MAXMERCS];
-	INT32 sGridNo, sEndGridNo, sFriendTile[MAXMERCS], sOpponentTile[MAXMERCS];
+	UINT8	ubLoop, ubLoop2;
+	INT32	iAttackValue;
+	INT32	iHitRate, iThreatValue, iTotalThreatValue,iOppThreatValue[MAXMERCS];
+	INT32	sGridNo, sEndGridNo, sFriendTile[MAXMERCS], sOpponentTile[MAXMERCS];
 	INT8	bFriendLevel[MAXMERCS], bOpponentLevel[MAXMERCS];
-	INT32 iEstDamage;
-	UINT8 ubFriendCnt = 0,ubOpponentCnt = 0, ubOpponentID[MAXMERCS];
-	UINT8 ubMaxPossibleAimTime;
-	INT16 ubRawAPCost,ubMinAPcost;
-	UINT8 ubChanceToHit,ubChanceToGetThrough,ubChanceToReallyHit;
-	UINT32 uiPenalty;
-	UINT8 ubSearchRange;
-	UINT16 usOppDist;
+	INT32	iEstDamage;
+	UINT8	ubFriendCnt = 0,ubOpponentCnt = 0, ubOpponentID[MAXMERCS];
+	UINT8	ubMaxPossibleAimTime;
+	INT16	ubRawAPCost, ubMinAPcost;
+	UINT8	ubChanceToHit, ubChanceToGetThrough, ubChanceToReallyHit;
+	UINT32	uiPenalty;
+	UINT8	ubSearchRange;
+	UINT16	usOppDist;
 	BOOLEAN fFriendsNearby;
-	UINT16 usInHand, usGrenade;
-	UINT8 ubOppsInRange, ubOppsAdjacent;
+	UINT16	usInHand, usGrenade;
+	UINT8	ubOppsInRange, ubOppsAdjacent;
 	BOOLEAN fSkipLocation;
 	INT8	bPayloadPocket;
 	INT8	bMaxLeft,bMaxRight,bMaxUp,bMaxDown,bXOffset,bYOffset;
 	INT8	bPersOL, bPublOL;
 	SOLDIERTYPE *pOpponent, *pFriend;
 	static INT16	sExcludeTile[100]; // This array is for storing tiles that we have
-	UINT8 ubNumExcludedTiles = 0;		// already considered, to prevent duplication of effort
+	UINT8	ubNumExcludedTiles = 0;		// already considered, to prevent duplication of effort
 	INT32	iTossRange;
 	UINT8	ubSafetyMargin = 0;
 	UINT8	ubDiff;
@@ -880,8 +880,11 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 	if (Item[usInHand].mortar )
 	{
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcbestthrow: buddy's got a mortar");
-		//	bPayloadPocket = FindObj( pSoldier, MORTAR_SHELL );
-		bPayloadPocket = FindLaunchable ( pSoldier, usInHand );
+		bPayloadPocket = FindNonSmokeLaunchable(pSoldier, usInHand);
+		if (bPayloadPocket == NO_SLOT)
+		{
+			bPayloadPocket = FindLaunchable(pSoldier, usInHand);
+		}
 		if (bPayloadPocket == NO_SLOT)
 		{
 			return;	// no shells, can't fire the MORTAR
@@ -915,12 +918,28 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcbestthrow: buddy's got a rocket launcher");
 		// put in hand
 		bPayloadPocket = HANDPOS;//dnl ch63 240813
-		if ( Item[usInHand].singleshotrocketlauncher )
-			// as C1
-			ubSafetyMargin = (UINT8)Explosive[ Item[ C1 ].ubClassIndex ].ubRadius;
+		if (Item[usInHand].singleshotrocketlauncher)
+		{
+			// sevenfm: for single shot rocket launchers, use buddy item instead
+			if (Item[usInHand].usBuddyItem && Item[Item[usInHand].usBuddyItem].usItemClass & IC_EXPLOSV)
+			{
+				usGrenade = Item[usInHand].usBuddyItem;
+				ubSafetyMargin = (UINT8)Explosive[Item[Item[usInHand].usBuddyItem].ubClassIndex].ubRadius;
+			}
+			else
+			{
+				// as C1
+				usGrenade = C1;
+				ubSafetyMargin = (UINT8)Explosive[Item[C1].ubClassIndex].ubRadius;
+			}
+		}
 		else
 		{
-			bPayloadPocket = FindLaunchable ( pSoldier, usInHand );
+			bPayloadPocket = FindNonSmokeLaunchable(pSoldier, usInHand);
+			if (bPayloadPocket == NO_SLOT)
+			{
+				bPayloadPocket = FindLaunchable(pSoldier, usInHand);
+			}
 			if (bPayloadPocket == NO_SLOT)
 			{
 				return;	// no ammo, can't fire
@@ -931,21 +950,16 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 	else if (Item[usInHand].cannon )
 	{
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"calcbestthrow: buddy's got a tank");
-		bPayloadPocket = FindLaunchable ( pSoldier, usInHand );
+		bPayloadPocket = FindNonSmokeLaunchable(pSoldier, usInHand);
+		if (bPayloadPocket == NO_SLOT)
+		{
+			bPayloadPocket = FindLaunchable(pSoldier, usInHand);
+		}
 		if (bPayloadPocket == NO_SLOT)
 		{
 			return;	// no ammo, can't fire
 		}
 		ubSafetyMargin = (UINT8)Explosive[ Item[ pSoldier->inv[bPayloadPocket].usItem ].ubClassIndex ].ubRadius;
-
-
-		//bPayloadPocket = FindObj( pSoldier, TANK_SHELL );
-		//if (bPayloadPocket == NO_SLOT)
-		//{
-		//	return;	// no grenades, can't fire the GLAUNCHER
-		//}
-		//ubSafetyMargin = Explosive[ Item[ TANK_SHELL ].ubClassIndex ].ubRadius;
-
 	}
 	else
 	{
@@ -961,6 +975,9 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 			ubSafetyMargin /= 2;
 		}
 	}
+
+	// sevenfm: limit ubSafetyMargin in case it is set too high in XML
+	ubSafetyMargin = min(ubSafetyMargin, TACTICAL_RANGE / 2);
 
 	ubDiff = SoldierDifficultyLevel( pSoldier );
 
