@@ -2268,10 +2268,11 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fLessJams					= iniReader.ReadBoolean("Extended Options", "LESS_JAMS", true, false);
 	gGameExternalOptions.fEnemyJams					= iniReader.ReadBoolean("Extended Options", "ENEMY_JAMS", true, false);
 	gGameExternalOptions.ubChangePaletteLevel		= iniReader.ReadInteger("Extended Options", "CHANGE_PALETTE_LEVEL", 50, 10, 100);
-	gGameExternalOptions.fExtendedItemImages		= iniReader.ReadBoolean("Extended Options", "EXTENDED_ITEM_IMAGES", FALSE, FALSE);
+	gGameExternalOptions.fExtendedItemImages		= iniReader.ReadBoolean("Extended Options", "EXTENDED_ITEM_IMAGES", false, false);
 	gGameExternalOptions.fExtraItems				= iniReader.ReadBoolean("Extended Options", "EXTRA_ITEMS", true, false);
-	gGameExternalOptions.fRedTracer					= iniReader.ReadBoolean("Extended Options", "RED_TRACER", TRUE);
-	gGameExternalOptions.fTracerLight				= iniReader.ReadBoolean("Extended Options", "TRACER_LIGHT", TRUE);
+	gGameExternalOptions.fRedTracer					= iniReader.ReadBoolean("Extended Options", "RED_TRACER", true, false);
+	gGameExternalOptions.fTracerLight				= iniReader.ReadBoolean("Extended Options", "TRACER_LIGHT", false, false);
+	gGameExternalOptions.fTotalDestruction			= iniReader.ReadBoolean("Extended Options", "TOTAL_DESTRUCTION", true, false);
 }
 
 

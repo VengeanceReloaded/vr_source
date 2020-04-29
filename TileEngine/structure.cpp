@@ -1674,7 +1674,7 @@ BOOLEAN StructureDensity( STRUCTURE * pStructure, UINT8 * pubLevel0, UINT8 * pub
 	return( TRUE );
 }
 
-BOOLEAN DamageStructure( STRUCTURE * pStructure, UINT8 ubDamage, UINT8 ubReason, INT32 sGridNo, INT16 sX, INT16 sY, UINT8 ubOwner )
+BOOLEAN DamageStructure(STRUCTURE * pStructure, UINT8 ubDamage, UINT8 ubReason, INT32 sGridNo, INT16 sX, INT16 sY, UINT8 ubOwner, INT32 sAntiMaterialImpact)
 {
 	// do damage to a structure; returns TRUE if the structure should be removed
 
@@ -1694,16 +1694,19 @@ BOOLEAN DamageStructure( STRUCTURE * pStructure, UINT8 ubDamage, UINT8 ubReason,
 		return( FALSE );
 	}
 
+	UINT8 ubBaseArmour = gubMaterialArmour[pStructure->pDBStructureRef->pDBStructure->ubArmour];
+	UINT8 ubBaseDamage = ubDamage;
+
 	// Account for armour!
 	if (ubReason == STRUCTURE_DAMAGE_EXPLOSION)
 	{
 		if ( pStructure->fFlags & STRUCTURE_EXPLOSIVE )
 		{
-			ubArmour = gubMaterialArmour[ pStructure->pDBStructureRef->pDBStructure->ubArmour ] / 3;
+			ubArmour = ubBaseArmour / 3;
 		}
 		else
 		{
-			ubArmour = gubMaterialArmour[ pStructure->pDBStructureRef->pDBStructure->ubArmour ] / 2;
+			ubArmour = ubBaseArmour / 2;
 		}
 
 		if (ubArmour > ubDamage)
@@ -1723,49 +1726,57 @@ BOOLEAN DamageStructure( STRUCTURE * pStructure, UINT8 ubDamage, UINT8 ubReason,
 	}
 
 	// OK, Let's check our reason
-	if ( ubReason == STRUCTURE_DAMAGE_GUNFIRE )
+	if (ubReason == STRUCTURE_DAMAGE_GUNFIRE)
 	{
 		// If here, we have penetrated, check flags
 		// Are we an explodable structure?
-		if ( (pStructure->fFlags & STRUCTURE_EXPLOSIVE) && Random( 2 ) )
+		if ((pStructure->fFlags & STRUCTURE_EXPLOSIVE) && Random(2))
 		{
 			// Remove struct!
-			pBase = FindBaseStructure( pStructure );
+			pBase = FindBaseStructure(pStructure);
 
 			// ATE: Set hit points to zero....
 			pBase->ubHitPoints = 0;
 
-			// Get LEVELNODE for struct and remove!
-			// pNode = FindLevelNodeBasedOnStructure( pBase->sGridNo, pBase );
-
-
-			//Set a flag indicating that the following changes are to go the the maps temp file
-			// ApplyMapChangesToMapTempFile( TRUE );
-			// Remove!
-			// RemoveStructFromLevelNode( pBase->sGridNo, pNode );
-			// ApplyMapChangesToMapTempFile( FALSE );
-
 			// Generate an explosion here!
-			IgniteExplosion( ubOwner, sX, sY, 0, sGridNo, STRUCTURE_IGNITE, 0 );
+			IgniteExplosion(ubOwner, sX, sY, 0, sGridNo, STRUCTURE_IGNITE, 0);
 
 			// ATE: Return false here, as we are dealing with deleting the graphic here...
-			return( FALSE );
+			return(FALSE);
 		}
 
 		// Make hit sound....
-	if ( pStructure->fFlags & STRUCTURE_CAVEWALL )
-	{
-			PlayJA2Sample( S_VEG_IMPACT1, RATE_11025, SoundVolume( HIGHVOLUME, sGridNo ), 1, SoundDir( sGridNo ) );
-	}
-	else
-	{
-		if ( guiMaterialHitSound[ pStructure->pDBStructureRef->pDBStructure->ubArmour ] != -1 )
+		if (pStructure->fFlags & STRUCTURE_CAVEWALL)
 		{
-			PlayJA2Sample( guiMaterialHitSound[ pStructure->pDBStructureRef->pDBStructure->ubArmour ], RATE_11025, SoundVolume( HIGHVOLUME, sGridNo ), 1, SoundDir( sGridNo ) );
+			PlayJA2Sample(S_VEG_IMPACT1, RATE_11025, SoundVolume(HIGHVOLUME, sGridNo), 1, SoundDir(sGridNo));
 		}
-	}
+		else
+		{
+			if (guiMaterialHitSound[pStructure->pDBStructureRef->pDBStructure->ubArmour] != -1)
+			{
+				PlayJA2Sample(guiMaterialHitSound[pStructure->pDBStructureRef->pDBStructure->ubArmour], RATE_11025, SoundVolume(HIGHVOLUME, sGridNo), 1, SoundDir(sGridNo));
+			}
+		}
+
+		// Flugente: anti-material rifles can damage and even destroy structures, but some structures remain indestructible (otherwise the player might gain access to inaccessible spots)
+		// the impact must be damaging enough, otherwise this won't have an effect
+		if (ubBaseArmour < 75 && ubBaseArmour > 0 && sAntiMaterialImpact > ubBaseArmour / 2 && gGameExternalOptions.fTotalDestruction)
+		{
+			// we will run into this exact function again. In order to damage the object, we need to do damage of at least half the armour value
+			INT16 sStructureDamage = ubBaseArmour / 2 + 1 + sAntiMaterialImpact / ubBaseArmour;
+
+			if (Chance(20 + 20 * sAntiMaterialImpact / ubBaseArmour))
+			{
+				BOOLEAN recompile = FALSE;
+				ExplosiveDamageGridNo(sGridNo, sStructureDamage, 10, &recompile, FALSE, -1, FALSE, ubOwner, 0);
+
+				//Since the structure is being damaged, set the map element that a structure is damaged
+				gpWorldLevelData[sGridNo].uiFlags |= MAPELEMENT_STRUCTURE_DAMAGED;
+			}
+		}
+
 		// Don't update damage HPs....
-		return( TRUE );
+		return(TRUE);
 	}
 
 	// OK, LOOK FOR A SAM SITE, UPDATE....

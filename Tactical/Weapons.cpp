@@ -4820,7 +4820,8 @@ void StructureHit( INT32 iBullet, UINT16 usWeaponIndex, INT16 bWeaponStatus, UIN
 	{
 		pStructure = FindStructureByID( sGridNo, usStructureID );
 
-		DamageStructure( pStructure, (UINT8)iImpact, STRUCTURE_DAMAGE_GUNFIRE, sGridNo, sXPos, sYPos, ubAttackerID );
+		//DamageStructure( pStructure, (UINT8)iImpact, STRUCTURE_DAMAGE_GUNFIRE, sGridNo, sXPos, sYPos, ubAttackerID );
+		DamageStructure(pStructure, (UINT8)iImpact, STRUCTURE_DAMAGE_GUNFIRE, sGridNo, sXPos, sYPos, ubAttackerID, max(0, pBullet->iImpact - pBullet->iImpactReduction));
 	}
 
 	// HEADROCK HAM 5: Fragments are not fired from guns, so they need a special case.

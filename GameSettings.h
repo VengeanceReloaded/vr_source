@@ -1467,6 +1467,7 @@ typedef struct
 	BOOLEAN fExtraItems;
 	BOOLEAN fRedTracer;
 	BOOLEAN fTracerLight;
+	BOOLEAN fTotalDestruction;
 
 } GAME_EXTERNAL_OPTIONS;
 
