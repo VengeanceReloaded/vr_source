@@ -354,7 +354,6 @@ void HourlyLarryUpdate()
 	SOLDIERTYPE *				pSoldier = NULL;
 	SOLDIERTYPE *				pOtherSoldier = NULL;
 	INT8						bSlot = NO_SLOT, bBoozeSlot;
-	INT8						bLarryItemLoop;
 	UINT16						usTemptation = 0;
 	UINT16						usCashAmount;
 	BOOLEAN						fBar = FALSE;
@@ -503,22 +502,16 @@ void HourlyLarryUpdate()
 							CreateItem( ALCOHOL, 100, &(pSoldier->inv[bBoozeSlot]) );
 						}
 						bSlot = bBoozeSlot;
-						bLarryItemLoop = 1;
-
-						if ( pSoldier->ubProfile == LARRY_DRUNK )
-						{
-							SwapLarrysProfiles( pSoldier );
-						}
 
 						if ( bSlot != NO_SLOT )
 						{
-							UseKitPoints( &(pSoldier->inv[ bSlot ]), 25/*LarryItems[ bLarryItemLoop ][ 2 ]*/, pSoldier );
+							ApplyDrugs(pSoldier, &(pSoldier->inv[bSlot]));
 						}
 					}
 					else
 					{
 						if ( pObj )
-							UseKitPoints( pObj, 100/*LarryItems[ bLarryItemLoop ][ 2 ]*/, pSoldier );
+							ApplyDrugs(pSoldier, pObj);
 					}
 				}
 				else if ( pSoldier->ubProfile == LARRY_DRUNK )
