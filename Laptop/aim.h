@@ -124,6 +124,8 @@ void RenderAIM();
 BOOLEAN ExitAimMenuBar(void);
 BOOLEAN InitAimMenuBar(void);
 
+BOOLEAN	HasExecRelapsed();
+
 BOOLEAN RemoveAimDefaults();
 BOOLEAN InitAimDefaults();
 BOOLEAN DrawAimDefaults();

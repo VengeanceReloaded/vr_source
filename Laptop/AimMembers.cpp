@@ -2039,6 +2039,12 @@ BOOLEAN DisplayMercsFace()
 	VOBJECT_DESC	VObjectDesc;
 	SOLDIERTYPE			*pSoldier=NULL;
 
+	// anv: show alternate profile if relapsed
+	if (gbCurrentSoldier == EXEC_NORMAL && HasExecRelapsed())
+	{
+		gbCurrentSoldier = EXEC_DRUNK;
+	}
+
 	//See if the merc is currently hired
 	pSoldier = FindSoldierByProfileID( gbCurrentSoldier, TRUE );
 
@@ -2104,6 +2110,13 @@ BOOLEAN DisplayMercsFace()
 		{
 			ShadowVideoSurfaceRect( FRAME_BUFFER, FACE_X_NSGI, FACE_Y_NSGI, FACE_X_NSGI + FACE_WIDTH_NSGI, FACE_Y_NSGI + FACE_HEIGHT_NSGI);
 			DrawTextToScreen( MercInfo[MERC_FILES_ALREADY_HIRED], FACE_X_NSGI+1, FACE_Y_NSGI+107, FACE_WIDTH_NSGI, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
+		}
+
+		//else if the merc has already been hired
+		else if (FindSoldierByProfileID(gbCurrentSoldier, TRUE))
+		{
+			ShadowVideoSurfaceRect(FRAME_BUFFER, FACE_X_NSGI, FACE_Y_NSGI, FACE_X_NSGI + FACE_WIDTH_NSGI, FACE_Y_NSGI + FACE_HEIGHT_NSGI);
+			DrawTextToScreen(MercInfo[MERC_FILES_ALREADY_HIRED], FACE_X_NSGI + 1, FACE_Y_NSGI + 107, FACE_WIDTH_NSGI, FONT14ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED);
 		}
 
 		else if( !IsMercHireable( gbCurrentSoldier ) )

@@ -39,6 +39,7 @@
 #include "Map Screen Helicopter.h" 
 
 #include "email.h" 
+#include "Interface.h"
 
 void HourlyQuestUpdate();
 void HourlyLarryUpdate();
@@ -357,28 +358,47 @@ void HourlyLarryUpdate()
 	UINT16						usTemptation = 0;
 	UINT16						usCashAmount;
 	BOOLEAN						fBar = FALSE;
+	INT16						sBarDrugItemId = 0;
 	OBJECTTYPE*					pObj = NULL;
 
-	for( UINT32 cnt = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; cnt <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; ++cnt )
+	for (UINT32 cnt = gTacticalStatus.Team[OUR_TEAM].bFirstID; cnt <= gTacticalStatus.Team[OUR_TEAM].bLastID; ++cnt)
 	{
-		pSoldier = MercPtrs[ cnt ];
+		pSoldier = MercPtrs[cnt];
 
-		if ( pSoldier && pSoldier->bAssignment < ON_DUTY && !pSoldier->flags.fBetweenSectors && pSoldier->bActive && pSoldier->bInSector && !(gTacticalStatus.fEnemyInSector || guiCurrentScreen == GAME_SCREEN ) )
+		if (pSoldier && pSoldier->bAssignment < ON_DUTY && !pSoldier->flags.fBetweenSectors && pSoldier->bActive && pSoldier->bInSector && !(gTacticalStatus.fEnemyInSector || guiCurrentScreen == GAME_SCREEN))
 		{
-			if ( pSoldier->ubProfile == LARRY_NORMAL || pSoldier->ubProfile == LARRY_DRUNK || pSoldier->HasBackgroundFlag( BACKGROUND_DRUGUSE ) )
+			if (pSoldier->ubProfile == LARRY_NORMAL || pSoldier->ubProfile == LARRY_DRUNK ||
+				pSoldier->ubProfile == EXEC_NORMAL || pSoldier->ubProfile == EXEC_DRUNK ||
+				pSoldier->HasBackgroundFlag(BACKGROUND_DRUGUSE))
 			{
 				// Flugente: reworked this for the new drug system. We now loop over our entire inventory
+				usTemptation = 0;
 				INT8 invsize = (INT8)pSoldier->inv.size();										// remember inventorysize, so we don't call size() repeatedly
-				for ( INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
+				for (INT8 bLoop = 0; bLoop < invsize; ++bLoop)									// ... for all items in our inventory ...
 				{
-					if ( pSoldier->inv[bLoop].exists() && Item[ pSoldier->inv[bLoop].usItem ].drugtype > 0 )
+					if (pSoldier->inv[bLoop].exists() && Item[pSoldier->inv[bLoop].usItem].drugtype > 0)
 					{
-						pObj = &(pSoldier->inv[bLoop]);
+						INT16 drugItemId = pSoldier->GetBackgroundValue(BG_DRUG_ITEM);
+						if (drugItemId == 0)
+						{
+							UINT32 drugType = pSoldier->GetBackgroundValue(BG_BIG_DRUG_TYPE);
+							if (drugType == 0 || drugType == Item[pSoldier->inv[bLoop].usItem].drugtype)
+							{
+								pObj = &(pSoldier->inv[bLoop]);
+								usTemptation = 5;
+								break;
+							}
+						}
+						else
+						{
+							if (drugItemId == pSoldier->inv[bLoop].usItem)
+							{
+								pObj = &(pSoldier->inv[bLoop]);
+								usTemptation = 5;
+								break;
+							}
+						}
 
-						usTemptation = 5;
-
-						// any drug will do... I'm not going to create a new tag for sth minor like this
-						break;
 					}
 				}
 
@@ -387,7 +407,7 @@ void HourlyLarryUpdate()
 
 				// check to see if we're in a bar sector, if we are, we have access to alcohol
 				// which may be better than anything we've got...
-				if ( usTemptation < BAR_TEMPTATION && GetCurrentBalance() >= Item[ ALCOHOL ].usPrice )
+				if (usTemptation < BAR_TEMPTATION)// && GetCurrentBalance() >= Item[ALCOHOL].usPrice)
 				{
 					// sevenfm: check facility
 					if (pSoldier->bSectorZ == 0)
@@ -398,66 +418,69 @@ void HourlyLarryUpdate()
 							// Is this facility here?
 							if (gFacilityLocations[SECTOR(pSoldier->sSectorX, pSoldier->sSectorY)][usFacilityType].fFacilityHere)
 							{
-								// is it a bar?
-								if (gFacilityTypes[usFacilityType].AssignmentData[FAC_FOOD].Risk[RISK_DRUNK].usChance > 0 ||
-									gFacilityTypes[usFacilityType].AssignmentData[FAC_REST].Risk[RISK_DRUNK].usChance > 0)
+								for (UINT16 usFacilityAssignment = 0; usFacilityAssignment < NUM_FACILITY_ASSIGNMENTS; usFacilityAssignment++)
 								{
-									// Cool.
-									fBar = TRUE;
-									usTemptation = BAR_TEMPTATION;
-									// sevenfm: stop searching
-									break;
+									// is it a place with risk of getting drunk?
+									if (gFacilityTypes[usFacilityType].AssignmentData[usFacilityAssignment].Risk[RISK_DRUNK].usChance > 0)
+									{
+										// Cool.
+										fBar = TRUE;
+										usTemptation = BAR_TEMPTATION;
+										sBarDrugItemId = gFacilityTypes[usFacilityType].AssignmentData[usFacilityAssignment].Risk[RISK_DRUNK].sParam;
+										// sevenfm: stop searching
+										break;
+									}
 								}
 							}
 						}
 					}
 
 					/*if ( pSoldier->bSectorZ == 0 &&
-								( ( pSoldier->sSectorX == 13 && pSoldier->sSectorY == MAP_ROW_D) ||
-									( pSoldier->sSectorX == 13 && pSoldier->sSectorY == MAP_ROW_C) ||
-									( pSoldier->sSectorX == 5 && pSoldier->sSectorY == MAP_ROW_C) ||
-									( pSoldier->sSectorX == 6 && pSoldier->sSectorY == MAP_ROW_C) ||
-									( pSoldier->sSectorX == 5 && pSoldier->sSectorY == MAP_ROW_D) ||
-									( pSoldier->sSectorX == 2 && pSoldier->sSectorY == MAP_ROW_H)
-								)
-						)
+					( ( pSoldier->sSectorX == 13 && pSoldier->sSectorY == MAP_ROW_D) ||
+					( pSoldier->sSectorX == 13 && pSoldier->sSectorY == MAP_ROW_C) ||
+					( pSoldier->sSectorX == 5 && pSoldier->sSectorY == MAP_ROW_C) ||
+					( pSoldier->sSectorX == 6 && pSoldier->sSectorY == MAP_ROW_C) ||
+					( pSoldier->sSectorX == 5 && pSoldier->sSectorY == MAP_ROW_D) ||
+					( pSoldier->sSectorX == 2 && pSoldier->sSectorY == MAP_ROW_H)
+					)
+					)
 					{
-						// in a bar!
-						fBar = TRUE;
-						usTemptation = BAR_TEMPTATION;
+					// in a bar!
+					fBar = TRUE;
+					usTemptation = BAR_TEMPTATION;
 					}*/
 				}
 
-				if ( usTemptation > 0 )
+				if (usTemptation > 0)
 				{
 					// anv: snitches stop mercs from getting wasted
 					BOOLEAN fSnitchStoppedBehaviour = FALSE;
-					for( INT32 cnt2 = gTacticalStatus.Team[ OUR_TEAM ].bFirstID; cnt2 <= gTacticalStatus.Team[ OUR_TEAM ].bLastID; ++cnt2 )
-					{					
-						pOtherSoldier = MercPtrs[ cnt2 ];
+					for (INT32 cnt2 = gTacticalStatus.Team[OUR_TEAM].bFirstID; cnt2 <= gTacticalStatus.Team[OUR_TEAM].bLastID; ++cnt2)
+					{
+						pOtherSoldier = MercPtrs[cnt2];
 						// note - snitches stop others, but can get wasted themselves (if they have drug use specifically set in background...)
-						if( pOtherSoldier && !pOtherSoldier->flags.fBetweenSectors && pOtherSoldier->bActive && !pOtherSoldier->flags.fMercAsleep && pSoldier->ubProfile != pOtherSoldier->ubProfile )
+						if (pOtherSoldier && !pOtherSoldier->flags.fBetweenSectors && pOtherSoldier->bActive && !pOtherSoldier->flags.fMercAsleep && pSoldier->ubProfile != pOtherSoldier->ubProfile)
 						{
 							if (ProfileHasSkillTrait(pOtherSoldier->ubProfile, SNITCH_NT) && !(pOtherSoldier->usSoldierFlagMask2 & SOLDIER_PREVENT_MISBEHAVIOUR_OFF))
 							{
-								if( pSoldier->sSectorX == pOtherSoldier->sSectorX && pSoldier->sSectorY == pOtherSoldier->sSectorY && pSoldier->bSectorZ == pOtherSoldier->bSectorZ )
+								if (pSoldier->sSectorX == pOtherSoldier->sSectorX && pSoldier->sSectorY == pOtherSoldier->sSectorY && pSoldier->bSectorZ == pOtherSoldier->bSectorZ)
 								{
-									UINT16 bPreventChance = ( EffectiveLeadership( pOtherSoldier ) + EffectiveExpLevel( pOtherSoldier ) / 2);
+									UINT16 bPreventChance = (EffectiveLeadership(pOtherSoldier) + EffectiveExpLevel(pOtherSoldier) / 2);
 									if (gGameOptions.fNewTraitSystem)
 									{
-										bPreventChance += 25 * NUM_SKILL_TRAITS( pOtherSoldier, SQUADLEADER_NT );
-										bPreventChance -= 25 * NUM_SKILL_TRAITS( pSoldier, STEALTHY_NT );
+										bPreventChance += 25 * NUM_SKILL_TRAITS(pOtherSoldier, SQUADLEADER_NT);
+										bPreventChance -= 25 * NUM_SKILL_TRAITS(pSoldier, STEALTHY_NT);
 									}
 									else
 									{
-										bPreventChance -= 25 * NUM_SKILL_TRAITS( pSoldier, STEALTHY_OT );
+										bPreventChance -= 25 * NUM_SKILL_TRAITS(pSoldier, STEALTHY_OT);
 									}
 									// keep 1% chance no matter what
-									bPreventChance = max( 0, min( 99, bPreventChance ) );
-									if( bPreventChance > PreRandom( 100 ) )
+									bPreventChance = max(0, min(99, bPreventChance));
+									if (bPreventChance > PreRandom(100))
 									{
 										// merc is not amused by being prevented
-										HandleMoraleEvent( pSoldier, MORALE_PREVENTED_MISBEHAVIOUR, pSoldier->sSectorX, pSoldier->sSectorX, pSoldier->bSectorZ );
+										HandleMoraleEvent(pSoldier, MORALE_PREVENTED_MISBEHAVIOUR, pSoldier->sSectorX, pSoldier->sSectorX, pSoldier->bSectorZ);
 										// also here would be a place for dynamic relationship decrease between them
 
 										fSnitchStoppedBehaviour = TRUE;
@@ -468,59 +491,78 @@ void HourlyLarryUpdate()
 						}
 					}
 
-					if ( fSnitchStoppedBehaviour )
+					if (fSnitchStoppedBehaviour)
 						continue;
 
-					if ( pSoldier->ubProfile == LARRY_DRUNK )
+					if (pSoldier->ubProfile == LARRY_DRUNK)
 					{
 						// NB store all drunkenness info in LARRY_NORMAL profile (to use same values)
 						// so long as he keeps consuming, keep number above level at which he cracked
-						gMercProfiles[ LARRY_NORMAL ].bNPCData = __max( gMercProfiles[ LARRY_NORMAL ].bNPCData, LARRY_FALLS_OFF_WAGON );
-						gMercProfiles[ LARRY_NORMAL ].bNPCData += (INT8) Random( usTemptation );
+						gMercProfiles[LARRY_NORMAL].bNPCData = __max(gMercProfiles[LARRY_NORMAL].bNPCData, LARRY_FALLS_OFF_WAGON);
+						gMercProfiles[LARRY_NORMAL].bNPCData += (INT8)Random(usTemptation);
 						// allow value to keep going up to 24 (about 2 days since we subtract Random( 2 ) when he has no access )
-						gMercProfiles[ LARRY_NORMAL ].bNPCData = __min( gMercProfiles[ LARRY_NORMAL ].bNPCData, 24 );
+						gMercProfiles[LARRY_NORMAL].bNPCData = __min(gMercProfiles[LARRY_NORMAL].bNPCData, 24);
+					}
+					else if (pSoldier->ubProfile == EXEC_DRUNK)
+					{
+						gMercProfiles[EXEC_NORMAL].bNPCData = __max(gMercProfiles[EXEC_NORMAL].bNPCData, LARRY_FALLS_OFF_WAGON);
+						gMercProfiles[EXEC_NORMAL].bNPCData += (INT8)Random(usTemptation);
+						gMercProfiles[EXEC_NORMAL].bNPCData = __min(gMercProfiles[EXEC_NORMAL].bNPCData, 24);
 					}
 					else
 					{
-						gMercProfiles[ pSoldier->ubProfile ].bNPCData += (INT8) Random( usTemptation );
+						gMercProfiles[pSoldier->ubProfile].bNPCData += (INT8)Random(usTemptation);
 
-						if ( gMercProfiles[ pSoldier->ubProfile ].bNPCData < LARRY_FALLS_OFF_WAGON )
+						if (gMercProfiles[pSoldier->ubProfile].bNPCData < LARRY_FALLS_OFF_WAGON)
 							continue;
 					}
 
-					if ( fBar )
+					if (fBar)
 					{
+						if (sBarDrugItemId == 0 || sBarDrugItemId >= MAXITEMS)
+						{
+							sBarDrugItemId = ALCOHOL;
+						}
 						// take $ from player's account
-						usCashAmount = Item[ ALCOHOL ].usPrice;
-						AddTransactionToPlayersBook ( TRANSFER_FUNDS_TO_MERC, pSoldier->ubProfile, GetWorldTotalMin() , -( usCashAmount ) );
+						usCashAmount = Item[sBarDrugItemId].usPrice;
+						AddTransactionToPlayersBook(TRANSFER_FUNDS_TO_MERC, pSoldier->ubProfile, GetWorldTotalMin(), -(usCashAmount));
 						// give Larry some booze and set slot etc values appropriately
 						// CHRISL: Change final parameter to allow dynamic control of inventory slots
-						bBoozeSlot = FindEmptySlotWithin( pSoldier, HANDPOS, NUM_INV_SLOTS );
-						if ( bBoozeSlot != NO_SLOT )
+						bBoozeSlot = FindEmptySlotWithin(pSoldier, HANDPOS, NUM_INV_SLOTS);
+						if (bBoozeSlot != NO_SLOT)
 						{
 							// give Larry booze here
-							CreateItem( ALCOHOL, 100, &(pSoldier->inv[bBoozeSlot]) );
+							CreateItem(sBarDrugItemId, 100, &(pSoldier->inv[bBoozeSlot]));
 						}
 						bSlot = bBoozeSlot;
 
-						if ( bSlot != NO_SLOT )
+						if (bSlot != NO_SLOT)
 						{
 							ApplyDrugs(pSoldier, &(pSoldier->inv[bSlot]));
 						}
 					}
 					else
 					{
-						if ( pObj )
+						if (pObj)
 							ApplyDrugs(pSoldier, pObj);
 					}
 				}
-				else if ( pSoldier->ubProfile == LARRY_DRUNK )
+				else if (pSoldier->ubProfile == LARRY_DRUNK)
 				{
-					gMercProfiles[ LARRY_NORMAL ].bNPCData -= (INT8) Random( 2 );
-					if ( gMercProfiles[ LARRY_NORMAL ].bNPCData <= 0 )
+					gMercProfiles[LARRY_NORMAL].bNPCData -= (INT8)Random(2);
+					if (gMercProfiles[LARRY_NORMAL].bNPCData <= 0)
 					{
 						// goes sober!
-						SwapLarrysProfiles( pSoldier );
+						SwapLarrysProfiles(pSoldier);
+					}
+				}
+				else if (pSoldier->ubProfile == EXEC_DRUNK)
+				{
+					gMercProfiles[EXEC_NORMAL].bNPCData -= (INT8)Random(2);
+					if (gMercProfiles[EXEC_NORMAL].bNPCData <= 0)
+					{
+						// goes sober!
+						SwapLarrysProfiles(pSoldier);
 					}
 				}
 			}

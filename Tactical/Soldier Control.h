@@ -1797,6 +1797,7 @@ public:
 	// Flugente: do we have a specific background flag?
 	BOOLEAN		HasBackgroundFlag( UINT64 aFlag );
 	INT16		GetBackgroundValue( UINT16 aNr );
+	UINT32		GetBackgroundBigValue(UINT16 aNr);
 
 	INT8		GetSuppressionResistanceBonus();			// bonus to resistance against suppression
 	INT16		GetMeleeDamageBonus();

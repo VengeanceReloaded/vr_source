@@ -17424,6 +17424,16 @@ INT16 SOLDIERTYPE::GetBackgroundValue( UINT16 aNr )
 	return 0;
 }
 
+UINT32 SOLDIERTYPE::GetBackgroundBigValue(UINT16 aNr)
+{
+	if (gGameOptions.fBackGround && this->ubProfile != NO_PROFILE)
+	{
+		return zBackground[gMercProfiles[this->ubProfile].usBackground].bigValue[aNr];
+	}
+
+	return 0;
+}
+
 INT8 SOLDIERTYPE::GetSuppressionResistanceBonus()
 {
 	INT8 bonus = 0;

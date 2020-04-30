@@ -128,6 +128,8 @@ backgroundStartElementHandle(void *userData, const XML_Char *name, const XML_Cha
 				strcmp(name, "insurance") == 0 ||
 				strcmp(name, "spotter") == 0 ||
 				strcmp(name, "druguse") == 0 ||
+				strcmp(name, "drugitem") == 0 ||
+				strcmp(name, "drugtype") == 0 ||
 				strcmp(name, "xenophobic") == 0 ||				
 				strcmp(name, "corruptionspread") == 0 ||
 				strcmp(name, "level_underground") == 0 ||
@@ -533,6 +535,16 @@ backgroundEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = ELEMENT;
 			pData->curBackground.uiFlags	|= (UINT16) atol(pData->szCharData) ? BACKGROUND_DRUGUSE : 0;
+		}
+		else if (strcmp(name, "drugitem") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curBackground.value[BG_DRUG_ITEM] = (INT16)atol(pData->szCharData);
+		}
+		else if (strcmp(name, "drugtype") == 0)
+		{
+			pData->curElement = ELEMENT;
+			pData->curBackground.bigValue[BG_BIG_DRUG_TYPE] = (UINT32)atol(pData->szCharData);
 		}
 		else if(strcmp(name, "xenophobic") == 0)
 		{

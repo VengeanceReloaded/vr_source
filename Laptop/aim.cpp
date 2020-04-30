@@ -21,6 +21,7 @@
 
 #include "LocalizedStrings.h"
 #include "Soldier Profile.h"
+#include "Quests.h"
 
 UINT8 MAX_NUMBER_MERCS = 0;
 
@@ -474,6 +475,10 @@ void SelectLinksRegionCallBack(MOUSE_REGION * pRegion, INT32 iReason )
 }
 
 
+BOOLEAN	HasExecRelapsed()
+{
+	return(CheckFact(FACT_EXEC_CHANGED, 0));
+}
 
 BOOLEAN InitAimDefaults()
 {

@@ -230,6 +230,7 @@ typedef struct FACILITYRISKTYPE
 	INT8 bBaseEffect;			// Base result. If negative, result will always be negative. If positive, result will always be positive.
 								// If 0, result can be either negative or positive.
 	UINT8 ubRange;				// Range of deviation for the base effect.
+	INT16 sParam;				// Additional, context dependent paramm e.g. for RISK_DRUNK it's item id of drug item
 
 } FACILITYRISKTYPE;
 

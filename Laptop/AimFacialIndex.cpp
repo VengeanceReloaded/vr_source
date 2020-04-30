@@ -214,28 +214,35 @@ BOOLEAN EnterAimFacialIndex()
 				MSYS_AddRegion( &gMercFaceMouseRegions[ i ] );
 				MSYS_SetRegionUserData( &gMercFaceMouseRegions[ i ], 0, i);
 
-			if (gGameExternalOptions.fReadProfileDataFromXML)
-			{
-				// HEADROCK PROFEX: Do not read direct profile number, instead, look inside the profile for a ubFaceIndex value.
-				//sprintf(sTemp, "%s%02d.sti", sFaceLoc, gMercProfiles[AimMercArray[i]].ubFaceIndex);
-				sprintf(sTemp, "%s%02d.sti", sFaceLoc, gMercProfiles[gAimAvailability[AimMercArray[i + START_MERC]].ProfilId].ubFaceIndex);
-				//sprintf(sTemp, "%s%02d.sti", sFaceLoc, gAimAvailability[AimMercArray[i]].ProfilId);
-			}
-			else
-			{
-				//sprintf(sTemp, "%s%02d.sti", sFaceLoc, AimMercArray[i]);
-				sprintf(sTemp, "%s%02d.sti", sFaceLoc, gAimAvailability[AimMercArray[i + START_MERC]].ProfilId );
-			}
-			// anv: always show camouflaged face for guys with camouflaged trait
-			if ( ProfileHasCamouflagedTrait(gAimAvailability[AimMercArray[i + START_MERC]].ProfilId ) )
-			{
-				sprintf(sTemp, "%s%02d.sti", "FACES\\WoodCamo\\", gAimAvailability[AimMercArray[i + START_MERC]].ProfilId );
-			}
+				UINT8 ubProfileID = gAimAvailability[AimMercArray[i + START_MERC]].ProfilId;
+				// anv: alternate profile if relapsed
+				if (ubProfileID == EXEC_NORMAL && HasExecRelapsed())
+				{
+					ubProfileID = EXEC_DRUNK;
+				}
 
-			VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
-			FilenameForBPP(sTemp, VObjectDesc.ImageFile);
-			if( !AddVideoObject(&VObjectDesc, &guiAimFiFace[i]) )
-				return( FALSE );
+				if (gGameExternalOptions.fReadProfileDataFromXML)
+				{
+					// HEADROCK PROFEX: Do not read direct profile number, instead, look inside the profile for a ubFaceIndex value.
+					//sprintf(sTemp, "%s%02d.sti", sFaceLoc, gMercProfiles[AimMercArray[i]].ubFaceIndex);
+					sprintf(sTemp, "%s%02d.sti", sFaceLoc, gMercProfiles[ubProfileID].ubFaceIndex);
+					//sprintf(sTemp, "%s%02d.sti", sFaceLoc, gAimAvailability[AimMercArray[i]].ProfilId);
+				}
+				else
+				{
+					//sprintf(sTemp, "%s%02d.sti", sFaceLoc, AimMercArray[i]);
+					sprintf(sTemp, "%s%02d.sti", sFaceLoc, ubProfileID);
+				}
+				// anv: always show camouflaged face for guys with camouflaged trait
+				if (ProfileHasCamouflagedTrait(ubProfileID))
+				{
+					sprintf(sTemp, "%s%02d.sti", "FACES\\WoodCamo\\", ubProfileID);
+				}
+
+				VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
+				FilenameForBPP(sTemp, VObjectDesc.ImageFile);
+				if( !AddVideoObject(&VObjectDesc, &guiAimFiFace[i]) )
+					return( FALSE );
 			}
 			
 			usPosX += AIM_FI_PORTRAIT_WIDTH + AIM_FI_MUGSHOT_GAP_X;
@@ -443,11 +450,16 @@ BOOLEAN DrawMercsFaceToScreen(UINT8 ubMercID, UINT16 usPosX, UINT16 usPosY, UINT
 	HVOBJECT	hFaceHandle;
 	SOLDIERTYPE	*pSoldier=NULL;
 
-	//pSoldier = FindSoldierByProfileID( AimMercArray[ubMercID], TRUE );
-	pSoldier = FindSoldierByProfileID( gAimAvailability[AimMercArray[ubMercID + START_MERC]].ProfilId, TRUE );
-	
-	
+	UINT8 ubProfileID = gAimAvailability[AimMercArray[ubMercID + START_MERC]].ProfilId;
 
+	// anv: show alternate profile if relapsed
+	if (ubProfileID == EXEC_NORMAL && HasExecRelapsed())
+	{
+		ubProfileID = EXEC_DRUNK;
+	}
+
+	//pSoldier = FindSoldierByProfileID( AimMercArray[ubMercID], TRUE );
+	pSoldier = FindSoldierByProfileID(ubProfileID, TRUE);
 
 	//Blt the portrait background
 	GetVideoObject(&hMugShotBorderHandle, guiMugShotBorder);
@@ -458,7 +470,7 @@ BOOLEAN DrawMercsFaceToScreen(UINT8 ubMercID, UINT16 usPosX, UINT16 usPosY, UINT
 	BltVideoObject(FRAME_BUFFER, hFaceHandle, 0,usPosX+AIM_FI_FACE_OFFSET, usPosY+AIM_FI_FACE_OFFSET, VO_BLT_SRCTRANSPARENCY,NULL);
 
 	//if( IsMercDead( AimMercArray[ubMercID] ) )
-	if( IsMercDead( gAimAvailability[AimMercArray[ubMercID + START_MERC]].ProfilId ) )
+	if (IsMercDead(ubProfileID))
 	{
 		//get the face object
 		GetVideoObject(&hFaceHandle, guiAimFiFace[ubMercID]);
@@ -476,14 +488,14 @@ BOOLEAN DrawMercsFaceToScreen(UINT8 ubMercID, UINT16 usPosX, UINT16 usPosY, UINT
 		DrawTextToScreen(AimFiText[AIM_FI_DEAD], (UINT16)(usPosX+AIM_FI_AWAY_TEXT_OFFSET_X), (UINT16)(usPosY+AIM_FI_AWAY_TEXT_OFFSET_Y), AIM_FI_AWAY_TEXT_OFFSET_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
 	}
 	// anv: VR - if the merc is MIA
-	else if( IsMercMIA( gAimAvailability[AimMercArray[ubMercID + START_MERC]].ProfilId ) )
+	else if (IsMercMIA(ubProfileID))
 	{
 		ShadowVideoSurfaceRect( FRAME_BUFFER, usPosX+AIM_FI_FACE_OFFSET, usPosY+AIM_FI_FACE_OFFSET, usPosX + 48+AIM_FI_FACE_OFFSET, usPosY + 43+AIM_FI_FACE_OFFSET);
 		DrawTextToScreen( AimFiText[AIM_FI_MIA], (UINT16)(usPosX+AIM_FI_AWAY_TEXT_OFFSET_X), (UINT16)(usPosY+AIM_FI_AWAY_TEXT_OFFSET_Y), AIM_FI_AWAY_TEXT_OFFSET_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
 	}
 	//else if the merc is currently a POW or, the merc was fired as a pow
 	//else if( gMercProfiles[ AimMercArray[ubMercID] ].bMercStatus == MERC_FIRED_AS_A_POW	|| ( pSoldier &&	pSoldier->bAssignment == ASSIGNMENT_POW ) )
-	else if( gMercProfiles[ gAimAvailability[AimMercArray[ubMercID + START_MERC]].ProfilId ].bMercStatus == MERC_FIRED_AS_A_POW	|| ( pSoldier &&	pSoldier->bAssignment == ASSIGNMENT_POW ) )
+	else if (gMercProfiles[ubProfileID].bMercStatus == MERC_FIRED_AS_A_POW || (pSoldier &&	pSoldier->bAssignment == ASSIGNMENT_POW))
 	{
 		ShadowVideoSurfaceRect( FRAME_BUFFER, usPosX+AIM_FI_FACE_OFFSET, usPosY+AIM_FI_FACE_OFFSET, usPosX + 48+AIM_FI_FACE_OFFSET, usPosY + 43+AIM_FI_FACE_OFFSET);
 		DrawTextToScreen( pPOWStrings[0], (UINT16)(usPosX+AIM_FI_AWAY_TEXT_OFFSET_X), (UINT16)(usPosY+AIM_FI_AWAY_TEXT_OFFSET_Y), AIM_FI_AWAY_TEXT_OFFSET_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);
@@ -498,7 +510,7 @@ BOOLEAN DrawMercsFaceToScreen(UINT8 ubMercID, UINT16 usPosX, UINT16 usPosY, UINT
 
 	//if the merc is away, shadow his/her face and blit 'away' over top
 	//else if( !IsMercHireable( AimMercArray[ubMercID] ) )
-	else if( !IsMercHireable( gAimAvailability[AimMercArray[ubMercID + START_MERC ]].ProfilId ) )	
+	else if (!IsMercHireable(ubProfileID))
 	{
 		ShadowVideoSurfaceRect( FRAME_BUFFER, usPosX+AIM_FI_FACE_OFFSET, usPosY+AIM_FI_FACE_OFFSET, usPosX + 48+AIM_FI_FACE_OFFSET, usPosY + 43+AIM_FI_FACE_OFFSET);
 		DrawTextToScreen( AimFiText[AIM_FI_DEAD+1], (UINT16)(usPosX+AIM_FI_AWAY_TEXT_OFFSET_X), (UINT16)(usPosY+AIM_FI_AWAY_TEXT_OFFSET_Y), AIM_FI_AWAY_TEXT_OFFSET_WIDTH, FONT10ARIAL, 145, FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED	);

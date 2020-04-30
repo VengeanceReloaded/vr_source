@@ -1877,6 +1877,15 @@ void HandleRisksForSoldierFacilityAssignment( SOLDIERTYPE *pSoldier, UINT8 ubFac
 								gMercProfiles[ LARRY_DRUNK ].bNPCData = 0;
 							}
 
+							if (pSoldier->ubProfile == EXEC_NORMAL)
+							{
+								pSoldier = SwapLarrysProfiles(pSoldier);
+							}
+							else if (pSoldier->ubProfile == EXEC_DRUNK)
+							{
+								gMercProfiles[EXEC_DRUNK].bNPCData = 0;
+							}
+
 							// Keel over...
 							DeductPoints( pSoldier, 0, 10000 );
 

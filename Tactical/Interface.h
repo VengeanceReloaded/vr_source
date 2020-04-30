@@ -191,7 +191,14 @@ enum {
 	BG_MINE_INCOME,
 	BG_OIL_RIG_INCOME,
 
+	BG_DRUG_ITEM,
+
 	BG_MAX,
+};
+
+enum {
+	BG_BIG_DRUG_TYPE,
+	BG_BIG_MAX,
 };
 
 typedef struct
@@ -203,6 +210,7 @@ typedef struct
 
 	UINT64		uiFlags;						// this flagmask defines what speial properties this background has (on/off behaviour)	
 	INT16		value[BG_MAX];					// property values
+	UINT32		bigValue[BG_BIG_MAX];					// property values
 } BACKGROUND_VALUES;
 
 #define NUM_BACKGROUND 500

@@ -132,6 +132,7 @@ void InitAssignmentDataArray( facilitytypeParseData *pData )
 		pData->curAssignmentData.Risk[cnt].usChance = 0;
 		pData->curAssignmentData.Risk[cnt].bBaseEffect = 0;
 		pData->curAssignmentData.Risk[cnt].ubRange = 0;
+		pData->curAssignmentData.Risk[cnt].sParam = 0;
 	}
 
 }
@@ -360,7 +361,8 @@ facilitytypeStartElementHandle(void *userData, const XML_Char *name, const XML_C
 		else if(pData->curElement == FACILITYTYPE_RISK &&
 				(strcmp(name, "ubChance") == 0 ||
 				strcmp(name, "bBaseEffect") == 0 ||
-				strcmp(name, "ubRange") == 0 ) )
+				strcmp(name, "ubRange") == 0 ||
+				strcmp(name, "sParam") == 0 ))
 		{
 			pData->curElement = FACILITYTYPE_RISK_ELEMENT;
 
@@ -477,6 +479,7 @@ facilitytypeEndElementHandle(void *userData, const XML_Char *name)
 								gFacilityTypes[pData->curIndex].AssignmentData[cnt].Risk[cntB].usChance = pData->curFacilityTypeData.AssignmentData[cnt].Risk[cntB].usChance;
 								gFacilityTypes[pData->curIndex].AssignmentData[cnt].Risk[cntB].bBaseEffect = pData->curFacilityTypeData.AssignmentData[cnt].Risk[cntB].bBaseEffect;
 								gFacilityTypes[pData->curIndex].AssignmentData[cnt].Risk[cntB].ubRange = pData->curFacilityTypeData.AssignmentData[cnt].Risk[cntB].ubRange;
+								gFacilityTypes[pData->curIndex].AssignmentData[cnt].Risk[cntB].sParam = pData->curFacilityTypeData.AssignmentData[cnt].Risk[cntB].sParam;
 							}
 						}
 					}
@@ -629,6 +632,7 @@ facilitytypeEndElementHandle(void *userData, const XML_Char *name)
 						pData->curFacilityTypeData.AssignmentData[pData->curAssignmentType].Risk[cnt].usChance = pData->curAssignmentData.Risk[cnt].usChance;
 						pData->curFacilityTypeData.AssignmentData[pData->curAssignmentType].Risk[cnt].bBaseEffect = pData->curAssignmentData.Risk[cnt].bBaseEffect;
 						pData->curFacilityTypeData.AssignmentData[pData->curAssignmentType].Risk[cnt].ubRange = pData->curAssignmentData.Risk[cnt].ubRange;
+						pData->curFacilityTypeData.AssignmentData[pData->curAssignmentType].Risk[cnt].sParam = pData->curAssignmentData.Risk[cnt].sParam;
 					}
 				}
 				else
@@ -1126,6 +1130,12 @@ facilitytypeEndElementHandle(void *userData, const XML_Char *name)
 		{
 			pData->curElement = FACILITYTYPE_RISK;
 			pData->curAssignmentData.Risk[pData->curRisk].ubRange = (UINT8) atol(pData->szCharData);
+		}
+
+		else if (strcmp(name, "sParam") == 0)
+		{
+			pData->curElement = FACILITYTYPE_RISK;
+			pData->curAssignmentData.Risk[pData->curRisk].sParam = (INT16)atol(pData->szCharData);
 		}
 
 

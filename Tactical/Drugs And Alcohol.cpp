@@ -60,13 +60,30 @@ BOOLEAN ApplyDrugs( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObject )
 	}
 
 	// do switch for Larry!!
-	if ( pSoldier->ubProfile == LARRY_NORMAL )
+	if (pSoldier->ubProfile == LARRY_NORMAL || pSoldier->ubProfile == EXEC_NORMAL)
 	{
-		pSoldier = SwapLarrysProfiles( pSoldier );
+		INT16 drugItemId = pSoldier->GetBackgroundValue(BG_DRUG_ITEM);
+		UINT32 drugType = pSoldier->GetBackgroundValue(BG_BIG_DRUG_TYPE);
+		if ((drugItemId == 0 && drugType == 0) || (drugItemId != 0 && drugItemId == usItem))
+		{
+			pSoldier = SwapLarrysProfiles(pSoldier);
+		}
+		else if (drugType != 0)
+		{
+			for (UINT8 i = DRUG_TYPE_ADRENALINE; i < DRUG_TYPE_MAX; ++i)
+			{
+				UINT32 drugtestflag = (1 << i);
+				if ((ubDrugType & drugtestflag) != 0)
+				{
+					pSoldier = SwapLarrysProfiles(pSoldier);
+					break;
+				}
+			}
+		}
 	}
-	else if ( pSoldier->ubProfile == LARRY_DRUNK )
+	else if (pSoldier->ubProfile == LARRY_DRUNK || pSoldier->ubProfile == EXEC_DRUNK)
 	{
-		gMercProfiles[ LARRY_DRUNK ].bNPCData = 0;
+		gMercProfiles[pSoldier->ubProfile].bNPCData = 0;
 	}
 
 	BOOLEAN consumeitem = TRUE;
