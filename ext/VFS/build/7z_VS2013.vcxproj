@@ -97,7 +97,6 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>My7z</RootNamespace>
     <ProjectName>7z</ProjectName>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

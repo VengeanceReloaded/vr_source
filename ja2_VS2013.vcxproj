@@ -27,7 +27,6 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>ja2</RootNamespace>
     <ProjectName>ja2</ProjectName>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -103,10 +102,10 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>D:\Jagged Alliance 2 VR\</OutDir>
-    <TargetName>JA2_Vengeance</TargetName>
+    <OutDir>$(SolutionDir)\bin\VS2013\</OutDir>
+    <TargetName>$(JA2Config)_$(JA2LangPrefix)_$(Configuration)</TargetName>
     <TargetExt>.exe</TargetExt>
-    <IntDir>D:\Jagged Alliance 2 VR</IntDir>
+    <IntDir>$(SolutionDir)\build\VS2013\$(JA2Config)_$(JA2LangPrefix)\$(ProjectName)_$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditorD|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -117,10 +116,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>D:\Jagged Alliance 2 VR</OutDir>
-    <TargetName>JA2_Vengeance</TargetName>
+    <OutDir>$(SolutionDir)\bin\VS2013\</OutDir>
+    <TargetName>$(JA2Config)_$(JA2LangPrefix)_$(Configuration)</TargetName>
     <TargetExt>.exe</TargetExt>
-    <IntDir>D:\Jagged Alliance 2 VR</IntDir>
+    <IntDir>$(SolutionDir)\build\VS2013\$(JA2Config)_$(JA2LangPrefix)\$(ProjectName)_$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MapEditor|Win32'">
     <LinkIncremental>false</LinkIncremental>
