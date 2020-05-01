@@ -1621,7 +1621,11 @@ void HandleUniqueEventWhenPlayerLeavesTeam( SOLDIERTYPE *pSoldier )
 					//iggy is now available to be handled by the enemy
 					gubFact[ FACT_IGGY_AVAILABLE_TO_ARMY ] = TRUE;
 				}
-			break;
+				break;
+			case EXEC_DRUNK:
+				// anv: VR - sober up
+				SwapLarrysProfiles(pSoldier);
+				break;
 		}
 	}
 }
