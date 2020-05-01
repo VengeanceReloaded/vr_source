@@ -73,7 +73,7 @@ BOOLEAN ApplyDrugs( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObject )
 			for (UINT8 i = DRUG_TYPE_ADRENALINE; i < DRUG_TYPE_MAX; ++i)
 			{
 				UINT32 drugtestflag = (1 << i);
-				if ((ubDrugType & drugtestflag) != 0)
+				if ((ubDrugType & drugtestflag) != 0 && (drugType & drugtestflag) != 0)
 				{
 					pSoldier = SwapLarrysProfiles(pSoldier);
 					break;

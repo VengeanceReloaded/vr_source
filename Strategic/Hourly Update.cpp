@@ -423,12 +423,36 @@ void HourlyLarryUpdate()
 									// is it a place with risk of getting drunk?
 									if (gFacilityTypes[usFacilityType].AssignmentData[usFacilityAssignment].Risk[RISK_DRUNK].usChance > 0)
 									{
-										// Cool.
-										fBar = TRUE;
-										usTemptation = BAR_TEMPTATION;
 										sBarDrugItemId = gFacilityTypes[usFacilityType].AssignmentData[usFacilityAssignment].Risk[RISK_DRUNK].sParam;
-										// sevenfm: stop searching
-										break;
+										if (sBarDrugItemId == 0 || sBarDrugItemId >= MAXITEMS)
+										{
+											sBarDrugItemId = ALCOHOL;
+										}
+										INT16 drugItemId = pSoldier->GetBackgroundValue(BG_DRUG_ITEM);
+										UINT32 drugType = pSoldier->GetBackgroundValue(BG_BIG_DRUG_TYPE);
+										if ((drugItemId == 0 && drugType == 0) || (drugItemId != 0 && drugItemId == sBarDrugItemId))
+										{
+											// Cool.
+											fBar = TRUE;
+											usTemptation = BAR_TEMPTATION;
+
+											// sevenfm: stop searching
+											break;
+										}
+										else if (drugType != 0)
+										{
+											for (UINT8 i = DRUG_TYPE_ADRENALINE; i < DRUG_TYPE_MAX; ++i)
+											{
+												UINT32 drugtestflag = (1 << i);
+												if ((Item[drugItemId].drugtype & drugtestflag) != 0 && (drugType & drugtestflag) != 0)
+												{
+													fBar = TRUE;
+													usTemptation = BAR_TEMPTATION;
+													break;
+												}
+											}
+										}
+
 									}
 								}
 							}
@@ -519,10 +543,6 @@ void HourlyLarryUpdate()
 
 					if (fBar)
 					{
-						if (sBarDrugItemId == 0 || sBarDrugItemId >= MAXITEMS)
-						{
-							sBarDrugItemId = ALCOHOL;
-						}
 						// take $ from player's account
 						usCashAmount = Item[sBarDrugItemId].usPrice;
 						AddTransactionToPlayersBook(TRANSFER_FUNDS_TO_MERC, pSoldier->ubProfile, GetWorldTotalMin(), -(usCashAmount));
