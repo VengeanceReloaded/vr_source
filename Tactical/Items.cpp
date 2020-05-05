@@ -14912,8 +14912,14 @@ INT32 GetGunAccuracy( OBJECTTYPE *pObj )
 		accuracyheatmultiplicator = max(0.0f, 1.0f - accuracymalus);
 	}
 
-	if(UsingNewCTHSystem() == false)
-		return( (INT32)(accuracyheatmultiplicator * Weapon[pObj->usItem].bAccuracy) );
+	if (!UsingNewCTHSystem())
+	{
+		// sevenfm: do not scale negative accuracy
+		if (Weapon[pObj->usItem].bAccuracy > 0)
+			return (INT32)(accuracyheatmultiplicator * Weapon[pObj->usItem].bAccuracy);
+		else
+			return (INT32)(Weapon[pObj->usItem].bAccuracy);
+	}
 
 	INT32 bonus = 0;
 	if ( pObj->exists() == true )
@@ -14935,10 +14941,10 @@ INT32 GetGunAccuracy( OBJECTTYPE *pObj )
 		bonus += ((100-bonus) * iModifier) / 100;
 	}
 
-	bonus = __max(0,bonus);
-	bonus = __min(100,bonus);
+	bonus = max(0,bonus);
+	bonus = min(100,bonus);
 
-	return( bonus );
+	return bonus;
 }
 
 // Get Accuracy Modifier from an item and its attachments

@@ -780,17 +780,9 @@ void GenerateProsString( STR16 zItemPros, OBJECTTYPE * pObject, UINT32 uiPixLimi
 		ubWeight = ubWeight + Item[ (*pObject)[0]->data.gun.usGunAmmoItem ].ubWeight;
 	}
 
-	// Flugente: If overheating is allowed, an overheated gun receives a slight malus to accuracy
-	FLOAT accuracyheatmultiplicator = 1.0;
-	if ( gGameExternalOptions.fWeaponOverheating )
-	{
-		FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage( pObject );
-		FLOAT accuracymalus = (FLOAT)((max(1.0, overheatdamagepercentage) - 1.0) * 0.1);
-		accuracyheatmultiplicator = (FLOAT)max(0.0, 1.0 - accuracymalus);
-	}
-
 	//CHRISL: TODO - This needs to be updated for NCTH
-	if (accuracyheatmultiplicator * Weapon[usItem].bAccuracy >= EXCEPTIONAL_ACCURACY )
+	// sevenfm: don't use overheating for gun descriptions
+	if (Weapon[usItem].bAccuracy >= EXCEPTIONAL_ACCURACY)
 	{
 		zTemp = Message[STR_ACCURATE];
 		if ( ! AttemptToAddSubstring( zItemPros, zTemp, &uiStringLength, uiPixLimit ) )
@@ -925,17 +917,9 @@ void GenerateConsString( STR16 zItemCons, OBJECTTYPE * pObject, UINT32 uiPixLimi
 
 	zItemCons[0] = 0;
 
-	// Flugente: If overheating is allowed, an overheated gun receives a slight malus to accuracy
-	FLOAT accuracyheatmultiplicator = 1.0;
-	if ( gGameExternalOptions.fWeaponOverheating )
-	{
-		FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage( pObject );
-		FLOAT accuracymalus = (FLOAT)((max(1.0, overheatdamagepercentage) - 1.0) * 0.1);
-		accuracyheatmultiplicator = (FLOAT)max(0.0, 1.0 - accuracymalus);
-	}
-
 	//CHRISL: TODO - This needs to be updated for NCTH
-	if (accuracyheatmultiplicator * Weapon[usItem].bAccuracy <= BAD_ACCURACY)
+	// sevenfm: don't use overheating for gun descriptions
+	if (Weapon[usItem].bAccuracy <= BAD_ACCURACY)
 	{
 		zTemp = Message[STR_INACCURATE];
 		if ( ! AttemptToAddSubstring( zItemCons, zTemp, &uiStringLength, uiPixLimit ) )
@@ -2497,7 +2481,7 @@ void PocketPopupDefault( SOLDIERTYPE *pSoldier, INT16 sPocket ){
 				break;
 
 			default:				
-				UINT8 pocketType = pocketTypeInSlot(pSoldier,sPocket);
+				INT16 pocketType = pocketTypeInSlot(pSoldier,sPocket);
 
 				if( LBEPocketPopup.find(pocketType) == LBEPocketPopup.end() ){
 					// default for LBE slots - grenades + ammo for merc's guns
@@ -12224,7 +12208,7 @@ void GetHelpTextForItem( STR16 pzStr, OBJECTTYPE *pObject, SOLDIERTYPE *pSoldier
 				}
 
 				// Flugente: If overheating is allowed, an overheated gun receives a slight malus to accuracy
-				FLOAT accuracyheatmultiplicator = 1.0;
+				/*FLOAT accuracyheatmultiplicator = 1.0;
 				if ( gGameExternalOptions.fWeaponOverheating )
 				{
 					FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage( pObject );
@@ -12233,7 +12217,10 @@ void GetHelpTextForItem( STR16 pzStr, OBJECTTYPE *pObject, SOLDIERTYPE *pSoldier
 				}
 				
 				INT8 accuracy = (UsingNewCTHSystem()==true?Weapon[ usItem ].nAccuracy:Weapon[ usItem ].bAccuracy);
-				accuracy = (INT8)(accuracy * accuracyheatmultiplicator);
+				accuracy = (INT8)(accuracy * accuracyheatmultiplicator);*/
+
+				// sevenfm: use GetGunAccuracy instead
+				INT8 accuracy = (INT8)GetGunAccuracy(pObject);
 
 				if ( gGameExternalOptions.fAdvRepairSystem && gGameExternalOptions.fDirtSystem && ( sThreshold < 100 || bDirt > 0 ) )
 				{
@@ -12379,7 +12366,7 @@ void GetHelpTextForItem( STR16 pzStr, OBJECTTYPE *pObject, SOLDIERTYPE *pSoldier
 				}
 
 				// Flugente: If overheating is allowed, an overheated gun receives a slight malus to accuracy
-				FLOAT accuracyheatmultiplicator = 1.0;
+				/*FLOAT accuracyheatmultiplicator = 1.0;
 				if ( gGameExternalOptions.fWeaponOverheating )
 				{
 					FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage( pObject );
@@ -12389,7 +12376,10 @@ void GetHelpTextForItem( STR16 pzStr, OBJECTTYPE *pObject, SOLDIERTYPE *pSoldier
 
 				//Info for weapons
 				INT8 accuracy = (UsingNewCTHSystem()==true?Weapon[ usItem ].nAccuracy:Weapon[ usItem ].bAccuracy);
-				accuracy = (INT8)(accuracy * accuracyheatmultiplicator);
+				accuracy = (INT8)(accuracy * accuracyheatmultiplicator);*/
+
+				// sevenfm: use GetGunAccuracy instead
+				INT8 accuracy = (INT8)GetGunAccuracy(pObject);
 
 				if ( gGameExternalOptions.fAdvRepairSystem && gGameExternalOptions.fDirtSystem && ( sThreshold < 100 || bDirt > 0 ) )
 				{
