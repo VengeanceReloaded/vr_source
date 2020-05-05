@@ -4874,7 +4874,7 @@ void CycleItemDescriptionItem( INT16 sX, INT16 sY )
 	InternalInitItemDescriptionBox( &( gpItemDescSoldier->inv[ HANDPOS ] ), sX, sY, gubItemDescStatusIndex, gpItemDescSoldier );
 }
 
-INT16 CycleItems( INT16 usOldItem )
+INT16 CycleItems(UINT16 usOldItem)
 {
 	if ( _KeyDown( SHIFT ) )
 	{
@@ -7680,16 +7680,16 @@ void RenderItemDescriptionBox( )
 						{
 							if ( !Weapon[gpComparedItemDescObject->usItem].NoSemiAuto )
 							{
-								UINT8 ubComparedAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL );
-								if( ubComparedAttackAPs > ubAttackAPs )
+								INT16 sComparedAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL );
+								if( sComparedAttackAPs > ubAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTNEGATIVE );
-									swprintf( pStr, L"+%2d", ubComparedAttackAPs - ubAttackAPs );
+									swprintf( pStr, L"+%2d", sComparedAttackAPs - ubAttackAPs );
 								}
-								else if( ubComparedAttackAPs < ubAttackAPs )
+								else if( sComparedAttackAPs < ubAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTPOSITIVE );
-									swprintf( pStr, L"%2d", ubComparedAttackAPs - ubAttackAPs );
+									swprintf( pStr, L"%2d", sComparedAttackAPs - ubAttackAPs );
 								}
 								else
 									swprintf( pStr, L"=");
@@ -7705,8 +7705,8 @@ void RenderItemDescriptionBox( )
 					}
 					else if ( fComparisonMode && !Weapon[gpComparedItemDescObject->usItem].NoSemiAuto )
 					{
-						UINT8 ubComparedAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL );
-						swprintf( pStr, L"%2d", ubComparedAttackAPs );
+						INT16 sComparedAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL );
+						swprintf( pStr, L"%2d", sComparedAttackAPs );
 						FindFontRightCoordinates( gODBItemDescRegions[3][3].sLeft, gODBItemDescRegions[3][3].sTop, gODBItemDescRegions[3][3].sRight - gODBItemDescRegions[3][3].sLeft, gODBItemDescRegions[3][3].sBottom - gODBItemDescRegions[3][3].sTop ,pStr, BLOCKFONT2, &usX, &usY);
 						mprintf( usX, usY, pStr );
 					}
@@ -7727,37 +7727,37 @@ void RenderItemDescriptionBox( )
 						}
 						else
 						{
-							UINT8 ubBurstAttackAPs = ubAttackAPs + CalcAPsToBurst( APBPConstants[DEFAULT_APS], gpItemDescObject, NULL );
+							INT16 sBurstAttackAPs = ubAttackAPs + CalcAPsToBurst( APBPConstants[DEFAULT_APS], gpItemDescObject, NULL );
 							if (GetShotsPerBurst(gpComparedItemDescObject) > 0)
 							{			
-								UINT8 ubComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
+								INT16 sComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
 									+ CalcAPsToBurst( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, NULL );
-								if( ubComparedBurstAttackAPs > ubBurstAttackAPs )
+								if( sComparedBurstAttackAPs > sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTNEGATIVE );
-									swprintf( pStr, L"+%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"+%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
-								else if( ubComparedBurstAttackAPs < ubBurstAttackAPs )
+								else if( sComparedBurstAttackAPs < sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTPOSITIVE );
-									swprintf( pStr, L"%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
 								else
 									swprintf( pStr, L"=");
 							}
 							else if (GetAutofireShotsPerFiveAPs(gpComparedItemDescObject) > 0)
 							{			
-								UINT8 ubComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL ) +
+								INT16 sComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL ) +
 									CalcAPsToAutofire( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, 3, NULL );
-								if( ubComparedBurstAttackAPs > ubBurstAttackAPs )
+								if( sComparedBurstAttackAPs > sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTNEGATIVE );
-									swprintf( pStr, L"+%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"+%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
-								else if( ubComparedBurstAttackAPs < ubBurstAttackAPs )
+								else if( sComparedBurstAttackAPs < sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTPOSITIVE );
-									swprintf( pStr, L"%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
 								else
 									swprintf( pStr, L"=");
@@ -7780,37 +7780,37 @@ void RenderItemDescriptionBox( )
 						}
 						else
 						{
-							UINT8 ubBurstAttackAPs = ubAttackAPs + CalcAPsToAutofire( APBPConstants[DEFAULT_APS], gpItemDescObject, 3, NULL );
+							INT16 sBurstAttackAPs = ubAttackAPs + CalcAPsToAutofire( APBPConstants[DEFAULT_APS], gpItemDescObject, 3, NULL );
 							if (GetShotsPerBurst(gpComparedItemDescObject) > 0)
 							{			
-								UINT8 ubComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
+								INT16 sComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
 									+ CalcAPsToBurst( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, NULL );
-								if( ubComparedBurstAttackAPs > ubBurstAttackAPs )
+								if( sComparedBurstAttackAPs > sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTNEGATIVE );
-									swprintf( pStr, L"+%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"+%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
-								else if( ubComparedBurstAttackAPs < ubBurstAttackAPs )
+								else if( sComparedBurstAttackAPs < sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTPOSITIVE );
-									swprintf( pStr, L"%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
 								else
 									swprintf( pStr, L"=");
 							}
 							else if (GetAutofireShotsPerFiveAPs(gpComparedItemDescObject) > 0)
 							{			
-								UINT8 ubComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL ) +
+								INT16 sComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL ) +
 									CalcAPsToAutofire( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, 3, NULL );
-								if( ubComparedBurstAttackAPs > ubBurstAttackAPs )
+								if( sComparedBurstAttackAPs > sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTNEGATIVE );
-									swprintf( pStr, L"+%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"+%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
-								else if( ubComparedBurstAttackAPs < ubBurstAttackAPs )
+								else if( sComparedBurstAttackAPs < sBurstAttackAPs )
 								{
 									SetFontForeground( ITEMDESC_FONTPOSITIVE );
-									swprintf( pStr, L"%2d", ubComparedBurstAttackAPs - ubBurstAttackAPs );
+									swprintf( pStr, L"%2d", sComparedBurstAttackAPs - sBurstAttackAPs );
 								}
 								else
 									swprintf( pStr, L"=");
@@ -7828,19 +7828,19 @@ void RenderItemDescriptionBox( )
 					{
 						if (GetShotsPerBurst(gpComparedItemDescObject) > 0)
 						{			
-							UINT8 ubComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
+							INT16 sComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
 								+ CalcAPsToBurst( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, NULL );
 							SetFontForeground( ITEMDESC_FONTPOSITIVE );
-							swprintf( pStr, L"%2d", ubComparedBurstAttackAPs );
+							swprintf( pStr, L"%2d", sComparedBurstAttackAPs );
 							FindFontRightCoordinates( gODBItemDescRegions[3][7].sLeft, gODBItemDescRegions[3][7].sTop, gODBItemDescRegions[3][7].sRight - gODBItemDescRegions[3][7].sLeft, gODBItemDescRegions[3][7].sBottom - gODBItemDescRegions[3][7].sTop ,pStr, BLOCKFONT2, &usX, &usY);
 							mprintf( usX, usY, pStr );
 						}
 						else if (GetAutofireShotsPerFiveAPs(gpComparedItemDescObject) > 0)
 						{
-							UINT8 ubComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
+							INT16 sComparedBurstAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], gpComparedItemDescObject, NULL )
 								+ CalcAPsToAutofire( APBPConstants[DEFAULT_APS], gpComparedItemDescObject, 3, NULL );
 							SetFontForeground( ITEMDESC_FONTPOSITIVE );
-							swprintf( pStr, L"%2d", ubComparedBurstAttackAPs );
+							swprintf( pStr, L"%2d", sComparedBurstAttackAPs );
 							FindFontRightCoordinates( gODBItemDescRegions[3][7].sLeft, gODBItemDescRegions[3][7].sTop, gODBItemDescRegions[3][7].sRight - gODBItemDescRegions[3][7].sLeft, gODBItemDescRegions[3][7].sBottom - gODBItemDescRegions[3][7].sTop ,pStr, BLOCKFONT2, &usX, &usY);
 							mprintf( usX, usY, pStr );
 						}
