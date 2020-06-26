@@ -16023,7 +16023,7 @@ BOOLEAN		SOLDIERTYPE::RecognizeAsCombatant(UINT8 ubTargetID)
 		return TRUE;
 		
 	// if from same team, do not uncover
-	if ( this->bTeam == pSoldier->bTeam || this->bSide == pSoldier->bSide )
+	if (CONSIDERED_ALLIES(this, pSoldier) || this->bSide == pSoldier->bSide)
 		return TRUE;
 
 	// hack: if this is attacking us at this very moment by punching, do not recognize him...
@@ -21683,7 +21683,7 @@ BOOLEAN ResolvePendingInterrupt( SOLDIERTYPE * pSoldier, UINT8 ubInterruptType )
 			// sevenfm: r8401
 			if (pInterrupter->bBreath < OKBREATH && pInterrupter->bTeam != OUR_TEAM)
 				continue;			// BOB: prevent NPCs from getting interrupts when out of breath
-			if ( pSoldier->bTeam == pInterrupter->bTeam )
+			if (CONSIDERED_ALLIES(pSoldier, pInterrupter))
 				continue;			// same team
 			if ( pSoldier->bSide == pInterrupter->bSide )
 				continue;			// not enemy

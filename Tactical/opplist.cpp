@@ -963,7 +963,7 @@ void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 			if (pThem != NULL && pThem->stats.bLife >= OKLIFE)
 			{
 				// if this merc is on the same team as the target soldier
-				if (pThem->bTeam == pSoldier->bTeam)
+				if (CONSIDERED_ALLIES(pSoldier, pThem))
 					continue;		// he doesn't look (he ALWAYS knows about him)
 
 				// other human team's merc report sightings to their teams now
@@ -1956,7 +1956,7 @@ INT16 ManLooksForMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, UINT8 ubCall
 
 
 	// if he's looking for a guy who is on the same team
-	if (pSoldier->bTeam == pOpponent->bTeam)
+	if (pSoldier->bTeam == pOpponent->bTeam && pSoldier->bSide == pOpponent->bSide)
 	{
 /*
 #ifdef BETAVERSION
@@ -2152,7 +2152,7 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 	if (!pOpponent->bActive || !pOpponent->bInSector || pOpponent->stats.bLife <= 0)
 		return;
 	// if we're somehow seeing a guy who is on the same team
-	if (pSoldier->bTeam == pOpponent->bTeam)
+	if (pSoldier->bTeam == pOpponent->bTeam && pSoldier->bSide == pOpponent->bSide)
 		return;
 	// Flugente: if the other guy is in med or deep water and wearing scuba gear, then we cannot see him as he is submerged
 	if ( pOpponent->UsesScubaGear() )
@@ -2957,7 +2957,7 @@ else
 		if (pSoldier != NULL && pSoldier->stats.bLife >= OKLIFE	&& (pSoldier->ubBodyType != LARVAE_MONSTER))
 		{
 			// if this merc is on the same team as the target soldier
-			if (pSoldier->bTeam == pOpponent->bTeam)
+			if (pSoldier->bTeam == pOpponent->bTeam && pSoldier->bSide == pOpponent->bSide)
 			{
 				continue;		// he doesn't look (he ALWAYS knows about him)
 			}
@@ -6927,7 +6927,7 @@ void VerifyAndDecayOpplist(SOLDIERTYPE *pSoldier)
 		if (pOpponent != NULL && pOpponent->stats.bLife)
 		{
 			// if this merc is on the same team, he's no opponent, so skip him
-			if (pSoldier->bTeam == pOpponent->bTeam)
+			if (pSoldier->bTeam == pOpponent->bTeam && pSoldier->bSide == pOpponent->bSide)
 			{
 				continue;
 			}
@@ -7027,7 +7027,7 @@ void DecayIndividualOpplist(SOLDIERTYPE *pSoldier)
 		if (pOpponent != NULL && pOpponent->stats.bLife)
 		{
 			// if this merc is on the same team, he's no opponent, so skip him
-			if (pSoldier->bTeam == pOpponent->bTeam)
+			if (pSoldier->bTeam == pOpponent->bTeam && pSoldier->bSide == pOpponent->bSide)
 			{
 				continue;
 			}
@@ -7082,7 +7082,7 @@ void VerifyPublicOpplistDueToDeath(SOLDIERTYPE *pSoldier)
 		if (pOpponent != NULL && pOpponent->stats.bLife)
 		{
 			// if this opponent is on the same team, he's no opponent, so skip him
-			if (pSoldier->bTeam == pOpponent->bTeam)
+			if (pSoldier->bTeam == pOpponent->bTeam && pSoldier->bSide == pOpponent->bSide)
 			{
 				continue;
 			}

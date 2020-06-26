@@ -933,7 +933,7 @@ UINT8 GetMostThreateningOpponent( SOLDIERTYPE *pSoldier )
 		}
 
 		// if this soldier is on same team as me, skip him
-		if (pTargetSoldier->bTeam == pSoldier->bTeam || pTargetSoldier->bSide == pSoldier->bSide)
+		if (CONSIDERED_ALLIES(pSoldier, pTargetSoldier))
 		{
 			continue;
 		}

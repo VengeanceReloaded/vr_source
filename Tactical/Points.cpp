@@ -877,7 +877,7 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 				continue;			// not here or not even breathing -> next!
 			if ( pOpponent->stats.bLife < OKLIFE || pOpponent->bCollapsed || !pOpponent->bActive )
 				continue;			// not here or not even breathing -> next!
-			if ( pSoldier->bTeam == pOpponent->bTeam )
+			if (CONSIDERED_ALLIES(pSoldier, pOpponent))
 				continue;			// same team? -> next!
 			if ( pSoldier->bSide == pOpponent->bSide )
 				continue;			// not enemy

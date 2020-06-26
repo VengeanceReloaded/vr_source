@@ -611,6 +611,12 @@ extern CLOTHES_STRUCT Clothes[CLOTHES_MAX];
 // but they can't attack empty vehicles!!
 #define CONSIDERED_NEUTRAL( me, them ) ( (them->aiData.bNeutral || them->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER|SOLDIER_POW)) && ( me->bTeam != CREATURE_TEAM || (them->flags.uiStatusFlags & SOLDIER_VEHICLE) || (them->ubBodyType == CROW) ) )
 
+// anv: in most cases bTeam and bSide are equal, so only bTeam check was considered for most interactions like HandleSight
+// for VR we want to allow hostile interaction between members of the same bTeam as long as bSide are different
+// ignoring pre-existing teams to void unexpected side effects
+// might do matrix of hostilities between sides in the future
+#define CONSIDERED_ALLIES( me, them ) ( me->bTeam == them->bTeam && ( me->bSide == them->bSide || (me->bSide <= LAST_TEAM && them->bSide <= LAST_TEAM) ))
+
 typedef struct
 {
 	UINT8			ubKeyID;

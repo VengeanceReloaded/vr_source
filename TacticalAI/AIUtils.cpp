@@ -2134,6 +2134,13 @@ INT16 DistanceToClosestFriend( SOLDIERTYPE * pSoldier )
 
 		pTargetSoldier = Menptr + ubLoop;
 
+
+		if (!CONSIDERED_ALLIES(pSoldier, pTargetSoldier))
+		{
+			continue;
+		}
+
+
 		if ( pSoldier->bActive && pSoldier->bInSector )
 		{
 			if (!pTargetSoldier->bActive || !pTargetSoldier->bInSector)
@@ -3361,7 +3368,7 @@ BOOLEAN TeamSeesOpponent( INT8 bTeam, SOLDIERTYPE * pOpponent )
 	// This assertion can be safely removed, assuming the program does what it should. It simply checks
 	// whether the "opponent" is on the same team being checked. That should be avoided when calling this
 	// function.
-	Assert( pOpponent->bTeam != bTeam );
+	//Assert( pOpponent->bTeam != bTeam );
 
 	// We're checking Merc/Militia visibility
 	if (bTeam == OUR_TEAM || bTeam == MILITIA_TEAM )
