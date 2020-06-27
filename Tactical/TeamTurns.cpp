@@ -615,16 +615,7 @@ void BeginTeamTurn( UINT8 ubTeam )
 		SOLDIERTYPE	*pCIABuyer = FindSoldierByProfileID(CIA_BUYER, false);
 		if(pCIABuyer != NULL && pCIABuyer->bActive && pCIABuyer->bInSector && pCIABuyer->stats.bLife)
 		{
-			if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 8 ) )
-				TriggerNPCRecord( CIA_BUYER, 8 );
-			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 9 ) )
-				TriggerNPCRecord( CIA_BUYER, 9 );
-			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 10 ) )
-				TriggerNPCRecord( CIA_BUYER, 10 );
-			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 11 ) )
-				TriggerNPCRecord( CIA_BUYER, 11 );
-			else if ( NPCConsiderQuoteForTrigger( CIA_BUYER, 12 ) )
-				TriggerNPCRecord( CIA_BUYER, 12 );
+			TriggerSubsequentNPCRecords(CIA_BUYER, 8);
 		}
 	}
 

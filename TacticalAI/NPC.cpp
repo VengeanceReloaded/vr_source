@@ -2829,6 +2829,32 @@ void TriggerNPCRecord( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec )
 	}
 }
 
+void TriggerSubsequentNPCRecords(UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec)
+{
+	// Check if we have a quote to trigger...
+	NPCQuoteInfo *pQuotePtr;
+	BOOLEAN      fDisplayDialogue = TRUE;
+
+	if (EnsureQuoteFileLoaded(ubTriggerNPC) == FALSE)
+	{
+		// error!!!
+		return;
+	}
+
+	for (; ubTriggerNPCRec < 256; ubTriggerNPCRec++)
+	{
+		if (gpNPCQuoteInfoArray[ubTriggerNPC][ubTriggerNPCRec].ubApproachRequired != TRIGGER_NPC)
+		{
+			return;
+		}
+		else if (NPCConsiderQuote(ubTriggerNPC, 0, TRIGGER_NPC, ubTriggerNPCRec, 0, gpNPCQuoteInfoArray[ubTriggerNPC]))
+		{
+			NPCTriggerNPC(ubTriggerNPC, ubTriggerNPCRec, TRIGGER_NPC, fDisplayDialogue);
+			return;
+		}
+	}
+}
+
 BOOLEAN NPCConsiderQuoteForTrigger( UINT8 ubTriggerNPC, UINT8 ubTriggerNPCRec )
 {
 	return NPCConsiderQuote( ubTriggerNPC, 0, TRIGGER_NPC, ubTriggerNPCRec, 0, gpNPCQuoteInfoArray[ ubTriggerNPC ] );
