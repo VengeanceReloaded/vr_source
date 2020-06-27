@@ -2513,8 +2513,7 @@ void Converse( UINT8 ubNPC, UINT8 ubMerc, INT8 bApproach, UINT32 uiApproachData 
 						    // turn off cowering
 						    if ( pNPC->flags.uiStatusFlags & SOLDIER_COWERING) // FIXME: Dereferencing null pointer
 						    {
-							    //pNPC->flags.uiStatusFlags &= ~SOLDIER_COWERING;
-							    pNPC->EVENT_InitNewSoldierAnim( STANDING, 0 , FALSE );
+								StopCoweringAnimation(pNPC);
 						    }
 
 						    pSoldier->ubQuoteRecord = ubRecordNum + 1; // add 1 so that the value is guaranteed nonzero
