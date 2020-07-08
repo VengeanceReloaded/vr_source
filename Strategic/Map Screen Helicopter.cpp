@@ -1110,7 +1110,7 @@ UINT16 CalculateHelicopterRepairCost( BOOLEAN fSeriousRepair )
 
 void StartHelicopterRepair( BOOLEAN fInStrategic, BOOLEAN fCalledByGivingMoney )
 {
-	MoveAllInHelicopterToFootMovementGroup( );	
+	MoveAllInHelicopterToFootMovementGroup(0, TRUE);	
 	if( CheckFact( FACT_HELI_DAMAGED_CAN_START_REPAIR, 0 ) == TRUE )
 	{
 		gubHelicopterHoursToRepair = min( max( 1, ( gHelicopterSettings.ubHelicopterBasicRepairTime - gHelicopterSettings.ubHelicopterBasicRepairTimeVariation + 2*Random(gHelicopterSettings.ubHelicopterBasicRepairTimeVariation) ) ), 255 );
@@ -1368,7 +1368,7 @@ void LandHelicopter( void )
 	if ( CanHelicopterFly() == FALSE )
 	{
 		// kick everyone out!
-		MoveAllInHelicopterToFootMovementGroup( );
+		MoveAllInHelicopterToFootMovementGroup(0, TRUE);
 	}
 	else
 	{
@@ -1747,7 +1747,7 @@ void SetUpHelicopterForPlayer( INT16 sX, INT16 sY , UINT8 SkyDrive, UINT8 Vehicl
 }
 
 
-UINT8 MoveAllInHelicopterToFootMovementGroup( INT8 bNewSquad )
+UINT8 MoveAllInHelicopterToFootMovementGroup( INT8 bNewSquad, BOOL fIncludePilot )
 {
 	// take everyone out of heli and add to movement group
 	INT32 iCounter = 0;
@@ -1776,7 +1776,7 @@ UINT8 MoveAllInHelicopterToFootMovementGroup( INT8 bNewSquad )
 		pSoldier = pVehicleList[ iHelicopterVehicleId ].pPassengers[ iCounter ];
 
 		//if( pSoldier != NULL )
-		if( pSoldier != NULL && pSoldier != GetDriver( iHelicopterVehicleId ) )//(pSoldier->ubProfile != SKYRIDER))// we don't to kick out the pilot
+		if (pSoldier != NULL && (fIncludePilot || pSoldier != GetDriver(iHelicopterVehicleId)))//(pSoldier->ubProfile != SKYRIDER))// we don't to kick out the pilot
 		{
 			// better really be in there!
 			Assert ( pSoldier->bAssignment == VEHICLE );
@@ -3261,7 +3261,7 @@ void PaySkyriderBill( void)
 
 			// kick everyone out! (we know we're in a safe sector if we're paying)
 			//CHRISL: This may no longer be the case but I'm not sure of a better way to handle things.
-			MoveAllInHelicopterToFootMovementGroup( );
+			MoveAllInHelicopterToFootMovementGroup(0, TRUE);
 
 			MakeHeliReturnToBase( HELICOPTER_RETURN_REASON_NONE );
 		}

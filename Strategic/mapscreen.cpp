@@ -6406,7 +6406,7 @@ UINT32 HandleMapUI( )
 				{
 					if( gfAllowSkyriderTooFarQuote == TRUE )
 					{
-						SkyRiderTalk( DESTINATION_TOO_FAR );
+						PilotTalk(DESTINATION_TOO_FAR);
 					}
 
 					return( MAP_SCREEN );
@@ -15222,7 +15222,6 @@ void ExplainWhySkyriderCantFly( void )
 	// anv - helicopter too damaged?
 	if ( gGameExternalOptions.fSeriouslyDamagedSkyriderWontFly == TRUE && gubHelicopterHitsTaken > 1 )
 	{
-		SkyRiderTalk( HELI_TOO_DAMAGED_TO_FLY );
 		return;
 	}
 
