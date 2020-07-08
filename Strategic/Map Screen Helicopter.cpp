@@ -1193,6 +1193,8 @@ INT32 GetCostOfPassageForHelicopter( INT16 sX, INT16 sY )
 
 void SkyriderDestroyed( void )
 {
+	fHelicopterIsAirBorne = FALSE;
+
 	// remove any arrival events for the helicopter's group
 	DeleteStrategicEvent( EVENT_GROUP_ARRIVAL, pVehicleList[ iHelicopterVehicleId ].ubMovementGroup );
 
@@ -2696,7 +2698,7 @@ BOOLEAN HandleSAMSiteAttackOfHelicopterInSector( INT16 sSectorX, INT16 sSectorY 
 	return( FALSE );
 }
 
-void ExplainAccidentReason( INT16 sSectorX, INT16 sSectorY )
+void ExplainAccidentReason(CHAR16* zDriverNickname, INT16 sSectorX, INT16 sSectorY)
 {
 	// mock the player (according to terrain - give different reason of accident)
 	if ( SECTOR(sSectorX, sSectorY) ==  SEC_D2 || 
@@ -2705,14 +2707,14 @@ void ExplainAccidentReason( INT16 sSectorX, INT16 sSectorY )
 		SECTOR(sSectorX, sSectorY) ==  SEC_N4 )
 	{
 		// SAM
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 16 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[16], zDriverNickname);
 	}
 	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == TOWN ||
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == FARMLAND ||
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == FARMLAND_ROAD )
 	{
 		// town/farm
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 10 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[10], zDriverNickname);
 	}
 	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SPARSE ||
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SPARSE_ROAD ||
@@ -2724,13 +2726,13 @@ void ExplainAccidentReason( INT16 sSectorX, INT16 sSectorY )
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SWAMP_ROAD )
 	{
 		// trees
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 11 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[11], zDriverNickname);
 	}
 	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SAND ||
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == SAND_ROAD)
 	{
 		// desert
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 12 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[12], zDriverNickname);
 	}
 	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == WATER ||
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == COASTAL ||
@@ -2738,18 +2740,18 @@ void ExplainAccidentReason( INT16 sSectorX, INT16 sSectorY )
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == EW_RIVER )
 	{
 		// water
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 13 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[13], zDriverNickname);
 	}
 	else if ( SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == HILLS ||
 		SectorInfo[ SECTOR(sSectorX, sSectorY) ].ubTraversability[ THROUGH_STRATEGIC_MOVE ] == HILLS_ROAD)
 	{
 		// hills
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 14 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[14], zDriverNickname);
 	}
 	else 
 	{
 		// other
-		ScreenMsg( FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[ 15 ], gMercProfiles[ GetDriver( iHelicopterVehicleId )->ubProfile ].zNickname);
+		ScreenMsg(FONT_MCOLOR_DKRED, MSG_INTERFACE, pSkyriderText[15], zDriverNickname);
 	}
 }
 
@@ -2757,53 +2759,55 @@ BOOLEAN HandlePilotDamagingHelicopterAccidently( INT16 sSectorX, INT16 sSectorY 
 {
 	UINT8 ubChance;
 
-	if( ProfileHasSkillTrait( GetDriver( iHelicopterVehicleId )->ubProfile, PILOT_NT ) == 2 )
-		ubChance = min( 100, gSkillTraitValues.ubPILAceAccidentChance );
-	else if( ProfileHasSkillTrait( GetDriver( iHelicopterVehicleId )->ubProfile, PILOT_NT ) == 1 )
-		ubChance = min( 100, gSkillTraitValues.ubPILFlyboyAccidentChance );
+	if (ProfileHasSkillTrait(GetDriver(iHelicopterVehicleId)->ubProfile, PILOT_NT) == 2)
+		ubChance = min(100, gSkillTraitValues.ubPILAceAccidentChance);
+	else if (ProfileHasSkillTrait(GetDriver(iHelicopterVehicleId)->ubProfile, PILOT_NT) == 1)
+		ubChance = min(100, gSkillTraitValues.ubPILFlyboyAccidentChance);
 	else
 		ubChance = 0;
 
-	if( PreRandom( 100 ) < ubChance)
+	if( PreRandom(100) < ubChance)
 	{
 		// another hit!
 		gubHelicopterHitsTaken++;
 		// Took a hit!	Pause time so player can reconsider
 		StopTimeCompression();
 
+		CHAR16* zDriverNickname = gMercProfiles[GetDriver(iHelicopterVehicleId)->ubProfile].zNickname;
 		// first hit?
-		if ( gubHelicopterHitsTaken == 1 )
+		if (gubHelicopterHitsTaken == 1)
 		{
-			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_TOOK_MINOR_DAMAGE );
-			ExplainAccidentReason( sSectorX, sSectorY );
+			HeliCharacterDialogue(GetDriver( iHelicopterVehicleId ), HELI_TOOK_MINOR_DAMAGE);
+			ExplainAccidentReason(zDriverNickname, sSectorX, sSectorY);
 		}
 		// second hit?
-		else if ( gubHelicopterHitsTaken == 2 )
+		else if (gubHelicopterHitsTaken == 2)
 		{
 			// going back to base (no choice, dialogue says so)
-			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_TOOK_MAJOR_DAMAGE );
-			MakeHeliReturnToBase( HELICOPTER_RETURN_REASON_DAMAGE );	
-			ExplainAccidentReason( sSectorX, sSectorY );
+			HeliCharacterDialogue(GetDriver(iHelicopterVehicleId), HELI_TOOK_MAJOR_DAMAGE);
+			MakeHeliReturnToBase(HELICOPTER_RETURN_REASON_DAMAGE);	
+			ExplainAccidentReason(zDriverNickname, sSectorX, sSectorY);
 		}
 		// third hit!
+		else if (gubHelicopterHitsTaken == 3)
 		{
 			// Important: Skyrider must still be alive when he talks, so must do this before heli is destroyed!
 			//HeliCharacterDialogue( pSkyRider, HELI_GOING_DOWN );
-			HeliCharacterDialogue( GetDriver( iHelicopterVehicleId ), HELI_GOING_DOWN );
+			HeliCharacterDialogue(GetDriver(iHelicopterVehicleId), HELI_GOING_DOWN);
 
 			// everyone die die die
 			// anv - calling SkyriderDestroyed() in callback from playing sound causes sound system to crash, as SkyriderDestroyed causes new sounds (hit battlesnds) to play while blah2 is not removed yet
 			// + if there's a pause while falling heli sound is played, it's possible to cheat by changing passengers assignments
-			PlayJA2StreamingSampleFromFile( "stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback );
+			PlayJA2StreamingSampleFromFile("stsounds\\blah2.wav", RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, HeliCrashSoundStopCallback);
 			SkyriderDestroyed( );
 
-			ExplainAccidentReason( sSectorX, sSectorY );
+			ExplainAccidentReason(zDriverNickname, sSectorX, sSectorY);
 			// special return code indicating heli was destroyed
-			return( TRUE );
+			return(TRUE);
 		}
 	}
 	// still flying
-	return( FALSE );
+	return(FALSE);
 }
 
 BOOLEAN HandlePilotFallingAsleep( INT16 sSectorX, INT16 sSectorY )
