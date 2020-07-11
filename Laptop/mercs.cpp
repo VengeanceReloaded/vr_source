@@ -484,10 +484,12 @@ BOOLEAN CanMercBeAvailableDuringInit( UINT8 ubMercToCheck )// anv: for all mercs
 #else
 	if( gConditionsForMercAvailability[ubMercToCheck].ProfilId == JOHN_MERC )
 		return ( FALSE );
-	// anv: VR - Sparky
-	else if( gConditionsForMercAvailability[ubMercToCheck].ProfilId == 224 )
-		return ( FALSE );
 #endif
+
+	// anv: VR
+	if (gConditionsForMercAvailability[ubMercToCheck].usMoneyPaid == (UINT16)-1 || 
+		gConditionsForMercAvailability[ubMercToCheck].usDay == (UINT16)-1)
+		return (FALSE);
 
 	return ( TRUE );
 }
@@ -3144,18 +3146,6 @@ BOOLEAN CanMercBeAvailableYet( UINT8 ubMercToCheck )
 			return( FALSE );	
 		}	
 	}
-	// anv: VR - Sparky availabe at MERC after being recruited on place
-	else if( gConditionsForMercAvailability[ ubMercToCheck ].ProfilId == 224 )
-	{
-		if( CheckFact(FACT_SPARKY_WAS_RECRUITED, 224) )
-		{
-			return( TRUE );
-		}			
-		else
-		{
-			return( FALSE );
-		}
-	}
 	// anv: if JA1 natives are turned off, prevent them from being be available
 	if(gGameExternalOptions.fEnableRecruitableJA1Natives == FALSE)
 	{
@@ -3176,10 +3166,21 @@ BOOLEAN CanMercBeAvailableYet( UINT8 ubMercToCheck )
 		}
 	}
 
+	// anv: VR - all mercs can become available after being fired if put into MercAvailability.xml (specifically for RPCs)
+	for (UINT8 ubCounter = 0; ubCounter < 255; ubCounter++)
+	{
+		if (LaptopSaveInfo.ubLeftCharactersList[ubCounter] == gConditionsForMercAvailability[ubMercToCheck].ProfilId)
+		{
+			return(TRUE);
+		}
+	}
+
 #endif
 	
+	// anv: VR - set usMoneyPaid and usDay to -1 to ignore progression condition
 	//if player has paid enough money for the merc to be available, and the it is after the current day
-	if( gConditionsForMercAvailability[ ubMercToCheck ].usMoneyPaid <= LaptopSaveInfo.uiTotalMoneyPaidToSpeck &&
+	if ((gConditionsForMercAvailability[ubMercToCheck].usMoneyPaid != (UINT16)-1 && gConditionsForMercAvailability[ubMercToCheck].usDay != (UINT16)-1) &&
+		gConditionsForMercAvailability[ ubMercToCheck ].usMoneyPaid <= LaptopSaveInfo.uiTotalMoneyPaidToSpeck &&
 			gConditionsForMercAvailability[ ubMercToCheck ].usDay <= GetWorldDay() )
 	{
 		return( TRUE );
