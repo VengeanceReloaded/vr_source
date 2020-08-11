@@ -978,15 +978,15 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 		{
 			case HATKIDCIV:
 			case KIDCIV:
-
+				// kids have 2 battlesound sets
 				Soldier.ubBattleSoundID = (UINT8)Random( 2 );
 				break;
 
 			case REGFEMALE:
 			case MINICIV:
 			case DRESSCIV:
-
-				Soldier.ubBattleSoundID = 7 + (UINT8) Random( 2 );
+				// women get badguy battlesound sets 6-8
+				Soldier.ubBattleSoundID = 6 + (UINT8)Random(3);
 				Soldier.aiData.bNormalSmell = NORMAL_HUMAN_SMELL_STRENGTH;
 				break;
 
