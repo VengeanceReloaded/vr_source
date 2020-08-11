@@ -197,6 +197,9 @@ INT32 GetNumberOfHiredMercs()
 		if (gConditionsForMercAvailability[ i ].Drunk)
 			continue;
 
+		if (!gConditionsForMercAvailability[i].StartMercsAvailable)
+			continue;
+
 		// WANNE.LARRY
 		/*if( i == MERC_LARRY_ROACHBURN )
 			continue;*/
@@ -524,6 +527,9 @@ void DisplayHiredMercs()
 		if (gConditionsForMercAvailability[ i ].Drunk)
 			continue;
 		
+		if (!gConditionsForMercAvailability[i].StartMercsAvailable)
+			continue;
+
 		usMercID = GetMercIDFromMERCArray( i );
 
 		//is the merc on the team, or is owed money
@@ -603,6 +609,9 @@ void SettleMercAccounts()
 	for(i=0; i<NUMBER_OF_MERCS; i++)
 	{
 		ubMercID = GetMercIDFromMERCArray( (UINT8) i );
+
+		if (!gConditionsForMercAvailability[i].StartMercsAvailable)
+			continue;
 
 		//if the merc is on the team, or does the player owe money for a fired merc
 		if( IsMercOnTeam( ubMercID ) || ( gMercProfiles[ ubMercID ].iMercMercContractLength != 0 ) )

@@ -1015,6 +1015,9 @@ void DailyUpdateOfMercSite( UINT16 usDate)
 			if (gConditionsForMercAvailability[ i ].Drunk)
 				continue;
 
+			if (!gConditionsForMercAvailability[i].StartMercsAvailable)
+				continue;
+
 			//// WANNE.LARRY
 			////if it larry Roach burn advance.	( cause larry is in twice, a sober larry and a stoned larry )
 			//if( i == MERC_LARRY_ROACHBURN )
@@ -2335,6 +2338,9 @@ BOOLEAN IsAnyMercMercsHired( )
 		ubMercID = GetMercIDFromMERCArray( i );
 		if( IsMercOnTeam( ubMercID ) )
 		{
+			if (!gConditionsForMercAvailability[i].StartMercsAvailable)
+				continue;
+
 			return( TRUE );
 		}
 	}
@@ -2390,6 +2396,9 @@ UINT8	CountNumberOfMercMercsHired()
 		ubMercID = GetMercIDFromMERCArray( i );
 		if( IsMercOnTeam( ubMercID ) )
 		{
+			if (!gConditionsForMercAvailability[i].StartMercsAvailable)
+				continue;
+
 			ubCount++;
 		}
 	}
@@ -3270,6 +3279,9 @@ UINT32 CalcMercDaysServed()
 	for(i=0; i<NUMBER_OF_MERCS; i++)
 	{
 		//get the id
+		if (!gConditionsForMercAvailability[i].StartMercsAvailable)
+			continue;
+
 		ubMercID = GetMercIDFromMERCArray( i );
 
 		uiDaysServed += gMercProfiles[ ubMercID ].usTotalDaysServed;
