@@ -9391,6 +9391,8 @@ void SOLDIERTYPE::BeginSoldierClimbUpRoof( void )
 			ubWhoIsThere = WhoIsThere2( NewGridNo( this->sGridNo, (UINT16)DirectionInc(bNewDirection ) ), 1 );
 			if ( ubWhoIsThere != NOBODY && ubWhoIsThere != this->ubID )
 		 {
+			 DebugAttackBusy(String("Soldier %d tried to climb up on someone.\n", this->ubID));
+			 this->aiData.bAction = AI_ACTION_NONE;
 			 return;
 		 }
 			else
@@ -9426,6 +9428,11 @@ void SOLDIERTYPE::BeginSoldierClimbUpRoof( void )
 
 			}
 
+		}
+		else
+		{
+			DebugAttackBusy(String("Soldier %d tried to climb without AP.\n", this->ubID));
+			this->aiData.bAction = AI_ACTION_NONE;
 		}
 	}
 	else
@@ -11120,6 +11127,8 @@ void SOLDIERTYPE::BeginSoldierClimbDownRoof( void )
 			ubWhoIsThere = WhoIsThere2( NewGridNo( this->sGridNo, (UINT16)DirectionInc(bNewDirection ) ), 0 );
 			if ( ubWhoIsThere != NOBODY && ubWhoIsThere != this->ubID )
 		 {
+			 DebugAttackBusy(String("Soldier %d tried to climb down on someone.\n", this->ubID));
+			 this->aiData.bAction = AI_ACTION_NONE;
 			 return;
 		 }
 			else
@@ -11156,8 +11165,17 @@ void SOLDIERTYPE::BeginSoldierClimbDownRoof( void )
 
 			}
 		}
+		else
+		{
+			DebugAttackBusy(String("Soldier %d tried to climb down without AP.\n", this->ubID));
+			this->aiData.bAction = AI_ACTION_NONE;
+		}
 	}
-
+	else
+	{
+		DebugAttackBusy(String("Soldier %d tried to climb down where no roof is.\n", this->ubID));
+		this->aiData.bAction = AI_ACTION_NONE;
+	}
 }
 /*
 void BeginSoldierClimbDownRoof( SOLDIERTYPE *pSoldier )

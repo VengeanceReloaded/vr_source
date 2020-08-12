@@ -643,7 +643,7 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 		bAction = pSoldier->aiData.bAction;
 	}
 
-	switch (pSoldier->aiData.bAction)
+	switch (bAction)
 	{
 		case AI_ACTION_NONE:                  // maintain current position & facing
 			// no cost for doing nothing!
