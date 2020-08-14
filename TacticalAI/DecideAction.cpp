@@ -2916,86 +2916,132 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 
 		// CHRISL: Changed from a simple flag to two externalized values for more modder control over AI suppression
 		// WarmSteel - Don't *always* try to suppress when under 50 CTH
-		if( BestShot.bWeaponIn != -1 &&
-			BestShot.ubPossible &&
+		if (BestShot.ubPossible &&
+			BestShot.bWeaponIn != -1 &&
+			// check valid target
+			!TileIsOutOfBounds(BestShot.sTarget) &&
+			BestShot.ubOpponent != NOBODY &&
+			MercPtrs[BestShot.ubOpponent] &&
+			// check weapon/ammo requirements
+			IsGunAutofireCapable(&pSoldier->inv[BestShot.bWeaponIn]) &&
 			GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize &&
 			pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumAmmo &&
+			// check soldier and weapon
 			pSoldier->aiData.bOrders != SNIPER &&
-			BestShot.ubFriendlyFireChance < 5 &&
-			!TileIsOutOfBounds(BestShot.sTarget) &&
-			PythSpacesAway(pSoldier->sGridNo, BestShot.sTarget) > DAY_VISION_RANGE / 4 &&
-			Random(100) < 100 * (GunRange(&pSoldier->inv[BestShot.bWeaponIn], pSoldier) / CELL_X_SIZE) / PythSpacesAway(pSoldier->sGridNo, BestShot.sTarget) &&
-			//CheckSuppressionDirection( pSoldier, Menptr[BestShot.ubOpponent].sGridNo, Menptr[BestShot.ubOpponent].pathing.bLevel ) &&
-			MercPtrs[BestShot.ubOpponent]->stats.bLife >= OKLIFE &&
-			!MercPtrs[BestShot.ubOpponent]->bCollapsed &&
-			!MercPtrs[BestShot.ubOpponent]->bBreathCollapsed &&
-			!CoweringShockLevel(MercPtrs[BestShot.ubOpponent]) &&
+			BestShot.ubFriendlyFireChance <= MIN_CHANCE_TO_ACCIDENTALLY_HIT_SOMEONE &&
 			!AICheckIsFlanking(pSoldier) &&
-			!TileIsOutOfBounds(BestShot.sTarget) &&
-			!pSoldier->IsZombie() &&
-			MercPtrs[BestShot.ubOpponent]->bTeam != CREATURE_TEAM &&
-			!TANK( MercPtrs[BestShot.ubOpponent] ) &&
-			!AM_A_ROBOT( MercPtrs[BestShot.ubOpponent] ) &&
-			MercPtrs[BestShot.ubOpponent]->ubWhatKindOfMercAmI != MERC_TYPE__VEHICLE &&
-			(FindAmmoToReload( pSoldier, BestShot.bWeaponIn, NO_SLOT ) != NO_SLOT || pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft > gGameExternalOptions.ubAISuppressionMinimumMagSize) )
+			// check cover
+			(AnyCoverAtSpot(pSoldier, pSoldier->sGridNo) ||																				// safe position
+			NightLight() && CountFriendsFlankSameSpot(pSoldier) && Chance(50) ||
+			TANK(pSoldier) ||																		// tanks don't need cover
+			pSoldier->aiData.bUnderFire && (pSoldier->ubPreviousAttackerID == BestShot.ubOpponent || pSoldier->ubNextToPreviousAttackerID == BestShot.ubOpponent || MercPtrs[BestShot.ubOpponent]->sLastTarget == pSoldier->sGridNo) ||	// return fire
+			Chance((BestShot.ubChanceToReallyHit + 100) / 2) ||											// 50% chance to fire without cover
+			SoldierToSoldierLineOfSightTest(pSoldier, MercPtrs[BestShot.ubOpponent], TRUE, CALC_FROM_ALL_DIRS)) &&		// can see target after turning
+			// reduce chance to shoot if target is beyond weapon range
+			(AICheckIsMachinegunner(pSoldier) ||
+			TANK(pSoldier) ||
+			AnyCoverAtSpot(pSoldier, pSoldier->sGridNo) ||
+			pSoldier->aiData.bUnderFire && (pSoldier->ubPreviousAttackerID == BestShot.ubOpponent || pSoldier->ubNextToPreviousAttackerID == BestShot.ubOpponent || MercPtrs[BestShot.ubOpponent]->sLastTarget == pSoldier->sGridNo) ||	// return fire
+			Chance(100 * (GunRange(&pSoldier->inv[BestShot.bWeaponIn], pSoldier) / CELL_X_SIZE) / PythSpacesAway(pSoldier->sGridNo, BestShot.sTarget))) &&
+			// check that we have spare ammo
+			(fExtraClip || pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft >= gGameExternalOptions.ubAISuppressionMinimumMagSize))
 		{
 			// then do it!
 
 			// if necessary, swap the usItem from holster into the hand position
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: suppression fire possible!");
-
 			if (BestShot.bWeaponIn != HANDPOS)
 			{
-				RearrangePocket(pSoldier,HANDPOS,BestShot.bWeaponIn,FOREVER);
+				RearrangePocket(pSoldier, HANDPOS, BestShot.bWeaponIn, FOREVER);
 			}
 
-			pSoldier->aiData.usActionData	= BestShot.sTarget;
-			pSoldier->bTargetLevel			= BestShot.bTargetLevel;			
-			pSoldier->aiData.bAimTime		= 0;
-			pSoldier->bDoAutofire			= 0;
-			pSoldier->bDoBurst				= 1;
+			pSoldier->bTargetLevel = BestShot.bTargetLevel;
+			pSoldier->aiData.bAimTime = BestShot.ubAimTime;
+			pSoldier->bDoAutofire = 0;
+			pSoldier->bDoBurst = 1;
+			pSoldier->bScopeMode = BestShot.bScopeMode;
 
 			INT16 ubBurstAPs = 0;
 			FLOAT dTotalRecoil = 0;
+			INT32 sActualAimAP;
+			UINT8 ubAutoPenalty;
+			INT16 sReserveAP = GetAPsProne(pSoldier, TRUE);
+			UINT8 ubMinAuto = 5;
 
-			if(UsingNewCTHSystem() == true)
+			if (BestShot.ubAimTime > 0 &&
+				!UsingNewCTHSystem() &&
+				Chance((100 - BestShot.ubChanceToReallyHit) * (100 - BestShot.ubChanceToReallyHit) / 100))
 			{
-				do
-				{
-					pSoldier->bDoAutofire++;
-					dTotalRecoil += AICalcRecoilForShot( pSoldier, &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire );
-					ubBurstAPs = CalcAPsToAutofire( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier );
-				}
-				while(	pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs && pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire 
-					&& dTotalRecoil <= 10.0f );
+				BestShot.ubAimTime = 0;
 			}
-			else 
+
+			// reserve APs to hide if no cover or enemy is close
+			if (!AnyCoverAtSpot(pSoldier, pSoldier->sGridNo) || PythSpacesAway(pSoldier->sGridNo, BestShot.sTarget) < DAY_VISION_RANGE / 2)
+			{
+				sReserveAP = APBPConstants[AP_MINIMUM] / 2;
+			}
+			if (PythSpacesAway(pSoldier->sGridNo, BestShot.sTarget) > DAY_VISION_RANGE || AnyCoverAtSpot(pSoldier, pSoldier->sGridNo) || pSoldier->aiData.bUnderFire)
+			{
+				ubMinAuto *= 2;
+			}
+
+			sActualAimAP = CalcAPCostForAiming(pSoldier, BestShot.sTarget, (INT8)pSoldier->aiData.bAimTime);
+
+			if (UsingNewCTHSystem() == true)
 			{
 				do
 				{
 					pSoldier->bDoAutofire++;
-					ubBurstAPs = CalcAPsToAutofire( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier );
-				}
-				while(	pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs &&
-					pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire &&
-					GetAutoPenalty(pSoldier, &pSoldier->inv[ pSoldier->ubAttackingHand ], gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE)*pSoldier->bDoAutofire <= 80 );
+					dTotalRecoil += AICalcRecoilForShot(pSoldier, &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire);
+					ubBurstAPs = CalcAPsToAutofire(pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier);
+				} while (pSoldier->bActionPoints >= BestShot.ubAPCost + sActualAimAP + ubBurstAPs + sReserveAP &&
+					pSoldier->inv[pSoldier->ubAttackingHand][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire &&
+					pSoldier->bDoAutofire <= 30 &&
+					(dTotalRecoil <= 20.0f || pSoldier->bDoAutofire < ubMinAuto));
+			}
+			else
+			{
+				ubAutoPenalty = GetAutoPenalty(pSoldier, &pSoldier->inv[pSoldier->ubAttackingHand], gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_PRONE);
+				do
+				{
+					pSoldier->bDoAutofire++;
+					ubBurstAPs = CalcAPsToAutofire(pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier);
+				} while (pSoldier->bActionPoints >= BestShot.ubAPCost + sActualAimAP + ubBurstAPs + sReserveAP &&
+					pSoldier->inv[pSoldier->ubAttackingHand][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire &&
+					pSoldier->bDoAutofire <= 30 &&
+					(ubAutoPenalty * pSoldier->bDoAutofire <= 80 || pSoldier->bDoAutofire < ubMinAuto));
 			}
 
 			pSoldier->bDoAutofire--;
 
 			// Make sure we decided to fire at least one shot!
-			ubBurstAPs = CalcAPsToAutofire( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier );
+			ubBurstAPs = CalcAPsToAutofire(pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier);
 
-			// minimum 5 bullets
-			if (pSoldier->bDoAutofire >= 5 && pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs )
+			// minimum 3 bullets
+			if (pSoldier->bDoAutofire >= 3 && pSoldier->bActionPoints >= BestShot.ubAPCost + sActualAimAP + ubBurstAPs + sReserveAP)
 			{
-				ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_SUPPRESSIONFIRE ] );
-				return( AI_ACTION_FIRE_GUN );
+				if (gAnimControl[pSoldier->usAnimState].ubEndHeight != BestShot.ubStance &&
+					IsValidStance(pSoldier, BestShot.ubStance))
+				{
+					pSoldier->aiData.bNextAction = AI_ACTION_FIRE_GUN;
+					pSoldier->aiData.usNextActionData = BestShot.sTarget;
+					pSoldier->aiData.bNextTargetLevel = BestShot.bTargetLevel;
+					pSoldier->aiData.usActionData = BestShot.ubStance;
+
+					ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_SUPPRESSIONFIRE]);
+					return(AI_ACTION_CHANGE_STANCE);
+				}
+				else
+				{
+					pSoldier->aiData.usActionData = BestShot.sTarget;
+
+					ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[MSG113_SUPPRESSIONFIRE]);
+					return(AI_ACTION_FIRE_GUN);
+				}
 			}
 			else
 			{
-				pSoldier->bDoBurst			= 0;
-				pSoldier->bDoAutofire		= 0;
+				pSoldier->bDoBurst = 0;
+				pSoldier->bDoAutofire = 0;
 			}
 		}
 		// suppression not possible, do something else
@@ -4493,8 +4539,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 	ATTACKTYPE BestShot, BestThrow, BestStab ,BestAttack;	//dnl ch69 150913
 	BOOLEAN fCivilian = (PTR_CIVILIAN && (pSoldier->ubCivilianGroup == NON_CIV_GROUP || pSoldier->aiData.bNeutral || (pSoldier->ubBodyType >= FATCIV && pSoldier->ubBodyType <= CRIPPLECIV) ) );
-	UINT8	ubBestStance = 1;
-	BOOLEAN fChangeStanceFirst;			// before firing
 	BOOLEAN fClimb;
 	INT16	ubBurstAPs;
 	UINT8	ubOpponentDir;
@@ -4989,10 +5033,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		//////////////////////////////////////////////////////////////////////////
 
 		// this looks for throwables, and sets BestThrow.ubPossible if it can be done
-		//if ( !gfHiddenInterrupt )
-		// {
-		//if(!is_networked) //disable for mp ai
-		//{
 		CheckIfTossPossible(pSoldier,&BestThrow);
 
 		if (BestThrow.ubPossible)
@@ -5000,7 +5040,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"good throw possible");
 			if ( Item[pSoldier->inv[ BestThrow.bWeaponIn ].usItem].mortar )
 			{
-				ubOpponentDir = (UINT8)GetDirectionFromGridNo( BestThrow.sTarget, pSoldier );
+				ubOpponentDir = AIDirection(pSoldier->sGridNo, BestThrow.sTarget);
 
 				// Get new gridno!
 				sCheckGridNo = NewGridNo( pSoldier->sGridNo, (UINT16)DirectionInc( ubOpponentDir ) );
@@ -5027,13 +5067,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 				NPCDoesAct(pSoldier);
 			}
 		}
-
-
-		//}
-
-
-
-		//}
 
 		//////////////////////////////////////////////////////////////////////////
 		// GO STAB AN OPPONENT WITH A KNIFE
@@ -5589,8 +5622,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		// if we wanted to be REALLY mean, we could look at chance to hit and decide whether
 		// to shoot at the head...
 
-		fChangeStanceFirst = FALSE;
-
 		// default settings
 		//POSSIBLE STRUCTURE CHANGE PROBLEM, NOT CURRENTLY CHANGED. GOTTHARD 7/14/08		
 		pSoldier->aiData.bAimTime = BestAttack.ubAimTime;
@@ -5598,123 +5629,12 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		pSoldier->bDoBurst			= 0;
 
 		// HEADROCK HAM 3.6: bAimTime represents how MANY aiming levels are used, not how much APs they cost necessarily.
-		INT16 sActualAimTime = CalcAPCostForAiming( pSoldier, BestAttack.sTarget, (INT8)pSoldier->aiData.bAimTime );
+		INT16 sActualAimAP = CalcAPCostForAiming( pSoldier, BestAttack.sTarget, (INT8)pSoldier->aiData.bAimTime );
 
 		if (ubBestAttackAction == AI_ACTION_FIRE_GUN)
 		{
-#ifndef dnlCALCBESTSHOT//dnl ch69 140913
-			// Do we need to change stance?  NB We'll have to ready our gun again
-			if ( !TANK( pSoldier ) && ( pSoldier->bActionPoints >= BestAttack.ubAPCost + GetAPsCrouch( pSoldier, TRUE) + MinAPsToAttack( pSoldier, BestAttack.sTarget, ADDTURNCOST,0, 1 ) ) )
-			{
-				// since the AI considers shooting chance from standing primarily, if we are not
-				// standing we should always consider a stance change
-				if ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight != ANIM_STAND )
-				{
-					iChance = 100;
-				}
-				else
-				{
-					iChance = 50;
-					switch (pSoldier->aiData.bAttitude)
-					{
-					case DEFENSIVE:		iChance += 20; break;
-					case BRAVESOLO:		iChance -= 10; break;
-					case BRAVEAID:			iChance -= 10; break;
-					case CUNNINGSOLO:	iChance += 10; break;
-					case CUNNINGAID:		iChance += 10; break;
-					case AGGRESSIVE:		iChance -= 20; break;
-					case ATTACKSLAYONLY: iChance -= 30; break;
-					}
-				}
-
-				if ( (INT32)PreRandom( 100 ) < iChance || GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, BestAttack.sTarget ) <= MIN_PRONE_RANGE )
-				{
-
-					// first get the direction, as we will need to pass that in to ShootingStanceChange
-					bDirection = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(BestAttack.sTarget),CenterY(BestAttack.sTarget));
-
-					ubBestStance = ShootingStanceChange( pSoldier, &BestAttack, bDirection );
-					if (ubBestStance != 0)
-					{
-						// change stance first!
-						if ( pSoldier->ubDirection != bDirection && pSoldier->InternalIsValidStance( bDirection, gAnimControl[ pSoldier->usAnimState ].ubEndHeight ) )
-						{
-							// we're not facing towards him, so turn first!
-							pSoldier->aiData.usActionData = bDirection;
-
-#ifdef DEBUGDECISIONS
-							sprintf(tempstr,"%s - TURNS to face CLOSEST OPPONENT in direction %d",pSoldier->name,pSoldier->aiData.usActionData);
-							AIPopMessage(tempstr);
-#endif
-
-							return(AI_ACTION_CHANGE_FACING);
-						}
-
-						//						pSoldier->aiData.usActionData = ubBestStance;
-
-						// attack after we change stance
-						// we don't just return here because we want to check whether to
-						// burst first
-						fChangeStanceFirst = TRUE;
-
-						// account for increased AP cost and having to re-ready weapon
-						ubStanceCost = (UINT8) GetAPsToChangeStance( pSoldier, ubBestStance );
-						BestAttack.ubAPCost = MinAPsToAttack( pSoldier, BestAttack.sTarget, ADDTURNCOST, 0, 1) + ubStanceCost;
-
-						// Clip the aim time if necessary
-						// HEADROCK HAM 3.6: Use Actual Aiming Costs, without assuming that each aim level = 1 AP.
-						if ( BestAttack.ubAPCost + sActualAimTime > pSoldier->bActionPoints )
-						{
-							// AP cost would balance (plus X, minus X) but aim time is reduced
-							// HEADROCK HAM 3.6: Use actual Aiming Costs.
-							BestAttack.ubAimTime = CalcAimingLevelsAvailableWithAP( pSoldier, BestAttack.sTarget, (pSoldier->bActionPoints - BestAttack.ubAPCost - ubStanceCost) );
-							if (BestAttack.ubAimTime < 0 )
-							{
-								// This is actually a logic error situation.  The ChangeStance section is supposed
-								// to not make a shot impossible after changing stance.
-								BestAttack.ubPossible = 0;
-							}
-						}
-					}
-				}
-			}
-#else
 			if(!TANK(pSoldier))
 			{
-				// first get the direction, as we will need to pass that in to ShootingStanceChange
-				bDirection = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(BestAttack.sTarget),CenterY(BestAttack.sTarget));
-				if(gAnimControl[pSoldier->usAnimState].ubEndHeight > BestAttack.ubStance)// Going down
-				{
-					// First change direction
-					if(pSoldier->ubDirection != bDirection && pSoldier->InternalIsValidStance(bDirection, gAnimControl[pSoldier->usAnimState].ubEndHeight))
-					{
-						// we're not facing towards him, so turn first!
-						pSoldier->aiData.usActionData = bDirection;
-						return(AI_ACTION_CHANGE_FACING);
-					}
-					else
-					{
-						ubBestStance = BestAttack.ubStance;
-						fChangeStanceFirst = TRUE;
-					}
-				}
-				else if(gAnimControl[pSoldier->usAnimState].ubEndHeight < BestAttack.ubStance)// Going up
-				{
-					// First change stance
-					ubBestStance = BestAttack.ubStance;
-					fChangeStanceFirst = TRUE;
-				}
-				else
-				{
-					// Change facing
-					if(pSoldier->ubDirection != bDirection && pSoldier->InternalIsValidStance(bDirection, gAnimControl[pSoldier->usAnimState].ubEndHeight))
-					{
-						// we're not facing towards him, so turn first!
-						pSoldier->aiData.usActionData = bDirection;
-						return(AI_ACTION_CHANGE_FACING);
-					}
-				}
-
 				// sevenfm: dynamically decide shot location
 				if (BestAttack.ubOpponent != NOBODY)
 				{
@@ -5817,7 +5737,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 					}
 				}
 			}
-#endif
 
 			//////////////////////////////////////////////////////////////////////////
 			// IF ENOUGH APs TO BURST, RANDOM CHANCE OF DOING SO
@@ -5833,7 +5752,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 				ubBurstAPs = CalcAPsToBurst( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestAttack.bWeaponIn]), pSoldier );
 
 				// HEADROCK HAM 3.6: Use Actual Aiming Time.
-				if (pSoldier->bActionPoints >= BestAttack.ubAPCost + sActualAimTime + ubBurstAPs )
+				if (pSoldier->bActionPoints >= BestAttack.ubAPCost + sActualAimAP + ubBurstAPs )
 				{
 					// Base chance of bursting is 25% if best shot was +0 aim, down to 8% at +4
 					if ( TANK( pSoldier ) )
@@ -5885,7 +5804,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 					if ( (INT32) PreRandom( 100 ) < iChance)
 					{
-						BestAttack.ubAPCost += ubBurstAPs + sActualAimTime;//dnl ch58 130913
+						BestAttack.ubAPCost += ubBurstAPs + sActualAimAP;//dnl ch58 130913
 						// check for spread burst possibilities
 						if (pSoldier->aiData.bAttitude != ATTACKSLAYONLY)
 						{
@@ -5914,14 +5833,14 @@ L_NEWAIM:
 						dTotalRecoil += AICalcRecoilForShot( pSoldier, &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire );
 						ubBurstAPs = CalcAPsToAutofire( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestShot.bWeaponIn]), pSoldier->bDoAutofire, pSoldier );
 					}
-					while(	pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs + sActualAimTime && pSoldier->inv[ BestAttack.bWeaponIn ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire && dTotalRecoil <= 10.0f );//dnl ch64 260813 pSoldier->ubAttackingHand is wrong because decision is to use BestAttack.bWeaponIn
+					while(	pSoldier->bActionPoints >= BestShot.ubAPCost + ubBurstAPs + sActualAimAP && pSoldier->inv[ BestAttack.bWeaponIn ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire && dTotalRecoil <= 10.0f );//dnl ch64 260813 pSoldier->ubAttackingHand is wrong because decision is to use BestAttack.bWeaponIn
 				} else {
 					do
 					{
 						pSoldier->bDoAutofire++;
 						ubBurstAPs = CalcAPsToAutofire( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestAttack.bWeaponIn]), pSoldier->bDoAutofire, pSoldier );
 					}
-					while(	pSoldier->bActionPoints >= BestAttack.ubAPCost + ubBurstAPs + sActualAimTime &&
+					while(	pSoldier->bActionPoints >= BestAttack.ubAPCost + ubBurstAPs + sActualAimAP &&
 						pSoldier->inv[ BestAttack.bWeaponIn ][0]->data.gun.ubGunShotsLeft >= pSoldier->bDoAutofire &&
 						//dnl ch64 130913 pSoldier->ubAttackingHand is wrong because decision is to use BestAttack.bWeaponIn, also missing sActualAimTime
 						// sevenfm limit max auto penalty if target has shock (suppressed)
@@ -5942,14 +5861,14 @@ L_NEWAIM:
 					pSoldier->inv[BestAttack.bWeaponIn][0]->data.gun.ubGunShotsLeft >= 3)//dnl ch69 130913 let try increase autofire rate for aim cost
 				{
 					pSoldier->aiData.bAimTime--;
-					sActualAimTime = CalcAPCostForAiming(pSoldier, BestAttack.sTarget, (INT8)pSoldier->aiData.bAimTime);
+					sActualAimAP = CalcAPCostForAiming(pSoldier, BestAttack.sTarget, (INT8)pSoldier->aiData.bAimTime);
 					goto L_NEWAIM;
 				}
 				if (pSoldier->bDoAutofire > 0)
 				{
 					ubBurstAPs = CalcAPsToAutofire( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestAttack.bWeaponIn]), pSoldier->bDoAutofire, pSoldier );
 
-					if (pSoldier->bActionPoints >= BestAttack.ubAPCost + sActualAimTime + ubBurstAPs )
+					if (pSoldier->bActionPoints >= BestAttack.ubAPCost + sActualAimAP + ubBurstAPs )
 					{
 						// Base chance of bursting is 25% if best shot was +0 aim, down to 8% at +4
 						if ( TANK( pSoldier ) )
@@ -6013,16 +5932,16 @@ L_NEWAIM:
 								if(Weapon[pSoldier->inv[BestAttack.bWeaponIn].usItem].NoSemiAuto)
 									iChance = 35;
 							}
-							if((INT32)PreRandom(100) < iChance && pSoldier->bActionPoints > (2 * BestAttack.ubAPCost + ubHalfBurstAPs + sActualAimTime))
+							if((INT32)PreRandom(100) < iChance && pSoldier->bActionPoints > (2 * BestAttack.ubAPCost + ubHalfBurstAPs + sActualAimAP))
 							{
 								// Try short autofire to enhance chance of hitting
 								pSoldier->bDoAutofire = 4;
-								BestAttack.ubAPCost += ubHalfBurstAPs + sActualAimTime;
+								BestAttack.ubAPCost += ubHalfBurstAPs + sActualAimAP;
 //SendFmtMsg("HALF-Auto=%d ubAPCost=%d iChance=%d ubBurstAPs=%d,%d", pSoldier->bDoAutofire, BestAttack.ubAPCost, iChance, ubHalfBurstAPs, sActualAimTime);
 							}
 							else
 							{
-								BestAttack.ubAPCost += ubBurstAPs + sActualAimTime;
+								BestAttack.ubAPCost += ubBurstAPs + sActualAimAP;
 //SendFmtMsg("FULL-Auto=%d ubAPCost=%d iChance=%d ubBurstAPs=%d,%d", pSoldier->bDoAutofire, BestAttack.ubAPCost, iChance, ubBurstAPs, sActualAimTime);
 							}
 						}
@@ -6233,86 +6152,59 @@ L_NEWAIM:
 				pSoldier->bWeaponMode = WM_BURST;
 		}
 
-		if (fChangeStanceFirst)
-		{ // currently only for guns...
-			pSoldier->aiData.bNextAction = AI_ACTION_FIRE_GUN;
-			pSoldier->aiData.usNextActionData = BestAttack.sTarget;
-			pSoldier->aiData.bNextTargetLevel = BestAttack.bTargetLevel;
-			pSoldier->aiData.usActionData = ubBestStance;
-			return( AI_ACTION_CHANGE_STANCE );
+		if (ubBestAttackAction == AI_ACTION_FIRE_GUN)
+		{
+			if (gAnimControl[pSoldier->usAnimState].ubEndHeight != BestAttack.ubStance  &&
+				IsValidStance(pSoldier, BestAttack.ubStance))
+			{
+				pSoldier->aiData.bNextAction = AI_ACTION_FIRE_GUN;
+				pSoldier->aiData.usNextActionData = BestAttack.sTarget;
+				pSoldier->aiData.bNextTargetLevel = BestAttack.bTargetLevel;
+				pSoldier->aiData.usActionData = BestAttack.ubStance;
+
+				return(AI_ACTION_CHANGE_STANCE);
+			}
+			else
+			{
+				pSoldier->aiData.usActionData = BestAttack.sTarget;
+				pSoldier->bTargetLevel = BestAttack.bTargetLevel;
+				return(AI_ACTION_FIRE_GUN);
+			}
 		}
+		else if (ubBestAttackAction == AI_ACTION_TOSS_PROJECTILE)
+		{
+			pSoldier->bDoBurst = 0;
+			pSoldier->bDoAutofire = 0;
+
+			if (IsGrenadeLauncherAttached(&pSoldier->inv[HANDPOS]))	//dnl ch63 240813
+			{
+				pSoldier->bWeaponMode = WM_ATTACHED_GL;
+			}
+
+			// stand up before throwing if needed
+			if (gAnimControl[pSoldier->usAnimState].ubEndHeight < BestAttack.ubStance &&
+				pSoldier->InternalIsValidStance(AIDirection(pSoldier->sGridNo, BestAttack.sTarget), BestAttack.ubStance))
+			{
+				pSoldier->aiData.usActionData = BestAttack.ubStance;
+				pSoldier->aiData.bNextAction = AI_ACTION_TOSS_PROJECTILE;
+				pSoldier->aiData.usNextActionData = BestAttack.sTarget;
+				pSoldier->aiData.bNextTargetLevel = BestAttack.bTargetLevel;
+				return AI_ACTION_CHANGE_STANCE;
+			}
+			else
+			{
+				pSoldier->aiData.usActionData = BestAttack.sTarget;
+				pSoldier->bTargetLevel = BestAttack.bTargetLevel;
+				return(AI_ACTION_TOSS_PROJECTILE);
+			}
+		}
+		// other attacks
 		else
 		{
-
 			pSoldier->aiData.usActionData = BestAttack.sTarget;
 			pSoldier->bTargetLevel = BestAttack.bTargetLevel;
-
-#ifdef DEBUGDECISIONS
-			STR tempstr="";
-			sprintf( tempstr,
-				"%d(%s) %s %d(%s) at gridno %d (%d APs aim)\n",
-				pSoldier->ubID,pSoldier->name,
-				(ubBestAttackAction == AI_ACTION_FIRE_GUN)?"SHOOTS":((ubBestAttackAction == AI_ACTION_TOSS_PROJECTILE)?"TOSSES AT":"STABS"),
-				BestAttack.ubOpponent,pSoldier->name ,
-				BestAttack.sTarget,BestAttack.ubAimTime );
-			DebugAI( tempstr);
-#endif
-
-			//DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("DecideActionBlack: Check for GL Bursts, is launcher capable? = %d, rtpcombat? = %d, bestattackaction = %d",IsGunBurstCapable( pSoldier, BestAttack.bWeaponIn, FALSE ),pSoldier->aiData.bRTPCombat,ubBestAttackAction ));
-			//should be a bug
-			DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("DecideActionBlack: Check for GL Bursts, is launcher capable? = %d, rtpcombat? = %d, bestattackaction = %d",IsGunBurstCapable( &pSoldier->inv[BestAttack.bWeaponIn], FALSE, pSoldier ),pSoldier->aiData.bRTPCombat,ubBestAttackAction ));
-			if (ubBestAttackAction == AI_ACTION_TOSS_PROJECTILE && (Item[pSoldier->inv[BestAttack.bWeaponIn].usItem].usItemClass == IC_LAUNCHER && IsGunBurstCapable( &pSoldier->inv[BestAttack.bWeaponIn], FALSE, pSoldier )) &&
-				(pSoldier->bTeam != gbPlayerNum || pSoldier->aiData.bRTPCombat == RTP_COMBAT_AGGRESSIVE) )
-			{
-
-				DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "DecideActionBlack: Doing burst calc");
-				ubBurstAPs = CalcAPsToBurst( pSoldier->CalcActionPoints(), &(pSoldier->inv[BestAttack.bWeaponIn]), pSoldier );
-
-				if ( (pSoldier->bActionPoints - BestAttack.ubAPCost) >= ubBurstAPs )
-				{
-					// Base chance of bursting is 25% if best shot was +0 aim, down to 8% at +4
-					if ( TANK( pSoldier ) )
-					{
-						iChance = 100;
-					}
-					else
-					{
-						iChance = 50;
-						switch (pSoldier->aiData.bAttitude)
-						{
-						case DEFENSIVE:		iChance += -5; break;
-						case BRAVESOLO:		iChance +=  5; break;
-						case BRAVEAID:		iChance +=  5; break;
-						case CUNNINGSOLO:	iChance +=  0; break;
-						case CUNNINGAID:	iChance +=  0; break;
-						case AGGRESSIVE:	iChance += 10; break;
-						case ATTACKSLAYONLY:iChance += 30; break;
-						}
-						// increase chance based on proximity and difficulty of enemy
-						DebugMsg(TOPIC_JA2AI,DBG_LEVEL_3,String("DecideActionBlack: check chance to gl burst"));
-						iChance += ( 15 - PythSpacesAway( pSoldier->sGridNo, BestAttack.sTarget ) ) * ( 1 + SoldierDifficultyLevel( pSoldier ) );
-					}
-
-					if ( (INT32) PreRandom( 100 ) < iChance)
-					{
-						DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "DecideActionBlack: Doing GL burst");
-						BestAttack.ubAPCost = BestAttack.ubAPCost + CalcAPsToBurst( pSoldier->CalcActionPoints(), &(pSoldier->inv[HANDPOS]), pSoldier );
-						// check for spread burst possibilities
-						if (pSoldier->aiData.bAttitude != ATTACKSLAYONLY)
-						{
-							CalcSpreadBurst( pSoldier, BestAttack.sTarget, BestAttack.bTargetLevel );
-						}
-						//dnl ch58 140913 After HAM 4 BURSTING is not in use any more, for burst bDoAutofire must be set to 0
-						pSoldier->bDoBurst = 1;
-						pSoldier->bDoAutofire = 0;
-					}
-				}
-			}
-			if(ubBestAttackAction == AI_ACTION_TOSS_PROJECTILE && IsGrenadeLauncherAttached(&pSoldier->inv[HANDPOS]))//dnl ch63 240813
-				pSoldier->bWeaponMode = WM_ATTACHED_GL;
 			return(ubBestAttackAction);
 		}
-
 	}
 
 	// end of tank AI
