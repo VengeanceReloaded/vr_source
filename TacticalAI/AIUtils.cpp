@@ -633,8 +633,8 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 {
 	INT16	bMinPointsNeeded = 0;
 	// sevenfm: r7972 fix
-	//INT8 bAPForStandUp = 0;
-	//INT8 bAPToLookAtWall = ( FindDirectionForClimbing( pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel ) == pSoldier->ubDirection ) ? 0 : 1;
+	INT8 bAPForStandUp = 0;
+	INT8 bAPToLookAtWall = 0;
 
 	//NumMessage("AffordableAction - Guy#",pSoldier->ubID);
 
@@ -730,22 +730,20 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 
 		case AI_ACTION_CLIMB_ROOF:
 			// sevenfm: r7972 fix
-			{
-				INT8 bAPForStandUp = 0;
-				INT8 bAPToLookAtWall = (FindDirectionForClimbing( pSoldier, pSoldier->sGridNo ) == pSoldier->ubDirection) ? 0 : GetAPsToLook( pSoldier );
+			bAPForStandUp = 0;
+			bAPToLookAtWall = (FindDirectionForClimbing(pSoldier, pSoldier->sGridNo) == pSoldier->ubDirection) ? 0 : GetAPsToLook(pSoldier);
 
-				// SANDRO - improved this a bit
-				if (pSoldier->pathing.bLevel == 0)
-				{
-					if( PTR_CROUCHED ) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
-					else if( PTR_PRONE ) bAPForStandUp = GetAPsCrouch(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE);
-					bMinPointsNeeded = GetAPsToClimbRoof( pSoldier, FALSE ) + bAPForStandUp + bAPToLookAtWall;
-				}
-				else
-				{
-					if( !PTR_CROUCHED ) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
-					bMinPointsNeeded = GetAPsToClimbRoof( pSoldier, TRUE ) + bAPForStandUp + bAPToLookAtWall;
-				}
+			// SANDRO - improved this a bit
+			if (pSoldier->pathing.bLevel == 0)
+			{
+				if (PTR_CROUCHED) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
+				else if (PTR_PRONE) bAPForStandUp = GetAPsCrouch(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE);
+				bMinPointsNeeded = GetAPsToClimbRoof(pSoldier, FALSE) + bAPForStandUp + bAPToLookAtWall;
+			}
+			else
+			{
+				if (!PTR_CROUCHED) bAPForStandUp = (INT8)(GetAPsCrouch(pSoldier, TRUE));
+				bMinPointsNeeded = GetAPsToClimbRoof(pSoldier, TRUE) + bAPForStandUp + bAPToLookAtWall;
 			}
 			break;
 
@@ -1934,16 +1932,22 @@ INT16 EstimatePathCostToLocation( SOLDIERTYPE * pSoldier, INT32 sDestGridNo, INT
 	}
 	else
 	{
+		// sevenfm: check if zombie cannot climb
+		if (pSoldier->IsZombie() && !gGameExternalOptions.fZombieCanClimb)
+		{
+			return 0;
+		}
+
 		// different levels
 		if (pSoldier->pathing.bLevel == 0)
 		{
 			//got to go UP onto building
-			sClimbGridNo = FindClosestClimbPointAvailableToAI( pSoldier,	pSoldier->sGridNo, sDestGridNo, TRUE );
+			sClimbGridNo = FindClosestClimbPointAvailableToAI(pSoldier, pSoldier->sGridNo, sDestGridNo, TRUE);
 		}
 		else
 		{
 			// got to go DOWN off building
-			sClimbGridNo = FindClosestClimbPointAvailableToAI( pSoldier, sDestGridNo, pSoldier->sGridNo, FALSE );
+			sClimbGridNo = FindClosestClimbPointAvailableToAI(pSoldier, sDestGridNo, pSoldier->sGridNo, FALSE);
 		}
 		
 		if (TileIsOutOfBounds(sClimbGridNo))

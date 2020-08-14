@@ -2977,8 +2977,10 @@ INT8 FindDirectionForClimbing( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 			// ubClimbDir is new direction
 			// check that there's noone there
 			sClimbSpot = NewGridNo( sGridNo, DirectionInc( ubClimbDir));
-			if( WhoIsThere2( sClimbSpot, 1 ) == NOBODY &&
-				!Water(sClimbSpot, 1) )
+			if (sClimbSpot != sGridNo &&
+				WhoIsThere2(sClimbSpot, 1) == NOBODY &&
+				!Water(sClimbSpot, 1) &&
+				!InGasSpot(pSoldier, sClimbSpot, 1))
 			{
 				return ubClimbDir;
 			}
@@ -2987,12 +2989,14 @@ INT8 FindDirectionForClimbing( SOLDIERTYPE *pSoldier, INT32 sGridNo )
 	else
 	{
 		// check climb down
-		if( FindLowerLevel( pSoldier, pSoldier->sGridNo, pSoldier->ubDirection, &ubClimbDir ) )
+		if (FindLowerLevel(pSoldier, pSoldier->sGridNo, pSoldier->ubDirection, &ubClimbDir))
 		{
 			// ubClimbDir is new direction
-			sClimbSpot = NewGridNo( sGridNo, DirectionInc( ubClimbDir));
-			if( WhoIsThere2( sClimbSpot, 0 ) == NOBODY &&
-				!Water(sClimbSpot, 0) )
+			sClimbSpot = NewGridNo(sGridNo, DirectionInc(ubClimbDir));
+			if (sClimbSpot != sGridNo &&
+				WhoIsThere2(sClimbSpot, 0) == NOBODY &&
+				!Water(sClimbSpot, 0) &&
+				!InGasSpot(pSoldier, sClimbSpot, 0))
 			{
 				return ubClimbDir;
 			}
