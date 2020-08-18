@@ -166,7 +166,8 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 	UINT32 uiLoop;
 	INT32 iAttackValue, iThreatValue, iHitRate, iBestHitRate, iPercentBetter, iEstDamage, iTrueLastTarget;
 	UINT16 usTrueState, usTurningCost, usRaiseGunCost;
-	INT16 ubAimTime, ubMinAPcost, ubRawAPCost, sBestAPcost, ubChanceToHit, ubBestAimTime, ubChanceToGetThrough, ubBestChanceToGetThrough, ubFriendlyFireChance, ubBestFriendlyFireChance, ubBestChanceToHit, sStanceAPcost;
+	INT16 sAimTime, ubMinAPcost, ubRawAPCost, sBestAPcost, ubChanceToHit, ubBestAimTime, ubChanceToGetThrough, ubBestChanceToGetThrough, ubFriendlyFireChance, ubBestFriendlyFireChance, ubBestChanceToHit, sStanceAPcost;
+	INT16 sAimAPCost;
 	BOOLEAN fAddingTurningCost, fAddingRaiseGunCost;
 	UINT8 ubMaxPossibleAimTime, ubStance, ubBestStance, ubChanceToReallyHit;
 	INT8 bScopeMode;
@@ -402,17 +403,18 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 						// sevenfm: only use this stance if we can hit target and cannot hit friends
 						if (ubChanceToGetThrough > 0 && ubFriendlyFireChance <= MIN_CHANCE_TO_ACCIDENTALLY_HIT_SOMEONE)
 						{
-							for (ubAimTime = 0; ubAimTime <= ubMaxPossibleAimTime; ubAimTime++)
+							for (sAimTime = 0; sAimTime <= ubMaxPossibleAimTime; sAimTime++)
 							{
-								ubChanceToHit = AICalcChanceToHitGun(pSoldier, pOpponent->sGridNo, ubAimTime, AIM_SHOT_TORSO, pOpponent->pathing.bLevel, STANDING);
-								iHitRate = ((pSoldier->bActionPoints - (ubMinAPcost - ubRawAPCost)) * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
+								ubChanceToHit = AICalcChanceToHitGun(pSoldier, pOpponent->sGridNo, sAimTime, AIM_SHOT_TORSO, pOpponent->pathing.bLevel, STANDING);
+								sAimAPCost = CalcAPCostForAiming(pSoldier, pOpponent->sGridNo, (INT8)sAimTime);
+								iHitRate = ubChanceToHit * (pSoldier->bActionPoints - (ubMinAPcost - ubRawAPCost)) / (ubRawAPCost + sAimAPCost);
 
 								// sevenfm: take into account CTGT for every stance
 								if (iHitRate * ubChanceToGetThrough > iBestHitRate * ubBestChanceToGetThrough ||
 									(Item[pSoldier->usAttackingWeapon].usItemClass & IC_THROWING_KNIFE) && ubChanceToHit > ubBestChanceToHit)// rather take best chance for throwing knives
 								{
 									iBestHitRate = iHitRate;
-									ubBestAimTime = ubAimTime;
+									ubBestAimTime = sAimTime;
 									ubBestChanceToHit = ubChanceToHit;
 									ubBestChanceToGetThrough = ubChanceToGetThrough;
 									ubBestFriendlyFireChance = ubFriendlyFireChance;
@@ -470,16 +472,17 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 						// sevenfm: only use this stance if we can hit target and cannot hit friends
 						if (ubChanceToGetThrough > 0 && ubFriendlyFireChance <= MIN_CHANCE_TO_ACCIDENTALLY_HIT_SOMEONE)
 						{
-							for (ubAimTime = 0; ubAimTime <= ubMaxPossibleAimTime; ubAimTime++)
+							for (sAimTime = 0; sAimTime <= ubMaxPossibleAimTime; sAimTime++)
 							{
-								ubChanceToHit = AICalcChanceToHitGun(pSoldier, pOpponent->sGridNo, ubAimTime, AIM_SHOT_TORSO, pOpponent->pathing.bLevel, CROUCHING);
-								iHitRate = ((pSoldier->bActionPoints - (ubMinAPcost - ubRawAPCost)) * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
+								ubChanceToHit = AICalcChanceToHitGun(pSoldier, pOpponent->sGridNo, sAimTime, AIM_SHOT_TORSO, pOpponent->pathing.bLevel, CROUCHING);
+								sAimAPCost = CalcAPCostForAiming(pSoldier, pOpponent->sGridNo, (INT8)sAimTime);
+								iHitRate = ubChanceToHit * (pSoldier->bActionPoints - (ubMinAPcost - ubRawAPCost)) / (ubRawAPCost + sAimAPCost);
 
 								// sevenfm: take into account CTGT for every stance
 								if (iHitRate * ubChanceToGetThrough > iBestHitRate * ubBestChanceToGetThrough)
 								{
 									iBestHitRate = iHitRate;
-									ubBestAimTime = ubAimTime;
+									ubBestAimTime = sAimTime;
 									ubBestChanceToHit = ubChanceToHit;
 									ubBestChanceToGetThrough = ubChanceToGetThrough;
 									ubBestFriendlyFireChance = ubFriendlyFireChance;
@@ -531,15 +534,16 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 						// sevenfm: only use this stance if we can hit target and cannot hit friends
 						if (ubChanceToGetThrough > 0 && ubFriendlyFireChance <= MIN_CHANCE_TO_ACCIDENTALLY_HIT_SOMEONE)
 						{
-							for (ubAimTime = 0; ubAimTime <= ubMaxPossibleAimTime; ubAimTime++)
+							for (sAimTime = 0; sAimTime <= ubMaxPossibleAimTime; sAimTime++)
 							{
-								ubChanceToHit = AICalcChanceToHitGun(pSoldier, pOpponent->sGridNo, ubAimTime, AIM_SHOT_TORSO, pOpponent->pathing.bLevel, PRONE);
-								iHitRate = ((pSoldier->bActionPoints - (ubMinAPcost - ubRawAPCost)) * ubChanceToHit) / (ubRawAPCost + ubAimTime * APBPConstants[AP_CLICK_AIM]);
+								ubChanceToHit = AICalcChanceToHitGun(pSoldier, pOpponent->sGridNo, sAimTime, AIM_SHOT_TORSO, pOpponent->pathing.bLevel, PRONE);
+								sAimAPCost = CalcAPCostForAiming(pSoldier, pOpponent->sGridNo, (INT8)sAimTime);
+								iHitRate = ubChanceToHit * (pSoldier->bActionPoints - (ubMinAPcost - ubRawAPCost)) / (ubRawAPCost + sAimAPCost);
 								// sevenfm: take into account CTGT for every stance
 								if (iHitRate * ubChanceToGetThrough > iBestHitRate * ubBestChanceToGetThrough)
 								{
 									iBestHitRate = iHitRate;
-									ubBestAimTime = ubAimTime;
+									ubBestAimTime = sAimTime;
 									ubBestChanceToHit = ubChanceToHit;
 									ubBestChanceToGetThrough = ubChanceToGetThrough;
 									ubBestFriendlyFireChance = ubFriendlyFireChance;
@@ -674,7 +678,7 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 			pBestShot->ubAPCost				= sBestAPcost;
 			pBestShot->ubStance				= ubBestStance;
 			pBestShot->bScopeMode			= bScopeMode;
-			pBestShot->ubFriendlyFireChance = ubBestFriendlyFireChance;
+			pBestShot->ubFriendlyFireChance = (UINT8)ubBestFriendlyFireChance;
 		}
 	}
 //if(pBestShot->ubPossible)SendFmtMsg("CalcBestShot;\r\n  ID=%d Loc=%d APs=%d Ac=%d AcData=%d Al=%d, SM=%d, LAc=%d, NAc=%d AT=%d\r\n  AP?=%d,%d,%d/%d BS=%d", pSoldier->ubID, pSoldier->sGridNo, pSoldier->bActionPoints, pSoldier->aiData.bAction, pSoldier->aiData.usActionData, pSoldier->aiData.bAlertStatus, pBestShot->bScopeMode, pSoldier->aiData.bLastAction, pSoldier->aiData.bNextAction, pBestShot->ubAimTime, pBestShot->ubAPCost, CalcAPCostForAiming(pSoldier, pBestShot->sTarget, (INT8)pBestShot->ubAimTime), CalcTotalAPsToAttack(pSoldier, pBestShot->sTarget, TRUE, pBestShot->ubAimTime), CalcTotalAPsToAttack(pSoldier, pBestShot->sTarget, FALSE, pBestShot->ubAimTime), pBestShot->ubStance);
