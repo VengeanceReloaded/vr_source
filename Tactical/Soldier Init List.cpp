@@ -717,7 +717,7 @@ BOOLEAN AddPlacementToWorld( SOLDIERINITNODE *curr, GROUP *pGroup = NULL )
 #ifdef JA2UB
 //Ja25: no queen
 #else
-			else if ( !gfInMeanwhile && gWorldSectorX == gMercProfiles[ QUEEN ].sSectorX && gWorldSectorY == gMercProfiles[ QUEEN ].sSectorY && gbWorldSectorZ == gMercProfiles[ QUEEN ].bSectorZ )
+			else if (!gfInMeanwhile && gWorldSectorX == gModSettings.ubEndGameVictorySectorX && gWorldSectorY == gModSettings.ubEndGameVictorySectorY && gbWorldSectorZ == 0)
 			{ //Special civilian setup for queen's palace.
 				if( gubFact[ FACT_QUEEN_DEAD ] )
 				{
