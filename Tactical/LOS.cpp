@@ -6328,27 +6328,13 @@ void MoveBullet( INT32 iBullet )
 
 					if ( IS_MERC_BODY_TYPE( MercPtrs[pStructure->usStructureID] ) )
 					{
-						// HEADROCK HAM 3.3: Externalized distance at which characters suffer from friendly suppression.
-						// previously relied on minimum distance at which characters may suffer from friendly fire HITS.
-						UINT16 MIN_DIST_FOR_SCARE_FRIENDS = gGameExternalOptions.usMinDistanceFriendlySuppression;
-
 						// apply suppression, regardless of friendly or enemy
 						// except if friendly, not within a few tiles of shooter
-						if ( pBullet->ubFirerID == NOBODY || MercPtrs[ pStructure->usStructureID ]->bSide != pBullet->pFirer->bSide || pBullet->iLoop > MIN_DIST_FOR_SCARE_FRIENDS )
+						if (pBullet->ubFirerID == NOBODY || MercPtrs[pStructure->usStructureID]->bSide != pBullet->pFirer->bSide || pBullet->iLoop > gGameExternalOptions.usMinDistanceFriendlySuppression)
 						{
 							// buckshot has only a 1 in 2 chance of applying a suppression point
 							// HEADROCK HAM 5: For NCTH, make pellets as effective as any other bullet.
-							BOOLEAN fInflictSuppression = FALSE;
-							if (UsingNewCTHSystem() == true)
-							{
-								fInflictSuppression = TRUE;
-							}
-							else if ( !(pBullet->usFlags & BULLET_FLAG_BUCKSHOT) || Random( 2 ) )
-							{
-								fInflictSuppression = TRUE;
-							}
-							
-							if (fInflictSuppression)
+							if (UsingNewCTHSystem() || !(pBullet->usFlags & BULLET_FLAG_BUCKSHOT) || Random(2))
 							{
 								// bullet goes whizzing by this guy!
 								switch ( gAnimControl[ MercPtrs[pStructure->usStructureID]->usAnimState ].ubEndHeight )
@@ -6411,7 +6397,8 @@ void MoveBullet( INT32 iBullet )
 		}
 		// check to see if any soldiers are nearby; those soldiers
 		// have their near-miss value incremented
-		if (pMapElement->ubAdjacentSoldierCnt > 0)
+		// sevenfm: disabled ubAdjacentSoldierCnt check as it doesn't work correctly
+		//if (pMapElement->ubAdjacentSoldierCnt > 0)
 		{
 			// cube level now calculated above!
 			// figure out the LOS cube level of the current point
@@ -6419,24 +6406,12 @@ void MoveBullet( INT32 iBullet )
 			// figure out what level to affect...
 			if (iCurrCubesAboveLevelZ < STRUCTURE_ON_ROOF_MAX)
 			{
-				/*
-				if (iCurrCubesAboveLevelZ < STRUCTURE_ON_GROUND_MAX)
-				{
-				// check objects on the ground
-				sDesiredLevel = 0;
-				}
-				else
-				{
-				// check objects on roofs
-				sDesiredLevel = 1;
-				}
-				*/
-
 				for( bDir = 0; bDir < NUM_WORLD_DIRECTIONS; bDir++)
 				{
-					iAdjGridNo = iGridNo + DirIncrementer[bDir];
+					//iAdjGridNo = iGridNo + DirIncrementer[bDir];
+					iAdjGridNo = NewGridNo(iGridNo, DirectionInc(bDir));
 
-					if ( gubWorldMovementCosts[ iAdjGridNo ][ bDir ][ sDesiredLevel ] < TRAVELCOST_BLOCKED)
+					if (iAdjGridNo != iGridNo && gubWorldMovementCosts[iAdjGridNo][bDir][sDesiredLevel] < TRAVELCOST_BLOCKED)
 					{
 						ubTargetID = WhoIsThere2( iAdjGridNo, (INT8) sDesiredLevel );
 						if (ubTargetID != NOBODY)
@@ -6444,18 +6419,9 @@ void MoveBullet( INT32 iBullet )
 							pTarget = MercPtrs[ ubTargetID ];
 							if ( IS_MERC_BODY_TYPE( pTarget ) && (pBullet->ubFirerID == NOBODY || pBullet->pFirer->bSide != pTarget->bSide) )
 							{
+								// buckshot has only a 1 in 2 chance of applying a suppression point
 								// HEADROCK HAM 5: For NCTH, make pellets as effective as any other bullet.
-								BOOLEAN fInflictSuppression = FALSE;
-								if (UsingNewCTHSystem() == true)
-								{
-									fInflictSuppression = TRUE;
-								}
-								else if ( !(pBullet->usFlags & BULLET_FLAG_BUCKSHOT) || Random( 2 ) )
-								{
-									fInflictSuppression = TRUE;
-								}
-								
-								if (fInflictSuppression)
+								if (UsingNewCTHSystem() || !(pBullet->usFlags & BULLET_FLAG_BUCKSHOT) || Random(2))
 								{
 									// bullet goes whizzing by this guy!
 									switch ( gAnimControl[ pTarget->usAnimState ].ubEndHeight )
@@ -6480,14 +6446,6 @@ void MoveBullet( INT32 iBullet )
 										break;
 									}
 								}
-
-								/*
-								// this could be a close call
-								if ( pTarget->bTeam == gbPlayerNum && pBullet->pFirer->bTeam != gbPlayerNum )
-								{
-								pTarget->flags.fCloseCall = TRUE;
-								}
-								*/
 							}
 						}
 					}
