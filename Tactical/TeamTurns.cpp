@@ -613,7 +613,9 @@ void BeginTeamTurn( UINT8 ubTeam )
 	if( ubTeam == ENEMY_TEAM && CheckFact( FACT_CONMAN_NOTICED, CONMAN ) && !CheckFact( FACT_CONMAN_DEAD, CONMAN ) && gubQuest[ QUEST_ESCORT_CONMAN ] == QUESTINPROGRESS )
 	{
 		SOLDIERTYPE	*pCIABuyer = FindSoldierByProfileID(CIA_BUYER, false);
-		if(pCIABuyer != NULL && pCIABuyer->bActive && pCIABuyer->bInSector && pCIABuyer->stats.bLife)
+		SOLDIERTYPE	*pConman = FindSoldierByProfileID(CONMAN, false);
+		if(pCIABuyer != NULL && pCIABuyer->bActive && pCIABuyer->bInSector && pCIABuyer->stats.bLife &&
+			pConman != NULL && pConman->bActive && pConman->bInSector && pConman->stats.bLife)
 		{
 			TriggerSubsequentNPCRecords(CIA_BUYER, 8);
 		}
