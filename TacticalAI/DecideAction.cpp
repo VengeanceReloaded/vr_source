@@ -698,6 +698,9 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 	// sevenfm: disable stealth mode
 	pSoldier->bStealthMode = FALSE;
 
+	// sevenfm: initialize data
+	pSoldier->bWeaponMode = WM_NORMAL;
+
 	BOOLEAN fCivilian = (PTR_CIVILIAN && (pSoldier->ubCivilianGroup == NON_CIV_GROUP || pSoldier->aiData.bNeutral || (pSoldier->ubBodyType >= FATCIV && pSoldier->ubBodyType <= CRIPPLECIV) ) );
 	BOOLEAN fCivilianOrMilitia = PTR_CIV_OR_MILITIA;
 
@@ -1515,6 +1518,9 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 	// sevenfm: disable stealth mode
 	pSoldier->bStealthMode = FALSE;
+
+	// sevenfm: initialize data
+	pSoldier->bWeaponMode = WM_NORMAL;
 
 	bInWater = DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 	bInGas = InGas( pSoldier, pSoldier->sGridNo );
@@ -2467,6 +2473,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	//INT16 ubOverallTacticalSituation = AssessTacticalSituation(pSoldier->bSide);
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("DecideActionRed: soldier orders = %d",pSoldier->aiData.bOrders));
+
+	// sevenfm: initialize data
+	pSoldier->bWeaponMode = WM_NORMAL;
 
 	// sevenfm: set stealth mode
 	if( (pSoldier->aiData.bAttitude == DEFENSIVE || pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ) )
@@ -4554,6 +4563,9 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 	// sevenfm: disable stealth mode
 	pSoldier->bStealthMode = FALSE;
+
+	// sevenfm: initialize data
+	pSoldier->bWeaponMode = WM_NORMAL;
 
 	// if we have absolutely no action points, we can't do a thing under BLACK!
 	if (!pSoldier->bActionPoints)
