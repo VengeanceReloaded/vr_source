@@ -2746,12 +2746,16 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 					BestThrow.ubPossible = FALSE;
 
 					// try behind us, see if there's room to move back
-					sCheckGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ ubOpponentDir ] ) );
-					if ( OKFallDirection( pSoldier, sCheckGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ ubOpponentDir ], pSoldier->usAnimState ) )
+					sCheckGridNo = NewGridNo( pSoldier->sGridNo, DirectionInc( gOppositeDirection[ ubOpponentDir ] ) );					
+					if (OKFallDirection(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ubOpponentDir], pSoldier->usAnimState))
 					{
-						pSoldier->aiData.usActionData = sCheckGridNo;
-
-						return( AI_ACTION_GET_CLOSER );
+						// sevenfm: check if we can reach this gridno
+						INT32 iPathCost = EstimatePlotPath(pSoldier, sCheckGridNo, FALSE, FALSE, FALSE, DetermineMovementMode(pSoldier, AI_ACTION_GET_CLOSER), pSoldier->bStealthMode, FALSE, 0);
+						if (iPathCost != 0 && iPathCost <= pSoldier->bActionPoints)
+						{
+							pSoldier->aiData.usActionData = sCheckGridNo;
+							return AI_ACTION_GET_CLOSER;
+						}
 					}
 				}
 			}
@@ -5070,11 +5074,15 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 					// try behind us, see if there's room to move back
 					sCheckGridNo = NewGridNo( pSoldier->sGridNo, (UINT16)DirectionInc( gOppositeDirection[ ubOpponentDir ] ) );
-					if ( OKFallDirection( pSoldier, sCheckGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ ubOpponentDir ], pSoldier->usAnimState ) )
+					if (OKFallDirection(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel, gOppositeDirection[ubOpponentDir], pSoldier->usAnimState))
 					{
-						pSoldier->aiData.usActionData = sCheckGridNo;
-
-						return( AI_ACTION_GET_CLOSER );
+						// sevenfm: check if we can reach this gridno
+						INT32 iPathCost = EstimatePlotPath(pSoldier, sCheckGridNo, FALSE, FALSE, FALSE, DetermineMovementMode(pSoldier, AI_ACTION_GET_CLOSER), pSoldier->bStealthMode, FALSE, 0);
+						if (iPathCost != 0 && iPathCost <= pSoldier->bActionPoints)
+						{
+							pSoldier->aiData.usActionData = sCheckGridNo;
+							return AI_ACTION_GET_CLOSER;
+						}
 					}
 				}
 			}
