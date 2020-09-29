@@ -793,7 +793,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 	}
 
 
-	bInWater = DeepWater( pSoldier->sGridNo, pSoldier->pathing.bLevel );
+	bInWater = Water( pSoldier->sGridNo, pSoldier->pathing.bLevel );
 	bInDeepWater = DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel);
 
 	// check if standing in tear gas without a gas mask on
@@ -2697,14 +2697,17 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	////////////////////////////////////////////////////////////////////////
 	// IF POSSIBLE, FIRE LONG RANGE WEAPONS AT TARGETS REPORTED BY RADIO
 	////////////////////////////////////////////////////////////////////////
-//if(!is_networked)//hayden
-//{
+
 	// can't do this in realtime, because the player could be shooting a gun or whatever at the same time!
-	if (gfTurnBasedAI && !fCivilian && !bInWater && !bInGas && !(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) && (CanNPCAttack(pSoldier) == TRUE))
+	if (gfTurnBasedAI && 
+		!fCivilian && 
+		!bInWater && 
+		!bInGas && 
+		!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) && 
+		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
+		CanNPCAttack(pSoldier) == TRUE)
 	{
 		BestThrow.ubPossible = FALSE;    // by default, assume Throwing isn't possible
-
-
 		CheckIfTossPossible(pSoldier,&BestThrow);
 
 		if (BestThrow.ubPossible)
@@ -2755,13 +2758,13 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		}
 		else		// toss/throw/launch not possible
 		{
-     // WDS - Fix problem when there is no "best thrown" weapon (i.e., BestThrow.bWeaponIn == NO_SLOT)
+			// WDS - Fix problem when there is no "best thrown" weapon (i.e., BestThrow.bWeaponIn == NO_SLOT)
 			// if this dude has a longe-range weapon on him (longer than normal
 			// sight range), and there's at least one other team-mate around, and
 			// spotters haven't already been called for, then DO SO!
 
-     if ( (BestThrow.bWeaponIn != NO_SLOT) &&
-		  (CalcMaxTossRange( pSoldier, pSoldier->inv[BestThrow.bWeaponIn].usItem, TRUE ) > MaxNormalDistanceVisible() ) &&
+			if ((BestThrow.bWeaponIn != NO_SLOT) &&
+				(CalcMaxTossRange(pSoldier, pSoldier->inv[BestThrow.bWeaponIn].usItem, TRUE) > MaxNormalDistanceVisible()) &&
 				(gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) &&
 				(gTacticalStatus.ubSpottersCalledForBy == NOBODY))
 			{
@@ -2773,17 +2776,15 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				if (pSoldier->bActionPoints > 0)
 					pSoldier->bActionPoints = 0;
 
-#ifdef DEBUGDECISIONS
-				AINameMessage(pSoldier,"calls for spotters!",1000);
-#endif
-
 				pSoldier->aiData.usActionData = NOWHERE;
 				return(AI_ACTION_NONE);
 			}
 		}
 
 		// SNIPER!
-		CheckIfShotPossible(pSoldier,&BestShot);
+		// sevenfm: set bAimShotLocation
+		pSoldier->bAimShotLocation = AIM_SHOT_RANDOM;
+		CheckIfShotPossible(pSoldier, &BestShot);
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: is sniper shot possible? = %d, CTH = %d",BestShot.ubPossible,BestShot.ubChanceToReallyHit));
 
 		// sevenfm: changed sniper shot min CTH to 25%
@@ -2815,68 +2816,31 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: sniper shot not possible");
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: weapon in slot #%d",BestShot.bWeaponIn));
-		// WDS - Fix problem when there is no "best shot" weapon (i.e., BestShot.bWeaponIn == NO_SLOT)
-		if (BestShot.bWeaponIn != NO_SLOT) {
-			OBJECTTYPE * gun = &pSoldier->inv[BestShot.bWeaponIn];
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: men in sector %d, ubspotters called by %d, nobody %d",gTacticalStatus.Team[pSoldier->bTeam].bMenInSector,gTacticalStatus.ubSpottersCalledForBy,NOBODY ));			
-			
-			if ( GunRange(gun, pSoldier) > MaxNormalDistanceVisible() &&
-				(IsScoped(gun) || pSoldier->aiData.bOrders == SNIPER) &&
-				(gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) &&
-				(gTacticalStatus.ubSpottersCalledForBy == NOBODY))
-			{
-				// then call for spotters!  Uses up the rest of his turn (whatever
-				// that may be), but from now on, BLACK AI NPC may radio sightings!
-				gTacticalStatus.ubSpottersCalledForBy = pSoldier->ubID;
-				// HEADROCK HAM 3.1: This may be causing problems with HAM's lowered AP limit. From now on, we'll check
-				// whether the soldier has more than 0 APs to begin with.
-				if (pSoldier->bActionPoints > 0)
-					pSoldier->bActionPoints = 0;
+			// WDS - Fix problem when there is no "best shot" weapon (i.e., BestShot.bWeaponIn == NO_SLOT)
+			if (BestShot.bWeaponIn != NO_SLOT) {
+				OBJECTTYPE * gun = &pSoldier->inv[BestShot.bWeaponIn];
+				DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("decideactionred: men in sector %d, ubspotters called by %d, nobody %d", gTacticalStatus.Team[pSoldier->bTeam].bMenInSector, gTacticalStatus.ubSpottersCalledForBy, NOBODY));
 
-				DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: calling for sniper spotters");
-
-				pSoldier->aiData.usActionData = NOWHERE;
-				return(AI_ACTION_NONE);
-			}
-		}
-
-		// Flugente: trait skills
-		// if we are a radio operator
-		if ( HAS_SKILL_TRAIT( pSoldier, RADIO_OPERATOR_NT ) > 0 && pSoldier->CanUseSkill(SKILLS_RADIO_ARTILLERY, TRUE) )
-		{
-			UINT32 tmp;
-			INT32 skilltargetgridno = 0;
-			
-			// call reinforcements if we haven't yet done so
-			if ( !gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition && MoreFriendsThanEnemiesinNearbysectors(pSoldier->bTeam, pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ) )
-			{
-				// if frequencies are jammed...
-				if ( SectorJammed() )
+				if (GunRange(gun, pSoldier) > MaxNormalDistanceVisible() &&
+					(IsScoped(gun) || pSoldier->aiData.bOrders == SNIPER) &&
+					(gTacticalStatus.Team[pSoldier->bTeam].bMenInSector > 1) &&
+					(gTacticalStatus.ubSpottersCalledForBy == NOBODY))
 				{
-					// if we are jamming, turn it off, otherwise, bad luck...
-					if ( pSoldier->IsJamming() )
-					{
-						pSoldier->usAISkillUse = SKILLS_RADIO_TURNOFF;
-						pSoldier->aiData.usActionData = skilltargetgridno;
-						return(AI_ACTION_USE_SKILL);
-					}
+					// then call for spotters!  Uses up the rest of his turn (whatever
+					// that may be), but from now on, BLACK AI NPC may radio sightings!
+					gTacticalStatus.ubSpottersCalledForBy = pSoldier->ubID;
+					// HEADROCK HAM 3.1: This may be causing problems with HAM's lowered AP limit. From now on, we'll check
+					// whether the soldier has more than 0 APs to begin with.
+					if (pSoldier->bActionPoints > 0)
+						pSoldier->bActionPoints = 0;
+
+					DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "decideactionred: calling for sniper spotters");
+
+					pSoldier->aiData.usActionData = NOWHERE;
+					return(AI_ACTION_NONE);
 				}
-				// frequencies are clear, lets call for help
-				else if ( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) )
-				{
-					// raise alarm!
-					return( AI_ACTION_RED_ALERT );
-				}
-			}
-			// if we can't call in artillery, jam frequencies, so that the palyer can't use radio skills
-			else if ( !pSoldier->IsJamming() && !pSoldier->CanAnyArtilleryStrikeBeOrdered(&tmp) )
-			{
-				pSoldier->usAISkillUse = SKILLS_RADIO_JAM;
-				pSoldier->aiData.usActionData = skilltargetgridno;
-				return(AI_ACTION_USE_SKILL);
-			}		
+			}			
 		}
-    }	
 		//RELOADING
 
 		// WarmSteel - Because of suppression fire, we need enough ammo to even consider suppressing
@@ -2884,8 +2848,12 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		// sevenfm: no reloads for tanks
 		if( BestShot.bWeaponIn != NO_SLOT &&
 			!TANK(pSoldier) &&
-			((pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft < gGameExternalOptions.ubAISuppressionMinimumAmmo && GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize)
-			|| pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft < (UINT8)(GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) / 4) ))
+			pSoldier->bActionPoints > APBPConstants[AP_MINIMUM] &&
+			(!pSoldier->aiData.bUnderFire && !GuySawEnemy(pSoldier, SEEN_LAST_TURN) && (TileIsOutOfBounds(sClosestOpponent) || PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > TACTICAL_RANGE / 2) || AICheckIsMachinegunner(pSoldier) && Chance(25) || Chance(10)) &&
+			IsGunAutofireCapable(&pSoldier->inv[BestShot.bWeaponIn]) &&
+			Weapon[pSoldier->inv[BestShot.bWeaponIn].usItem].swapClips &&
+			pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft < gGameExternalOptions.ubAISuppressionMinimumAmmo &&
+			GetMagSize(&pSoldier->inv[BestShot.bWeaponIn]) >= gGameExternalOptions.ubAISuppressionMinimumMagSize)
 		{
 			// HEADROCK HAM 5: Fixed an issue where no ammo was found, leading to a crash when overloading the
 			// inventory vector (bAmmoSlot = -1...)
@@ -2893,7 +2861,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 			if (bAmmoSlot > -1)
 			{
 				OBJECTTYPE * pAmmo = &(pSoldier->inv[bAmmoSlot]);
-				if((*pAmmo)[0]->data.ubShotsLeft > pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft && GetAPsToReloadGunWithAmmo( pSoldier, &(pSoldier->inv[BestShot.bWeaponIn]), pAmmo ) <= (INT16)pSoldier->bActionPoints)
+				if((*pAmmo)[0]->data.ubShotsLeft > pSoldier->inv[BestShot.bWeaponIn][0]->data.gun.ubGunShotsLeft && 
+					GetAPsToReloadGunWithAmmo( pSoldier, &(pSoldier->inv[BestShot.bWeaponIn]), pAmmo ) <= (INT16)pSoldier->bActionPoints)
 				{
 					pSoldier->aiData.usActionData = BestShot.bWeaponIn;
 					return AI_ACTION_RELOAD_GUN;
@@ -2904,9 +2873,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		//SUPPRESSION FIRE
 
 		// sevenfm: set bAimShotLocation
-		pSoldier->bAimShotLocation = AIM_SHOT_RANDOM;
-
-		CheckIfShotPossible(pSoldier, &BestShot); //WarmSteel - No longer returns 0 when there IS actually a chance to hit.
+		//pSoldier->bAimShotLocation = AIM_SHOT_RANDOM;
+		//CheckIfShotPossible(pSoldier, &BestShot); //WarmSteel - No longer returns 0 when there IS actually a chance to hit.
 
 		// sevenfm: check that we have a clip to reload
 		BOOLEAN fExtraClip = FALSE;
@@ -3054,6 +3022,44 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 			}
 		}
 		// suppression not possible, do something else
+
+		// Flugente: trait skills
+		// if we are a radio operator
+		if (HAS_SKILL_TRAIT(pSoldier, RADIO_OPERATOR_NT) > 0 && pSoldier->CanUseSkill(SKILLS_RADIO_ARTILLERY, TRUE))
+		{
+			UINT32 tmp;
+			INT32 skilltargetgridno = 0;
+
+			// call reinforcements if we haven't yet done so
+			if (!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition && 
+				MoreFriendsThanEnemiesinNearbysectors(pSoldier->bTeam, pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ))
+			{
+				// if frequencies are jammed...
+				if (SectorJammed())
+				{
+					// if we are jamming, turn it off, otherwise, bad luck...
+					if (pSoldier->IsJamming())
+					{
+						pSoldier->usAISkillUse = SKILLS_RADIO_TURNOFF;
+						pSoldier->aiData.usActionData = skilltargetgridno;
+						return(AI_ACTION_USE_SKILL);
+					}
+				}
+				// frequencies are clear, lets call for help
+				else if (!(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT))
+				{
+					// raise alarm!
+					return(AI_ACTION_RED_ALERT);
+				}
+			}
+			// if we can't call in artillery, jam frequencies, so that the player can't use radio skills
+			else if (!pSoldier->IsJamming() && !pSoldier->CanAnyArtilleryStrikeBeOrdered(&tmp))
+			{
+				pSoldier->usAISkillUse = SKILLS_RADIO_JAM;
+				pSoldier->aiData.usActionData = skilltargetgridno;
+				return(AI_ACTION_USE_SKILL);
+			}
+		}
 	}
 
 	if( gGameExternalOptions.bNewTacticalAIBehavior )
@@ -5653,9 +5659,9 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 					UINT32	uiRoll;
 					UINT8	ubChanceLegs = 0;
 					UINT8	ubChanceHead = 0;
-					UINT8	ubDistance = PythSpacesAway(pSoldier->sGridNo, MercPtrs[BestAttack.ubOpponent]->sGridNo);
-					UINT8	ubMaxDistance = (DAY_VISION_RANGE / 2);
-					UINT8	ubRealCTH = BestAttack.ubChanceToReallyHit;
+					INT16	sDistance = PythSpacesAway(pSoldier->sGridNo, MercPtrs[BestAttack.ubOpponent]->sGridNo);
+					INT16	sMaxDistance = (DAY_VISION_RANGE / 2);
+					UINT8	ubRealCTH = (UINT8)BestAttack.ubChanceToReallyHit;
 					UINT32	uiCTGT_Legs, uiCTGT_Torso, uiCTGT_Head;					
 
 					uiCTGT_Legs = SoldierToSoldierBodyPartChanceToGetThrough( pSoldier, MercPtrs[BestAttack.ubOpponent], AIM_SHOT_LEGS );
@@ -5672,9 +5678,9 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 							ubChanceLegs = 15;
 
 							// don't shoot legs at close distance
-							if( ubDistance < ubMaxDistance )
+							if( sDistance < sMaxDistance )
 							{
-								ubChanceLegs = ubChanceLegs * ubDistance / ubMaxDistance;						
+								ubChanceLegs = ubChanceLegs * sDistance / sMaxDistance;						
 							}
 							// when using NCTH system, shoot legs more often
 							else if( UsingNewCTHSystem() )
@@ -6106,7 +6112,7 @@ L_NEWAIM:
 			{
 				UINT32	uiRoll;
 				UINT8	ubChanceHead = 0;
-				UINT8	ubRealCTH = BestAttack.ubChanceToReallyHit;
+				UINT8	ubRealCTH = (UINT8)BestAttack.ubChanceToReallyHit;
 
 				// by default stab at torso
 				pSoldier->bAimShotLocation = AIM_SHOT_TORSO;
@@ -7654,7 +7660,7 @@ INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier)
 		{
 			UINT32	uiRoll;
 			UINT8	ubChanceHead = 0;
-			UINT8	ubRealCTH = BestAttack.ubChanceToReallyHit;
+			UINT8	ubRealCTH = (UINT8)BestAttack.ubChanceToReallyHit;
 
 			// attack to head randomly
 			if( gAnimControl[ MercPtrs[BestAttack.ubOpponent]->usAnimState ].ubEndHeight != ANIM_PRONE )
