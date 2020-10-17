@@ -1334,8 +1334,10 @@ UINT32 UIHandleEndTurn( UI_EVENT *pUIEvent )
 	}
 
 	// anv: automatically return to team panel on turn end (better situation overview during enemy turn)
-	if( gGameExternalOptions.fAutoCollapseInventoryOnTurnEnd == TRUE )
-		SetCurrentInterfacePanel( TEAM_PANEL );
+	if (gGameExternalOptions.fAutoCollapseInventoryOnTurnEnd == TRUE && gsCurInterfacePanel != TEAM_PANEL)
+	{
+		SetCurrentInterfacePanel(TEAM_PANEL);		
+	}
 
 	return( GAME_SCREEN );
 }
