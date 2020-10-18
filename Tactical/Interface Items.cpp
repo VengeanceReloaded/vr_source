@@ -470,6 +470,8 @@ BOOLEAN CheckPocketEmpty( SOLDIERTYPE *pSoldier, INT16 sPocket );
 
 extern void BeginInventoryPoolPtr( OBJECTTYPE *pInventorySlot );
 
+BOOLEAN LoadVehicleSlotImage(VOBJECT_DESC VObjectDesc, INT8 index, INT8 subIndex, STR filename, STR fallback);
+
 UINT8		ubRGBItemCyclePlacedItemColors[] =
 {
 	25,		25,		25,
@@ -570,7 +572,8 @@ INT8						gbCompatibleAmmo[ NUM_INV_SLOTS ];
 INT8						gbInvalidPlacementSlot[ NUM_INV_SLOTS ];
 UINT16					us16BPPItemCyclePlacedItemColors[ 20 ];
 // Kaiden: Vehicle Inventory change - Increase this from 4-2 to 5-2
-UINT32					guiBodyInvVO[ 5 ][ 2 ];
+// anv: VR - added 4 specific vehicles 5-2 to 9-2
+UINT32					guiBodyInvVO[ 9 ][ 2 ];
 UINT32					guiGoldKeyVO;
 INT8						gbCompatibleApplyItem = FALSE;
 
@@ -1447,6 +1450,16 @@ BOOLEAN InitInvSlotInterface( INV_REGION_DESC *pRegionDesc , INV_REGION_DESC *pC
 		VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 		FilenameForBPP("INTERFACE\\inventory_figure_Vehicle_h.sti", VObjectDesc.ImageFile);
 		CHECKF( AddVideoObject( &VObjectDesc, &(guiBodyInvVO[ 4 ][ 1 ] ) ) );
+
+		// anv: VR - added separate inventory images per vehicle
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 5, 0, "INTERFACE\\inventory_figure_Vehicle_HUMVEE.sti", "INTERFACE\\inventory_figure_Vehicle.sti"));
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 5, 1, "INTERFACE\\inventory_figure_Vehicle_HUMVEE_h.sti", "INTERFACE\\inventory_figure_Vehicle_h.sti"));
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 6, 0, "INTERFACE\\inventory_figure_Vehicle_ELDORADO.sti", "INTERFACE\\inventory_figure_Vehicle.sti"));
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 6, 1, "INTERFACE\\inventory_figure_Vehicle_ELDORADO_h.sti", "INTERFACE\\inventory_figure_Vehicle_h.sti"));
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 7, 0, "INTERFACE\\inventory_figure_Vehicle_ICECREAMTRUCK.sti", "INTERFACE\\inventory_figure_Vehicle.sti"));
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 7, 1, "INTERFACE\\inventory_figure_Vehicle_ICECREAMTRUCK_h.sti", "INTERFACE\\inventory_figure_Vehicle_h.sti"));
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 8, 0, "INTERFACE\\inventory_figure_Vehicle_JEEP.sti", "INTERFACE\\inventory_figure_Vehicle.sti"));
+		CHECKF(LoadVehicleSlotImage(VObjectDesc, 8, 1, "INTERFACE\\inventory_figure_Vehicle_JEEP_h.sti", "INTERFACE\\inventory_figure_Vehicle_h.sti"));
 	}
 
 	// add gold key graphic
@@ -1487,6 +1500,19 @@ BOOLEAN InitInvSlotInterface( INV_REGION_DESC *pRegionDesc , INV_REGION_DESC *pC
 	memset( gbCompatibleAmmo, 0, sizeof( gbCompatibleAmmo ) );
 
 	return( TRUE );
+}
+
+BOOLEAN LoadVehicleSlotImage(VOBJECT_DESC VObjectDesc, INT8 index, INT8 subIndex, STR filename, STR fallback)
+{
+	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
+	FilenameForBPP(filename, VObjectDesc.ImageFile);
+	if (!AddVideoObject(&VObjectDesc, &(guiBodyInvVO[index][subIndex])));
+	{
+		VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
+		FilenameForBPP(fallback, VObjectDesc.ImageFile);
+		CHECKF(AddVideoObject(&VObjectDesc, &(guiBodyInvVO[index][subIndex])));
+	}
+	return true;
 }
 
 void InitKeyRingInterface( MOUSE_CALLBACK KeyRingClickCallback )
@@ -1591,6 +1617,15 @@ void ShutdownInvSlotInterface( )
 	{
 		DeleteVideoObjectFromIndex( guiBodyInvVO[ 4 ][ 0 ] );
 		DeleteVideoObjectFromIndex( guiBodyInvVO[ 4 ][ 1 ] );
+
+		DeleteVideoObjectFromIndex(guiBodyInvVO[5][0]);
+		DeleteVideoObjectFromIndex(guiBodyInvVO[5][1]);
+		DeleteVideoObjectFromIndex(guiBodyInvVO[6][0]);
+		DeleteVideoObjectFromIndex(guiBodyInvVO[6][1]);
+		DeleteVideoObjectFromIndex(guiBodyInvVO[7][0]);
+		DeleteVideoObjectFromIndex(guiBodyInvVO[7][1]);
+		DeleteVideoObjectFromIndex(guiBodyInvVO[8][0]);
+		DeleteVideoObjectFromIndex(guiBodyInvVO[8][1]);
 	}
 
 	DeleteVideoObjectFromIndex( guiGoldKeyVO );
@@ -1623,7 +1658,25 @@ void RenderInvBodyPanel( SOLDIERTYPE *pSoldier, INT16 sX, INT16 sY )
 	// the original statement
 	if ( (gGameExternalOptions.fVehicleInventory) && (pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE) && UsingNewInventorySystem() == false )
 	{
-		BltVideoObjectFromIndex( guiSAVEBUFFER, guiBodyInvVO[4][bSubImageIndex], 0, sX, sY, VO_BLT_SRCTRANSPARENCY, NULL );
+		// anv: VR - added separate inventory images per vehicle
+		switch (pSoldier->ubBodyType)
+		{
+			case HUMVEE:
+				BltVideoObjectFromIndex(guiSAVEBUFFER, guiBodyInvVO[5][bSubImageIndex], 0, sX, sY, VO_BLT_SRCTRANSPARENCY, NULL);
+				break;
+			case ELDORADO:
+				BltVideoObjectFromIndex(guiSAVEBUFFER, guiBodyInvVO[6][bSubImageIndex], 0, sX, sY, VO_BLT_SRCTRANSPARENCY, NULL);
+				break;
+			case ICECREAMTRUCK:
+				BltVideoObjectFromIndex(guiSAVEBUFFER, guiBodyInvVO[7][bSubImageIndex], 0, sX, sY, VO_BLT_SRCTRANSPARENCY, NULL);
+				break;
+			case JEEP:
+				BltVideoObjectFromIndex(guiSAVEBUFFER, guiBodyInvVO[8][bSubImageIndex], 0, sX, sY, VO_BLT_SRCTRANSPARENCY, NULL);
+				break;
+			default:
+				BltVideoObjectFromIndex(guiSAVEBUFFER, guiBodyInvVO[4][bSubImageIndex], 0, sX, sY, VO_BLT_SRCTRANSPARENCY, NULL);
+				break;
+		}
 	}
 	else
 	{
