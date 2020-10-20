@@ -2666,7 +2666,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	}
 
 	// sevenfm: before deciding anything, stop cowering
-	if( SoldierAI(pSoldier) &&
+	if( !fCivilian &&
+		SoldierAI(pSoldier) &&
 		ubCanMove &&
 		pSoldier->stats.bLife > OKLIFE &&
 		!pSoldier->bCollapsed &&
@@ -4909,7 +4910,8 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	}
 
 	// sevenfm: before deciding anything, stop cowering
-	if( SoldierAI(pSoldier) &&
+	if( !fCivilian &&
+		SoldierAI(pSoldier) &&
 		ubCanMove &&
 		pSoldier->stats.bLife > OKLIFE &&
 		!pSoldier->bCollapsed &&

@@ -1506,7 +1506,7 @@ BOOLEAN LoadVehicleSlotImage(VOBJECT_DESC VObjectDesc, INT8 index, INT8 subIndex
 {
 	VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 	FilenameForBPP(filename, VObjectDesc.ImageFile);
-	if (!AddVideoObject(&VObjectDesc, &(guiBodyInvVO[index][subIndex])));
+	if (!AddVideoObject(&VObjectDesc, &(guiBodyInvVO[index][subIndex])))
 	{
 		VObjectDesc.fCreateFlags = VOBJECT_CREATE_FROMFILE;
 		FilenameForBPP(fallback, VObjectDesc.ImageFile);
