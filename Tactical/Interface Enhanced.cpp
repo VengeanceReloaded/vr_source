@@ -10463,9 +10463,8 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 		iComparedModifier[1] = GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_CROUCH, ITEMMODIFIER_DROPCOMPENSATION );
 		iComparedModifier[2] = GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_PRONE, ITEMMODIFIER_DROPCOMPENSATION );
 	}
-	if ( ( (iModifier[0] != 0 || iModifier[1] != 0 || iModifier[2] != 0) ) ||
-		( fComparisonMode && (iComparedModifier[0] != 0 || iComparedModifier[1] != 0 || iComparedModifier[2] != 0) )
-		&& UsingNewCTHSystem() == true )
+	if ((((iModifier[0] != 0 || iModifier[1] != 0 || iModifier[2] != 0)) || (fComparisonMode && (iComparedModifier[0] != 0 || iComparedModifier[1] != 0 || iComparedModifier[2] != 0))) 
+		&& UsingNewCTHSystem() == true)
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
 		{
@@ -10533,8 +10532,7 @@ void DrawAdvancedValues( OBJECTTYPE *gpItemDescObject )
 		iComparedModifier[1] = GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_CROUCH, ITEMMODIFIER_TRACKING );
 		iComparedModifier[2] = GetObjectModifier( gpItemDescSoldier, gpComparedItemDescObject, ANIM_PRONE, ITEMMODIFIER_TRACKING );
 	}
-	if ( ( (iModifier[0] != 0 || iModifier[1] != 0 || iModifier[2] != 0) ) ||
-		( fComparisonMode && (iComparedModifier[0] != 0 || iComparedModifier[1] != 0 || iComparedModifier[2] != 0) )
+	if ((((iModifier[0] != 0 || iModifier[1] != 0 || iModifier[2] != 0)) || (fComparisonMode && (iComparedModifier[0] != 0 || iComparedModifier[1] != 0 || iComparedModifier[2] != 0))) 
 		&& UsingNewCTHSystem() == true )
 	{
 		if (cnt >= sFirstLine && cnt < sLastLine)
