@@ -182,7 +182,7 @@ BOOLEAN	SavePhysicsTableToSaveGameFile( HWFILE hFile );
 BOOLEAN	LoadPhysicsTableFromSavedGameFile( HWFILE hFile );
 
 // Flugente: artillery functions
-INT32  RandomGridFromRadius( INT32 sSweetGridNo, INT8 ubMinRadius, INT8 ubMaxRadius );
+INT32  RandomGridFromRadius(INT32 sSweetGridNo, INT8 bMinRadius, INT8 bMaxRadius);
 UINT32 GetArtilleryTargetGridNo( UINT32 sTargetGridNo, INT8 bRadius );
 BOOLEAN GetArtilleryLaunchParams( UINT32 sStartingGridNo, UINT32 sTargetGridNo, INT16 sStartZ, INT16 sEndZ, UINT16 usLauncher, OBJECTTYPE* pObj, FLOAT* pdForce, FLOAT* pdDegrees);
 

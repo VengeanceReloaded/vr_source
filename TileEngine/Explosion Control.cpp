@@ -394,25 +394,17 @@ void InternalIgniteExplosion( UINT8 ubOwner, INT16 sX, INT16 sY, INT16 sZ, INT32
 	if( gGameExternalOptions.bAllowExplosiveAttachments )
 		HandleAttachedExplosions(ubOwner, sX, sY, sZ, sGridNo, usItem, fLocate, bLevel, ubDirection, pObj );
 	
-	// sevenfm: add smoke effect if not in room and not underground, only for normal explosions
-	if( !gbWorldSectorZ && 
-		gGameExternalOptions.bAddSmokeAfterExplosion &&
-		!Water( sGridNo, bLevel ) )
+	// sevenfm: add smoke effect after explosion
+	if (gGameExternalOptions.bAddSmokeAfterExplosion &&
+		//!gbWorldSectorZ &&
+		(bLevel == 0 || IsRoofPresentAtGridNo(sGridNo)) &&
+		!Water(sGridNo, bLevel) &&
+		GridNoOnVisibleWorldTile(sGridNo) &&
+		Explosive[Item[usItem].ubClassIndex].ubType == 0 &&
+		Item[usItem].usBuddyItem == 0 &&
+		Explosive[Item[usItem].ubClassIndex].ubDamage > 20)
 	{
-		if( Explosive[ Item[ usItem ].ubClassIndex ].ubType == 0 && 
-			Item[ usItem ].usBuddyItem == 0 && 
-			Explosive[ Item[ usItem ].ubClassIndex ].ubDamage > 20  )
-		{
-			SOLDIERTYPE* pTarget = SimpleFindSoldier(sGridNo, bLevel);
-			if( pTarget && ( pTarget->ubBodyType == TANK_NE || pTarget->ubBodyType == TANK_NW ) )
-			{
-				// do not add smoke effect when firing at tanks
-			}
-			else
-			{
-				NewSmokeEffect( sGridNo, SMALL_SMOKE, bLevel, ubOwner );
-			}
-		}
+		NewSmokeEffect(sGridNo, SMALL_SMOKE, bLevel, ubOwner);
 	}
 
 	// sevenfm: add light for fire effects

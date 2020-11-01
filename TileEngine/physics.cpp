@@ -110,8 +110,6 @@ void						PhysicsDeleteObject( REAL_OBJECT *pObject );
 BOOLEAN					PhysicsHandleCollisions( REAL_OBJECT *pObject, INT32 *piCollisionID, real DeltaTime );
 FLOAT						CalculateForceFromRange( UINT16 usItem, INT16 sRange, FLOAT dDegrees );
 
-INT32          RandomGridFromRadius( INT32 sSweetGridNo, INT8 ubMinRadius, INT8 ubMaxRadius );
-
 // Parameters for item throwing
 #define MAX_MISS_BY			30
 #define MIN_MISS_BY			1
@@ -1881,7 +1879,7 @@ FLOAT CalculateLaunchItemAngle( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubHe
 
 	dAngle = FindBestAngleForTrajectory( pSoldier->sGridNo, sGridNo, GET_SOLDIER_THROW_HEIGHT( pSoldier->pathing.bLevel ), ubHeight, dForce, pItem, psGridNo );
 
-	// new we have defaut angle value...
+	// new we have default angle value...
 	return( dAngle );
 }
 
@@ -2781,25 +2779,73 @@ BOOLEAN	LoadPhysicsTableFromSavedGameFile( HWFILE hFile )
 }
 
 
-INT32 RandomGridFromRadius( INT32 sSweetGridNo, INT8 ubMinRadius, INT8 ubMaxRadius )
+INT32 RandomGridFromRadius( INT32 sSweetGridNo, INT8 bMinRadius, INT8 bMaxRadius )
 {
-	INT16		sX, sY;
-	INT32		sGridNo = NOWHERE;
-	INT32					leftmost;
-	BOOLEAN	fFound = FALSE;
-	UINT32		cnt = 0;
+	INT32 sGridNo;
+	INT32 sFoundGridNo = NOWHERE;
+	UINT32	cnt = 0;
 
-	if ( ubMaxRadius == 0 || ubMinRadius == 0 )
+	//INT16	sX, sY;
+	//INT32	leftmost;
+	//BOOLEAN	fFound = FALSE;	
+
+	bMaxRadius = max(0, bMaxRadius);
+	bMinRadius = max(0, bMinRadius);
+	bMaxRadius = max(bMinRadius, bMaxRadius);
+
+	if (bMaxRadius == 0)
 	{
-		return( sSweetGridNo );
+		return sSweetGridNo;
 	}
 
-	do
+	if (TileIsOutOfBounds(sSweetGridNo))
 	{
-		sX = (UINT16)PreRandom( ubMaxRadius );
-		sY = (UINT16)PreRandom( ubMaxRadius );
+		return NOWHERE;
+	}
 
-		if ( ( sX < ubMinRadius || sY < ubMinRadius ) && ubMaxRadius != ubMinRadius )
+	INT16	sXOffset, sYOffset;
+	for (cnt = 0; cnt < 10000; cnt++)
+	{
+		//sYOffset = bMinRadius + Random(bMaxRadius - bMinRadius + 1);
+		sYOffset = Random(bMaxRadius + 1);
+		if (Random(2))
+			sYOffset = -sYOffset;
+
+		//sXOffset = bMinRadius + Random(bMaxRadius - bMinRadius + 1);
+		sXOffset = Random(bMaxRadius + 1);
+		if (Random(2))
+			sXOffset = -sXOffset;
+
+		sGridNo = sSweetGridNo + sXOffset + (MAXCOL * sYOffset);
+
+		if (TileIsOutOfBounds(sGridNo))
+		{
+			continue;
+		}
+
+		if (PythSpacesAway(sSweetGridNo, sGridNo) > bMaxRadius || PythSpacesAway(sSweetGridNo, sGridNo) < bMinRadius)
+		{
+			continue;
+		}
+
+		if (!GridNoOnVisibleWorldTile(sGridNo))
+		{
+			continue;
+		}
+
+		// found good spot
+		sFoundGridNo = sGridNo;
+		break;
+	}
+
+	return sFoundGridNo;
+
+	/*do
+	{
+		sX = (UINT16)PreRandom( bMaxRadius );
+		sY = (UINT16)PreRandom( bMaxRadius );
+
+		if ( ( sX < bMinRadius || sY < bMinRadius ) && bMaxRadius != bMinRadius )
 		{
 			continue;
 		}
@@ -2838,7 +2884,7 @@ INT32 RandomGridFromRadius( INT32 sSweetGridNo, INT8 ubMinRadius, INT8 ubMaxRadi
 
 	} while( !fFound );
 
-	return( sGridNo );
+	return( sGridNo );*/
 }
 
 UINT32 GetArtilleryTargetGridNo( UINT32 sTargetGridNo, INT8 bRadius )

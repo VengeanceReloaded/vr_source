@@ -1271,10 +1271,16 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 					continue;
 				}
 
+				// sevenfm: avoid attacking spots outside of visible world to prevent possible bugs
+				if (!GridNoOnVisibleWorldTile(sGridNo))
+				{
+					continue;
+				}
+
 				if ( PythSpacesAway( pSoldier->sGridNo, sGridNo ) > iTossRange )
 				{
 					// can't throw there!
-					return;
+					continue;
 				}
 
 				// if considering a gas/smoke grenade, check to see if there is such stuff already there!
@@ -3453,10 +3459,16 @@ BOOLEAN GetBestAoEGridNo(SOLDIERTYPE *pSoldier, INT32* pGridNo, INT16 aRadius, U
 				if ((sGridNo < 0) || (sGridNo >= GRIDSIZE))
 					continue;
 
+				// sevenfm: avoid attacking spots outside of visible world to prevent possible bugs
+				if (!GridNoOnVisibleWorldTile(sGridNo))
+				{
+					continue;
+				}
+
 				if ( PythSpacesAway( currentSoldierGridNo, sGridNo ) > aRadius )
 					continue;
 
-				// if this tile is taboo, don't even think about targetting it!
+				// if this tile is taboo, don't even think about targeting it!
 				for (ubLoop2 = 0; ubLoop2 < ubTabooCnt; ++ubLoop2)
 				{
 					if (sTabooTile[ubLoop2] == sGridNo)

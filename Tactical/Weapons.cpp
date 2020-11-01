@@ -13431,7 +13431,7 @@ FLOAT CalcNewChanceToHitAimTraitBonus(SOLDIERTYPE *pSoldier, FLOAT fAimCap, FLOA
 
 extern BOOLEAN	IsRoofPresentAtGridNo( INT32 sGridNo );
 
-// Flugente: fire item from A to B (intended for mortarshells and launchable grenades)
+// Flugente: fire item from A to B (intended for mortar shells and launchable grenades)
 BOOLEAN ArtilleryStrike( UINT16 usItem, UINT8 ubOwnerID, UINT32 usStartingGridNo, UINT32 usTargetMapPos )
 {
 	FLOAT				dForce, dDegrees;
@@ -13440,8 +13440,8 @@ BOOLEAN ArtilleryStrike( UINT16 usItem, UINT8 ubOwnerID, UINT32 usStartingGridNo
 	INT16				sStartZ = ( 1 * 256 ) + 50;
 	INT16				sEndZ	= 0;
 
-	// radius is way smaller for signal shells, otherwise the inaccuraccy would increase too much
-	INT8				bRadius	= gSkillTraitValues.usVOMortarRadius;
+	// radius is way smaller for signal shells, otherwise the inaccuracy would increase too much
+	INT8 bRadius	= gSkillTraitValues.usVOMortarRadius;
 	if ( HasItemFlag(usItem, SIGNAL_SHELL) )
 		bRadius = gSkillTraitValues.usVOMortarSignalShellRadius;
 
@@ -13458,8 +13458,14 @@ BOOLEAN ArtilleryStrike( UINT16 usItem, UINT8 ubOwnerID, UINT32 usStartingGridNo
 	OBJECTTYPE shellobj;
 	CreateItem( usItem, 100, &shellobj );
 
-	// Get basic launch params...		
-	if ( !GetArtilleryLaunchParams(usStartingGridNo, sTargetGridNo, sStartZ, sEndZ, usItem, &shellobj, &dForce, &dDegrees) )
+	// sevenfm: find launcher for usItem
+	UINT16 usLauncher = GetLauncherFromLaunchable(usItem);
+	if (usLauncher == NOTHING)
+		return FALSE;
+
+	// Get basic launch params...
+	// sevenfm: we need to supply GetArtilleryLaunchParams with launcher item and not just mortar shell, as it will check it's range later
+	if (!GetArtilleryLaunchParams(usStartingGridNo, sTargetGridNo, sStartZ, sEndZ, usLauncher, &shellobj, &dForce, &dDegrees))
 		return FALSE;
 
 	// Get XY from gridno
