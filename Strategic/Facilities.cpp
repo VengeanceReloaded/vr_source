@@ -38,6 +38,7 @@
 	#include "Isometric Utils.h"
 	#include "MilitiaSquads.h"
 	#include "Tactical Save.h"
+	#include "Campaign Types.h"	
 #endif
 
 INT16 gsSkyriderCostModifier;
@@ -783,9 +784,23 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 		UINT8 ubMinerID = GetHeadMinerProfileIdForMine(ubMine);
 		if(ubMinerID != -1)
 		{
-			SOLDIERTYPE *pSoldier = FindSoldierByProfileID(ubMinerID, FALSE);
-			if( pSoldier!= NULL && pSoldier->bActive && pSoldier->stats.bLife && pSoldier->bTeam != OUR_TEAM && GetMineIndexForSector( pSoldier->sSectorX, pSoldier->sSectorY ) == ubMine )
-				iModifier += pSoldier->GetBackgroundValue(BG_OIL_RIG_INCOME);
+			MERCPROFILESTRUCT *pMercProfile = &(gMercProfiles[ubMinerID]);
+			if (pMercProfile && pMercProfile->bLife > 0 && GetMineIndexForSector(pMercProfile->sSectorX, pMercProfile->sSectorY) == ubMine && pMercProfile->bSectorZ == 0)
+			{
+				UINT8 ubSector = SECTOR(pSoldier->sSectorX, pSoldier->sSectorY);
+				BOOLEAN bIsOilRig = FALSE;
+				for (UINT16 cnt = 0; cnt < NUM_FACILITY_TYPES; cnt++)
+				{
+					if (gFacilityLocations[ubSector][cnt].fFacilityHere && gFacilityTypes[cnt].AssignmentData[FAC_MANAGE_OIL_RIG].usMineIncomeModifier > 0)
+					{
+						bIsOilRig = TRUE;
+						break;
+					}
+
+				}
+				iModifier += bIsOilRig ? zBackground[pMercProfile->usBackground].value[BG_OIL_RIG_INCOME] : zBackground[pMercProfile->usBackground].value[BG_MINE_INCOME];
+			}
+
 		}
 	}
 
