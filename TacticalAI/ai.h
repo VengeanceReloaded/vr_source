@@ -269,6 +269,7 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 // sevenfm:
 INT16 MaxNormalVisionDistance( void );
 BOOLEAN GuySawEnemy( SOLDIERTYPE * pSoldier, UINT8 ubMax = SEEN_3_TURNS_AGO );
+BOOLEAN GuyHeardEnemy(SOLDIERTYPE * pSoldier, UINT8 ubMax = HEARD_2_TURNS_AGO);
 UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier );
 INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel);
 UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );

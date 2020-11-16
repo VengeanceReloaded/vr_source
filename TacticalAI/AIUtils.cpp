@@ -2021,6 +2021,38 @@ BOOLEAN GuySawEnemy( SOLDIERTYPE * pSoldier, UINT8 ubMax )
 	return( FALSE );
 }
 
+BOOLEAN GuyHeardEnemy(SOLDIERTYPE * pSoldier, UINT8 ubMax)
+{
+	UINT8		uiLoop;
+	SOLDIERTYPE *pOpponent;
+
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, or dead
+		if (!pOpponent || !pOpponent->bActive || !pOpponent->bInSector)
+		{
+			continue;
+		}
+
+		// if this merc is neutral/on same side, he's not an opponent
+		if (CONSIDERED_NEUTRAL(pSoldier, pOpponent) || (pSoldier->bSide == pOpponent->bSide))
+		{
+			continue;
+		}
+
+		// if this guy HEARD an enemy recently...
+		if (pSoldier->aiData.bOppList[pOpponent->ubID] >= ubMax &&
+			pSoldier->aiData.bOppList[pOpponent->ubID] <= HEARD_THIS_TURN)
+		{
+			return(TRUE);
+		}
+	}
+
+	return(FALSE);
+}
+
 INT32 ClosestReachableFriendInTrouble(SOLDIERTYPE *pSoldier, BOOLEAN * pfClimbingNecessary)
 {
 	UINT32 uiLoop;
@@ -2514,9 +2546,16 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 		bMoraleCategory = MORALE_FEARLESS;
 
 	// make idiot administrators more aggressive
-	if ( pSoldier->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR )
+	// sevenfm: also make civilians more aggressive
+	if (pSoldier->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR || pSoldier->bTeam == CIV_TEAM && !pSoldier->aiData.bNeutral)
 	{
 		bMoraleCategory += 2;
+	}
+
+	// SEEKENEMY soldiers are more aggressive
+	if (pSoldier->aiData.bOrders == SEEKENEMY)
+	{
+		bMoraleCategory++;
 	}
 
 	// if have good health
@@ -2575,17 +2614,35 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 		bMoraleCategory++;
 	}
 
-	// limit AI morale depending on morale and suppression shock
-	if( pSoldier->aiData.bShock )
+	// bonus if weapon range is short
+	if (AICheckHasGun(pSoldier) &&
+		(GuySawEnemy(pSoldier, SEEN_LAST_TURN) || pSoldier->aiData.bUnderFire) &&
+		AICheckShortWeaponRange(pSoldier))
 	{
-		bMoraleCategory = __min(bMoraleCategory, (20 + pSoldier->aiData.bMorale - 20*__min(3, pSoldier->aiData.bShock/5)) / 20);
+		bMoraleCategory++;
 	}
 
-	// if adjustments made it outside the allowed limits
-	if (bMoraleCategory < MORALE_HOPELESS)
-		bMoraleCategory = MORALE_HOPELESS;
-	else if (bMoraleCategory > MORALE_FEARLESS)
-		bMoraleCategory = MORALE_FEARLESS;
+	// limit AI morale depending on morale and suppression shock
+	/*if( pSoldier->aiData.bShock )
+	{
+		bMoraleCategory = __min(bMoraleCategory, (20 + pSoldier->aiData.bMorale - 20*__min(3, pSoldier->aiData.bShock/5)) / 20);
+	}*/
+
+	// limit AI morale when soldier is under heavy fire
+	if (ShockLevelPercent(pSoldier) > 75)
+		bMoraleCategory = min(bMoraleCategory, MORALE_CONFIDENT);
+	else if (ShockLevelPercent(pSoldier) > 50)
+		bMoraleCategory = min(bMoraleCategory, MORALE_NORMAL);
+
+	// prevent hopeless morale when not under attack
+	if (bMoraleCategory == MORALE_HOPELESS && !pSoldier->aiData.bUnderFire)
+	{
+		bMoraleCategory = MORALE_WORRIED;
+	}
+
+	// check limits
+	bMoraleCategory = max(bMoraleCategory, MORALE_HOPELESS);
+	bMoraleCategory = min(bMoraleCategory, MORALE_FEARLESS);
 
 	return(bMoraleCategory);
 }
@@ -2749,6 +2806,13 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 		return MAX_ROAMING_RANGE;
 	}
 
+	// sevenfm: for zombies, allow max range
+	if (pSoldier->IsZombie())
+	{
+		*pusFromGridNo = pSoldier->sGridNo;
+		return MAX_ROAMING_RANGE;
+	}
+
 	if ( CREATURE_OR_BLOODCAT( pSoldier ) )
 	{
 		if ( pSoldier->aiData.bAlertStatus == STATUS_BLACK )
@@ -2769,7 +2833,6 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 		*pusFromGridNo = pSoldier->aiData.sPatrolGrid[0];
 	}
 
-	//if( !TileIsOutOfBounds(ClosestKnownOpponent(pSoldier, NULL, NULL)) )
 	if( GuyKnowsEnemyPosition(pSoldier) )
 	{
 		fOppPosKnown = TRUE;
@@ -2778,14 +2841,10 @@ INT16 RoamingRange(SOLDIERTYPE *pSoldier, INT32 * pusFromGridNo)
 	{
 		fRedAlert = TRUE;
 	}
-	if( pSoldier->aiData.bUnderFire || GuySawEnemy(pSoldier) )
+	if( pSoldier->aiData.bUnderFire || GuySawEnemy(pSoldier))
 	{
 		fInCombat = TRUE;
 	}
-	/*if( CountFriendsNeedHelp(pSoldier) > 0 )
-	{
-		fFriendsNeedHelp = TRUE;
-	}*/
 
 	switch (pSoldier->aiData.bOrders)
 	{
