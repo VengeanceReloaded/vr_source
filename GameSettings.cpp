@@ -2273,6 +2273,7 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fRedTracer					= iniReader.ReadBoolean("Extended Options", "RED_TRACER", true, false);
 	gGameExternalOptions.fTracerLight				= iniReader.ReadBoolean("Extended Options", "TRACER_LIGHT", false, false);
 	gGameExternalOptions.fTotalDestruction			= iniReader.ReadBoolean("Extended Options", "TOTAL_DESTRUCTION", true, false);
+	gGameExternalOptions.fScopeVisionBonus			= iniReader.ReadBoolean("Extended Options", "SCOPE_VISION_BONUS", true, false);
 }
 
 

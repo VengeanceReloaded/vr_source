@@ -11448,7 +11448,7 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 	// Snap: check only attachments on a readied weapon!
 	// 0verhaul:  Moved this bug fix into WeaponReady so that all CTH modifier functions may benefit from this fix
 	//AXP 28.03.2007: CtH bug fix: We also want to check on a firing weapon, "raised" alone is not enough ;)
-	if ( usingGunScope == true )
+	if (usingGunScope)
 	{
 		// SANDRO - added scouting check
 		INT16 sScopebonus = 0;
@@ -11473,9 +11473,13 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 					GetScopeLists(pObj, ObjList);
 		
 					// only use scope mode if gun is in hand, otherwise an error might occur!
-					if ( (&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD )
+					if ((&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+					{
 						// now apply the bonus from the scope we use
-						sScopebonus += BonusReduceMore( Item[ObjList[pSoldier->bScopeMode]->usItem].visionrangebonus, (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
+						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+							sScopebonus += BonusReduceMore(Item[ObjList[pSoldier->bScopeMode]->usItem].visionrangebonus, (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+					}
 				}
 			}
 			else
@@ -11491,7 +11495,9 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 		}
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
-			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
+			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		bonus += sScopebonus;
 	}
@@ -11563,7 +11569,7 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 	}
 
 	// Snap: check only attachments on a raised weapon!
-	if ( usingGunScope == true )
+	if (usingGunScope)
 	{
 		// SANDRO - added scouting check
 		INT16 sScopebonus = 0;
@@ -11590,11 +11596,13 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 					GetScopeLists(pObj, ObjList);
 		
 					// only use scope mode if gun is in hand, otherwise an error might occur!
-					if ( (&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD )
+					if ((&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+					{
 						// now apply the bonus from the scope we use
-						sScopebonus += BonusReduceMore(
-								NightBonusScale( Item[ObjList[pSoldier->bScopeMode]->usItem].nightvisionrangebonus, bLightLevel ),
-								(*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
+						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].nightvisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+					}
 				}
 			}
 			else
@@ -11612,7 +11620,9 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		}
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
-			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
+			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}
@@ -11671,7 +11681,7 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 	}
 
 	// Snap: check only attachments on a raised weapon!
-	if ( usingGunScope == true )
+	if (usingGunScope)
 	{
 		// SANDRO - added scouting check
 		INT16 sScopebonus = 0;
@@ -11698,11 +11708,13 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 					GetScopeLists(pObj, ObjList);
 		
 					// only use scope mode if gun is in hand, otherwise an error might occur!
-					if ( (&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD )
+					if ((&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+					{
 						// now apply the bonus from the scope we use
-						sScopebonus += BonusReduceMore(
-								NightBonusScale( Item[ObjList[pSoldier->bScopeMode]->usItem].cavevisionrangebonus, bLightLevel ),
-								(*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
+						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].cavevisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+					}
 				}
 			}
 			else
@@ -11720,7 +11732,9 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		}
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
-			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
+			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}
@@ -11803,7 +11817,7 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 	}
 
 	// Snap: check only attachments on a raised weapon!
-	if ( usingGunScope == true )
+	if (usingGunScope)
 	{
 		// SANDRO - added scouting check
 		INT16 sScopebonus = 0;
@@ -11831,11 +11845,13 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 					GetScopeLists(pObj, ObjList);
 		
 					// only use scope mode if gun is in hand, otherwise an error might occur!
-					if ( (&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD )
+					if ((&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+					{
 						// now apply the bonus from the scope we use
-						sScopebonus += BonusReduceMore( idiv( Item[ObjList[pSoldier->bScopeMode]->usItem].dayvisionrangebonus
-								* lightlevelmultiplier, lightleveldivisor ),
-								(*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
+						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].dayvisionrangebonus	* lightlevelmultiplier, lightleveldivisor),	(*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+					}
 				}
 			}
 			else
@@ -11853,7 +11869,9 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		}
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
-			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
+			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}
@@ -11926,7 +11944,7 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 	}
 
 	// Snap: check only attachments on a raised weapon!
-	if ( usingGunScope == true )
+	if (usingGunScope)
 	{
 		// SANDRO - added scouting check
 		INT16 sScopebonus = 0;
@@ -11953,11 +11971,13 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 					GetScopeLists(pObj, ObjList);
 		
 					// only use scope mode if gun is in hand, otherwise an error might occur!
-					if ( (&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD )
+					if ((&pSoldier->inv[HANDPOS]) == pObj  && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+					{
 						// now apply the bonus from the scope we use
-						sScopebonus += BonusReduceMore( idiv( Item[ObjList[pSoldier->bScopeMode]->usItem].brightlightvisionrangebonus
-									* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY ),
-									(*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
+						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].brightlightvisionrangebonus	* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+					}
 				}
 			}
 			else
@@ -11975,7 +11995,9 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 		}
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
-			sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
+			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
+			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}

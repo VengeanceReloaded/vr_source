@@ -1468,6 +1468,7 @@ typedef struct
 	BOOLEAN fRedTracer;
 	BOOLEAN fTracerLight;
 	BOOLEAN fTotalDestruction;
+	BOOLEAN fScopeVisionBonus;
 
 } GAME_EXTERNAL_OPTIONS;
 
