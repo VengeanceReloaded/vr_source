@@ -710,33 +710,32 @@ INT8 GetSightAdjustmentBehindStructure( const INT16& iRange, STRUCTURE* pStructu
 */
 INT16 GetSightAdjustment( SOLDIERTYPE* pSoldier, INT32 sGridNo, INT16 bLevel, INT8 bStance )
 {
-	if (sGridNo == -1) {
+	CHECKF(pSoldier);
+
+	if (sGridNo == -1) 
 		sGridNo = pSoldier->sGridNo;
-	}
 
-	if (bLevel == -1) {
+	if (bLevel == -1)
 		bLevel = gpWorldLevelData[pSoldier->sGridNo].sHeight;
-	}
 
-	if (bStance == -1) {
+	if (bStance == -1)
 		bStance = GetCurrentHeightOfSoldier( pSoldier );
-	}
 
 	UINT8 ubTerrainType = GetTerrainTypeForGrid( sGridNo, bLevel );
 	UINT8 ubLightLevel = LightTrueLevel( sGridNo, bLevel );
 
 	INT16 iSightAdjustment = 0;
 
-	// general stuff (independant of soldier)
+	// general stuff (independent of soldier)
 	iSightAdjustment += GetSightAdjustmentThroughStance( bStance );
 
 	// context sensitive (needs soldier)
-	iSightAdjustment += GetSightAdjustmentBasedOnLBE( pSoldier );
+	iSightAdjustment += GetSightAdjustmentBasedOnLBE(pSoldier);
 
 	// context sensitive stuff with 2nd parameter (needs soldier for attributes but can be given a second parameter)
-	iSightAdjustment += GetSightAdjustmentThroughMovement( pSoldier, pSoldier->bTilesMoved, ubLightLevel );
-	iSightAdjustment += GetSightAdjustmentStealthAtLightLevel( pSoldier, ubLightLevel );
-	iSightAdjustment += GetSightAdjustmentCamouflageOnTerrain( pSoldier, bStance, ubTerrainType );
+	iSightAdjustment += GetSightAdjustmentThroughMovement(pSoldier, pSoldier->bTilesMoved, ubLightLevel);
+	iSightAdjustment += GetSightAdjustmentStealthAtLightLevel(pSoldier, ubLightLevel);
+	iSightAdjustment += GetSightAdjustmentCamouflageOnTerrain(pSoldier, bStance, ubTerrainType);
 
 	return MINMAX100N(iSightAdjustment);
 }

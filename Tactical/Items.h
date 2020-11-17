@@ -336,7 +336,7 @@ BOOLEAN WasPrevBulletATracer( SOLDIERTYPE *pSoldier, OBJECTTYPE *pWeapon );
 // GetDayVisionRangeBonus: NORMAL_LIGHTLEVEL_DAY <= bLightLevel < NORMAL_LIGHTLEVEL_NIGHT
 // GetBrightLightVisionRangeBonus: bLightLevel < NORMAL_LIGHTLEVEL_DAY
 // (remember: darker is higher!)
-INT16 GetTotalVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel );
+INT16 GetTotalVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sSpot, INT8 bLevel);
 // HEADROCK: Following function used to get the vision range bonus of an item and its attachments. Second argument controls specific
 // vision type.
 INT16 GetItemVisionRangeBonus( OBJECTTYPE * pObj, INT16 VisionType );

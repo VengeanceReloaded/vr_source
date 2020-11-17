@@ -74,6 +74,9 @@
 class OBJECTTYPE;
 class SOLDIERTYPE;
 
+bool gbForceBinocsReady = false;
+//bool gbForceWatchedReady = false;
+//bool gbForceWatchedNotReady = false;
 
 #define ANY_MAGSIZE 65535
 
@@ -9211,9 +9214,25 @@ void SwapHandItems( SOLDIERTYPE * pSoldier )
 	CHECKV( pSoldier );
 
 	// sevenfm: stop watching
-	pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH])
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+	}
+	
 	// stop spotting
-	pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER])
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+	}
+	
+	// stop focus
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS])
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+	}
 
 	if (pSoldier->inv[HANDPOS].exists() == false || pSoldier->inv[SECONDHANDPOS].exists() == false)
 	{
@@ -9239,6 +9258,10 @@ void SwapHandItems( SOLDIERTYPE * pSoldier )
 
 	// Flugente: we have to recheck our flashlights
 	pSoldier->HandleFlashLights();	
+
+	// sevenfm: refresh sight
+	HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+	DirtyMercPanelInterface(pSoldier, DIRTYLEVEL2);
 }
 
 void SwapOutHandItem( SOLDIERTYPE * pSoldier )
@@ -9271,6 +9294,8 @@ void SwapOutHandItem( SOLDIERTYPE * pSoldier )
 
 	// Flugente: we have to recheck our flashlights
 	pSoldier->HandleFlashLights();
+	// sevenfm: update sight
+	HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 }
 
 void WaterDamage( SOLDIERTYPE *pSoldier )
@@ -11398,9 +11423,9 @@ INT16 GetPercentBurstFireAPReduction( OBJECTTYPE * pObj )
 }
 
 
-INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
+INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 {
-	INT16 bonus=0;
+	INT16 sBonus = 0;
 	OBJECTTYPE *pObj;
 	UINT16 usItem;
 	INVTYPE *pItem;
@@ -11431,8 +11456,9 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				!IsWeapon(usItem) && 
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+				!gbForceBinocsReady &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
+				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
 				continue;
 			}
@@ -11440,18 +11466,19 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 			// Flugente: weapons are checked later on...
 			if (!IsWeapon(usItem))
 			{
-				bonus += BonusReduceMore( pItem->visionrangebonus,	(*pObj)[0]->data.objectStatus );
+				sBonus += BonusReduceMore( pItem->visionrangebonus,	(*pObj)[0]->data.objectStatus );
 			}
 		}
 	}
 
 	// Snap: check only attachments on a readied weapon!
 	// 0verhaul:  Moved this bug fix into WeaponReady so that all CTH modifier functions may benefit from this fix
-	//AXP 28.03.2007: CtH bug fix: We also want to check on a firing weapon, "raised" alone is not enough ;)
+	//AXP 28.03.2007: CtH bug fix: We also want to check on a firing weapon, "raised" alone is not enough ;)	
 	if (usingGunScope)
 	{
-		// SANDRO - added scouting check
 		INT16 sScopebonus = 0;
+
+		// SANDRO - added scouting check		
 		pObj = &( pSoldier->inv[HANDPOS]);
 		if (pObj->exists() == true) 
 		{
@@ -11477,7 +11504,10 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 					{
 						// now apply the bonus from the scope we use
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+						if (!UsingNewVisionSystem() ||
+							gbForceWeaponReady || 
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(Item[ObjList[pSoldier->bScopeMode]->usItem].visionrangebonus, (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
 				}
@@ -11496,13 +11526,57 @@ INT16 GetVisionRangeBonus( SOLDIERTYPE * pSoldier )
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+			if (!UsingNewVisionSystem() ||
+				gbForceWeaponReady || 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		bonus += sScopebonus;
+		sBonus += sScopebonus;
 	}
 
-	return( bonus );
+	/*if (UsingNewVisionSystem() &&
+		pSoldier->bTeam != gbPlayerNum &&
+		IS_MERC_BODY_TYPE(pSoldier) &&
+		!TileIsOutOfBounds(sSpot) &&
+		usingGunScope &&
+		!gbForceWatchedNotReady &&
+		(gbForceWatchedReady || !gbForceWeaponReady && !gbForceWeaponNotReady))
+	{
+		INT8 bWatchPoints;
+
+		if (gbForceWatchedReady)
+			bWatchPoints = 4;
+		else
+			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
+
+		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+	}*/
+
+	//sBonus += sScopebonus;
+
+	if (UsingNewVisionSystem() &&
+		!gbForceBinocsReady &&
+		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0) &&
+		!TileIsOutOfBounds(sSpot) &&
+		!TileIsOutOfBounds(pSoldier->sMTActionGridNo) &&
+		SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)
+	{
+		sBonus -= 50;
+	}
+
+	if (UsingNewVisionSystem() &&
+		usingGunScope &&
+		!gbForceWeaponReady &&
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] > 0 &&
+		!TileIsOutOfBounds(sSpot) &&
+		!TileIsOutOfBounds(pSoldier->sMTActionGridNo) &&
+		SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)
+	{
+		sBonus -= 50;
+	}
+
+	return( sBonus );
 }
 
 // Snap: Scale night vision bonus with light level
@@ -11519,7 +11593,7 @@ INT16 NightBonusScale( INT16 bonus, UINT8 bLightLevel )
 	else return 0;
 }
 
-INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
+INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sSpot, INT8 bLevel)
 {
 	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
@@ -11552,8 +11626,9 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+				!gbForceBinocsReady &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
+				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
 				continue;
 			}
@@ -11600,7 +11675,10 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 					{
 						// now apply the bonus from the scope we use
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+						if (!UsingNewVisionSystem() ||
+							gbForceWeaponReady || 
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].nightvisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
 				}
@@ -11621,7 +11699,10 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+			if (!UsingNewVisionSystem() ||
+				gbForceWeaponReady || 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
@@ -11630,7 +11711,7 @@ INT16 GetNightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 	return( sBonus );
 }
 
-INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
+INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sSpot, INT8 bLevel)
 {
 	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
@@ -11664,8 +11745,9 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC && 
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+				!gbForceBinocsReady &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
+				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
 				continue;
 			}
@@ -11712,7 +11794,10 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 					{
 						// now apply the bonus from the scope we use
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+						if (!UsingNewVisionSystem() ||
+							gbForceWeaponReady || 
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].cavevisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
 				}
@@ -11733,7 +11818,10 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+			if (!UsingNewVisionSystem() ||
+				gbForceWeaponReady || 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
@@ -11742,7 +11830,7 @@ INT16 GetCaveVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 	return( sBonus );
 }
 
-INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
+INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sSpot, INT8 bLevel)
 {
 	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
@@ -11789,8 +11877,9 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+				!gbForceBinocsReady &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
+				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
 				continue;
 			}
@@ -11849,7 +11938,10 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 					{
 						// now apply the bonus from the scope we use
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+						if (!UsingNewVisionSystem() ||
+							gbForceWeaponReady || 
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].dayvisionrangebonus	* lightlevelmultiplier, lightleveldivisor),	(*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
 				}
@@ -11870,16 +11962,18 @@ INT16 GetDayVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+			if (!UsingNewVisionSystem() ||
+				gbForceWeaponReady || 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}
-
 	return( sBonus );
 }
 
-INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
+INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sSpot, INT8 bLevel)
 {
 	INT16	sBonus = 0;
 	OBJECTTYPE *pObj;
@@ -11916,8 +12010,9 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC && 
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 &&
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 )
+				!gbForceBinocsReady &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
+				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
 				continue;
 			}
@@ -11975,7 +12070,10 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 					{
 						// now apply the bonus from the scope we use
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-						if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+						if (!UsingNewVisionSystem() ||
+							gbForceWeaponReady || 
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].brightlightvisionrangebonus	* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
 				}
@@ -11996,7 +12094,10 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 		if( sScopebonus > 0 && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && gGameOptions.fNewTraitSystem)
 		{
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
-			if (gGameExternalOptions.fScopeVisionBonus || gbForceWeaponReady || gbForceWeaponNotReady)
+			if (!UsingNewVisionSystem() ||
+				gbForceWeaponReady || 
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
@@ -12005,29 +12106,29 @@ INT16 GetBrightLightVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel 
 	return( sBonus );
 }
 
-INT16 GetTotalVisionRangeBonus( SOLDIERTYPE * pSoldier, UINT8 bLightLevel )
+INT16 GetTotalVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sSpot, INT8 bLevel)
 {
-	INT16 sBonus = GetVisionRangeBonus(pSoldier);
+	INT16 sBonus = GetVisionRangeBonus(pSoldier, sSpot, bLevel);
 
 	if ( bLightLevel > NORMAL_LIGHTLEVEL_DAY )
 	{
 		if ( pSoldier->pathing.bLevel == 0 )
 		{
-			sBonus += GetNightVisionRangeBonus(pSoldier, bLightLevel);
+			sBonus += GetNightVisionRangeBonus(pSoldier, bLightLevel, sSpot, bLevel);
 		}
 		else
 		{
-			sBonus += GetCaveVisionRangeBonus(pSoldier, bLightLevel);
+			sBonus += GetCaveVisionRangeBonus(pSoldier, bLightLevel, sSpot, bLevel);
 		}
 	}
 	else if ( bLightLevel < NORMAL_LIGHTLEVEL_DAY )
 	{
-		sBonus += GetBrightLightVisionRangeBonus(pSoldier, bLightLevel);
+		sBonus += GetBrightLightVisionRangeBonus(pSoldier, bLightLevel, sSpot, bLevel);
 	}
 
 	if ( bLightLevel < NORMAL_LIGHTLEVEL_NIGHT )
 	{
-		sBonus += GetDayVisionRangeBonus(pSoldier, bLightLevel);
+		sBonus += GetDayVisionRangeBonus(pSoldier, bLightLevel, sSpot, bLevel);
 	}
 
 	// Flugente: drugs can alter our sight
@@ -13430,6 +13531,28 @@ void ApplyEquipmentBonuses(SOLDIERTYPE * pSoldier)
 	}
 	*/
 
+	// sevenfm: check if can still watch/spot/focus
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !WeaponReady(pSoldier))
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+		HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+	}
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] && !pSoldier->CanSpot(NOWHERE))
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+		HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+	}
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] && pSoldier->MaxVisionBonus() <= 0)
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+		HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+	}
+
+	// sevenfm: refresh sight
+	//HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 	fInterfacePanelDirty = DIRTYLEVEL2;
 }
 
@@ -15845,6 +15968,9 @@ BOOLEAN OBJECTTYPE::TransformObject( SOLDIERTYPE * pSoldier, UINT8 ubStatusIndex
 
 	// Flugente: we have to recheck our flashlights
 	pSoldier->HandleFlashLights();
+	
+	// sevenfm: update sight
+	HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 
 	// Signal a successful transformation.
 	return TRUE;

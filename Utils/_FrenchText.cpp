@@ -5629,6 +5629,7 @@ STR16		zOptionsToggleText[] =
 	L"Afficher contenu LBE/DESC.",				
 	L"Inverser molette/souris",
 	L"Déplacement tactique",					// when multiple mercs are selected, they will try to keep their relative distances
+	L"New Vision Mode",					// new vision bonus mode
 	L"--Options mode triche--",				// TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	L"Forcer envois Bobby Ray",			// force all pending Bobby Ray shipments
 	L"-----------------",					// TOPTION_CHEAT_MODE_OPTIONS_END
@@ -5745,6 +5746,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Si activé, montre le contenu d'un élément LBE quand la fenêtre de description est ouverte.",
 	L"Si activé, inverse le sens de la molette de la souris.",
 	L"Lorsque plusieurs mercenaires sont sélectionnés, ils vont garder leurs distances en se déplaçant. (|C|t|r|l+|A|l|t+|G)",
+	L"When ON, disables instant bonus vision from scopes and binocs.\nEnables selectable vision spot.\nEnables focus feature for weapons.",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Forcer tous les envois en attente de Bobby Ray",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",

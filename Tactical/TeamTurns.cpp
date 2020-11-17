@@ -1235,7 +1235,6 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 	SOLDIERTYPE *		pTempSoldier;
 	INT32						cnt;
 	BOOLEAN					fFound;
-	INT16						ubMinAPsToAttack;
 
 	DebugMsg (TOPIC_JA2INTERRUPT,DBG_LEVEL_3,"EndInterrupt");
 
@@ -1244,7 +1243,7 @@ void EndInterrupt( BOOLEAN fMarkInterruptOccurred )
 		DebugMsg( TOPIC_JA2INTERRUPT, DBG_LEVEL_3, String("ENDINT:	Q position %d: %d", cnt, gubOutOfTurnOrder[ cnt ] ) );
 	}
 
-	// ATE: OK, now if this all happended on one frame, we may not have to stop
+	// ATE: OK, now if this all happened on one frame, we may not have to stop
 	// guy from walking... so set this flag to false if so...
 	if ( fMarkInterruptOccurred )
 	{
@@ -1741,7 +1740,7 @@ BOOLEAN StandardInterruptConditionsMet( SOLDIERTYPE * pSoldier, UINT8 ubOpponent
 
 	// sevenfm: spotting or watching soldier cannot interrupt
 	if( pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0 ||
-		pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 )
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0)
 	{
 		return FALSE;
 	}
@@ -1950,10 +1949,43 @@ INT8 CalcInterruptDuelPts( SOLDIERTYPE * pSoldier, UINT8 ubOpponentID, BOOLEAN f
 		}
 	}
 
+	INT8 bWatchBonus = 0;
+	INT8 bFocusBonus = 0;
+
 	if (fUseWatchSpots)
 	{
 		// if this is a previously noted spot of enemies, give bonus points!
-		iPoints += GetWatchedLocPoints( pSoldier->ubID, MercPtrs[ ubOpponentID ]->sGridNo, MercPtrs[ ubOpponentID ]->pathing.bLevel );
+		bWatchBonus = GetWatchedLocPoints(pSoldier->ubID, MercPtrs[ubOpponentID]->sGridNo, MercPtrs[ubOpponentID]->pathing.bLevel);
+	}
+
+	if (UsingNewVisionSystem() &&
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] &&
+		!TileIsOutOfBounds(pSoldier->sMTActionGridNo) &&
+		!TileIsOutOfBounds(MercPtrs[ubOpponentID]->sGridNo))
+	{
+		// using focus skill
+		if (SpacesAway(pSoldier->sMTActionGridNo, MercPtrs[ubOpponentID]->sGridNo) <= 1)
+		{
+			if (pSoldier->sMTActionGridNo == MercPtrs[ubOpponentID]->sGridNo)
+				bFocusBonus = 2;
+			else
+				bFocusBonus = 1;
+
+			// for every turn after 1, add 1 bonus point, no more than 2 bonus points can be added
+			if (pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] > 1)
+				bFocusBonus += min(2, pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] - 1);
+		}
+		else
+		{
+			bFocusBonus = -2;
+		}
+
+		iPoints += bFocusBonus;
+	}
+	else
+	{
+		// not using focus skill, use watched location
+		iPoints += bWatchBonus;
 	}
 
 	// LOSE one point for each 2 additional opponents he currently sees, above 2

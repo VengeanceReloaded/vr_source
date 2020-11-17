@@ -2401,7 +2401,17 @@ BOOLEAN UseGunNCTH( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 	if (Weapon[Item[usUBItem].ubClassIndex].APsToReloadManually > 0)
 		(*pObjAttHand)[0]->data.gun.ubGunState &= ~GS_CARTRIDGE_IN_CHAMBER;
 //<SB>
-	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("UseGun: done"));
+
+	// sevenfm: stop focus if shooting at different spot
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sTargetGridNo) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sTargetGridNo, pSoldier->sMTActionGridNo) > 1)
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+		HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+		DirtyMercPanelInterface(pSoldier, DIRTYLEVEL2);
+	}
+
+	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("UseGunNCTH: done"));
 	return( TRUE );
 }
 
@@ -3081,6 +3091,16 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 		(*pObjUsed)[0]->data.gun.ubGunState &= ~GS_CARTRIDGE_IN_CHAMBER;
 	}
 //<SB>
+
+	// sevenfm: stop focus if shooting at different spot
+	if (pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sTargetGridNo) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sTargetGridNo, pSoldier->sMTActionGridNo) > 1)
+	{
+		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] = 0;
+		pSoldier->sMTActionGridNo = NOWHERE;
+		HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+		DirtyMercPanelInterface(pSoldier, DIRTYLEVEL2);
+	}
+
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("UseGun: done"));
 	return( TRUE );
 }
@@ -6905,6 +6925,9 @@ else
   return (iChance);
 }*/
 
+//extern bool gbForceWatchedReady;
+//extern bool gbForceWatchedNotReady;
+
 UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos )
 {
 	if(UsingNewCTHSystem() == true)
@@ -6918,6 +6941,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	INT32	iChance;	//CTH
 	INT32	iRange;		//Actual range to target
 	INT32	iSightRange = 0;	//LOS range
+	INT32	iRealSight = 0;		// unmodified sight range
 	INT32	iCoverRange;	//Amount sight range is modified due to cover
 	INT32	iMaxRange;	//Weapon maximum range
 	INT32	iMinRange;	//Minimum effective range
@@ -6971,24 +6995,38 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		gbForceWeaponReady = true;
 
 	sDistVis = pSoldier->GetMaxDistanceVisible(sGridNo, pSoldier->bTargetLevel, CALC_FROM_ALL_DIRS ) * CELL_X_SIZE;
-	iScopeVisionRangeBonus = GetTotalVisionRangeBonus(pSoldier, bLightLevel);	// not an actual range value, simply a modifier for range calculations
-	if (ubTargetID != NOBODY && pSoldier->aiData.bOppList[ubTargetID] == SEEN_CURRENTLY || gbPublicOpplist[pSoldier->bTeam][ubTargetID] == SEEN_CURRENTLY)
+	iScopeVisionRangeBonus = GetTotalVisionRangeBonus(pSoldier, bLightLevel, sGridNo, pSoldier->bTargetLevel);	// not an actual range value, simply a modifier for range calculations
+
+	// shooting at soldier
+	if (ubTargetID != NOBODY)	// && pSoldier->aiData.bOppList[ubTargetID] == SEEN_CURRENTLY || gbPublicOpplist[pSoldier->bTeam][ubTargetID] == SEEN_CURRENTLY)
 	{
 		iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false );
+
+		// sevenfm: find real sight to target soldier
+		if (pSoldier->aiData.bOppList[ubTargetID] == SEEN_CURRENTLY)
+			iRealSight = 1;
+		else
+			iRealSight = SoldierToSoldierLineOfSightTest(pSoldier, MercPtrs[ubTargetID], TRUE, CALC_FROM_ALL_DIRS, ubAimPos);
 	}
+	// shooting at tile or cannot see target
 	if (iSightRange == 0) 
 	{	
 		// didn't do a bodypart-based test or can't see specific body part aimed at
 		iSightRange = SoldierTo3DLocationLineOfSightTest( pSoldier, sGridNo, pSoldier->bTargetLevel, pSoldier->bTargetCubeLevel, TRUE, NO_DISTANCE_LIMIT, false );
-		fCoverObscured = true;
+		
+		// cannot see the body part but can see the tile
+		if (iSightRange && ubTargetID != NOBODY)
+			fCoverObscured = true;
+
+		// sevenfm: find real sight to target tile
+		iRealSight = SoldierTo3DLocationLineOfSightTest(pSoldier, sGridNo, pSoldier->bTargetLevel, pSoldier->bTargetCubeLevel, TRUE, CALC_FROM_ALL_DIRS);
 	}
-	if (iSightRange == 0) 
+
+	// cannot see target soldier/tile
+	if (iSightRange == 0 || iRealSight == 0)
 	{	
 		// Can't see the target but we still need to know what the sight range would be if we could so we can deal with cover penalties
-		// sevenfm: disable to fix bug when shooting at invisible empty tile
-		//iSightRange = SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[ubTargetID], TRUE, NO_DISTANCE_LIMIT, pSoldier->bAimShotLocation, false, true );
 		fCantSeeTarget = true;
-		fCoverObscured = false;
 	}
 
 	gbForceWeaponReady = false;
@@ -7026,13 +7064,15 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	if ( scopeRangeMod )
 		iSightRange = (INT32)(iSightRange / scopeRangeMod);
 
-	if(iSightRange > 0 && !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) ){
+	if(iSightRange > 0 && !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
+	{
 		//CHRISL: The LOS system, which determines whether to display an enemy unit, does not factor in the AimBonus tag during it's calculations.  So having
 		//	the CTH system use that tag to adjust iSightRange for AimBonus applied from armor might not be the best option.  Especially as it can sometimes
 		//	result in 0% CTH when everything looks like you could actually hit the target.  Let's try applying this penalty to CTH at the same point we would
 		//	apply the "invisible target" penalty.
 		//iSightRange -= GetGearAimBonus ( pSoldier, iSightRange, ubAimTime ) * iSightRange / 100;
-		if ( gGameOptions.fNewTraitSystem ) {
+		if ( gGameOptions.fNewTraitSystem ) 
+		{
 			if ( HAS_SKILL_TRAIT( pSoldier, SNIPER_NT ) ) {
 				iSightRange -= ((gSkillTraitValues.ubSNEffRangeToTargetReduction * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT )) * iSightRange) /100;
 			}
@@ -7040,19 +7080,24 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		else if ( HAS_SKILL_TRAIT( pSoldier, PROF_SNIPER_OT ) ) {
 			iSightRange -= ((gbSkillTraitBonus[ PROF_SNIPER_OT ] * NUM_SKILL_TRAITS( pSoldier, PROF_SNIPER_OT )) * iSightRange) /100;
 		}
-		if (iRange < GetMinRangeForAimBonus(pSoldier, &(pSoldier->inv[pSoldier->ubAttackingHand])) && iScopeVisionRangeBonus > 50){	// iSightRange penalty for using a high power scope within min range due to poor focus
+
+		if (iRange < GetMinRangeForAimBonus(pSoldier, &(pSoldier->inv[pSoldier->ubAttackingHand])) && iScopeVisionRangeBonus > 50)
+		{
+			// iSightRange penalty for using a high power scope within min range due to poor focus
 			iPenalty = 0;
 			for(UINT8 loop = 0; loop < ((GetMinRangeForAimBonus(pSoldier, &(pSoldier->inv[pSoldier->ubAttackingHand])) - iRange)/CELL_X_SIZE); loop++){
 				iPenalty += iSightRange * iScopeVisionRangeBonus / 100;
 			}
 			iSightRange += iPenalty;
 		}
+
 		if (iSightRange < 1) {
 			iSightRange = 1;
 		}
 	}
-	if(iSightRange > sDistVis)
-		fCantSeeTarget = true;
+	// sevenfm: already checked with iRealSight
+	//if(iSightRange > sDistVis)
+		//fCantSeeTarget = true;
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -7109,15 +7154,19 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	// From for JA2.5:  3% bonus/penalty for each tile different from range NORMAL_RANGE.
 	if (!TANK(pSoldier))	// WANNE: No penalty on the tank
 		iPenalty = 3 * ( NORMAL_RANGE - iSightRange ) / CELL_X_SIZE;
-	if ( fCantSeeTarget ){
+
+	if ( fCantSeeTarget )
+	{
 		// CHRISL: There are conditions where iSightRange can still return 0.  If that happens, the result is that "impossible" shots are actually easier then
 		//	simply "really hard" shots.  As a result, if we can't see the target and we have a 0 sight range, we should reevaluate the above penalty but use
 		//	iRange instead of iSightRange, then include the unseen penalty.
 		if(iSightRange == 0)
 			iPenalty = (3 * ( NORMAL_RANGE - iRange ) / CELL_X_SIZE) - gGameExternalOptions.iPenaltyShootUnSeen;
+		// apply max penalty
 		iPenalty = min(iPenalty, -gGameExternalOptions.iPenaltyShootUnSeen);
 	}
 	iChance += iPenalty;
+
 	//CHRISL: Applying the Gear AimBonus (penalty) here, and directly to iChance as a flat penalty, instead of altering iSightRange above.
 	if ( !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
 		iChance += GetGearAimBonus ( pSoldier, iSightRange, ubAimTime );
@@ -7338,7 +7387,9 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 				iChance -= (iPenalty - iBonus);
 			}
 		}
-		if(fCoverObscured){	// If we can't see the body part but can see the tile include a -1%/tile penalty
+		if(fCoverObscured)
+		{	
+			// If we can't see the body part but can see the tile include a -1%/tile penalty
 			iPenalty = iCoverRange / CELL_X_SIZE;
 			iChance -= iPenalty;
 		}

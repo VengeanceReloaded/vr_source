@@ -47,6 +47,7 @@ extern BOOLEAN gfHiddenInterrupt;
 extern BOOLEAN gfUseAlternateQueenPosition;
 extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fHipStance );
 extern BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam );
+extern void IncrementWatchedLoc(UINT8 ubID, INT32 sGridNo, INT8 bLevel);
 
 // global status time counters to determine what takes the most time
 
@@ -3419,37 +3420,52 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				pSoldier->numFlanks++;
 			}
 		}
-		/*if ( pSoldier->numFlanks == MAX_FLANKS_RED )
+		
+		// Set watched location
+		if (pSoldier->CheckInitialAP() &&
+			pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
+			gfTurnBasedAI &&
+			pSoldier->pathing.bLevel == 0 &&
+			!pSoldier->aiData.bUnderFire &&
+			!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+			SightCoverAtSpot(pSoldier, pSoldier->sGridNo, TRUE) &&
+			!GuySawEnemy(pSoldier) &&
+			!TileIsOutOfBounds(sClosestDisturbance) &&
+			//!fSeekClimb &&
+			PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) < DAY_VISION_RANGE &&
+			(pSoldier->aiData.bOrders == STATIONARY || RangeChangeDesire(pSoldier) < 4) &&
+			!SoldierToVirtualSoldierLineOfSightTest(pSoldier, sClosestDisturbance, pSoldier->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS) &&
+			CountFriendsBlack(pSoldier, sClosestDisturbance) == 0)
 		{
-			pSoldier->numFlanks += 1;
-			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: stop flanking");
-			if (PythSpacesAway ( pSoldier->sGridNo, tempGridNo ) > MIN_FLANK_DIST_RED * 2 )
-			{
-				pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,tempGridNo,GetAPsProne( pSoldier, TRUE),AI_ACTION_SEEK_OPPONENT,0);
+			gubNPCAPBudget = 0;
+			gubNPCDistLimit = 0;
 
-				if ( LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, tempGridNo, pSoldier->pathing.bLevel, TRUE) )
+			// check path to closest disturbance and find the point where enemy will appear in sight						
+			if (FindBestPath(pSoldier, sClosestDisturbance, pSoldier->pathing.bLevel, RUNNING, COPYROUTE, PATH_IGNORE_PERSON_AT_DEST | PATH_THROUGH_PEOPLE))
+			{
+				INT16 sLoop;
+				INT32 sLastSeenSpot = NOWHERE;
+
+				sCheckGridNo = pSoldier->sGridNo;
+
+				for (sLoop = pSoldier->pathing.usPathIndex; sLoop < pSoldier->pathing.usPathDataSize; sLoop++)
 				{
-					// reserve APs for a possible crouch plus a shot
-					pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, tempGridNo, (INT8) (MinAPsToAttack( pSoldier, tempGridNo, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
-					
-					if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+					sCheckGridNo = NewGridNo(sCheckGridNo, DirectionInc((UINT8)(pSoldier->pathing.usPathingData[sLoop])));
+
+					if (SoldierToVirtualSoldierLineOfSightTest(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS))
 					{
-						pSoldier->aiData.fAIFlags |= AI_CAUTIOUS;
-						pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
-						return(AI_ACTION_SEEK_OPPONENT);
+						sLastSeenSpot = sCheckGridNo;
 					}
 				}
-				else
+
+				// if found last seen spot
+				if (!TileIsOutOfBounds(sLastSeenSpot))
 				{
-					return(AI_ACTION_SEEK_OPPONENT);
+					IncrementWatchedLoc(pSoldier->ubID, sLastSeenSpot, pSoldier->pathing.bLevel);
 				}
 			}
-			else
-			{
-				pSoldier->aiData.usActionData = FindBestNearbyCover(pSoldier,pSoldier->aiData.bAIMorale,&iDummy);
-				return AI_ACTION_TAKE_COVER ;
-			}
-		}*/
+			gubNPCAPBudget = 0;
+		}
 
 		// sevenfm: before anything else, if we are lying prone in a building and the enemy is close so he can be seen, try to crouch first
 		if( gAnimControl[ pSoldier->usAnimState ].ubEndHeight == ANIM_PRONE &&

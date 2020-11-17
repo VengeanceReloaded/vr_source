@@ -2252,6 +2252,11 @@ void HandleRenderFaceAdjustments( FACETYPE *pFace, BOOLEAN fDisplayBuffer, BOOLE
 				DoRightIcon(uiRenderBuffer, pFace, sFaceX, sFaceY, bNumRightIcons, 28);
 			}
 
+			if (MercPtrs[pFace->ubSoldierID]->usSkillCounter[SOLDIER_COUNTER_FOCUS] > 0)
+			{
+				DoRightIcon(uiRenderBuffer, pFace, sFaceX, sFaceY, bNumRightIcons, 17);
+			}
+
 			// Assignments
 			switch (pSoldier->bAssignment)
 			{

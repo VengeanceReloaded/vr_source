@@ -48,6 +48,7 @@
 
 extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fHipStance );
 extern SECTOR_EXT_DATA	SectorExternalData[256][4];
+extern bool gbForceBinocsReady;
 
 UINT8 Urgency[NUM_STATUS_STATES][NUM_MORALE_STATES] =
 {
@@ -4065,7 +4066,7 @@ INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 
 }
 
 // check if we have a prone sight cover from known enemies at spot
-BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
+BOOLEAN ProneSightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 {
 	CHECKF(pSoldier);
 
@@ -4077,8 +4078,9 @@ BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 	INT8		*pbLastLevel;
 
 	INT32		sThreatLoc;
-	//INT32		iThreatCertainty;
 	INT8		iThreatLevel;
+	UINT16		usSightLimit;
+	UINT16		usAdjustedSight;
 
 	// look through all opponents for those we know of
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
@@ -4126,9 +4128,97 @@ BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 			//iThreatCertainty = ThreatPercent[*pbPublOL - OLDEST_HEARD_VALUE];
 		}
 
-		//if( LocationToLocationLineOfSightTestExt( pOpponent, sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, PRONE_LOS_POS, PRONE_LOS_POS) )
-		if( LocationToLocationLineOfSightTest( sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, PRONE_LOS_POS, PRONE_LOS_POS) )
-			//if ( SoldierToVirtualSoldierLineOfSightTest( pOpponent, sSpot, pSoldier->pathing.bLevel, ANIM_PRONE, TRUE, CALC_FROM_ALL_DIRS ) != 0 )
+		gbForceWeaponReady = true;
+		gbForceBinocsReady = true;
+		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
+		gbForceWeaponReady = false;
+		gbForceBinocsReady = false;
+
+		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_PRONE) / 100;
+
+		if (LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, PRONE_LOS_POS) ||
+			fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, PRONE_LOS_POS))
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+// check if we have a prone cover from known enemies at spot
+BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
+{
+	CHECKF(pSoldier);
+
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+	INT32		*pusLastLoc;
+	INT8		*pbPersOL;
+	INT8		*pbPublOL;
+	INT8		*pbLastLevel;
+
+	INT32		sThreatLoc;
+	INT8		iThreatLevel;
+	UINT16		usSightLimit;
+	UINT16		usAdjustedSight;
+
+	// look through all opponents for those we know of
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		// if this man is neutral / on the same side, he's not an opponent
+		if (CONSIDERED_NEUTRAL(pSoldier, pOpponent) || (pSoldier->bSide == pOpponent->bSide))
+		{
+			continue;			// next merc
+		}
+
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
+		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
+
+		pusLastLoc = gsLastKnownOppLoc[pSoldier->ubID] + pOpponent->ubID;
+		pbLastLevel = gbLastKnownOppLevel[pSoldier->ubID] + pOpponent->ubID;
+
+		// if this opponent is unknown personally and publicly
+		if ((*pbPersOL == NOT_HEARD_OR_SEEN) && (*pbPublOL == NOT_HEARD_OR_SEEN))
+		{
+			continue;			// next merc
+		}
+
+		// if personal knowledge is more up to date or at least equal
+		if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) ||
+			(*pbPersOL == *pbPublOL))
+		{
+			// using personal knowledge, obtain opponent's "best guess" gridno
+			sThreatLoc = *pusLastLoc;
+			iThreatLevel = *pbLastLevel;
+			//iThreatCertainty = ThreatPercent[*pbPersOL - OLDEST_HEARD_VALUE];
+		}
+		else
+		{
+			// using public knowledge, obtain opponent's "best guess" gridno
+			sThreatLoc = gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID];
+			iThreatLevel = gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID];
+			//iThreatCertainty = ThreatPercent[*pbPublOL - OLDEST_HEARD_VALUE];
+		}
+
+		gbForceWeaponReady = true;
+		gbForceBinocsReady = true;
+		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
+		gbForceWeaponReady = false;
+		gbForceBinocsReady = false;
+
+		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_STAND) / 100;
+
+		if (LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS) ||
+			fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, STANDING_LOS_POS))
 		{
 			return FALSE;
 		}
@@ -5303,7 +5393,19 @@ BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThre
 		return FALSE;
 	}
 
-	if ( IsLocationSittable( sCoverSpot, bLevel ) )
+	if (IsLocationSittableExcludingPeople(sCoverSpot, bLevel))
+	{
+		return FALSE;
+	}
+
+	// explosive structure cannot provide cover!
+	if (FindStructFlag(sCoverSpot, bLevel, STRUCTURE_EXPLOSIVE))
+	{
+		return FALSE;
+	}
+
+	// check that structure can provide enough cover
+	if (StructureDensity(sCoverSpot, bLevel) < 25)
 	{
 		return FALSE;
 	}

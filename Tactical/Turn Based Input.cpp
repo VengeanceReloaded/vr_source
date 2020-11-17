@@ -3104,6 +3104,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				break;
 
 			case 'd':
+				//End turn only if in combat and it is the player's turn
 				if( gTacticalStatus.uiFlags & TURNBASED && gTacticalStatus.uiFlags & INCOMBAT )
 				{
 					if( gTacticalStatus.ubCurrentTeam == gbPlayerNum )
@@ -3113,41 +3114,43 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 							( ( ( gsCurInterfacePanel == SM_PANEL	) && ( ButtonList[ iSMPanelButtons[ SM_DONE_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) ||
 							( ( gsCurInterfacePanel == TEAM_PANEL ) && ( ButtonList[ iTEAMPanelButtons[ TEAM_DONE_BUTTON ] ]->uiFlags & BUTTON_ENABLED ) ) ) )
 						{
-							if( CHEATER_CHEAT_LEVEL( ) && fAlt )
+							if (fCtrl && fAlt)
 							{
-								INT32 cnt;
-								SOLDIERTYPE *pSoldier;
-
-								for ( pSoldier = MercPtrs[ gbPlayerNum ], cnt = 0; cnt <= gTacticalStatus.Team[ gbPlayerNum ].bLastID; cnt++,pSoldier++)
+								gTacticalStatus.ubDisablePlayerInterrupts = TRUE;
+								ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"Player team will skip interrupts");
+								*puiNewEvent = I_ENDTURN;
+							}
+							else if (fCtrl)
+							{
+								// disable interrupts for this merc
+								if (gusSelectedSoldier != NOBODY)
 								{
-									if ( pSoldier->bActive && pSoldier->stats.bLife > 0 )
-									{
-										// Get APs back...
-										pSoldier->CalcNewActionPoints( );
-
-										fInterfacePanelDirty = DIRTYLEVEL2;
-									}
+									MercPtrs[gusSelectedSoldier]->aiData.bPassedLastInterrupt = TRUE;
+									ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s will skip interrupts", MercPtrs[gusSelectedSoldier]->GetName());
 								}
+								*puiNewEvent = I_ENDTURN;
+							}
+							else if (fAlt)
+							{
+								if (CHEATER_CHEAT_LEVEL())
+								{
+									INT32 cnt;
+									SOLDIERTYPE *pSoldier;
+
+									for (pSoldier = MercPtrs[gbPlayerNum], cnt = 0; cnt <= gTacticalStatus.Team[gbPlayerNum].bLastID; cnt++, pSoldier++)
+									{
+										if (pSoldier->bActive && pSoldier->stats.bLife > 0)
+										{
+											// Get APs back...
+											pSoldier->CalcNewActionPoints();
+
+											fInterfacePanelDirty = DIRTYLEVEL2;
+										}
+									}
+								}								
 							} 
 							else
-							{
-								//End turn only if in combat and it is the player's turn
-
-								if ( fCtrl && fAlt)
-								{
-									gTacticalStatus.ubDisablePlayerInterrupts = TRUE;
-									ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"Player team will skip interrupts");
-								}
-								else if( fCtrl )
-								{
-									// disable interrupts for this merc
-									if( gusSelectedSoldier != NOBODY )
-									{
-										MercPtrs[ gusSelectedSoldier ]->aiData.bPassedLastInterrupt = TRUE;
-										ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"%s will skip interrupts", MercPtrs[ gusSelectedSoldier ]->GetName());
-									}
-								}
-
+							{								
 								*puiNewEvent = I_ENDTURN;
 							}
 						}
@@ -8356,6 +8359,8 @@ void HandleTacticalStoreInvItem( void )
 	fCharacterInfoPanelDirty = TRUE;
 	fInterfacePanelDirty = DIRTYLEVEL2;
 	pSoldier->HandleFlashLights();
+	// sevenfm: update sight
+	HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 }
 
 void HandleTacticalTakeInvItem( INT32 iType )
@@ -8447,6 +8452,8 @@ void HandleTacticalTakeInvItem( INT32 iType )
 	fCharacterInfoPanelDirty = TRUE;
 	fInterfacePanelDirty = DIRTYLEVEL2;
 	pSoldier->HandleFlashLights();
+	// sevenfm: update sight
+	HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 }
 
 INT32 InvItemType( UINT16 usItem )
@@ -8501,6 +8508,8 @@ void HandleTacticalDropItem( UINT8 ubSlot )
 	}
 
 	pSoldier->HandleFlashLights();
+	// sevenfm: update sight
+	HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 }
 
 void HandleTacticalTakeItem( void )
@@ -8526,6 +8535,9 @@ void HandleTacticalTakeItem( void )
 	fCharacterInfoPanelDirty = TRUE;
 	fInterfacePanelDirty = DIRTYLEVEL2;
 	pSoldier->HandleFlashLights();
+
+	// sevenfm: update sight
+	HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
 
 	// Set mouse
 	if( gpItemPointer->exists() )

@@ -4231,6 +4231,8 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 		// Flugente: we have to recheck our flashlights, as we changed items
 		//gpSMCurrentMerc->usSoldierFlagMask |= SOLDIER_REDOFLASHLIGHT;
 		gpSMCurrentMerc->HandleFlashLights();
+		// sevenfm: update sight
+		HandleSight(gpSMCurrentMerc, SIGHT_LOOK | SIGHT_INTERRUPT);
 	}
 	else if (iReason & MSYS_CALLBACK_REASON_RBUTTON_DWN)
 	{

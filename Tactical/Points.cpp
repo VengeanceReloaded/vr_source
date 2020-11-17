@@ -688,14 +688,34 @@ void DeductPoints( SOLDIERTYPE *pSoldier, INT16 sAPCost, INT32 iBPCost, UINT8 ub
 	INT16 sNewAP = 0;
 	INT8	bNewBreath;
 
-	// Flugente: if we spend AP, then spotter status ends
-	if ( sAPCost > 0)
-		pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
-
-	// sevenfm: stop watching if APs spent
-	if ( sAPCost > 0)
+	if (sAPCost > 0)
 	{
-		pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+		// Flugente: if we spend AP, then spotter status ends
+		if (pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER])
+		{
+			pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
+			pSoldier->sMTActionGridNo = NOWHERE;
+			//HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+		}
+
+		// sevenfm: stop watching if APs spent
+		if (pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH])
+		{
+			pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+			pSoldier->sMTActionGridNo = NOWHERE;
+			//HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+		}
+
+		// sevenfm: stop focus if spent AP not for shooting
+		if (pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && ubInterruptType != AFTERSHOT_INTERRUPT)
+		{
+			pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] = 0;
+			pSoldier->sMTActionGridNo = NOWHERE;
+			//HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+		}
+
+		// sevenfm: indicate in realtime that soldier spent some action point this turn
+		pSoldier->usSoldierFlagMask |= SOLDIER_SPENT_AP;
 	}	
 
 	// sevenfm: update suspicion counter

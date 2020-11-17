@@ -5466,6 +5466,7 @@ STR16 zOptionsToggleText[] =
 	L"Tascheninhalt anzeigen",			
 	L"Mausradrichtung umkehren",
 	L"Bewegung in Formation",				// when multiple mercs are selected, they will try to keep their relative distances
+	L"New Vision Mode",					// new vision bonus mode
 	L"--Cheat Mode Options--",				// TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	L"Erzwinge BR Lieferung",				// force all pending Bobby Ray shipments
 	L"-----------------",					// TOPTION_CHEAT_MODE_OPTIONS_END
@@ -5583,6 +5584,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Wenn diese Funktion aktiviert ist, wird in der erweiterten Beschreibung von Tashen statt den Anbauteilen deren Inhalt angezeigt.",
 	L"Wenn diese Funktion aktiviert ist, wird die Mausradrichtung umgekehrt",
 	L"Wenn diese Funktion aktiviert ist und mehrere Sölnder ausgewählt sind, werden sich diese in Formation (in relativen Abständen zueinander) bewegen. (|C|t|r|l+|A|l|t+|G)",
+	L"When ON, disables instant bonus vision from scopes and binocs.\nEnables selectable vision spot.\nEnables focus feature for weapons.",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Force all pending Bobby Ray shipments",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",

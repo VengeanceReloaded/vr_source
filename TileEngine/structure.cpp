@@ -1674,6 +1674,75 @@ BOOLEAN StructureDensity( STRUCTURE * pStructure, UINT8 * pubLevel0, UINT8 * pub
 	return( TRUE );
 }
 
+UINT8 StructureDensity(INT32 sSpot, INT8 bLevel)
+{
+	STRUCTURE	*pCurrent;
+	INT16	sDesiredLevel;
+
+	if (bLevel > 0)
+		sDesiredLevel = STRUCTURE_ON_ROOF;
+	else
+		sDesiredLevel = STRUCTURE_ON_GROUND;
+
+	if (!TileIsOutOfBounds(sSpot))
+	{
+		pCurrent = gpWorldLevelData[sSpot].pStructureHead;
+
+		if (pCurrent != NULL && pCurrent->sCubeOffset == sDesiredLevel)
+		{
+			return pCurrent->pDBStructureRef->pDBStructure->ubDensity;
+		}
+	}
+
+	return 0;
+}
+
+UINT8 StructureArmour(INT32 sSpot, INT8 bLevel)
+{
+	STRUCTURE	*pCurrent;
+	INT16	sDesiredLevel;
+
+	if (bLevel > 0)
+		sDesiredLevel = STRUCTURE_ON_ROOF;
+	else
+		sDesiredLevel = STRUCTURE_ON_GROUND;
+
+	if (!TileIsOutOfBounds(sSpot))
+	{
+		pCurrent = gpWorldLevelData[sSpot].pStructureHead;
+
+		if (pCurrent != NULL && pCurrent->sCubeOffset == sDesiredLevel)
+		{
+			return pCurrent->pDBStructureRef->pDBStructure->ubArmour;
+		}
+	}
+
+	return 0;
+}
+
+UINT8 StructureHitPoints(INT32 sSpot, INT8 bLevel)
+{
+	STRUCTURE	*pCurrent;
+	INT16	sDesiredLevel;
+
+	if (bLevel > 0)
+		sDesiredLevel = STRUCTURE_ON_ROOF;
+	else
+		sDesiredLevel = STRUCTURE_ON_GROUND;
+
+	if (!TileIsOutOfBounds(sSpot))
+	{
+		pCurrent = gpWorldLevelData[sSpot].pStructureHead;
+
+		if (pCurrent != NULL && pCurrent->sCubeOffset == sDesiredLevel)
+		{
+			return pCurrent->pDBStructureRef->pDBStructure->ubHitPoints;
+		}
+	}
+
+	return 0;
+}
+
 BOOLEAN DamageStructure(STRUCTURE * pStructure, UINT8 ubDamage, UINT8 ubReason, INT32 sGridNo, INT16 sX, INT16 sY, UINT8 ubOwner, INT32 sAntiMaterialImpact)
 {
 	// do damage to a structure; returns TRUE if the structure should be removed

@@ -33,6 +33,8 @@
 // HEADROCK HAM B2.7: Allow calling a CTH approximation function for the CTH display ("F" key)
 #include "UI Cursors.h"
 #include "soldier profile type.h"
+// sevenfm
+#include "english.h"
 #endif
 
 //forward declarations of common classes to eliminate includes
@@ -516,7 +518,9 @@ void CalculateCover()
 						}
 					}
 					else // single view from your merc
-						CalculateCoverFromSoldier( pSoldier, sGridNo, ubZ, bCover );
+					{
+						CalculateCoverFromSoldier(pSoldier, sGridNo, ubZ, bCover);
+					}
 					
 					fInverseColor = TRUE; // we don't want to show the cover for the enemy
 				}
@@ -560,6 +564,19 @@ void CalculateCoverForSoldier( SOLDIERTYPE* pSoldier, const INT32& sTargetGridNo
 			continue;			// next merc
 		}
 
+		// allow checking cover from specific opponent
+		if (gfUIFullTargetFound &&
+			gusUIFullTargetID != NOBODY &&
+			MercPtrs[gusUIFullTargetID] &&
+			MercPtrs[gusUIFullTargetID]->bVisible != -1 &&
+			pOpponent->ubID != gusUIFullTargetID &&
+			MercPtrs[gusUIFullTargetID]->stats.bLife >= OKLIFE &&
+			!CONSIDERED_NEUTRAL(pSoldier, MercPtrs[gusUIFullTargetID]) &&
+			pSoldier->bSide != MercPtrs[gusUIFullTargetID]->bSide)
+		{
+			continue;
+		}
+
 		CalculateCoverFromSoldier( pOpponent, sTargetGridNo, fRoof, bCover, pSoldier );
 
 		// if we got no cover, just return, can't get any worse than that. Helldorados lets you count
@@ -570,27 +587,65 @@ void CalculateCoverForSoldier( SOLDIERTYPE* pSoldier, const INT32& sTargetGridNo
 	}
 }
 
-void CalculateCoverFromSoldier( SOLDIERTYPE* pFromSoldier, const INT32& sTargetGridNo, const BOOLEAN& fRoof, INT8& bCover, SOLDIERTYPE* pToSoldier )
+void CalculateCoverFromSoldier(SOLDIERTYPE* pFromSoldier, const INT32& sTargetGridNo, const BOOLEAN& fRoof, INT8& bCover, SOLDIERTYPE* pToSoldier)
 {
-	UINT16 usSightLimit = pFromSoldier->GetMaxDistanceVisible(sTargetGridNo, (INT8)fRoof, CALC_FROM_WANTED_DIR);
+	UINT16 usSightLimit;
+	INT32 usGridNo;
+	INT32 sMyRealGridNo = NOWHERE;
+	INT8 bMyRealLevel;
+	BOOLEAN fMoveSoldier = FALSE;
 
-	for ( int i = 0; i<sizeof(animArr); ++i )
+	GetMouseMapPos(&usGridNo);
+	sMyRealGridNo = pFromSoldier->sGridNo;
+	bMyRealLevel = pFromSoldier->pathing.bLevel;
+
+	// sevenfm: move soldier to mouse spot
+	if (pFromSoldier->bTeam == gbPlayerNum &&
+		gubDrawMode == COVER_DRAW_MERC_VIEW &&
+		!TileIsOutOfBounds(usGridNo) &&
+		_KeyDown(SHIFT) &&
+		(gsInterfaceLevel == 0 || FlatRoofAboveGridNo(usGridNo)) &&
+		IsLocationSittableExcludingPeople(usGridNo, gsInterfaceLevel > 0))
+	{
+		pFromSoldier->sGridNo = usGridNo;
+		pFromSoldier->pathing.bLevel = (INT8)gsInterfaceLevel;
+
+		fMoveSoldier = TRUE;
+	}
+
+	usSightLimit = pFromSoldier->GetMaxDistanceVisible(sTargetGridNo, (INT8)fRoof, fMoveSoldier ? CALC_FROM_ALL_DIRS : CALC_FROM_WANTED_DIR);
+
+	for (int i = 0; i < sizeof(animArr); ++i)
 	{
 		const UINT8& ubStance = animArr[i];
 
 		INT32 usAdjustedSight;
 
-		if (pToSoldier == NULL) {
-			usAdjustedSight = usSightLimit;
-		} else {
-			usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment( pToSoldier, sTargetGridNo, (INT8) fRoof, ubStance ) /100;
+		if (pToSoldier == NULL)
+		{
+			//usAdjustedSight = usSightLimit;
+			if (gfUIFullTargetFound && gusUIFullTargetID != NOBODY && MercPtrs[gusUIFullTargetID]->bVisible != -1)
+				usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(MercPtrs[gusUIFullTargetID], sTargetGridNo, (INT8)fRoof, ubStance) / 100;
+			else
+				usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustmentThroughStance(ubStance) / 100;
+		}
+		else
+		{
+			usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pToSoldier, sTargetGridNo, (INT8)fRoof, ubStance) / 100;
 		}
 
-		if ( SoldierToVirtualSoldierLineOfSightTest( pFromSoldier, sTargetGridNo, (INT8) fRoof, ubStance, FALSE, usAdjustedSight ) != 0 )
+		if (SoldierToVirtualSoldierLineOfSightTest(pFromSoldier, sTargetGridNo, (INT8)fRoof, ubStance, FALSE, usAdjustedSight) != 0)
 		{
 			if (bCover > i) bCover = i;
 			break; // we go from prone to stand, if soldier can see someone crouching, he can also see someone standing
 		}
+	}
+
+	if (fMoveSoldier)
+	{
+		// put me back where I belong!
+		pFromSoldier->sGridNo = sMyRealGridNo;
+		pFromSoldier->pathing.bLevel = bMyRealLevel;
 	}
 }
 

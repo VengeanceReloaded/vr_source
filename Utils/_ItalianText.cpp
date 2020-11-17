@@ -5608,6 +5608,7 @@ STR16		zOptionsToggleText[] =
 	L"Show LBE Content",					// TODO.Translate
 	L"Invert mouse wheel",			// TODO.Translate
 	L"Formation Movement",					// when multiple mercs are selected, they will try to keep their relative distances	// TODO.Translate
+	L"New Vision Mode",					// new vision bonus mode
 	L"--Cheat Mode Options--",				// TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	L"Force Bobby Ray shipments",			// force all pending Bobby Ray shipments
 	L"-----------------",					// TOPTION_CHEAT_MODE_OPTIONS_END
@@ -5725,6 +5726,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"When ON, show the contents of an LBE item, otherwise show the regular NAS interface.", // TODO.Translate
 	L"When ON, inverts mouse wheel directions.",		// TODO.Translate
 	L"When ON and multiple mercs are selected, they will try to keep their relative distances while moving. (|C|t|r|l+|A|l|t+|G)",	// TODO.Translate
+	L"When ON, disables instant bonus vision from scopes and binocs.\nEnables selectable vision spot.\nEnables focus feature for weapons.",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Force all pending Bobby Ray shipments",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",

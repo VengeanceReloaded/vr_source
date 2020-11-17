@@ -5616,6 +5616,7 @@ STR16		zOptionsToggleText[] =
 	L"Показывать содержимое разгрузок",
 	L"Инвертировать колесо мыши",
 	L"Боевой порядок",						// when multiple mercs are selected, they will try to keep their relative distances
+	L"Новый режим видимости",					// new vision bonus mode
 	L"--Читерские настройки--",				// TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	L"Ускорить доставку Бобби Рэя",			// force all pending Bobby Ray shipments
 	L"-----------------",					// TOPTION_CHEAT_MODE_OPTIONS_END
@@ -5733,6 +5734,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"Если включено, показывает содержимое разгрузки, иначе - обычный интерфейс новой системы навески.",
 	L"Если включено, инвертирует направление прокрутки колеса мыши.",
 	L"Если выбрано несколько наемников, они будут пытаться сохранять взаимное расположение и дистанцию при движении. (|C|t|r|l+|A|l|t+|G)",
+	L"Если включено, отключает мгновенный бонус видимости для прицелов и биноклей.\nПозволяет выбирать точку обзора.\nПозволят выбирать точку фокуса для оружия.",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"Выберите этот пункт, чтобы груз Бобби Рэя прибыл немедленно.",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",

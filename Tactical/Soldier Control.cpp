@@ -129,6 +129,7 @@ UINT16 usForceAnimState = INVALID_ANIMATION;//dnl ch70 170913
 //turnspeed
 
 //extern BOOLEAN fAllowTacticalMilitiaCommand; //lal
+extern bool gbForceBinocsReady;
 
 extern INT16 DirIncrementer[8];
 
@@ -1112,6 +1113,11 @@ void SOLDIERTYPE::initialize()
 	memset( &drugs, 0, sizeof(STRUCT_Drugs) );
 	memset( &stats, 0, sizeof(STRUCT_Statistics) );
 	memset( &pathing, 0, sizeof(STRUCT_Pathing) );
+
+	// sevenfm:
+	this->aiData.bShock = 0;
+	this->ubSuppressionPoints = 0;
+	this->sMTActionGridNo = NOWHERE;
 
 	// sevenfm:initialize additional data
 	this->ubLastShock = 0;
@@ -2689,7 +2695,7 @@ BOOLEAN SOLDIERTYPE::CreateSoldierLight( void )
 	// DO ONLY IF WE'RE AT A GOOD LEVEL
 	if ( this->iLight == -1 )
 	{
-		INT16 visionrangebonus = GetTotalVisionRangeBonus( this, NORMAL_LIGHTLEVEL_NIGHT );
+		INT16 visionrangebonus = GetTotalVisionRangeBonus(this, NORMAL_LIGHTLEVEL_NIGHT, NOWHERE, 0);
 
 		// ATE: Check for goggles in headpos....
 		if ( visionrangebonus >= UVGOGGLES_BONUS )
@@ -7687,6 +7693,13 @@ void SOLDIERTYPE::EVENT_SetSoldierDirection( UINT16	usNewDirection )
 	// Flugente: only update flashlights if we changed our direction
 	if ( fNew )
 		this->HandleFlashLights();
+
+	// sevenfm: update focus status
+	if (fNew && this->usSkillCounter[SOLDIER_COUNTER_FOCUS])
+	{
+		this->usSkillCounter[SOLDIER_COUNTER_FOCUS] = 0;
+		this->sMTActionGridNo = NOWHERE;
+	}
 }
 
 
@@ -8103,10 +8116,10 @@ BOOLEAN SOLDIERTYPE::ConvertAniCodeToAniFrame( UINT16 usAniFrame )
 
 void SOLDIERTYPE::TurnSoldier( void )
 {
-	INT16		sDirection;
+	INT16	sDirection;
 	BOOLEAN	fDoDirectionChange = TRUE;
-	INT32		cnt;
-
+	INT32	cnt;
+	
 	// If we are a vehicle... DON'T TURN!
 	if ( this->flags.uiStatusFlags & SOLDIER_VEHICLE )
 	{
@@ -8155,7 +8168,7 @@ void SOLDIERTYPE::TurnSoldier( void )
 
 
 	if ( this->flags.fTurningToShoot )
-	{
+	{		
 		if ( this->ubDirection == this->pathing.bDesiredDirection )
 		{
 			if ( ( (gAnimControl[ this->usAnimState ].uiFlags & ANIM_FIREREADY ) && 
@@ -17011,6 +17024,9 @@ void	SOLDIERTYPE::SwitchWeapons( BOOLEAN fKnife, BOOLEAN fSideArm )
 
 	// Flugente: we have to recheck our flashlights
 	this->HandleFlashLights();
+	
+	// sevenfm: update sight
+	HandleSight(this, SIGHT_LOOK | SIGHT_INTERRUPT);
 }
 
 UINT8 tmpuser = 0;
@@ -17573,7 +17589,7 @@ INT16	SOLDIERTYPE::GetInterruptModifier( UINT8 usDistance )
 void SOLDIERTYPE::SoldierPropertyUpkeep()
 {
 	// these effects last only one turn
-	this->usSoldierFlagMask &= ~(SOLDIER_AIRDROP_TURN|SOLDIER_ASSAULT_BONUS|SOLDIER_RAISED_REDALERT);
+	this->usSoldierFlagMask &= ~(SOLDIER_AIRDROP_TURN | SOLDIER_ASSAULT_BONUS | SOLDIER_RAISED_REDALERT | SOLDIER_SPENT_AP);
 
 	if ( HasBackgroundFlag( BACKGROUND_EXP_UNDERGROUND ) && this->bSectorZ )
 		++bExtraExpLevel;
@@ -17609,6 +17625,8 @@ void SOLDIERTYPE::SoldierPropertyUpkeep()
 		if (counter == SOLDIER_COUNTER_SPOTTER && usSkillCounter[counter] > 0)
 			usSkillCounter[counter] = min(255, usSkillCounter[counter] + 1);
 		else if (counter == SOLDIER_COUNTER_WATCH && usSkillCounter[counter] > 0)
+			usSkillCounter[counter] = min(255, usSkillCounter[counter] + 1);
+		else if (counter == SOLDIER_COUNTER_FOCUS && usSkillCounter[counter] > 0)
 			usSkillCounter[counter] = min(255, usSkillCounter[counter] + 1);
 		else if (counter == SOLDIER_COUNTER_SUSPICION)
 			;	// don't change
@@ -18780,6 +18798,14 @@ INT16 SOLDIERTYPE::MaxVisionBonus()
 	return sBonus;
 }
 
+BOOLEAN SOLDIERTYPE::IsCowering(void)
+{
+	if (this->usAnimState == COWERING || this->usAnimState == COWERING_PRONE)
+		return TRUE;
+
+	return FALSE;
+}
+
 // Flugente: spotter
 BOOLEAN SOLDIERTYPE::IsSpotting()
 {
@@ -18807,12 +18833,17 @@ BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
 	if ( this->stats.bLife < OKLIFE || this->flags.fMercAsleep || this->bCollapsed  || (this->usSoldierFlagMask & SOLDIER_POW) )
 		return FALSE;
 
-	// additional checks if we want to know wether we can target a specific location
-	if ( sTargetGridNo != NOWHERE && PythSpacesAway(this->sGridNo, sTargetGridNo) >= 2 * gGameExternalOptions.usSpotterRange )
+	// additional checks if we want to know whether we can target a specific location
+	if (sTargetGridNo != NOWHERE)
 	{
-		UINT16 usSightLimit = this->GetMaxDistanceVisible(sTargetGridNo, this->pathing.bLevel, CALC_FROM_WANTED_DIR);
-		
-		INT32 val = SoldierToVirtualSoldierLineOfSightTest( this, sTargetGridNo, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, usSightLimit );
+		if (UsingNewVisionSystem() && PythSpacesAway(this->sGridNo, sTargetGridNo) < 2 * gGameExternalOptions.usSpotterRange)
+			return FALSE;
+
+		gbForceBinocsReady = true;
+		//UINT16 usSightLimit = this->GetMaxDistanceVisible(sTargetGridNo, this->pathing.bLevel, CALC_FROM_WANTED_DIR);
+		//INT32 val = SoldierToVirtualSoldierLineOfSightTest( this, sTargetGridNo, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, usSightLimit );
+		INT32 val = SoldierToVirtualSoldierLineOfSightTest(this, sTargetGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
+		gbForceBinocsReady = false;
 
 		// error if we cannot see the target
 		if ( !val )
@@ -18837,13 +18868,17 @@ BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
 BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 {
 	// not possible if already scanning
-	if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] )
+	if ( this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] && (sTargetGridNo == this->sMTActionGridNo || !UsingNewVisionSystem()))
 	{
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_ALREADY_SPOTTING ]);
 		return FALSE;
 	}
 
-	if ( !CanSpot( sTargetGridNo ) )
+	gbForceBinocsReady = true;
+	BOOLEAN fCanSpot = CanSpot(sTargetGridNo);
+	gbForceBinocsReady = false;
+
+	if ( !fCanSpot )
 	{
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_CANNOT_SPOT_LOCATION ]);
 		return FALSE;
@@ -18857,9 +18892,87 @@ BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 
 	// stop any multi-turn action
 	CancelMultiTurnAction(FALSE);
-	
+
+	// sevenfm: set spotting spot
+	this->sMTActionGridNo = sTargetGridNo;	
+
 	// sevenfm: update vision
 	HandleSight(this, SIGHT_LOOK | SIGHT_INTERRUPT);
+
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::CanWatch(INT32 sTargetGridNo)
+{
+	if (this->stats.bLife < OKLIFE || this->flags.fMercAsleep || this->bCollapsed || (this->usSoldierFlagMask & SOLDIER_POW))
+		return FALSE;
+
+	// additional checks if we want to know whether we can target a specific location
+	if (sTargetGridNo != NOWHERE)
+	{
+		if (SpacesAway(this->sGridNo, sTargetGridNo) <= 1)
+			return FALSE;
+
+		gbForceBinocsReady = true;
+		INT32 val = SoldierToVirtualSoldierLineOfSightTest(this, sTargetGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
+		gbForceBinocsReady = false;
+
+		// error if we cannot see the target
+		if (!val)
+			return FALSE;
+	}
+
+	// sevenfm: can spot from main hand only
+	if (this->MaxVisionBonus() <= 0)
+		return FALSE;
+
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::CanFocus(INT32 sTargetGridNo)
+{
+	if (this->stats.bLife < OKLIFE || this->flags.fMercAsleep || this->bCollapsed || (this->usSoldierFlagMask & SOLDIER_POW))
+		return FALSE;
+
+	if (!UsingNewVisionSystem())
+		return FALSE;
+
+	// additional checks if we want to know whether we can target a specific location
+	if (sTargetGridNo != NOWHERE)
+	{
+		if (SpacesAway(this->sGridNo, sTargetGridNo) <= 1)
+			return FALSE;
+
+		gbForceWeaponReady = true;
+		INT32 val = SoldierToVirtualSoldierLineOfSightTest(this, sTargetGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
+		gbForceWeaponReady = false;
+
+		// error if we cannot see the target
+		if (!val)
+			return FALSE;
+	}
+
+	// check item
+	if (!this->inv[HANDPOS].exists())
+		return FALSE;
+
+	// need weapon for using focus skill
+	if (!IsWeapon(this->inv[HANDPOS].usItem))
+		return FALSE;
+
+	// weapon should be raised
+	if (!WeaponReady(this))
+		return FALSE;
+
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::CheckInitialAP(void)
+{
+	if (this->bActionPoints < this->bInitialActionPoints || this->usSoldierFlagMask & SOLDIER_SPENT_AP)
+	{
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -22157,19 +22270,23 @@ UINT16	GridNoSpotterCTHBonus( SOLDIERTYPE* pSniper, INT32 sGridNo, UINT bTeam)
 	INT32 lastid = gTacticalStatus.Team[ bTeam ].bLastID;
 	for ( pSoldier = MercPtrs[ cnt ]; cnt <= lastid; ++cnt, ++pSoldier)
 	{
-		if ( pSoldier != pSniper && pSoldier->sSectorX == gWorldSectorX && pSoldier->sSectorY == gWorldSectorY && pSoldier->bSectorZ == gbWorldSectorZ 
-			&& pSoldier->IsSpotting() 
-			&& PythSpacesAway(pSoldier->sGridNo, pSniper->sGridNo) <= gGameExternalOptions.usSpotterRange
-			&& PythSpacesAway(pSoldier->sGridNo, sGridNo) >= 2 * gGameExternalOptions.usSpotterRange )
+		if ( pSoldier != pSniper && 
+			pSoldier->sSectorX == gWorldSectorX && 
+			pSoldier->sSectorY == gWorldSectorY && 
+			pSoldier->bSectorZ == gbWorldSectorZ &&
+			pSoldier->IsSpotting() &&
+			PythSpacesAway(pSoldier->sGridNo, pSniper->sGridNo) <= gGameExternalOptions.usSpotterRange &&
+			PythSpacesAway(pSoldier->sGridNo, sGridNo) >= 2 * gGameExternalOptions.usSpotterRange &&
+			(!UsingNewVisionSystem() || !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sGridNo, pSoldier->sMTActionGridNo) <= 1))
 		{
 			BOOLEAN targetseen = FALSE;
 
 			UINT usID = WhoIsThere2( sGridNo, pSniper->bTargetLevel );
 
-			// is someone is at the sGridNo, check wether the spotter can see any part of him check wether head can be seen)
+			// is someone is at the sGridNo, check whether the spotter can see any part of him check whether head can be seen)
 			if ( usID != NOBODY && SoldierToSoldierLineOfSightTest( pSoldier, MercPtrs[usID], 0, NO_DISTANCE_LIMIT, AIM_SHOT_HEAD ) > 0 )
 				targetseen = TRUE;
-			// otherwise check wether we can see the ground floor
+			// otherwise check whether we can see the ground floor
 			else if ( SoldierToVirtualSoldierLineOfSightTest( pSoldier, sGridNo, pSniper->pathing.bLevel, ANIM_PRONE, FALSE, NO_DISTANCE_LIMIT ) > 0 )
 				targetseen = TRUE;
 

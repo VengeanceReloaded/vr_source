@@ -70,6 +70,11 @@ INT8 GetStructureTargetHeight( INT32 sGridNo, BOOLEAN fOnRoof );
 
 BOOLEAN StructureDensity( STRUCTURE * pStructure, UINT8 * pubLevel0, UINT8 * pubLevel1, UINT8 * pubLevel2, UINT8 * pubLevel3 );
 
+// sevenfm: useful functions
+UINT8 StructureDensity(INT32 sSpot, INT8 bLevel);
+UINT8 StructureArmour(INT32 sSpot, INT8 bLevel);
+UINT8 StructureHitPoints(INT32 sSpot, INT8 bLevel);
+
 BOOLEAN FindAndSwapStructure( INT32 sGridNo );
 INT16 GetBaseTile( STRUCTURE * pStructure );
 //

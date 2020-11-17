@@ -1248,8 +1248,7 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 		//bSubjectDir = atan8(pSoldier->sX,pSoldier->sY,pOpponent->sX,pOpponent->sY);
 	}
 
-	if ( !TANK( pSoldier ) &&
-		( bFacingDir == DIRECTION_IRRELEVANT || (pSoldier->flags.uiStatusFlags & SOLDIER_ROBOT) || (pSubject && pSubject->flags.fMuzzleFlash) ) )
+	if (!TANK(pSoldier) && (bFacingDir == DIRECTION_IRRELEVANT || (pSoldier->flags.uiStatusFlags & SOLDIER_ROBOT) || (pSubject && pSubject->flags.fMuzzleFlash)))
 	{
 		sDistVisible = MaxNormalDistanceVisible();
 	}
@@ -1284,18 +1283,13 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 
 			/*if ( sDistVisible != STRAIGHT )
 			{
-				INT16 tunnelVisionInPercent = GetPercentTunnelVision(pSoldier);
+				tunnelVisionInPercent = GetPercentTunnelVision(pSoldier);
 
 				if ( tunnelVisionInPercent > 0)
 				{
 					sideViewLimit = TRUE;
 					sDistVisible = sDistVisible * (100 - tunnelVisionInPercent ) / 100 ;
 				}
-			}
-
-			if ( sDistVisible == ANGLE && (pSoldier->bTeam == OUR_TEAM || pSoldier->aiData.bAlertStatus >= STATUS_RED ) )
-			{
-				sDistVisible = STRAIGHT;
 			}*/
 
 			if ( sDistVisible == ANGLE && (pSoldier->bTeam == OUR_TEAM || pSoldier->aiData.bAlertStatus >= STATUS_RED ) )
@@ -1319,7 +1313,7 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 				}
 			}
 
-			// Flugente: we only apply tunnelvision now, after we've possibly extended the sight range, which results in finer differentiation of effects
+			// Flugente: we only apply tunnel vision now, after we've possibly extended the sight range, which results in finer differentiation of effects
 			if ( tunnelVisionInPercent > 0 )
 			{
 				sideViewLimit = TRUE;
@@ -1361,25 +1355,31 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 		sDistVisible = AdjustMaxSightRangeForEnvEffects( pSoldier, bLightLevel, sDistVisible );
 	}
 
+	INT16 sVisionRangeBonus = GetTotalVisionRangeBonus(pSoldier, bLightLevel, sSubjectGridNo, bLevel);
+
 	// Snap: this takes care of all equipment bonuses at all light levels
 	// The rest is special code for robots, bloodcats and NO specialists
 	// Lalien: change to % instead of tiles, add bonus only to front view when using scope
-	if (!sideViewLimit)
+	// sevenfm: vision penalty should apply to all directions
+	if (!sideViewLimit || sVisionRangeBonus < 0)
 	{
-		sDistVisible += sDistVisible * GetTotalVisionRangeBonus(pSoldier, bLightLevel) / 100;
+		sDistVisible += sDistVisible * sVisionRangeBonus / 100;
+	}
 
-		// HEADROCK HAM 3.2: Further reduce sightrange for cowering characters.
-		// SANDRO - this calls many sub-functions over and over, we should at least skip this for civilians and such  
-		// Flugente: we can check for more conditions before calculating suppression tolerance
-		if ( (gGameExternalOptions.ubCoweringReducesSightRange == 1 || gGameExternalOptions.ubCoweringReducesSightRange == 2) &&
-			IS_MERC_BODY_TYPE(pSoldier) && (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == gbPlayerNum) && 
-			gGameExternalOptions.ubMaxSuppressionShock > 0 && sDistVisible > 0 )
+	// sevenfm: apply cowering penalty even if using tunnel vision, use max penalty when in cowering animation
+	// HEADROCK HAM 3.2: Further reduce sightrange for cowering characters.
+	// SANDRO - this calls many sub-functions over and over, we should at least skip this for civilians and such  
+	// Flugente: we can check for more conditions before calculating suppression tolerance
+	if ((gGameExternalOptions.ubCoweringReducesSightRange == 1 || gGameExternalOptions.ubCoweringReducesSightRange == 2) &&
+		pSoldier->IsCowering() &&
+		//IS_MERC_BODY_TYPE(pSoldier) && (pSoldier->bTeam == ENEMY_TEAM || pSoldier->bTeam == MILITIA_TEAM || pSoldier->bTeam == gbPlayerNum) &&
+		//gGameExternalOptions.ubMaxSuppressionShock > 0 && 
+		sDistVisible > 0)
+	{
+		//if (CoweringShockLevel(pSoldier))
 		{
-			// Make sure character is cowering.
-			if ( CoweringShockLevel(pSoldier) )
-			{
-				sDistVisible = __max(1,(sDistVisible * (gGameExternalOptions.ubMaxSuppressionShock - pSoldier->aiData.bShock)) / gGameExternalOptions.ubMaxSuppressionShock);
-			}
+			sDistVisible = max(1, sDistVisible / 4);
+			//sDistVisible = __max(1, (sDistVisible * (gGameExternalOptions.ubMaxSuppressionShock - pSoldier->aiData.bShock)) / gGameExternalOptions.ubMaxSuppressionShock);
 		}
 	}
 
@@ -2619,10 +2619,6 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 			{
 				fNewOpponent = TRUE;
 				pSoldier->bNewOppCnt++;        // increment looker's NEW opponent count
-				//ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, L"Soldier %d sees soldier %d!", pSoldier->ubID, pOpponent->ubID );
-
-				//ExtMen[ptr->guynum].lastCaller = caller;
-				//ExtMen[ptr->guynum].lastCaller2 = caller2;
 
 				IncrementWatchedLoc( pSoldier->ubID, pOpponent->sGridNo, pOpponent->pathing.bLevel );
 
@@ -6362,11 +6358,12 @@ UINT8 CalcEffVolume(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT8 ubN
 void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume,
 		UINT8 ubNoiseType, UINT8 *ubSeen)
 {
-	INT16		sNoiseX, sNoiseY;
-	INT8		bHadToTurn = FALSE, bSourceSeen = FALSE;
-	INT8		bOldOpplist;
-	INT8		bDirection;
+	INT16	sNoiseX, sNoiseY;
+	INT8	bHadToTurn = FALSE, bSourceSeen = FALSE;
+	INT8	bOldOpplist;
+	INT8	bDirection;
 	BOOLEAN fMuzzleFlash = FALSE;
+	UINT16	usSightLimit;
 
 	if ( pSoldier->ubBodyType == CROW )
 	{
@@ -6514,6 +6511,23 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 			// Public info is not set unless EVERYONE on the team fails to see the
 			// ubnoisemaker, leaving the 'seen' flag FALSE.	See ProcessNoise().
 
+			gbForceWeaponReady = true;
+			usSightLimit = pSoldier->GetMaxDistanceVisible(sGridNo, bLevel, CALC_FROM_ALL_DIRS);
+			gbForceWeaponReady = false;
+
+			// sevenfm: increment watched location when soldier hears enemy
+			if ((ubNoiseType == NOISE_GUNFIRE || ubNoiseType == NOISE_MOVEMENT || ubNoiseType == NOISE_SCREAM || ubNoiseType == NOISE_VOICE) &&
+				!TileIsOutOfBounds(sGridNo) &&
+				pSoldier->bTeam != gbPlayerNum &&
+				!pSoldier->aiData.bNeutral &&
+				MercPtrs[ubNoiseMaker] &&
+				!MercPtrs[ubNoiseMaker]->aiData.bNeutral &&
+				!AICheckIsFlanking(pSoldier) &&
+				SoldierToVirtualSoldierLineOfSightTest(pSoldier, sGridNo, bLevel, ANIM_STAND, TRUE, usSightLimit))
+			{
+				IncrementWatchedLoc(pSoldier->ubID, sGridNo, bLevel);
+			}
+
 			// CJC: set the noise gridno for the soldier, if appropriate - this is what is looked at by the AI!
 			if (ubVolume >= pSoldier->aiData.ubNoiseVolume)
 			{
@@ -6529,19 +6543,7 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 				else
 				{
 					pSoldier->aiData.ubNoiseVolume = MAX_MISC_NOISE_DURATION;
-				}
-
-				// sevenfm: increment watched location when soldier hears enemy
-				if( (ubNoiseType == NOISE_GUNFIRE || ubNoiseType == NOISE_MOVEMENT || ubNoiseType == NOISE_SCREAM || ubNoiseType == NOISE_VOICE) &&
-					!TileIsOutOfBounds(sGridNo) &&
-					!pSoldier->aiData.bNeutral &&
-					!MercPtrs[ubNoiseMaker]->aiData.bNeutral &&
-					SoldierToVirtualSoldierLineOfSightTest( pSoldier, sGridNo, bLevel, ANIM_STAND, TRUE, CALC_FROM_ALL_DIRS ) )
-				{
-					//	ScreenMsg(FONT_MCOLOR_LTBLUE, MSG_INTERFACE, L"[%d] %s hears noise at %d from [%d] %s", pSoldier->ubID, pSoldier->GetName(), sGridNo, ubNoiseMaker, MercPtrs[ubNoiseMaker]->GetName() );
-					//	BeginMultiPurposeLocator(sGridNo, bLevel, FALSE);
-					IncrementWatchedLoc(pSoldier->ubID, sGridNo, bLevel);
-				}
+				}				
 
 				SetNewSituation( pSoldier );	// force a fresh AI decision to be made
 			}

@@ -102,6 +102,9 @@ enum
 	// Flugente: mercenary formations
 	TOPTION_MERCENARY_FORMATIONS,
 
+	// sevenfm
+	TOPTION_NEW_VISION,
+
 	// arynn: Debug/Cheat
 	TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	TOPTION_FORCE_BOBBY_RAY_SHIPMENTS,			// force all pending Bobby Ray shipments
@@ -249,6 +252,7 @@ typedef struct
 bool UsingNewInventorySystem();
 bool UsingNewAttachmentSystem();
 bool UsingNewCTHSystem();
+BOOLEAN UsingNewVisionSystem();
 BOOLEAN IsNIVModeValid(bool checkRes = true);
 
 // Snap: Options read from an INI file in the default of custom Data directory
@@ -1468,7 +1472,7 @@ typedef struct
 	BOOLEAN fRedTracer;
 	BOOLEAN fTracerLight;
 	BOOLEAN fTotalDestruction;
-	BOOLEAN fScopeVisionBonus;
+	//BOOLEAN fNewVisionBonus;
 
 } GAME_EXTERNAL_OPTIONS;
 

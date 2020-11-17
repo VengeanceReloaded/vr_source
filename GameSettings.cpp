@@ -130,6 +130,11 @@ bool UsingNewCTHSystem()
 	return (gGameOptions.fUseNCTH == TRUE);
 }
 
+BOOLEAN UsingNewVisionSystem()
+{
+	return gGameSettings.fOptions[TOPTION_NEW_VISION];
+}
+
 std::string StringToLower(std::string strToConvert)
 {//change each element of the string to lower case
    for(unsigned int i=0;i<strToConvert.length();i++)
@@ -285,6 +290,8 @@ BOOLEAN LoadGameSettings()
 		 
 		gGameSettings.fOptions[TOPTION_SHOW_LBE_CONTENT]				= iniReader.ReadBoolean("JA2 Game Settings","TOPTION_SHOW_LBE_CONTENT"					,  TRUE );
 		gGameSettings.fOptions[TOPTION_INVERT_WHEEL]					= iniReader.ReadBoolean("JA2 Game Settings","TOPTION_INVERT_WHEEL"					,  FALSE );
+
+		gGameSettings.fOptions[TOPTION_NEW_VISION]						= iniReader.ReadBoolean("JA2 Game Settings", "TOPTION_NEW_VISION"					, FALSE);
 
 		gGameSettings.fOptions[NUM_ALL_GAME_OPTIONS]                    = iniReader.ReadBoolean("JA2 Game Settings","NUM_ALL_GAME_OPTIONS"                     ,  FALSE );
 
@@ -445,7 +452,8 @@ BOOLEAN	SaveGameSettings()
 		settings << "TOPTION_AUTO_FAST_FORWARD_MODE           = " << (gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE]			?    "TRUE" : "FALSE" ) << endl;
 		settings << "TOPTION_SHOW_LAST_ENEMY				  = " << (gGameSettings.fOptions[TOPTION_SHOW_LAST_ENEMY]					?	 "TRUE"	: "FALSE" ) << endl;
 		settings << "TOPTION_SHOW_LBE_CONTENT				  = " << (gGameSettings.fOptions[TOPTION_SHOW_LBE_CONTENT]					?	 "TRUE"	: "FALSE" ) << endl;
-		settings << "TOPTION_INVERT_WHEEL				  = " << (gGameSettings.fOptions[TOPTION_INVERT_WHEEL]						?	 "TRUE"	: "FALSE" ) << endl;
+		settings << "TOPTION_INVERT_WHEEL					  = " << (gGameSettings.fOptions[TOPTION_INVERT_WHEEL]						?	 "TRUE"	: "FALSE" ) << endl;
+		settings << "TOPTION_NEW_VISION						  = " << (gGameSettings.fOptions[TOPTION_NEW_VISION]						? "TRUE" : "FALSE") << endl;
 
 #ifdef ENABLE_ZOMBIES
 		settings << "TOPTION_ZOMBIES						  = " << (gGameSettings.fOptions[TOPTION_ZOMBIES]							?    "TRUE" : "FALSE" ) << endl;
@@ -591,6 +599,7 @@ void InitGameSettings()
 	gGameSettings.fOptions[TOPTION_SHOW_LAST_ENEMY]						= FALSE;
 	gGameSettings.fOptions[TOPTION_SHOW_LBE_CONTENT]					= TRUE;
 	gGameSettings.fOptions[TOPTION_INVERT_WHEEL]						= FALSE;
+	gGameSettings.fOptions[TOPTION_NEW_VISION]							= FALSE;
 	
 	gGameSettings.fOptions[ TOPTION_MERCENARY_FORMATIONS ]				= FALSE;	// Flugente: mercenary formations
 
@@ -2273,7 +2282,7 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fRedTracer					= iniReader.ReadBoolean("Extended Options", "RED_TRACER", true, false);
 	gGameExternalOptions.fTracerLight				= iniReader.ReadBoolean("Extended Options", "TRACER_LIGHT", false, false);
 	gGameExternalOptions.fTotalDestruction			= iniReader.ReadBoolean("Extended Options", "TOTAL_DESTRUCTION", true, false);
-	gGameExternalOptions.fScopeVisionBonus			= iniReader.ReadBoolean("Extended Options", "SCOPE_VISION_BONUS", true, false);
+	//gGameExternalOptions.fNewVisionBonus			= iniReader.ReadBoolean("Extended Options", "NEW_VISION_BONUS", true, false);
 }
 
 

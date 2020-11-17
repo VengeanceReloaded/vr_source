@@ -310,7 +310,8 @@ BOOLEAN AICheckIsMortarOperator(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsOfficer(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier);
 
-BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot );
+BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE );
+BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE);
 
 BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
 BOOLEAN AIGunInHandScoped(SOLDIERTYPE *pSoldier);

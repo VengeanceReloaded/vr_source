@@ -363,8 +363,9 @@ enum
 
 #define SOLDIER_DAMAGED_VEST				0x00000010	//16		// Soldier's vest is damaged (and thus can't be taken off)
 #define SOLDIER_COVERT_NPC_SPECIAL			0x00000020	//32		// Special flag for NPCs when recruited (used for covert stuff)
-//#define SOLDIER_NEW_VEST   					0x00000040	//64		// Soldier is wearing new vest. if having both vest and pants, he can disguise
+//#define SOLDIER_NEW_VEST   				0x00000040	//64		// Soldier is wearing new vest. if having both vest and pants, he can disguise
 //#define SOLDIER_NEW_PANTS					0x00000080	//128		// Soldier is wearing new pants
+#define SOLDIER_SPENT_AP					0x00000080	//128		// Soldier has spent some AP this turn (including realtime)
 
 #define SOLDIER_DAMAGED_PANTS				0x00000100	//256		// Soldier's vest is damaged (and thus can't be taken off)
 #define SOLDIER_HEADSHOT					0x00000200	//512		// last hit received was a headshot (attack to the head, so knifes/punches also work)
@@ -574,7 +575,8 @@ enum {
 	SOLDIER_COUNTER_WATCH,					// vision bonus from binocs
 	SOLDIER_COUNTER_SUSPICION,				// suspicion counter
 	SOLDIER_COUNTER_COVER,					// number of times soldier executed AI_ACTION_TAKE_COVER this turn
-	
+	SOLDIER_COUNTER_FOCUS,					// vision bonus for scopes
+
 	SOLDIER_COUNTER_MAX = 20,				// enough space for fillers
 };
 
@@ -1849,15 +1851,20 @@ public:
 
 	// Flugente: spotter
 	BOOLEAN IsSpotting();
-	BOOLEAN CanSpot( INT32 sTargetGridNo = -1 );
+	BOOLEAN CanSpot(INT32 sTargetGridNo = -1);
 	BOOLEAN BecomeSpotter( INT32 sTargetGridNo );
 	// sevenfm:
 	UINT16	SpottingBonus();
 	INT16	MaxVisionBonus();
+	BOOLEAN IsCowering(void);
 
 	// Flugente: boxing fix: this shall be the only location where the boxing flag gets removed (easier debugging)
 	void	DeleteBoxingFlag();
 
+	// sevenfm:
+	BOOLEAN CanWatch(INT32 sTargetGridNo = -1);
+	BOOLEAN CanFocus(INT32 sTargetGridNo = -1);
+	BOOLEAN CheckInitialAP(void);
 	//////////////////////////////////////////////////////////////////////////////
 
 }; // SOLDIERTYPE;	

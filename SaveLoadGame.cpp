@@ -2134,7 +2134,7 @@ BOOLEAN SOLDIERTYPE::Load(HWFILE hFile)
 		else
 		{
 			this->bOverTurnAPS = 0;
-			this->sMTActionGridNo = 0;
+			this->sMTActionGridNo = NOWHERE;
 			this->usMultiTurnAction = 0;
 			this->bAIIndex = 0;
 
