@@ -143,6 +143,7 @@ UINT8   giMAXIMUM_NUMBER_OF_REBELS = CODE_MAXIMUM_NUMBER_OF_REBELS;
 UINT8   giMAXIMUM_NUMBER_OF_CIVS = CODE_MAXIMUM_NUMBER_OF_CIVS;
 
 extern void UpdateFastForwardMode(SOLDIERTYPE* pSoldier, INT8 bAction);
+extern bool gbForceMaxVision;
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -8401,7 +8402,16 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
 			// sevenfm: set attack spot as watched location
 			if (pAttacker && pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(pAttacker->sGridNo))
 			{
-				IncrementWatchedLoc(pSoldier->ubID, pAttacker->sGridNo, pAttacker->pathing.bLevel);
+				gbForceWeaponReady = true;
+				gbForceMaxVision = true;
+				UINT16 usSightLimit = pSoldier->GetMaxDistanceVisible(pAttacker->sGridNo, pAttacker->pathing.bLevel, CALC_FROM_ALL_DIRS);
+				gbForceWeaponReady = false;
+				gbForceMaxVision = false;
+
+				if (SoldierToVirtualSoldierLineOfSightTest(pSoldier, pAttacker->sGridNo, pAttacker->pathing.bLevel, ANIM_STAND, TRUE, usSightLimit));
+				{
+					IncrementWatchedLoc(pSoldier->ubID, pAttacker->sGridNo, pAttacker->pathing.bLevel);
+				}
 			}
 
             // Calculate the character's tolerance to suppression. Helps reduce the severity of the penalties inflicted

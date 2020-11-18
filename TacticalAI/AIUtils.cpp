@@ -4365,6 +4365,43 @@ BOOLEAN EnemyAlerted( SOLDIERTYPE *pSoldier )
 	return FALSE;
 }
 
+// find alerted opponent
+BOOLEAN TeamEnemyAlerted(INT8 bTeam)
+{
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+
+	//loop through all the enemies and determine the cover
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || !pOpponent->bActive || !pOpponent->bInSector || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		if (!ValidTeamOpponent(bTeam, pOpponent))
+		{
+			continue;
+		}
+
+		// if opponent is collapsed/breath collapsed
+		if (pOpponent->IsUnconscious())
+		{
+			continue;
+		}
+
+		if (pOpponent->aiData.bAlertStatus >= STATUS_RED)
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier )
 {
 	UINT32		uiLoop;
@@ -5672,4 +5709,47 @@ UINT8 AIDirection(INT32 sSpot1, INT32 sSpot2)
 	}
 
 	return atan8(CenterX(sSpot1),CenterY(sSpot1),CenterX(sSpot2),CenterY(sSpot2));
+}
+
+BOOLEAN ValidOpponent(SOLDIERTYPE* pSoldier, SOLDIERTYPE* pOpponent)
+{
+	if (!pSoldier || !pOpponent)
+	{
+		return FALSE;
+	}
+
+	if (!pOpponent->bActive ||
+		!pOpponent->bInSector ||
+		pOpponent->stats.bLife <= 0 ||
+		CONSIDERED_NEUTRAL(pSoldier, pOpponent) ||
+		pSoldier->bSide == pOpponent->bSide ||
+		pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY ||
+		pOpponent->IsEmptyVehicle() ||
+		gTacticalStatus.bBoxingState == BOXING && pSoldier->IsBoxer() && !pOpponent->IsBoxer() ||
+		pOpponent->ubBodyType == CROW)
+	{
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+BOOLEAN ValidTeamOpponent(INT8 bTeam, SOLDIERTYPE* pOpponent)
+{
+	if (bTeam >= MAXTEAMS || !pOpponent)
+	{
+		return FALSE;
+	}
+
+	if (!pOpponent->bActive ||
+		!pOpponent->bInSector ||
+		pOpponent->stats.bLife <= 0 ||
+		CONSIDERED_NEUTRAL_TEAM(bTeam, pOpponent) ||
+		gTacticalStatus.Team[bTeam].bSide == pOpponent->bSide ||
+		pOpponent->IsEmptyVehicle())
+	{
+		return FALSE;
+	}
+
+	return TRUE;
 }

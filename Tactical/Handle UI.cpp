@@ -143,7 +143,7 @@ extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndRead
 #define GO_MOVE_THREE			100
 
 extern bool gbForceBinocsReady;
-extern bool gbForceWatchedReady;
+extern bool gbForceNormalVision;
 
 // CALLBACKS FOR EVENTS
 UINT32 UIHandleIDoNothing( UI_EVENT *pUIEvent );

@@ -75,8 +75,8 @@ class OBJECTTYPE;
 class SOLDIERTYPE;
 
 bool gbForceBinocsReady = false;
-//bool gbForceWatchedReady = false;
-//bool gbForceWatchedNotReady = false;
+bool gbForceMaxVision = false;
+bool gbForceNormalVision = false;
 
 #define ANY_MAGSIZE 65535
 
@@ -11533,48 +11533,7 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
-	}
-
-	/*if (UsingNewVisionSystem() &&
-		pSoldier->bTeam != gbPlayerNum &&
-		IS_MERC_BODY_TYPE(pSoldier) &&
-		!TileIsOutOfBounds(sSpot) &&
-		usingGunScope &&
-		!gbForceWatchedNotReady &&
-		(gbForceWatchedReady || !gbForceWeaponReady && !gbForceWeaponNotReady))
-	{
-		INT8 bWatchPoints;
-
-		if (gbForceWatchedReady)
-			bWatchPoints = 4;
-		else
-			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
-
-		sScopebonus = max(25 * bWatchPoints, sScopebonus);
-	}*/
-
-	//sBonus += sScopebonus;
-
-	if (UsingNewVisionSystem() &&
-		!gbForceBinocsReady &&
-		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0) &&
-		!TileIsOutOfBounds(sSpot) &&
-		!TileIsOutOfBounds(pSoldier->sMTActionGridNo) &&
-		SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)
-	{
-		sBonus -= 50;
-	}
-
-	if (UsingNewVisionSystem() &&
-		usingGunScope &&
-		!gbForceWeaponReady &&
-		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] > 0 &&
-		!TileIsOutOfBounds(sSpot) &&
-		!TileIsOutOfBounds(pSoldier->sMTActionGridNo) &&
-		SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)
-	{
-		sBonus -= 50;
-	}
+	}	
 
 	return( sBonus );
 }
@@ -11644,10 +11603,11 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 	}
 
 	// Snap: check only attachments on a raised weapon!
+	INT16 sScopebonus = 0;
+
 	if (usingGunScope)
 	{
-		// SANDRO - added scouting check
-		INT16 sScopebonus = 0;
+		// SANDRO - added scouting check		
 		pObj = &( pSoldier->inv[HANDPOS]);
 		if (pObj->exists() == true) 
 		{
@@ -11705,8 +11665,27 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		sBonus += sScopebonus;
+		//sBonus += sScopebonus;
 	}
+
+	if (UsingNewVisionSystem() &&
+		pSoldier->bTeam != gbPlayerNum &&
+		IS_MERC_BODY_TYPE(pSoldier) &&
+		!TileIsOutOfBounds(sSpot) &&
+		usingGunScope &&
+		!gbForceNormalVision)
+	{
+		INT8 bWatchPoints;
+
+		if (gbForceMaxVision)
+			bWatchPoints = 4;
+		else
+			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
+
+		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+	}
+
+	sBonus += sScopebonus;
 
 	return( sBonus );
 }
@@ -11763,10 +11742,11 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 	}
 
 	// Snap: check only attachments on a raised weapon!
+	INT16 sScopebonus = 0;
+
 	if (usingGunScope)
 	{
-		// SANDRO - added scouting check
-		INT16 sScopebonus = 0;
+		// SANDRO - added scouting check		
 		pObj = &( pSoldier->inv[HANDPOS]);
 		if (pObj->exists() == true) 
 		{
@@ -11824,8 +11804,27 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		sBonus += sScopebonus;
+		//sBonus += sScopebonus;
 	}
+
+	if (UsingNewVisionSystem() &&
+		pSoldier->bTeam != gbPlayerNum &&
+		IS_MERC_BODY_TYPE(pSoldier) &&
+		!TileIsOutOfBounds(sSpot) &&
+		usingGunScope &&
+		!gbForceNormalVision)
+	{
+		INT8 bWatchPoints;
+
+		if (gbForceMaxVision)
+			bWatchPoints = 4;
+		else
+			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
+
+		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+	}
+
+	sBonus += sScopebonus;
 
 	return( sBonus );
 }
@@ -11906,10 +11905,11 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 	}
 
 	// Snap: check only attachments on a raised weapon!
+	INT16 sScopebonus = 0;
+
 	if (usingGunScope)
 	{
-		// SANDRO - added scouting check
-		INT16 sScopebonus = 0;
+		// SANDRO - added scouting check		
 		pObj = &( pSoldier->inv[HANDPOS]);
 		
 		if (pObj->exists() == true) 
@@ -11968,8 +11968,28 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		sBonus += sScopebonus;
+		//sBonus += sScopebonus;
 	}
+
+	if (UsingNewVisionSystem() &&
+		pSoldier->bTeam != gbPlayerNum &&
+		IS_MERC_BODY_TYPE(pSoldier) &&
+		!TileIsOutOfBounds(sSpot) &&
+		usingGunScope &&
+		!gbForceNormalVision)
+	{
+		INT8 bWatchPoints;
+
+		if (gbForceMaxVision)
+			bWatchPoints = 4;
+		else
+			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
+
+		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+	}
+
+	sBonus += sScopebonus;
+
 	return( sBonus );
 }
 
@@ -12039,10 +12059,11 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 	}
 
 	// Snap: check only attachments on a raised weapon!
+	INT16 sScopebonus = 0;
+
 	if (usingGunScope)
 	{
-		// SANDRO - added scouting check
-		INT16 sScopebonus = 0;
+		// SANDRO - added scouting check		
 		pObj = &( pSoldier->inv[HANDPOS]);
 		if (pObj->exists() == true) 
 		{
@@ -12100,8 +12121,27 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
-		sBonus += sScopebonus;
+		//sBonus += sScopebonus;
 	}
+
+	if (UsingNewVisionSystem() &&
+		pSoldier->bTeam != gbPlayerNum &&
+		IS_MERC_BODY_TYPE(pSoldier) &&
+		!TileIsOutOfBounds(sSpot) &&
+		usingGunScope &&
+		!gbForceNormalVision)
+	{
+		INT8 bWatchPoints;
+
+		if (gbForceMaxVision)
+			bWatchPoints = 4;
+		else
+			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
+
+		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+	}
+
+	sBonus += sScopebonus;
 
 	return( sBonus );
 }
@@ -12112,7 +12152,7 @@ INT16 GetTotalVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 
 	if ( bLightLevel > NORMAL_LIGHTLEVEL_DAY )
 	{
-		if ( pSoldier->pathing.bLevel == 0 )
+		if (pSoldier->bSectorZ == 0)
 		{
 			sBonus += GetNightVisionRangeBonus(pSoldier, bLightLevel, sSpot, bLevel);
 		}

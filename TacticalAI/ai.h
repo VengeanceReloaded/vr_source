@@ -322,6 +322,10 @@ UINT16 AIGunType(SOLDIERTYPE *pSoldier);
 UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier );
 BOOLEAN EnemyCanSeeMe( SOLDIERTYPE *pSoldier );
 BOOLEAN EnemyAlerted( SOLDIERTYPE *pSoldier );
+BOOLEAN TeamEnemyAlerted(INT8 bTeam);
+
+BOOLEAN ValidOpponent(SOLDIERTYPE* pSoldier, SOLDIERTYPE* pOpponent);
+BOOLEAN ValidTeamOpponent(INT8 bTeam, SOLDIERTYPE* pOpponent);
 
 #define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25

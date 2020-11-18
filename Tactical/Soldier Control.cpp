@@ -128,7 +128,6 @@ UINT16 usForceAnimState = INVALID_ANIMATION;//dnl ch70 170913
 //UINT8 gubCivilianTurnSpeedUpFactor = 1;
 //turnspeed
 
-//extern BOOLEAN fAllowTacticalMilitiaCommand; //lal
 extern bool gbForceBinocsReady;
 
 extern INT16 DirIncrementer[8];
