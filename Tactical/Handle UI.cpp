@@ -142,9 +142,6 @@ extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndRead
 #define GO_MOVE_TWO				80
 #define GO_MOVE_THREE			100
 
-extern bool gbForceBinocsReady;
-extern bool gbForceNormalVision;
-
 // CALLBACKS FOR EVENTS
 UINT32 UIHandleIDoNothing( UI_EVENT *pUIEvent );
 UINT32 UIHandleExit( UI_EVENT *pUIEvent );
@@ -162,8 +159,6 @@ UINT32 UIHandleISoldierDebug( UI_EVENT *pUIEvent );
 UINT32 UIHandleILOSDebug( UI_EVENT *pUIEvent );
 UINT32 UIHandleILevelNodeDebug( UI_EVENT * pUIEvent );
 UINT32 UIHandleIGotoDemoMode( UI_EVENT *pUIEvent );
-
-
 
 UINT32 UIHandleILoadFirstLevel( UI_EVENT *pUIEvent );
 UINT32 UIHandleILoadSecondLevel( UI_EVENT *pUIEvent );
@@ -5149,9 +5144,7 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 
 					if (val)
 					{
-						// sevenfm: if cannot spot (the item has vision bonus but not spotting bonus) start watching
-						//if (pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0)
-							// Check AP cost...
+						// Check AP cost...
 						if (!EnoughPoints(pSoldier, GetAPsToWatch(pSoldier), 0, TRUE))
 						{
 							return(FALSE);

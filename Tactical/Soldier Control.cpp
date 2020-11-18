@@ -128,8 +128,6 @@ UINT16 usForceAnimState = INVALID_ANIMATION;//dnl ch70 170913
 //UINT8 gubCivilianTurnSpeedUpFactor = 1;
 //turnspeed
 
-extern bool gbForceBinocsReady;
-
 extern INT16 DirIncrementer[8];
 
 // sevenfm: used in auto taking concertina/sandbag items from inventory
@@ -18934,11 +18932,7 @@ BOOLEAN SOLDIERTYPE::BecomeSpotter( INT32 sTargetGridNo )
 		return FALSE;
 	}
 
-	gbForceBinocsReady = true;
-	BOOLEAN fCanSpot = CanSpot(sTargetGridNo);
-	gbForceBinocsReady = false;
-
-	if ( !fCanSpot )
+	if (!CanSpot(sTargetGridNo))
 	{
 		ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, New113Message[ MSG113_CANNOT_SPOT_LOCATION ]);
 		return FALSE;

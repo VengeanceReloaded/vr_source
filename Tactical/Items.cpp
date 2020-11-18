@@ -74,10 +74,6 @@
 class OBJECTTYPE;
 class SOLDIERTYPE;
 
-bool gbForceBinocsReady = false;
-bool gbForceMaxVision = false;
-bool gbForceNormalVision = false;
-
 #define ANY_MAGSIZE 65535
 
 void SetNewItem( SOLDIERTYPE *pSoldier, UINT8 ubInvPos, BOOLEAN fNewItem );

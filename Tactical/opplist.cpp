@@ -68,9 +68,6 @@
 //#define VIS_DIST_DECREASE_PER_RAIN_INTENSITY 20
 //end rain
 
-// sevenfm
-extern bool gbForceMaxVision;
-
 #define WE_SEE_WHAT_MILITIA_SEES_AND_VICE_VERSA
 
 extern void SetSoldierAniSpeed( SOLDIERTYPE *pSoldier );
@@ -1201,10 +1198,6 @@ INT16 SOLDIERTYPE::GetMaxDistanceVisible(INT32 sGridNo, INT8 bLevel, int calcAsT
 	return DistanceVisible( this, (SoldierHasLimitedVision(this) ? this->pathing.bDesiredDirection : DIRECTION_IRRELEVANT), DIRECTION_IRRELEVANT, sGridNo, bLevel );
 }
 
-extern bool gbForceBinocsReady;
-extern bool gbForceNormalVision;
-extern bool gbForceMaxVision;
-
 INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir, INT32 sSubjectGridNo, INT8 bLevel )
 {
 	INT16	sDistVisible;
@@ -1456,7 +1449,8 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 	// sevenfm: limit max vision when using focus
 	if (UsingNewVisionSystem() &&
 		WeaponReady(pSoldier) &&
-		!gbForceWeaponReady &&
+		!gbForceWeaponReady &&		// for OCTH calculation
+		!gbForceWeaponNotReady &&	// for OCTH calculation
 		pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] > 0 &&
 		!TileIsOutOfBounds(sSubjectGridNo) &&
 		!TileIsOutOfBounds(pSoldier->sMTActionGridNo) &&

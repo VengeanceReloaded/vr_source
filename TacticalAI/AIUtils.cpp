@@ -48,7 +48,6 @@
 
 extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fHipStance );
 extern SECTOR_EXT_DATA	SectorExternalData[256][4];
-extern bool gbForceBinocsReady;
 
 UINT8 Urgency[NUM_STATUS_STATES][NUM_MORALE_STATES] =
 {

@@ -352,9 +352,11 @@ AMMOTYPE AmmoTypes[MAXITEMS];
 // used to determine whether the bullet will go through someone
 UINT8 BodyImpactReduction[4] = { 0, 15, 30, 23 };
 
-bool gbForceWeaponNotReady = false;
-bool gbForceWeaponReady = false;
-
+bool gbForceWeaponNotReady = false;		// disables limited vision from focus skill
+bool gbForceWeaponReady = false;		// disables limited vision from focus skill
+bool gbForceBinocsReady = false;		// use vision as if binocs were active, disable limited vision
+bool gbForceMaxVision = false;			// use max extra vision bonus from watched location
+bool gbForceNormalVision = false;		// disables extra vision bonus from watched location
 
 enum
 {
@@ -6924,8 +6926,6 @@ else
    DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("CalcChanceToHitGun: ichance = %d",iChance));
   return (iChance);
 }*/
-
-extern bool gbForceNormalVision;
 
 UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos )
 {
