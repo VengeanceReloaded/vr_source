@@ -5138,9 +5138,9 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 				// any item with vision bonus in main hand
 				if (!TileIsOutOfBounds(usGridNo))
 				{
-					gbForceBinocsReady = true;
+					gbForceWeaponReady = true;
 					INT32 val = SoldierToVirtualSoldierLineOfSightTest(pSoldier, usGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
-					gbForceBinocsReady = false;
+					gbForceWeaponReady = false;
 
 					if (val)
 					{

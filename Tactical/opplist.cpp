@@ -1437,7 +1437,7 @@ INT16 DistanceVisible( SOLDIERTYPE *pSoldier, INT8 bFacingDir, INT8 bSubjectDir,
 
 	// sevenfm: limit max vision if watching/spotting
 	if (UsingNewVisionSystem() &&
-		!gbForceBinocsReady &&
+		!gbForceWeaponReady &&
 		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0) &&
 		!TileIsOutOfBounds(sSubjectGridNo) &&
 		!TileIsOutOfBounds(pSoldier->sMTActionGridNo) &&
@@ -6537,10 +6537,10 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 			// ubnoisemaker, leaving the 'seen' flag FALSE.	See ProcessNoise().
 
 			gbForceWeaponReady = true;
-			gbForceMaxVision = true;
+			gbForceMaxExtraVision = true;
 			usSightLimit = pSoldier->GetMaxDistanceVisible(sGridNo, bLevel, CALC_FROM_ALL_DIRS);
 			gbForceWeaponReady = false;
-			gbForceMaxVision = false;
+			gbForceMaxExtraVision = false;
 
 			// sevenfm: increment watched location when soldier hears enemy
 			if ((ubNoiseType == NOISE_GUNFIRE || ubNoiseType == NOISE_MOVEMENT || ubNoiseType == NOISE_SCREAM || ubNoiseType == NOISE_VOICE) &&

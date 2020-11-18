@@ -18897,11 +18897,11 @@ BOOLEAN SOLDIERTYPE::CanSpot( INT32 sTargetGridNo )
 		if (UsingNewVisionSystem() && PythSpacesAway(this->sGridNo, sTargetGridNo) < 2 * gGameExternalOptions.usSpotterRange)
 			return FALSE;
 
-		gbForceBinocsReady = true;
+		gbForceWeaponReady = true;
 		//UINT16 usSightLimit = this->GetMaxDistanceVisible(sTargetGridNo, this->pathing.bLevel, CALC_FROM_WANTED_DIR);
 		//INT32 val = SoldierToVirtualSoldierLineOfSightTest( this, sTargetGridNo, this->pathing.bLevel, gAnimControl[ this->usAnimState ].ubEndHeight, FALSE, usSightLimit );
 		INT32 val = SoldierToVirtualSoldierLineOfSightTest(this, sTargetGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
-		gbForceBinocsReady = false;
+		gbForceWeaponReady = false;
 
 		// error if we cannot see the target
 		if ( !val )
@@ -18967,9 +18967,9 @@ BOOLEAN SOLDIERTYPE::CanWatch(INT32 sTargetGridNo)
 		if (SpacesAway(this->sGridNo, sTargetGridNo) <= 1)
 			return FALSE;
 
-		gbForceBinocsReady = true;
+		gbForceWeaponReady = true;
 		INT32 val = SoldierToVirtualSoldierLineOfSightTest(this, sTargetGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
-		gbForceBinocsReady = false;
+		gbForceWeaponReady = false;
 
 		// error if we cannot see the target
 		if (!val)

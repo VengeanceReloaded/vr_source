@@ -4128,10 +4128,8 @@ BOOLEAN ProneSightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlim
 		}
 
 		gbForceWeaponReady = true;
-		gbForceBinocsReady = true;
 		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
 		gbForceWeaponReady = false;
-		gbForceBinocsReady = false;
 
 		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_PRONE) / 100;
 
@@ -4209,10 +4207,8 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 		}
 
 		gbForceWeaponReady = true;
-		gbForceBinocsReady = true;
 		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
 		gbForceWeaponReady = false;
-		gbForceBinocsReady = false;
 
 		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_STAND) / 100;
 

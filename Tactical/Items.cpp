@@ -11452,7 +11452,7 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				!IsWeapon(usItem) && 
-				!gbForceBinocsReady &&
+				!gbForceWeaponReady &&
 				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
 				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
@@ -11581,7 +11581,7 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC &&
-				!gbForceBinocsReady &&
+				!gbForceWeaponReady &&
 				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
 				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
@@ -11669,16 +11669,16 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
 		usingGunScope &&
-		!gbForceNormalVision)
+		!gbForceNoExtraVision)
 	{
 		INT8 bWatchPoints;
 
-		if (gbForceMaxVision)
+		if (gbForceMaxExtraVision)
 			bWatchPoints = 4;
 		else
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
-		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
 	}
 
 	sBonus += sScopebonus;
@@ -11720,7 +11720,7 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC && 
-				!gbForceBinocsReady &&
+				!gbForceWeaponReady &&
 				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
 				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
@@ -11808,16 +11808,16 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
 		usingGunScope &&
-		!gbForceNormalVision)
+		!gbForceNoExtraVision)
 	{
 		INT8 bWatchPoints;
 
-		if (gbForceMaxVision)
+		if (gbForceMaxExtraVision)
 			bWatchPoints = 4;
 		else
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
-		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
 	}
 
 	sBonus += sScopebonus;
@@ -11872,7 +11872,7 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC &&
-				!gbForceBinocsReady &&
+				!gbForceWeaponReady &&
 				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
 				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
@@ -11972,16 +11972,16 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
 		usingGunScope &&
-		!gbForceNormalVision)
+		!gbForceNoExtraVision)
 	{
 		INT8 bWatchPoints;
 
-		if (gbForceMaxVision)
+		if (gbForceMaxExtraVision)
 			bWatchPoints = 4;
 		else
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
-		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
 	}
 
 	sBonus += sScopebonus;
@@ -12026,7 +12026,7 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 			// sevenfm: binocs
 			if( (i == HANDPOS || i == SECONDHANDPOS) &&
 				pItem->usItemClass & IC_MISC && 
-				!gbForceBinocsReady &&
+				!gbForceWeaponReady &&
 				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
 				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
 			{
@@ -12125,16 +12125,16 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
 		usingGunScope &&
-		!gbForceNormalVision)
+		!gbForceNoExtraVision)
 	{
 		INT8 bWatchPoints;
 
-		if (gbForceMaxVision)
+		if (gbForceMaxExtraVision)
 			bWatchPoints = 4;
 		else
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
-		sScopebonus = max(25 * bWatchPoints, sScopebonus);
+		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
 	}
 
 	sBonus += sScopebonus;

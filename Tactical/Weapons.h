@@ -457,9 +457,8 @@ extern BOOLEAN WriteWeaponStats();
 
 extern bool gbForceWeaponNotReady;
 extern bool gbForceWeaponReady;
-extern bool gbForceBinocsReady;
-extern bool gbForceMaxVision;
-extern bool gbForceNormalVision;
+extern bool gbForceMaxExtraVision;
+extern bool gbForceNoExtraVision;
 
 extern INT32 EffectiveArmour( OBJECTTYPE * pObj );
 extern INT8 ArmourVersusExplosivesPercent( SOLDIERTYPE * pSoldier );
