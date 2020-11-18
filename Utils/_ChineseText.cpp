@@ -6705,6 +6705,7 @@ STR16 New113Message[] =
 	L"正在工作的无线电设备。",
 	L"望远镜",
 	L"病人",
+	L"%s switches off radio",				// MSG113_SWITCH_OFF_RADIO
 };
 
 STR16 New113HAMMessage[] = 

@@ -2038,29 +2038,35 @@ UINT32 EnemyStrength( void )
 //Function assumes that mercs have retreated already.	Handles two cases, one for general merc retreat
 //which slightly demoralizes the mercs, the other handles abandonment of militia forces which poses
 //as a serious loyalty penalty.
+extern BOOLEAN TeamEnemyAlerted(INT8 bTeam);
+
 void HandleLoyaltyImplicationsOfMercRetreat( INT8 bRetreatCode, INT16 sSectorX, INT16 sSectorY, INT16 sSectorZ )
 {
-	if( CountAllMilitiaInSector( sSectorX, sSectorY ) )
-	{ //Big morale penalty!
-		HandleGlobalLoyaltyEvent( GLOBAL_LOYALTY_ABANDON_MILITIA, sSectorX, sSectorY, (INT8)sSectorZ );
+	if (CountAllMilitiaInSector(sSectorX, sSectorY))
+	{
+		// Big morale penalty!
+		HandleGlobalLoyaltyEvent(GLOBAL_LOYALTY_ABANDON_MILITIA, sSectorX, sSectorY, (INT8)sSectorZ);
 	}
 
-	//Standard retreat penalty
-	if ( bRetreatCode == RETREAT_TACTICAL_TRAVERSAL )
+	// Standard retreat penalty
+	if (bRetreatCode == RETREAT_TACTICAL_TRAVERSAL)
 	{
 		// if not worse than 2:1 odds, then penalize morale
 		// SANDRO - Set the odds based on difficulty level
-		if ( gTacticalStatus.fEnemyInSector && ( (PlayerStrength() * (2 + gGameOptions.ubDifficultyLevel)) >= EnemyStrength() ) )
+		// sevenfm: if at least one enemy was alerted
+		if (gTacticalStatus.fEnemyInSector &&
+			TeamEnemyAlerted(gbPlayerNum) &&
+			PlayerStrength() * gGameOptions.ubDifficultyLevel > EnemyStrength())
 		{
-			HandleMoraleEvent( NULL, MORALE_RAN_AWAY, sSectorX, sSectorY, (INT8)sSectorZ );
+			HandleMoraleEvent(NULL, MORALE_RAN_AWAY, sSectorX, sSectorY, (INT8)sSectorZ);
 		}
 	}
+	// RETREAT_PBI, RETREAT_AUTORESOLVE
 	else
 	{
-		HandleMoraleEvent( NULL, MORALE_RAN_AWAY, sSectorX, sSectorY, (INT8)sSectorZ );
+		HandleMoraleEvent(NULL, MORALE_RAN_AWAY, sSectorX, sSectorY, (INT8)sSectorZ);
 	}
 }
-
 
 void MaximizeLoyaltyForDeidrannaKilled(void)
 {

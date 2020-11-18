@@ -6714,6 +6714,7 @@ STR16 New113Message[] =
 	L"a working radio set",
 	L"a binocular",
 	L"patience",
+	L"%s switches off radio",				// MSG113_SWITCH_OFF_RADIO
 };
 
 STR16 New113HAMMessage[] = 

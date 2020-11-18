@@ -6709,6 +6709,7 @@ STR16 New113Message[] =
 	L"une radio",
 	L"des jumelles",
 	L"de la patience",
+	L"%s switches off radio",				// MSG113_SWITCH_OFF_RADIO
 };
 
 STR16 New113HAMMessage[] = 

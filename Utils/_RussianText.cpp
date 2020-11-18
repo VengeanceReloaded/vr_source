@@ -6700,6 +6700,7 @@ STR16 New113Message[] =
 	L"работающая радиостанция",
 	L"бинокль",
 	L"терпение",
+	L"%s выключает рацию",					// MSG113_SWITCH_OFF_RADIO
 };
 
 STR16 New113HAMMessage[] = 

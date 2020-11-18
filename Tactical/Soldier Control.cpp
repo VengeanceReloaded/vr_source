@@ -18798,9 +18798,70 @@ INT16 SOLDIERTYPE::MaxVisionBonus()
 	return sBonus;
 }
 
+BOOLEAN SOLDIERTYPE::IsListening()
+{
+	return ((usSoldierFlagMask & SOLDIER_RADIO_OPERATOR_LISTENING) && CanUseRadio(FALSE));
+}
+
 BOOLEAN SOLDIERTYPE::IsCowering(void)
 {
 	if (this->usAnimState == COWERING || this->usAnimState == COWERING_PRONE)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsCovert(void)
+{
+	if (this->IsCovertCiv() || this->IsCovertSoldier())
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsCovertCiv(void)
+{
+	if (this->usSoldierFlagMask & SOLDIER_COVERT_CIV)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsCovertCivSpecial(void)
+{
+	if (this->usSoldierFlagMask & SOLDIER_COVERT_CIV && this->usSoldierFlagMask & SOLDIER_COVERT_NPC_SPECIAL)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsCovertSoldier(void)
+{
+	if (this->usSoldierFlagMask & SOLDIER_COVERT_SOLDIER)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsUnconscious(void)
+{
+	if (this->bCollapsed && this->bBreath == 0)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsBoxer(void)
+{
+	if (this->flags.uiStatusFlags & SOLDIER_BOXER)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsEmptyVehicle(void)
+{
+	if (this->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle(this->bVehicleID) == 0)
 		return TRUE;
 
 	return FALSE;

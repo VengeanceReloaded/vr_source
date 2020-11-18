@@ -1473,6 +1473,7 @@ typedef struct
 	BOOLEAN fTracerLight;
 	BOOLEAN fTotalDestruction;
 	//BOOLEAN fNewVisionBonus;
+	UINT8	ubDefeatMode;
 
 } GAME_EXTERNAL_OPTIONS;
 

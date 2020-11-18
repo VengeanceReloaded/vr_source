@@ -738,19 +738,22 @@ void HandleMoraleEvent( SOLDIERTYPE *pSoldier, INT8 bMoraleEvent, INT16 sMapX, I
 					// CJC: adding to SOLDIER_IN_SECTOR check special stuff because the old sector values might
 					// be appropriate (because in transit going out of that sector!)
 
-					if ( SOLDIER_IN_SECTOR( pTeamSoldier, sMapX, sMapY, bMapZ ) || ( pTeamSoldier->flags.fBetweenSectors && ((pTeamSoldier->ubPrevSectorID % 16) + 1) == sMapX && ((pTeamSoldier->ubPrevSectorID / 16) + 1) == sMapY && ( pTeamSoldier->bSectorZ == bMapZ ) ) )
+					if (pTeamSoldier->bInSector ||
+						pTeamSoldier->flags.fBetweenSectors && pTeamSoldier->sSectorX == gWorldSectorX && pTeamSoldier->sSectorY == gWorldSectorY && pTeamSoldier->bSectorZ == gbWorldSectorZ)
+					//if (SOLDIER_IN_SECTOR(pTeamSoldier, sMapX, sMapY, bMapZ) || 
+						//(pTeamSoldier->flags.fBetweenSectors && ((pTeamSoldier->ubPrevSectorID % 16) + 1) == sMapX && ((pTeamSoldier->ubPrevSectorID / 16) + 1) == sMapY && ( pTeamSoldier->bSectorZ == bMapZ ) ) )
 					{
 						if ( gGameOptions.fNewTraitSystem )
 						{
 							// Flugente: if we have the covert trait and are covert, we might simply be returning from a reconnaissance mission in enemy territory. No need for a morale drop in this case
-							if ( !HAS_SKILL_TRAIT( pTeamSoldier, COVERT_NT ) || ( (pTeamSoldier->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER)) == 0) )
+							if (!HAS_SKILL_TRAIT(pTeamSoldier, COVERT_NT) || !pTeamSoldier->IsCovert())
 							{
 								// SANDRO - no penalty for pacifists to run away
-								if ( gMercProfiles[pTeamSoldier->ubProfile].bCharacterTrait != CHAR_TRAIT_PACIFIST )
-									HandleMoraleEventForSoldier( pTeamSoldier, MORALE_RAN_AWAY );
+								if (gMercProfiles[pTeamSoldier->ubProfile].bCharacterTrait != CHAR_TRAIT_PACIFIST)
+									HandleMoraleEventForSoldier(pTeamSoldier, MORALE_RAN_AWAY);
 								// Double morale drop for aggressive people
-								if  ( gMercProfiles[pTeamSoldier->ubProfile].bCharacterTrait == CHAR_TRAIT_AGGRESSIVE )
-									HandleMoraleEventForSoldier( pTeamSoldier, MORALE_RAN_AWAY );
+								if (gMercProfiles[pTeamSoldier->ubProfile].bCharacterTrait == CHAR_TRAIT_AGGRESSIVE)
+									HandleMoraleEventForSoldier(pTeamSoldier, MORALE_RAN_AWAY);
 							}
 						}
 						else
@@ -774,7 +777,8 @@ void HandleMoraleEvent( SOLDIERTYPE *pSoldier, INT8 bMoraleEvent, INT16 sMapX, I
 					// SANDRO - Assertive people don't care about actions of others
 					else if ( !gGameOptions.fNewTraitSystem || gMercProfiles[pTeamSoldier->ubProfile].bCharacterTrait != CHAR_TRAIT_ASSERTIVE )
 					{
-						HandleMoraleEventForSoldier( pTeamSoldier, MORALE_HEARD_BATTLE_LOST );
+						// sevenfm: no MORALE_HEARD_BATTLE_LOST penalty
+						//HandleMoraleEventForSoldier(pTeamSoldier, MORALE_HEARD_BATTLE_LOST);
 					}
 				}
 			}
@@ -1002,6 +1006,8 @@ void HandleMoraleEvent( SOLDIERTYPE *pSoldier, INT8 bMoraleEvent, INT16 sMapX, I
 			ModifyPlayerReputation(REPUTATION_BATTLE_WON);
 			break;
 		case MORALE_RAN_AWAY:
+			// sevenfm: no reputation loss when retreating from battle
+			break;
 		case MORALE_HEARD_BATTLE_LOST:
 			ModifyPlayerReputation(REPUTATION_BATTLE_LOST);
 			break;

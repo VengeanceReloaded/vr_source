@@ -612,6 +612,8 @@ extern CLOTHES_STRUCT Clothes[CLOTHES_MAX];
 // IF WE ARE CONSIDERING ATTACKING THEM.	Creatures & bloodcats will attack neutrals
 // but they can't attack empty vehicles!!
 #define CONSIDERED_NEUTRAL( me, them ) ( (them->aiData.bNeutral || them->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER|SOLDIER_POW)) && ( me->bTeam != CREATURE_TEAM || (them->flags.uiStatusFlags & SOLDIER_VEHICLE) || (them->ubBodyType == CROW) ) )
+// sevenfm: same as CONSIDERED_NEUTRAL but use team
+#define CONSIDERED_NEUTRAL_TEAM(team, them) ((them->aiData.bNeutral || them->usSoldierFlagMask & (SOLDIER_COVERT_CIV|SOLDIER_COVERT_SOLDIER|SOLDIER_POW)) && ( team != CREATURE_TEAM || (them->flags.uiStatusFlags & SOLDIER_VEHICLE) || (them->ubBodyType == CROW) ) )
 
 // anv: in most cases bTeam and bSide are equal, so only bTeam check was considered for most interactions like HandleSight
 // for VR we want to allow hostile interaction between members of the same bTeam as long as bSide are different
@@ -1853,10 +1855,19 @@ public:
 	BOOLEAN IsSpotting();
 	BOOLEAN CanSpot(INT32 sTargetGridNo = -1);
 	BOOLEAN BecomeSpotter( INT32 sTargetGridNo );
+
 	// sevenfm:
+	BOOLEAN IsListening();
 	UINT16	SpottingBonus();
 	INT16	MaxVisionBonus();
 	BOOLEAN IsCowering(void);
+	BOOLEAN IsCovert(void);
+	BOOLEAN IsCovertCiv(void);
+	BOOLEAN IsCovertSoldier(void);
+	BOOLEAN IsCovertCivSpecial(void);
+	BOOLEAN IsUnconscious(void);
+	BOOLEAN IsBoxer(void);
+	BOOLEAN IsEmptyVehicle(void);
 
 	// Flugente: boxing fix: this shall be the only location where the boxing flag gets removed (easier debugging)
 	void	DeleteBoxingFlag();

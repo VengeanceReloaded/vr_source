@@ -390,6 +390,7 @@ void KillOnePrisoner( SECTORINFO *pSectorInfo );
 INT8 CalcEffectiveShockLevel( SOLDIERTYPE * pSoldier );
 BOOLEAN CoweringShockLevel( SOLDIERTYPE * pSoldier );
 UINT8 ShockLevelPercent( SOLDIERTYPE* pSoldier );
+void SwitchOffAllRadio(void);
 
 #endif
 

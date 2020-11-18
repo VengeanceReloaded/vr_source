@@ -5082,7 +5082,7 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 	}
 	else
 	{
-		if (gsCurrentActionPoints > 0)
+		if (gsCurrentActionPoints > 0 && !gTacticalStatus.fAtLeastOneGuyOnMultiSelect)
 		{
 			if (pSoldier->inv[HANDPOS].exists() && IsWeapon(pSoldier->inv[HANDPOS].usItem))
 			{
@@ -5117,13 +5117,12 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 					}
 				}
 			}
-			else if (pSoldier->inv[HANDPOS].exists() && !IsWeapon(pSoldier->inv[HANDPOS].usItem) && GetObjectModifier(pSoldier, &(pSoldier->inv[HANDPOS]), gAnimControl[pSoldier->usAnimState].ubEndHeight, ITEMMODIFIER_SPOTTER))
+			else if (pSoldier->SpottingBonus() > 0)
 			{
 				// has spotting item in main hand
 				// sevenfm: start spotting
 				if (!TileIsOutOfBounds(usGridNo) &&
-					pSoldier->CanSpot(usGridNo) &&
-					!gTacticalStatus.fAtLeastOneGuyOnMultiSelect)
+					pSoldier->CanSpot(usGridNo))
 				{
 					// Check AP cost...
 					if (!EnoughPoints(pSoldier, APBPConstants[AP_SPOTTER], 0, TRUE))
@@ -5139,7 +5138,7 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 					return(TRUE);
 				}
 			}
-			else if (pSoldier->MaxVisionBonus() > 0 && !gTacticalStatus.fAtLeastOneGuyOnMultiSelect)
+			else if (pSoldier->MaxVisionBonus() > 0)
 			{
 				// any item with vision bonus in main hand
 				if (!TileIsOutOfBounds(usGridNo))
