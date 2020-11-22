@@ -589,7 +589,7 @@ INT8 GetSightAdjustmentThroughStance( const UINT8& ubStance )
 * TODO: Figure out how to find out your equipment cost. Big equipment will make you more visible! we could go after the load itself (kg)
 * TODO: but we still want a backpack to count more than your vest
 * 
-* Calculates a percentage value to be added (or substracted) from sight. it's based on the amount of LBE.
+* Calculates a percentage value to be added (or subtracted) from sight. it's based on the amount of LBE.
 *
 * @param pSoldier the target
 * @return a negative value will indicate a reduction of sight, a positive one an addition to sight
@@ -708,18 +708,19 @@ INT8 GetSightAdjustmentBehindStructure( const INT16& iRange, STRUCTURE* pStructu
 /*
 * Easy way to get all sight adjustments into one that affect a soldier
 */
-INT16 GetSightAdjustment( SOLDIERTYPE* pSoldier, INT32 sGridNo, INT16 bLevel, INT8 bStance )
+//INT16 GetSightAdjustment( SOLDIERTYPE* pSoldier, INT32 sGridNo, INT16 bLevel, INT8 bStance )
+INT16 GetSightAdjustment(SOLDIERTYPE* pStartSoldier, SOLDIERTYPE* pEndSoldier, INT32 sGridNo, INT16 bLevel, INT8 bStance)
 {
-	CHECKF(pSoldier);
+	CHECKF(pEndSoldier);
 
 	if (sGridNo == -1) 
-		sGridNo = pSoldier->sGridNo;
+		sGridNo = pEndSoldier->sGridNo;
 
 	if (bLevel == -1)
-		bLevel = gpWorldLevelData[pSoldier->sGridNo].sHeight;
+		bLevel = gpWorldLevelData[pEndSoldier->sGridNo].sHeight;
 
 	if (bStance == -1)
-		bStance = GetCurrentHeightOfSoldier( pSoldier );
+		bStance = GetCurrentHeightOfSoldier(pEndSoldier);
 
 	UINT8 ubTerrainType = GetTerrainTypeForGrid( sGridNo, bLevel );
 	UINT8 ubLightLevel = LightTrueLevel( sGridNo, bLevel );
@@ -730,12 +731,22 @@ INT16 GetSightAdjustment( SOLDIERTYPE* pSoldier, INT32 sGridNo, INT16 bLevel, IN
 	iSightAdjustment += GetSightAdjustmentThroughStance( bStance );
 
 	// context sensitive (needs soldier)
-	iSightAdjustment += GetSightAdjustmentBasedOnLBE(pSoldier);
+	iSightAdjustment += GetSightAdjustmentBasedOnLBE(pEndSoldier);
 
 	// context sensitive stuff with 2nd parameter (needs soldier for attributes but can be given a second parameter)
-	iSightAdjustment += GetSightAdjustmentThroughMovement(pSoldier, pSoldier->bTilesMoved, ubLightLevel);
-	iSightAdjustment += GetSightAdjustmentStealthAtLightLevel(pSoldier, ubLightLevel);
-	iSightAdjustment += GetSightAdjustmentCamouflageOnTerrain(pSoldier, bStance, ubTerrainType);
+	iSightAdjustment += GetSightAdjustmentThroughMovement(pEndSoldier, pEndSoldier->bTilesMoved, ubLightLevel);
+	iSightAdjustment += GetSightAdjustmentStealthAtLightLevel(pEndSoldier, ubLightLevel);
+	iSightAdjustment += GetSightAdjustmentCamouflageOnTerrain(pEndSoldier, bStance, ubTerrainType);
+	
+	if (UsingNewVisionSystem())
+	{
+		// watched location can compensate stance/camo/stealth penalty
+		if (pStartSoldier)
+			iSightAdjustment += 25 * GetWatchedLocPoints(pStartSoldier->ubID, sGridNo, bLevel);
+
+		// no vision bonus from LBE/movement/watched location
+		iSightAdjustment = min(0, iSightAdjustment);
+	}
 
 	return MINMAX100N(iSightAdjustment);
 }
@@ -2154,15 +2165,15 @@ INT32 SoldierToSoldierLineOfSightTest( SOLDIERTYPE * pStartSoldier, SOLDIERTYPE 
 	// needed for sight limit calculation
 	if (iTileSightLimit == CALC_FROM_ALL_DIRS || iTileSightLimit == CALC_FROM_WANTED_DIR)
 	{
-		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible( pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, iTileSightLimit );
-		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pEndSoldier) / 100;
+		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible(pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, iTileSightLimit);
+		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100;
 	}
 
 	// needed for gun hit calculation (can you even hit him)
 	else if (iTileSightLimit == NO_DISTANCE_LIMIT)
 	{
-		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible( pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS );
-		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pEndSoldier) / 100;
+		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible(pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
+		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100;
 		iTileSightLimit += 255; // this shifts the limit for something special (we don't know yet)
 	}
 
@@ -2170,7 +2181,7 @@ INT32 SoldierToSoldierLineOfSightTest( SOLDIERTYPE * pStartSoldier, SOLDIERTYPE 
 	// for other function we assume the opposite but not this one, as we here are given the needed target soldier information to calculate sight adjustment
 	else 
 	{
-		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pEndSoldier) / 100;
+		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100;
 	}
 
 	// anv: special check for vehicles - since they're no longer transparent, we need to check for visibility 

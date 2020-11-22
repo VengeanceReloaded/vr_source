@@ -354,8 +354,8 @@ UINT8 BodyImpactReduction[4] = { 0, 15, 30, 23 };
 
 bool gbForceWeaponNotReady = false;		// disables limited vision from focus skill
 bool gbForceWeaponReady = false;		// forces weapon ready, forces binocs active, disables limited vision from focus skill
-bool gbForceMaxExtraVision = false;		// use max extra vision bonus from watched location
-bool gbForceNoExtraVision = false;		// disables extra vision bonus from watched location
+//bool gbForceMaxExtraVision = false;		// use max extra vision bonus from watched location
+//bool gbForceNoExtraVision = false;		// disables extra vision bonus from watched location
 
 enum
 {
@@ -7010,7 +7010,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	}
 
 	// sevenfm: disable extra vision bonus, only use vision bonus from scope
-	gbForceNoExtraVision = true;
+	//gbForceNoExtraVision = true;
 
 	sDistVis = pSoldier->GetMaxDistanceVisible(sGridNo, pSoldier->bTargetLevel, CALC_FROM_ALL_DIRS ) * CELL_X_SIZE;
 	iScopeVisionRangeBonus = GetTotalVisionRangeBonus(pSoldier, bLightLevel, sGridNo, pSoldier->bTargetLevel);	// not an actual range value, simply a modifier for range calculations
@@ -7037,7 +7037,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	sDistVisNoScope = pSoldier->GetMaxDistanceVisible(sGridNo, pSoldier->bTargetLevel, CALC_FROM_ALL_DIRS ) * CELL_X_SIZE;
 	gbForceWeaponNotReady = false;
 
-	gbForceNoExtraVision = false;	
+	//gbForceNoExtraVision = false;	
 
 	// cannot see target soldier/tile
 	if (iSightRange == 0)

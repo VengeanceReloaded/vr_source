@@ -4131,7 +4131,7 @@ BOOLEAN ProneSightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlim
 		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
 		gbForceWeaponReady = false;
 
-		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_PRONE) / 100;
+		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pOpponent, pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_PRONE) / 100;
 
 		if (LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, PRONE_LOS_POS) ||
 			fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, PRONE_LOS_POS))
@@ -4210,7 +4210,7 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
 		gbForceWeaponReady = false;
 
-		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_STAND) / 100;
+		usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pOpponent, pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_STAND) / 100;
 
 		if (LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS) ||
 			fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, STANDING_LOS_POS))

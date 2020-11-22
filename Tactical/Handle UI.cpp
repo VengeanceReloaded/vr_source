@@ -417,9 +417,9 @@ BOOLEAN	gRubberBandActive = FALSE;
 BOOLEAN	gfIgnoreOnSelectedGuy = FALSE;
 BOOLEAN gfViewPortAdjustedForSouth = FALSE;
 
-INT16				guiCreateGuyIndex = 0;
+INT16		guiCreateGuyIndex = 0;
 // Temp values for placing bad guys
-INT16				guiCreateBadGuyIndex = 8;
+INT16		guiCreateBadGuyIndex = 8;
 
 // FLAGS
 // These flags are set for a single frame execution and then are reset for the next iteration.
@@ -428,21 +428,22 @@ BOOLEAN		gfUIDisplayActionPointsInvalid	= FALSE;
 BOOLEAN		gfUIDisplayActionPointsBlack		= FALSE;
 BOOLEAN		gfUIDisplayActionPointsCenter		= FALSE;
 
-INT16			gUIDisplayActionPointsOffY			= 0;
-INT16			gUIDisplayActionPointsOffX			= 0;
+INT16		gUIDisplayActionPointsOffY			= 0;
+INT16		gUIDisplayActionPointsOffX			= 0;
 BOOLEAN		gfUIDoNotHighlightSelMerc				= FALSE;
 BOOLEAN		gfUIHandleSelection							= FALSE;
 BOOLEAN		gfUIHandleSelectionAboveGuy			= FALSE;
 BOOLEAN		gfUIInDeadlock									= FALSE;
-UINT8			gUIDeadlockedSoldier						= NOBODY;
+UINT8		gUIDeadlockedSoldier						= NOBODY;
 BOOLEAN		gfUIHandleShowMoveGrid					= FALSE;
 INT32		gsUIHandleShowMoveGridLocation  = NOWHERE ;
 BOOLEAN		gfUIOverItemPool								= FALSE;
-INT32			gfUIOverItemPoolGridNo					= 0;
-INT16			gsCurrentActionPoints						= 1;
+INT32		gfUIOverItemPoolGridNo					= 0;
+INT16		gsCurrentActionPoints						= 1;
+BOOLEAN		gfWatchActionPossible = FALSE;
 BOOLEAN		gfUIHandlePhysicsTrajectory			= FALSE;
 BOOLEAN		gfUIMouseOnValidCatcher					= FALSE;
-UINT8			gubUIValidCatcherID							= 0;
+UINT8		gubUIValidCatcherID							= 0;
 
 
 
@@ -4193,17 +4194,9 @@ INT8 DrawUIMovementPath( SOLDIERTYPE *pSoldier, INT32 usMapPos, UINT32 uiFlags )
 
 		if (!TileIsOutOfBounds(sGotLocation))
 		{
-#if 0//dnl ch73 021013 don't add turnover cost if we are moving, in the future this should be calculated by UIPlotPath
-			sAPCost += MinAPsToAttack( pSoldier, sAdjustedGridNo, TRUE, pSoldier->aiData.bShownAimTime, 0 );
-
-			// WANNE: Turn around APs were missing, I think ....
-			//sAPCost += APsToTurnAround(pSoldier, sAdjustedGridNo);
-
-			sAPCost += UIPlotPath( pSoldier, sGotLocation, NO_COPYROUTE, fPlot, TEMPORARY, (UINT16)pSoldier->usUIMovementMode, NOT_STEALTH, FORWARD, pSoldier->bActionPoints);
-#else
 			sAPCost = UIPlotPath(pSoldier, sGotLocation, NO_COPYROUTE, fPlot, TEMPORARY, (UINT16)pSoldier->usUIMovementMode, NOT_STEALTH, FORWARD, pSoldier->bActionPoints);
 			sAPCost += MinAPsToAttack(pSoldier, sAdjustedGridNo, sAPCost>0?FALSE:TRUE, pSoldier->aiData.bShownAimTime, 0);
-#endif
+
 			if ( sGotLocation != pSoldier->sGridNo && fGotAdjacent )
 			{
 				gfUIHandleShowMoveGrid = TRUE;
@@ -4893,6 +4886,42 @@ void SetConfirmMovementModeCursor( SOLDIERTYPE *pSoldier, BOOLEAN fFromMove )
 
 }
 
+INT32 GetWatchSpotFocusAP(SOLDIERTYPE *pSoldier, INT32 usGridNo)
+{
+	if (!TileIsOutOfBounds(usGridNo))
+	{
+		if (pSoldier->inv[HANDPOS].exists() && IsWeapon(pSoldier->inv[HANDPOS].usItem))
+		{
+			// has weapon in main hand
+			if (pSoldier->CanFocus(usGridNo) &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] == 0 || usGridNo != pSoldier->sMTActionGridNo))
+			{
+				return APBPConstants[AP_SPOTTER];
+			}
+		}
+		else if (pSoldier->inv[HANDPOS].exists() && pSoldier->SpottingBonus() > 0)
+		{
+			// has spotting item in main hand
+			if (pSoldier->CanSpot(usGridNo) &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 || UsingNewVisionSystem() && usGridNo != pSoldier->sMTActionGridNo))
+			{
+				return APBPConstants[AP_SPOTTER];
+			}
+		}
+		else if (pSoldier->MaxVisionBonus() > 0)
+		{
+			// any item with vision bonus in main hand
+			if (pSoldier->CanWatch(usGridNo) &&
+				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 || UsingNewVisionSystem() && usGridNo != pSoldier->sMTActionGridNo))
+			{
+				return GetAPsToWatch(pSoldier);
+			}
+		}
+	}
+
+	return 0;
+}
+
 UINT8 gubShowActionPointsInRed = 0;
 
 UINT32 UIHandleLCOnTerrain( UI_EVENT *pUIEvent )
@@ -4913,7 +4942,6 @@ UINT32 UIHandleLCOnTerrain( UI_EVENT *pUIEvent )
 
 	gUIDisplayActionPointsOffX = 14;
 	gUIDisplayActionPointsOffY = 7;
-
 
 	// Get soldier
 	if ( !GetSoldier( &pSoldier, gusSelectedSoldier )	)
@@ -4949,41 +4977,11 @@ UINT32 UIHandleLCOnTerrain( UI_EVENT *pUIEvent )
 		else if (!gTacticalStatus.fAtLeastOneGuyOnMultiSelect)
 			// cannot ready weapon
 		{
-			// sevenfm: use for spotting skill
 			INT32 usGridNo;		
 			//Get the gridno the cursor is at
 			GetMouseMapPos( &usGridNo );
 
-			if (!TileIsOutOfBounds(usGridNo))
-			{
-				if (pSoldier->inv[HANDPOS].exists() && IsWeapon(pSoldier->inv[HANDPOS].usItem))
-				{
-					// has weapon in main hand
-					if (pSoldier->CanFocus(usGridNo) &&
-						(pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] == 0 || usGridNo != pSoldier->sMTActionGridNo))
-					{
-						gsCurrentActionPoints = APBPConstants[AP_SPOTTER];
-					}
-				}
-				else if (pSoldier->inv[HANDPOS].exists() && pSoldier->SpottingBonus() > 0)
-				{
-					// has spotting item in main hand
-					if (pSoldier->CanSpot(usGridNo) &&
-						(pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 || UsingNewVisionSystem() && usGridNo != pSoldier->sMTActionGridNo))
-					{
-						gsCurrentActionPoints = APBPConstants[AP_SPOTTER];
-					}
-				}
-				else if (pSoldier->MaxVisionBonus() > 0)
-				{
-					// any item with vision bonus in main hand
-					if (pSoldier->CanWatch(usGridNo) &&
-						(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 || UsingNewVisionSystem() && usGridNo != pSoldier->sMTActionGridNo))
-					{
-						gsCurrentActionPoints = GetAPsToWatch(pSoldier);
-					}
-				}
-			}			
+			gsCurrentActionPoints = GetWatchSpotFocusAP(pSoldier, usGridNo);
 		}
 
 		gfUIHandleShowMoveGrid = TRUE;
@@ -5077,13 +5075,16 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 	}
 	else
 	{
-		if (gsCurrentActionPoints > 0 && !gTacticalStatus.fAtLeastOneGuyOnMultiSelect)
+		INT16 sActionAP = GetWatchSpotFocusAP(pSoldier, usGridNo);
+
+		if (sActionAP > 0 &&
+			!gTacticalStatus.fAtLeastOneGuyOnMultiSelect &&
+			!TileIsOutOfBounds(usGridNo))
 		{
+			// has weapon in main hand
 			if (pSoldier->inv[HANDPOS].exists() && IsWeapon(pSoldier->inv[HANDPOS].usItem))
-			{
-				// has weapon in main hand
-				if (!TileIsOutOfBounds(usGridNo) &&
-					UsingNewVisionSystem() &&
+			{				
+				if (UsingNewVisionSystem() &&
 					WeaponReady(pSoldier))
 				{
 					gbForceWeaponReady = true;
@@ -5112,12 +5113,11 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 					}
 				}
 			}
+			// has spotting item in main hand
 			else if (pSoldier->SpottingBonus() > 0)
-			{
-				// has spotting item in main hand
+			{				
 				// sevenfm: start spotting
-				if (!TileIsOutOfBounds(usGridNo) &&
-					pSoldier->CanSpot(usGridNo))
+				if (pSoldier->CanSpot(usGridNo))
 				{
 					// Check AP cost...
 					if (!EnoughPoints(pSoldier, APBPConstants[AP_SPOTTER], 0, TRUE))
@@ -5133,39 +5133,62 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 					return(TRUE);
 				}
 			}
+			// any item with vision bonus in main hand
 			else if (pSoldier->MaxVisionBonus() > 0)
-			{
-				// any item with vision bonus in main hand
-				if (!TileIsOutOfBounds(usGridNo))
-				{
-					gbForceWeaponReady = true;
-					INT32 val = SoldierToVirtualSoldierLineOfSightTest(pSoldier, usGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
-					gbForceWeaponReady = false;
+			{				
+				gbForceWeaponReady = true;
+				INT32 val = SoldierToVirtualSoldierLineOfSightTest(pSoldier, usGridNo, gsInterfaceLevel, ANIM_STAND, TRUE, CALC_FROM_WANTED_DIR);
+				gbForceWeaponReady = false;
 
-					if (val)
+				if (val)
+				{
+					// Check AP cost...
+					if (!EnoughPoints(pSoldier, GetAPsToWatch(pSoldier), 0, TRUE))
 					{
-						// Check AP cost...
-						if (!EnoughPoints(pSoldier, GetAPsToWatch(pSoldier), 0, TRUE))
-						{
-							return(FALSE);
-						}
-						DeductPoints(pSoldier, GetAPsToWatch(pSoldier), 0, 0);
-						pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 1;
-						// stop any multi-turn action
-						pSoldier->CancelMultiTurnAction(FALSE);
-						// sevenfm: set spotting spot
-						pSoldier->sMTActionGridNo = usGridNo;
-						DirtyMercPanelInterface(pSoldier, DIRTYLEVEL1);
-						// update vision
-						HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
-						//ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"%s starts watching %d", pSoldier->GetName(), usGridNo);
-						if (UsingNewVisionSystem())
-							BeginMultiPurposeLocator(usGridNo, gsInterfaceLevel, FALSE);
-						return TRUE;
+						return(FALSE);
 					}
+					DeductPoints(pSoldier, GetAPsToWatch(pSoldier), 0, 0);
+					pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 1;
+					// stop any multi-turn action
+					pSoldier->CancelMultiTurnAction(FALSE);
+					// sevenfm: set spotting spot
+					pSoldier->sMTActionGridNo = usGridNo;
+					DirtyMercPanelInterface(pSoldier, DIRTYLEVEL1);
+					// update vision
+					HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+					//ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"%s starts watching %d", pSoldier->GetName(), usGridNo);
+					if (UsingNewVisionSystem())
+						BeginMultiPurposeLocator(usGridNo, gsInterfaceLevel, FALSE);
+					return TRUE;
 				}
 			}
-		}		
+		}
+		else if (sActionAP == 0)
+		{
+			// stop watching/spotting/focusing
+			if (pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER])
+			{
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] = 0;
+				pSoldier->sMTActionGridNo = NOWHERE;
+				HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+			}
+
+			// sevenfm: stop watching if APs spent
+			if (pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH])
+			{
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] = 0;
+				pSoldier->sMTActionGridNo = NOWHERE;
+				HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+			}
+
+			// sevenfm: stop focus if spent AP not for shooting
+			if (pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS])
+			{
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] = 0;
+				pSoldier->sMTActionGridNo = NOWHERE;
+				HandleSight(pSoldier, SIGHT_LOOK | SIGHT_INTERRUPT);
+			}
+		}
 
 		if ( pSoldier->bScopeMode == USE_ALT_WEAPON_HOLD && gGameExternalOptions.ubAllowAlternativeWeaponHolding == 3 )
 			usAnimState = PickSoldierReadyAnimation( pSoldier, FALSE, TRUE );
@@ -5229,9 +5252,10 @@ BOOLEAN MakeSoldierTurn( SOLDIERTYPE *pSoldier, INT16 sXPos, INT16 sYPos )
 
 UINT32 UIHandleLCLook( UI_EVENT *pUIEvent )
 {
-	INT16							sXPos, sYPos;
-	SOLDIERTYPE				*pSoldier;
-	INT32						cnt;
+	INT16		sXPos, sYPos;
+	SOLDIERTYPE	*pSoldier;
+	INT32		cnt;
+
 	if ( !GetMouseXY( &sXPos, &sYPos ) )
 	{
 		return( GAME_SCREEN );
@@ -5266,6 +5290,7 @@ UINT32 UIHandleLCLook( UI_EVENT *pUIEvent )
 			//SetUIBusy( pSoldier->ubID );		
 		}
 	}
+
 	return( GAME_SCREEN );
 }
 

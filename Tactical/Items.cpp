@@ -11664,7 +11664,7 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 		//sBonus += sScopebonus;
 	}
 
-	if (UsingNewVisionSystem() &&
+	/*if (UsingNewVisionSystem() &&
 		pSoldier->bTeam != gbPlayerNum &&
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
@@ -11679,7 +11679,7 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
 		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
-	}
+	}*/
 
 	sBonus += sScopebonus;
 
@@ -11803,7 +11803,7 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 		//sBonus += sScopebonus;
 	}
 
-	if (UsingNewVisionSystem() &&
+	/*if (UsingNewVisionSystem() &&
 		pSoldier->bTeam != gbPlayerNum &&
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
@@ -11818,7 +11818,7 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
 		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
-	}
+	}*/
 
 	sBonus += sScopebonus;
 
@@ -11967,7 +11967,7 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 		//sBonus += sScopebonus;
 	}
 
-	if (UsingNewVisionSystem() &&
+	/*if (UsingNewVisionSystem() &&
 		pSoldier->bTeam != gbPlayerNum &&
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
@@ -11982,7 +11982,7 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
 		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
-	}
+	}*/
 
 	sBonus += sScopebonus;
 
@@ -12120,7 +12120,7 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 		//sBonus += sScopebonus;
 	}
 
-	if (UsingNewVisionSystem() &&
+	/*if (UsingNewVisionSystem() &&
 		pSoldier->bTeam != gbPlayerNum &&
 		IS_MERC_BODY_TYPE(pSoldier) &&
 		!TileIsOutOfBounds(sSpot) &&
@@ -12135,7 +12135,7 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 			bWatchPoints = GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel);
 
 		sScopebonus = max(min(100, 25 * bWatchPoints + sScopebonus), sScopebonus);
-	}
+	}*/
 
 	sBonus += sScopebonus;
 

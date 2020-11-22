@@ -625,13 +625,13 @@ void CalculateCoverFromSoldier(SOLDIERTYPE* pFromSoldier, const INT32& sTargetGr
 		{
 			//usAdjustedSight = usSightLimit;
 			if (gfUIFullTargetFound && gusUIFullTargetID != NOBODY && MercPtrs[gusUIFullTargetID]->bVisible != -1)
-				usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(MercPtrs[gusUIFullTargetID], sTargetGridNo, (INT8)fRoof, ubStance) / 100;
+				usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pFromSoldier, MercPtrs[gusUIFullTargetID], sTargetGridNo, (INT8)fRoof, ubStance) / 100;
 			else
 				usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustmentThroughStance(ubStance) / 100;
 		}
 		else
 		{
-			usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pToSoldier, sTargetGridNo, (INT8)fRoof, ubStance) / 100;
+			usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pFromSoldier, pToSoldier, sTargetGridNo, (INT8)fRoof, ubStance) / 100;
 		}
 
 		if (SoldierToVirtualSoldierLineOfSightTest(pFromSoldier, sTargetGridNo, (INT8)fRoof, ubStance, FALSE, usAdjustedSight) != 0)
@@ -664,7 +664,7 @@ void DisplayRangeToTarget(SOLDIERTYPE *pSoldier, INT32 sTargetGridNo)
 	UINT8 ubBrightness = 100 - 100 * (ubLightLevel - SHADE_MAX) / (SHADE_MIN - SHADE_MAX); // percentage
 	INT8 ubTerrainType = GetTerrainTypeForGrid(sTargetGridNo, gsInterfaceLevel);
 
-	INT8 ubCover = -GetSightAdjustment(pSoldier, sTargetGridNo, gsInterfaceLevel);
+	INT8 ubCover = -GetSightAdjustment(NULL, pSoldier, sTargetGridNo, gsInterfaceLevel);
 
 	ScreenMsg(FONT_MCOLOR_LTYELLOW, MSG_INTERFACE, gzDisplayCoverText[DC_MSG__COVER_INFORMATION], ubCover, GetTerrainName(ubTerrainType), ubBrightness);
 

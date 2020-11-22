@@ -171,7 +171,7 @@ INT32 ClosestUnDisguisedPC( SOLDIERTYPE *pSoldier, INT32 * psDistance );	// Flug
 BOOLEAN CanAutoBandage( BOOLEAN fDoFullCheck );
 
 void DebugAI( STR szOutput );
-INT8	DecideAction(SOLDIERTYPE *pSoldier);
+INT8 DecideAction(SOLDIERTYPE *pSoldier);
 INT8 DecideActionBlack(SOLDIERTYPE *pSoldier);
 INT8 DecideActionEscort(SOLDIERTYPE *pSoldier);
 INT8 DecideActionGreen(SOLDIERTYPE *pSoldier);
@@ -331,6 +331,7 @@ BOOLEAN ValidTeamOpponent(INT8 bTeam, SOLDIERTYPE* pOpponent);
 #define MAX_FLANKS_YELLOW 25
 
 // vision range defines
+#define MAX_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * 4 * STRAIGHT_RATIO)
 #define DAY_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO * 2)
 #define NIGHT_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO )
 #define VISION_RANGE MaxNormalVisionDistance()

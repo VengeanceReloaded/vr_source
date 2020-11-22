@@ -6534,23 +6534,24 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 			UpdatePersonal(pSoldier,ubNoiseMaker,HEARD_THIS_TURN,sGridNo, bLevel);
 
 			// Public info is not set unless EVERYONE on the team fails to see the
-			// ubnoisemaker, leaving the 'seen' flag FALSE.	See ProcessNoise().
+			// ubNoiseMaker, leaving the 'seen' flag FALSE.	See ProcessNoise().
 
-			gbForceWeaponReady = true;
+			/*gbForceWeaponReady = true;
 			gbForceMaxExtraVision = true;
 			usSightLimit = pSoldier->GetMaxDistanceVisible(sGridNo, bLevel, CALC_FROM_ALL_DIRS);
 			gbForceWeaponReady = false;
-			gbForceMaxExtraVision = false;
+			gbForceMaxExtraVision = false;*/
 
 			// sevenfm: increment watched location when soldier hears enemy
 			if ((ubNoiseType == NOISE_GUNFIRE || ubNoiseType == NOISE_MOVEMENT || ubNoiseType == NOISE_SCREAM || ubNoiseType == NOISE_VOICE) &&
 				!TileIsOutOfBounds(sGridNo) &&
-				pSoldier->bTeam != gbPlayerNum &&
+				//pSoldier->bTeam != gbPlayerNum &&
 				!pSoldier->aiData.bNeutral &&
 				MercPtrs[ubNoiseMaker] &&
 				!MercPtrs[ubNoiseMaker]->aiData.bNeutral &&
 				!AICheckIsFlanking(pSoldier) &&
-				SoldierToVirtualSoldierLineOfSightTest(pSoldier, sGridNo, bLevel, ANIM_STAND, TRUE, usSightLimit))
+				PythSpacesAway(pSoldier->sGridNo, sGridNo) <= MAX_VISION_RANGE &&
+				SoldierToVirtualSoldierLineOfSightTest(pSoldier, sGridNo, bLevel, ANIM_STAND, TRUE, NO_DISTANCE_LIMIT))
 			{
 				IncrementWatchedLoc(pSoldier->ubID, sGridNo, bLevel);
 			}

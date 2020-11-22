@@ -193,7 +193,8 @@ INT8 GetTerrainTypeForGrid( const INT32& uGridNo, const INT16& bLevel );
 INT8 GetSightAdjustmentThroughStance( const UINT8& ubStance );
 
 // quick way to get all. should be used for all sight line tests with target soldier known
-INT16 GetSightAdjustment( SOLDIERTYPE* pSoldier, INT32 sGridNo = -1, INT16 bLevel = -1, INT8 bStance = -1 );
+//INT16 GetSightAdjustment( SOLDIERTYPE* pSoldier, INT32 sGridNo = -1, INT16 bLevel = -1, INT8 bStance = -1 );
+INT16 GetSightAdjustment(SOLDIERTYPE* pStartSoldier, SOLDIERTYPE* pEndSoldier, INT32 sGridNo = -1, INT16 bLevel = -1, INT8 bStance = -1);
 
 //zilpin: pellet spread patterns externalized in XML
 #define SPREADPATTERN_NAME_SIZE 32

@@ -8399,9 +8399,15 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
             DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("HandleSuppressionFire: calc suppression tolerance"));
 
 			// sevenfm: set attack spot as watched location
-			if (pAttacker && pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(pAttacker->sGridNo))
+			if (pAttacker && 
+				//pSoldier->bTeam != gbPlayerNum && 
+				!TileIsOutOfBounds(pAttacker->sGridNo) &&
+				PythSpacesAway(pSoldier->sGridNo, pAttacker->sGridNo) <= MAX_VISION_RANGE &&
+				SoldierToVirtualSoldierLineOfSightTest(pSoldier, pAttacker->sGridNo, pAttacker->pathing.bLevel, ANIM_STAND, TRUE, NO_DISTANCE_LIMIT))
 			{
-				gbForceWeaponReady = true;
+				IncrementWatchedLoc(pSoldier->ubID, pAttacker->sGridNo, pAttacker->pathing.bLevel);
+
+				/*gbForceWeaponReady = true;
 				gbForceMaxExtraVision = true;
 				UINT16 usSightLimit = pSoldier->GetMaxDistanceVisible(pAttacker->sGridNo, pAttacker->pathing.bLevel, CALC_FROM_ALL_DIRS);
 				gbForceWeaponReady = false;
@@ -8410,7 +8416,7 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
 				if (SoldierToVirtualSoldierLineOfSightTest(pSoldier, pAttacker->sGridNo, pAttacker->pathing.bLevel, ANIM_STAND, TRUE, usSightLimit));
 				{
 					IncrementWatchedLoc(pSoldier->ubID, pAttacker->sGridNo, pAttacker->pathing.bLevel);
-				}
+				}*/
 			}
 
             // Calculate the character's tolerance to suppression. Helps reduce the severity of the penalties inflicted
