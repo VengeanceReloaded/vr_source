@@ -11599,14 +11599,12 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 // Snap: Scale night vision bonus with light level
 INT16 NightBonusScale( INT16 bonus, UINT8 bLightLevel )
 {
-	if ( bLightLevel > NORMAL_LIGHTLEVEL_NIGHT ) {
-		return idiv( bonus * ( SHADE_MIN - bLightLevel ),
-			SHADE_MIN - NORMAL_LIGHTLEVEL_NIGHT );
-	}
-	else if ( bLightLevel > NORMAL_LIGHTLEVEL_DAY ) {
-		return idiv( bonus * (bLightLevel - NORMAL_LIGHTLEVEL_DAY),
-			NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY );
-	}
+	// sevenfm: max darkness halves night vision bonus instead of completely removing it
+	if (bLightLevel > NORMAL_LIGHTLEVEL_NIGHT)
+		return idiv(bonus * (SHADE_MIN - NORMAL_LIGHTLEVEL_NIGHT + SHADE_MIN - bLightLevel), 2 * (SHADE_MIN - NORMAL_LIGHTLEVEL_NIGHT));
+	else if (bLightLevel > NORMAL_LIGHTLEVEL_DAY)
+		return idiv(bonus * (bLightLevel - NORMAL_LIGHTLEVEL_DAY), NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY);
+
 	else return 0;
 }
 

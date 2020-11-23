@@ -49,6 +49,13 @@
 extern UINT16 PickSoldierReadyAnimation( SOLDIERTYPE *pSoldier, BOOLEAN fEndReady, BOOLEAN fHipStance );
 extern SECTOR_EXT_DATA	SectorExternalData[256][4];
 
+//rain
+extern INT8 gbCurrentRainIntensity;
+extern BOOLEAN gfLightningInProgress;
+extern BOOLEAN gfHaveSeenSomeone;
+extern UINT8 ubRealAmbientLightLevel;
+//end rain
+
 UINT8 Urgency[NUM_STATUS_STATES][NUM_MORALE_STATES] =
 {
 	{URGENCY_LOW,  URGENCY_LOW,  URGENCY_LOW,  URGENCY_LOW,  URGENCY_LOW}, // green
@@ -5747,4 +5754,48 @@ BOOLEAN ValidTeamOpponent(INT8 bTeam, SOLDIERTYPE* pOpponent)
 	}
 
 	return TRUE;
+}
+
+INT16 VisionRange(void)
+{
+	INT16 sDist = MaxNormalDistanceVisible();
+	INT8 bLightLevel = GetTimeOfDayAmbientLightLevel();
+
+	sDist = sDist * gGameExternalOptions.ubBrightnessVisionMod[bLightLevel] / 100;
+
+	// Adjust it based on weather...
+	if ( guiEnvWeather & ( WEATHER_FORECAST_SHOWERS | WEATHER_FORECAST_THUNDERSHOWERS ) )
+	{
+		INT16 sWeatherPenalty = 0; // percent vision reduction 0-100%
+		sWeatherPenalty = min(gGameExternalOptions.ubVisDistDecreasePerRainIntensity * gbCurrentRainIntensity, 100);
+
+		sDist = (sDist * ( 100 - sWeatherPenalty )) / 100;
+	}
+
+	/*if( gfLightningInProgress )
+	{
+		sDist += sDist * ( ubRealAmbientLightLevel ) / 10;
+	}*/
+
+	return sDist;
+}
+
+INT16 DayVisionRange(void)
+{
+	INT16 sDist = MaxNormalDistanceVisible();
+	INT8 bLightLevel = NORMAL_LIGHTLEVEL_DAY;
+
+	sDist = sDist * gGameExternalOptions.ubBrightnessVisionMod[bLightLevel] / 100;
+
+	return sDist;
+}
+
+INT16 NightVisionRange(void)
+{
+	INT16 sDist = MaxNormalDistanceVisible();
+	INT8 bLightLevel = NORMAL_LIGHTLEVEL_NIGHT;
+
+	sDist = sDist * gGameExternalOptions.ubBrightnessVisionMod[bLightLevel] / 100;
+
+	return sDist;
 }

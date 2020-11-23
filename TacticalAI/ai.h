@@ -327,14 +327,18 @@ BOOLEAN TeamEnemyAlerted(INT8 bTeam);
 BOOLEAN ValidOpponent(SOLDIERTYPE* pSoldier, SOLDIERTYPE* pOpponent);
 BOOLEAN ValidTeamOpponent(INT8 bTeam, SOLDIERTYPE* pOpponent);
 
+INT16 VisionRange(void);
+INT16 DayVisionRange(void);
+INT16 NightVisionRange(void);
+
 #define MAX_FLANKS_RED 25
 #define MAX_FLANKS_YELLOW 25
 
 // vision range defines
 #define MAX_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * 4 * STRAIGHT_RATIO)
-#define DAY_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO * 2)
-#define NIGHT_VISION_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO )
-#define VISION_RANGE MaxNormalVisionDistance()
+#define DAY_VISION_RANGE DayVisionRange()
+#define NIGHT_VISION_RANGE NightVisionRange()
+#define VISION_RANGE VisionRange()
 
 // sevenfm: distance for tactical AI checks, roughly equal to normal day vision range
 #define TACTICAL_RANGE (gGameExternalOptions.ubStraightSightRange * STRAIGHT_RATIO * 2)
