@@ -2282,8 +2282,8 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fRedTracer					= iniReader.ReadBoolean("Extended Options", "RED_TRACER", true, false);
 	gGameExternalOptions.fTracerLight				= iniReader.ReadBoolean("Extended Options", "TRACER_LIGHT", false, false);
 	gGameExternalOptions.fTotalDestruction			= iniReader.ReadBoolean("Extended Options", "TOTAL_DESTRUCTION", true, false);
-	//gGameExternalOptions.fNewVisionBonus			= iniReader.ReadBoolean("Extended Options", "NEW_VISION_BONUS", true, false);
 	gGameExternalOptions.ubDefeatMode				= iniReader.ReadInteger("Extended Options", "DEFEAT_MODE", 0, 0, 4);
+	gGameExternalOptions.fNewStatGainMode			= iniReader.ReadBoolean("Extended Options", "NEW_STAT_GAIN_MODE", false, false);
 }
 
 

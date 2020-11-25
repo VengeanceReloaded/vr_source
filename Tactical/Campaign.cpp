@@ -166,6 +166,7 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 	UINT16 usSubpointsPerPoint;
 	UINT16 usSubpointsPerLevel;
 	INT8 bCurrentRating;
+	INT8 bDelta = 0;
 	UINT16 *psStatGainPtr;
 	BOOLEAN fAffectedByWisdom = TRUE;
 
@@ -189,6 +190,7 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 	{
 		case HEALTHAMT:
 			bCurrentRating = pProfile->bLifeMax;
+			bDelta = pProfile->bLifeDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sLifeGain);
 			// NB physical stat checks not affected by wisdom, unless training is going on
 			fAffectedByWisdom = FALSE;
@@ -196,54 +198,64 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 
 		case AGILAMT:
 			bCurrentRating = pProfile->bAgility;
+			bDelta = pProfile->bAgilityDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sAgilityGain);
 			fAffectedByWisdom = FALSE;
 		break;
 
 		case DEXTAMT:
 			bCurrentRating = pProfile->bDexterity;
+			bDelta = pProfile->bDexterityDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sDexterityGain);
 			fAffectedByWisdom = FALSE;
 		break;
 
 		case WISDOMAMT:
 			bCurrentRating = pProfile->bWisdom;
+			bDelta = pProfile->bWisdomDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sWisdomGain);
 		break;
 
 		case MEDICALAMT:
 			bCurrentRating = pProfile->bMedical;
+			bDelta = pProfile->bMedicalDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sMedicalGain);
 		break;
 
 		case EXPLODEAMT:
 			bCurrentRating = pProfile->bExplosive;
+			bDelta = pProfile->bExplosivesDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sExplosivesGain);
 		break;
 
 		case MECHANAMT:
 			bCurrentRating = pProfile->bMechanical;
+			bDelta = pProfile->bMechanicDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sMechanicGain);
 		break;
 
 		case MARKAMT:
 			bCurrentRating = pProfile->bMarksmanship;
+			bDelta = pProfile->bMarksmanshipDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sMarksmanshipGain);
 		break;
 
 		case EXPERAMT:
 			bCurrentRating = pProfile->bExpLevel;
+			bDelta = pProfile->bExpLevelDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sExpLevelGain);
 		break;
 
 		case STRAMT:
 			bCurrentRating = pProfile->bStrength;
+			bDelta = pProfile->bStrengthDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sStrengthGain);
 			fAffectedByWisdom = FALSE;
 		break;
 
 		case LDRAMT:
 			bCurrentRating = pProfile->bLeadership;
+			bDelta = pProfile->bLeadershipDelta;
 			psStatGainPtr = (UINT16 *)&(pProfile->sLeadershipGain);
 		break;
 
@@ -336,12 +348,27 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 			else if (pProfile->bEvolution == ONEQUARTER_EVOLUTION)
 				usChance =  max(1, usChance * 0.25);
 
+			// sevenfm: 
+			if (gGameExternalOptions.fNewStatGainMode && bDelta > 0 && usChance > 0)
+			{	
+				if (ubStat == EXPERAMT)
+				{
+					// lower chance depending on value
+					usChance = max(1, usChance * 10 / (10 + bCurrentRating));
+					// lower chance depending on delta
+					usChance = max(1, usChance * 10 / (10 + bDelta));
+				}
+				else
+				{
+					// lower chance depending on value
+					usChance = max(1, usChance * 100 / (100 + bCurrentRating));
+					// lower chance depending on delta
+					usChance = max(1, usChance * 100 / (100 + bDelta));
+				}
+			}
 
 			// maximum possible usChance is 99%
-			if (usChance > 99)
-			{
-					usChance = 99;
-			}
+			usChance = min(99, usChance);
 
 			if (PreRandom(100) < usChance )
 			{
