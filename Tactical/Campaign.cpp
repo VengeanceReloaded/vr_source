@@ -354,14 +354,14 @@ void ProcessStatChange(MERCPROFILESTRUCT *pProfile, UINT8 ubStat, UINT16 usNumCh
 				if (ubStat == EXPERAMT)
 				{
 					// lower chance depending on value
-					usChance = max(1, usChance * 10 / (10 + bCurrentRating * bCurrentRating / 10));
+					usChance = max(1, usChance * 10 / (10 + 3 * bCurrentRating * bCurrentRating / 10));
 					// lower chance depending on delta
 					usChance = max(1, usChance * 10 / (10 + 3 * bDelta));
 				}
 				else
 				{
 					// lower chance depending on value
-					usChance = max(1, usChance * 100 / (100 + bCurrentRating * bCurrentRating / 100));
+					usChance = max(1, usChance * 100 / (100 + 3 * bCurrentRating * bCurrentRating / 100));
 					// lower chance depending on delta
 					usChance = max(1, usChance * 100 / (100 + 3 * bDelta));
 				}

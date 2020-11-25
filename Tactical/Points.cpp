@@ -4441,9 +4441,9 @@ INT16 GetAPsToWatch( SOLDIERTYPE * pSoldier )
 
 	sBonus = pSoldier->MaxVisionBonus();
 
-	// 40 AP for 100% bonus
-	// 20 AP for 50% bonus
-	sAP = 2 * sBonus * APBPConstants[AP_SPOTTER] / 100;
+	// AP_SPOTTER for 100% bonus
+	// AP_SPOTTER / 2 for 50% bonus
+	sAP = sBonus * APBPConstants[AP_SPOTTER] / 100;
 	//sAP = pSoldier->SpottingBonus() * APBPConstants[AP_SPOTTER] / 50;
 
 	if( sAP > 0 && gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) )
