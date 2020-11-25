@@ -2184,16 +2184,6 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 		return;
 	// Flugente: update our sight concerning this guy, otherwise we could get way with open attacks because this does not get updated
 	pSoldier->RecognizeAsCombatant(pOpponent->ubID);
-	// sevenfm: unconscious soldiers cannot see anybody
-	if ( pSoldier->bCollapsed && pSoldier->bBreath == 0 )
-	{
-		return;
-	}
-	// sevenfm: if soldier is captured, he can't see anything
-	if( pSoldier->usSoldierFlagMask & SOLDIER_POW )
-	{
-		return;
-	}
 
 	// if we're seeing a guy we didn't see on our last chance to look for him
 	if (pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_CURRENTLY)
@@ -2666,7 +2656,14 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 			// if the looker hasn't seen this opponent at all earlier this turn, OR
 			// if the opponent is not where the looker last thought him to be
 			// sevenfm: only call SetNewSituation if location or level is different to reduce frequency of AI re-evaluation
-			if (gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID] != sOppGridNo || gbLastKnownOppLevel[pSoldier->ubID][pOpponent->ubID] != bOppLevel)
+			if (// check if personal knowledge differs from actual location
+				pSoldier->aiData.bOppList[pOpponent->ubID] == NOT_HEARD_OR_SEEN ||
+				gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID] != sOppGridNo || 
+				gbLastKnownOppLevel[pSoldier->ubID][pOpponent->ubID] != bOppLevel ||
+				// check if public knowledge is more up to date than personal and public location is different from actual
+				gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != NOT_HEARD_OR_SEEN &&
+				gubKnowledgeValue[gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] - OLDEST_HEARD_VALUE][pSoldier->aiData.bOppList[pOpponent->ubID] - OLDEST_HEARD_VALUE] == 0 &&
+				(gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID] != sOppGridNo || gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID] != bOppLevel))
 				//pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN
 			{
 				SetNewSituation( pSoldier );  // force the looker to re-evaluate
