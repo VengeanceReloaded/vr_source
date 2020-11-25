@@ -2661,18 +2661,20 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 			}
 
 			// we already know the soldier isn't SEEN_CURRENTLY,
-			// now check if he is really "NEW" ie. not expected to be there
+			// now check if he is really "NEW" i.e. not expected to be there
 
 			// if the looker hasn't seen this opponent at all earlier this turn, OR
 			// if the opponent is not where the looker last thought him to be
-			if ((pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN) ||
-				(gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID] != sOppGridNo))
+			// sevenfm: only call SetNewSituation if location or level is different to reduce frequency of AI re-evaluation
+			if (gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID] != sOppGridNo || gbLastKnownOppLevel[pSoldier->ubID][pOpponent->ubID] != bOppLevel)
+				//pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN
 			{
 				SetNewSituation( pSoldier );  // force the looker to re-evaluate
+
 				// anv: simulate informing buddies about detected enemy's position
 				// sevenfm: check that he is really new
-				if( gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_CURRENTLY &&
-					gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != SEEN_THIS_TURN )
+				if (gbSeenOpponents[pSoldier->ubID][pOpponent->ubID] != TRUE &&
+					gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] < SEEN_CURRENTLY)
 					PossiblyStartEnemyTaunt( pSoldier, TAUNT_INFORM_ABOUT, pOpponent->ubID );
 			}
 			else
@@ -3968,7 +3970,7 @@ DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
 			// radioing to militia that we saw someone! alert them!
 			if ( gTacticalStatus.Team[ MILITIA_TEAM ].bTeamActive && !gTacticalStatus.Team[ MILITIA_TEAM ].bAwareOfOpposition )
 			{
-				HandleInitialRedAlert( MILITIA_TEAM, FALSE );
+				HandleInitialRedAlert( MILITIA_TEAM, NON_CIV_GROUP );
 			}
 		}
 	} 	// end of our team's merc sees new opponent
@@ -3984,8 +3986,6 @@ DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
 	DebugMsg( TOPIC_JA2OPPLIST, DBG_LEVEL_3,
 			String("...............UPDATE PUBLIC: soldier %d SEEING soldier %d",pSoldier->ubID,pOpponent->ubID) );
 #endif
-
-
 
 	UpdatePublic(ubTeamToRadioTo,pOpponent->ubID,*pPersOL,gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID],gbLastKnownOppLevel[pSoldier->ubID][pOpponent->ubID]);
 	}

@@ -218,7 +218,7 @@ UINT8 GetClosestOpponent( SOLDIERTYPE *pSoldier );
 UINT8 GetMostThreateningOpponent( SOLDIERTYPE *pSoldier );
 
 void HandleSoldierAI( SOLDIERTYPE *pSoldier );
-void HandleInitialRedAlert( INT8 bTeam, UINT8 ubCommunicate);
+void HandleInitialRedAlert( INT8 bTeam, UINT8 ubCivGroup);
 
 void InitPanicSystem();
 INT16 InWaterOrGas(SOLDIERTYPE *pSoldier, INT32 sGridno);
@@ -295,9 +295,12 @@ UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier );
 UINT8 CountPublicKnownEnemies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountSeenCovertOpponents( SOLDIERTYPE *pSoldier );
 
-UINT8 CountTeamCombat( SOLDIERTYPE *pSoldier );
-UINT8 CountTeamSeeSoldier( INT8 bTeam, SOLDIERTYPE *pSoldier );
-BOOLEAN TeamKnowsSoldier( INT8 bTeam, UINT8 ubID );
+UINT8 CountTeamCombat(SOLDIERTYPE *pSoldier);
+UINT8 CountTeamSeeSoldier(INT8 bTeam, SOLDIERTYPE *pSoldier);
+BOOLEAN TeamKnowsSoldier(INT8 bTeam, UINT8 ubID);
+
+UINT8 CountFriendsNotAlerted(SOLDIERTYPE *pSoldier);
+void AlertFriends(INT8 bTeam, UINT8 ubCivGroup);
 
 BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
 

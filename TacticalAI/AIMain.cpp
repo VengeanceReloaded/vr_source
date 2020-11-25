@@ -2072,19 +2072,22 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 
         case AI_ACTION_RED_ALERT:             // tell friends opponent(s) seen
             // if a computer merc, and up to now they didn't know you're here
-            if (!(pSoldier->flags.uiStatusFlags & SOLDIER_PC) && ( !(gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition) || ( ( gTacticalStatus.fPanicFlags & PANIC_TRIGGERS_HERE ) && gTacticalStatus.ubTheChosenOne == NOBODY ) ) )
+			if (!(pSoldier->flags.uiStatusFlags & SOLDIER_PC) &&
+				(!(gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition) || ((gTacticalStatus.fPanicFlags & PANIC_TRIGGERS_HERE) && gTacticalStatus.ubTheChosenOne == NOBODY)))
             {
-                HandleInitialRedAlert(pSoldier->bTeam, TRUE);
+                HandleInitialRedAlert(pSoldier->bTeam, pSoldier->ubCivilianGroup);
 
 				pSoldier->usSoldierFlagMask |= SOLDIER_RAISED_REDALERT;
 
 				// SANDRO - ENEMY TAUNTS
-				PossiblyStartEnemyTaunt( pSoldier, TAUNT_ALERT );
+				// sevenfm: taunt only when raising alert for the first time
+				if (!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition && CountFriendsNotAlerted(pSoldier) > 0)
+					PossiblyStartEnemyTaunt( pSoldier, TAUNT_ALERT );
             }
 			else
 			{
-				// sevenfm: if it's not initial RED ALERT and we are informing others
-				PossiblyStartEnemyTaunt( pSoldier, TAUNT_INFORM_ABOUT );
+				// sevenfm: TAUNT_INFORM_ABOUT is called in ManSeesMan when soldier seen opponent
+				//PossiblyStartEnemyTaunt( pSoldier, TAUNT_INFORM_ABOUT );
 			}
 
             //ScreenMsg( FONT_MCOLOR_LTYELLOW, MSG_BETAVERSION, L"Debug: AI radios your position!" );
@@ -2416,18 +2419,14 @@ void ATTACKTYPE::InitAttackType(ATTACKTYPE *pAttack)//dnl ch69 140913
 	pAttack->ubStance = STANDING;
 }
 
-void HandleInitialRedAlert( INT8 bTeam, UINT8 ubCommunicate)
+void HandleInitialRedAlert( INT8 bTeam, UINT8 ubCivGroup)
 {
+	// sevenfm: even if sector jammed, we still need to alert friends
+	AlertFriends(bTeam, ubCivGroup);
+
 	// Flugente radio operator: if the sector is jammed, no radio communication possible
 	if ( SectorJammed() )
 		return;
-
-	/*
-	if (ubCommunicate)
-	{
-	NetSend.msgType = NET_RED_ALERT;
-	SendNetData(ALL_NODES);
-	}*/
 
 	if ( gTacticalStatus.Team[bTeam].bAwareOfOpposition == FALSE )
 	{
@@ -2451,23 +2450,18 @@ void HandleInitialRedAlert( INT8 bTeam, UINT8 ubCommunicate)
 		pSoldier = FindSoldierByProfileID( QUEEN, FALSE );
 		if ( pSoldier )
 		{
-			pSoldier->aiData.bAlertStatus = STATUS_RED;
+			pSoldier->aiData.bAlertStatus = max(pSoldier->aiData.bAlertStatus, STATUS_RED);
 		}
 
 		pSoldier = FindSoldierByProfileID( JOE, FALSE );
 		if ( pSoldier )
 		{
-			pSoldier->aiData.bAlertStatus = STATUS_RED;
+			pSoldier->aiData.bAlertStatus = max(pSoldier->aiData.bAlertStatus, STATUS_RED);
 		}
 	}
 
-	// open and close certain doors when this happens
-	//AffectDoors(OPENDOORS, MapExt[Status.cur_sector].opendoors);
-	//AffectDoors(CLOSEDOORS,MapExt[Status.cur_sector].closedoors);
-
 	// remember enemies are alerted, prevent another red alert from happening
 	gTacticalStatus.Team[ bTeam ].bAwareOfOpposition = TRUE;
-
 }
 
 void ManChecksOnFriends(SOLDIERTYPE *pSoldier)

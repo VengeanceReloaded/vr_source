@@ -3788,6 +3788,48 @@ UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance
 	return ubFriendCount;
 }
 
+UINT8 CountFriendsNotAlerted(SOLDIERTYPE *pSoldier)
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	// Run through each friendly.
+	for (UINT8 iCounter = gTacticalStatus.Team[pSoldier->bTeam].bFirstID; iCounter <= gTacticalStatus.Team[pSoldier->bTeam].bLastID; iCounter++)
+	{
+		pFriend = MercPtrs[iCounter];
+		
+		if (pFriend && 
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			(pSoldier->bTeam != CIV_TEAM || pSoldier->ubCivilianGroup != NON_CIV_GROUP && pFriend->ubCivilianGroup == pSoldier->ubCivilianGroup) &&
+			pFriend->aiData.bAlertStatus < STATUS_RED)
+		{
+			ubFriendCount++;
+		}
+	}
+
+	return ubFriendCount;
+}
+
+void AlertFriends(INT8 bTeam, UINT8 ubCivGroup)
+{
+	SOLDIERTYPE * pFriend;
+
+	// Run through each friendly.
+	for (UINT8 iCounter = gTacticalStatus.Team[bTeam].bFirstID; iCounter <= gTacticalStatus.Team[bTeam].bLastID; iCounter++)
+	{
+		pFriend = MercPtrs[iCounter];
+
+		if (pFriend && 
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			(bTeam != CIV_TEAM || ubCivGroup != NON_CIV_GROUP && pFriend->ubCivilianGroup == ubCivGroup))
+		{
+			pFriend->aiData.bAlertStatus = max(pFriend->aiData.bAlertStatus, STATUS_RED);
+		}
+	}
+}
+
 // sevenfm: determine minimum flanking directions to stop flanking depending on soldier's attitude
 UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier )
 {
@@ -4373,7 +4415,7 @@ BOOLEAN TeamEnemyAlerted(INT8 bTeam)
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
 
-	//loop through all the enemies and determine the cover
+	//loop through all the enemies
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
 	{
 		pOpponent = MercSlots[uiLoop];

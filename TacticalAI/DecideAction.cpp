@@ -891,7 +891,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 	{
 		// raise alert if found fresh corpse		
 		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) &&
-			!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&
+			!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&			
 			pSoldier->aiData.bAlertStatus < STATUS_RED )
 		{
 			INT32				cnt;
