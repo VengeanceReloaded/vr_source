@@ -454,7 +454,7 @@ extern void WindowHit( INT32 sGridNo, UINT16 usStructureID, BOOLEAN fBlowWindowS
 // HEADROCK HAM 5.1: Moved to Bullets.h
 extern BOOLEAN InRange( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 extern void ShotMiss( UINT8 ubAttackerID, INT32 iBullet );
-extern UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos );
+extern UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, UINT8 ubAimPos );
 extern UINT32 CalcNewChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos );
 extern UINT32 AICalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos, INT8 bTargetLevel, UINT16 usAnimState);//dnl ch59 180813
 extern UINT32 CalcChanceToPunch(SOLDIERTYPE *pAttacker, SOLDIERTYPE * pDefender, INT16 ubAimTime);

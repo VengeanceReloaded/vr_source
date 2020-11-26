@@ -1857,6 +1857,7 @@ public:
 	BOOLEAN BecomeSpotter( INT32 sTargetGridNo );
 
 	// sevenfm:
+	UINT8	AnimMovementMode(void);
 	BOOLEAN IsListening();
 	UINT16	SpottingBonus();
 	INT16	MaxVisionBonus();

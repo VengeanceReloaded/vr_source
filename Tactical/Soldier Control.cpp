@@ -18795,6 +18795,26 @@ INT16 SOLDIERTYPE::MaxVisionBonus()
 	return sBonus;
 }
 
+UINT8	SOLDIERTYPE::AnimMovementMode(void)
+{
+	switch (this->usAnimState)
+	{
+	case CRAWLING:
+		return CRAWLING;
+	case SWATTING:
+	case SWAT_BACKWARDS:
+	case SWATTING_WK:
+	case SWAT_BACKWARDS_WK:
+	case SWAT_BACKWARDS_NOTHING:
+		return SWATTING;
+	case RUNNING:
+	case RUNNING_W_PISTOL:
+		return RUNNING;
+	default:
+		return WALKING;
+	}
+}
+
 BOOLEAN SOLDIERTYPE::IsListening()
 {
 	return ((usSoldierFlagMask & SOLDIER_RADIO_OPERATOR_LISTENING) && CanUseRadio(FALSE));

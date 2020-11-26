@@ -1474,6 +1474,7 @@ typedef struct
 	BOOLEAN fTotalDestruction;
 	UINT8	ubDefeatMode;
 	BOOLEAN fNewStatGainMode;
+	BOOLEAN fOCTHNewCode;
 
 } GAME_EXTERNAL_OPTIONS;
 

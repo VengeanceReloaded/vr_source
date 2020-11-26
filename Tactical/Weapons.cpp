@@ -6926,10 +6926,10 @@ else
   return (iChance);
 }*/
 
-UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime, UINT8 ubAimPos )
+UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, UINT8 ubAimPos )
 {
 	if(UsingNewCTHSystem() == true)
-		return CalcNewChanceToHitGun(pSoldier, sGridNo, ubAimTime, ubAimPos);
+		return CalcNewChanceToHitGun(pSoldier, sGridNo, sAimTime, ubAimPos);
 
 	//CHRISL: I've tried to sort and reorganize this function to make it a little easier to follow.  I've removed most of the unused code fragments and removed
 	//	alot of the notes.  I've also tried to sort the various portions of the function so that similar actions orrucr at the same place in the code.  The
@@ -6938,12 +6938,13 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	OBJECTTYPE * pInHand;
 	INT32	iChance;			// CTH
 	INT32	iRange;				// Actual range to target
-	INT32	iSightRange = 0;	// LOS range
+	INT32	iSightRange = 0;	// unmodified sight range
+	INT32	iEffSightRange = 0;	// effective sight range (modified by scope and skills)
 	INT32	iRealSight = 0;		// Actual sight to target
 	INT32	iCoverRange;		// Amount sight range is modified due to cover
 	INT32	iMaxRange;			// Weapon maximum range
 	INT32	iMinRange;			// Minimum effective range
-	INT32	iGunCondition;		// Weapons effective condition
+	INT32	sGunCondition;		// Weapons effective condition
 	INT32	iMarksmanship;		// Mercs effective marksmanship
 	INT32	iAccRangeMod;		// Range modifier granted from weapon accuracy
 	INT32	iBonus, iPenalty;
@@ -6953,9 +6954,17 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	UINT16	iBulletsLeft, iTracersFired = 0, iBulletsPerTracer, iBulletsSinceLastTracer=0, iRoundsFiredPreviously;
 	INT8	bBandaged, maxClickBonus = 10, AIM_PENALTY_PER_TARGET_SHOCK;
 	UINT8	ubTargetID, bLightLevel, ubCoweringDivisor, ubAutoPenaltySinceLastTracer=0;
-	FLOAT	maxBonus, aimTimeBonus, scopeRangeMod = 0.0f, iAimBonus;
-	bool	fCantSeeTarget = false, fCoverObscured = false;
-	bool	fSightBlocked = false;		// sight is completely blocked by obstacle
+	FLOAT	dMaxBonus, dAimTimeBonus, dScopeRangeMod = 0.0f, iAimBonus;
+	BOOLEAN	fCantSeeTarget = FALSE;
+	BOOLEAN fCoverObscured = FALSE;
+	BOOLEAN	fSightBlocked = FALSE;		// sight is completely blocked by obstacle
+	BOOLEAN	fAssistedShot = FALSE;		// some friend can see target soldier
+
+	// sevenfm
+	INT32 iCloseRange = CELL_X_SIZE * TACTICAL_RANGE / 2;
+	INT32 iLongRange = CELL_X_SIZE * TACTICAL_RANGE;
+
+	FLOAT dScopeMagFactor = 1.0;
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("CalcChanceToHitGun"));
 	if ( pSoldier->stats.bMarksmanship == 0 ) 
@@ -6968,9 +6977,11 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	// Flugente: check for underbarrel weapons and use that object if necessary
 	pInHand = pSoldier->GetUsedWeapon( &(pSoldier->inv[pSoldier->ubAttackingHand]) );
 	UINT16 usItemUsed =  pSoldier->GetUsedWeaponNumber( &(pSoldier->inv[pSoldier->ubAttackingHand]) );
+	INT16 sMinRangeForAimBonus = GetMinRangeForAimBonus(pSoldier, pInHand);
+	INT8 bAccuracy = GetGunAccuracy(pInHand);
 
 	pTarget = SimpleFindSoldier( sGridNo, pSoldier->bTargetLevel );
-	iGunCondition = WEAPON_STATUS_MOD( (*pInHand)[0]->data.gun.bGunStatus );
+	sGunCondition = WEAPON_STATUS_MOD( (*pInHand)[0]->data.gun.bGunStatus );
 	usInHand = pSoldier->usAttackingWeapon;
 	ubTargetID = WhoIsThere2( sGridNo, pSoldier->bTargetLevel );
 	bLightLevel = LightTrueLevel(sGridNo, pSoldier->bTargetLevel);
@@ -6991,7 +7002,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	// Assign range variables -- all range values are in units (10 units = 1 tile)
 	iRange = GetRangeInCellCoordsFromGridNoDiff( pSoldier->sGridNo, sGridNo );	// calculate actual range
 
-	if ( !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) ) // ignore scopes when firing from hip
+	if ( !pSoldier->IsValidAlternativeFireMode( sAimTime, sGridNo ) ) // ignore scopes when firing from hip
 		gbForceWeaponReady = true;
 
 	// determine vision using all bonuses (including watched location bonus for AI)	
@@ -7027,7 +7038,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		
 		// cannot see the body part but can see the tile
 		if (iSightRange && ubTargetID != NOBODY)
-			fCoverObscured = true;
+			fCoverObscured = TRUE;
 	}
 
 	gbForceWeaponReady = false;
@@ -7042,23 +7053,42 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	// cannot see target soldier/tile
 	if (iSightRange == 0)
 	{
-		fSightBlocked = true;
-		fCantSeeTarget = true;
+		fSightBlocked = TRUE;
+		fCantSeeTarget = TRUE;
 	}
 	else if (iRealSight == 0)
 	{
-		fCantSeeTarget = true;
+		fCantSeeTarget = TRUE;
 	}
 
 	// Flugente: blind soldiers have sDistVisNoScope = 0...
-	if ( sDistVisNoScope )
-		scopeRangeMod = (float)sDistVis / (float)sDistVisNoScope;	// percentage DistVis has been enhanced due to an attached scope
+	if (sDistVisNoScope)
+	{
+		dScopeRangeMod = (float)sDistVis / (float)sDistVisNoScope;	// percentage DistVis has been enhanced due to an attached scope
+	}
+
+	// sevenfm: find ScopeMagFactor for selected scope mode
+	if (gGameExternalOptions.fScopeModes &&
+		(Item[usItemUsed].usItemClass == IC_GUN ||
+		Item[usItemUsed].usItemClass == IC_LAUNCHER) &&
+		!pSoldier->IsValidAlternativeFireMode(sAimTime, sGridNo))
+	{
+		std::map<INT8, OBJECTTYPE*> ObjList;
+		GetScopeLists(pInHand, ObjList);
+
+		if (ObjList[pSoldier->bScopeMode] != NULL)
+		{
+			// sevenfm: iScopeMagFactor cannot be less than 1.0
+			dScopeMagFactor = max(1.0f, (FLOAT)Item[ObjList[pSoldier->bScopeMode]->usItem].scopemagfactor);
+		}
+	}
 
 	iMaxNormRange = MaxNormalDistanceVisible() * CELL_X_SIZE;
 	if (Item[usItemUsed].usItemClass == IC_GUN || Item[usItemUsed].usItemClass == IC_LAUNCHER)
 		iMaxRange = GunRange(pInHand, pSoldier); // SANDRO - added argument
 	else
 		iMaxRange = CELL_X_SIZE; // one tile
+
 	iCoverRange = __max(0, iSightRange - iRange);
 	iMinRange = iMaxRange / 10;
 
@@ -7077,56 +7107,92 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Modify Sight and Physical Range
 
-	if ( scopeRangeMod )
-		iSightRange = (INT32)(iSightRange / scopeRangeMod);
+	// check if our friend can see this opponent
+	if (ubTargetID != NOBODY &&
+		fCantSeeTarget &&
+		gbPublicOpplist[pSoldier->bTeam][ubTargetID] == SEEN_CURRENTLY)
+	{
+		fAssistedShot = TRUE;
+	}
 
-	if(iSightRange > 0 && !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
+	iEffSightRange = iSightRange;
+
+	if(gGameExternalOptions.fOCTHNewCode)
+	{
+		FLOAT dEffRangeMod = 1.0f;
+		// sevenfm: modify only sight beyond min range for aim
+		if (iEffSightRange > sMinRangeForAimBonus && dScopeRangeMod > 0)
+		{
+			dEffRangeMod = 1.0f / dScopeRangeMod;
+			dEffRangeMod = pow(dEffRangeMod, (FLOAT)sAimTime / 4.0f);
+			iEffSightRange = max(1, sMinRangeForAimBonus + (INT32)((iEffSightRange - sMinRangeForAimBonus) * dEffRangeMod));
+		}
+	}
+	else
+	{
+		if (dScopeRangeMod > 0)
+		{
+			iEffSightRange = (INT32)(iSightRange / dScopeRangeMod);
+		}
+	}	
+
+	if (iEffSightRange > 0 && !pSoldier->IsValidAlternativeFireMode(sAimTime, sGridNo))
 	{
 		//CHRISL: The LOS system, which determines whether to display an enemy unit, does not factor in the AimBonus tag during it's calculations.  So having
-		//	the CTH system use that tag to adjust iSightRange for AimBonus applied from armor might not be the best option.  Especially as it can sometimes
+		//	the CTH system use that tag to adjust iEffSightRange for AimBonus applied from armor might not be the best option.  Especially as it can sometimes
 		//	result in 0% CTH when everything looks like you could actually hit the target.  Let's try applying this penalty to CTH at the same point we would
 		//	apply the "invisible target" penalty.
-		//iSightRange -= GetGearAimBonus ( pSoldier, iSightRange, ubAimTime ) * iSightRange / 100;
+		//iEffSightRange -= GetGearAimBonus ( pSoldier, iEffSightRange, ubAimTime ) * iEffSightRange / 100;
 		if ( gGameOptions.fNewTraitSystem ) 
 		{
 			if ( HAS_SKILL_TRAIT( pSoldier, SNIPER_NT ) ) {
-				iSightRange -= ((gSkillTraitValues.ubSNEffRangeToTargetReduction * NUM_SKILL_TRAITS( pSoldier, SNIPER_NT )) * iSightRange) /100;
+				iEffSightRange -= ((gSkillTraitValues.ubSNEffRangeToTargetReduction * NUM_SKILL_TRAITS(pSoldier, SNIPER_NT)) * iEffSightRange) / 100;
 			}
 		}
-		else if ( HAS_SKILL_TRAIT( pSoldier, PROF_SNIPER_OT ) ) {
-			iSightRange -= ((gbSkillTraitBonus[ PROF_SNIPER_OT ] * NUM_SKILL_TRAITS( pSoldier, PROF_SNIPER_OT )) * iSightRange) /100;
-		}
-
-		if (iRange < GetMinRangeForAimBonus(pSoldier, &(pSoldier->inv[pSoldier->ubAttackingHand])) && iScopeVisionRangeBonus > 50)
+		else if ( HAS_SKILL_TRAIT( pSoldier, PROF_SNIPER_OT ) ) 
 		{
-			// iSightRange penalty for using a high power scope within min range due to poor focus
-			iPenalty = 0;
-			for(UINT8 loop = 0; loop < ((GetMinRangeForAimBonus(pSoldier, &(pSoldier->inv[pSoldier->ubAttackingHand])) - iRange)/CELL_X_SIZE); loop++){
-				iPenalty += iSightRange * iScopeVisionRangeBonus / 100;
+			iEffSightRange -= ((gbSkillTraitBonus[PROF_SNIPER_OT] * NUM_SKILL_TRAITS(pSoldier, PROF_SNIPER_OT)) * iEffSightRange) / 100;
+		}		
+		
+		if (!gGameExternalOptions.fOCTHNewCode)
+		{
+			if (iRange < sMinRangeForAimBonus && iScopeVisionRangeBonus > 50)
+			{
+				// iEffSightRange penalty for using a high power scope within min range due to poor focus
+				iPenalty = 0;
+				for (UINT8 loop = 0; loop < (sMinRangeForAimBonus - iRange) / CELL_X_SIZE; loop++)
+				{
+					iPenalty += iEffSightRange * iScopeVisionRangeBonus / 100;
+				}
+				iEffSightRange += iPenalty;
 			}
-			iSightRange += iPenalty;
-		}
+		}		
 
-		if (iSightRange < 1) {
-			iSightRange = 1;
+		if (iEffSightRange < 1)
+		{
+			iEffSightRange = 1;
 		}
 	}
 	// sevenfm: already checked with iRealSight
-	//if(iSightRange > sDistVis)
+	//if(iEffSightRange > sDistVis)
 		//fCantSeeTarget = true;
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Determine iMarksmanship and Base CTH
-	if (Item[usItemUsed].rocketlauncher ){
+	if (Item[usItemUsed].rocketlauncher )
+	{
 		// use the same calculation as for mechanical thrown weapons
 		iMarksmanship = ( EffectiveDexterity( pSoldier, FALSE ) + EffectiveMarksmanship( pSoldier ) + EffectiveWisdom( pSoldier ) + (10 * EffectiveExpLevel( pSoldier ) )) / 4;
 		// heavy weapons trait helps out
 		if (HAS_SKILL_TRAIT( pSoldier, HEAVY_WEAPS_OT ) && !( gGameOptions.fNewTraitSystem )) // SANDRO - old/new traits
 			iMarksmanship += gbSkillTraitBonus[HEAVY_WEAPS_OT] * NUM_SKILL_TRAITS( pSoldier, HEAVY_WEAPS_OT );
-	} else {
+	}
+	else 
+	{
 		iMarksmanship = EffectiveMarksmanship( pSoldier );
-		if ( AM_A_ROBOT( pSoldier ) ) {
+		if ( AM_A_ROBOT( pSoldier ) ) 
+		{
 			SOLDIERTYPE * pSoldier2;
 			pSoldier2 = pSoldier->GetRobotController( );
 			if ( pSoldier2 )
@@ -7137,15 +7203,15 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	iMarksmanship += GetMoraleModifier( pSoldier );
 	// penalize marksmanship for fatigue
 	iMarksmanship -= GetSkillCheckPenaltyForFatigue( pSoldier, iMarksmanship );
-	if (iGunCondition >= iMarksmanship)	// base chance is equal to the shooter's marksmanship skill
+	if (sGunCondition >= iMarksmanship)	// base chance is equal to the shooter's marksmanship skill
 		iChance = iMarksmanship;
 	else	// base chance is equal to the average of marksmanship & gun's condition!
-		iChance = (iMarksmanship + iGunCondition) / 2;
+		iChance = (iMarksmanship + sGunCondition) / 2;
 	// if shooting same target as the last shot
 	if (sGridNo == pSoldier->sLastTarget )	// give a bonus to hit
 		iChance += AIM_BONUS_SAME_TARGET;
 	// if shooting from alternative weapon holding, apply the preset penalty
-	if ( pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
+	if ( pSoldier->IsValidAlternativeFireMode( sAimTime, sGridNo ) )
 		iChance -= gGameExternalOptions.ubAltWeaponHoldingCtHPenaly;
 		
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -7169,37 +7235,57 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	// Effects of visual range
 	// From for JA2.5:  3% bonus/penalty for each tile different from range NORMAL_RANGE.
 	if (!TANK(pSoldier))	// WANNE: No penalty on the tank
-		iPenalty = 3 * ( NORMAL_RANGE - iSightRange ) / CELL_X_SIZE;
+		iPenalty = 3 * (NORMAL_RANGE - iEffSightRange) / CELL_X_SIZE;
 
 	if ( fCantSeeTarget )
 	{
-		// CHRISL: There are conditions where iSightRange can still return 0.  If that happens, the result is that "impossible" shots are actually easier then
+		// CHRISL: There are conditions where iEffSightRange can still return 0.  If that happens, the result is that "impossible" shots are actually easier then
 		//	simply "really hard" shots.  As a result, if we can't see the target and we have a 0 sight range, we should reevaluate the above penalty but use
-		//	iRange instead of iSightRange, then include the unseen penalty.
-		if(iSightRange == 0)
+		//	iRange instead of iEffSightRange, then include the unseen penalty.
+		if (iEffSightRange == 0)
 			iPenalty = (3 * ( NORMAL_RANGE - iRange ) / CELL_X_SIZE) - gGameExternalOptions.iPenaltyShootUnSeen;
 		// apply max penalty
 		iPenalty = min(iPenalty, -gGameExternalOptions.iPenaltyShootUnSeen);
 	}
 	iChance += iPenalty;
 
-	//CHRISL: Applying the Gear AimBonus (penalty) here, and directly to iChance as a flat penalty, instead of altering iSightRange above.
-	if ( !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
-		iChance += GetGearAimBonus ( pSoldier, iSightRange, ubAimTime );
+	// sevenfm: move gear AimBonus to max aim
+	if (!gGameExternalOptions.fOCTHNewCode)
+	{
+		//CHRISL: Applying the Gear AimBonus (penalty) here, and directly to iChance as a flat penalty, instead of altering iEffSightRange above.
+		if (!pSoldier->IsValidAlternativeFireMode(sAimTime, sGridNo))
+			iChance += GetGearAimBonus(pSoldier, iEffSightRange, sAimTime);
+	}	
+
+	if (gGameExternalOptions.fOCTHNewCode)
+	{
+		// sevenfm: penalty for shooting too close with scopes
+		if (sMinRangeForAimBonus > 0 &&
+			iRange < sMinRangeForAimBonus &&
+			dScopeMagFactor > 1.0)
+		{
+			// max penalty at zero distance, no penalty at sMinRangeForAimBonus
+			iPenalty = 40 * (sMinRangeForAimBonus - iRange) / sMinRangeForAimBonus;
+			// full penalty for 8x scopes, 1/4 penalty for 2x scopes
+			iPenalty = (INT32)(iPenalty * dScopeMagFactor / 8);
+
+			iChance -= iPenalty;
+		}
+	}
 
 	//CHRISL: We should probably include these target size penalties even if we can't see the target so that shooting a "hidden" head is harder then a "hidden" body
 	// if aiming at the head, reduce chance to hit
 	if (ubAimPos == AIM_SHOT_HEAD)
 	{
 		// penalty of 3% per tile
-		//iPenalty = 3 * iSightRange / 10; //comm by ddd
-		iPenalty = INT32(gGameExternalOptions.uShotHeadPenalty * iSightRange / 10);
+		//iPenalty = 3 * iEffSightRange / 10; //comm by ddd
+		iPenalty = INT32(gGameExternalOptions.uShotHeadPenalty * iEffSightRange / 10);
 		iChance -= iPenalty;
 	}
 	else if (ubAimPos == AIM_SHOT_LEGS)
 	{
 		// penalty of 1% per tile
-		iPenalty = iSightRange / 10;
+		iPenalty = iEffSightRange / 10;
 		iChance -= iPenalty;
 	}
 	//CHRISL: A target's stance should have no impact on an aimed, headshot.  The head doesn't get any smaller just because the target is crouching down.
@@ -7278,10 +7364,10 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	INT32 iHeightDifference = 0;
 
 	// SHOOTING AT A TARGET AT DIFFERENT HEIGHT?
-	if ( pTarget == NULL )
+	if (pTarget == NULL)
 	{
 		// Shooting to roof.
-		if ( pSoldier->bTargetLevel > pSoldier->pathing.bLevel )
+		if (pSoldier->bTargetLevel > pSoldier->pathing.bLevel)
 		{
 			iHeightDifference = 3 * pSoldier->bTargetLevel;
 		}
@@ -7292,19 +7378,19 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		UINT32 uiShooterHeight = 0;
 		UINT32 uiTargetHeight = 0;
 
-		if ( pSoldier->pathing.bLevel > 0 )
+		if (pSoldier->pathing.bLevel > 0)
 		{
 			uiShooterHeight += 3 * pSoldier->pathing.bLevel;
 		}
-		
-		switch ( gAnimControl[ pSoldier->usAnimState ].ubEndHeight )
+
+		switch (gAnimControl[pSoldier->usAnimState].ubEndHeight)
 		{
-			case ANIM_STAND:
-				uiShooterHeight += 2;
-				break;
-			case ANIM_CROUCH:
-				uiShooterHeight += 1;
-				break;
+		case ANIM_STAND:
+			uiShooterHeight += 2;
+			break;
+		case ANIM_CROUCH:
+			uiShooterHeight += 1;
+			break;
 		}
 
 		if (pTarget->pathing.bLevel > 0)
@@ -7312,29 +7398,29 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 			uiTargetHeight += 3 * pTarget->pathing.bLevel;
 		}
 
-		switch ( gAnimControl[ pTarget->usAnimState ].ubEndHeight )
+		switch (gAnimControl[pTarget->usAnimState].ubEndHeight)
 		{
-			case ANIM_STAND:
-				switch (ubAimPos)
-				{
-					case AIM_SHOT_HEAD:
-						uiTargetHeight += 2;
-						break;
-					case AIM_SHOT_TORSO:
-					case AIM_SHOT_RANDOM:
-					case AIM_SHOT_GLAND:
-						uiTargetHeight += 1;
-						break;
-				}
+		case ANIM_STAND:
+			switch (ubAimPos)
+			{
+			case AIM_SHOT_HEAD:
+				uiTargetHeight += 2;
 				break;
-			case ANIM_CROUCH:
-				switch (ubAimPos)
-				{
-					case AIM_SHOT_HEAD:
-						uiTargetHeight += 1;
-						break;
-				}
+			case AIM_SHOT_TORSO:
+			case AIM_SHOT_RANDOM:
+			case AIM_SHOT_GLAND:
+				uiTargetHeight += 1;
 				break;
+			}
+			break;
+		case ANIM_CROUCH:
+			switch (ubAimPos)
+			{
+			case AIM_SHOT_HEAD:
+				uiTargetHeight += 1;
+				break;
+			}
+			break;
 		}
 
 		iHeightDifference = uiShooterHeight - uiTargetHeight;
@@ -7364,6 +7450,92 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		// sevenfm: r7878 fix
 		//iPenalty = __min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), 30 );
 		iPenalty = __min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), gGameExternalOptions.usMaxCTHPenaltyForMovingTarget );
+
+		// sevenfm: penalty for target animation
+		if (gGameExternalOptions.fOCTHNewCode)
+		{			
+			if (!gGameExternalOptions.fNoStandingAnimAdjustInCombat || !(pTarget->flags.uiStatusFlags & SOLDIER_PC))
+			{
+				iPenalty = 0;
+				UINT8 ubStancePercent = 0;
+
+				switch (pTarget->AnimMovementMode())
+				{
+				case WALKING:
+					//ubStancePercent = 25;
+					ubStancePercent = 0;
+					break;
+				case SWATTING:
+					ubStancePercent = 25;
+					break;
+				case RUNNING:
+					ubStancePercent = 100;
+					break;
+				}
+
+				if (ubStancePercent > 0)
+				{
+					UINT8 ubAttackDirection = (UINT8)AIDirection(pSoldier->sGridNo, pTarget->sGridNo);
+					UINT8 ubDirectionPercent = 0;
+
+					if (ubAttackDirection == pTarget->ubDirection ||
+						ubAttackDirection == gOppositeDirection[pTarget->ubDirection])
+					{
+						// opposite direction - minimum penalty
+						ubDirectionPercent = 25;
+					}
+					else if (ubAttackDirection == gTwoCDirection[pTarget->ubDirection] ||
+						ubAttackDirection == gTwoCCDirection[pTarget->ubDirection])
+					{
+						// perpendicular direction - maximum penalty
+						ubDirectionPercent = 100;
+					}
+					else
+					{
+						// one CD or CCD direction
+						ubDirectionPercent = 75;
+					}
+
+					// maximum penalty
+					//iPenalty = gGameExternalOptions.ubMaxAnimationPenalty;
+					iPenalty = 40;
+					// penalty depends on target's agility and breath/life
+					iPenalty = iPenalty * EffectiveAgility(pTarget, FALSE) * pTarget->stats.bLife / (100 * pTarget->stats.bLifeMax);
+					//iPenalty = iPenalty * EffectiveAgility(pTarget, FALSE) / 100;
+					// modify according to stance
+					iPenalty = iPenalty * ubStancePercent / 100;
+					// modify according to direction
+					iPenalty = iPenalty * ubDirectionPercent / 100;
+
+					// increase penalty when using scope
+					if (dScopeMagFactor > 1.0f)
+					{
+						iPenalty += (INT32)(iPenalty * dScopeMagFactor / 10.0f);
+					}
+
+					// experienced shooter can compensate to 3 * penalty / 4
+					iPenalty -= iPenalty * pSoldier->stats.bExpLevel * EffectiveDexterity(pSoldier, FALSE) / (10 * 100 * 4);
+
+					// sevenfm: reduce penalty at close range
+					if (iRange < iCloseRange)
+					{
+						iPenalty = iPenalty * iRange / iCloseRange;
+					}
+					else if (iRange > iLongRange)
+					{
+						iPenalty = iPenalty * iLongRange / iRange;
+					}
+
+					// modify for autofire with tracers
+					if (pSoldier->bDoBurst > 1 &&
+						AmmoTypes[(*pInHand)[0]->data.gun.ubGunAmmoType].tracerEffect == 1)
+					{
+						iPenalty = 2 * iPenalty / (1 + pSoldier->bDoBurst);
+					}
+				}
+				iChance -= iPenalty;
+			}			
+		}
 
 		///////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - fearless characters do not even take their head down no matter what
@@ -7416,30 +7588,34 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 		iChance -= 25 * ( ( MIN_TANK_RANGE - iRange ) / CELL_X_SIZE );
 	}
 
-	attachmentList::iterator iter_end = (*&(pSoldier->inv[pSoldier->ubAttackingHand]))[0]->attachments.end();
-	for(attachmentList::iterator iter = (*&(pSoldier->inv[pSoldier->ubAttackingHand]))[0]->attachments.begin(); iter != iter_end; ++iter)
+	// sevenfm: moved aimbonus calculation to max aim
+	if (!gGameExternalOptions.fOCTHNewCode)
 	{
-		if(iter->exists() && !IsAttachmentClass(iter->usItem, AC_SCOPE|AC_SIGHT|AC_IRONSIGHT ) && Item[iter->usItem].aimbonus >= gGameExternalOptions.sHighPowerScope && iRange > Item[iter->usItem].minrangeforaimbonus)
+		attachmentList::iterator iter_end = (*&(pSoldier->inv[pSoldier->ubAttackingHand]))[0]->attachments.end();
+		for (attachmentList::iterator iter = (*&(pSoldier->inv[pSoldier->ubAttackingHand]))[0]->attachments.begin(); iter != iter_end; ++iter)
 		{
-			iPenalty = (Item[iter->usItem].aimbonus * (iRange - Item[iter->usItem].minrangeforaimbonus)) / 1000;
-			iPenalty = min(AIM_BONUS_PRONE, iPenalty);
-			iChance -= iPenalty;
+			if (iter->exists() && !IsAttachmentClass(iter->usItem, AC_SCOPE | AC_SIGHT | AC_IRONSIGHT) && Item[iter->usItem].aimbonus >= gGameExternalOptions.sHighPowerScope && iRange > Item[iter->usItem].minrangeforaimbonus)
+			{
+				iPenalty = (Item[iter->usItem].aimbonus * (iRange - Item[iter->usItem].minrangeforaimbonus)) / 1000;
+				iPenalty = min(AIM_BONUS_PRONE, iPenalty);
+				iChance -= iPenalty;
+			}
 		}
-	}
 
-	// Flugente: check for scope mode
-	if ( Item[(&(pSoldier->inv[pSoldier->ubAttackingHand]))->usItem].usItemClass == IC_GUN && !pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
-	{
-		std::map<INT8, OBJECTTYPE*> ObjList;
-		GetScopeLists((&(pSoldier->inv[pSoldier->ubAttackingHand])), ObjList);
-		
-		if ( ObjList[pSoldier->bScopeMode] != NULL )
+		// Flugente: check for scope mode
+		if (Item[(&(pSoldier->inv[pSoldier->ubAttackingHand]))->usItem].usItemClass == IC_GUN && !pSoldier->IsValidAlternativeFireMode(sAimTime, sGridNo))
 		{
-			iPenalty = (Item[ObjList[pSoldier->bScopeMode]->usItem].aimbonus * (iRange - Item[ObjList[pSoldier->bScopeMode]->usItem].minrangeforaimbonus)) / 1000;
-			iPenalty = min(AIM_BONUS_PRONE, iPenalty);
-			iChance -= iPenalty;
+			std::map<INT8, OBJECTTYPE*> ObjList;
+			GetScopeLists((&(pSoldier->inv[pSoldier->ubAttackingHand])), ObjList);
+
+			if (ObjList[pSoldier->bScopeMode] != NULL)
+			{
+				iPenalty = (Item[ObjList[pSoldier->bScopeMode]->usItem].aimbonus * (iRange - Item[ObjList[pSoldier->bScopeMode]->usItem].minrangeforaimbonus)) / 1000;
+				iPenalty = min(AIM_BONUS_PRONE, iPenalty);
+				iChance -= iPenalty;
+			}
 		}
-	}
+	}	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -7449,7 +7625,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	if ( pTarget && pTarget->ubProfile != NO_PROFILE )
 		targetprofile = pTarget->ubProfile;
 
-	iChance += pSoldier->GetTraitCTHModifier( usInHand, ubAimTime, targetprofile );
+	iChance += pSoldier->GetTraitCTHModifier( usInHand, sAimTime, targetprofile );
 		
 	// Flugente: backgrounds
 	if ( pTarget && pTarget->bTeam == CREATURE_TEAM )
@@ -7708,52 +7884,106 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Modify for Aim
-	if(ubAimTime && !fSightBlocked)
+	if(sAimTime && !fSightBlocked)
 	{
-		// CHRISL: Rather then a flat +10/click bonus, we're going to try a bonus that's based on MRK and Lvl which gets
-		//	progressively less the more we aim.  Everything is based on the maxBonus that a merc can possibly get which
-		//	uses the equation: 20+(MRK/20*LVL)+Accuracy+(Sniper trait * 10).  This value is then split between the 8
-		//	possible AimTime's using a max aimTime bonus of 10.
-
-		// Flugente: If overheating is allowed, an overheated gun receives a slight malus to accuracy
-		FLOAT accuracyheatmultiplicator = 1.0;
-		if ( gGameExternalOptions.fWeaponOverheating )
+		// sevenfm: new aim calculation
+		if (gGameExternalOptions.fOCTHNewCode)
 		{
-			FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage( pInHand );
-			FLOAT accuracymalus = (FLOAT)((max(1.0, overheatdamagepercentage) - 1.0) * 0.1);
-			accuracyheatmultiplicator = (FLOAT)max(0.0, 1.0 - accuracymalus);
-		}
+			// sevenfm: calc AimBonus from weapon
+			INT16 sAimBonus = GetAimBonus(pSoldier, pInHand, iEffSightRange, sAimTime);
+			INT16 sGearAimBonus = 0;			
 
-		if ( gGameOptions.fNewTraitSystem ) 
-		{
-			// bonus to snipers and gunslingers
-			if ( Weapon[usInHand].ubWeaponType == GUN_PISTOL || Weapon[usInHand].ubWeaponType == GUN_M_PISTOL )
-				maxBonus = 20+((FLOAT)iMarksmanship/20*(EffectiveExpLevel(pSoldier)))+(accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy*2)+(NUM_SKILL_TRAITS( pSoldier, GUNSLINGER_NT )*gSkillTraitValues.ubGSAimingBonusPerClick);
+			// sevenfm: calc AimBonus from gear (helmet/vest/pants/face slots)
+			if (!pSoldier->IsValidAlternativeFireMode(sAimTime, sGridNo))
+				sGearAimBonus = GetGearAimBonus(pSoldier, iEffSightRange, sAimTime);
+
+			if (gGameOptions.fNewTraitSystem)
+			{
+				// bonus to snipers and gunslingers
+				// sevenfm: new calculation
+				UINT8 ubNumSkillTraits = 0;
+
+				if (Weapon[usInHand].ubWeaponType == GUN_PISTOL || Weapon[usInHand].ubWeaponType == GUN_M_PISTOL)
+					ubNumSkillTraits = NUM_SKILL_TRAITS(pSoldier, GUNSLINGER_NT);
+				else if (Weapon[usInHand].ubWeaponType == GUN_RIFLE || Weapon[usInHand].ubWeaponType == GUN_AS_RIFLE || Weapon[usInHand].ubWeaponType == GUN_SN_RIFLE)
+					ubNumSkillTraits = NUM_SKILL_TRAITS(pSoldier, SNIPER_NT);
+
+				//dMaxBonus = (40 + dAimBonus + sGearAimBonus + bAccuracy) * (5 * iMarksmanship + 20 * EffectiveExpLevel(pSoldier) + EffectiveWisdom(pSoldier) + 100 * ubNumSkillTraits) / 1000;
+				INT16 sMaxWeaponAim = (40 + sAimBonus + sGearAimBonus + bAccuracy);
+				// modify for weapon status
+				sMaxWeaponAim -= sMaxWeaponAim * (100 - sGunCondition) / 200;
+				INT16 sMaxShooterAim = 80 * (5 * iMarksmanship + 20 * EffectiveExpLevel(pSoldier) + EffectiveWisdom(pSoldier) + 100 * ubNumSkillTraits) / 1000;
+				// modify for breath
+				sMaxShooterAim -= sMaxShooterAim * (100 - pSoldier->bBreath) / (4 * 100);
+
+				dMaxBonus = min(sMaxWeaponAim, sMaxShooterAim);
+			}
 			else
-				maxBonus = 20+((FLOAT)iMarksmanship/20*(EffectiveExpLevel(pSoldier)))+(accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy*2)+(NUM_SKILL_TRAITS( pSoldier, SNIPER_NT )*gSkillTraitValues.ubSNAimingBonusPerClick);
-		} 
-		else 
-		{			
-			if(gGameExternalOptions.bAltAimEnabled) 
-				maxBonus = (20*(iMarksmanship/100))+((FLOAT)iMarksmanship/20*pSoldier->stats.bExpLevel)+(accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy*2)+(NUM_SKILL_TRAITS( pSoldier, PROF_SNIPER_OT )*10);
-			else 
-				maxBonus = 20+((FLOAT)iMarksmanship/20*pSoldier->stats.bExpLevel)+(accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy*2)+(NUM_SKILL_TRAITS( pSoldier, PROF_SNIPER_OT )*10);
-		}
-		iAimBonus = (float)GetAimBonus( pSoldier, pInHand, 100, 1 );
+			{
+				if (gGameExternalOptions.bAltAimEnabled)
+					dMaxBonus = (20 * ((FLOAT)iMarksmanship / 100)) + ((FLOAT)iMarksmanship / 20 * pSoldier->stats.bExpLevel) + (bAccuracy * 2) + (NUM_SKILL_TRAITS(pSoldier, PROF_SNIPER_OT) * 10);
+				else
+					dMaxBonus = 20 + ((FLOAT)iMarksmanship / 20 * pSoldier->stats.bExpLevel) + (bAccuracy * 2) + (NUM_SKILL_TRAITS(pSoldier, PROF_SNIPER_OT) * 10);
+			}
 
-		// penalty when aiming from alternative weapon holding
-		if ( pSoldier->IsValidAlternativeFireMode( ubAimTime, sGridNo ) )
-			iAimBonus = iAimBonus * (100 - gGameExternalOptions.ubAltWeaponHoldingAimingPenaly) / 100;
+			// sevenfm: penalty when aiming from alternative weapon holding
+			if (pSoldier->IsValidAlternativeFireMode(sAimTime, sGridNo))
+				dMaxBonus = dMaxBonus * (100 - gGameExternalOptions.ubAltWeaponHoldingAimingPenaly) / 100;
 
-		for(int i = 0; i < ubAimTime; i++) {
-			aimTimeBonus = __min((maxBonus*bonusProgression[i]/1000),maxClickBonus);
-			maxBonus -= aimTimeBonus;
-			iChance += (INT32)floor(aimTimeBonus+.5);
-			//CHRISL: This is a slight extra bonus granted from a scopes AimBonus score
-			aimTimeBonus = __min(ceil((float)(iAimBonus * bonusProgression[i] / 1000)), 3);
-			iAimBonus -= aimTimeBonus;
-			iChance+= (INT32)floor(aimTimeBonus+.5);
+			for (int i = 0; i < sAimTime; i++)
+			{
+				dAimTimeBonus = __min((dMaxBonus*bonusProgression[i] / 1000), maxClickBonus);
+				dMaxBonus -= dAimTimeBonus;
+				iChance += (INT32)floor(dAimTimeBonus + .5);
+			}
 		}
+		else
+		{
+			// CHRISL: Rather then a flat +10/click bonus, we're going to try a bonus that's based on MRK and Lvl which gets
+			//	progressively less the more we aim.  Everything is based on the maxBonus that a merc can possibly get which
+			//	uses the equation: 20+(MRK/20*LVL)+Accuracy+(Sniper trait * 10).  This value is then split between the 8
+			//	possible AimTime's using a max aimTime bonus of 10.
+
+			// Flugente: If overheating is allowed, an overheated gun receives a slight malus to accuracy
+			FLOAT accuracyheatmultiplicator = 1.0;
+			if (gGameExternalOptions.fWeaponOverheating)
+			{
+				FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage(pInHand);
+				FLOAT accuracymalus = (FLOAT)((max(1.0, overheatdamagepercentage) - 1.0) * 0.1);
+				accuracyheatmultiplicator = (FLOAT)max(0.0, 1.0 - accuracymalus);
+			}
+
+			if (gGameOptions.fNewTraitSystem)
+			{
+				// bonus to snipers and gunslingers
+				if (Weapon[usInHand].ubWeaponType == GUN_PISTOL || Weapon[usInHand].ubWeaponType == GUN_M_PISTOL)
+					dMaxBonus = 20 + ((FLOAT)iMarksmanship / 20 * (EffectiveExpLevel(pSoldier))) + (accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy * 2) + (NUM_SKILL_TRAITS(pSoldier, GUNSLINGER_NT)*gSkillTraitValues.ubGSAimingBonusPerClick);
+				else
+					dMaxBonus = 20 + ((FLOAT)iMarksmanship / 20 * (EffectiveExpLevel(pSoldier))) + (accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy * 2) + (NUM_SKILL_TRAITS(pSoldier, SNIPER_NT)*gSkillTraitValues.ubSNAimingBonusPerClick);
+			}
+			else
+			{
+				if (gGameExternalOptions.bAltAimEnabled)
+					dMaxBonus = (20 * (iMarksmanship / 100)) + ((FLOAT)iMarksmanship / 20 * pSoldier->stats.bExpLevel) + (accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy * 2) + (NUM_SKILL_TRAITS(pSoldier, PROF_SNIPER_OT) * 10);
+				else
+					dMaxBonus = 20 + ((FLOAT)iMarksmanship / 20 * pSoldier->stats.bExpLevel) + (accuracyheatmultiplicator * Weapon[Item[pInHand->usItem].ubClassIndex].bAccuracy * 2) + (NUM_SKILL_TRAITS(pSoldier, PROF_SNIPER_OT) * 10);
+			}
+			iAimBonus = (float)GetAimBonus(pSoldier, pInHand, 100, 1);
+
+			// penalty when aiming from alternative weapon holding
+			if (pSoldier->IsValidAlternativeFireMode(sAimTime, sGridNo))
+				iAimBonus = iAimBonus * (100 - gGameExternalOptions.ubAltWeaponHoldingAimingPenaly) / 100;
+
+			for (int i = 0; i < sAimTime; i++) {
+				dAimTimeBonus = __min((dMaxBonus*bonusProgression[i] / 1000), maxClickBonus);
+				dMaxBonus -= dAimTimeBonus;
+				iChance += (INT32)floor(dAimTimeBonus + .5);
+				//CHRISL: This is a slight extra bonus granted from a scopes AimBonus score
+				dAimTimeBonus = __min(ceil((float)(iAimBonus * bonusProgression[i] / 1000)), 3);
+				iAimBonus -= dAimTimeBonus;
+				iChance += (INT32)floor(dAimTimeBonus + .5);
+			}
+		}		
 	}
 	/////////////////////////////////////////////////////////////////////////////////////
 	
@@ -7875,135 +8105,237 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 ubAimTime,
 	// Equipment Modifiers
 	iChance += GetGearToHitBonus ( pSoldier );
 
-	INT16 moda = GetToHitBonus( pSoldier, pInHand, iRange, bLightLevel, stance && iRange > MIN_PRONE_RANGE, ubAimTime );
-	INT16 modb = GetToHitBonus( pSoldier, pInHand, iRange, bLightLevel, gAnimControl[ pSoldier->usAnimState ].ubEndHeight && iRange > MIN_PRONE_RANGE, ubAimTime );
+	INT16 moda = GetToHitBonus( pSoldier, pInHand, iRange, bLightLevel, stance && iRange > MIN_PRONE_RANGE, sAimTime );
+	INT16 modb = GetToHitBonus( pSoldier, pInHand, iRange, bLightLevel, gAnimControl[ pSoldier->usAnimState ].ubEndHeight && iRange > MIN_PRONE_RANGE, sAimTime );
 
 	iChance += (INT32)((gGameExternalOptions.ubProneModifierPercentage * moda + (100 - gGameExternalOptions.ubProneModifierPercentage) * modb)/100); 
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Suppression modifiers
-	if ( gGameExternalOptions.ubAimPenaltyPerTargetShock > 0 )
+
+	if (pTarget != NULL && pTarget->IsCowering() && gGameExternalOptions.ubAimPenaltyPerTargetShock > 0)
 	{
-		if (pTarget != NULL)
+		if (gAnimControl[pTarget->usAnimState].ubHeight == ANIM_PRONE)
 		{
-			if (pTarget->aiData.bShock )
+			ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorProne;
+
+			// sevenfm: always use max shock
+			sCoweringPenalty = (gGameExternalOptions.ubMaxSuppressionShock * AIM_PENALTY_PER_TARGET_SHOCK);
+			sCoweringPenalty = sCoweringPenalty / ubCoweringDivisor;
+
+			// scale with distance
+			if (iRange < iLongRange)
+				sCoweringPenalty = sCoweringPenalty * iRange / iLongRange;
+
+			//sCoweringPenalty = (sCoweringPenalty * __min(iEffSightRange, MIN_RANGE_FOR_FULL_COWER)) / MIN_RANGE_FOR_FULL_COWER;
+
+			if (gGameExternalOptions.usMaxTargetCoweringPenalty > 0)
 			{
-				if (gAnimControl[ pTarget->usAnimState ].ubHeight == ANIM_PRONE)
-				{
-					ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorProne;
-
-					sCoweringPenalty = (pTarget->aiData.bShock * AIM_PENALTY_PER_TARGET_SHOCK);
-					sCoweringPenalty = sCoweringPenalty / ubCoweringDivisor;
-					sCoweringPenalty = (sCoweringPenalty * __min(iSightRange,MIN_RANGE_FOR_FULL_COWER)) / MIN_RANGE_FOR_FULL_COWER;
-
-					if (gGameExternalOptions.usMaxTargetCoweringPenalty > 0)
-					{
-						if ( sCoweringPenalty > gGameExternalOptions.usMaxTargetCoweringPenalty )
-							sCoweringPenalty = gGameExternalOptions.usMaxTargetCoweringPenalty;
-					}
-					if ( sCoweringPenalty < 1 )
-						sCoweringPenalty = 1;
-
-					iChance -= sCoweringPenalty;
-				}
-				else if (gAnimControl[ pTarget->usAnimState ].ubHeight == ANIM_CROUCH) 
-				{
-					switch ( ubAimPos )
-					{
-						case AIM_SHOT_HEAD:
-							ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorCrouchedHead;
-							break;
-						case AIM_SHOT_TORSO:
-						case AIM_SHOT_RANDOM:
-						case AIM_SHOT_GLAND:
-							ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorCrouchedTorso;
-							break;
-						case AIM_SHOT_LEGS:
-							ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorCrouchedLegs;
-							break;
-					}
-
-					sCoweringPenalty = (pTarget->aiData.bShock * AIM_PENALTY_PER_TARGET_SHOCK);
-					sCoweringPenalty = sCoweringPenalty / ubCoweringDivisor;
-					sCoweringPenalty = (sCoweringPenalty * __min(iSightRange,MIN_RANGE_FOR_FULL_COWER)) / MIN_RANGE_FOR_FULL_COWER;
-
-					if (gGameExternalOptions.usMaxTargetCoweringPenalty > 0)
-					{
-						if ( sCoweringPenalty > gGameExternalOptions.usMaxTargetCoweringPenalty )
-							sCoweringPenalty = gGameExternalOptions.usMaxTargetCoweringPenalty;
-					}
-					if ( sCoweringPenalty < 1 )
-						sCoweringPenalty = 1;
-
-					// HEADROCK HAM B2.8.1: Added formula to make sure that cowering target penalties
-					// are not given when on the roof.
-
-					if (pSoldier->pathing.bLevel == pTarget->pathing.bLevel && pSoldier->pathing.bLevel > 0)
-						sCoweringPenalty = 0; // No cowering penalties when both are on the roof!
-					else if (pSoldier->pathing.bLevel < pTarget->pathing.bLevel && gAnimControl[ pTarget->usAnimState ].ubHeight == ANIM_PRONE)
-						sCoweringPenalty *= 2; // Much harder to shoot at anyone cowering above you.
-					else if (pSoldier->pathing.bLevel > pTarget->pathing.bLevel)
-						sCoweringPenalty /= 2; // Much easier to shoot at cowerers below you.
-					iChance -= sCoweringPenalty;
-				}
+				sCoweringPenalty = min(sCoweringPenalty, gGameExternalOptions.usMaxTargetCoweringPenalty);
 			}
+			sCoweringPenalty = max(1, sCoweringPenalty);
+
+			iChance -= sCoweringPenalty;
+		}
+		else if (gAnimControl[pTarget->usAnimState].ubHeight == ANIM_CROUCH)
+		{
+			switch (ubAimPos)
+			{
+			case AIM_SHOT_HEAD:
+				ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorCrouchedHead;
+				break;
+			case AIM_SHOT_TORSO:
+			case AIM_SHOT_RANDOM:
+			case AIM_SHOT_GLAND:
+				ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorCrouchedTorso;
+				break;
+			case AIM_SHOT_LEGS:
+				ubCoweringDivisor = gGameExternalOptions.ubCoweringPenaltyDivisorCrouchedLegs;
+				break;
+			}
+
+			// sevenfm: always use max shock
+			sCoweringPenalty = (gGameExternalOptions.ubMaxSuppressionShock * AIM_PENALTY_PER_TARGET_SHOCK);
+			sCoweringPenalty = sCoweringPenalty / ubCoweringDivisor;
+
+			// scale with distance
+			if (iRange < iLongRange)
+				sCoweringPenalty = sCoweringPenalty * iRange / iLongRange;
+
+			//sCoweringPenalty = (sCoweringPenalty * __min(iEffSightRange, MIN_RANGE_FOR_FULL_COWER)) / MIN_RANGE_FOR_FULL_COWER;
+
+			if (gGameExternalOptions.usMaxTargetCoweringPenalty > 0)
+			{
+				sCoweringPenalty = min(sCoweringPenalty, gGameExternalOptions.usMaxTargetCoweringPenalty);
+			}
+			sCoweringPenalty = max(1, sCoweringPenalty);
+
+			// HEADROCK HAM B2.8.1: Added formula to make sure that cowering target penalties
+			// are not given when on the roof.
+
+			if (pSoldier->pathing.bLevel == pTarget->pathing.bLevel && pSoldier->pathing.bLevel > 0)
+				sCoweringPenalty = 0; // No cowering penalties when both are on the roof!
+			else if (pSoldier->pathing.bLevel < pTarget->pathing.bLevel && gAnimControl[pTarget->usAnimState].ubHeight == ANIM_PRONE)
+				sCoweringPenalty *= 2; // Much harder to shoot at anyone cowering above you.
+			else if (pSoldier->pathing.bLevel > pTarget->pathing.bLevel)
+				sCoweringPenalty /= 2; // Much easier to shoot at cowerers below you.
+
+			iChance -= sCoweringPenalty;
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////
 	
-	/////////////////////////////////////////////////////////////////////////////////////
-	// Max range modifier.  This needs to be here, near the end of the function to
-	// guarantee that the max range penalty is properly calculated.
-	/////////////////////////////////////////////////////////////////////////////////////
-	if ( iRange > iMaxRange )
+	if (gGameExternalOptions.fOCTHNewCode)
 	{
-		// a bullet WILL travel that far if not blocked, but it's NOT accurate,
-		// because beyond maximum range, the bullet drops rapidly
-
-		// This won't cause the bullet to be off to the left or right, only make it
-		// drop in flight.
-		//iChance /= 2; //ddd
-		iChance = (INT32)(iChance / gGameExternalOptions.fOutOfGunRangeOrSight);
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	// Adjust for Max and Min values
-	// HEADROCK: (HAM) Altered so called "Defined Limits" to accept external arguments.
-	// The divisor argument only works when the minimum is set to 0. It has a chance of 1 in X to
-	// bump the minimum back to 1, where X = the Divisor value. So a divisor value of 50 gives a 1/50
-	// chance of getting some actual chance to hit despite the 0 minimum. The overall total would then
-	// be an effective CTH of only 1/5000 (50 chances to get a 1 out of 100 CTH, hehehe)
-	if (iChance <= gGameExternalOptions.ubMinimumCTH)
-	{
-		if ( TANK( pSoldier ) )
+		// stability penalty for scopes
+		if (dScopeMagFactor > 1.0 && !pSoldier->IsWeaponMounted())
 		{
-			// allow absolute minimums
-			iChance = 0;
-		}
-		else
-		{
-			iChance = gGameExternalOptions.ubMinimumCTH;
-			if ( gGameExternalOptions.ubMinimumCTH == 0 )
+			INT32 iStabilityPenalty = (INT32)(dScopeMagFactor * dScopeMagFactor);
+
+			// reduce at close range
+			if (iRange < iLongRange)
 			{
-				if ( PreRandom( gGameExternalOptions.usMinimumCTHDivisor ) == (gGameExternalOptions.usMinimumCTHDivisor - 1) && fCalculateCTHDuringGunfire == TRUE )//dnl ch58 271009 Any Random function must not be used during calculation, only allow when you actually FireGun because AI became confused and sometimes do nothing
-				{
-					iChance = 1;
-				}
+				iStabilityPenalty = iStabilityPenalty * iRange / iLongRange;
 			}
+
+			if (gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_CROUCH)
+			{
+				iStabilityPenalty = iStabilityPenalty / 2;
+			}
+			else if (gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_PRONE)
+			{
+				iStabilityPenalty = iStabilityPenalty / 4;
+			}
+
+			// experienced shooter can compensate, halve penalty with exp level 10 and effective dexterity 100
+			iStabilityPenalty = iStabilityPenalty * 100 / (100 + 10 * EffectiveExpLevel(pSoldier) * EffectiveDexterity(pSoldier, FALSE) / 100);
+
+			iChance = iChance * 100 / (100 + iStabilityPenalty);
+		}
+
+		// penalty when shooting at tile
+		if (ubTargetID == NOBODY)
+		{			
+			iPenalty = 25;
+			if (iRange < iLongRange)
+			{
+				iPenalty = iPenalty * iRange / iLongRange;
+			}
+
+			iChance -= iChance * iPenalty / 100;
+		}
+
+		// square penalty when shooting beyond sight range
+		if (iEffSightRange > 0 &&
+			iEffSightRange > sDistVis)
+		{
+			iChance = iChance * sDistVis * sDistVis / (iEffSightRange * iEffSightRange);
+		}
+
+		// limit max chance from range and accuracy
+		INT32 iNormalRange = iRange;
+		INT32 iMaxChance;
+
+		// max chance at max normal range
+		if (ubAimPos == AIM_SHOT_HEAD)
+		{
+			iNormalRange *= 2;
+		}
+
+		// apply gun condition
+		iNormalRange += 10 * iNormalRange * (100 - sGunCondition) / 100;
+
+		// find max chance for this gun's accuracy and condition
+		iMaxChance = (INT32)(100 + 5 - 10 * iNormalRange / 100 + bAccuracy * iNormalRange / 200);
+
+		iMaxChance = min(100, iMaxChance);
+		iMaxChance = max(1, iMaxChance);
+
+		// apply limit
+		iChance = min(iChance, iMaxChance);
+
+		// Overheating modifier
+		if (gGameExternalOptions.fWeaponOverheating)
+		{
+			FLOAT dOverheating = GetGunOverheatDamagePercentage(pInHand);
+			iChance = (INT32)(iChance * 3.0f / (3.0f + min(1.0f, dOverheating * dOverheating)));
+		}
+
+		// Max range modifier.
+		if (iRange > iMaxRange)
+		{
+			// sevenfm: use square gradient
+			iChance = iChance * (iMaxRange * iMaxRange) / (iRange * iRange);
+		}
+
+		// Adjust for Max and Min values
+		iChance = max(iChance, gGameExternalOptions.ubMinimumCTH);
+		iChance = min(iChance, gGameExternalOptions.ubMaximumCTH);
+
+		// sevenfm: allow min cth 1% when not aiming at head and not shooting beyond weapon range
+		if (iChance == 0 &&
+			iRange <= iMaxRange &&
+			ubAimPos != AIM_SHOT_HEAD)
+		{
+			iChance = 1;
 		}
 	}
 	else
 	{
-		// HEADROCK (HAM): Externalized maximum to JA2_OPTIONS.INI
-		// if (iChance > MAXCHANCETOHIT)
-		// iChance = MAXCHANCETOHIT;
+		/////////////////////////////////////////////////////////////////////////////////////
+		// Max range modifier.  This needs to be here, near the end of the function to
+		// guarantee that the max range penalty is properly calculated.
+		/////////////////////////////////////////////////////////////////////////////////////
+		if (iRange > iMaxRange)
+		{
+			// a bullet WILL travel that far if not blocked, but it's NOT accurate,
+			// because beyond maximum range, the bullet drops rapidly
 
-		// Flugente: backgrounds
-		iChance =  min(iChance, min(100, gGameExternalOptions.ubMaximumCTH + (UINT8)(pSoldier->GetBackgroundValue(BG_PERC_CTH_MAX))) );
+			// This won't cause the bullet to be off to the left or right, only make it
+			// drop in flight.
+			//iChance /= 2; //ddd
+			iChance = (INT32)(iChance / gGameExternalOptions.fOutOfGunRangeOrSight);
+		}
+		/////////////////////////////////////////////////////////////////////////////////////
+
+		/////////////////////////////////////////////////////////////////////////////////////
+		// Adjust for Max and Min values
+		// HEADROCK: (HAM) Altered so called "Defined Limits" to accept external arguments.
+		// The divisor argument only works when the minimum is set to 0. It has a chance of 1 in X to
+		// bump the minimum back to 1, where X = the Divisor value. So a divisor value of 50 gives a 1/50
+		// chance of getting some actual chance to hit despite the 0 minimum. The overall total would then
+		// be an effective CTH of only 1/5000 (50 chances to get a 1 out of 100 CTH, hehehe)
+		if (iChance <= gGameExternalOptions.ubMinimumCTH)
+		{
+			if (TANK(pSoldier))
+			{
+				// allow absolute minimums
+				iChance = 0;
+			}
+			else
+			{
+				iChance = gGameExternalOptions.ubMinimumCTH;
+				if (gGameExternalOptions.ubMinimumCTH == 0)
+				{
+					if (PreRandom(gGameExternalOptions.usMinimumCTHDivisor) == (gGameExternalOptions.usMinimumCTHDivisor - 1) && fCalculateCTHDuringGunfire == TRUE)//dnl ch58 271009 Any Random function must not be used during calculation, only allow when you actually FireGun because AI became confused and sometimes do nothing
+					{
+						iChance = 1;
+					}
+				}
+			}
+		}
+		else
+		{
+			// HEADROCK (HAM): Externalized maximum to JA2_OPTIONS.INI
+			// if (iChance > MAXCHANCETOHIT)
+			// iChance = MAXCHANCETOHIT;
+
+			// Flugente: backgrounds
+			iChance = min(iChance, min(100, gGameExternalOptions.ubMaximumCTH + (UINT8)(pSoldier->GetBackgroundValue(BG_PERC_CTH_MAX))));
+		}
+		/////////////////////////////////////////////////////////////////////////////////////
 	}
-	/////////////////////////////////////////////////////////////////////////////////////
 	
    DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("CalcChanceToHitGun: ichance = %d",iChance));
    return (iChance);	

@@ -836,7 +836,7 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	if (pSoldier->ubBodyType >= HUMVEE)
 		Corpse.bVisible = TRUE;
 	else
-		Corpse.bVisible		= pSoldier->bVisible;
+		Corpse.bVisible = pSoldier->bVisible;
 
 	if ( pSoldier->bTeam != gbPlayerNum )
 		Corpse.ubAIWarningValue = 1;

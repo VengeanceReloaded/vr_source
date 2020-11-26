@@ -10471,32 +10471,43 @@ BOOLEAN IsScoped( OBJECTTYPE * pObj )
 // Snap: get aim bonus for a single item
 INT16 GetItemAimBonus( const INVTYPE* pItem, INT32 iRange, INT16 ubAimTime )
 {
-	if ( iRange <= pItem->minrangeforaimbonus )	return 0;
-
-	// reduce effective sight range by aimbonus% per extra aiming time AP
-	// of the distance beyond minrangeforaimbonus.
-	if ( pItem->aimbonus < 0)
-		ubAimTime = 1;
-
-	//CHRISL: The old system basically allowed scopes to reduce sight range by AimBonus%/click.  So a scope with an
-	//	AimBonus 20, and 8 clicks, would reduce sight range by 160%.  In other words, it would effectively reduce sight
-	//	range to 0 just for using 8 APs to aim.
-	//return ( pItem->aimbonus * ubAimTime	* ( iRange - pItem->minrangeforaimbonus ) ) / 100;
-	//	Instead, let's have the bonus reduce each click seperately and base the percentage on the new range.
-	INT16 bonus = 0, stepBonus = 0;
-	for( UINT8 step = 0; step < ubAimTime; step++)
+	// sevenfm: new OCTH code
+	if(gGameExternalOptions.fOCTHNewCode)
 	{
-		stepBonus = (pItem->aimbonus * iRange)/100;
-		iRange -= stepBonus;
-		bonus += stepBonus;
-		if(iRange < pItem->minrangeforaimbonus)
-		{
-			stepBonus = pItem->minrangeforaimbonus - iRange;
-			bonus -= stepBonus;
-			break;
-		}
+		if (iRange >= pItem->minrangeforaimbonus || pItem->minrangeforaimbonus <= 0)
+			return pItem->aimbonus;
+		else
+			return pItem->aimbonus * iRange * iRange / (pItem->minrangeforaimbonus * pItem->minrangeforaimbonus);
 	}
-	return(bonus);
+	else
+	{
+		if (iRange <= pItem->minrangeforaimbonus)	return 0;
+
+		// reduce effective sight range by aimbonus% per extra aiming time AP
+		// of the distance beyond minrangeforaimbonus.
+		if (pItem->aimbonus < 0)
+			ubAimTime = 1;
+
+		//CHRISL: The old system basically allowed scopes to reduce sight range by AimBonus%/click.  So a scope with an
+		//	AimBonus 20, and 8 clicks, would reduce sight range by 160%.  In other words, it would effectively reduce sight
+		//	range to 0 just for using 8 APs to aim.
+		//return ( pItem->aimbonus * ubAimTime	* ( iRange - pItem->minrangeforaimbonus ) ) / 100;
+		//	Instead, let's have the bonus reduce each click separately and base the percentage on the new range.
+		INT16 bonus = 0, stepBonus = 0;
+		for (UINT8 step = 0; step < ubAimTime; step++)
+		{
+			stepBonus = (pItem->aimbonus * iRange) / 100;
+			iRange -= stepBonus;
+			bonus += stepBonus;
+			if (iRange < pItem->minrangeforaimbonus)
+			{
+				stepBonus = pItem->minrangeforaimbonus - iRange;
+				bonus -= stepBonus;
+				break;
+			}
+		}
+		return(bonus);
+	}	
 }
 
 INT16 GetAimBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT32 iRange, INT16 ubAimTime )
@@ -10505,7 +10516,10 @@ INT16 GetAimBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT32 iRange, INT1
 
 	if (pObj->exists() == true) 
 	{
-		// Flugente: check for scope mode
+		// bonus from item
+		bonus = BonusReduceMore(GetItemAimBonus(&Item[pObj->usItem], iRange, ubAimTime), (*pObj)[0]->data.objectStatus);
+
+		// bonus from active scope
 		if ( gGameExternalOptions.fScopeModes && pSoldier && Item[pObj->usItem].usItemClass == IC_GUN )
 		{
 			std::map<INT8, OBJECTTYPE*> ObjList;
@@ -10515,11 +10529,11 @@ INT16 GetAimBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT32 iRange, INT1
 			if ( (&pSoldier->inv[HANDPOS]) == pObj && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
 				bonus = BonusReduceMore( GetItemAimBonus( &Item[ObjList[pSoldier->bScopeMode]->usItem], iRange, ubAimTime ), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
 		}
-		else
-			bonus = BonusReduceMore( GetItemAimBonus( &Item[pObj->usItem], iRange, ubAimTime ), (*pObj)[0]->data.objectStatus );
 
+		// bonus from ammo
 		bonus += GetItemAimBonus( &Item[(*pObj)[0]->data.gun.usGunAmmoItem], iRange, ubAimTime );
 
+		// bonus from attachments except scopes
 		attachmentList::iterator iterend = (*pObj)[0]->attachments.end();
 		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != iterend; ++iter) 
 		{
