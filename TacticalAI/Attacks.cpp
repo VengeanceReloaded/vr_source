@@ -28,6 +28,9 @@
 #include "Town Militia.h"		// added by Flugente
 #include "Queen Command.h"		// added by Flugente
 #include "Game Clock.h"			// sevenfm
+#include "Structure Wrap.h"
+#include "Worldman.h"
+#include "Rotting Corpses.h"
 #endif
 
 // anv: for enemy taunts
@@ -3608,4 +3611,645 @@ BOOLEAN MoreFriendsThanEnemiesinNearbysectors(UINT8 ausTeam, INT16 aX, INT16 aY,
 		return (enemyteam > militiateam);
 
 	return (militiateam > enemyteam);
+}
+
+// check if we can toss grenade at spot, and prepare attack data
+// grenade should be in hand
+void CheckTossAt(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow, INT32 sTargetSpot, INT8 bTargetLevel, UINT8 ubOpponentID)
+{
+	UINT16	usInHand, usGrenade;
+	INT32	iTossRange;
+
+	INT32	sEndSpot = NOWHERE;
+	INT8	bEndLevel = 0;
+
+	UINT8	ubAPCost;
+	UINT8	ubChanceToHit;
+	UINT8	ubChanceToReallyHit;
+	UINT8	ubChanceToGetThrough;
+	INT32	iHitRate;
+	INT32	iAttackValue;
+	INT32	iTotalThreatValue = 100;
+	UINT8	ubMaxPossibleAimTime = 0;
+	UINT16	usTrueState = pSoldier->usAnimState;
+	UINT8	ubStance = gAnimControl[pSoldier->usAnimState].ubEndHeight;
+
+	usInHand = pSoldier->inv[HANDPOS].usItem;
+
+	// initialize
+	pBestThrow->ubPossible = FALSE;
+	pBestThrow->ubChanceToReallyHit = 0;
+	pBestThrow->iAttackValue = 0;
+
+	//DebugShot( pSoldier, String("check toss at %d %d", sTargetSpot, bTargetLevel));
+
+	// sevenfm: safety check
+	if (TileIsOutOfBounds(sTargetSpot) || !GridNoOnVisibleWorldTile(sTargetSpot))
+	{
+		return;
+	}
+
+	iTossRange = CalcMaxTossRange(pSoldier, usInHand, TRUE);
+	//DebugShot( pSoldier, String("toss range %d", iTossRange));
+
+	usGrenade = pSoldier->inv[HANDPOS].usItem;
+	//DebugShot( pSoldier, String("grenade %d", usGrenade));
+
+	ubChanceToGetThrough = 100 * CalculateLaunchItemChanceToGetThrough(pSoldier, &pSoldier->inv[HANDPOS], sTargetSpot, bTargetLevel, 0, &sEndSpot, TRUE, &bEndLevel, FALSE);
+	//DebugShot( pSoldier, String("CTGT %d end spot %d end level %d", ubChanceToGetThrough, sEndSpot, bEndLevel));
+
+	ubAPCost = (UINT8)MinAPsToThrow(pSoldier, sTargetSpot, TRUE) + CalcAPCostForAiming(pSoldier, sTargetSpot, ubMaxPossibleAimTime);
+	//DebugShot( pSoldier, String("AP cost %d", ubAPCost));
+
+	ubChanceToHit = (UINT8)CalcThrownChanceToHit(pSoldier, sTargetSpot, 0, AIM_SHOT_TORSO);
+	//DebugShot( pSoldier, String("CTH %d", ubChanceToHit));
+
+	ubChanceToReallyHit = (ubChanceToHit * ubChanceToGetThrough) / 100;
+	//DebugShot( pSoldier, String("chance to really hit %d", ubChanceToReallyHit));
+
+	iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / ubAPCost;
+	//DebugShot( pSoldier, String("hit rate %d", iHitRate));
+
+	iAttackValue = (iHitRate * ubChanceToReallyHit * iTotalThreatValue) / 1000;
+	//DebugShot( pSoldier, String("attack value %d", iAttackValue));
+
+	// maybe try to stand up for better range
+	if (ubChanceToReallyHit == 0 &&
+		gAnimControl[pSoldier->usAnimState].ubEndHeight < ANIM_STAND &&
+		pSoldier->InternalIsValidStance(AIDirection(pSoldier->sGridNo, sTargetSpot), ANIM_STAND) &&
+		pSoldier->bActionPoints >= ubAPCost + GetAPsToChangeStance(pSoldier, ANIM_STAND))
+	{
+		pSoldier->usAnimState = STANDING;
+
+		iTossRange = CalcMaxTossRange(pSoldier, usInHand, TRUE);
+		//DebugShot( pSoldier, String("toss range %d", iTossRange));
+
+		usGrenade = pSoldier->inv[HANDPOS].usItem;
+		//DebugShot( pSoldier, String("grenade %d", usGrenade));
+
+		ubChanceToGetThrough = 100 * CalculateLaunchItemChanceToGetThrough(pSoldier, &pSoldier->inv[HANDPOS], sTargetSpot, bTargetLevel, 0, &sEndSpot, TRUE, &bEndLevel, FALSE);
+		//DebugShot( pSoldier, String("CTGT %d end spot %d end level %d", ubChanceToGetThrough, sEndSpot, bEndLevel));
+
+		ubAPCost = (UINT8)MinAPsToThrow(pSoldier, sTargetSpot, TRUE) + CalcAPCostForAiming(pSoldier, sTargetSpot, ubMaxPossibleAimTime);
+		//DebugShot( pSoldier, String("AP cost %d", ubAPCost));
+
+		ubChanceToHit = (UINT8)CalcThrownChanceToHit(pSoldier, sTargetSpot, 0, AIM_SHOT_TORSO);
+		//DebugShot( pSoldier, String("CTH %d", ubChanceToHit));
+
+		ubChanceToReallyHit = (ubChanceToHit * ubChanceToGetThrough) / 100;
+		//DebugShot( pSoldier, String("chance to really hit %d", ubChanceToReallyHit));
+
+		iHitRate = (pSoldier->bActionPoints * ubChanceToHit) / ubAPCost;
+		//DebugShot( pSoldier, String("hit rate %d", iHitRate));
+
+		iAttackValue = (iHitRate * ubChanceToReallyHit * iTotalThreatValue) / 1000;
+		//DebugShot( pSoldier, String("attack value %d", iAttackValue));
+
+		pSoldier->usAnimState = usTrueState;
+
+		ubStance = ANIM_STAND;
+		ubAPCost += GetAPsToChangeStance(pSoldier, ANIM_STAND);
+	}
+
+	if (ubChanceToReallyHit > 0)
+	{
+		// OOOF!	That was a lot of work!	But we've got a new best target!
+		pBestThrow->ubPossible = TRUE;
+		pBestThrow->ubOpponent = ubOpponentID;
+		pBestThrow->ubAimTime = ubMaxPossibleAimTime;
+		pBestThrow->ubChanceToReallyHit = ubChanceToReallyHit;
+		pBestThrow->sTarget = sTargetSpot;
+		pBestThrow->iAttackValue = iAttackValue;
+		pBestThrow->ubAPCost = ubAPCost;
+		pBestThrow->bTargetLevel = bTargetLevel;
+		pBestThrow->ubStance = ubStance;
+
+		//DebugShot( pSoldier, String("throw possible: opponent %d, aim time %d, CTH %d, Target %d, Level %d, AP cost %d", pBestThrow->ubOpponent, pBestThrow->ubAimTime, pBestThrow->ubChanceToReallyHit, pBestThrow->sTarget, pBestThrow->bTargetLevel, pBestThrow->ubAPCost));
+	}
+	else
+	{
+		//DebugShot(pSoldier, String("throw not possible"));
+	}
+}
+
+void CheckTossFlankFence(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
+{
+	//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] Check Toss Flank Fence", pSoldier->ubID);
+	//DebugShot(pSoldier, String("\nCheckTossFlankFence"));
+
+	INT16 ubMinAPcost;
+	INT8 bGrenadeIn = NO_SLOT;
+
+	// initialize
+	pBestThrow->ubPossible = FALSE;
+	pBestThrow->ubChanceToReallyHit = 0;
+	pBestThrow->iAttackValue = 0;
+	pBestThrow->ubOpponent = NOBODY;
+
+	if (!IS_MERC_BODY_TYPE(pSoldier))
+	{
+		//DebugShot(pSoldier, String("not merc body type"));
+		return;
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+
+	bGrenadeIn = FindThrowableGrenade(pSoldier, EXPLOSV_NORMAL, 10);
+
+	if (bGrenadeIn != NO_SLOT)
+	{
+		pBestThrow->bWeaponIn = bGrenadeIn;
+		//DebugShot(pSoldier, String("found grenade in slot %d", pBestThrow->bWeaponIn));
+
+		// if it's in his holster, swap it into his hand temporarily
+		if (pBestThrow->bWeaponIn != HANDPOS)
+		{
+			//DebugShot(pSoldier, String("rearrange pocket"));
+			RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+		}
+
+		// get the minimum cost to attack with this tossable item
+		ubMinAPcost = MinAPsToAttack(pSoldier, pSoldier->sGridNo, DONTADDTURNCOST, 0);
+		//DebugShot(pSoldier, String("min APs to attack %d", ubMinAPcost));
+
+		// if we can afford the minimum AP cost to throw this tossable item
+		if (pSoldier->bActionPoints >= ubMinAPcost)
+		{
+			// get direction of position to flank from soldier's position
+			UINT8 ubDesiredDir = FlankingDirection(pSoldier);
+
+			INT32 sFenceSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubDesiredDir));
+
+			if (sFenceSpot != pSoldier->sGridNo &&
+				(FindConcertina(sFenceSpot) || IsCuttableWireFenceAtGridNo(sFenceSpot) || FindStruct(sFenceSpot, pSoldier->pathing.bLevel, BLUEFLAG_GRAPHIC)))
+			{
+				CheckTossAt(pSoldier, pBestThrow, sFenceSpot, pSoldier->pathing.bLevel, NOBODY);
+
+				// check adjacent tiles
+				if (!pBestThrow->ubPossible)
+				{
+					INT32 sTempSpot;
+
+					for (UINT8 ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+					{
+						sTempSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubDirection));
+
+						if (sTempSpot != pSoldier->sGridNo)
+						{
+							CheckTossAt(pSoldier, pBestThrow, sTempSpot, pSoldier->pathing.bLevel, NOBODY);
+
+							if (pBestThrow->ubPossible)
+							{
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			// if it was in his holster, swap it back into his holster for now
+			if (pBestThrow->bWeaponIn != HANDPOS)
+			{
+				//DebugShot(pSoldier, String("rearrange pocket"));
+				RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+			}
+		}
+		else
+		{
+			//DebugShot(pSoldier, String("not enough AP to throw grenade"));
+		}
+	}
+	else
+	{
+		//DebugShot(pSoldier, String("not found grenade"));
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+}
+
+void CheckTossOpponentFence(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
+{
+	//ScreenMsg(FONT_KHAKI, MSG_INTERFACE, L"[%d] Check Toss Flank Fence", pSoldier->ubID);
+	//DebugShot(pSoldier, String("\nCheckTossFlankFence"));
+
+	INT16 ubMinAPcost;
+	INT8 bGrenadeIn = NO_SLOT;
+	INT32 sPathCost, sNewPathCost;
+	INT32 sOriginalGridNo;
+
+	// initialize
+	pBestThrow->ubPossible = FALSE;
+	pBestThrow->ubChanceToReallyHit = 0;
+	pBestThrow->iAttackValue = 0;
+	pBestThrow->ubOpponent = NOBODY;
+
+	if (!IS_MERC_BODY_TYPE(pSoldier))
+	{
+		//DebugShot(pSoldier, String("not merc body type"));
+		return;
+	}
+
+	INT32 sOpponentSpot;
+	INT8 bOppponentLevel;
+	INT32 sClosestOpponent = ClosestKnownOpponent(pSoldier, &sOpponentSpot, &bOppponentLevel);
+
+	if (TileIsOutOfBounds(sClosestOpponent))
+	{
+		return;
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+
+	bGrenadeIn = FindThrowableGrenade(pSoldier, EXPLOSV_NORMAL, 10);
+
+	/*if(bGrenadeIn == NO_SLOT)
+	{
+		// try to create item
+		UINT16 usItem = MINI_GRENADE;
+		if (usItem > 0)
+		{
+			OBJECTTYPE newobj;
+			CreateItem(usItem, 80 + Random(20), &newobj);
+			newobj.fFlags |= OBJECT_UNDROPPABLE;
+
+			// try to place item in inventory
+			if (AutoPlaceObject(pSoldier, &newobj, FALSE))
+			{
+				bGrenadeIn = FindThrowableGrenade(pSoldier, EXPLOSV_NORMAL, 10);
+			}
+		}
+	}*/
+
+	if (bGrenadeIn != NO_SLOT)
+	{
+		pBestThrow->bWeaponIn = bGrenadeIn;
+		//DebugShot(pSoldier, String("found grenade in slot %d", pBestThrow->bWeaponIn));
+
+		// if it's in his holster, swap it into his hand temporarily
+		if (pBestThrow->bWeaponIn != HANDPOS)
+		{
+			//DebugShot(pSoldier, String("rearrange pocket"));
+			RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+		}
+
+		// get the minimum cost to attack with this tossable item
+		ubMinAPcost = MinAPsToAttack(pSoldier, pSoldier->sGridNo, DONTADDTURNCOST, 0);
+		//DebugShot(pSoldier, String("min APs to attack %d", ubMinAPcost));
+
+		// if we can afford the minimum AP cost to throw this tossable item
+		if (pSoldier->bActionPoints >= ubMinAPcost)
+		{
+			// get direction to closest opponent
+			UINT8 ubDesiredDir = AIDirection(pSoldier->sGridNo, sClosestOpponent);
+
+			INT32 sFenceSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubDesiredDir));
+			INT32 sNextSpot = NewGridNo(sFenceSpot, DirectionInc(ubDesiredDir));
+
+			if (sFenceSpot != pSoldier->sGridNo &&
+				sNextSpot != sFenceSpot &&
+				(FindConcertina(sFenceSpot) || IsCuttableWireFenceAtGridNo(sFenceSpot) || FindStruct(sFenceSpot, pSoldier->pathing.bLevel, BLUEFLAG_GRAPHIC)) &&
+				IsLocationSittable(sNextSpot, pSoldier->pathing.bLevel))
+			{
+				sPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				sOriginalGridNo = pSoldier->sGridNo;
+				pSoldier->sGridNo = sNextSpot;
+				sNewPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				pSoldier->sGridNo = sOriginalGridNo;
+
+				if (sNewPathCost > 0 && (sPathCost == 0 || sPathCost > sNewPathCost && sPathCost - sNewPathCost > APBPConstants[AP_MAXIMUM]))
+				{
+					CheckTossAt(pSoldier, pBestThrow, sFenceSpot, pSoldier->pathing.bLevel, NOBODY);
+				}				
+			}
+
+			// if it was in his holster, swap it back into his holster for now
+			if (pBestThrow->bWeaponIn != HANDPOS)
+			{
+				//DebugShot(pSoldier, String("rearrange pocket"));
+				RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+			}
+		}
+		else
+		{
+			//DebugShot(pSoldier, String("not enough AP to throw grenade"));
+		}
+	}
+	else
+	{
+		//DebugShot(pSoldier, String("not found grenade"));
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+}
+
+void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
+{
+	//ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"[%d] Check Toss Grenade Special", pSoldier->ubID);
+	//DebugShot(pSoldier, String("\nCheckTossGrenadeSpecial"));
+
+	INT16 ubMinAPcost;
+	INT8 bGrenadeIn = NO_SLOT;
+	UINT16 usGrenade;
+	UINT8 ubType;
+	UINT8 ubRadius;
+	UINT8 ubMinDamage;
+
+	// initialize
+	pBestThrow->ubPossible = FALSE;
+	pBestThrow->ubChanceToReallyHit = 0;
+	pBestThrow->iAttackValue = 0;
+	pBestThrow->ubOpponent = NOBODY;
+
+	if (!IS_MERC_BODY_TYPE(pSoldier))
+	{
+		//DebugShot(pSoldier, String("not merc body type"));
+		return;
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+
+	for (ubType = EXPLOSV_NORMAL; ubType < EXPLOSV_ANY_TYPE; ubType++)
+	{
+		switch (ubType)
+		{
+		case EXPLOSV_NORMAL:
+		case EXPLOSV_STUN:
+			ubMinDamage = 10; break;
+		case EXPLOSV_MUSTGAS:
+		case EXPLOSV_CREATUREGAS:
+		case EXPLOSV_BURNABLEGAS:
+			ubMinDamage = 5; break;
+		case EXPLOSV_FLASHBANG:
+			ubMinDamage = 1; break;
+		case EXPLOSV_FLARE:
+		case EXPLOSV_NOISE:
+		case EXPLOSV_SMOKE:
+		case EXPLOSV_SIGNAL_SMOKE:
+		case EXPLOSV_TEARGAS:
+			ubMinDamage = 0; break;
+		default:
+			ubMinDamage = 10;
+		}
+
+		bGrenadeIn = FindThrowableGrenade(pSoldier, ubType, ubMinDamage);
+
+		if (bGrenadeIn != NO_SLOT)
+		{
+			pBestThrow->bWeaponIn = bGrenadeIn;
+			usGrenade = pSoldier->inv[bGrenadeIn].usItem;
+			//ubType = Explosive[Item[usGrenade].ubClassIndex].ubType;
+			ubRadius = max(Explosive[Item[usGrenade].ubClassIndex].ubRadius, min(TACTICAL_RANGE / 4, Explosive[Item[usGrenade].ubClassIndex].ubFragRange / CELL_X_SIZE));
+			//DebugShot(pSoldier, String("found grenade in slot %d", pBestThrow->bWeaponIn));
+
+			// if it's in his holster, swap it into his hand temporarily
+			if (pBestThrow->bWeaponIn != HANDPOS)
+			{
+				//DebugShot(pSoldier, String("rearrange pocket"));
+				RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+			}
+
+			// get the minimum cost to attack with this tossable item
+			ubMinAPcost = MinAPsToAttack(pSoldier, pSoldier->sGridNo, DONTADDTURNCOST, 0);
+			//DebugShot(pSoldier, String("min APs to attack %d", ubMinAPcost));
+
+			// if we can afford the minimum AP cost to throw this tossable item
+			if (pSoldier->bActionPoints >= ubMinAPcost)
+			{
+				//DebugShot(pSoldier, String("Enough AP, find best spot for grenade"));
+
+				INT16 sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXOffset, sYOffset;
+				INT32 iSearchRange = TACTICAL_RANGE / 2;
+				INT32 sSpot;
+				INT32 sBestSpot = NOWHERE;
+				INT8 bSoldierLevel = pSoldier->pathing.bLevel;
+				INT8 bLevel = 0;	// always throw at ground level
+				UINT8 ubMinDistance = TACTICAL_RANGE / 8;
+				INT16 sMaxEnemyDistance = TACTICAL_RANGE * 2;
+				INT32 iValue;
+				INT32 iBestValue = 0;
+
+				INT32	sClosestOpponent;
+				INT32	sClosestOpponentPathCost = 0;
+				INT32	sClosestOpponentStraightPathCost = 0;
+				INT32	sEnemySpot = NOWHERE;
+				INT8	bEnemyLevel = 0;
+				INT16	sClosestOpponentDistance = 0;
+				UINT8	ubSpotDir;
+				INT16	sObstaclePercent = 0;
+				//UINT8	ubStructureExplosionRadius = Explosive[Item[STRUCTURE_IGNITE].ubClassIndex].ubRadius;
+				UINT8	ubStructureExplosionRadius = (UINT8)Explosive[Item[C1].ubClassIndex].ubRadius;
+				UINT16	usRoom;
+				INT32 iRCD = RangeChangeDesire(pSoldier);
+
+				sClosestOpponent = ClosestKnownOpponent(pSoldier, &sEnemySpot, &bEnemyLevel);
+
+				if (!TileIsOutOfBounds(sEnemySpot) && PythSpacesAway(pSoldier->sGridNo, sEnemySpot) < DAY_VISION_RANGE * 2)
+				{
+					sClosestOpponentPathCost = PlotPath(pSoldier, sEnemySpot, FALSE, FALSE, FALSE, RUNNING, 0, FALSE, 0);
+					sClosestOpponentDistance = PythSpacesAway(pSoldier->sGridNo, sEnemySpot);
+					sClosestOpponentStraightPathCost = sClosestOpponentDistance * (APBPConstants[AP_MOVEMENT_FLAT] + APBPConstants[AP_MODIFIER_RUN]);
+					sObstaclePercent = min(100, 100 * abs(sClosestOpponentPathCost - sClosestOpponentStraightPathCost) / sClosestOpponentStraightPathCost);
+				}
+				//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] enemy %d level %d path cost %d distance %d straight cost %d", pSoldier->ubID, sEnemySpot, bEnemyLevel, sClosestOpponentPathCost, sClosestOpponentDistance, sClosestOpponentStraightPathCost);
+
+				// determine maximum horizontal limits
+				sMaxLeft = min(iSearchRange, (pSoldier->sGridNo % MAXCOL));
+				sMaxRight = min(iSearchRange, MAXCOL - ((pSoldier->sGridNo % MAXCOL) + 1));
+
+				// determine maximum vertical limits
+				sMaxUp = min(iSearchRange, (pSoldier->sGridNo / MAXROW));
+				sMaxDown = min(iSearchRange, MAXROW - ((pSoldier->sGridNo / MAXROW) + 1));
+
+				//DebugShot(pSoldier, String("search range %d max left %d max right %d max up %d max down %d", iSearchRange, sMaxLeft, sMaxRight, sMaxUp, sMaxDown));
+
+				// check all tiles in range
+				for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
+				{
+					for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
+					{
+						sSpot = pSoldier->sGridNo + sXOffset + (MAXCOL * sYOffset);
+
+						if (TileIsOutOfBounds(sSpot))
+						{
+							continue;
+						}
+
+						// basic checks
+						if (Water(sSpot, bLevel))
+						{
+							continue;
+						}
+
+						// too close to soldier or any friend
+						if (PythSpacesAway(pSoldier->sGridNo, sSpot) < ubMinDistance || CountNearbyFriends(pSoldier, sSpot, ubMinDistance) > 0)
+						{
+							//continue;
+						}
+
+						// check for neutrals
+						if (CountNearbyNeutrals(pSoldier, sSpot, ubMinDistance))
+						{
+							//continue;
+						}
+
+						// if there's already active grenade there
+						if (FindBombNearby(pSoldier, sSpot, 1, FALSE))
+						{
+							continue;
+						}
+
+						iValue = 0;
+
+						////DebugShot(pSoldier, String("check spot %d for zombie corpse", sSpot));
+						// check for zombie corpse
+						if (gGameSettings.fOptions[TOPTION_ZOMBIES])
+						{
+							INT32			cnt;
+							ROTTING_CORPSE *pCorpse;
+							UINT16 recanimstate;
+
+							for (cnt = 0; cnt < giNumRottingCorpse; ++cnt)
+							{
+								pCorpse = &(gRottingCorpse[cnt]);
+
+								if (pCorpse &&
+									pCorpse->fActivated &&
+									pCorpse->def.bLevel == bLevel &&
+									pCorpse->def.sGridNo == sSpot &&
+									!(pCorpse->def.usFlags & (ROTTING_CORPSE_HEAD_TAKEN | ROTTING_CORPSE_NEVER_RISE_AGAIN)) &&
+									CorpseOkToSpawnZombie(pCorpse, &recanimstate) &&
+									(ubType == EXPLOSV_NORMAL || ubType == EXPLOSV_BURNABLEGAS))
+								{
+									iValue = max(iValue, 5 * gGameExternalOptions.sZombieDifficultyLevel);
+									//DebugShot(pSoldier, String("spot %d, found zombie corpse!", sSpot));
+									break;
+								}
+							}
+						}
+
+						////DebugShot(pSoldier, String("check spot %d for blue flag", sSpot));
+						// check for obstacles between soldier and closest enemy
+						if (sObstaclePercent > 25 &&
+							bSoldierLevel == 0 &&
+							pSoldier->aiData.bOrders == SEEKENEMY &&
+							pSoldier->aiData.bAIMorale == MORALE_FEARLESS &&
+							iRCD >= 4 &&
+							//WeAttack(pSoldier->bTeam) &&
+							!TileIsOutOfBounds(sEnemySpot) &&
+							ubType == EXPLOSV_NORMAL &&
+							//CountSeenEnemiesLastTurn(pSoldier) == 0 &&
+							(FindStruct(sSpot, bLevel, BLUEFLAG_GRAPHIC) || FindConcertina(sSpot) || IsCuttableWireFenceAtGridNo(sSpot)))
+						{
+							INT32	sTempSpot;
+							UINT8	ubDirection;
+							UINT8	ubCount = 0;
+
+							// check adjacent tiles
+							for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+							{
+								sTempSpot = NewGridNo(sSpot, DirectionInc(ubDirection));
+
+								if (sTempSpot != sSpot && FindStruct(sSpot, bLevel, BLUEFLAG_GRAPHIC) || FindConcertina(sSpot) || IsCuttableWireFenceAtGridNo(sSpot))
+								{
+									ubCount++;
+								}
+							}
+
+							ubSpotDir = AIDirection(pSoldier->sGridNo, sSpot);
+							iValue = max(iValue, sObstaclePercent * (10 * (CountKnownEnemiesInDirection(pSoldier, ubSpotDir, sMaxEnemyDistance, FALSE) > 0) +
+								5 * (CountKnownEnemiesInDirection(pSoldier, gOneCDirection[ubSpotDir], sMaxEnemyDistance, FALSE) > 0) +
+								5 * (CountKnownEnemiesInDirection(pSoldier, gOneCCDirection[ubSpotDir], sMaxEnemyDistance, FALSE) > 0)) / 100);
+
+							//DebugShot(pSoldier, String("spot %d, found obstacle and %d nearby! value %d opponents in dir %d", sSpot, ubCount, iValue, CountKnownEnemiesInDirection(pSoldier, ubSpotDir, sMaxEnemyDistance, TRUE)));
+						}
+
+						// too close to soldier or any friend
+						if (PythSpacesAway(pSoldier->sGridNo, sSpot) < ubMinDistance || CountNearbyFriends(pSoldier, sSpot, ubMinDistance) > 0 || CountNearbyNeutrals(pSoldier, sSpot, ubMinDistance))
+						{
+							iValue = iValue / 2;
+						}
+
+						// for regular explosives, prefer closest spot
+						/*if (ubType == EXPLOSV_NORMAL)
+						{
+						iValue = iValue * iSearchRange / (iSearchRange + PythSpacesAway(pSoldier->sGridNo, sSpot));
+						}*/
+
+						// found possible throw spot
+						if (iValue > iBestValue)
+						{
+							CheckTossAt(pSoldier, pBestThrow, sSpot, bLevel, NOBODY);
+
+							if (ubType == EXPLOSV_NORMAL || ubType == EXPLOSV_BURNABLEGAS)
+							{
+								// check adjacent tiles
+								if (!pBestThrow->ubPossible)
+								{
+									INT32 sTempSpot;
+									for (UINT8 ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+									{
+										sTempSpot = NewGridNo(sSpot, DirectionInc(ubDirection));
+										if (sTempSpot != sSpot)
+										{
+											CheckTossAt(pSoldier, pBestThrow, sTempSpot, bLevel, NOBODY);
+											if (pBestThrow->ubPossible)
+											{
+												break;
+											}
+										}
+									}
+								}
+							}
+
+							// can throw, set best spot
+							if (pBestThrow->ubPossible)
+							{
+								// take into account chance to really hit for all spots
+								iValue = iValue * pBestThrow->ubChanceToReallyHit;
+								// if still best spot to throw
+								if (iValue > iBestValue)
+								{
+									sBestSpot = sSpot;
+									iBestValue = iValue;
+								}
+
+								//DebugShot(pSoldier, String("found new best value %d spot %d", iBestValue, sBestSpot));
+							}
+						}
+					}
+				}
+
+				// finally, prepare data for toss
+				pBestThrow->ubPossible = FALSE;
+				pBestThrow->ubChanceToReallyHit = 0;
+				pBestThrow->iAttackValue = 0;
+				pBestThrow->ubOpponent = NOBODY;
+
+				if (!TileIsOutOfBounds(sBestSpot))
+				{
+					CheckTossAt(pSoldier, pBestThrow, sBestSpot, bLevel, NOBODY);
+					pBestThrow->iAttackValue = iBestValue;
+					//DebugShot(pSoldier, String("CheckTossAt result: possible %d cth %d attack value %d", pBestThrow->ubPossible, pBestThrow->ubChanceToReallyHit, pBestThrow->iAttackValue));
+				}
+				else
+				{
+					//DebugShot(pSoldier, String("could not find good throwing spot"));
+				}
+			}
+
+			// if it was in his holster, swap it back into his holster for now
+			if (pBestThrow->bWeaponIn != HANDPOS)
+			{
+				//DebugShot(pSoldier, String("rearrange pocket"));
+				RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+			}
+		}
+		else
+		{
+			//DebugShot(pSoldier, String("not found grenade"));
+		}
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+	//ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Check Toss Grenade Special end");
 }

@@ -107,6 +107,7 @@ typedef enum
 	AI_ACTION_JUMP_WINDOW,			// added by Flugente: jump through a window
 	AI_ACTION_FREE_PRISONER,		// added by Flugente: free a prisoner
 	AI_ACTION_USE_SKILL,			// added by Flugente: perform a skill, which one is stored in usAISkillUse
+	AI_ACTION_HANDLE_ITEM,			// sevenfm: use item in hand
 } ActionType;
 
 
@@ -286,6 +287,7 @@ BOOLEAN LastTargetSuppressed( SOLDIERTYPE *pSoldier );
 BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
+UINT8 CountNearbyNeutrals(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance);
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
 UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent = NOWHERE );
 UINT8 CountNearbyFriendsOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
@@ -315,6 +317,8 @@ BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier);
 
 BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE );
 BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE);
+
+BOOLEAN FindFenceAroundSpot(INT32 sSpot);
 
 BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
 BOOLEAN AIGunInHandScoped(SOLDIERTYPE *pSoldier);
@@ -366,5 +370,23 @@ BOOLEAN AICheckNVG( SOLDIERTYPE *pSoldier );
 INT8 AIEstimateInterruptLevel( SOLDIERTYPE *pSoldier );
 INT8 FindMaxEnemyInterruptLevel( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 blevel, UINT8 ubDistance );
 UINT8 AIDirection(INT32 sSpot1, INT32 sSpot2);
+UINT8 FlankingDirection(SOLDIERTYPE *pSoldier);
+BOOLEAN WeAttack(INT8 bTeam);
+UINT8 CountKnownEnemiesInDirection(SOLDIERTYPE *pSoldier, UINT8 ubDirection, INT16 sDistance, BOOLEAN fAdjacent);
+
+INT8 Knowledge(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID);
+INT32 KnownLocation(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID);
+INT8 KnownLevel(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID);
+
+BOOLEAN UsePersonalKnowledge(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID);
+
+INT8 PersonalKnowledge(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID);
+INT32 KnownPersonalLocation(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID);
+INT8 KnownPersonalLevel(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID);
+
+INT8 PublicKnowledge(UINT8 bTeam, UINT8 ubOpponentID);
+INT32 KnownPublicLocation(UINT8 bTeam, UINT8 ubOpponentID);
+INT8 KnownPublicLevel(UINT8 bTeam, UINT8 ubOpponentID);
+
 
 #endif

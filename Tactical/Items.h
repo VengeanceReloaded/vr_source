@@ -16,9 +16,21 @@ class SOLDIERTYPE;
 #define NIGHTSIGHTGOGGLES_BONUS 2 * STRAIGHT_RATIO
 #define UVGOGGLES_BONUS 4 * STRAIGHT_RATIO
 
-
-
-
+enum
+{
+	EXPLOSV_NORMAL,
+	EXPLOSV_STUN,
+	EXPLOSV_TEARGAS,
+	EXPLOSV_MUSTGAS,
+	EXPLOSV_FLARE,
+	EXPLOSV_NOISE,
+	EXPLOSV_SMOKE,
+	EXPLOSV_CREATUREGAS,
+	EXPLOSV_BURNABLEGAS,
+	EXPLOSV_FLASHBANG,
+	EXPLOSV_SIGNAL_SMOKE,
+	EXPLOSV_ANY_TYPE,
+};
 
 extern UINT8 SlotToPocket[7];
 
@@ -37,7 +49,8 @@ extern INT8 FindEmptySlotWithin( SOLDIERTYPE * pSoldier, INT8 bLower, INT8 bUppe
 extern INT8 FindObjInObjRange( SOLDIERTYPE * pSoldier, UINT16 usItem1, UINT16 usItem2 );
 extern INT8 FindLaunchable( SOLDIERTYPE * pSoldier, UINT16 usWeapon );
 extern INT8 FindGLGrenade( SOLDIERTYPE * pSoldier );
-extern INT8 FindThrowableGrenade( SOLDIERTYPE * pSoldier );
+extern INT8 FindThrowableGrenade(SOLDIERTYPE * pSoldier, UINT8 ubGrenadeType = EXPLOSV_ANY_TYPE, UINT8 ubMinDamaga = 0);
+extern UINT8 CountThrowableGrenades(SOLDIERTYPE * pSoldier, UINT8 ubGrenadeType = EXPLOSV_ANY_TYPE, UINT8 ubMinDamaga = 0);
 extern INT8 FindUsableObj( SOLDIERTYPE * pSoldier, UINT16 usItem );
 
 void DeleteObj(OBJECTTYPE * pObj );
@@ -350,6 +363,7 @@ UINT8 GetPercentTunnelVision( SOLDIERTYPE * pSoldier );
 BOOLEAN HasThermalOptics( SOLDIERTYPE * pSoldier );
 
 INT8 FindHearingAid( SOLDIERTYPE * pSoldier );
+INT8 FindWirecutters(SOLDIERTYPE * pSoldier);
 INT16 GetHearingRangeBonus( SOLDIERTYPE * pSoldier );
 // HEADROCK: This is the same function as above, but calculates hearing range bonus without SOLDIERTYPE, from an item and its attachments
 INT16 GetItemHearingRangeBonus( OBJECTTYPE * pObj );
@@ -421,6 +435,7 @@ INT16 GetGearAPBonus( SOLDIERTYPE * pSoldier );
 INT16 GetAPBonus( OBJECTTYPE * pObj );
 
 UINT16 GetFirstExplosiveOfType(UINT16 expType);
+UINT16 GetWirecutters(UINT16 usDefaultItem);
 
 OBJECTTYPE* FindSunGogglesInInv( SOLDIERTYPE * pSoldier, INT8 * bSlot, BOOLEAN * isAttach, BOOLEAN searchAllInventory = FALSE );
 OBJECTTYPE* FindNightGogglesInInv( SOLDIERTYPE * pSoldier, INT8 * bSlot, BOOLEAN * isAttach, BOOLEAN searchAllInventory = FALSE  );
@@ -540,6 +555,7 @@ void AttachDefaultAttachments(OBJECTTYPE *pObj, BOOLEAN fAllDefaultAttachments=T
 
 // sevenfm:
 INT8 FindKnifeInHand( SOLDIERTYPE * pSoldier );
+BOOLEAN CanDelayGrenadeExplosion(UINT16 usItem);
 
 #endif
 

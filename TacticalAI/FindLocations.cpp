@@ -2683,7 +2683,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 
 	// get direction of position to flank from soldier's position
 	INT16 sDir = GetDirectionFromGridNo ( sPos, pSoldier) ;
-	INT16 sDesiredDir;
+	INT8 ubDesiredDir;
 	INT16 sTempDir;
 	INT16 sTempDist, sBestDist=0;
 
@@ -2691,19 +2691,19 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 	switch ( bAction )
 	{
 	case AI_ACTION_FLANK_LEFT:
-		sDesiredDir = gTwoCCDirection[ sDir ];
+		ubDesiredDir = gTwoCCDirection[ sDir ];
 		break;
 	case AI_ACTION_FLANK_RIGHT:
-		sDesiredDir = gTwoCDirection[ sDir ];
+		ubDesiredDir = gTwoCDirection[ sDir ];
 		break;
 	case AI_ACTION_WITHDRAW:
-		sDesiredDir = gOppositeDirection[ sDir ];
+		ubDesiredDir = gOppositeDirection[ sDir ];
 		break;
 	default:
-		sDesiredDir = sDir;
+		ubDesiredDir = sDir;
 	}
 
-	DebugMsg ( TOPIC_JA2AI , DBG_LEVEL_3 , String("FindFlankingSpot: direction to loc = %d, dir to flank = %d", sDir , sDesiredDir ));
+	DebugMsg ( TOPIC_JA2AI , DBG_LEVEL_3 , String("FindFlankingSpot: direction to loc = %d, dir to flank = %d", sDir , ubDesiredDir ));
 
 	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
 	{
@@ -2794,24 +2794,24 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			if ( bAction == AI_ACTION_FLANK_LEFT )
 			{
 				// sevenfm: allow two extra directions
-				if ( sTempDir != sDesiredDir && sTempDir != gOneCDirection[sDesiredDir] && sTempDir != gOneCCDirection[sDesiredDir])
+				if ( sTempDir != ubDesiredDir && sTempDir != gOneCDirection[ubDesiredDir] && sTempDir != gOneCCDirection[ubDesiredDir])
 					continue;
 				// prefer desired dir x1.5
-				if( sTempDir == sDesiredDir )
+				if( sTempDir == ubDesiredDir )
 					sTempDist = 3*sTempDist/2;
 			}
 			else if ( bAction == AI_ACTION_FLANK_RIGHT )
 			{
 				// sevenfm: allow two extra directions
-				if ( sTempDir != sDesiredDir && sTempDir != gOneCDirection[sDesiredDir] && sTempDir != gOneCCDirection[sDesiredDir])
+				if ( sTempDir != ubDesiredDir && sTempDir != gOneCDirection[ubDesiredDir] && sTempDir != gOneCCDirection[ubDesiredDir])
 					continue;
 				// prefer desired dir x1.5
-				if( sTempDir == sDesiredDir )
+				if( sTempDir == ubDesiredDir )
 					sTempDist = 3*sTempDist/2;
 			}
 			else
 			{
-				if ( sTempDir != sDesiredDir )
+				if ( sTempDir != ubDesiredDir )
 					continue;
 			}
 

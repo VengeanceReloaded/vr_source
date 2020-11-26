@@ -2506,10 +2506,12 @@ void HandleArmedObjectImpact( REAL_OBJECT *pObject )
 
 	// sevenfm: can delay explosion for normal, stun and flashbang type grenades
 	BOOLEAN		fCanDelayExplosion = FALSE;
-	BOOLEAN		fHandGrenade = FALSE;
-	BOOLEAN		fExplodeOnImpact = FALSE;
 	BOOLEAN		fGoodStatus = FALSE;
-	BOOLEAN		fGLGrenade = FALSE;
+	BOOLEAN		fDelayedExplosion = FALSE;
+
+	/*BOOLEAN		fHandGrenade = FALSE;
+	BOOLEAN		fExplodeOnImpact = FALSE;	
+	BOOLEAN		fGLGrenade = FALSE;*/
 
 	if (is_networked && is_client)
 	{
@@ -2528,30 +2530,18 @@ void HandleArmedObjectImpact( REAL_OBJECT *pObject )
 	// ATE: Make sure number of objects is 1...
 	pObj->ubNumberOfObjects = 1;
 
-	if ( Item[ pObj->usItem ].usItemClass & IC_GRENADE )
+	if (Item[pObj->usItem].usItemClass & IC_GRENADE)
 	{
 		fCheckForDuds = TRUE;
 
-		// sevenfm: check for grenade type
-		if( Explosive[Item[ pObj->usItem ].ubClassIndex].ubType == EXPLOSV_NORMAL || 
-			Explosive[Item[ pObj->usItem ].ubClassIndex].ubType == EXPLOSV_STUN || 
-			Explosive[Item[ pObj->usItem ].ubClassIndex].ubType == EXPLOSV_FLASHBANG )
+		if (CanDelayGrenadeExplosion(pObj->usItem) && (Item[pObj->usItem].ubCursor == TOSSCURS || Item[pObj->usItem].glgrenade))
 		{
 			fCanDelayExplosion = TRUE;
 		}
-		// check for hand grenade type
-		if( Item[pObj->usItem].ubCursor == TOSSCURS )
+
+		if ((*pObj)[0]->data.sObjectFlag & DELAYED_GRENADE_EXPLOSION)
 		{
-			fHandGrenade = TRUE;
-		}
-		if( Item[pObj->usItem].glgrenade )
-		{
-			fGLGrenade = TRUE;
-		}
-		// check if grenade should explode on impact
-		if( Explosive[Item[ pObj->usItem ].ubClassIndex].fExplodeOnImpact )
-		{
-			fExplodeOnImpact = TRUE;
+			fDelayedExplosion = TRUE;
 		}
 	}
 
@@ -2583,13 +2573,12 @@ void HandleArmedObjectImpact( REAL_OBJECT *pObject )
 		}
 		else
 		{
-			// If we landed on anything other than the floor, always! go off...
-			if( sZ != 0 ||
+			// sevenfm: r8382
+			// Flugente: explosions on the roof do work...			
+			if ( //sZ != 0 ||
 				pObject->fInWater ||
-				fExplodeOnImpact ||
 				!fCanDelayExplosion ||
-				fGoodStatus )
-				//!((fHandGrenade || fGLGrenade) && !fExplodeOnImpact && fCanDelayExplosion) && fGoodStatus )
+				fGoodStatus && !fDelayedExplosion)
 			{
 				fDoImpact = TRUE;
 				fIsDud = false;
@@ -2667,10 +2656,11 @@ void HandleArmedObjectImpact( REAL_OBJECT *pObject )
 				// Add a light effect...
 
 				NewLightEffect( pObject->sGridNo, (UINT8)Explosive[Item[pObject->Obj.usItem].ubClassIndex].ubDuration , (UINT8)Explosive[Item[pObject->Obj.usItem].ubClassIndex].ubStartRadius );
+
 				// sevenfm: allow buddy explosion for flares (use for sound and animation)
-				if(Item[ pObject->Obj.usItem ].usBuddyItem && ( Item[Item[pObject->Obj.usItem].usBuddyItem ].usItemClass & (IC_GRENADE|IC_BOMB) ) )
+				if (Item[pObject->Obj.usItem].usBuddyItem && (Item[Item[pObject->Obj.usItem].usBuddyItem].usItemClass & (IC_GRENADE | IC_BOMB)))
 				{
-					IgniteExplosion( pObject->ubOwner, (INT16)pObject->Position.x, (INT16)pObject->Position.y, sZ, pObject->sGridNo, Item[ pObject->Obj.usItem ].usBuddyItem, GET_OBJECT_LEVEL( pObject->Position.z - CONVERT_PIXELS_TO_HEIGHTUNITS( gpWorldLevelData[ pObject->sGridNo ].sHeight ) ), DIRECTION_IRRELEVANT, &pObject->Obj );
+					IgniteExplosion(pObject->ubOwner, (INT16)pObject->Position.x, (INT16)pObject->Position.y, sZ, pObject->sGridNo, Item[pObject->Obj.usItem].usBuddyItem, GET_OBJECT_LEVEL(pObject->Position.z - CONVERT_PIXELS_TO_HEIGHTUNITS(gpWorldLevelData[pObject->sGridNo].sHeight)), DIRECTION_IRRELEVANT, &pObject->Obj);
 				}
 			}
 		}

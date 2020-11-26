@@ -591,7 +591,42 @@ BOOLEAN IsCutWireFenceAtGridNo( INT32 sGridNo )
 	return( FALSE );
 }
 
+BOOLEAN FindConcertina(INT32 sSpot)
+{
+	if (TileIsOutOfBounds(sSpot))
+		return FALSE;
 
+	STRUCTURE * pStruct = FindStructure(sSpot, (STRUCTURE_GENERIC));
+	if (pStruct)
+	{
+		// if this is a multi-tile structure, be sure to use the base gridno
+		if (!(pStruct->fFlags & STRUCTURE_BASE_TILE))
+		{
+			pStruct = FindBaseStructure(pStruct);
+		}
+
+		if (pStruct)
+		{
+			LEVELNODE* pNode = FindLevelNodeBasedOnStructure(pStruct->sGridNo, pStruct);
+
+			if (pNode)
+			{
+				UINT32 uiTileType = 0;
+				if (GetTileType(pNode->usIndex, &uiTileType))
+				{
+					std::string tilesestr = GetNameToTileSet(uiTileType);
+
+					if (strcmp(tilesestr.c_str(), "spot_1.sti") == 0 && pStruct->pDBStructureRef->pDBStructure->usStructureNumber > 1)
+					{
+						return TRUE;
+					}
+				}
+			}
+		}
+	}
+
+	return FALSE;
+}
 
 INT32 FindDoorAtGridNoOrAdjacent( INT32 sGridNo )
 {

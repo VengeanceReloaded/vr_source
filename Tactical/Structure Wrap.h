@@ -35,6 +35,7 @@ LEVELNODE	*GetWallLevelNodeAndStructOfSameOrientationAtGridNo( INT32 sGridNo, IN
 BOOLEAN CutWireFence( INT32 sGridNo );
 BOOLEAN IsCuttableWireFenceAtGridNo( INT32 sGridNo );
 BOOLEAN IsCutWireFenceAtGridNo( INT32 sGridNo );
+BOOLEAN FindConcertina(INT32 sSpot);
 
 BOOLEAN IsRepairableStructAtGridNo( INT32 sGridNo, UINT8 *pubID );
 BOOLEAN IsRefuelableStructAtGridNo( INT32 sGridNo, UINT8 *pubID );

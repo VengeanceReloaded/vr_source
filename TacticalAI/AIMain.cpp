@@ -2342,6 +2342,15 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 			}
 			break;
 
+		case AI_ACTION_HANDLE_ITEM:
+			iRetCode = HandleItem(pSoldier, pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, pSoldier->inv[HANDPOS].usItem, FALSE);
+			if (iRetCode != ITEM_HANDLE_OK)
+			{
+				//DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction (AI_ACTION_HANDLE_ITEM): HandleItem error code %d", iRetCode));
+				CancelAIAction(pSoldier, FORCE);
+				EndAIGuysTurn(pSoldier);
+			}
+			break;
         default:
 #ifdef BETAVERSION
             NumMessage("ExecuteAction - Illegal action type = ",pSoldier->aiData.bAction);

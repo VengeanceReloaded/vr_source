@@ -831,7 +831,12 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	Corpse.dYPos		= pSoldier->dYPos;
 	Corpse.bLevel		= pSoldier->pathing.bLevel;
 	Corpse.ubProfile	= pSoldier->ubProfile;
-	Corpse.bVisible		= pSoldier->bVisible;		// sevenfm: set visibility
+
+	// sevenfm: set visibility
+	if (pSoldier->ubBodyType >= HUMVEE)
+		Corpse.bVisible = TRUE;
+	else
+		Corpse.bVisible		= pSoldier->bVisible;
 
 	if ( pSoldier->bTeam != gbPlayerNum )
 		Corpse.ubAIWarningValue = 1;

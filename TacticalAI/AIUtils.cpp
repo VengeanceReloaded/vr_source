@@ -31,6 +31,7 @@
 	#include "Drugs And Alcohol.h"
 	#include "Sound Control.h"
 	#include "SmokeEffects.h"
+	#include "Structure Wrap.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -655,11 +656,9 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 		case AI_ACTION_NONE:                  // maintain current position & facing
 			// no cost for doing nothing!
 			break;
-
 		case AI_ACTION_CHANGE_FACING:         // turn to face another direction
 			bMinPointsNeeded = (INT8) GetAPsToLook( pSoldier );
 			break;
-
 		case AI_ACTION_RANDOM_PATROL:         // move towards a particular location
 		case AI_ACTION_SEEK_FRIEND:           // move towards friend in trouble
 		case AI_ACTION_SEEK_OPPONENT:         // move towards a reported opponent
@@ -679,28 +678,23 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 			// for movement, must have enough APs to move at least 1 tile's worth
 			bMinPointsNeeded = MinPtsToMove(pSoldier);
 			break;
-
 		case AI_ACTION_PICKUP_ITEM:           // grab things lying on the ground
 			bMinPointsNeeded = __max( MinPtsToMove( pSoldier ), GetBasicAPsToPickupItem( pSoldier ) ); // SANDRO
 			break;
-
 		case AI_ACTION_OPEN_OR_CLOSE_DOOR:
 		case AI_ACTION_UNLOCK_DOOR:
 		case AI_ACTION_LOCK_DOOR:
 			bMinPointsNeeded = MinPtsToMove(pSoldier);
 			break;
-
 		case AI_ACTION_DROP_ITEM:
 			bMinPointsNeeded = GetBasicAPsToPickupItem( pSoldier ); // SANDRO
 			break;
-
 		case AI_ACTION_FIRE_GUN:              // shoot at nearby opponent
 		case AI_ACTION_TOSS_PROJECTILE:       // throw grenade at/near opponent(s)
 		case AI_ACTION_KNIFE_MOVE:            // preparing to stab adjacent opponent
 		case AI_ACTION_THROW_KNIFE:
 			// only FIRE_GUN currently actually pays extra turning costs!
 			bMinPointsNeeded = MinAPsToAttack(pSoldier,pSoldier->aiData.usActionData,ADDTURNCOST,pSoldier->aiData.bAimTime);
-
 #ifdef BETAVERSION
 			if (ptsNeeded > pSoldier->bActionPoints)
 			{
@@ -712,29 +706,23 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 			}
 #endif
 			break;
-
 		case AI_ACTION_PULL_TRIGGER:          // activate an adjacent panic trigger
 			bMinPointsNeeded = APBPConstants[AP_PULL_TRIGGER];
 			break;
-
 		case AI_ACTION_USE_DETONATOR:         // grab detonator and set off bomb(s)
 			bMinPointsNeeded = APBPConstants[AP_USE_REMOTE];
 			break;
-
 		case AI_ACTION_YELLOW_ALERT:          // tell friends opponent(s) heard
 		case AI_ACTION_RED_ALERT:             // tell friends opponent(s) seen
 		case AI_ACTION_CREATURE_CALL:				 // for now
 			bMinPointsNeeded = APBPConstants[AP_RADIO];
 			break;
-
 		case AI_ACTION_CHANGE_STANCE:                // crouch
 			bMinPointsNeeded = GetAPsCrouch(pSoldier, TRUE);
 			break;
-
 		case AI_ACTION_GIVE_AID:              // help injured/dying friend
 			bMinPointsNeeded = 0;
 			break;
-
 		case AI_ACTION_CLIMB_ROOF:
 			// sevenfm: r7972 fix
 			bAPForStandUp = 0;
@@ -753,7 +741,6 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 				bMinPointsNeeded = GetAPsToClimbRoof(pSoldier, TRUE) + bAPForStandUp + bAPToLookAtWall;
 			}
 			break;
-
 		case AI_ACTION_COWER:
 		case AI_ACTION_STOP_COWERING:
 		case AI_ACTION_LOWER_GUN:
@@ -762,7 +749,6 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 		case AI_ACTION_OFFER_SURRENDER:
 			bMinPointsNeeded = 0;
 			break;
-
 		case AI_ACTION_STEAL_MOVE: // added by SANDRO
 			//bMinPointsNeeded = GetAPsToStealItem( pSoldier, NULL, pSoldier->aiData.usActionData );;
 			break;
@@ -772,17 +758,16 @@ BOOLEAN IsActionAffordable(SOLDIERTYPE *pSoldier, INT8 bAction)
 				bMinPointsNeeded = GetAPsToJumpThroughWindows( pSoldier, TRUE );
 			else
 				bMinPointsNeeded = GetAPsToJumpFence( pSoldier, FALSE );
-
 			break;
-
 		case AI_ACTION_FREE_PRISONER:
 			bMinPointsNeeded = APBPConstants[AP_HANDCUFF];
 			break;
-
 		case AI_ACTION_USE_SKILL:
 			bMinPointsNeeded = 10;	// TODO
 			break;
-
+		case AI_ACTION_HANDLE_ITEM:
+			bMinPointsNeeded = 0;
+			break;
 		default:
 #ifdef BETAVERSION
 			//NumMessage("AffordableAction - Illegal action type = ",pSoldier->aiData.bAction);
@@ -3788,6 +3773,34 @@ UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance
 	return ubFriendCount;
 }
 
+// count neutral civilians
+UINT8 CountNearbyNeutrals(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance)
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	// safety check
+	if (!pSoldier)
+		return 0;
+
+	for (UINT32 uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pFriend = MercSlots[uiLoop];
+
+		if (pFriend &&
+			pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			CONSIDERED_NEUTRAL(pSoldier, pFriend) &&
+			PythSpacesAway(sGridNo, pFriend->sGridNo) <= sDistance)
+		{
+			ubFriendCount++;
+		}
+	}
+
+	return ubFriendCount;
+}
+
 UINT8 CountFriendsNotAlerted(SOLDIERTYPE *pSoldier)
 {
 	SOLDIERTYPE * pFriend;
@@ -5840,4 +5853,281 @@ INT16 NightVisionRange(void)
 	sDist = sDist * gGameExternalOptions.ubBrightnessVisionMod[bLightLevel] / 100;
 
 	return sDist;
+}
+
+BOOLEAN FindFenceAroundSpot(INT32 sSpot)
+{
+	if (TileIsOutOfBounds(sSpot))
+	{
+		return FALSE;
+	}
+
+	UINT8 ubDirection;
+	INT32 sTempSpot;
+
+	// check adjacent locations
+	for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+	{
+		sTempSpot = NewGridNo(sSpot, DirectionInc(ubDirection));
+
+		if (sTempSpot != sSpot && IsCuttableWireFenceAtGridNo(sTempSpot))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+UINT8 FlankingDirection(SOLDIERTYPE *pSoldier)
+{
+	if (!pSoldier)
+	{
+		return DIRECTION_IRRELEVANT;
+	}
+
+	if (!AICheckIsFlanking(pSoldier) || TileIsOutOfBounds(pSoldier->lastFlankSpot))
+	{
+		return DIRECTION_IRRELEVANT;
+	}
+
+	UINT8 ubDir = AIDirection(pSoldier->sGridNo, pSoldier->lastFlankSpot);
+
+	// determine desired direction
+	if (pSoldier->flags.lastFlankLeft)
+	{
+		return gTwoCCDirection[ubDir];
+	}
+	else
+	{
+		return gTwoCDirection[ubDir];
+	}
+}
+
+BOOLEAN WeAttack(INT8 bTeam)
+{
+	if (bTeam >= MAXTEAMS)
+	{
+		return FALSE;
+	}
+
+	if (bTeam != ENEMY_TEAM)
+	{
+		return FALSE;
+	}
+
+	// check that every soldier has SEEKENEMY order
+	SOLDIERTYPE * pFriend;
+
+	// Run through each friendly.
+	for (UINT8 iCounter = gTacticalStatus.Team[bTeam].bFirstID; iCounter <= gTacticalStatus.Team[bTeam].bLastID; iCounter++)
+	{
+		pFriend = MercPtrs[iCounter];
+
+		if (pFriend &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			pFriend->aiData.bOrders != SEEKENEMY)
+		{
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+UINT8 CountKnownEnemiesInDirection(SOLDIERTYPE *pSoldier, UINT8 ubDirection, INT16 sDistance, BOOLEAN fAdjacent)
+{
+	CHECKF(pSoldier);
+
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+
+	INT32		sThreatLoc;
+	INT8		iThreatLevel;
+
+	UINT8		ubNum = 0;
+
+	// loop through all the enemies
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;
+		}
+
+		if (!ValidOpponent(pSoldier, pOpponent))
+		{
+			continue;
+		}
+
+		// check knowledge
+		if (Knowledge(pSoldier, pOpponent->ubID) == NOT_HEARD_OR_SEEN)
+		{
+			continue;
+		}
+
+		sThreatLoc = KnownLocation(pSoldier, pOpponent->ubID);
+		iThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
+
+		if (TileIsOutOfBounds(sThreatLoc))
+		{
+			continue;
+		}
+
+		if (PythSpacesAway(pSoldier->sGridNo, sThreatLoc) > sDistance)
+		{
+			continue;
+		}
+
+		if (AIDirection(pSoldier->sGridNo, sThreatLoc) != ubDirection &&
+			(!fAdjacent || AIDirection(pSoldier->sGridNo, sThreatLoc) != gOneCDirection[ubDirection] && AIDirection(pSoldier->sGridNo, sThreatLoc) != gOneCCDirection[ubDirection]))
+		{
+			continue;
+		}
+
+		ubNum++;
+	}
+
+	return ubNum;
+}
+
+INT8 Knowledge(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID)
+{
+	if (!pSoldier || ubOpponentID == NOBODY)
+	{
+		return NOT_HEARD_OR_SEEN;
+	}
+
+	if (UsePersonalKnowledge(pSoldier, ubOpponentID))
+	{
+		return PersonalKnowledge(pSoldier, ubOpponentID);
+	}
+
+	return PublicKnowledge(pSoldier->bTeam, ubOpponentID);
+}
+
+INT32 KnownLocation(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID)
+{
+	if (!pSoldier || ubOpponentID == NOBODY)
+	{
+		return NOWHERE;
+	}
+
+	if (UsePersonalKnowledge(pSoldier, ubOpponentID))
+	{
+		return KnownPersonalLocation(pSoldier, ubOpponentID);
+	}
+
+	return KnownPublicLocation(pSoldier->bTeam, ubOpponentID);
+}
+
+INT8 KnownLevel(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID)
+{
+	if (!pSoldier || ubOpponentID == NOBODY)
+	{
+		return 0;
+	}
+
+	if (UsePersonalKnowledge(pSoldier, ubOpponentID))
+	{
+		return KnownPersonalLevel(pSoldier, ubOpponentID);
+	}
+
+	return KnownPublicLevel(pSoldier->bTeam, ubOpponentID);
+}
+
+BOOLEAN UsePersonalKnowledge(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID)
+{
+	INT8		bPersonalKnowledge;
+	INT8		bPublicKnowledge;
+
+	if (!pSoldier || ubOpponentID == NOBODY)
+	{
+		return FALSE;
+	}
+
+	bPersonalKnowledge = PersonalKnowledge(pSoldier, ubOpponentID);
+	bPublicKnowledge = PublicKnowledge(pSoldier->bTeam, ubOpponentID);
+
+	if (gubKnowledgeValue[bPublicKnowledge - OLDEST_HEARD_VALUE][bPersonalKnowledge - OLDEST_HEARD_VALUE] > 0 ||
+		bPersonalKnowledge != NOT_HEARD_OR_SEEN &&
+		TileIsOutOfBounds(KnownPublicLocation(pSoldier->bTeam, ubOpponentID)) &&
+		!TileIsOutOfBounds(KnownPersonalLocation(pSoldier, ubOpponentID)))
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+INT8 PersonalKnowledge(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID)
+{
+	if (!pSoldier || ubOpponentID == NOBODY)
+	{
+		return NOT_HEARD_OR_SEEN;
+	}
+
+	return pSoldier->aiData.bOppList[ubOpponentID];
+}
+
+INT32 KnownPersonalLocation(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID)
+{
+	if (!pSoldier || ubOpponentID == NOBODY)
+	{
+		return NOWHERE;
+	}
+	/*if(PersonalKnowledge(pSoldier, ubOpponentID) == NOT_HEARD_OR_SEEN)
+	{
+	return NOWHERE;
+	}*/
+
+	return gsLastKnownOppLoc[pSoldier->ubID][ubOpponentID];
+}
+
+INT8 KnownPersonalLevel(SOLDIERTYPE *pSoldier, UINT8 ubOpponentID)
+{
+	if (!pSoldier || ubOpponentID == NOBODY)
+	{
+		return 0;
+	}
+
+	return gbLastKnownOppLevel[pSoldier->ubID][ubOpponentID];
+}
+
+INT8 PublicKnowledge(UINT8 bTeam, UINT8 ubOpponentID)
+{
+	if (bTeam >= MAXTEAMS || ubOpponentID == NOBODY)
+	{
+		return NOT_HEARD_OR_SEEN;
+	}
+
+	return gbPublicOpplist[bTeam][ubOpponentID];
+}
+
+INT32 KnownPublicLocation(UINT8 bTeam, UINT8 ubOpponentID)
+{
+	if (bTeam >= MAXTEAMS || ubOpponentID == NOBODY)
+	{
+		return NOWHERE;
+	}
+	/*if (PublicKnowledge(bTeam, ubOpponentID) == NOT_HEARD_OR_SEEN)
+	{
+	return NOWHERE;
+	}*/
+
+	return gsPublicLastKnownOppLoc[bTeam][ubOpponentID];
+}
+
+INT8 KnownPublicLevel(UINT8 bTeam, UINT8 ubOpponentID)
+{
+	if (bTeam >= MAXTEAMS || ubOpponentID == NOBODY)
+	{
+		return 0;
+	}
+
+	return gbPublicLastKnownOppLevel[bTeam][ubOpponentID];
 }

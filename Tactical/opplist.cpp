@@ -2663,15 +2663,9 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 			// if the looker hasn't seen this opponent at all earlier this turn, OR
 			// if the opponent is not where the looker last thought him to be
 			// sevenfm: only call SetNewSituation if location or level is different to reduce frequency of AI re-evaluation
-			if (// check if personal knowledge differs from actual location
-				pSoldier->aiData.bOppList[pOpponent->ubID] == NOT_HEARD_OR_SEEN ||
-				gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID] != sOppGridNo || 
-				gbLastKnownOppLevel[pSoldier->ubID][pOpponent->ubID] != bOppLevel ||
-				// check if public knowledge is more up to date than personal and public location is different from actual
-				gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] != NOT_HEARD_OR_SEEN &&
-				gubKnowledgeValue[gbPublicOpplist[pSoldier->bTeam][pOpponent->ubID] - OLDEST_HEARD_VALUE][pSoldier->aiData.bOppList[pOpponent->ubID] - OLDEST_HEARD_VALUE] == 0 &&
-				(gsPublicLastKnownOppLoc[pSoldier->bTeam][pOpponent->ubID] != sOppGridNo || gbPublicLastKnownOppLevel[pSoldier->bTeam][pOpponent->ubID] != bOppLevel))
-				//pSoldier->aiData.bOppList[pOpponent->ubID] != SEEN_THIS_TURN
+			if (Knowledge(pSoldier, pOpponent->ubID) == NOT_HEARD_OR_SEEN ||
+				KnownLocation(pSoldier, pOpponent->ubID) != sOppGridNo ||
+				KnownLevel(pSoldier, pOpponent->ubID) != bOppLevel)
 			{
 				SetNewSituation( pSoldier );  // force the looker to re-evaluate
 
@@ -6392,7 +6386,7 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 	INT8	bOldOpplist;
 	INT8	bDirection;
 	BOOLEAN fMuzzleFlash = FALSE;
-	UINT16	usSightLimit;
+	//UINT16	usSightLimit;
 
 	if ( pSoldier->ubBodyType == CROW )
 	{
