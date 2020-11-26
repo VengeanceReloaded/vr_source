@@ -5622,7 +5622,11 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 	//DebugAI(AI_MSG_TOPIC, pSoldier, String("[use wirecutters to cut fence]"));	
 	if (SoldierAI(pSoldier) &&
-		pSoldier->CheckInitialAP() &&
+		gfTurnBasedAI &&
+		!gfHiddenInterrupt &&
+		!gTacticalStatus.fInterruptOccurred &&
+		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
+		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
 		!pSoldier->aiData.bUnderFire &&		
 		pSoldier->pathing.bLevel == 0 &&
 		pSoldier->aiData.bOrders == SEEKENEMY &&
@@ -5630,6 +5634,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		RangeChangeDesire(pSoldier) >= 4 &&
 		!TileIsOutOfBounds(sClosestOpponent) &&
 		PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > TACTICAL_RANGE / 2 &&
+		(ubBestAttackAction == AI_ACTION_NONE || ubBestAttackAction == AI_ACTION_FIRE_GUN && Random(25) > (UINT8)BestAttack.ubChanceToReallyHit) &&
 		Chance(SoldierDifficultyLevel(pSoldier) * 10) &&
 		pSoldier->bActionPoints >= GetAPsToCutFence(pSoldier) + GetAPsToLook(pSoldier) &&
 		FindFenceAroundSpot(pSoldier->sGridNo))
