@@ -51,6 +51,7 @@
 	// sevenfm
 	#include "Interface Panels.h"
 	#include "PATHAI.H"
+	#include "Rotting Corpses.h"	// MakeCorpseVisible
 #endif
 
 #ifdef JA2UB
@@ -861,25 +862,31 @@ void HandleSight(SOLDIERTYPE *pSoldier, UINT8 ubSightFlags)
 		// if this soldier's under our control and well enough to look
 		if (pSoldier->stats.bLife >= OKLIFE )
 		{
-		/*
-#ifdef RECORDOPPLIST
-	 fprintf(OpplistFile,"ManLooksForOtherTeams (HandleSight/Look) for %d\n",pSoldier->guynum);
-#endif
-		*/
 			// he looks for all other soldiers not on his own team
 			ManLooksForOtherTeams(pSoldier);
 
-	 // if "Show only enemies seen" option is ON and it's this guy looking
-	 //if (pSoldier->ubID == ShowOnlySeenPerson)
-		//NewShowOnlySeenPerson(pSoldier);					// update the string
+			// sevenfm: also look for corpses (only for player team and militia team)
+			if (pSoldier->bTeam == gbPlayerNum || pSoldier->bTeam == MILITIA_TEAM && gGameExternalOptions.bWeSeeWhatMilitiaSeesAndViceVersa)
+			{
+				INT32			cnt;
+				ROTTING_CORPSE *pCorpse;
+
+				for (cnt = 0; cnt < giNumRottingCorpse; ++cnt)
+				{
+					pCorpse = &(gRottingCorpse[cnt]);
+
+					if (pCorpse &&
+						pCorpse->fActivated &&
+						pCorpse->def.bVisible != 1 &&
+						!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
+						PythSpacesAway(pSoldier->sGridNo, pCorpse->def.sGridNo) <= MAX_VISION_RANGE &&
+						SoldierToVirtualSoldierLineOfSightTest(pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, ANIM_PRONE, TRUE, CALC_FROM_WANTED_DIR))
+					{
+						MakeCorpseVisible(pSoldier, pCorpse);
+					}
+				}
+			}
 		}
-
-
-	/*
-#ifdef RECORDOPPLIST
-	fprintf(OpplistFile,"OtherTeamsLookForMan (HandleSight/Look) for %d\n",ptr->guynum);
-#endif
-	*/
 
 		// all soldiers under our control but not on ptr's team look for him
 		OtherTeamsLookForMan(pSoldier);

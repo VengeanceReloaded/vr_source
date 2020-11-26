@@ -71,10 +71,6 @@ class SOLDIERTYPE;
 extern		SGPPaletteEntry	gpLightColors[3];
 extern		UINT16 gusShadeLevels[16][3];
 
-
-void MakeCorpseVisible( SOLDIERTYPE *pSoldier, ROTTING_CORPSE *pCorpse );
-
-
 // When adding a corpse, add struct data...
 CHAR8	zCorpseFilenames[ NUM_CORPSES ][70] =
 {

@@ -177,6 +177,7 @@ UINT16				CreateCorpsePaletteTables( ROTTING_CORPSE *pCorpse );
 
 INT32 FindNearestAvailableGridNoForCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef, INT8 ubRadius );
 
+void MakeCorpseVisible(SOLDIERTYPE *pSoldier, ROTTING_CORPSE *pCorpse);
 
 void HandleRottingCorpses( );
 void AddCrowToCorpse( ROTTING_CORPSE *pCorpse );
