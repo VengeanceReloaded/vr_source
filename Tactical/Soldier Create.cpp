@@ -942,8 +942,127 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 
 			if( guiCurrentScreen != AUTORESOLVE_SCREEN )
 			{
+				Soldier.wornCamo = GetWornCamo(&Soldier);
+				Soldier.wornUrbanCamo = GetWornUrbanCamo(&Soldier);
+				Soldier.wornDesertCamo = GetWornDesertCamo(&Soldier);
+				Soldier.wornSnowCamo = GetWornSnowCamo(&Soldier);
+
 				// also, if an army guy has camouflage, roll to determine whether they start camouflaged
-				if ( ( Soldier.bTeam == ENEMY_TEAM ) || ( Soldier.bTeam == MILITIA_TEAM ) )
+				if ((Soldier.bTeam == ENEMY_TEAM) || (Soldier.bTeam == MILITIA_TEAM))
+				{
+					i = FindCamoKit(&Soldier);
+
+					// sevenfm: removed randomness
+					if (i != NO_SLOT) //&& Random( 5 ) < SoldierDifficultyLevel( &Soldier ))
+					{
+						// start camouflaged
+						Soldier.bCamo = (INT8)__min(gGameExternalOptions.bCamoKitArea, Item[Soldier.inv[i].usItem].camobonus);
+						Soldier.urbanCamo = (INT8)__min(gGameExternalOptions.bCamoKitArea, Item[Soldier.inv[i].usItem].urbanCamobonus);
+						Soldier.desertCamo = (INT8)__min(gGameExternalOptions.bCamoKitArea, Item[Soldier.inv[i].usItem].desertCamobonus);
+						Soldier.snowCamo = (INT8)__min(gGameExternalOptions.bCamoKitArea, Item[Soldier.inv[i].usItem].snowCamobonus);
+
+						// sevenfm: add worn camo that will not be removed in water or when crawling
+						if (Soldier.bCamo > 0)
+							Soldier.wornCamo = max(Soldier.wornCamo, 65);
+						if (Soldier.urbanCamo > 0)
+							Soldier.wornUrbanCamo = max(Soldier.wornUrbanCamo, 65);
+						if (Soldier.desertCamo > 0)
+							Soldier.wornDesertCamo = max(Soldier.wornDesertCamo, 65);
+						if (Soldier.snowCamo > 0)
+							Soldier.wornSnowCamo = max(Soldier.wornSnowCamo, 65);
+					}
+					// sevenfm: add camo bonus to some soldiers
+					else if (Soldier.bTeam == ENEMY_TEAM)
+					{
+						UINT8 ubSoldierDiff = SoldierDifficultyLevel(&Soldier);	// 0 - 4
+						UINT8 ubGameDiff = gGameOptions.ubDifficultyLevel;			// 1 - 4
+						UINT8 ubProgress = HighestPlayerProgressPercentage();		// 0 - 100
+						UINT8 ubChance = 0;
+
+						// determine chance for camo
+						if (Soldier.aiData.bAttitude == CUNNINGAID ||
+							Soldier.aiData.bAttitude == CUNNINGSOLO ||
+							Soldier.aiData.bAttitude == DEFENSIVE)
+						{
+							ubChance += 5 + ubProgress / 5;
+						}
+
+						if (Soldier.aiData.bOrders == STATIONARY)
+						{
+							ubChance += 5 + ubProgress / 5;
+						}
+
+						if (Soldier.ubSoldierClass == SOLDIER_CLASS_ELITE)
+						{
+							ubChance += 5 + ubProgress / 5;
+						}
+
+						if (AICheckIsSniper(&Soldier))
+						{
+							ubChance += 5 + ubProgress / 5;
+						}
+
+						if (Chance(ubChance))
+						{
+							if (AICheckTown() || AICheckUnderground())
+							{
+								if (Chance(30) && Soldier.ubSoldierClass == SOLDIER_CLASS_ELITE)
+								{
+									// full urban camo
+									Soldier.wornUrbanCamo = max(Soldier.wornUrbanCamo, 60 + ubGameDiff * 5 + ubSoldierDiff * 5);
+								}
+								else
+								{
+									// urban + wood
+									Soldier.wornUrbanCamo = max(Soldier.wornUrbanCamo, 30 + ubGameDiff * 5 + ubSoldierDiff * 5);
+									Soldier.wornCamo = max(Soldier.wornCamo, 30);
+								}
+							}
+							else
+							{
+								if (Chance(30))
+								{
+									// full wood
+									Soldier.wornCamo = max(Soldier.wornCamo, 60 + ubGameDiff * 5 + ubSoldierDiff * 5);
+								}
+								else if (Chance(20))
+								{
+									// full desert
+									Soldier.wornDesertCamo = max(Soldier.wornDesertCamo, 60 + ubGameDiff * 5 + ubSoldierDiff * 5);
+								}
+								else
+								{
+									// wood + desert
+									Soldier.wornCamo = max(Soldier.wornCamo, 30 + ubGameDiff * 5 + ubSoldierDiff * 5);
+									Soldier.wornDesertCamo = max(Soldier.wornDesertCamo, 30);
+								}
+							}
+						}
+
+						// camo for regular soldiers and elites
+						if (Soldier.ubSoldierClass == SOLDIER_CLASS_ARMY)
+						{
+							Soldier.wornCamo = max(Soldier.wornCamo, ubGameDiff * 3 + Random(ubProgress / 5));
+							Soldier.wornDesertCamo = max(Soldier.wornDesertCamo, ubGameDiff * 3 + Random(ubProgress / 5));
+						}
+						else if (Soldier.ubSoldierClass == SOLDIER_CLASS_ELITE)
+						{
+							if (AICheckTown() || AICheckUnderground())
+							{
+								Soldier.wornCamo = max(Soldier.wornCamo, ubGameDiff * 3 + Random(ubProgress / 5));
+								Soldier.wornUrbanCamo = max(Soldier.wornUrbanCamo, ubGameDiff * 3 + Random(ubProgress / 5));
+							}
+							else
+							{
+								Soldier.wornCamo = max(Soldier.wornCamo, ubGameDiff * 3 + Random(ubProgress / 5));
+								Soldier.wornDesertCamo = max(Soldier.wornDesertCamo, ubGameDiff * 3 + Random(ubProgress / 5));
+							}
+						}
+					}
+				}
+
+				// also, if an army guy has camouflage, roll to determine whether they start camouflaged
+				/*if ( ( Soldier.bTeam == ENEMY_TEAM ) || ( Soldier.bTeam == MILITIA_TEAM ) )
 				{
 					i = FindCamoKit ( &Soldier );
 
@@ -966,7 +1085,7 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 						if ( Soldier.snowCamo > 0 )
 							Soldier.wornSnowCamo = 65;
 					}
-				}
+				}*/
 			}
 		}
 

@@ -388,5 +388,8 @@ INT8 PublicKnowledge(UINT8 bTeam, UINT8 ubOpponentID);
 INT32 KnownPublicLocation(UINT8 bTeam, UINT8 ubOpponentID);
 INT8 KnownPublicLevel(UINT8 bTeam, UINT8 ubOpponentID);
 
+BOOLEAN AICheckTown(void);
+UINT8 AISectorType(void);
+BOOLEAN AICheckUnderground(void);
 
 #endif

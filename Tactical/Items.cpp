@@ -13673,12 +13673,13 @@ INT16 GetWornCamo( SOLDIERTYPE * pSoldier )
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
-		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
+		// sevenfm: disabled camo for guns to prevent camo changing
+		/*if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);*/
 	}
 
 	// sevenfm: cannot have negative camo
@@ -13728,12 +13729,13 @@ INT16 GetWornUrbanCamo( SOLDIERTYPE * pSoldier )
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
-		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
+		// sevenfm: disabled camo for guns to prevent camo changing
+		/*if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetUrbanCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);*/
 	}
 
 	// sevenfm: cannot have negative camo
@@ -13783,12 +13785,13 @@ INT16 GetWornDesertCamo( SOLDIERTYPE * pSoldier )
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
-		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
+		// sevenfm: disabled camo for guns to prevent camo changing
+		/*if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetDesertCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);*/
 	}
 
 	// sevenfm: cannot have negative camo
@@ -13838,12 +13841,13 @@ INT16 GetWornSnowCamo( SOLDIERTYPE * pSoldier )
 		}
 
 		//tais: guns can be camouflaged, this will make gun camo have effect when in main/second hand or on gunsling, did a check for guns and nothing else, hope that's enough.
-		if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
+		// sevenfm: disabled camo for guns to prevent camo changing
+		/*if (pSoldier->inv[HANDPOS].exists() == true && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[HANDPOS]);
 		if (pSoldier->inv[SECONDHANDPOS].exists() == true && Item[pSoldier->inv[SECONDHANDPOS].usItem].usItemClass & IC_WEAPON)
 			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[SECONDHANDPOS]);
 		if (pSoldier->inv[GUNSLINGPOCKPOS].exists() == true && Item[pSoldier->inv[GUNSLINGPOCKPOS].usItem].usItemClass & IC_WEAPON)
-			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);
+			ttl += GetSnowCamoBonus(pSoldier, &pSoldier->inv[GUNSLINGPOCKPOS]);*/
 	}
 
 	// sevenfm: cannot have negative camo

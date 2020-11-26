@@ -6131,3 +6131,47 @@ INT8 KnownPublicLevel(UINT8 bTeam, UINT8 ubOpponentID)
 
 	return gbPublicLastKnownOppLevel[bTeam][ubOpponentID];
 }
+
+// check that current loaded sector is town
+BOOLEAN AICheckTown(void)
+{
+	// determine sector name
+	UINT8 ubTownID = GetTownIdForSector(gWorldSectorX, gWorldSectorY);
+
+	// not underground
+	if (gbWorldSectorZ > 0)
+	{
+		return FALSE;
+	}
+	// check town sector
+	if (ubTownID == BLANK_SECTOR)
+	{
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+UINT8 AISectorType(void)
+{
+	UINT8	ubSectorID = SECTOR(gWorldSectorX, gWorldSectorY);
+	SECTORINFO *pSector = &SectorInfo[ubSectorID];
+	UINT8	ubSectorType = PLAINS;
+	if (pSector)
+	{
+		ubSectorType = pSector->ubTraversability[THROUGH_STRATEGIC_MOVE];
+	}
+	return ubSectorType;
+}
+
+// check that current loaded sector is underground
+BOOLEAN AICheckUnderground(void)
+{
+	// not underground
+	if (gbWorldSectorZ > 0)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
