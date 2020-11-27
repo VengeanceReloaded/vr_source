@@ -698,6 +698,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 	// sevenfm: disable stealth mode
 	pSoldier->bStealthMode = FALSE;
+	pSoldier->aiData.fAIFlags &= (~AI_CAUTIOUS);
 
 	// sevenfm: initialize data
 	pSoldier->bWeaponMode = WM_NORMAL;
@@ -1519,6 +1520,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 	// sevenfm: disable stealth mode
 	pSoldier->bStealthMode = FALSE;
+	pSoldier->aiData.fAIFlags &= (~AI_CAUTIOUS);
 
 	// sevenfm: initialize data
 	pSoldier->bWeaponMode = WM_NORMAL;
@@ -2474,6 +2476,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	//INT16 ubOverallTacticalSituation = AssessTacticalSituation(pSoldier->bSide);
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("DecideActionRed: soldier orders = %d",pSoldier->aiData.bOrders));
+
+	pSoldier->bStealthMode = FALSE;
+	pSoldier->aiData.fAIFlags &= (~AI_CAUTIOUS);
 
 	// sevenfm: initialize data
 	pSoldier->bWeaponMode = WM_NORMAL;
@@ -3740,11 +3745,22 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				}
 			}
 		}
+
+		// stop end flanking approach if cannot find enemy or have contact with enemy or group has successful attack
+		if (pSoldier->numFlanks == MAX_FLANKS_RED &&
+			(TileIsOutOfBounds(sClosestDisturbance) ||
+			pSoldier->aiData.bUnderFire ||
+			GuySawEnemy(pSoldier) ||
+			CountFriendsBlack(pSoldier, sClosestDisturbance) > 0))
+		{
+			pSoldier->numFlanks++;
+		}
+
 		// sevenfm: when we finished flanking, try to reach lastFlankSpot position
 		// seek until we are close (DistanceVisible/2) and have line of sight to lastFlankSpot position
 		// don't seek if we have seen enemy recently or under fire or have shock
 		// don't seek if we have low AP (tired, wounded)
-		if ( pSoldier->numFlanks == MAX_FLANKS_RED )
+		/*if ( pSoldier->numFlanks == MAX_FLANKS_RED )
 		{
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: stop flanking");
 
@@ -3802,7 +3818,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				// stop
 				pSoldier->numFlanks++;
 			}
-		}
+		}*/
 		
 		// Set watched location
 		if (pSoldier->CheckInitialAP() &&
@@ -4423,7 +4439,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 							}
 
 							// sevenfm: possibly start RED flanking
-							if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ||
+							if (pSoldier->numFlanks == 0 &&
+								( pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ||
 								( pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID ) && CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/4) > 2 ) &&
 								pSoldier->bTeam == ENEMY_TEAM &&
 								gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE &&
@@ -4465,39 +4482,15 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 
 								pSoldier->aiData.usActionData = FindFlankingSpot (pSoldier, sClosestDisturbance, action );
 								
-								if (TileIsOutOfBounds(pSoldier->aiData.usActionData) || pSoldier->numFlanks >= MAX_FLANKS_RED )
-								{
-									pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,sClosestDisturbance,GetAPsCrouch( pSoldier, TRUE), AI_ACTION_SEEK_OPPONENT,0);
-									//pSoldier->numFlanks = 0;
-									if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS ) )
-									{
-										// reserve APs for a possible crouch plus a shot
-										// sevenfm: added APs to look
-										//pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8) (MinAPsToAttack( pSoldier, sClosestDisturbance, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
-										pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8) (MinAPsToAttack( pSoldier, sClosestDisturbance, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE) + GetAPsToLook(pSoldier)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
-										
-										if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
-										{
-											pSoldier->aiData.fAIFlags |= AI_CAUTIOUS;
-											pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
-											return(AI_ACTION_SEEK_OPPONENT);
-										}
-									}
-
-									else
-									{
-										return(AI_ACTION_SEEK_OPPONENT);
-									}
-								}
-								else
+								if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 								{
 									if ( action == AI_ACTION_FLANK_LEFT )
 										pSoldier->flags.lastFlankLeft = TRUE;
 									else
 										pSoldier->flags.lastFlankLeft = FALSE;
 
-									if ( pSoldier->lastFlankSpot != sClosestDisturbance)
-										pSoldier->numFlanks=0;
+									//if ( pSoldier->lastFlankSpot != sClosestDisturbance)
+										//pSoldier->numFlanks=0;
 
 									pSoldier->origDir = GetDirectionFromGridNo ( sClosestDisturbance, pSoldier);
 									pSoldier->lastFlankSpot = sClosestDisturbance;
@@ -4512,29 +4505,31 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 									return(action);
 								}
 							}
-							else
+
+							// flanking not possible, use regular SEEK code
+							// let's be a bit cautious about going right up to a location without enough APs to shoot
+							if (PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < 5 ||
+								SightCoverAtSpot(pSoldier, pSoldier->sGridNo, TRUE) &&
+								!SightCoverAtSpot(pSoldier, pSoldier->aiData.usActionData, FALSE) &&
+								PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < TACTICAL_RANGE / 2 &&
+								CountFriendsBlack(pSoldier, sClosestDisturbance) == 0)
+								//LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS ) )
 							{
-								// let's be a bit cautious about going right up to a location without enough APs to shoot
-								if ( PythSpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || LocationToLocationLineOfSightTest( pSoldier->aiData.usActionData, pSoldier->pathing.bLevel, sClosestDisturbance, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS ) )
+								// reserve APs for a possible crouch plus a shot
+								// sevenfm: added APs to look
+								//pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8) (MinAPsToAttack( pSoldier, sClosestDisturbance, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
+								pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8)(MinAPsToAttack(pSoldier, sClosestDisturbance, ADDTURNCOST, 0) + GetAPsCrouch(pSoldier, TRUE) + GetAPsToLook(pSoldier)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS);
+
+								if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 								{
-									// reserve APs for a possible crouch plus a shot
-									// sevenfm: added APs to look
-									//pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8) (MinAPsToAttack( pSoldier, sClosestDisturbance, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
-									pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, (INT8) (MinAPsToAttack( pSoldier, sClosestDisturbance, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE) + GetAPsToLook(pSoldier)), AI_ACTION_SEEK_OPPONENT, FLAG_CAUTIOUS );
-									
-									if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
-									{
-										pSoldier->aiData.fAIFlags |= AI_CAUTIOUS;
-										pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
-										return(AI_ACTION_SEEK_OPPONENT);
-									}
-								}
-								else
-								{
+									pSoldier->aiData.fAIFlags |= AI_CAUTIOUS;
+									pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
 									return(AI_ACTION_SEEK_OPPONENT);
 								}
-								break;
 							}
+
+							return(AI_ACTION_SEEK_OPPONENT);
+							break;
 						}
 					}
 
@@ -5261,6 +5256,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 	// sevenfm: disable stealth mode
 	pSoldier->bStealthMode = FALSE;
+	pSoldier->aiData.fAIFlags &= (~AI_CAUTIOUS);
 
 	// sevenfm: initialize data
 	pSoldier->bWeaponMode = WM_NORMAL;

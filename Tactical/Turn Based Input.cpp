@@ -3719,7 +3719,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				break;
 
 #ifdef JA2BETAVERSION
-			case 'L':
+			/*case 'L':
 				gfDisplayStrategicAILogs ^= TRUE;
 				if( gfDisplayStrategicAILogs )
 				{
@@ -3729,7 +3729,7 @@ void GetKeyboardInput( UINT32 *puiNewEvent )
 				{
 					ScreenMsg( FONT_LTKHAKI, MSG_INTERFACE, L"Strategic AI Log visually disabled." );
 				}
-				break;
+				break;*/
 #endif
 
 			case 'l':

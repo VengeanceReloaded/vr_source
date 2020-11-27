@@ -2830,7 +2830,15 @@ INT32 RandomGridFromRadius( INT32 sSweetGridNo, INT8 bMinRadius, INT8 bMaxRadius
 
 	return sFoundGridNo;
 
-	/*do
+	/*INT32 sGridNo;
+	INT32 sFoundGridNo = NOWHERE;
+	UINT32	cnt = 0;
+
+	INT16	sX, sY;
+	INT32	leftmost;
+	BOOLEAN	fFound = FALSE;	
+
+	do
 	{
 		sX = (UINT16)PreRandom( bMaxRadius );
 		sY = (UINT16)PreRandom( bMaxRadius );

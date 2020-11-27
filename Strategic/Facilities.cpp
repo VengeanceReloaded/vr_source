@@ -787,7 +787,9 @@ INT32 MineIncomeModifierFromFacility( UINT8 ubMine )
 			MERCPROFILESTRUCT *pMercProfile = &(gMercProfiles[ubMinerID]);
 			if (pMercProfile && pMercProfile->bLife > 0 && GetMineIndexForSector(pMercProfile->sSectorX, pMercProfile->sSectorY) == ubMine && pMercProfile->bSectorZ == 0)
 			{
-				UINT8 ubSector = SECTOR(pSoldier->sSectorX, pSoldier->sSectorY);
+				// sevenfm: pSoldier is uninitialized here, use pMercProfile instead?
+				//UINT8 ubSector = SECTOR(pSoldier->sSectorX, pSoldier->sSectorY);
+				UINT8 ubSector = SECTOR(pMercProfile->sSectorX, pMercProfile->sSectorY);
 				BOOLEAN bIsOilRig = FALSE;
 				for (UINT16 cnt = 0; cnt < NUM_FACILITY_TYPES; cnt++)
 				{
@@ -2055,10 +2057,11 @@ INT32 GetTotalFacilityHourlyCosts( BOOLEAN fPositive )
 		pSoldier = MercPtrs[ gCharactersList[ ubCounter ].usSolID ];
 
 		// Is character truly valid?
-		if( !( pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE ) &&
-				pSoldier->bSectorZ == 0  && pSoldier != NULL &&
-				pSoldier->stats.bLife >= OKLIFE &&
-				!(pSoldier->flags.fMercAsleep) )
+		if (pSoldier != NULL &&
+			!(pSoldier->flags.uiStatusFlags & SOLDIER_VEHICLE) &&
+			pSoldier->bSectorZ == 0 &&			
+			pSoldier->stats.bLife >= OKLIFE &&
+			!(pSoldier->flags.fMercAsleep))
 		{
 			INT8 ubAssignmentType = GetSoldierFacilityAssignmentIndex( pSoldier );
 			if (ubAssignmentType == -1)

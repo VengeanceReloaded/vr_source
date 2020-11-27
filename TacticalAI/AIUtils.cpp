@@ -364,6 +364,21 @@ UINT8 ShootingStanceChange( SOLDIERTYPE * pSoldier, ATTACKTYPE * pAttack, INT8 b
 
 UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 {
+	// zombies always run if they know enemy location
+	if (pSoldier->IsZombie() && IS_MERC_BODY_TYPE(pSoldier))
+	{
+		INT32 sClosestThreat = ClosestKnownOpponent(pSoldier, NULL, NULL);
+
+		if (!TileIsOutOfBounds(sClosestThreat))
+		{
+			return RUNNING;
+		}
+		else
+		{
+			return WALKING;
+		}
+	}
+
 	if ( pSoldier->flags.fUIMovementFast )
 	{
 		return( RUNNING );
@@ -415,6 +430,22 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 		{
 			// sevenfm: movement mode tweaks
 			INT32 sClosestThreat =	ClosestKnownOpponent( pSoldier, NULL, NULL );
+
+			// use walking mode if no enemy known
+			if (pSoldier->aiData.bAlertStatus < STATUS_RED &&
+				TileIsOutOfBounds(sClosestThreat) &&
+				!pSoldier->aiData.bUnderFire &&
+				(bAction == AI_ACTION_SEEK_FRIEND || bAction == AI_ACTION_SEEK_NOISE || bAction == AI_ACTION_TAKE_COVER))
+			{
+				return WALKING;
+			}
+
+			// use swatting when blinded
+			if (IS_MERC_BODY_TYPE(pSoldier) &&
+				pSoldier->bBlindedCounter > 0)
+			{
+				return SWATTING;
+			}
 
 			if ( IS_MERC_BODY_TYPE( pSoldier ) &&
 				pSoldier->aiData.bAlertStatus >= STATUS_YELLOW &&
@@ -535,6 +566,24 @@ UINT16 DetermineMovementMode( SOLDIERTYPE * pSoldier, INT8 bAction )
 					bAction == AI_ACTION_SEEK_NOISE ) )
 				{
 					return SWATTING;
+				}
+
+				UINT8 ubStance = gAnimControl[pSoldier->usAnimState].ubEndHeight;
+
+				// use running for taking cover when not under attack
+				if (!pSoldier->aiData.bUnderFire &&
+					bAction == AI_ACTION_TAKE_COVER &&
+					pSoldier->bInitialActionPoints > APBPConstants[AP_MINIMUM] &&
+					!TileIsOutOfBounds(sClosestThreat) &&
+					(!InARoom(pSoldier->sGridNo, NULL) || PythSpacesAway(sClosestThreat, pSoldier->sGridNo) > DAY_VISION_RANGE * 2) &&
+					pSoldier->aiData.bAIMorale >= MORALE_NORMAL &&
+					pSoldier->bBreath > 25 &&
+					pSoldier->pathing.bLevel == 0 &&
+					pSoldier->aiData.bOrders != STATIONARY &&
+					pSoldier->aiData.bOrders != SNIPER &&
+					(ubStance > ANIM_PRONE || pSoldier->bActionPoints > APBPConstants[AP_MINIMUM]))
+				{
+					return RUNNING;
 				}
 
 				// use walking/swatting when flanking in realtime
