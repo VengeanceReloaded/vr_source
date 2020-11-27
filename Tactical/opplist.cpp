@@ -7812,55 +7812,44 @@ BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam, UINT8
 		return FALSE;
 	}
 
+	// check central spot
+	ubID = WhoIsThere2(sGridNo, bLevel);
+
+	// sevenfm: check personal/public knowledge
+	if (ubID != NOBODY &&
+		ValidOpponent(pSoldier, MercPtrs[ubID]) &&
+		MercPtrs[ubID]->stats.bLife >= OKLIFE &&
+		(PublicKnowledge(bTeam, ubID) != NOT_HEARD_OR_SEEN ||
+		PersonalKnowledge(pSoldier, ubID) != NOT_HEARD_OR_SEEN))
+	{
+		return(FALSE);
+	}
+
 	// check adjacent reachable tiles for known enemies
 	for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
 	{
 		sTempGridNo = NewGridNo( sGridNo, DirectionInc( ubDirection ) );
-		ubMovementCost = gubWorldMovementCosts[ sTempGridNo ][ ubDirection ][ bLevel ];
 
-		if ( ubMovementCost < TRAVELCOST_BLOCKED && NewOKDestination(pSoldier, sTempGridNo, FALSE, bLevel) )
+		if (sTempGridNo != sGridNo)
 		{
-			ubID = WhoIsThere2( sTempGridNo, bLevel );
+			ubMovementCost = gubWorldMovementCosts[sTempGridNo][ubDirection][bLevel];
 
-			// sevenfm: check personal/public knowledge
-			if( ubID != NOBODY &&
-				MercPtrs[ ubID ]->bTeam != bTeam &&
-				!CONSIDERED_NEUTRAL( pSoldier, MercPtrs[ ubID ] ) &&
-				MercPtrs[ ubID ]->stats.bLife >= OKLIFE &&
-				(gbPublicOpplist[bTeam][ubID] != NOT_HEARD_OR_SEEN ||
-				MercPtrs[ ubWatchID ]->aiData.bOppList[ ubID ] != NOT_HEARD_OR_SEEN) )
+			if (ubMovementCost < TRAVELCOST_BLOCKED && NewOKDestination(pSoldier, sTempGridNo, FALSE, bLevel))
 			{
-				return( FALSE );
-			}			
-		}
+				ubID = WhoIsThere2(sTempGridNo, bLevel);
+
+				// sevenfm: check personal/public knowledge
+				if (ubID != NOBODY &&
+					ValidOpponent(pSoldier, MercPtrs[ubID]) &&
+					MercPtrs[ubID]->stats.bLife >= OKLIFE &&
+					(PublicKnowledge(bTeam, ubID) != NOT_HEARD_OR_SEEN ||
+					PersonalKnowledge(pSoldier, ubID) != NOT_HEARD_OR_SEEN))
+				{
+					return(FALSE);
+				}
+			}
+		}		
 	}
-
-	/*INT32	sTempGridNo;
-	INT16	sX, sY;
-
-	for ( sY = -WATCHED_LOC_RADIUS; sY <= WATCHED_LOC_RADIUS; sY++ )
-	{
-		for ( sX = -WATCHED_LOC_RADIUS; sX <= WATCHED_LOC_RADIUS; sX++ )
-		{
-			sTempGridNo = sGridNo + sX + sY * WORLD_ROWS;
-			if ( sTempGridNo < 0 || sTempGridNo >= WORLD_MAX )
-			{
-				continue;
-			}
-			ubID = WhoIsThere2( sTempGridNo, bLevel );
-			// sevenfm: check personal/public knowledge
-			if( ubID != NOBODY &&
-				MercPtrs[ ubID ]->bTeam != bTeam &&
-				!CONSIDERED_NEUTRAL( pSoldier, MercPtrs[ ubID ] ) &&
-				MercPtrs[ ubID ]->stats.bLife >= OKLIFE &&
-				(gbPublicOpplist[bTeam][ubID] != NOT_HEARD_OR_SEEN ||
-				MercPtrs[ ubWatchID ]->aiData.bOppList[ ubID ] != NOT_HEARD_OR_SEEN) )
-				//TeamKnowsSoldier(bTeam, ubID) )
-			{
-				return( FALSE );
-			}
-		}
-	}*/
 
 	return( TRUE );
 }
