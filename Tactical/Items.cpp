@@ -11500,6 +11500,16 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 
 	INT16 sScopebonus = 0;
 	INT16 sHandBonus = 0;
+	INT16	sItemBonus;
+	BOOLEAN fTurnbased = FALSE;	
+	
+	if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT))
+		fTurnbased = TRUE;
+
+	UINT8 ubActive = 1;
+
+	if (!fTurnbased)
+		ubActive = 3;
 
 	Assert(pSoldier);
 	CHECKF(pSoldier);
@@ -11537,7 +11547,7 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 						if (!UsingNewVisionSystem() ||
 							gbForceWeaponReady ||
-							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(Item[ObjList[pSoldier->bScopeMode]->usItem].visionrangebonus, (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
@@ -11559,57 +11569,16 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 			if (!UsingNewVisionSystem() ||
 				gbForceWeaponReady ||
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
-	}
-
-	// CHRISL:
-	/*for (int i = BODYPOSSTART; i < BODYPOSFINAL; i++)
-	{
-		// Okay, it's time for some optimization here too
-		pObj = &( pSoldier->inv[i]);
-		if (pObj->exists() == true) {
-			usItem = pObj->usItem;
-			pItem = &(Item[usItem]);
-
-			// Snap (TODO): binoculars and such should not be active by default
-			if ( (i == HANDPOS || i == SECONDHANDPOS) && (pItem->usItemClass & IC_ARMOUR || pItem->usItemClass & IC_FACE ))
-			{
-				continue;
-			}
-
-			//CHRISL: Binoculars can only be used in the primary hand
-			if(i == SECONDHANDPOS && pItem->usItemClass & IC_MISC && pItem->visionrangebonus > 0)
-			{
-				continue;
-			}
-
-			// sevenfm: binocs
-			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				!IsWeapon(usItem) && 
-				!gbForceWeaponReady &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
-				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
-			{
-				continue;
-			}
-
-			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem))
-			{
-				sBonus += BonusReduceMore( pItem->visionrangebonus,	(*pObj)[0]->data.objectStatus );
-			}
-		}
-	}*/
-
-	INT16	sItemBonus;
+	}	
 
 	// binocs/scope in hand
 	if (gbForceWeaponReady || 
-		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) &&
+		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] >= ubActive || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] >= ubActive) &&
 		(!UsingNewVisionSystem() || !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1))
 	{
 		pObj = &(pSoldier->inv[HANDPOS]);
@@ -11689,6 +11658,16 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 
 	INT16	sScopebonus = 0;
 	INT16	sHandBonus = 0;
+	INT16	sItemBonus;
+	BOOLEAN fTurnbased = FALSE;
+
+	if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT))
+		fTurnbased = TRUE;
+
+	UINT8 ubActive = 1;
+
+	if (!fTurnbased)
+		ubActive = 3;
 
 	Assert(pSoldier);
 	CHECKF(pSoldier);
@@ -11726,7 +11705,7 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 						if (!UsingNewVisionSystem() ||
 							gbForceWeaponReady ||
-							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].nightvisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
@@ -11750,7 +11729,7 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 			if (!UsingNewVisionSystem() ||
 				gbForceWeaponReady ||
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
@@ -11758,53 +11737,9 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 		sBonus += sScopebonus;
 	}	
 
-	// CHRISL:
-	/*for (int i = BODYPOSSTART; i < BODYPOSFINAL; ++i )
-	{
-		// More optimization
-		pObj = &( pSoldier->inv[i]);
-		if (pObj->exists() == true) 
-		{
-			usItem = pObj->usItem;
-			pItem = &(Item[usItem]);
-
-			// Snap (TODO): binoculars and such should not be active by default
-			if ( (i == HANDPOS || i == SECONDHANDPOS) && (pItem->usItemClass & IC_ARMOUR || pItem->usItemClass & IC_FACE ))
-			{
-				continue;
-			}
-
-			//CHRISL: Binoculars can only be used in the primary hand
-			if(i == SECONDHANDPOS && pItem->usItemClass & IC_MISC && pItem->nightvisionrangebonus > 0)
-			{
-				continue;
-			}
-
-			// sevenfm: binocs
-			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				pItem->usItemClass & IC_MISC &&
-				!gbForceWeaponReady &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
-				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
-			{
-				continue;
-			}
-
-			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem))
-			{
-				sBonus += BonusReduceMore(
-					NightBonusScale( pItem->nightvisionrangebonus, bLightLevel ),
-					(*pObj)[0]->data.objectStatus );
-			}
-		}
-	}*/
-
-	INT16	sItemBonus;
-
 	// binocs/scope in hand
 	if (gbForceWeaponReady || 
-		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) &&
+		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] >= ubActive || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] >= ubActive) &&
 		(!UsingNewVisionSystem() || !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1))
 	{
 		pObj = &(pSoldier->inv[HANDPOS]);
@@ -11872,6 +11807,16 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 
 	INT16 sScopebonus = 0;
 	INT16 sHandBonus = 0;
+	INT16	sItemBonus;
+	BOOLEAN fTurnbased = FALSE;
+
+	if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT))
+		fTurnbased = TRUE;
+
+	UINT8 ubActive = 1;
+
+	if (!fTurnbased)
+		ubActive = 3;
 
 	Assert(pSoldier);
 	CHECKF(pSoldier);
@@ -11908,7 +11853,7 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 						if (!UsingNewVisionSystem() ||
 							gbForceWeaponReady ||
-							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].cavevisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
@@ -11932,60 +11877,16 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 			if (!UsingNewVisionSystem() ||
 				gbForceWeaponReady ||
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}
 
-	// CHRISL:
-	/*for (int i = BODYPOSSTART; i < BODYPOSFINAL; i++)
-	{
-		// More optimization
-		pObj = &( pSoldier->inv[i]);
-		if (pObj->exists() == true) {
-			usItem = pObj->usItem;
-			pItem = &(Item[usItem]);
-
-			// Snap (TODO): binoculars and such should not be active by default
-			if ( (i == HANDPOS || i == SECONDHANDPOS) &&
-				   (pItem->usItemClass & IC_ARMOUR || pItem->usItemClass & IC_FACE ))
-			{
-				continue;
-			}
-
-			//CHRISL: Binoculars can only be used in the primary hand
-			if(i == SECONDHANDPOS && pItem->usItemClass & IC_MISC && pItem->cavevisionrangebonus > 0)
-			{
-				continue;
-			}
-
-			// sevenfm: binocs
-			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				pItem->usItemClass & IC_MISC && 
-				!gbForceWeaponReady &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
-				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
-			{
-				continue;
-			}
-
-			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem))
-			{
-				sBonus += BonusReduceMore(
-					NightBonusScale( pItem->cavevisionrangebonus, bLightLevel ),
-					(*pObj)[0]->data.objectStatus );
-			}
-		}
-	}*/
-
-	INT16	sItemBonus;
-
 	// binocs/scope in hand
 	if (gbForceWeaponReady || 
-		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) &&
+		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] >= ubActive || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] >= ubActive) &&
 		(!UsingNewVisionSystem() || !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1))
 	{
 		pObj = &(pSoldier->inv[HANDPOS]);
@@ -12056,13 +11957,23 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 	
 	INT16 sScopebonus = 0;
 	INT16 sHandBonus = 0;
+	INT16	sItemBonus;
+	BOOLEAN fTurnbased = FALSE;
+
+	if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT))
+		fTurnbased = TRUE;
+
+	UINT8 ubActive = 1;
+
+	if (!fTurnbased)
+		ubActive = 3;
 
 	Assert(pSoldier);
 	CHECKF(pSoldier);
 
 	// Snap: Scale the bonus with the light level
 
-	// Flugente 2013-06-20: determine the lightlevel modifier, according to ChrisL:
+	// Flugente 2013-06-20: determine the light level modifier, according to ChrisL:
 	//CHRISL: Since this is a daytime calculation, I think we want the difference between NORMAL_LIGHTLEVEL_NIGHT and
 	//	NORMAL_LIGHTLEVEL_DAY.  To just use NORMAL_LIGHTLEVEL_NIGHT is the same as basing the calculation off of the
 	//	difference between NORMAL_LIGHTLEVEL_NIGHT and 0, which represent bright light.
@@ -12105,7 +12016,7 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 						if (!UsingNewVisionSystem() ||
 							gbForceWeaponReady ||
-							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].dayvisionrangebonus	* lightlevelmultiplier, lightleveldivisor), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
@@ -12129,71 +12040,16 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 			if (!UsingNewVisionSystem() ||
 				gbForceWeaponReady ||
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}
 
-	// CHRISL:
-	/*for (int i = BODYPOSSTART; i < BODYPOSFINAL; i++)
-	{
-		// More optimization
-		pObj = &( pSoldier->inv[i]);
-		if (pObj->exists() == true) {
-			usItem = pObj->usItem;
-			pItem = &(Item[usItem]);
-
-			// Snap (TODO): binoculars and such should not be active by default
-			if ( (i == HANDPOS || i == SECONDHANDPOS) &&
-				   (pItem->usItemClass & IC_ARMOUR || pItem->usItemClass & IC_FACE ))
-			{
-				continue;
-			}
-
-			//CHRISL: Binoculars can only be used in the primary hand
-			if(i == SECONDHANDPOS && pItem->usItemClass & IC_MISC && pItem->dayvisionrangebonus > 0)
-			{
-				continue;
-			}
-
-			// sevenfm: binocs
-			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				pItem->usItemClass & IC_MISC &&
-				!gbForceWeaponReady &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
-				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
-			{
-				continue;
-			}
-
-			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem))
-			{
-				sValue = BonusReduceMore( idiv( pItem->dayvisionrangebonus * lightlevelmultiplier, lightleveldivisor ),	(*pObj)[0]->data.objectStatus );
-
-				// sevenfm: bonus for scouts using binocs
-				if( gGameOptions.fNewTraitSystem &&
-					HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) &&
-					pSoldier->bSectorZ == 0 &&
-					(i == HANDPOS || i == SECONDHANDPOS) &&
-					pItem->usItemClass & IC_MISC && 
-					pItem->dayvisionrangebonus > 0 )
-				{
-					sValue += sValue * gSkillTraitValues.usSCSightRangebonusWithBinoculars / 100;
-				}
-
-				sBonus += sValue;
-			}
-		}
-	}*/
-
-	INT16	sItemBonus;
-
 	// binocs/scope in hand
 	if (gbForceWeaponReady || 
-		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) &&
+		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] >= ubActive || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] >= ubActive) &&
 		(!UsingNewVisionSystem() || !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1))
 	{
 		pObj = &(pSoldier->inv[HANDPOS]);
@@ -12271,6 +12127,16 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 
 	INT16 sScopebonus = 0;
 	INT16 sHandBonus = 0;
+	INT16	sItemBonus;
+	BOOLEAN fTurnbased = FALSE;
+
+	if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT))
+		fTurnbased = TRUE;
+
+	UINT8 ubActive = 1;
+
+	if (!fTurnbased)
+		ubActive = 3;
 
 	Assert(pSoldier);
 	CHECKF(pSoldier);
@@ -12310,7 +12176,7 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 						// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 						if (!UsingNewVisionSystem() ||
 							gbForceWeaponReady ||
-							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].brightlightvisionrangebonus	* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 					}
@@ -12334,71 +12200,16 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 			// sevenfm: optional vision bonus from scopes, also use for CTH calculation
 			if (!UsingNewVisionSystem() ||
 				gbForceWeaponReady ||
-				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
+				pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 				pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
 				sScopebonus += gSkillTraitValues.ubSCSightRangebonusWithScopes;
 		}
 		sBonus += sScopebonus;
 	}
 
-	// CHRISL:
-	/*for (int i = BODYPOSSTART; i < BODYPOSFINAL; i++)
-	{
-		// More optimization
-		pObj = &( pSoldier->inv[i]);
-		if (pObj->exists() == true) {
-			usItem = pObj->usItem;
-			pItem = &(Item[usItem]);
-
-			// Snap (TODO): binoculars and such should not be active by default
-			if ( (i == HANDPOS || i == SECONDHANDPOS) &&
-				   (pItem->usItemClass & IC_ARMOUR || pItem->usItemClass & IC_FACE ))
-			{
-				continue;
-			}
-
-			//CHRISL: Binoculars can only be used in the primary hand
-			if(i == SECONDHANDPOS && pItem->usItemClass & IC_MISC && pItem->brightlightvisionrangebonus > 0)
-			{
-				continue;
-			}
-
-			// sevenfm: binocs
-			if( (i == HANDPOS || i == SECONDHANDPOS) &&
-				pItem->usItemClass & IC_MISC && 
-				!gbForceWeaponReady &&
-				(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] == 0 && pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] == 0 ||
-				UsingNewVisionSystem() && (TileIsOutOfBounds(sSpot) || TileIsOutOfBounds(pSoldier->sMTActionGridNo) || SpacesAway(sSpot, pSoldier->sMTActionGridNo) > 1)))
-			{
-				continue;
-			}
-
-			// Flugente: weapons are checked later on...
-			if (!IsWeapon(usItem))
-			{
-				sValue = BonusReduceMore( idiv( pItem->brightlightvisionrangebonus * (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY ), (*pObj)[0]->data.objectStatus );
-
-				// sevenfm: bonus for scouts using binocs
-				if( gGameOptions.fNewTraitSystem &&
-					HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) &&
-					pSoldier->bSectorZ == 0 &&
-					(i == HANDPOS || i == SECONDHANDPOS) &&
-					pItem->usItemClass & IC_MISC && 
-					pItem->brightlightvisionrangebonus > 0 )
-				{
-					sValue += sValue * gSkillTraitValues.usSCSightRangebonusWithBinoculars / 100;
-				}
-
-				sBonus += sValue;
-			}
-		}
-	}*/	
-	
-	INT16	sItemBonus;
-
 	// binocs/scope in hand
 	if (gbForceWeaponReady || 
-		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER]) &&
+		(pSoldier->usSkillCounter[SOLDIER_COUNTER_WATCH] >= ubActive || pSoldier->usSkillCounter[SOLDIER_COUNTER_SPOTTER] >= ubActive) &&
 		(!UsingNewVisionSystem() || !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1))
 	{
 		pObj = &(pSoldier->inv[HANDPOS]);
@@ -12503,22 +12314,6 @@ INT16 GetTotalVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 
 	// Flugente: add sight range bonus due to disabilities, traits etc. (not equipment)
 	sBonus += pSoldier->GetSightRangeBonus();
-
-	// SANDRO - STOMP traits - Scouting bonus for sight range with binoculars and similar
-	// sevenfm: moved to day/bright vision bonus
-	/*if ( gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT( pSoldier, SCOUTING_NT ) && pSoldier->pathing.bLevel == 0 )
-	{
-		OBJECTTYPE *pObj = &( pSoldier->inv[HANDPOS]);
-		if (pObj->exists() == true) 
-		{
-			// we have no pointer to binoculars, so just check any misc items in hands which have some vision bonus
-			if ( Item[pObj->usItem].usItemClass & IC_MISC && (Item[pObj->usItem].brightlightvisionrangebonus > 0 ||
-				Item[pObj->usItem].dayvisionrangebonus > 0 || Item[pObj->usItem].nightvisionrangebonus > 0 || Item[pObj->usItem].visionrangebonus > 0 )) 
-			{
-				bonus += gSkillTraitValues.usSCSightRangebonusWithBinoculars;
-			}
-		}
-	}*/
 
 	return sBonus;
 }
