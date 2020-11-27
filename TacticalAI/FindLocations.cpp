@@ -2624,7 +2624,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 {
 	INT32 sGridNo;
 	INT32 sBestSpot = NOWHERE;
-	INT32 iSearchRange = 8;	// sevenfm: increase search range
+	INT32 iSearchRange = TACTICAL_RANGE / 4;
 	INT16 sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXOffset, sYOffset;
 
 	// INT16 sDistanceVisible = DistanceVisible( pSoldier, DIRECTION_IRRELEVANT, DIRECTION_IRRELEVANT, pSoldier->sGridNo, pSoldier->pathing.bLevel );
@@ -2633,12 +2633,12 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 	DebugMsg ( TOPIC_JA2AI , DBG_LEVEL_3 , String("FindFlankingSpot: orig loc = %d, loc to flank = %d", pSoldier->sGridNo , sPos));
 
 	// hit the edge of the map
-	if ( FindNearestEdgePoint ( pSoldier->sGridNo ) == pSoldier->sGridNo	)
-		return NOWHERE;
+	/*if ( FindNearestEdgePoint ( pSoldier->sGridNo ) == pSoldier->sGridNo	)
+		return NOWHERE;*/
 
 	// sevenfm: no reason to limit AP, we can reach that tile in the next turn
 	//gubNPCAPBudget= pSoldier->CalcActionPoints();
-	gubNPCAPBudget= __min(pSoldier->bInitialActionPoints, iSearchRange * 3 * APBPConstants[AP_MAXIMUM] / 25);
+	gubNPCAPBudget= min(pSoldier->bInitialActionPoints, APBPConstants[AP_MAXIMUM]);
 
 	// stay away from the edges
 
@@ -2741,27 +2741,23 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 				continue;
 
 			// sevenfm: skip tiles too close to edge
-			if ( PythSpacesAway( FindNearestEdgePoint ( sGridNo ), sGridNo ) <= 2 )
+			//if ( PythSpacesAway( FindNearestEdgePoint ( sGridNo ), sGridNo ) <= 2 )
+			if (NorthSpot(sGridNo, pSoldier->pathing.bLevel))
 			{
 				continue;
 			}
 
 			// sevenfm: don't go into deep water for flanking
-			if (DeepWater(sGridNo, pSoldier->pathing.bLevel))
+			if (DeepWater(sGridNo, pSoldier->pathing.bLevel) &&
+				!DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 			{
 				continue;
 			}
 
-			// sevenfm: allow water flanking only for CUNNINGSOLO soldiers
-			if( Water( sGridNo, pSoldier->pathing.bLevel ) && pSoldier->aiData.bAttitude != CUNNINGSOLO )
-			{
-				continue;
-			}
-
-			// sevenfm: penalize locations near fresh corpses
+			// sevenfm: avoid locations with fresh corpses
 			if( GetNearestRottingCorpseAIWarning( sGridNo ) > 0 )
 			{
-				sTempDist = sTempDist / 2;
+				continue;
 			}
 
 			// sevenfm: skip buildings if not in building already, because soldiers often run into buildings and stop flanking
@@ -2770,9 +2766,15 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 				continue;
 			}
 
+			// avoid moving too close to enemy vision range
+			if (PythSpacesAway(sGridNo, sPos) < sDistanceVisible + TACTICAL_RANGE / 4)
+			{
+				sTempDist = sTempDist / 2;
+			}
+
 			// sevenfm: penalize locations with no sight cover from noise gridno (supposed that we are sneaking)
-			if( PythSpacesAway( sGridNo, sPos) <= sDistanceVisible &&
-				LocationToLocationLineOfSightTest( sGridNo, pSoldier->pathing.bLevel, sPos, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS) )
+			if( PythSpacesAway( sGridNo, sPos) <= sDistanceVisible * 2 &&
+				LocationToLocationLineOfSightTest(sGridNo, pSoldier->pathing.bLevel, sPos, pSoldier->pathing.bLevel, TRUE, sDistanceVisible * 2))
 			{
 				//continue;
 				sTempDist = sTempDist / 2;
@@ -2785,7 +2787,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			// sevenfm: try to flank closer to vision distance limit for faster flanking
-			if( PythSpacesAway( sGridNo, sPos) > sDistanceVisible + 10 )
+			if( PythSpacesAway( sGridNo, sPos) > sDistanceVisible * 2 + TACTICAL_RANGE / 4 )
 			{
 				sTempDist = sTempDist / 2;
 			}

@@ -352,10 +352,10 @@ INT16 NightVisionRange(void);
 #define BOMB_DETECTION_RANGE (TACTICAL_RANGE / 4)
 
 // sevenfm: limit min/max flank distance depending on sight range and time of day
-#define MIN_FLANK_DIST_YELLOW (DAY_VISION_RANGE/2)
-#define MAX_FLANK_DIST_YELLOW (VISION_RANGE + 20)
-#define MIN_FLANK_DIST_RED (DAY_VISION_RANGE/2)
-#define MAX_FLANK_DIST_RED (VISION_RANGE + 20)
+#define MIN_FLANK_DIST_YELLOW (DAY_VISION_RANGE / 2)
+#define MAX_FLANK_DIST_YELLOW (VISION_RANGE * 2 + TACTICAL_RANGE / 2)
+#define MIN_FLANK_DIST_RED (DAY_VISION_RANGE / 2)
+#define MAX_FLANK_DIST_RED (VISION_RANGE * 2 + TACTICAL_RANGE / 2)
 
 UINT8 RedSmokeDanger( INT32 sGridNo, INT8 bLevel );
 BOOLEAN CheckArtilleryStrike( void );
@@ -391,5 +391,9 @@ INT8 KnownPublicLevel(UINT8 bTeam, UINT8 ubOpponentID);
 BOOLEAN AICheckTown(void);
 UINT8 AISectorType(void);
 BOOLEAN AICheckUnderground(void);
+BOOLEAN NorthSpot(INT32 sSpot, INT8 bLevel);
+BOOLEAN AllowDeepWaterFlanking(SOLDIERTYPE *pSoldier);
+INT32	RandomizeLocation(INT32 sSpot, INT8 bLevel, UINT8 ubTimes, SOLDIERTYPE *pSightSoldier);
+INT32	RandomizeOpponentLocation(INT32 sSpot, SOLDIERTYPE *pOpponent, INT16 sMaxDistance);
 
 #endif

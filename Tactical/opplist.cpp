@@ -7807,7 +7807,7 @@ BOOLEAN WatchedLocLocationIsEmpty( INT32 sGridNo, INT8 bLevel, INT8 bTeam, UINT8
 	UINT8	ubDirection;
 	
 	SOLDIERTYPE *pSoldier = MercPtrs[ubWatchID];
-	if( !pSoldier )
+	if (!pSoldier)
 	{
 		return FALSE;
 	}

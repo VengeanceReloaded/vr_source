@@ -147,8 +147,8 @@ INT8 OKToAttack(SOLDIERTYPE * pSoldier, int target)
 BOOLEAN ConsiderProne( SOLDIERTYPE * pSoldier )
 {
 	INT32		sOpponentGridNo;
-	INT8		bOpponentLevel;
-	INT32		iRange;
+	//INT8		bOpponentLevel;
+	//INT32		iRange;
 
 	// sevenfm: admins/green militia go prone only when wounded or under fire
 	if( pSoldier->ubSoldierClass == SOLDIER_CLASS_ADMINISTRATOR ||
@@ -5519,7 +5519,7 @@ BOOLEAN CheckSuppressionDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, I
 {
 	SOLDIERTYPE * pFriend;
 	UINT8 ubShootingDir;
-	UINT8 ubFriendDir;
+	//UINT8 ubFriendDir;
 
 	CHECKF(pSoldier);
 
@@ -6174,4 +6174,117 @@ BOOLEAN AICheckUnderground(void)
 	}
 
 	return FALSE;
+}
+
+BOOLEAN NorthSpot(INT32 sSpot, INT8 bLevel)
+{
+	if (TileIsOutOfBounds(sSpot))
+		return FALSE;
+
+	if (bLevel > 0)
+		return FALSE;
+
+	INT32 sNextSpot = NewGridNo(sSpot, DirectionInc(NORTHWEST));
+
+	if (gubWorldMovementCosts[sSpot + DirectionInc(NORTHWEST)][NORTHWEST][0] == TRAVELCOST_OFF_MAP ||
+		gubWorldMovementCosts[sNextSpot + DirectionInc(NORTHWEST)][NORTHWEST][0] == TRAVELCOST_OFF_MAP)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AllowDeepWaterFlanking(SOLDIERTYPE *pSoldier)
+{
+	if (SoldierAI(pSoldier) &&
+		pSoldier->bTeam == ENEMY_TEAM &&
+		pSoldier->aiData.bOrders == SEEKENEMY &&
+		(pSoldier->aiData.bAttitude == CUNNINGSOLO || gGameOptions.fNewTraitSystem && HAS_SKILL_TRAIT(pSoldier, ATHLETICS_NT)) &&
+		pSoldier->aiData.bAlertStatus >= STATUS_RED &&
+		!pSoldier->aiData.bUnderFire &&
+		!GuySawEnemy(pSoldier))
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+INT32	RandomizeLocation(INT32 sSpot, INT8 bLevel, UINT8 ubTimes, SOLDIERTYPE *pSightSoldier)
+{
+	if (TileIsOutOfBounds(sSpot))
+	{
+		return NOWHERE;
+	}
+
+	UINT8 ubDirection;
+	UINT8 ubMovementCost;
+	INT32 sTempSpot;
+	INT32 sSpotArray[NUM_WORLD_DIRECTIONS + 1];
+	UINT8 ubSpots;
+
+	for (UINT8 ubCnt = 0; ubCnt < ubTimes; ubCnt++)
+	{
+		// store original location
+		ubSpots = 1;
+		sSpotArray[0] = sSpot;
+
+		// find adjacent locations
+		for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+		{
+			sTempSpot = NewGridNo(sSpot, DirectionInc(ubDirection));
+
+			if (sTempSpot != sSpot)
+			{
+				ubMovementCost = gubWorldMovementCosts[sTempSpot][ubDirection][bLevel];
+
+				if (ubMovementCost < TRAVELCOST_BLOCKED &&
+					IsLocationSittableExcludingPeople(sTempSpot, bLevel) &&
+					(!pSightSoldier || SoldierToVirtualSoldierLineOfSightTest(pSightSoldier, sTempSpot, bLevel, ANIM_STAND, TRUE, NO_DISTANCE_LIMIT)))
+				{
+					sSpotArray[ubSpots] = sTempSpot;
+					ubSpots++;
+				}
+			}
+		}
+		// find random location
+		sSpot = sSpotArray[Random(ubSpots)];
+		// stop if could not find any adjacent spot
+		if (ubSpots < 2)
+		{
+			break;
+		}
+	}
+
+	return sSpot;
+}
+
+INT32	RandomizeOpponentLocation(INT32 sSpot, SOLDIERTYPE *pOpponent, INT16 sMaxDistance)
+{
+	if (TileIsOutOfBounds(sSpot))
+	{
+		return NOWHERE;
+	}
+
+	INT8 bXOffset, bYOffset;
+	INT32 sRandomSpot;
+
+	if (sMaxDistance > 0)
+	{
+		for (INT cnt = 0; cnt < min(sMaxDistance * 2, 100); cnt++)
+		{
+			bXOffset = Random(sMaxDistance * 2 + 1) - sMaxDistance;
+			bYOffset = Random(sMaxDistance * 2 + 1) - sMaxDistance;
+
+			sRandomSpot = sSpot + bXOffset + (MAXCOL * bYOffset);
+
+			if (!TileIsOutOfBounds(sRandomSpot) && NewOKDestination(pOpponent, sRandomSpot, FALSE, pOpponent->pathing.bLevel))
+			{
+				return sRandomSpot;
+			}
+		}
+	}
+
+	return sSpot;
 }
