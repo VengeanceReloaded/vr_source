@@ -18884,6 +18884,50 @@ BOOLEAN SOLDIERTYPE::IsEmptyVehicle(void)
 	return FALSE;
 }
 
+BOOLEAN SOLDIERTYPE::LaserActive(void)
+{
+	//? pSoldier->ubAttackingHand
+	if (!this->inv[HANDPOS].exists() || Item[this->inv[HANDPOS].usItem].usItemClass != IC_GUN)
+	{
+		return FALSE;
+	}
+
+	if (gGameExternalOptions.fScopeModes)
+	{
+		std::map<INT8, OBJECTTYPE*> ObjList;
+		GetScopeLists(&this->inv[HANDPOS], ObjList);
+
+		if (this->bScopeMode == USE_ALT_WEAPON_HOLD)
+		{
+			return TRUE;
+		}
+		// improved iron sights are attachable iron sights (the 'normal' iron sight is the gun itself)
+		else if (ObjList[this->bScopeMode] != NULL && IsAttachmentClass(ObjList[this->bScopeMode]->usItem, AC_IRONSIGHT))
+		{
+			return TRUE;
+		}
+		else if (ObjList[this->bScopeMode] != NULL && IsAttachmentClass(ObjList[this->bScopeMode]->usItem, AC_SIGHT))
+		{
+			// allow if sight provides laser bonus (ISM_V_IR)
+			if (Item[ObjList[this->bScopeMode]->usItem].bestlaserrange > 0)
+			{
+				return TRUE;
+			}
+			return FALSE;
+		}
+		else if (ObjList[this->bScopeMode] != NULL && IsAttachmentClass(ObjList[this->bScopeMode]->usItem, AC_SCOPE))
+		{
+			// allow if scope provides laser bonus
+			if (Item[ObjList[this->bScopeMode]->usItem].bestlaserrange > 0)
+			{
+				return TRUE;
+			}
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 // Flugente: spotter
 BOOLEAN SOLDIERTYPE::IsSpotting()
 {

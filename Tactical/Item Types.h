@@ -677,6 +677,9 @@ extern OBJECTTYPE gTempObject;
 #define AC_MISC19		0x40000000	//1073741824
 #define AC_MISC20		0x80000000	//2147483648
 
+// sevenfm
+#define AC_SCOPE_MODE	(AC_SCOPE|AC_SIGHT|AC_IRONSIGHT)
+
 // -------- added by Flugente: flags for tripwire networks --------
 // the numbering of these flags is important. DO NOT CHANGE THEM, UNLESS YOU KNOW WHAT YOU ARE DOING!!!
 // these flags were revised on 2012-9-2

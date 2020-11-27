@@ -10668,114 +10668,116 @@ INT16 GetRangeBonus( OBJECTTYPE * pObj )
 }
 
 
-INT16 LaserBonus( SOLDIERTYPE *pSoldier, const INVTYPE * pItem, INT32 iRange, UINT8 bLightLevel, UINT8 ubAimTime )
+INT16 LaserBonus(const INVTYPE * pItem, INT32 iRange, UINT8 bLightLevel, UINT8 ubAimTime, BOOLEAN fLaserActive)
 {
 	// Snap: Reduce laser scope bonus at long ranges and high light levels
-	INT16 bonus;
+	INT16 bonus = 0;
+	INT32 iMaxLaserRange;
 
-	if ( pItem->bestlaserrange == 0 || iRange <= pItem->bestlaserrange ) 
+	// not laser - just plain bonus
+	if (pItem->bestlaserrange == 0)
 	{
-		// No penalty within this range
-		bonus = pItem->tohitbonus;
-
-		// sevenfm: reduce laser bonus when aiming
-		if( pItem->bestlaserrange > 0 && bonus > 0 )
-			bonus = 2 * bonus / (2 + ubAimTime);
-
-		return bonus;
+		return pItem->tohitbonus;
 	}
-	else 
+	// disable when using scope or reflex sight
+	else if (!fLaserActive)
+	{
+		return 0;
+	}
+	else
 	{
 		// Figure out max. visible distance for the laser dot:
 		// day: 1.5*bestlaserrange, night: 2.5*bestlaserrange
-		// iMaxLaserRange = bestlaserrange * ( 1.5 + ( bLightLevel - NORMAL_LIGHTLEVEL_DAY )
-		//                                 / ( NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY ) )
-		INT32 iMaxLaserRange = ( pItem->bestlaserrange*( 2*bLightLevel + 3*NORMAL_LIGHTLEVEL_NIGHT - 5*NORMAL_LIGHTLEVEL_DAY ) )
-			/ ( 2 * ( NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY ) );
+		iMaxLaserRange = (pItem->bestlaserrange * (2 * bLightLevel + 3 * NORMAL_LIGHTLEVEL_NIGHT - 5 * NORMAL_LIGHTLEVEL_DAY)) / (2 * (NORMAL_LIGHTLEVEL_NIGHT - NORMAL_LIGHTLEVEL_DAY));
 
-		// Beyond bestlaserrange laser bonus drops linearly to 0
-		INT16 bonus = ( pItem->tohitbonus * (iMaxLaserRange - iRange) )
-			/ ( iMaxLaserRange - pItem->bestlaserrange );
+		if (iRange > iMaxLaserRange)
+		{
+			return 0;
+		}
 
-		// sevenfm: reduce laser bonus when aiming
-		if( pItem->bestlaserrange > 0 && bonus > 0 )
-			bonus = 2 * bonus / (2 + ubAimTime);
+		if (iRange < pItem->bestlaserrange)
+		{
+			bonus = pItem->tohitbonus;
+		}
+		else
+		{
+			// laser bonus drops linearly to 0
+			bonus = pItem->tohitbonus * (iMaxLaserRange - iRange) / (iMaxLaserRange - pItem->bestlaserrange);
+		}
 
-		return (bonus > 0 ? bonus : 0);
+		// reduce bonus if not in the dark
+		if (bLightLevel < NORMAL_LIGHTLEVEL_NIGHT)
+		{
+			bonus = bonus * (NORMAL_LIGHTLEVEL_NIGHT + 3 * bLightLevel) / (4 * NORMAL_LIGHTLEVEL_NIGHT);
+		}
+
+		// reduce laser bonus when aiming
+		bonus = 2 * bonus / (2 + ubAimTime);
+
+		return max(bonus, 0);
 	}
 }
 
 INT16 GetToHitBonus( SOLDIERTYPE *pSoldier, OBJECTTYPE *pObj, INT32 iRange, UINT8 bLightLevel, BOOLEAN fProneStance, UINT8 ubAimTime )
 {
-	/*INT16 bonus=0;
-
-	// Snap: bipod is effective only in the prone stance
-
-	if (pObj->exists() == true) 
-	{
-		if ( fProneStance )
-			bonus += Item[pObj->usItem].bipod;
-
-		bonus += BonusReduceMore( LaserBonus( &Item[pObj->usItem], iRange, bLightLevel), (*pObj)[0]->data.objectStatus );
-		bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].tohitbonus;
-
-		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
-			if(iter->exists())
-			{
-				if ( fProneStance )
-					bonus += Item[iter->usItem].bipod;
-
-				bonus += BonusReduceMore( LaserBonus( &Item[iter->usItem], iRange, bLightLevel), (*iter)[0]->data.objectStatus );
-			}
-		}
-	}
-
-	// Snap (TODO): add special treatment of laser scopes
-	return( bonus );*/
-
 	///////////////////////////////////////////////////////////////////////////
 	// sevenfm: added scope mode support
 	///////////////////////////////////////////////////////////////////////////
 	INT16 bonus = 0;
 
-	if (pObj->exists() == true) 
+	if (pObj->exists() == true)
 	{
-		if ( fProneStance )
+		BOOLEAN fLaserActive = TRUE;
+
+		if (pSoldier)
+		{
+			fLaserActive = pSoldier->LaserActive();
+		}
+
+		// don't reduce with aiming when firing from hip
+		if (gGameExternalOptions.fScopeModes && pSoldier && pSoldier->bScopeMode == USE_ALT_WEAPON_HOLD)
+		{
+			ubAimTime = 0;
+		}
+
+		if (fProneStance)
 			bonus += Item[pObj->usItem].bipod;
 
-		// Flugente: check for scope mode
-		if ( gGameExternalOptions.fScopeModes && pSoldier && Item[pObj->usItem].usItemClass == IC_GUN )
+		// add bonus for item
+		bonus += BonusReduceMore(LaserBonus(&Item[pObj->usItem], iRange, bLightLevel, ubAimTime, fLaserActive), (*pObj)[0]->data.objectStatus);
+
+		// if item is a gun and scope mode enabled, add bonus from scope used
+		if (gGameExternalOptions.fScopeModes && pSoldier && Item[pObj->usItem].usItemClass == IC_GUN)
 		{
 			std::map<INT8, OBJECTTYPE*> ObjList;
 			GetScopeLists(pObj, ObjList);
 
 			// only use scope mode if gun is in hand, otherwise an error might occur!
-			if ( (&pSoldier->inv[HANDPOS]) == pObj && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
+			if ((&pSoldier->inv[HANDPOS]) == pObj && ObjList[pSoldier->bScopeMode] != NULL && pSoldier->bScopeMode != USE_ALT_WEAPON_HOLD)
 			{
-				bonus += BonusReduceMore( LaserBonus( pSoldier, &Item[ObjList[pSoldier->bScopeMode]->usItem], iRange, bLightLevel, ubAimTime), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus );
+				// always use laser for active scope (for example, reflex+laser)
+				bonus += BonusReduceMore(LaserBonus(&Item[ObjList[pSoldier->bScopeMode]->usItem], iRange, bLightLevel, ubAimTime, fLaserActive), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
 			}
 		}
-		else
-			bonus += BonusReduceMore( LaserBonus( pSoldier, &Item[pObj->usItem], iRange, bLightLevel, ubAimTime), (*pObj)[0]->data.objectStatus );
 
 		bonus += Item[(*pObj)[0]->data.gun.usGunAmmoItem].tohitbonus;
 
 		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter) {
-			if(iter->exists())
+			if (iter->exists())
 			{
-				if ( fProneStance )
+				if (fProneStance)
 					bonus += Item[iter->usItem].bipod;
 
-				// don't apply ToHit bonus if item is not used scope
-				if( !gGameExternalOptions.fScopeModes || !IsAttachmentClass(iter->usItem, AC_SCOPE|AC_SIGHT|AC_IRONSIGHT ) )
+				// exclude possible scopes from search as activated scope is already used before
+				if (!gGameExternalOptions.fScopeModes || !IsAttachmentClass(iter->usItem, AC_SCOPE_MODE))
 				{
-					bonus += BonusReduceMore( LaserBonus( pSoldier, &Item[iter->usItem], iRange, bLightLevel, ubAimTime), (*iter)[0]->data.objectStatus );
-				}				
+					bonus += BonusReduceMore(LaserBonus(&Item[iter->usItem], iRange, bLightLevel, ubAimTime, fLaserActive), (*iter)[0]->data.objectStatus);
+				}
 			}
 		}
 	}
 
-	return( bonus );
+	return(bonus);
 }
 
 // HEADROCK HAM 4: The following functions return the value of new NCTH-related modifiers from an item and all its

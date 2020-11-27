@@ -1869,6 +1869,7 @@ public:
 	BOOLEAN IsUnconscious(void);
 	BOOLEAN IsBoxer(void);
 	BOOLEAN IsEmptyVehicle(void);
+	BOOLEAN LaserActive(void);
 
 	// Flugente: boxing fix: this shall be the only location where the boxing flag gets removed (easier debugging)
 	void	DeleteBoxingFlag();
