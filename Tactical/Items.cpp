@@ -7697,18 +7697,7 @@ UINT16 UseKitPoints( OBJECTTYPE * pObj, UINT16 usPoints, SOLDIERTYPE *pSoldier )
 }
 
 #ifdef PATHAI_VISIBLE_DEBUG
-
 	extern BOOLEAN gfDrawPathPoints;
-
-#else
-
-	#ifdef AI_TIMING_TESTS
-	extern UINT32 guiGreenTimeTotal, guiYellowTimeTotal, guiRedTimeTotal, guiBlackTimeTotal;
-	extern UINT32 guiGreenCounter, guiYellowCounter, guiRedCounter, guiBlackCounter;
-	extern UINT32 guiRedSeekTimeTotal, guiRedHelpTimeTotal, guiRedHideTimeTotal;
-	extern UINT32 guiRedSeekCounter, guiRedHelpCounter; guiRedHideCounter;
-	#endif
-
 #endif
 
 
