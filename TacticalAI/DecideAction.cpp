@@ -2343,13 +2343,15 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	INT32 iDummy;
 	INT32 iChance,sClosestOpponent,sClosestFriend;
 	INT32 sClosestDisturbance, sDistVisible, sCheckGridNo;
+	INT8 bClosestDisturbanceLevel = 0;
 	UINT8 ubCanMove,ubOpponentDir;
 	INT8 bInWater, bInDeepWater, bInGas;
 	INT8 bSeekPts = 0, bHelpPts = 0, bHidePts = 0, bWatchPts = 0;
 	INT8	bHighestWatchLoc;
 	ATTACKTYPE BestThrow, BestShot;
 
-	BOOLEAN fClimb;
+	BOOLEAN fSeekClimb;
+	BOOLEAN fHelpClimb;
 	BOOLEAN fCivilian = (PTR_CIVILIAN && (pSoldier->ubCivilianGroup == NON_CIV_GROUP ||
 		(pSoldier->aiData.bNeutral && gTacticalStatus.fCivGroupHostile[pSoldier->ubCivilianGroup] == CIV_GROUP_NEUTRAL) ||
 		(pSoldier->ubBodyType >= FATCIV && pSoldier->ubBodyType <= CRIPPLECIV) ) );
@@ -2359,6 +2361,8 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	BOOLEAN fProneSightCover = FALSE;
 	INT32	sOpponentGridNo;
 	INT8	bOpponentLevel;
+	INT32	sDangerousSpot;
+	INT32	sLastSafeSpot;
 
 	// WANNE: Headrock informed me that I should remove that because it needs a lot of CPU!
 	// HEADROCK HAM B2.7: Calculate the overall tactical situation
@@ -2475,7 +2479,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	if (ubCanMove && bInDeepWater && !pSoldier->aiData.bNeutral && pSoldier->aiData.bOrders == SEEKENEMY)
 	{
 		// find closest reachable opponent, excluding opponents in deep water
-		pSoldier->aiData.usActionData = ClosestReachableDisturbance(pSoldier, &fClimb);
+		pSoldier->aiData.usActionData = ClosestReachableDisturbance(pSoldier, &fSeekClimb);
 
 		if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 		{
@@ -3011,7 +3015,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	////////////////////////////////////////////////////////////////////////////
 	// WHEN IN THE LIGHT, GET OUT OF THERE!
 	////////////////////////////////////////////////////////////////////////////
-	if ( ubCanMove && InLightAtNight( pSoldier->sGridNo, pSoldier->pathing.bLevel ) && pSoldier->aiData.bOrders != STATIONARY )
+	/*if ( ubCanMove && InLightAtNight( pSoldier->sGridNo, pSoldier->pathing.bLevel ) && pSoldier->aiData.bOrders != STATIONARY )
 	{
 		//ddd for the enemy to run away from lighht
 		if(gGameExternalOptions.bNewTacticalAIBehavior)
@@ -3024,7 +3028,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 			// move as if leaving water or gas
 			return( AI_ACTION_LEAVE_WATER_GAS );
 		}
-	}
+	}*/
 
 	DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: crouch and rest if running out of breath");
 	////////////////////////////////////////////////////////////////////////
@@ -3165,7 +3169,41 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		////////////////////////////////////////////////////////////////////////////
 
 		// get the location of the closest reachable opponent
-		sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
+		sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fSeekClimb);
+		// determine opponent level
+		if (fSeekClimb)
+		{
+			if (pSoldier->pathing.bLevel > 0)
+				bClosestDisturbanceLevel = 0;
+			else
+				bClosestDisturbanceLevel = 1;
+		}
+		else
+		{
+			bClosestDisturbanceLevel = pSoldier->pathing.bLevel;
+		}
+		sClosestFriend = ClosestReachableFriendInTrouble(pSoldier, &fHelpClimb);
+
+		// sevenfm: avoid light if spot is dangerous
+		if (ubCanMove &&
+			InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+			pSoldier->aiData.bOrders != STATIONARY &&			
+			!InSmoke(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+			(pSoldier->aiData.bUnderFire || 
+			pSoldier->aiData.bOrders != SEEKENEMY || 
+			!SightCoverAtSpot(pSoldier, pSoldier->sGridNo, FALSE) || 
+			GetNearestRottingCorpseAIWarning(pSoldier->sGridNo) > 0) &&
+			(CountFriendsFlankSameSpot(pSoldier, sClosestDisturbance) > 0 || pSoldier->aiData.bOrders != SEEKENEMY) &&
+			CountFriendsBlack(pSoldier, sClosestDisturbance) == 0)
+		{
+			pSoldier->aiData.usActionData = FindNearbyDarkerSpot(pSoldier);
+
+			if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+			{
+				// move as if leaving water or gas
+				return(AI_ACTION_LEAVE_WATER_GAS);
+			}
+		}
 
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: check to continue flanking");
 		// possibly continue flanking
@@ -3397,28 +3435,77 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 			DebugMsg(TOPIC_JA2, DBG_LEVEL_3, String("decideactionred: checking hide/seek/help/watch points... orders = %d, attitude = %d", pSoldier->aiData.bOrders, pSoldier->aiData.bAttitude));
 			// calculate initial points for watch based on highest watch loc
 
-			bWatchPts = GetHighestWatchedLocPoints(pSoldier->ubID);
+			bWatchPts = GetHighestWatchedLocPoints(pSoldier->ubID);			
 			if (bWatchPts <= 0)
 			{
 				// no watching
 				bWatchPts = -99;
 			}
-
-			PrepareMainRedAIWeights(pSoldier, bSeekPts, bHelpPts, bHidePts, bWatchPts);
-
-			//Madd: make militia less likely to go running headlong into trouble
-			if (pSoldier->bTeam == MILITIA_TEAM)
+			if (TileIsOutOfBounds(sClosestFriend))
 			{
-				bSeekPts += -1; bHelpPts += 0; bHidePts += +1; bWatchPts += +0;
+				bHelpPts = -99;
 			}
-
+			if (TileIsOutOfBounds(sClosestDisturbance))
+			{
+				bSeekPts = -99;
+			}
+			if (TileIsOutOfBounds(sClosestOpponent))
+			{
+				bHidePts = -99;
+			}
+			/*if (pSoldier->SkipCoverCheck())
+			{
+				if (fSafeSpot)
+				{
+					bHidePts = -99;
+				}
+				bSeekPts = -99;
+				bHelpPts = -99;
+			}*/
+			if (pSoldier->usSkillCounter[SOLDIER_COUNTER_COVER])
+			{
+				bSeekPts = -99;
+				bHelpPts = -99;
+			}
+			// can help only at the start of the turn
+			if (!pSoldier->CheckInitialAP())
+			{
+				bHelpPts = -99;
+			}
+			// disable seek/help if soldier is lying prone in safe place and saw enemy recently and can attack him
+			if (gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_PRONE &&
+				pSoldier->aiData.bAIMorale < MORALE_FEARLESS &&
+				(AICheckSpecialRole(pSoldier) || pSoldier->aiData.bOrders != SEEKENEMY) &&
+				SafeSpot(pSoldier, pSoldier->sGridNo) &&
+				GuySawEnemy(pSoldier) &&
+				!TileIsOutOfBounds(sClosestDisturbance) &&
+				AIGunRange(pSoldier) >= PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) &&
+				CountFriendsBlack(pSoldier, sClosestDisturbance) == 0)
+			{
+				bSeekPts = -99;
+				bHelpPts = -99;
+			}
+			// no taking cover in deep water
+			if (DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel))
+			{
+				bHidePts = -99;
+			}
 			// sevenfm: stationary/snipers should not seek/help
 			if (pSoldier->aiData.bOrders == SNIPER || pSoldier->aiData.bOrders == STATIONARY)
 			{
 				bSeekPts = -99;
 				bHelpPts = -99;
 			}
-
+			// sevenfm: don't help if seen enemy recently or under fire
+			if (GuySawEnemy(pSoldier) || pSoldier->aiData.bUnderFire)
+			{
+				bHelpPts = -99;
+			}
+			// special AI roles don't help
+			if (AICheckSpecialRole(pSoldier))
+			{
+				bHelpPts = -99;
+			}
 			// sevenfm: disable seek/help when in building and seen enemy recently
 			// check that closest reachable enemy is not in the same building
 			if ((GuySawEnemy(pSoldier) && RangeChangeDesire(pSoldier) < 4 || CountSeenEnemiesLastTurn(pSoldier) > 0) &&
@@ -3429,19 +3516,28 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				bSeekPts = -99;
 				bHelpPts = -99;
 			}
-
-			// sevenfm: only seek/help at the start of the turn
-			/*if (gfTurnBasedAI && pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
+			if (!gfTurnBasedAI)
 			{
-			bSeekPts = -99;
-			bHelpPts = -99;
-			}*/
+				// don't search for cover
+				bHidePts = -99;
+			}			
 
-			// sevenfm: disable seek/help if soldier executed AI_ACTION_TAKE_COVER this turn
-			if (pSoldier->usSkillCounter[SOLDIER_COUNTER_COVER])
+			PrepareMainRedAIWeights(pSoldier, bSeekPts, bHelpPts, bHidePts, bWatchPts);
+
+			//Madd: make militia less likely to go running headlong into trouble
+			if (pSoldier->bTeam == MILITIA_TEAM)
 			{
-				bSeekPts = -99;
-				bHelpPts = -99;
+				bSeekPts += -1; bHelpPts += 0; bHidePts += +1; bWatchPts += +0;
+			}
+
+			// sevenfm: snipers and soldiers with scoped guns should decide watch more often
+			if (AIGunScoped(pSoldier))
+			{
+				bWatchPts++;
+			}
+			if (AICheckIsSniper(pSoldier))
+			{
+				bWatchPts++;
 			}
 
 			// sevenfm: disable watching if soldier is under fire or in dangerous place
@@ -3488,19 +3584,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 						bWatchPts -= bMaxEnemyLevel - (AIEstimateInterruptLevel(pSoldier) + CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8));
 					}
 				}
-			}
-
-			// sevenfm: don't help if seen enemy recently or under fire
-			if (GuySawEnemy(pSoldier) || pSoldier->aiData.bUnderFire)
-			{
-				bHelpPts = -99;
-			}
-
-			if (!gfTurnBasedAI)
-			{
-				// don't search for cover
-				bHidePts = -99;
-			}
+			}			
 
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: hide = %d, seek = %d, watch = %d, help = %d",bHidePts,bSeekPts,bWatchPts,bHelpPts));
 			// while one of the three main RED REACTIONS remains viable
@@ -3510,11 +3594,16 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				// if SEEKING is possible and at least as desirable as helping or hiding
 				if ( ((bSeekPts > -90) && (bSeekPts >= bHelpPts) && (bSeekPts >= bHidePts) && (bSeekPts >= bWatchPts )) )
 				{
+					// sevenfm: disable help if seek decided to prevent AI from going back and forth
+					bHelpPts = -99;
+
 					// if there is an opponent reachable					
 					// sevenfm: allow seeking in prone stance if we haven't seen enemy for several turns or someone already seen our closest enemy
 					if (!TileIsOutOfBounds(sClosestDisturbance) &&
 						( gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE ||
 						!GuySawEnemy(pSoldier) ||
+						pSoldier->aiData.bUnderFire ||
+						pSoldier->aiData.bOrders == SEEKENEMY ||
 						CountFriendsBlack(pSoldier) > 0 ) )
 					{
 						DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: seek opponent");
@@ -3523,7 +3612,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 						//////////////////////////////////////////////////////////////////////
 
 						// try to move towards him
-						pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,sClosestDisturbance,GetAPsCrouch( pSoldier, TRUE),AI_ACTION_SEEK_OPPONENT,0);
+						/*pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,sClosestDisturbance,GetAPsCrouch( pSoldier, TRUE),AI_ACTION_SEEK_OPPONENT,0);
 						
 						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 						{
@@ -3541,10 +3630,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 						// if it's possible						
 						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 						{
-							if (fClimb)//&& pSoldier->aiData.usActionData == sClosestDisturbance)
+							if (fSeekClimb)//&& pSoldier->aiData.usActionData == sClosestDisturbance)
 							{
 								// As mentioned in the next part, the sClosestDisturbance IS the climb point desired.  So the
-								// check here should be "Am I aready there?"  If so, THEN possibly climb.  This previous check
+								// check here should be "Am I already there?"  If so, THEN possibly climb.  This previous check
 								// would have a soldier climbing any building, even if it was not the desired building.  So
 								// WRONG WRONG WRONG
 								if (pSoldier->sGridNo == sClosestDisturbance)
@@ -3597,7 +3686,252 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 
 							return(AI_ACTION_SEEK_OPPONENT);
 							break;
+						}*/
+
+						INT16 bReserveSeekAP = 0;
+						UINT16 usMovementMode = DetermineMovementMode(pSoldier, AI_ACTION_SEEK_OPPONENT);
+						INT32 sTestMoveSpot = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, bReserveSeekAP, AI_ACTION_SEEK_OPPONENT, 0);
+
+						if (!TileIsOutOfBounds(sClosestDisturbance) &&
+							!TileIsOutOfBounds(sTestMoveSpot) &&
+							PythSpacesAway(sTestMoveSpot, sClosestDisturbance) < (INT16)MAX_VISION_RANGE &&
+							!SightCoverAtSpot(pSoldier, sTestMoveSpot, TRUE))
+						{
+							if (usMovementMode == RUNNING || usMovementMode == WALKING)
+							{
+								bReserveSeekAP = APBPConstants[AP_CHANGE_FACING] + GetAPsCrouch(pSoldier, TRUE);
+								if (!SightCoverAtSpot(pSoldier, sTestMoveSpot, FALSE))
+								{
+									bReserveSeekAP += GetAPsProne(pSoldier, TRUE);
+								}
+							}
+							else if (usMovementMode == SWATTING)
+							{
+								bReserveSeekAP = APBPConstants[AP_LOOK_CROUCHED] + GetAPsProne(pSoldier, TRUE);
+							}
 						}
+
+						// sevenfm: sClosestDisturbance is the climb point
+						// if we already there, then try to climb
+						if (fSeekClimb && pSoldier->sGridNo == sClosestDisturbance)
+						{
+							// wait for next turn if turnbased (to climb with max APs)
+							if (gfTurnBasedAI &&
+								pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
+							{
+								pSoldier->aiData.bNextAction = AI_ACTION_NONE;
+								pSoldier->aiData.usNextActionData = 0;
+								return(AI_ACTION_END_TURN);
+							}
+
+							// climb
+							if (IsActionAffordable(pSoldier, AI_ACTION_CLIMB_ROOF))
+							{
+								pSoldier->aiData.bNextAction = AI_ACTION_NONE;
+								pSoldier->aiData.usNextActionData = 0;
+								return(AI_ACTION_CLIMB_ROOF);
+							}
+
+							// cannot climb at all
+						}
+						else
+						{
+							INT32 sAdvanceSpot = NOWHERE;
+
+							// determine regular move spot
+							INT32 sMoveSpot = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, bReserveSeekAP, AI_ACTION_SEEK_OPPONENT, 0);
+
+							// sevenfm: try to find advance spot with any cover
+							if (gfTurnBasedAI &&
+								!TileIsOutOfBounds(sMoveSpot) &&
+								!TileIsOutOfBounds(sClosestOpponent) &&
+								TileIsOutOfBounds(sAdvanceSpot) &&
+								UseSightCoverAdvance(pSoldier) &&
+								//PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) < DAY_VISION_RANGE * 2 &&
+								PythSpacesAway(sMoveSpot, sClosestOpponent) < (INT16)MAX_VISION_RANGE &&
+								PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > DAY_VISION_RANGE / 2 &&
+								(!ProneSightCoverAtSpot(pSoldier, sMoveSpot, FALSE) || InLightAtNight(sMoveSpot, pSoldier->pathing.bLevel) || CorpseWarning(pSoldier, sMoveSpot, pSoldier->pathing.bLevel, TRUE)) &&
+								!AnyCoverAtSpot(pSoldier, sMoveSpot))
+							{
+								sAdvanceSpot = FindAdvanceSpot(pSoldier, sClosestDisturbance, AI_ACTION_SEEK_OPPONENT, ADVANCE_SPOT_ANY_COVER, FALSE);
+
+								if (!TileIsOutOfBounds(sAdvanceSpot))
+								{
+									// found any cover advance spot
+								}
+								else if (pSoldier->bActionPoints < pSoldier->bInitialActionPoints &&
+									(pSoldier->bActionPoints < APBPConstants[AP_MINIMUM]) &&
+									!pSoldier->aiData.bUnderFire &&
+									AnyCoverAtSpot(pSoldier, pSoldier->sGridNo))
+								{
+									// if not already crouched, crouch down first
+									if (gAnimControl[pSoldier->usAnimState].ubEndHeight > ANIM_CROUCH &&
+										IsValidStance(pSoldier, ANIM_CROUCH) &&
+										GetAPsToChangeStance(pSoldier, ANIM_CROUCH) <= pSoldier->bActionPoints &&
+										!SightCoverAtSpot(pSoldier, pSoldier->sGridNo, TRUE))
+									{
+										pSoldier->aiData.usActionData = ANIM_CROUCH;
+										pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
+										pSoldier->aiData.usNextActionData = 0;
+										return AI_ACTION_CHANGE_STANCE;
+									}
+
+									// if not prone, go prone first
+									if (gAnimControl[pSoldier->usAnimState].ubEndHeight > ANIM_PRONE &&
+										IsValidStance(pSoldier, ANIM_PRONE) &&
+										GetAPsToChangeStance(pSoldier, ANIM_PRONE) <= pSoldier->bActionPoints &&
+										!SightCoverAtSpot(pSoldier, pSoldier->sGridNo, FALSE))
+									{
+										pSoldier->aiData.usActionData = ANIM_PRONE;
+										pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
+										pSoldier->aiData.usNextActionData = 0;
+										return AI_ACTION_CHANGE_STANCE;
+									}
+
+									return(AI_ACTION_END_TURN);
+								}
+							}
+
+							// update path							
+							if (!TileIsOutOfBounds(sAdvanceSpot))
+							{
+								pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sAdvanceSpot, 0, AI_ACTION_SEEK_OPPONENT, 0);
+							}
+							else
+							{
+								// failed to find any advance spot, use regular movement code								
+								pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestDisturbance, bReserveSeekAP, AI_ACTION_SEEK_OPPONENT, 0);
+							}
+
+							// if it's possible						
+							if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+							{
+								BOOLEAN fAbortSeek = FALSE;
+								BOOLEAN fOvercrowded = FALSE;
+								sDangerousSpot = NOWHERE;
+								sLastSafeSpot = NOWHERE;
+
+								fAbortSeek = AbortFinalSpot(pSoldier, pSoldier->aiData.usActionData, AI_ACTION_SEEK_OPPONENT, sClosestDisturbance, bClosestDisturbanceLevel, sDangerousSpot);
+
+								// sevenfm: need to check path for fresh corpses
+								if (!fAbortSeek)
+								{
+									fAbortSeek = AbortPath(pSoldier, AI_ACTION_SEEK_OPPONENT, sClosestDisturbance, bClosestDisturbanceLevel, sDangerousSpot, sLastSafeSpot);
+									if (fAbortSeek && sLastSafeSpot != NOWHERE)
+									{
+										fAbortSeek = FALSE;
+										pSoldier->aiData.usActionData = sLastSafeSpot;
+									}
+								}
+
+								// possibly start flanking
+								bActionReturned = DecideStartFlanking(pSoldier, sClosestDisturbance);
+								if (bActionReturned != -1)
+									return bActionReturned;
+									
+								// if it's possible
+								if (!fAbortSeek)
+								{
+									if (fSeekClimb)
+									{
+										return(AI_ACTION_SEEK_OPPONENT);
+									}
+									else
+									{
+										BOOLEAN fSkipCautiousMove = TRUE;
+										BOOLEAN fSlowMovement = TRUE;
+
+										// reserve APs for a possible crouch plus a shot
+										INT8 bReserveAP = (INT8)(MinAPsToAttack(pSoldier, sClosestDisturbance, ADDTURNCOST, 0, TRUE) + GetAPsCrouch(pSoldier, TRUE));
+
+										if (pSoldier->aiData.bUnderFire && !GuySawEnemy(pSoldier) ||
+											CountFriendsBlack(pSoldier, sClosestDisturbance) > 0)
+										{
+											fSlowMovement = FALSE;
+										}
+
+										// determine cautious move spot
+										INT32 sCautiousMoveSpot = InternalGoAsFarAsPossibleTowards(pSoldier, pSoldier->aiData.usActionData, bReserveAP, AI_ACTION_SEEK_OPPONENT, fSlowMovement ? FLAG_CAUTIOUS : 0);
+
+										if (!TileIsOutOfBounds(sCautiousMoveSpot) &&
+											(!TileIsOutOfBounds(sAdvanceSpot) ||
+											InLightAtNight(sCautiousMoveSpot, pSoldier->pathing.bLevel) ||
+											CountFriendsBlack(pSoldier, sClosestDisturbance) > 0 ||
+											pSoldier->aiData.bUnderFire && !GuySawEnemy(pSoldier) ||
+											FindBombNearby(pSoldier, sCautiousMoveSpot, BOMB_DETECTION_RANGE, FALSE) ||
+											CorpseWarning(pSoldier, sCautiousMoveSpot, pSoldier->pathing.bLevel, TRUE) ||
+											EnemyCanAttackSpot(pSoldier, sCautiousMoveSpot, pSoldier->pathing.bLevel) ||
+											!SightCoverAtSpot(pSoldier, sCautiousMoveSpot, FALSE)))
+										{
+											fSkipCautiousMove = TRUE;
+										}
+
+										// let's be a bit cautious about going right up to a location without enough APs to shoot
+										if (!fSkipCautiousMove &&
+											!TileIsOutOfBounds(sCautiousMoveSpot) &&
+											PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < 5 ||
+											SightCoverAtSpot(pSoldier, pSoldier->sGridNo, TRUE) &&
+											!SightCoverAtSpot(pSoldier, pSoldier->aiData.usActionData, FALSE) &&
+											PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < TACTICAL_RANGE / 2 &&
+											CountFriendsBlack(pSoldier, sClosestDisturbance) == 0)
+										{
+											ubOpponentDir = AIDirection(pSoldier->sGridNo, sClosestDisturbance);
+
+											// raise gun first
+											if (PickSoldierReadyAnimation(pSoldier, FALSE, FALSE) != INVALID_ANIMATION &&
+												pSoldier->ubDirection == ubOpponentDir &&
+												(!gfTurnBasedAI || pSoldier->bActionPoints == pSoldier->bInitialActionPoints) &&
+												gAnimControl[pSoldier->usAnimState].ubEndHeight == ANIM_STAND &&
+												pSoldier->aiData.bLastAction != AI_ACTION_RAISE_GUN &&
+												fSlowMovement &&
+												!WeaponReady(pSoldier) &&
+												(pSoldier->bBreath > OKBREATH * 2 || GetBPCostPer10APsForGunHolding(pSoldier, TRUE) < 50))
+											{
+												if (GetAPsToReadyWeapon(pSoldier, PickSoldierReadyAnimation(pSoldier, FALSE, FALSE)) <= pSoldier->bActionPoints)
+												{
+													pSoldier->aiData.bNextAction = AI_ACTION_SEEK_OPPONENT;
+													pSoldier->aiData.usNextActionData = sCautiousMoveSpot;
+													pSoldier->aiData.fAIFlags |= AI_CAUTIOUS;
+
+													return AI_ACTION_RAISE_GUN;
+												}
+											}
+
+											if (fSlowMovement)
+											{
+												pSoldier->aiData.fAIFlags |= AI_CAUTIOUS;
+											}
+
+											pSoldier->aiData.usActionData = sCautiousMoveSpot;
+											pSoldier->aiData.bNextAction = AI_ACTION_END_TURN;
+											pSoldier->aiData.usNextActionData = 0;
+
+											return(AI_ACTION_SEEK_OPPONENT);
+										}
+										else
+										{
+											// not doing cautious move, seek opponent
+											return(AI_ACTION_SEEK_OPPONENT);
+										}
+										// not climbing, trying cautious move, don't have enough APs to reserve for attack
+									}
+								}
+								else
+								{
+									// seek aborted
+								}
+
+								// found enemy, movement is possible but seek aborted (InLightAtNight or found fresh corpse)
+							}
+							else
+							{
+								// found reachable disturbance but cannot find path
+							}
+						}
+					}
+					else
+					{
+						// no reachable disturbance or lying prone and cannot seek
 					}
 
 					// mark SEEKING as impossible for next time through while loop
@@ -3676,48 +4010,74 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				// if HELPING is possible and at least as desirable as seeking or hiding
 				if ((bHelpPts > -90) && (bHelpPts >= bSeekPts) && (bHelpPts >= bHidePts) && (bHelpPts >= bWatchPts ))
 				{
-					sClosestFriend = ClosestReachableFriendInTrouble(pSoldier, &fClimb );
-
-					// sevenfm: disable seek if help decided to prevent AI from going back and forth
-					bSeekPts = -99;
-
 					if (!TileIsOutOfBounds(sClosestFriend))
 					{
 						//////////////////////////////////////////////////////////////////////
 						// GO DIRECTLY TOWARDS CLOSEST FRIEND UNDER FIRE OR WHO LAST RADIOED
 						//////////////////////////////////////////////////////////////////////
-						pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,sClosestFriend,GetAPsCrouch( pSoldier, TRUE), AI_ACTION_SEEK_OPPONENT,0);
+						//pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier,sClosestFriend,GetAPsCrouch( pSoldier, TRUE), AI_ACTION_SEEK_OPPONENT,0);
+
+						INT16 bReserveAP = GetAPsCrouch(pSoldier, TRUE);
+						if (fHelpClimb || DetermineMovementMode(pSoldier, AI_ACTION_SEEK_FRIEND) == RUNNING)
+						{
+							bReserveAP = 0;
+						}
+
+						pSoldier->aiData.usActionData = InternalGoAsFarAsPossibleTowards(pSoldier, sClosestFriend, bReserveAP, AI_ACTION_SEEK_FRIEND, 0);
+
+						sDangerousSpot = NOWHERE;
+						sLastSafeSpot = NOWHERE;
+
+						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData) &&
+							AbortFinalSpot(pSoldier, pSoldier->aiData.usActionData, AI_ACTION_SEEK_FRIEND, sClosestFriend, bClosestDisturbanceLevel, sDangerousSpot))
+						{
+							pSoldier->aiData.usActionData = NOWHERE;
+						}
+
+						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData) &&
+							AbortPath(pSoldier, AI_ACTION_SEEK_FRIEND, sClosestDisturbance, bClosestDisturbanceLevel, sDangerousSpot, sLastSafeSpot))
+						{
+							pSoldier->aiData.usActionData = NOWHERE;
+						}
 						
+						// if new spot is safe to move
 						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 						{
-							if ( fClimb )//&& pSoldier->aiData.usActionData == sClosestFriend)
+							if (fHelpClimb)
 							{
 								// need to climb AND have enough APs to get there this turn
-								// 0verhaul:  Yet another chance to climb the wrong building and otherwise waste CPU power.
-								// We already know the climb point we want, which may not be here even if climbing is possible.
 								if (pSoldier->sGridNo == sClosestFriend)
 								{
-									if (IsActionAffordable(pSoldier) && pSoldier->bActionPoints >= ( APBPConstants[AP_CLIMBROOF] + MinAPsToAttack( pSoldier, sClosestFriend, ADDTURNCOST,0)))
+									// wait for next turn to have full APs
+									if (gfTurnBasedAI && pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
 									{
-										return( AI_ACTION_CLIMB_ROOF );
+										return(AI_ACTION_END_TURN);
 									}
+									// climb
+									if (IsActionAffordable(pSoldier, AI_ACTION_CLIMB_ROOF))
+									{
+										return(AI_ACTION_CLIMB_ROOF);
+									}
+									// don't have enough AP for climbing
 								}
 								else
 								{
-									pSoldier->aiData.usActionData = sClosestFriend;
-									//if (!TileIsOutOfBounds(sClimbPoint))
-									{
-										//pSoldier->aiData.usActionData = sClimbPoint;
-										return( AI_ACTION_MOVE_TO_CLIMB  );
-									}
+									// move to climbing spot
+									return(AI_ACTION_SEEK_FRIEND);
 								}
 							}
-
-							return(AI_ACTION_SEEK_FRIEND);
+							else
+							{
+								return(AI_ACTION_SEEK_FRIEND);
+							}
+						}
+						else
+						{
+							// help aborted
 						}
 					}
 
-					// mark SEEKING as impossible for next time through while loop
+					// mark helping as impossible for next time through while loop
 					DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: couldn't help");
 					bHelpPts = -99;
 				}
@@ -3728,8 +4088,9 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				{
 					// disable help if hiding is preferred action
 					bHelpPts = -99;
+
 					// disable seek if soldier is in safe spot
-					if ((fProneSightCover || AnyCoverAtSpot(pSoldier, pSoldier->sGridNo)) && 
+					if ((fProneSightCover && AnyCoverAtSpot(pSoldier, pSoldier->sGridNo)) && 
 						!pSoldier->aiData.bUnderFire && 
 						!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) && 
 						GetNearestRottingCorpseAIWarning(pSoldier->sGridNo) == 0)
@@ -3737,35 +4098,47 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 						bSeekPts = -99;
 					}
 
-					sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
 					// if an opponent is known (not necessarily reachable or conscious)					
 					if (!SkipCoverCheck && !TileIsOutOfBounds(sClosestOpponent))
 					{
 						//////////////////////////////////////////////////////////////////////
 						// TAKE BEST NEARBY COVER FROM ALL KNOWN OPPONENTS
 						//////////////////////////////////////////////////////////////////////
-						pSoldier->aiData.usActionData = FindBestNearbyCover(pSoldier,pSoldier->aiData.bAIMorale,&iDummy);
+						pSoldier->aiData.usActionData = FindBestNearbyCover(pSoldier, pSoldier->aiData.bAIMorale, &iDummy);
 
-						// let's be a bit cautious about going right up to a location without enough APs to shoot						
+						sDangerousSpot = NOWHERE;
+						sLastSafeSpot = NOWHERE;
+
+						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData) &&
+							AbortFinalSpot(pSoldier, pSoldier->aiData.usActionData, AI_ACTION_TAKE_COVER, sClosestDisturbance, bClosestDisturbanceLevel, sDangerousSpot))
+						{
+							// abort! abort!
+							pSoldier->aiData.usActionData = NOWHERE;
+						}
+
+						// also check path for dangerous places
 						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 						{
-							sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
-							if (!TileIsOutOfBounds(sClosestDisturbance) && 
-								( SpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) < 5 || SpacesAway( pSoldier->aiData.usActionData, sClosestDisturbance ) + 5 < SpacesAway( pSoldier->sGridNo, sClosestDisturbance ) ) )
+							// try to move towards him
+							INT32 sDestGridNo = InternalGoAsFarAsPossibleTowards(pSoldier, pSoldier->aiData.usActionData, 0, AI_ACTION_TAKE_COVER, 0);
+
+							//if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+							if (!TileIsOutOfBounds(sDestGridNo))
 							{
-								// either moving significantly closer or into very close range
-								// ensure will we have enough APs for a possible crouch plus a shot
-								if ( InternalGoAsFarAsPossibleTowards( pSoldier, pSoldier->aiData.usActionData, (INT8) (MinAPsToAttack( pSoldier, sClosestOpponent, ADDTURNCOST,0) + GetAPsCrouch( pSoldier, TRUE)), AI_ACTION_TAKE_COVER, 0 ) == pSoldier->aiData.usActionData )
+								sCheckGridNo = pSoldier->sGridNo;
+
+								if (AbortPath(pSoldier, AI_ACTION_TAKE_COVER, sClosestDisturbance, bClosestDisturbanceLevel, sDangerousSpot, sLastSafeSpot))
 								{
-									return(AI_ACTION_TAKE_COVER);
+									pSoldier->aiData.usActionData = NOWHERE;
 								}
-							}
-							else
-							{
-								return(AI_ACTION_TAKE_COVER);
 							}
 						}
 
+						// sevenfm: moved APs to attack check and prone sight cover check to FindBestNearbyCover
+						if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+						{
+							return(AI_ACTION_TAKE_COVER);
+						}
 					}
 
 					// mark HIDING as impossible for next time through while loop
@@ -3780,27 +4153,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		////////////////////////////////////////////////////////////////////////////
 
 		// if we're currently under fire (presumably, attacker is hidden)
-		if (pSoldier->aiData.bUnderFire || fCivilian)
+		if (pSoldier->aiData.bUnderFire)
 		{
-			// only try to run if we've actually been hit recently & noticably so
-			// otherwise, presumably our current cover is pretty good & sufficient
-			// HEADROCK HAM B2.6: New value here helps us change the ratio of running away due to shock. This
-			// is terribly important if Suppression Shock is enabled.
-			UINT16 bShock = 0;
-
-			if (gGameExternalOptions.usSuppressionShockEffect > 0 )
-			{
-				// If bShock value is greater than (2*ExpLevel + MoraleModifier)*1.5, the target will flee.
-				bShock = pSoldier->aiData.bShock;
-				if (bShock <= ((float)CalcSuppressionTolerance(pSoldier)*(float)1.5))
-					bShock = 0;
-			}
-			else
-			{			
-				bShock = pSoldier->aiData.bShock;
-			}
-			
-			if (bShock > 0 || fCivilian)
+			// sevenfm: only run away if morale is hopeless
+			if (pSoldier->aiData.bAIMorale == MORALE_HOPELESS)
 			{
 				// look for best place to RUN AWAY to (farthest from the closest threat)
 				pSoldier->aiData.usActionData = FindSpotMaxDistFromOpponents(pSoldier);
@@ -3812,35 +4168,42 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 				}
 			}
 
-
 			////////////////////////////////////////////////////////////////////////////
 			// UNDER FIRE, DON'T WANNA/CAN'T RUN AWAY, SO CROUCH
 			////////////////////////////////////////////////////////////////////////////
 
-
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"decideactionred: crouch or go prone");
 			// if not in water and not already crouched
-			if (!fCivilian )
+			if (gAnimControl[pSoldier->usAnimState].ubHeight == ANIM_STAND && IsValidStance(pSoldier, ANIM_CROUCH))
 			{
-				if ( gAnimControl[ pSoldier->usAnimState ].ubHeight == ANIM_STAND && IsValidStance( pSoldier, ANIM_CROUCH ) )
+				if (!gfTurnBasedAI || GetAPsToChangeStance(pSoldier, ANIM_CROUCH) <= pSoldier->bActionPoints)
 				{
-					if (!gfTurnBasedAI || GetAPsToChangeStance( pSoldier, ANIM_CROUCH ) <= pSoldier->bActionPoints)
-					{
-						pSoldier->aiData.usActionData = ANIM_CROUCH;
-						return(AI_ACTION_CHANGE_STANCE);
-					}
-				}
-				else if ( gAnimControl[ pSoldier->usAnimState ].ubHeight != ANIM_PRONE )
-				{
-					// maybe go prone
-					if ( PreRandom( 2 ) == 0 && IsValidStance( pSoldier, ANIM_PRONE ) )
-					{
-						pSoldier->aiData.usActionData = ANIM_PRONE;
-						return( AI_ACTION_CHANGE_STANCE );
-					}
-
+					pSoldier->aiData.usActionData = ANIM_CROUCH;
+					return(AI_ACTION_CHANGE_STANCE);
 				}
 			}
+			else if (gAnimControl[pSoldier->usAnimState].ubHeight != ANIM_PRONE)
+			{
+				// maybe go prone
+				if (PreRandom(2) == 0 && IsValidStance(pSoldier, ANIM_PRONE))
+				{
+					pSoldier->aiData.usActionData = ANIM_PRONE;
+					return(AI_ACTION_CHANGE_STANCE);
+				}
+			}
+		}
+	}
+
+	// sevenfm: civilians only run away
+	if (fCivilian)
+	{
+		// look for best place to RUN AWAY to (farthest from the closest threat)
+		pSoldier->aiData.usActionData = FindSpotMaxDistFromOpponents(pSoldier);
+
+		if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+		{
+			DebugMsg(TOPIC_JA2, DBG_LEVEL_3, "decideactionred: run away!");
+			return(AI_ACTION_RUN_AWAY);
 		}
 	}
 
@@ -4048,7 +4411,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 	////////////////////////////////////////////////////////////////////////////
 
 	// if not in combat or under fire, and we COULD have moved, just chose not to	
-	if ( (pSoldier->aiData.bAlertStatus != STATUS_BLACK) && !pSoldier->aiData.bUnderFire && ubCanMove && (!gfTurnBasedAI || pSoldier->bActionPoints >= pSoldier->bInitialActionPoints) && ( TileIsOutOfBounds(ClosestReachableDisturbance(pSoldier, &fClimb))) )
+	if ( (pSoldier->aiData.bAlertStatus != STATUS_BLACK) && !pSoldier->aiData.bUnderFire && ubCanMove && (!gfTurnBasedAI || pSoldier->bActionPoints >= pSoldier->bInitialActionPoints) && ( TileIsOutOfBounds(ClosestReachableDisturbance(pSoldier, &fSeekClimb))) )
 	{
 		// addition:  if soldier is bleeding then reduce bleeding and do nothing
 		if ( pSoldier->bBleeding > MIN_BLEEDING_THRESHOLD )
@@ -8757,3 +9120,118 @@ INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 
 	return -1;
 }
+
+/*
+if (CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) > 2)
+{
+fOvercrowded = TRUE;
+}
+
+// sevenfm: possibly start RED flanking
+if (//!pSoldier->IsFlanking() &&
+pSoldier->numFlanks == 0 &&
+pSoldier->aiData.bLastAction != AI_ACTION_FLANK_LEFT &&
+pSoldier->aiData.bLastAction != AI_ACTION_FLANK_RIGHT &&
+(pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ||
+(pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID) && fOvercrowded) &&
+pSoldier->bTeam == ENEMY_TEAM &&
+pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
+pSoldier->CheckInitialAP() &&
+pSoldier->ubSoldierClass != SOLDIER_CLASS_ADMINISTRATOR &&
+!AICheckIsCommander(pSoldier) &&
+!AICheckIsSniper(pSoldier) &&
+!AICheckIsMachinegunner(pSoldier) &&
+!AICheckIsMortarOperator(pSoldier) &&
+(gAnimControl[pSoldier->usAnimState].ubHeight != ANIM_PRONE || fOvercrowded) &&
+!pSoldier->aiData.bUnderFire &&
+pSoldier->pathing.bLevel == 0 &&
+(pSoldier->aiData.bOrders == SEEKENEMY || pSoldier->aiData.bOrders == FARPATROL || pSoldier->aiData.bOrders == CLOSEPATROL && NightTime()) &&
+(!GuySawEnemy(pSoldier) || fOvercrowded || fAbortSeek) &&
+!Water(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+(fAbortSeek || CountFriendsFlankSameSpot(pSoldier, sClosestDisturbance) < CountNearbyFriends(pSoldier, sClosestDisturbance, MAX_FLANK_DIST_RED) / 2) &&
+PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) > MIN_FLANK_DIST_RED &&
+(PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) < MAX_FLANK_DIST_RED || fAbortSeek ) &&
+(fAbortSeek || CountFriendsBetweenMeAndSpotFromSpot(pSoldier, sClosestDisturbance) > 0 || NightTime() || fOvercrowded))
+{
+UINT8 ubFriends, ubFriendsLeft, ubFriendsRight;
+UINT8 ubDirection = AIDirection(sClosestDisturbance, pSoldier->sGridNo);
+
+ubFriends = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, ubDirection, VISION_RANGE * 2);
+ubFriendsLeft = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gOneCDirection[ubDirection], VISION_RANGE * 2) +
+CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gTwoCDirection[ubDirection], VISION_RANGE * 2);
+ubFriendsRight = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gOneCCDirection[ubDirection], VISION_RANGE * 2) +
+CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gTwoCCDirection[ubDirection], VISION_RANGE * 2);
+
+BOOLEAN fLeftFlankPossible = FALSE;
+BOOLEAN fRightFlankPossible = FALSE;
+
+if (ubFriendsLeft < ubFriends)
+{
+fLeftFlankPossible = TRUE;
+}
+
+if (ubFriendsRight < ubFriends)
+{
+fRightFlankPossible = TRUE;
+}
+
+INT32 sFlankingSpot = NOWHERE;
+INT8 bAction = AI_ACTION_NONE;
+
+// decide flanking direction
+if (fLeftFlankPossible && !fRightFlankPossible)
+{
+bAction = AI_ACTION_FLANK_LEFT;
+}
+else if (fRightFlankPossible && !fLeftFlankPossible)
+{
+bAction = AI_ACTION_FLANK_RIGHT;
+}
+else if (fLeftFlankPossible && fRightFlankPossible)
+{
+if (Random(6) < 3)
+bAction = AI_ACTION_FLANK_LEFT;
+else
+bAction = AI_ACTION_FLANK_RIGHT;
+}
+
+if (bAction != AI_ACTION_NONE)
+{
+sFlankingSpot = FindFlankingSpot(pSoldier, sClosestDisturbance, bAction);
+
+// if found good flank spot, start flanking
+if (!TileIsOutOfBounds(sFlankingSpot))
+{
+INT8 bTacticalOrder;
+if (bAction == AI_ACTION_FLANK_LEFT)
+bTacticalOrder = TACTICAL_ORDER_FLANK_LEFT;
+else
+bTacticalOrder = TACTICAL_ORDER_FLANK_RIGHT;
+
+pSoldier->aiData.usActionData = sFlankingSpot;
+
+// start flanking order
+pSoldier->StartTacticalOrder(bTacticalOrder, sClosestDisturbance, bClosestDisturbanceLevel, AIDirection(pSoldier->sGridNo, sClosestDisturbance), 0, FLANKING_DURATION);
+
+// prevent this soldier from flanking in the future
+pSoldier->usSoldierFlagMask2 |= SOLDIER_DISABLE_FLANKING;
+
+// sevenfm: change orders when starting to flank
+if (pSoldier->aiData.bOrders == CLOSEPATROL)
+{
+pSoldier->aiData.bOrders = FARPATROL;
+}
+
+return(bAction);
+}
+else
+{
+//DebugAI(AI_MSG_INFO, pSoldier, String("cannot find flanking spot"));
+}
+}
+else
+{
+//DebugAI(AI_MSG_INFO, pSoldier, String("no valid flanking direction"));
+}
+}
+*/

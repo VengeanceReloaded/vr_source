@@ -80,7 +80,8 @@ int LegalNPCDestination(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubPathMode, 
 			return(FALSE);
 
 		//Madd: added to prevent people from running into gas and fire
-		if ( (gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_TEARGAS) && FindGasMask(pSoldier) == NO_SLOT )
+		// sevenfm: path finding should already check for gas
+		/*if ( (gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & MAPELEMENT_EXT_TEARGAS) && FindGasMask(pSoldier) == NO_SLOT )
 		{
 			return( FALSE );
 		}
@@ -88,7 +89,7 @@ int LegalNPCDestination(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubPathMode, 
 		if ( gpWorldLevelData[sGridNo].ubExtFlags[pSoldier->pathing.bLevel] & (MAPELEMENT_EXT_MUSTARDGAS | MAPELEMENT_EXT_BURNABLEGAS | MAPELEMENT_EXT_CREATUREGAS))
 		{
 			return( FALSE );
-		}
+		}*/
 
 		// passed all checks, now try to make sure we can get there!
 		switch (ubPathMode)

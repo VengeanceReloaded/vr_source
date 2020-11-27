@@ -3906,41 +3906,44 @@ UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier )
 	return 2;
 }
 
-UINT8 CountFriendsFlankSameSpot( SOLDIERTYPE *pSoldier )
+UINT8 CountFriendsFlankSameSpot(SOLDIERTYPE *pSoldier, INT32 sSpot)
 {
 	CHECKF(pSoldier);
 
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendCount = 0;
-
+	UINT8 ubMaxDist = TACTICAL_RANGE / 2;
 	UINT8 ubFlankLeft = 0;
 	UINT8 ubFlankRight = 0;
 
-	UINT8 ubMaxDist = VISION_RANGE / 2;
-	INT32 sClosestOpponent = ClosestKnownOpponent( pSoldier, NULL, NULL );
+	if (TileIsOutOfBounds(sSpot))
+	{
+		sSpot = ClosestKnownOpponent(pSoldier, NULL, NULL);
+	}
 
-	if(TileIsOutOfBounds(sClosestOpponent))
+	if (TileIsOutOfBounds(sSpot))
 	{
 		return 0;
 	}
 
 	// Run through each friendly.
-	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	for (UINT8 iCounter = gTacticalStatus.Team[pSoldier->bTeam].bFirstID; iCounter <= gTacticalStatus.Team[pSoldier->bTeam].bLastID; iCounter++)
 	{
-		pFriend = MercPtrs[ iCounter ];
+		pFriend = MercPtrs[iCounter];
 
-		if (pFriend != pSoldier && 
-			pFriend->bActive && 
+		if (pFriend &&
+			pFriend != pSoldier &&
+			pFriend->bActive &&
 			pFriend->stats.bLife >= OKLIFE &&
 			pFriend->aiData.bAlertStatus == STATUS_RED &&
-			pFriend->aiData.bOrders > ONGUARD &&
-			pFriend->aiData.bOrders != SNIPER )
+			pFriend->aiData.bOrders > ONGUARD)
 		{
 			// check if this friend flanks around the same spot
-			if( pFriend->numFlanks > 0 && pFriend->numFlanks < MAX_FLANKS_RED &&
-				PythSpacesAway(pFriend->lastFlankSpot, sClosestOpponent) < ubMaxDist )
+			if (pFriend->numFlanks > 0 && pFriend->numFlanks < MAX_FLANKS_RED &&
+				!TileIsOutOfBounds(pFriend->lastFlankSpot) &&
+				PythSpacesAway(pFriend->lastFlankSpot, sSpot) < ubMaxDist)
 			{
-				if( pFriend->flags.lastFlankLeft )
+				if (pFriend->flags.lastFlankLeft)
 				{
 					ubFlankLeft++;
 				}
@@ -6336,4 +6339,715 @@ INT32	RandomizeOpponentLocation(INT32 sSpot, SOLDIERTYPE *pOpponent, INT16 sMaxD
 	}
 
 	return sSpot;
+}
+
+BOOLEAN InSmoke(INT32 sGridNo, INT8 bLevel)
+{
+	if (TileIsOutOfBounds(sGridNo))
+	{
+		return FALSE;
+	}
+
+	if (gpWorldLevelData[sGridNo].ubExtFlags[bLevel] & (MAPELEMENT_EXT_SMOKE))
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckSpecialRole(SOLDIERTYPE *pSoldier)
+{
+	if (AICheckIsSniper(pSoldier) || AICheckIsMachinegunner(pSoldier) || AICheckIsMortarOperator(pSoldier) || AICheckIsRadioOperator(pSoldier) || AICheckIsCommander(pSoldier))
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SafeSpot(SOLDIERTYPE *pSoldier, INT32 sSpot)
+{
+	if (!pSoldier)
+	{
+		return FALSE;
+	}
+
+	if (sSpot == NOWHERE)
+	{
+		sSpot = pSoldier->sGridNo;
+	}
+
+	INT8 bLevel = pSoldier->pathing.bLevel;
+	BOOLEAN fUnlimitedSightCover = SightCoverAtSpot(pSoldier, sSpot, TRUE);
+	BOOLEAN fProneSightCover = ProneSightCoverAtSpot(pSoldier, sSpot, FALSE);
+	BOOLEAN fAnyCover = AnyCoverAtSpot(pSoldier, sSpot);
+
+	if ((fUnlimitedSightCover || fProneSightCover && fAnyCover || InARoom(sSpot, NULL) && bLevel == 0 && (fAnyCover || fProneSightCover)) &&
+		!InLightAtNight(sSpot, pSoldier->pathing.bLevel) &&
+		!pSoldier->aiData.bUnderFire &&
+		GetNearestRottingCorpseAIWarning(sSpot) == 0)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AbortFinalSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bAction, INT32 sClosestDisturbance, INT8 bDisturbanceLevel, INT32& sDangerousSpot)
+{
+	sDangerousSpot = NOWHERE;
+
+	/*if (!pSoldier || TileIsOutOfBounds(sSpot))
+	{
+		return FALSE;
+	}
+
+	INT8 bLevel = pSoldier->pathing.bLevel;
+
+	INT32	sOpponentGridNo;
+	INT8	bOpponentLevel;
+	INT32	sClosestOpponent = ClosestKnownOpponent(pSoldier, &sOpponentGridNo, &bOpponentLevel);
+
+	if (TileIsOutOfBounds(sClosestDisturbance))
+	{
+		sClosestDisturbance = sClosestOpponent;
+		bDisturbanceLevel = bOpponentLevel;
+	}
+
+	if (TileIsOutOfBounds(sClosestDisturbance))
+	{
+		return FALSE;
+	}
+
+	BOOLEAN fSightCover = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_STAND, FALSE);
+	BOOLEAN fSightCoverUnlimited = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_STAND, TRUE);
+	BOOLEAN fProneSightCover = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_PRONE, FALSE);
+	BOOLEAN fProneSightCoverUnlimited = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_PRONE, TRUE);
+	BOOLEAN fAnyCover = AnyCoverAtSpot(pSoldier, pSoldier->sGridNo);
+	BOOLEAN fDangerousSpot = DangerousSpot(pSoldier);
+	BOOLEAN fSafeSpot = SafeSpot(pSoldier);
+	BOOLEAN fTerrainCover = TerrainCoverAtSpot(pSoldier, sSpot, pSoldier->pathing.bLevel);
+	BOOLEAN fUnderAttack = AICheckSpotUnderAttack(pSoldier, pSoldier->sGridNo, FALSE);
+	BOOLEAN fUnderSuccessfulAttack = AICheckSpotUnderAttack(pSoldier, pSoldier->sGridNo, TRUE);
+	BOOLEAN fWeOutnumber = AICheckWeOutnumber(pSoldier, sClosestDisturbance);
+	BOOLEAN fRushAttack = pSoldier->RushAttackAdvance();
+	BOOLEAN fRetreat = pSoldier->RetreatActive();
+	BOOLEAN fFlankingFriends = (CountFriendsFlankSameSpot(pSoldier, sClosestDisturbance) > 0);
+	BOOLEAN fFriendsBlack = (CountFriendsBlack(pSoldier, sClosestDisturbance) > 0);
+	BOOLEAN fSuccessfulAttack = AICheckSuccessfulAttack(pSoldier, TRUE);
+	BOOLEAN fTakenLargeHit = pSoldier->TakenLargeHit();
+	BOOLEAN fSeekEnemy = (pSoldier->aiData.bOrders == SEEKENEMY);
+	BOOLEAN fCanAttackEnemy = CanAttackEnemy(pSoldier, ANIM_STAND, FALSE);
+	BOOLEAN fInARoom = (InARoom(pSoldier->sGridNo, NULL) && bLevel == 0);
+	BOOLEAN fWeAttack = WeAttack(pSoldier->bTeam);
+	INT8	bMorale = pSoldier->aiData.bAIMorale;
+
+	sDangerousSpot = NOWHERE;
+
+	// abort seek if we see bomb
+	if (FindBombNearby(pSoldier, sSpot, BOMB_DETECTION_RANGE))
+	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("found bomb! abort!"));
+		return TRUE;
+	}
+
+	// abort if moving into red smoke
+	if (RedSmokeDanger(sSpot, pSoldier->pathing.bLevel) &&
+		!RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
+	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("moving into red smoke! abort!"));
+		return TRUE;
+	}
+
+	// don't go into light at night (includes smoke check)
+	if (!pSoldier->RushAttackAdvance() &&
+		InLightAtNight(sSpot, bLevel) &&
+		!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+		!InSmoke(sSpot, bLevel, FALSE) &&
+		(!fSeekEnemy || !SightCoverAtSpot(pSoldier, sSpot, ANIM_STAND, FALSE) || CountCorpses(pSoldier, sSpot, DAY_VISION_RANGE / 2, FALSE, TRUE) > 0) &&
+		(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy) &&
+		!fFriendsBlack)
+	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("in light at night! abort!"));
+		sDangerousSpot = sSpot;
+		return TRUE;
+	}
+
+	// abort seeking when soldier sees fresh corpse
+	if (!pSoldier->RushAttackAdvance() &&
+		fSafeSpot &&
+		CorpseWarning(pSoldier, sSpot, bLevel) &&
+		!InSmoke(sSpot, bLevel, FALSE) &&
+		!fFriendsBlack &&
+		(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy || EnemyCanAttackSpot(pSoldier, sSpot, bLevel) || InARoom(sSpot, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sSpot, bLevel, TRUE)))
+	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("fresh corpse! abort!"));
+
+		if (!SightCoverAtSpot(pSoldier, sSpot, ANIM_STAND, TRUE))
+		{
+			sDangerousSpot = sSpot;
+		}
+		return TRUE;
+	}
+
+	// check if enemy can attack spot
+	if (!pSoldier->RushAttackAdvance() &&
+		!InSmoke(sSpot, bLevel, FALSE) &&
+		pSoldier->aiData.bAIMorale < MORALE_FEARLESS &&
+		(!fSeekEnemy || fFlankingFriends) &&
+		!TileIsOutOfBounds(sClosestDisturbance) &&
+		PythSpacesAway(sSpot, sClosestDisturbance) < VISION_RANGE &&
+		fSafeSpot &&
+		!fFriendsBlack &&
+		(!fSuccessfulAttack || !fSeekEnemy) &&
+		EnemyCanAttackSpot(pSoldier, sSpot, bLevel))
+	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("enemy can attack spot! abort!"));
+		return TRUE;
+	}
+
+	// abort if moving out of sight cover and can attack enemy
+	if (!pSoldier->RushAttackAdvance() &&
+		!pSoldier->aiData.bUnderFire &&
+		(bAction == AI_ACTION_SEEK_OPPONENT || bAction == AI_ACTION_TAKE_COVER) &&
+		!TileIsOutOfBounds(sClosestDisturbance) &&
+		PythSpacesAway(sSpot, sClosestDisturbance) <= (INT16)MAX_VISION_RANGE &&
+		fSafeSpot &&
+		(AICheckIsSniper(pSoldier) || AICheckIsMachinegunner(pSoldier) || AICheckIsMarksman(pSoldier)) &&
+		fCanAttackEnemy &&
+		(!SightCoverAtSpot(pSoldier, sSpot, ANIM_STAND, FALSE) || !AnyCoverAtSpot(pSoldier, sSpot)))
+	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("moving out of sight cover, can attack enemy! abort!"));
+		return TRUE;
+	}*/
+
+	return FALSE;
+}
+
+// needs prepared path before calling this function
+BOOLEAN AbortPath(SOLDIERTYPE *pSoldier, INT8 bAction, INT32 sClosestDisturbance, INT8 bDisturbanceLevel, INT32& sDangerousSpot, INT32 &sLastSafeSpot)
+{
+	sDangerousSpot = NOWHERE;
+	sLastSafeSpot = NOWHERE;
+
+	/*if (!pSoldier)
+	{
+		return FALSE;
+	}
+
+	INT32	sOpponentGridNo;
+	INT8	bOpponentLevel;
+	INT32	sClosestOpponent = ClosestKnownOpponent(pSoldier, &sOpponentGridNo, &bOpponentLevel);
+
+	if (TileIsOutOfBounds(sClosestDisturbance))
+	{
+		sClosestDisturbance = sClosestOpponent;
+		bDisturbanceLevel = bOpponentLevel;
+	}
+
+	if (TileIsOutOfBounds(sClosestDisturbance))
+	{
+		return FALSE;
+	}
+
+	INT8 bLevel = pSoldier->pathing.bLevel;
+	BOOLEAN fSightCover = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_STAND, FALSE);
+	BOOLEAN fSightCoverUnlimited = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_STAND, TRUE);
+	BOOLEAN fProneSightCover = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_PRONE, FALSE);
+	BOOLEAN fProneSightCoverUnlimited = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_PRONE, TRUE);
+
+	BOOLEAN fAnyCover = AnyCoverAtSpot(pSoldier, pSoldier->sGridNo);
+	BOOLEAN fDangerousSpot = DangerousSpot(pSoldier);
+	BOOLEAN fSafeSpot = SafeSpot(pSoldier);
+
+	BOOLEAN fFlankingFriends = (CountFriendsFlankSameSpot(pSoldier, sClosestDisturbance) > 0);
+	BOOLEAN fFriendsBlack = (CountFriendsBlack(pSoldier, sClosestDisturbance) > 0);
+	BOOLEAN fSuccessfulAttack = AICheckSuccessfulAttack(pSoldier, TRUE);
+	BOOLEAN fSeekEnemy = (pSoldier->aiData.bOrders == SEEKENEMY);
+	BOOLEAN fInARoom = (InARoom(pSoldier->sGridNo, NULL) && bLevel == 0);
+
+	BOOLEAN fWeAttack = WeAttack(pSoldier->bTeam);
+	INT8	bMorale = pSoldier->aiData.bAIMorale;
+
+	INT16 sLoop;
+	INT32 sCheckGridNo = pSoldier->sGridNo;
+
+	sDangerousSpot = NOWHERE;
+	sLastSafeSpot = NOWHERE;
+
+	for (sLoop = pSoldier->pathing.usPathIndex; sLoop < pSoldier->pathing.usPathDataSize; sLoop++)
+	{
+		sCheckGridNo = NewGridNo(sCheckGridNo, DirectionInc((UINT8)(pSoldier->pathing.usPathingData[sLoop])));
+
+		// sevenfm: don't check fences
+		if (IsJumpableFencePresentAtGridNo(sCheckGridNo))
+		{
+			continue;
+		}
+
+		// don't go into light at night (includes smoke check)
+		if (!pSoldier->RushAttackAdvance() &&
+			InLightAtNight(sCheckGridNo, bLevel) &&
+			!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+			!InSmoke(sCheckGridNo, bLevel, FALSE) &&
+			(!fSeekEnemy || !SightCoverAtSpot(pSoldier, sCheckGridNo, ANIM_STAND, FALSE) || CountCorpses(pSoldier, sCheckGridNo, DAY_VISION_RANGE / 2, FALSE, TRUE) > 0) &&
+			(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy) &&
+			!fFriendsBlack)
+		{
+			DebugAI(AI_MSG_INFO, pSoldier, String("in light at night! abort!"));
+			sDangerousSpot = sCheckGridNo;
+			return TRUE;
+		}
+
+		// check for fresh corpses
+		if (!pSoldier->RushAttackAdvance() &&
+			fSafeSpot &&
+			CorpseWarning(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel) &&
+			!InSmoke(sCheckGridNo, pSoldier->pathing.bLevel, FALSE) &&
+			!fFriendsBlack &&
+			(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy || EnemyCanAttackSpot(pSoldier, sCheckGridNo, bLevel) || InARoom(sCheckGridNo, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sCheckGridNo, bLevel, TRUE)))
+		{
+			DebugAI(AI_MSG_INFO, pSoldier, String("fresh corpse! abort!"));
+
+			if (!SightCoverAtSpot(pSoldier, sCheckGridNo, ANIM_STAND, TRUE) || InARoom(sCheckGridNo, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sCheckGridNo, bLevel, TRUE))
+			{
+				sDangerousSpot = sCheckGridNo;
+			}
+			return TRUE;
+		}
+
+		// check if enemy can attack spot
+		if (!pSoldier->RushAttackAdvance() &&
+			!InSmoke(sCheckGridNo, pSoldier->pathing.bLevel, FALSE) &&
+			pSoldier->aiData.bAIMorale < MORALE_FEARLESS &&
+			(!fSeekEnemy || fFlankingFriends) &&
+			!TileIsOutOfBounds(sClosestDisturbance) &&
+			PythSpacesAway(sCheckGridNo, sClosestDisturbance) < VISION_RANGE &&
+			fSafeSpot &&
+			!fFriendsBlack &&
+			(!fSuccessfulAttack || !fSeekEnemy) &&
+			EnemyCanAttackSpot(pSoldier, sCheckGridNo, bLevel))
+		{
+			DebugAI(AI_MSG_INFO, pSoldier, String("enemy can attack spot! abort!"));
+			return TRUE;
+		}
+
+		if (SafeSpot(pSoldier, sCheckGridNo))
+		{
+			sLastSafeSpot = sCheckGridNo;
+		}
+	}*/
+
+	return FALSE;
+}
+
+BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, BOOLEAN fFresh)
+{
+	CHECKF(pSoldier);
+
+	INT32			cnt;
+	ROTTING_CORPSE *pCorpse;
+	UINT8			ubDistance = CORPSE_WARNING_DIST;
+
+	for (cnt = 0; cnt < giNumRottingCorpse; ++cnt)
+	{
+		pCorpse = &(gRottingCorpse[cnt]);
+
+		if (pCorpse &&
+			pCorpse->fActivated &&
+			pCorpse->def.ubType < ROTTING_STAGE2 &&
+			//pCorpse->def.ubType <= FMERC_FALLF &&
+			pCorpse->def.ubBodyType <= REGFEMALE &&
+			pCorpse->def.ubAIWarningValue >(fFresh ? 1 : 0) &&
+			pCorpse->def.bLevel == bLevel &&
+			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
+			PythSpacesAway(sGridNo, pCorpse->def.sGridNo) <= ubDistance &&
+			(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam == CIV_TEAM && !pSoldier->aiData.bNeutral))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+INT32	CountCorpses(SOLDIERTYPE *pSoldier, INT32 sSpot, INT16 sDistance, BOOLEAN fCheckSight, BOOLEAN fFresh)
+{
+	CHECKF(pSoldier);
+
+	INT32			cnt;
+	ROTTING_CORPSE *pCorpse;
+	BOOLEAN			fCorpseOFAlly;
+
+	for (cnt = 0; cnt < giNumRottingCorpse; ++cnt)
+	{
+		pCorpse = &(gRottingCorpse[cnt]);
+
+		if (pCorpse &&
+			pCorpse->fActivated &&
+			pCorpse->def.ubType < ROTTING_STAGE2 &&
+			pCorpse->def.ubBodyType <= REGFEMALE &&
+			pCorpse->def.ubAIWarningValue >(fFresh ? 1 : 0) &&
+			pCorpse->def.bLevel == pSoldier->pathing.bLevel &&
+			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
+			PythSpacesAway(sSpot, pCorpse->def.sGridNo) <= sDistance &&
+			(!fCheckSight || SoldierToVirtualSoldierLineOfSightTest(pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, ANIM_PRONE, TRUE, CALC_FROM_ALL_DIRS)))
+		{
+			// test ally
+			fCorpseOFAlly = FALSE;
+
+			// check whether corpse was one of soldier's allies
+			if (pSoldier->bTeam == ENEMY_TEAM)
+			{
+				for (UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i)
+				{
+					if (COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[i].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[i].pants))
+					{
+						fCorpseOFAlly = TRUE;
+						break;
+					}
+				}
+			}
+			else if (pSoldier->bTeam == MILITIA_TEAM)
+			{
+				for (UINT8 i = UNIFORM_MILITIA_ROOKIE; i <= UNIFORM_MILITIA_ELITE; ++i)
+				{
+					if (COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[i].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[i].pants))
+					{
+						fCorpseOFAlly = TRUE;
+						break;
+					}
+				}
+			}
+			else
+			{
+				fCorpseOFAlly = TRUE;
+			}
+
+			if (fCorpseOFAlly)
+			{
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN CorpseEnemyTeam(ROTTING_CORPSE *pCorpse)
+{
+	CHECKF(pCorpse);
+
+	// check whether corpse has soldier's uniform
+	for (UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i)
+	{
+		if (COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[i].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[i].pants))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN CorpseMilitiaTeam(ROTTING_CORPSE *pCorpse)
+{
+	CHECKF(pCorpse);
+
+	// check whether corpse has soldier's uniform
+	for (UINT8 i = UNIFORM_MILITIA_ROOKIE; i <= UNIFORM_MILITIA_ELITE; ++i)
+	{
+		if (COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[i].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[i].pants))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckDefense(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	// only for enemy team
+	if (pSoldier->bTeam != ENEMY_TEAM)
+	{
+		return FALSE;
+	}
+
+	// SEEKENEMY should always try to attack
+	if (pSoldier->bTeam == SEEKENEMY)
+	{
+		return FALSE;
+	}
+
+	// only try to defend in towns and underground
+	if (!AICheckTown() && !AICheckUnderground())
+	{
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+// count friends under fire or with shock
+UINT8 CountTeamUnderAttack(INT8 bTeam, INT32 sGridNo, INT16 sDistance)
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	// safety check
+	if (bTeam >= MAXTEAMS)
+		return 0;
+
+	// Run through each friendly.
+	for (UINT8 iCounter = gTacticalStatus.Team[bTeam].bFirstID; iCounter <= gTacticalStatus.Team[bTeam].bLastID; iCounter++)
+	{
+		pFriend = MercPtrs[iCounter];
+
+		if (pFriend &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			PythSpacesAway(sGridNo, pFriend->sGridNo) <= sDistance &&
+			(pFriend->aiData.bUnderFire || pFriend->aiData.bShock > 0))
+		{
+			ubFriendCount++;
+		}
+	}
+
+	return ubFriendCount;
+}
+
+// check if soldier should advance using sight cover 
+BOOLEAN UseSightCoverAdvance(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if (!SoldierAI(pSoldier))
+	{
+		return FALSE;
+	}
+
+	if (pSoldier->bTeam != ENEMY_TEAM)
+	{
+		return FALSE;
+	}
+
+	if (pSoldier->aiData.bOrders == STATIONARY)
+	{
+		return FALSE;
+	}
+
+	switch (pSoldier->ubSoldierClass)
+	{
+	case SOLDIER_CLASS_ELITE:
+		return TRUE;
+		break;
+	case SOLDIER_CLASS_ARMY:
+		if (pSoldier->aiData.bUnderFire ||
+			pSoldier->aiData.bShock > 0 ||
+			AICheckDefense(pSoldier) ||
+			CorpseWarning(pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel) ||
+			CountTeamUnderAttack(pSoldier->bTeam, pSoldier->sGridNo, DAY_VISION_RANGE) > 0 ||
+			CountCorpses(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE, TRUE, TRUE) > 0)
+		{
+			return TRUE;
+		}
+		break;
+	case SOLDIER_CLASS_ADMINISTRATOR:
+		if (pSoldier->aiData.bUnderFire ||
+			pSoldier->aiData.bShock > 0 ||
+			CorpseWarning(pSoldier, pSoldier->sGridNo, pSoldier->pathing.bLevel) ||
+			CountTeamUnderAttack(pSoldier->bTeam, pSoldier->sGridNo, DAY_VISION_RANGE) > 0 ||
+			CountCorpses(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE, TRUE, TRUE) > 0)
+		{
+			return TRUE;
+		}
+		break;
+	}
+
+	if (pSoldier->aiData.bAttitude == DEFENSIVE ||
+		pSoldier->aiData.bAttitude == CUNNINGSOLO ||
+		pSoldier->aiData.bAttitude == CUNNINGAID)
+	{
+		return TRUE;
+	}
+
+	if (TeamHighPercentKilled(pSoldier->bTeam))
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+UINT8 ArmyPercentKilled(void)
+{
+	if (gTacticalStatus.Team[ENEMY_TEAM].bMenInSector + gTacticalStatus.ubArmyGuysKilled == 0)
+	{
+		return 0;
+	}
+
+	return 100 * gTacticalStatus.ubArmyGuysKilled / (gTacticalStatus.Team[ENEMY_TEAM].bMenInSector + gTacticalStatus.ubArmyGuysKilled);
+}
+
+UINT8 TeamPercentKilled(INT8 bTeam)
+{
+	if (bTeam == ENEMY_TEAM)
+	{
+		return ArmyPercentKilled();
+	}
+	return 0;
+}
+
+BOOLEAN TeamHighPercentKilled(INT8 bTeam)
+{
+	if (bTeam == ENEMY_TEAM && ArmyPercentKilled() > ArmyPercentKilledTolerance())
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+// decide how many soldiers can be killed before alarm will be raised
+UINT8 ArmyPercentKilledTolerance(void)
+{
+	// 50% at day, 25% at night, 25-33% for restricted sectors
+	return 100 / (2 + SectorCurfew(TRUE));
+}
+
+UINT8 SectorCurfew(BOOLEAN fNight)
+{
+	UINT8	ubSectorId = SECTOR(gWorldSectorX, gWorldSectorY);
+	UINT8	ubSectorData = 0;
+
+	ubSectorData = SectorExternalData[ubSectorId][gbWorldSectorZ].usCurfewValue;
+
+	if (fNight && NightLight())			// suspicious at night
+		ubSectorData = max(ubSectorData, 1);
+
+	if (gbWorldSectorZ > 0)	// underground we are always suspicious				
+		ubSectorData = max(ubSectorData, 2);
+
+	return ubSectorData;
+}
+
+BOOLEAN FindObstacleNearSpot(INT32 sSpot, INT8 bLevel)
+{
+	if (TileIsOutOfBounds(sSpot))
+	{
+		return FALSE;
+	}
+	/*if( !IsLocationSittableExcludingPeople(sSpot, bLevel) )
+	{
+	return FALSE;
+	}*/
+
+	UINT8	ubMovementCost;
+	INT32	sTempGridNo;
+	UINT8	ubDirection;
+
+	// check adjacent reachable tiles
+	for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+	{
+		sTempGridNo = NewGridNo(sSpot, DirectionInc(ubDirection));
+
+		if (sTempGridNo != sSpot)
+		{
+			ubMovementCost = gubWorldMovementCosts[sTempGridNo][ubDirection][bLevel];
+
+			if (ubMovementCost >= TRAVELCOST_BLOCKED || !IsLocationSittableExcludingPeople(sTempGridNo, bLevel))
+			{
+				return(TRUE);
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+// check that enemy can see and attack at spot
+BOOLEAN EnemyCanAttackSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bLevel)
+{
+	CHECKF(pSoldier);
+
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+	INT8		bPersonalKnowledge, bPublicKnowledge;
+
+	INT32		sThreatLoc;
+	INT32		iThreatCertainty;
+	INT8		iThreatLevel;
+
+	// look through all opponents for those we know of
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		if (!ValidOpponent(pSoldier, pOpponent))
+		{
+			continue;
+		}
+
+		// if this opponent is unknown personally and publicly
+		if (Knowledge(pSoldier, pOpponent->ubID) == NOT_HEARD_OR_SEEN)
+		{
+			continue;
+		}
+
+		sThreatLoc = KnownLocation(pSoldier, pOpponent->ubID);
+		iThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
+		iThreatCertainty = ThreatPercent[Knowledge(pSoldier, pOpponent->ubID) - OLDEST_HEARD_VALUE];
+
+		bPersonalKnowledge = PersonalKnowledge(pSoldier, pOpponent->ubID);
+		bPublicKnowledge = PublicKnowledge(pSoldier->bTeam, pOpponent->ubID);
+
+		// safety check
+		if (TileIsOutOfBounds(sThreatLoc))
+		{
+			continue;
+		}
+
+		// standard interrupt conditions
+		if ((bPersonalKnowledge == SEEN_CURRENTLY || bPersonalKnowledge == SEEN_THIS_TURN || bPersonalKnowledge == HEARD_THIS_TURN ||
+			bPublicKnowledge == SEEN_CURRENTLY || bPublicKnowledge == SEEN_THIS_TURN || bPublicKnowledge == HEARD_THIS_TURN))
+		{
+			if (!pOpponent->CanInterrupt())
+			{
+				continue;
+			}
+		}
+
+		// ignore opponents without weapons
+		if (!AICheckHasGun(pOpponent) &&
+			PythSpacesAway(sThreatLoc, sSpot) > DAY_VISION_RANGE / 2)
+		{
+			continue;
+		}
+
+		// sevenfm: use real location/level
+		//sThreatLoc = pOpponent->sGridNo;
+		//iThreatLevel = pOpponent->pathing.bLevel;
+
+		// if we have actual information, and this opponent has enough APs to attack
+		//if( AIGunDeadliness(pOpponent) > 0 && 
+		//	pOpponent->bActionPoints >= AIGunMinAPsToShoot(pOpponent) )
+
+		// sevenfm: check only sight from enemy location to checked location
+		if (LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, bLevel, TRUE, MAX_VISION_RANGE) &&
+			//LOS_Location(sThreatLoc, iThreatLevel, sSpot, bLevel, MAX_VISION_RANGE) &&
+			AIGunRange(pOpponent) * 3 / 2 >= PythSpacesAway(sThreatLoc, sSpot))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }

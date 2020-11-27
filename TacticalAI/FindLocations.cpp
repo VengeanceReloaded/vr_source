@@ -3051,3 +3051,279 @@ INT32 FindNearestPassableSpot( INT32 sGridNo, UINT8 usSearchRadius )
 
 	return( sNearestSpot );
 }
+
+INT32 FindAdvanceSpot(SOLDIERTYPE *pSoldier, INT32 sTargetSpot, INT8 bAction, UINT8 ubType, BOOLEAN fUnlimited)
+{
+	INT32	sGridNo, sRealGridNo;
+	INT32	sBestSpot = NOWHERE;
+	INT32	iSearchRange = min(AI_PATHCOST_RADIUS, TACTICAL_RANGE);
+	INT16	sMaxLeft, sMaxRight, sMaxUp, sMaxDown, sXOffset, sYOffset;
+	INT32	iPathCost, iBestPathCost = 0;
+	INT16	usMovementMode;
+	INT32	iRoamRange, iDistFromOrigin, sOrigin;
+	//BOOLEAN	fClimbingNecessary;
+	//INT32	sClimbGridNo;
+	BOOLEAN fHasMortar;
+
+	if (!pSoldier)
+	{
+		return NOWHERE;
+	}
+
+	// check target location
+	if (!NewOKDestination(pSoldier, sTargetSpot, FALSE, pSoldier->pathing.bLevel))
+	{
+		//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"bad destination %d", sTargetSpot);
+		return NOWHERE;
+	}
+
+	fHasMortar = AICheckIsMortarOperator(pSoldier);
+
+	usMovementMode = DetermineMovementMode(pSoldier, bAction);
+
+	UINT8 ubReserveAP = 0;
+
+	if (ubType != ADVANCE_SPOT_SIGHT_COVER)
+	{
+		if (usMovementMode == RUNNING || usMovementMode == WALKING)
+		{
+			ubReserveAP = APBPConstants[AP_CHANGE_FACING] + GetAPsCrouch(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE);
+		}
+		else
+		{
+			ubReserveAP = APBPConstants[AP_LOOK_CROUCHED] + GetAPsProne(pSoldier, TRUE);
+		}
+	}
+
+	if (pSoldier->bActionPoints <= ubReserveAP)
+	{
+		return NOWHERE;
+	}
+
+	// check that location is reachable
+	iBestPathCost = EstimatePlotPath(pSoldier, sTargetSpot, FALSE, FALSE, FALSE, usMovementMode, pSoldier->bStealthMode, FALSE, 0);
+	if (iBestPathCost == 0)
+	{
+		return NOWHERE;
+	}
+
+	iRoamRange = RoamingRange(pSoldier, &sOrigin);
+
+	// set AP limit
+	gubNPCAPBudget = pSoldier->bActionPoints - ubReserveAP;
+	// set the distance limit of the square region
+	gubNPCDistLimit = (UINT8)iSearchRange;
+
+	// determine maximum horizontal limits
+	sMaxLeft = min(iSearchRange, (pSoldier->sGridNo % MAXCOL));
+	//NumMessage("sMaxLeft = ",sMaxLeft);
+	sMaxRight = min(iSearchRange, MAXCOL - ((pSoldier->sGridNo % MAXCOL) + 1));
+	//NumMessage("sMaxRight = ",sMaxRight);
+
+	// determine maximum vertical limits
+	sMaxUp = min(iSearchRange, (pSoldier->sGridNo / MAXROW));
+	//NumMessage("sMaxUp = ",sMaxUp);
+	sMaxDown = min(iSearchRange, MAXROW - ((pSoldier->sGridNo / MAXROW) + 1));
+	//NumMessage("sMaxDown = ",sMaxDown);
+
+	// Call FindBestPath to set flags in all locations that we can
+	// walk into within range.	We have to set some things up first...
+
+	// reset the "reachable" flags in the region we're looking at
+	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
+	{
+		for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
+		{
+			sGridNo = pSoldier->sGridNo + sXOffset + (MAXCOL * sYOffset);
+			if (!(sGridNo >= 0 && sGridNo < WORLD_MAX))
+			{
+				continue;
+			}
+
+			gpWorldLevelData[sGridNo].uiFlags &= ~(MAPELEMENT_REACHABLE);
+		}
+	}
+
+	FindBestPath(pSoldier, GRIDSIZE, pSoldier->pathing.bLevel, usMovementMode, COPYREACHABLE, 0);
+
+	// Turn off the "reachable" flag for his current location
+	// so we don't consider it
+	gpWorldLevelData[pSoldier->sGridNo].uiFlags &= ~(MAPELEMENT_REACHABLE);
+
+	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
+	{
+		for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
+		{
+			// calculate the next potential gridno
+			sGridNo = pSoldier->sGridNo + sXOffset + (MAXCOL * sYOffset);
+
+			if (!(sGridNo >= 0 && sGridNo < WORLD_MAX))
+			{
+				continue;
+			}
+
+			if (!(gpWorldLevelData[sGridNo].uiFlags & MAPELEMENT_REACHABLE))
+			{
+				continue;
+			}
+
+			if (sGridNo == pSoldier->pathing.sBlackList)
+			{
+				continue;
+			}
+
+			// check roaming range
+			if (iRoamRange < MAX_ROAMING_RANGE && !TileIsOutOfBounds(sOrigin))
+			{
+				iDistFromOrigin = SpacesAway(sOrigin, sGridNo);
+				if (iDistFromOrigin > iRoamRange)
+				{
+					continue;
+				}
+			}
+
+			// check if we will be closer to target spot
+			if (PythSpacesAway(sGridNo, sTargetSpot) > PythSpacesAway(pSoldier->sGridNo, sTargetSpot))
+			{
+				continue;
+			}
+
+			// exclude locations with tear/mustard gas (at this point, smoke is cool!)
+			if (InGas(pSoldier, sGridNo))
+			{
+				continue;
+			}
+
+			// skip lighted spots
+			if (InLightAtNight(sGridNo, pSoldier->pathing.bLevel) &&
+				!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel))
+				continue;
+
+			// skip deep water
+			if (DeepWater(sGridNo, pSoldier->pathing.bLevel))
+			{
+				continue;
+			}
+
+			// skip water
+			if (Water(sGridNo, pSoldier->pathing.bLevel))
+			{
+				continue;
+			}
+
+			// skip locations too close to target spot
+			if (PythSpacesAway(sGridNo, sTargetSpot) < DAY_VISION_RANGE / 4)
+			{
+				continue;
+			}
+
+			// avoid smoke
+			/*if (InSmoke(sGridNo, pSoldier->pathing.bLevel, FALSE))
+			{
+				continue;
+			}*/
+
+			// skip if this spot has no cover nearby
+			if ((ubType == ADVANCE_SPOT_ANY_COVER || fUnlimited) &&
+				!FindObstacleNearSpot(sGridNo, pSoldier->pathing.bLevel))
+			{
+				continue;
+			}
+
+			// avoid locations near fresh corpses
+			//if( GetNearestRottingCorpseAIWarning( sGridNo ) > 0 )
+			if (CorpseWarning(pSoldier, sGridNo, pSoldier->pathing.bLevel, TRUE))
+			{
+				continue;
+			}
+
+			// avoid overcrowding
+			if (NumberOfTeamMatesAdjacent(pSoldier, sGridNo) > 1)
+			{
+				continue;
+			}
+
+			if (!LegalNPCDestination(pSoldier, sGridNo, IGNORE_PATH, NOWATER, 0))
+			{
+				continue;		// skip on to the next potential grid
+			}
+
+			/*if (!CheckNPCDestination(pSoldier, sGridNo))
+			{
+				continue;
+			}*/
+
+			// sevenfm: avoid rooms for mortar operators
+			if (!AICheckUnderground() &&
+				pSoldier->pathing.bLevel == 0 &&
+				fHasMortar &&
+				InARoom(sGridNo, NULL))
+			{
+				continue;
+			}
+
+			if (ubType == ADVANCE_SPOT_SIGHT_COVER)
+			{
+				// skip locations with no sight cover
+				if (!SightCoverAtSpot(pSoldier, sGridNo, fUnlimited))
+				{
+					continue;
+				}
+			}
+			else if (ubType == ADVANCE_SPOT_PRONE_COVER)
+			{
+				// check prone sight cover at spot
+				if (!ProneSightCoverAtSpot(pSoldier, sGridNo, fUnlimited))
+				{
+					continue;
+				}
+				// check that we'll have enough APs to go prone at target spot
+				/*iPathCost = EstimatePlotPath( pSoldier, sGridNo, FALSE, FALSE, FALSE, usMovementMode, pSoldier->bStealthMode, FALSE, 0);
+				if( pSoldier->bActionPoints - iPathCost < GetAPsCrouch(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE) + APBPConstants[AP_CHANGE_FACING] )
+				{
+				continue;
+				}*/
+			}
+			else if (ubType == ADVANCE_SPOT_ANY_COVER)
+			{
+				// check any cover at spot
+				if (!AnyCoverAtSpot(pSoldier, sGridNo))
+				{
+					continue;
+				}
+				// check that we'll have enough APs to go prone at target spot
+				/*iPathCost = EstimatePlotPath( pSoldier, sGridNo, FALSE, FALSE, FALSE, usMovementMode, pSoldier->bStealthMode, FALSE, 0);
+				if( pSoldier->bActionPoints - iPathCost < GetAPsCrouch(pSoldier, TRUE) + GetAPsProne(pSoldier, TRUE) + APBPConstants[AP_CHANGE_FACING] )
+				{
+				continue;
+				}*/
+			}
+
+			sRealGridNo = pSoldier->sGridNo;
+			pSoldier->sGridNo = sGridNo;
+			iPathCost = EstimatePlotPath(pSoldier, sTargetSpot, FALSE, FALSE, FALSE, usMovementMode, pSoldier->bStealthMode, FALSE, 0);
+			//iPathCost = PlotPath(pSoldier, sTargetSpot, FALSE, FALSE, FALSE, usMovementMode, pSoldier->bStealthMode, FALSE, 0);
+			//iPathCost = EstimatePathCostToLocation( pSoldier, sTargetSpot, pSoldier->pathing.bLevel, TRUE, &fClimbingNecessary, &sClimbGridNo );
+			pSoldier->sGridNo = sRealGridNo;
+
+			// skip location if no path to target spot
+			if (iPathCost == 0)
+			{
+				//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"cannot find path to destination %d at %d", sTargetSpot, sGridNo);
+				continue;
+			}
+
+			//if( sBestSpot == NOWHERE || iPathCost < iBestPathCost )
+			if (iPathCost < iBestPathCost)
+			{
+				sBestSpot = sGridNo;
+				iBestPathCost = iPathCost;
+			}
+		}
+	}
+
+	gubNPCAPBudget = 0;
+	gubNPCDistLimit = 0;
+
+	return(sBestSpot);
+}

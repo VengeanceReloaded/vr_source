@@ -1870,6 +1870,9 @@ public:
 	BOOLEAN IsBoxer(void);
 	BOOLEAN IsEmptyVehicle(void);
 	BOOLEAN LaserActive(void);
+	BOOLEAN CanInterrupt();
+	BOOLEAN IsPOW(void);
+	BOOLEAN IsGassed(void);
 
 	// Flugente: boxing fix: this shall be the only location where the boxing flag gets removed (easier debugging)
 	void	DeleteBoxingFlag();

@@ -18928,6 +18928,48 @@ BOOLEAN SOLDIERTYPE::LaserActive(void)
 	return TRUE;
 }
 
+BOOLEAN SOLDIERTYPE::CanInterrupt()
+{
+	if (this->stats.bLife < OKLIFE ||
+		this->bBreath < OKBREATH ||
+		this->bActionPoints < APBPConstants[MIN_APS_TO_INTERRUPT] ||
+		this->bCollapsed ||
+		this->bBreathCollapsed ||
+		this->IsGassed() ||
+		this->IsCowering() ||
+		CoweringShockLevel(this) ||
+		this->aiData.bUnderFire == 2 ||
+		this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0 ||
+		this->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 ||
+		//this->TakenLargeHit() ||
+		//this->usSoldierFlagMask2 & SOLDIER_COWER_THIS_TURN ||
+		this->usSkillCounter[SOLDIER_COUNTER_SPOTTER] > 0 ||
+		this->usSkillCounter[SOLDIER_COUNTER_WATCH] > 0 ||
+		this->IsCovert() ||
+		this->IsPOW() ||
+		DeepWater(this->sGridNo, this->pathing.bLevel))
+		//this->IsSuppressed())
+		return FALSE;
+
+	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::IsPOW(void)
+{
+	if (this->usSoldierFlagMask & SOLDIER_POW)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsGassed(void)
+{
+	if (this->flags.uiStatusFlags & SOLDIER_GASSED)
+		return TRUE;
+
+	return FALSE;
+}
+
 // Flugente: spotter
 BOOLEAN SOLDIERTYPE::IsSpotting()
 {

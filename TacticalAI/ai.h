@@ -5,6 +5,7 @@
 #include "worlddef.h"
 #include "Soldier Control.h"
 #include "Isometric Utils.h"
+#include "Rotting Corpses.h"
 
 #define TESTAICONTROL
 
@@ -291,7 +292,7 @@ UINT8 CountNearbyNeutrals(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance)
 UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
 UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent = NOWHERE );
 UINT8 CountNearbyFriendsOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
-UINT8 CountFriendsFlankSameSpot( SOLDIERTYPE *pSoldier );
+UINT8 CountFriendsFlankSameSpot(SOLDIERTYPE *pSoldier, INT32 sSpot = NOWHERE);
 UINT8 CountNearbyFriendsLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier );
 UINT8 CountPublicKnownEnemies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
@@ -314,6 +315,8 @@ BOOLEAN AICheckIsMedic(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsMortarOperator(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsOfficer(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier);
+
+BOOLEAN AICheckSpecialRole(SOLDIERTYPE *pSoldier);
 
 BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE );
 BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE);
@@ -388,6 +391,12 @@ INT8 PublicKnowledge(UINT8 bTeam, UINT8 ubOpponentID);
 INT32 KnownPublicLocation(UINT8 bTeam, UINT8 ubOpponentID);
 INT8 KnownPublicLevel(UINT8 bTeam, UINT8 ubOpponentID);
 
+enum{
+	ADVANCE_SPOT_SIGHT_COVER,
+	ADVANCE_SPOT_PRONE_COVER,
+	ADVANCE_SPOT_ANY_COVER
+};
+
 BOOLEAN AICheckTown(void);
 UINT8 AISectorType(void);
 BOOLEAN AICheckUnderground(void);
@@ -395,6 +404,27 @@ BOOLEAN NorthSpot(INT32 sSpot, INT8 bLevel);
 BOOLEAN AllowDeepWaterFlanking(SOLDIERTYPE *pSoldier);
 INT32	RandomizeLocation(INT32 sSpot, INT8 bLevel, UINT8 ubTimes, SOLDIERTYPE *pSightSoldier);
 INT32	RandomizeOpponentLocation(INT32 sSpot, SOLDIERTYPE *pOpponent, INT16 sMaxDistance);
+BOOLEAN InSmoke(INT32 sGridNo, INT8 bLevel);
+BOOLEAN SafeSpot(SOLDIERTYPE *pSoldier, INT32 sSpot = NOWHERE);
+BOOLEAN AbortFinalSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bAction, INT32 sClosestDisturbance, INT8 bDisturbanceLevel, INT32 &sDangerousSpot);
+// needs prepared path before calling this function
+BOOLEAN AbortPath(SOLDIERTYPE *pSoldier, INT8 bAction, INT32 sClosestDisturbance, INT8 bDisturbanceLevel, INT32 &sDangerousSpot, INT32 &sLastSafeSpot);
+BOOLEAN UseSightCoverAdvance(SOLDIERTYPE *pSoldier);
+UINT8 TeamPercentKilled(INT8 bTeam);
+BOOLEAN TeamHighPercentKilled(INT8 bTeam);
+UINT8 ArmyPercentKilled(void);
+UINT8 ArmyPercentKilledTolerance(void);
+UINT8 SectorCurfew(BOOLEAN fNight);
+BOOLEAN AICheckDefense(SOLDIERTYPE *pSoldier);
+UINT8 CountTeamUnderAttack(INT8 bTeam, INT32 sGridNo, INT16 sDistance);
+INT32 FindAdvanceSpot(SOLDIERTYPE *pSoldier, INT32 sTargetSpot, INT8 bAction, UINT8 ubType, BOOLEAN fUnlimited);
+BOOLEAN FindObstacleNearSpot(INT32 sSpot, INT8 bLevel);
+BOOLEAN EnemyCanAttackSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bLevel);
+
+BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, BOOLEAN fFresh = FALSE);
+INT32	CountCorpses(SOLDIERTYPE *pSoldier, INT32 sSpot, INT16 sDistance, BOOLEAN fCheckSight, BOOLEAN fFresh);
+BOOLEAN CorpseEnemyTeam(ROTTING_CORPSE *pCorpse);
+BOOLEAN CorpseMilitiaTeam(ROTTING_CORPSE *pCorpse);
 
 void PrepareMainRedAIWeights(SOLDIERTYPE *pSoldier, INT8 &bSeekPts, INT8 &bHelpPts, INT8 &bHidePts, INT8 &bWatchPts);
 INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
