@@ -8714,9 +8714,10 @@ INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 	INT32 sOpponentGridNo;
 	INT8 bOpponentLevel;
 	INT32 sClosestOpponent = ClosestKnownOpponent(pSoldier, &sOpponentGridNo, &bOpponentLevel);
+	INT8 bWirecutterSlot = FindWirecutters(pSoldier);
 
-	//DebugAI(AI_MSG_TOPIC, pSoldier, String("[use wirecutters to cut fence]"));		
-	if (SoldierAI(pSoldier) &&
+	if (bWirecutterSlot != NO_SLOT &&
+		SoldierAI(pSoldier) &&
 		pSoldier->CheckInitialAP() &&
 		!pSoldier->aiData.bUnderFire &&
 		pSoldier->pathing.bLevel == 0 &&
@@ -8729,160 +8730,121 @@ INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 		pSoldier->bActionPoints >= GetAPsToCutFence(pSoldier) + GetAPsToLook(pSoldier) &&
 		FindFenceAroundSpot(pSoldier->sGridNo))
 	{
-		INT8 bWirecutterSlot = FindWirecutters(pSoldier);
+		UINT8 ubDesiredDir = AIDirection(pSoldier->sGridNo, sClosestOpponent);
+		UINT8 ubCheckDir;
+		INT32 sNewSpot;
+		INT32 sNextSpot;
+		INT32 sPathCost, sNewPathCost;
+		INT32 sOriginalGridNo;
 
-		if (bWirecutterSlot == NO_SLOT)
+		// cannot cut fence diagonally
+		if (ubDesiredDir % 2 == 0)
 		{
-			// try to create item
-			UINT16 usItem = GetWirecutters(WIRECUTTERS);
-			if (usItem > 0)
-			{
-				OBJECTTYPE newobj;
-				CreateItem(usItem, 80 + Random(20), &newobj);
-				newobj.fFlags |= OBJECT_UNDROPPABLE;
+			ubCheckDir = ubDesiredDir;
+			sNewSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubCheckDir));
+			sNextSpot = NewGridNo(sNewSpot, DirectionInc(ubCheckDir));
 
-				// try to place item in inventory
-				if (AutoPlaceObject(pSoldier, &newobj, FALSE))
+			if (sNewSpot != pSoldier->sGridNo &&
+				sNextSpot != sNewSpot &&
+				IsCuttableWireFenceAtGridNo(sNewSpot) &&
+				IsLocationSittable(sNextSpot, pSoldier->pathing.bLevel))
+			{
+				// check if cutting the fence improves situation
+				sPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				sOriginalGridNo = pSoldier->sGridNo;
+				pSoldier->sGridNo = sNewSpot;
+				sNewPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				pSoldier->sGridNo = sOriginalGridNo;
+
+				if (sNewPathCost > 0 && (sPathCost == 0 || sPathCost > sNewPathCost && sPathCost - sNewPathCost > APBPConstants[AP_MAXIMUM]))
 				{
-					bWirecutterSlot = FindWirecutters(pSoldier);
+					if (pSoldier->ubDirection == ubCheckDir)
+					{
+						RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
+						pSoldier->aiData.usActionData = sNewSpot;
+						return AI_ACTION_HANDLE_ITEM;
+					}
+					else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
+					{
+						//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+						RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
+						pSoldier->aiData.usActionData = ubCheckDir;
+						pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
+						pSoldier->aiData.usNextActionData = sNewSpot;
+						return AI_ACTION_CHANGE_FACING;
+					}
 				}
 			}
 		}
-
-		if (bWirecutterSlot != NO_SLOT)
+		// try adjacent directions
+		else
 		{
-			//DebugAI(AI_MSG_INFO, pSoldier, String("found wirecutter, check if we can find fence to cut"));
+			ubCheckDir = gOneCDirection[ubDesiredDir];
+			sNewSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubCheckDir));
+			sNextSpot = NewGridNo(sNewSpot, DirectionInc(ubCheckDir));
 
-			UINT8 ubDesiredDir = AIDirection(pSoldier->sGridNo, sClosestOpponent);
-			UINT8 ubCheckDir;
-			INT32 sNewSpot;
-			INT32 sNextSpot;
-			INT32 sPathCost, sNewPathCost;
-			INT32 sOriginalGridNo;
-
-			// cannot cut fence diagonally
-			if (ubDesiredDir % 2 == 0)
+			if (sNewSpot != pSoldier->sGridNo &&
+				sNextSpot != sNewSpot &&
+				IsCuttableWireFenceAtGridNo(sNewSpot) &&
+				IsLocationSittable(sNextSpot, pSoldier->pathing.bLevel))
 			{
-				ubCheckDir = ubDesiredDir;
-				sNewSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubCheckDir));
-				sNextSpot = NewGridNo(sNewSpot, DirectionInc(ubCheckDir));
+				// check if cutting the fence improves situation
+				sPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				sOriginalGridNo = pSoldier->sGridNo;
+				pSoldier->sGridNo = sNewSpot;
+				sNewPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				pSoldier->sGridNo = sOriginalGridNo;
 
-				if (sNewSpot != pSoldier->sGridNo &&
-					sNextSpot != sNewSpot &&
-					IsCuttableWireFenceAtGridNo(sNewSpot) &&
-					IsLocationSittable(sNextSpot, pSoldier->pathing.bLevel))
+				if (sNewPathCost > 0 && (sPathCost == 0 || sPathCost > sNewPathCost && sPathCost - sNewPathCost > APBPConstants[AP_MAXIMUM]))
 				{
-					//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
-
-					// check if cutting the fence improves situation
-					sPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
-					sOriginalGridNo = pSoldier->sGridNo;
-					pSoldier->sGridNo = sNewSpot;
-					sNewPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
-					pSoldier->sGridNo = sOriginalGridNo;
-
-					if (sNewPathCost > 0 && (sPathCost == 0 || sPathCost > sNewPathCost && sPathCost - sNewPathCost > APBPConstants[AP_MAXIMUM]))
+					if (pSoldier->ubDirection == ubCheckDir)
 					{
-						//DebugAI(AI_MSG_INFO, pSoldier, String("cutting fence improves path cost, use wirecutters"));
-
-						if (pSoldier->ubDirection == ubCheckDir)
-						{
-							RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
-							pSoldier->aiData.usActionData = sNewSpot;
-							return AI_ACTION_HANDLE_ITEM;
-						}
-						else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
-						{
-							//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
-							RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
-							pSoldier->aiData.usActionData = ubCheckDir;
-							pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
-							pSoldier->aiData.usNextActionData = sNewSpot;
-							return AI_ACTION_CHANGE_FACING;
-						}
+						RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
+						pSoldier->aiData.usActionData = sNewSpot;
+						return AI_ACTION_HANDLE_ITEM;
+					}
+					else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
+					{
+						RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
+						pSoldier->aiData.usActionData = ubCheckDir;
+						pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
+						pSoldier->aiData.usNextActionData = sNewSpot;
+						return AI_ACTION_CHANGE_FACING;
 					}
 				}
 			}
-			// try adjacent directions
-			else
+
+			ubCheckDir = gOneCCDirection[ubDesiredDir];
+			sNewSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubCheckDir));
+			sNextSpot = NewGridNo(sNewSpot, DirectionInc(ubCheckDir));
+
+			if (sNewSpot != pSoldier->sGridNo &&
+				sNextSpot != sNewSpot &&
+				IsCuttableWireFenceAtGridNo(sNewSpot) &&
+				IsLocationSittable(sNextSpot, pSoldier->pathing.bLevel))
 			{
-				ubCheckDir = gOneCDirection[ubDesiredDir];
-				sNewSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubCheckDir));
-				sNextSpot = NewGridNo(sNewSpot, DirectionInc(ubCheckDir));
+				// check if cutting the fence improves situation
+				sPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				sOriginalGridNo = pSoldier->sGridNo;
+				pSoldier->sGridNo = sNewSpot;
+				sNewPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
+				pSoldier->sGridNo = sOriginalGridNo;
 
-				if (sNewSpot != pSoldier->sGridNo &&
-					sNextSpot != sNewSpot &&
-					IsCuttableWireFenceAtGridNo(sNewSpot) &&
-					IsLocationSittable(sNextSpot, pSoldier->pathing.bLevel))
+				if (sNewPathCost > 0 && (sPathCost == 0 || sPathCost > sNewPathCost && sPathCost - sNewPathCost > APBPConstants[AP_MAXIMUM]))
 				{
-					//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
-
-					// check if cutting the fence improves situation
-					sPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
-					sOriginalGridNo = pSoldier->sGridNo;
-					pSoldier->sGridNo = sNewSpot;
-					sNewPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
-					pSoldier->sGridNo = sOriginalGridNo;
-
-					if (sNewPathCost > 0 && (sPathCost == 0 || sPathCost > sNewPathCost && sPathCost - sNewPathCost > APBPConstants[AP_MAXIMUM]))
+					if (pSoldier->ubDirection == ubCheckDir)
 					{
-						//DebugAI(AI_MSG_INFO, pSoldier, String("cutting fence improves path cost, use wirecutters"));
-
-						if (pSoldier->ubDirection == ubCheckDir)
-						{
-							RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
-							pSoldier->aiData.usActionData = sNewSpot;
-							return AI_ACTION_HANDLE_ITEM;
-						}
-						else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
-						{
-							//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
-							RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
-							pSoldier->aiData.usActionData = ubCheckDir;
-							pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
-							pSoldier->aiData.usNextActionData = sNewSpot;
-							return AI_ACTION_CHANGE_FACING;
-						}
+						RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
+						pSoldier->aiData.usActionData = sNewSpot;
+						return AI_ACTION_HANDLE_ITEM;
 					}
-				}
-
-				ubCheckDir = gOneCCDirection[ubDesiredDir];
-				sNewSpot = NewGridNo(pSoldier->sGridNo, DirectionInc(ubCheckDir));
-				sNextSpot = NewGridNo(sNewSpot, DirectionInc(ubCheckDir));
-
-				if (sNewSpot != pSoldier->sGridNo &&
-					sNextSpot != sNewSpot &&
-					IsCuttableWireFenceAtGridNo(sNewSpot) &&
-					IsLocationSittable(sNextSpot, pSoldier->pathing.bLevel))
-				{
-					//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
-
-					// check if cutting the fence improves situation
-					sPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
-					sOriginalGridNo = pSoldier->sGridNo;
-					pSoldier->sGridNo = sNewSpot;
-					sNewPathCost = EstimatePlotPath(pSoldier, sClosestOpponent, FALSE, FALSE, FALSE, RUNNING, pSoldier->bStealthMode, FALSE, 0);
-					pSoldier->sGridNo = sOriginalGridNo;
-
-					if (sNewPathCost > 0 && (sPathCost == 0 || sPathCost > sNewPathCost && sPathCost - sNewPathCost > APBPConstants[AP_MAXIMUM]))
+					else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 					{
-						//DebugAI(AI_MSG_INFO, pSoldier, String("cutting fence improves path cost, use wirecutters"));
-
-						if (pSoldier->ubDirection == ubCheckDir)
-						{
-							RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
-							pSoldier->aiData.usActionData = sNewSpot;
-							return AI_ACTION_HANDLE_ITEM;
-						}
-						else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
-						{
-							//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
-							RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
-							pSoldier->aiData.usActionData = ubCheckDir;
-							pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
-							pSoldier->aiData.usNextActionData = sNewSpot;
-							return AI_ACTION_CHANGE_FACING;
-						}
+						RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
+						pSoldier->aiData.usActionData = ubCheckDir;
+						pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
+						pSoldier->aiData.usNextActionData = sNewSpot;
+						return AI_ACTION_CHANGE_FACING;
 					}
 				}
 			}

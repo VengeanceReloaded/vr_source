@@ -331,10 +331,7 @@ void CalcBestShot(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestShot)
 		if (ubMinAPcost > pSoldier->bActionPoints)
 			continue;			// next opponent
 
-		if (fSuppression)
-			ubChanceToGetThrough = AISoldierToLocationChanceToGetThrough(pSoldier, sTarget, bLevel, 3);
-		else
-			ubChanceToGetThrough = AISoldierToSoldierChanceToGetThrough(pSoldier, pOpponent);
+		ubChanceToGetThrough = AISoldierToSoldierChanceToGetThrough(pSoldier, pOpponent);
 
 		// if we can't possibly get through all the cover
 		if (ubChanceToGetThrough == 0)

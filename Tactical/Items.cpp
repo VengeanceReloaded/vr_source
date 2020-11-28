@@ -13735,6 +13735,57 @@ UINT16 GetFirstExplosiveOfType(UINT16 expType)
 	return 0;
 }
 
+// sevenfm: same as GetFirstExplosiveOfType, but check only hand grenades
+UINT16 GetFirstHandGrenadeOfType(UINT16 expType)
+{
+	for (int i = 0; i < MAXITEMS; i++)
+	{
+		if (ItemIsHandGrenade(i) &&
+			Item[i].ubCoolness > 0 &&
+			Explosive[Item[i].ubClassIndex].ubType == expType)
+			return i;
+	}
+
+	return 0;
+}
+
+// sevenfm: use to substitute default item with first matching if needed
+UINT16 GetHandGrenadeOfType(UINT16 usDefaultItem, UINT16 usType)
+{
+	UINT16 usSmokeItem = usDefaultItem;
+
+	if (usSmokeItem > 0 &&
+		ItemIsHandGrenade(usSmokeItem) &&
+		Item[usSmokeItem].ubCoolness > 0 &&
+		Explosive[Item[usSmokeItem].ubClassIndex].ubType == usType)
+		return usSmokeItem;
+
+	usSmokeItem = GetFirstHandGrenadeOfType(EXPLOSV_SMOKE);
+
+	if (usSmokeItem > 0 &&
+		ItemIsHandGrenade(usSmokeItem) &&
+		Item[usSmokeItem].ubCoolness > 0 &&
+		Explosive[Item[usSmokeItem].ubClassIndex].ubType == usType)
+		return usSmokeItem;
+
+	return 0;
+}
+
+UINT16 GetMortarShellOfType(UINT16 usType)
+{
+	for (int i = 0; i < MAXITEMS; i++)
+	{
+		if (Item[i].ubCoolness > 0 &&
+			ItemIsMortarShell(i) &&
+			(usType == EXPLOSV_ANY_TYPE || Explosive[Item[i].ubClassIndex].ubType == usType))
+		{
+			return i;
+		}
+	}
+
+	return 0;
+}
+
 UINT16 GetWirecutters(UINT16 usDefaultItem)
 {
 	if (usDefaultItem > 0 &&
@@ -13752,6 +13803,68 @@ UINT16 GetWirecutters(UINT16 usDefaultItem)
 	}
 
 	return 0;
+}
+
+// sevenfm: check if item is valid hand grenade
+BOOLEAN ItemIsHandGrenade(UINT16 usItem)
+{
+	if (usItem > 0 &&
+		Item[usItem].usItemClass == IC_GRENADE &&
+		Item[usItem].ubCursor == TOSSCURS)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN ItemIsGLGrenade(UINT16 usItem)
+{
+	if (usItem > 0 &&
+		Item[usItem].usItemClass == IC_GRENADE &&
+		Item[usItem].glgrenade)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN ItemIsMortarShell(UINT16 usItem)
+{
+	UINT16 usLauncherItem;
+
+	if (usItem > 0 &&
+		Item[usItem].usItemClass == IC_BOMB &&
+		Item[usItem].attachment &&
+		!Item[usItem].mine)
+	{
+		usLauncherItem = GetLauncherFromLaunchable(usItem);
+		if (usLauncherItem != NOTHING && Item[usLauncherItem].mortar)
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+BOOLEAN ItemIsRocket(UINT16 usItem)
+{
+	UINT16 usLauncherItem;
+
+	if (usItem > 0 &&
+		Item[usItem].usItemClass == IC_GRENADE &&
+		Item[usItem].electronic)
+	{
+		usLauncherItem = GetLauncherFromLaunchable(usItem);
+		if (usLauncherItem != NOTHING && (Item[usLauncherItem].rocketlauncher || Item[usLauncherItem].singleshotrocketlauncher))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 // WDS - Smart goggle switching
@@ -15236,15 +15349,23 @@ INT16 GetBasicStealthBonus( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj )
 }
 
 // HEADROCK HAM 4: Calculate a gun's accuracy, including bonuses from ammo and attachments.
-INT32 GetGunAccuracy( OBJECTTYPE *pObj )
+INT32 GetGunAccuracy(OBJECTTYPE *pObj)
 {
 	// Flugente: If overheating is allowed, an overheated gun receives a slight malus to accuracy
 	FLOAT accuracyheatmultiplicator = 1.0;
-	if ( gGameExternalOptions.fWeaponOverheating )
+	if (gGameExternalOptions.fWeaponOverheating)
 	{
-		FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage( pObj );
-		FLOAT accuracymalus = (max(1.0f, overheatdamagepercentage) - 1.0f) * 0.1f;
-		accuracyheatmultiplicator = max(0.0f, 1.0f - accuracymalus);
+		FLOAT overheatdamagepercentage = GetGunOverheatDamagePercentage(pObj);	// 1.0 means 100% damage percentage
+
+		//FLOAT accuracymalus = (max(1.0f, overheatdamagepercentage) - 1.0f) * 0.1f;
+		//accuracyheatmultiplicator = max(0.0f, 1.0f - accuracymalus);
+
+		// sevenfm: use square law for values < 1.0
+		if (overheatdamagepercentage < 1.0f)
+			overheatdamagepercentage = overheatdamagepercentage * overheatdamagepercentage;
+
+		// sevenfm: start lowering accuracy before hitting 100% level, so at 100% overheating we'll have 50% accuracy reduction
+		accuracyheatmultiplicator = accuracyheatmultiplicator * 1.0f / (1.0f + overheatdamagepercentage);
 	}
 
 	if (!UsingNewCTHSystem())
@@ -15257,12 +15378,12 @@ INT32 GetGunAccuracy( OBJECTTYPE *pObj )
 	}
 
 	INT32 bonus = 0;
-	if ( pObj->exists() == true )
+	if (pObj->exists())
 	{
 		bonus = (INT32)(accuracyheatmultiplicator * Weapon[Item[pObj->usItem].uiIndex].nAccuracy);
 		bonus = (bonus * (*pObj)[0]->data.gun.bGunStatus) / 100;
 
-		INT32 iModifier = GetAccuracyModifier( pObj );
+		INT32 iModifier = GetAccuracyModifier(pObj);
 		// Accuracy works in a very different way from most modifiers. At low levels, a small change is almost completely
 		// irrelevant. At high levels, every point of accuracy can potentially increase the gun's effective range by
 		// a large amount. Therefore, we apply this percentage in REVERSE - the higher our accuracy, the less change
@@ -15273,11 +15394,11 @@ INT32 GetGunAccuracy( OBJECTTYPE *pObj )
 		// Modifier = +20%
 		// Initial Gun Accuracy = 90, Final Gun Accuracy = 90 + (20% of the gap = 20% of 100-90 = 20% of 10 = 2) = 92.
 		// Initial Gun Accuracy = 10, Final Gun Accuracy = 10 + (20% of the gap = 20% of 100-10 = 20% of 90 = 18) = 28.
-		bonus += ((100-bonus) * iModifier) / 100;
+		bonus += ((100 - bonus) * iModifier) / 100;
 	}
 
-	bonus = max(0,bonus);
-	bonus = min(100,bonus);
+	bonus = max(0, bonus);
+	bonus = min(100, bonus);
 
 	return bonus;
 }

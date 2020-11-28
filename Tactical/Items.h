@@ -435,7 +435,15 @@ INT16 GetGearAPBonus( SOLDIERTYPE * pSoldier );
 INT16 GetAPBonus( OBJECTTYPE * pObj );
 
 UINT16 GetFirstExplosiveOfType(UINT16 expType);
+UINT16 GetFirstHandGrenadeOfType(UINT16 expType);
+UINT16 GetHandGrenadeOfType(UINT16 usDefaultItem, UINT16 usType);
+UINT16 GetMortarShellOfType(UINT16 usType);
 UINT16 GetWirecutters(UINT16 usDefaultItem);
+
+BOOLEAN ItemIsHandGrenade(UINT16 usItem);
+BOOLEAN ItemIsGLGrenade(UINT16 usItem);
+BOOLEAN ItemIsMortarShell(UINT16 usItem);
+BOOLEAN ItemIsRocket(UINT16 usItem);
 
 OBJECTTYPE* FindSunGogglesInInv( SOLDIERTYPE * pSoldier, INT8 * bSlot, BOOLEAN * isAttach, BOOLEAN searchAllInventory = FALSE );
 OBJECTTYPE* FindNightGogglesInInv( SOLDIERTYPE * pSoldier, INT8 * bSlot, BOOLEAN * isAttach, BOOLEAN searchAllInventory = FALSE  );

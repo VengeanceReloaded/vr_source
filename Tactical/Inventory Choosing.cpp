@@ -19,6 +19,9 @@
 	#include "Game Clock.h"
 	#include "message.h"
 	#include "Tactical Save.h"	// added by Flugente
+	// sevenfm
+	#include "environment.h"
+	#include "Drugs and Alcohol.h"
 #endif
 
 /*
@@ -953,58 +956,256 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 	ChooseLocationSpecificGearForSoldierCreateStruct( pp );
 	RandomlyChooseWhichItemsAreDroppable( pp, bSoldierClass );
 
-	BOOLEAN fSmokeGrenade = FALSE;
-	BOOLEAN fFlare = FALSE;
-
 	// sevenfm: extra items
-	if( gGameExternalOptions.fExtraItems )
+	if (gGameExternalOptions.fExtraItems)
 	{
-		switch( bSoldierClass )
+		BOOLEAN fSmokeGrenade = FALSE;
+		BOOLEAN fFlare = FALSE;
+		BOOLEAN fRedSmoke = FALSE;
+		BOOLEAN fTear = FALSE;
+		BOOLEAN fMini = FALSE;
+		BOOLEAN fGrenade = FALSE;
+		BOOLEAN fFirstAid = FALSE;
+		BOOLEAN fCanteen = FALSE;
+		BOOLEAN fAlcohol = FALSE;
+		BOOLEAN fRegen = FALSE;
+		BOOLEAN fAdrenaline = FALSE;
+		BOOLEAN fWirecutter = FALSE;
+		BOOLEAN fShovel = FALSE;
+		UINT16 usItem = NOTHING;
+
+		UINT8 ubDiff = gGameOptions.ubDifficultyLevel;
+		UINT8 ubProgress = HighestPlayerProgressPercentage();
+
+		// mini grenade
+		//CreateItems(MINI_GRENADE, 100, 5, &gTempObject);
+		//gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+		//PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+
+		switch (bSoldierClass)
 		{
 		case SOLDIER_CLASS_ELITE:
-			fSmokeGrenade = TRUE;
-			if( NightTime() )
-			{
+			if (Chance(ubDiff * 25) && Chance(50 + ubProgress / 2))
+				fSmokeGrenade = TRUE;
+			if (NightTime() && Chance(ubDiff * 25) && Chance(50 + ubProgress / 2))
 				fFlare = TRUE;
-			}			
+			if (Chance(ubDiff * 20) && Chance(50 + ubProgress / 2))
+				fMini = TRUE;
+			if (Chance(ubDiff * 10) && Chance(50 + ubProgress / 2))
+				fGrenade = TRUE;
+			if (Chance(ubDiff * 20) && Chance(50 + ubProgress / 2))
+				fFirstAid = TRUE;
+			if (Chance(ubDiff * 15) && Chance(50 + ubProgress / 2))
+				fWirecutter = TRUE;
+			if (Chance(10) && Chance(50 + ubProgress / 2))
+				fShovel = TRUE;
+			if (Chance(ubDiff * 20) && Chance(50 + ubProgress / 2))
+				fCanteen = TRUE;
+			if (Chance(10) && Chance(50 + ubProgress / 2))
+				fRegen = TRUE;
+			if (Chance(10) && Chance(50 + ubProgress / 2))
+				fRedSmoke = TRUE;
+			if (Chance(10) && Chance(50 + ubProgress / 2))
+				fAdrenaline = TRUE;
+			if (Chance(5))
+				fAlcohol = TRUE;
 			break;
 		case SOLDIER_CLASS_ARMY:
-			if( Chance(50) )
-			{
+			if (Chance(ubDiff * 15) && Chance(50 + ubProgress / 2))
 				fSmokeGrenade = TRUE;
-			}
-			if( Chance(50) && NightTime() )
-			{
+			if (NightTime() && Chance(ubDiff * 15) && Chance(50 + ubProgress / 2))
 				fFlare = TRUE;
-			}
+			if (Chance(ubDiff * 10) && Chance(50 + ubProgress / 2))
+				fMini = TRUE;
+			if (Chance(ubDiff * 5) && Chance(50 + ubProgress / 2))
+				fGrenade = TRUE;
+			if (Chance(ubDiff * 10) && Chance(50 + ubProgress / 2))
+				fFirstAid = TRUE;
+			if (Chance(ubDiff * 10) && Chance(50 + ubProgress / 2))
+				fWirecutter = TRUE;
+			if (Chance(25) && Chance(50 + ubProgress / 2))
+				fShovel = TRUE;
+			if (Chance(ubDiff * 10) && Chance(50 + ubProgress / 2))
+				fCanteen = TRUE;
+			if (Chance(5) && Chance(50 + ubProgress / 2))
+				fRegen = TRUE;
+			if (Chance(5) && Chance(50 + ubProgress / 2))
+				fRedSmoke = TRUE;
+			if (Chance(5) && Chance(50 + ubProgress / 2))
+				fAdrenaline = TRUE;
+			if (Chance(10))
+				fAlcohol = TRUE;
 			break;
 		case SOLDIER_CLASS_ADMINISTRATOR:
+			if (Chance(ubDiff * 15) && Chance(50 + ubProgress / 2))
+				fTear = TRUE;
+			if (Chance(ubDiff * 5) && Chance(50 + ubProgress / 2))
+				fFirstAid = TRUE;
+			if (Chance(ubDiff * 5) && Chance(50 + ubProgress / 2))
+				fCanteen = TRUE;
+			if (Chance(20))
+				fAlcohol = TRUE;
+			if (Chance(20))
+				fAdrenaline = TRUE;
 			break;
 		}
 
-		// smoke grenade
-		/*if( fSmokeGrenade &&
-			(Item[ SMOKE_GRENADE ].usItemClass & IC_GRENADE) &&
-			Item[ SMOKE_GRENADE ].ubCursor == TOSSCURS &&
-			//GetLauncherFromLaunchable( SMOKE_GRENADE ) == NOTHING &&
-			Explosive[ Item[ SMOKE_GRENADE ].ubClassIndex ].ubType == EXPLOSV_SMOKE )
+		// mini grenade
+		usItem = GetHandGrenadeOfType(MINI_GRENADE, EXPLOSV_NORMAL);
+		if (fMini && usItem > 0)
 		{
-			CreateItems( SMOKE_GRENADE, (INT8)(80 + Random( 20 )), 1 + Random(gGameOptions.ubDifficultyLevel), &gTempObject );
+			CreateItems(usItem, (INT8)(80 + Random(20)), 1, &gTempObject);
 			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-			PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-		}*/
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// mk2 grenade
+		usItem = GetHandGrenadeOfType(HAND_GRENADE, EXPLOSV_NORMAL);
+		if (fGrenade && usItem > 0)
+		{
+			CreateItems(usItem, (INT8)(80 + Random(20)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// first aid
+		if (fFirstAid &&
+			Item[FIRSTAIDKIT].ubCoolness > 0 &&
+			(Item[FIRSTAIDKIT].usItemClass & IC_MEDKIT) &&
+			Item[FIRSTAIDKIT].firstaidkit)
+		{
+			CreateItems(FIRSTAIDKIT, (INT8)(10 + Random(20)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// wirecutters
+		usItem = GetWirecutters(WIRECUTTERS);
+		if (fWirecutter && usItem > 0)
+		{
+			CreateItems(usItem, (INT8)(60 + Random(20)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// shovel + empty sandbag		
+		if (fShovel && GetFirstItemWithFlag(&usItem, SHOVEL))
+		{
+			CreateItems(usItem, (INT8)(60 + Random(20)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+
+			// also add sandbags
+			if (GetFirstItemWithFlag(&usItem, EMPTY_SANDBAG))
+			{
+				CreateItems(usItem, (INT8)(80 + Random(20)), 3 + Random(ubProgress / 10), &gTempObject);
+				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+				PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+			}
+		}
+
+		// canteen
+		if (fCanteen &&
+			Item[CANTEEN].ubCoolness > 0 &&
+			(Item[CANTEEN].usItemClass & IC_MISC) &&
+			Item[CANTEEN].canteen)
+		{
+			CreateItems(CANTEEN, (INT8)(20 + Random(80)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// regen booster
+		if (fRegen &&
+			Item[REGEN_BOOSTER].ubCoolness > 0 &&
+			(Item[REGEN_BOOSTER].usItemClass & IC_MISC) &&
+			Item[REGEN_BOOSTER].drugtype & DRUG_REGENERATION)
+		{
+			CreateItems(REGEN_BOOSTER, (INT8)(20 + Random(80)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// adrenaline
+		if (fAdrenaline &&
+			Item[ADRENALINE_BOOSTER].ubCoolness > 0 &&
+			(Item[ADRENALINE_BOOSTER].usItemClass & IC_MISC) &&
+			Item[ADRENALINE_BOOSTER].drugtype & DRUG_ADRENALINE)
+		{
+			CreateItems(ADRENALINE_BOOSTER, (INT8)(20 + Random(80)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// alcohol
+		if (fAlcohol)
+		{
+			if (Chance(40) &&
+				Item[ALCOHOL].ubCoolness > 0 &&
+				Item[ALCOHOL].alcohol &&
+				(Item[ALCOHOL].usItemClass & IC_MISC) &&
+				(Item[ALCOHOL].drugtype & DRUG_ALCOHOL))
+			{
+				CreateItems(ALCOHOL, (INT8)(20 + Random(80)), 1, &gTempObject);
+				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+				PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+			}
+			else if (Chance(20) &&
+				Item[WINE].ubCoolness > 0 &&
+				Item[WINE].alcohol &&
+				(Item[WINE].usItemClass & IC_MISC) &&
+				(Item[WINE].drugtype & DRUG_ALCOHOL))
+			{
+				CreateItems(WINE, (INT8)(20 + Random(80)), 1, &gTempObject);
+				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+				PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+			}
+			else if (Chance(20) &&
+				Item[BEER].ubCoolness > 0 &&
+				Item[BEER].alcohol &&
+				(Item[BEER].usItemClass & IC_MISC) &&
+				(Item[BEER].drugtype & DRUG_ALCOHOL))
+			{
+				CreateItems(BEER, (INT8)(20 + Random(80)), 1, &gTempObject);
+				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+				PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+			}
+		}
+
+		// smoke grenade
+		usItem = GetHandGrenadeOfType(SMOKE_GRENADE, EXPLOSV_SMOKE);
+		if (fSmokeGrenade && usItem > 0)
+		{
+			CreateItems(usItem, (INT8)(80 + Random(20)), 1 + Random(max(ubDiff - 1, 0)), &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// tear gas
+		usItem = GetHandGrenadeOfType(TEARGAS_GRENADE, EXPLOSV_TEARGAS);
+		if (fTear && usItem > 0)
+		{
+			CreateItems(usItem, (INT8)(80 + Random(20)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
 
 		// flare
-		if( fFlare &&
-			(Item[ BREAK_LIGHT ].usItemClass & IC_GRENADE) &&
-			Item[ BREAK_LIGHT ].ubCursor == TOSSCURS &&
-			//GetLauncherFromLaunchable( BREAK_LIGHT ) == NOTHING &&
-			Item[ BREAK_LIGHT ].flare &&
-			Explosive[ Item[ BREAK_LIGHT ].ubClassIndex ].ubType == EXPLOSV_FLARE )
+		usItem = GetHandGrenadeOfType(BREAK_LIGHT, EXPLOSV_FLARE);
+		if (fFlare && usItem > 0)
 		{
-			CreateItems( BREAK_LIGHT, (INT8)(80 + Random( 20 )), 1 + Random(gGameOptions.ubDifficultyLevel), &gTempObject );
+			CreateItems(usItem, (INT8)(80 + Random(20)), 1 + Random(max(ubDiff - 1, 0)), &gTempObject);
 			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-			PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+		}
+
+		// red smoke
+		usItem = GetHandGrenadeOfType(1701, EXPLOSV_SIGNAL_SMOKE);
+		if (fRedSmoke && usItem > 0)
+		{
+			CreateItems(usItem, (INT8)(80 + Random(20)), 1, &gTempObject);
+			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
 		}
 
 		// LAW
