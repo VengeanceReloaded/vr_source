@@ -89,9 +89,7 @@ enum
 	
 	TOPTION_AUTO_FAST_FORWARD_MODE,				// automatically fast forward through AI turns
 
-#ifdef ENABLE_ZOMBIES
 	TOPTION_ZOMBIES,							// Flugente Zombies 1.0: allow zombies	
-#endif
 
 	TOPTION_ENABLE_INVENTORY_POPUPS,			// the_bob : enable popups for picking items from sector inv
 
@@ -398,7 +396,6 @@ typedef struct
 	//Video settings	
 	BOOLEAN gfVSync;
 
-#ifdef ENABLE_ZOMBIES
 	// Flugente: zombie settings
 	INT8	sZombieRiseBehaviour;
 	BOOLEAN fZombieSpawnWaves;
@@ -412,7 +409,6 @@ typedef struct
 	INT8	sZombieDifficultyLevel;
 	BOOLEAN fZombieRiseWithArmour;
 	BOOLEAN fZombieOnlyHeadShotsPermanentlyKill;
-#endif
 	
 	// Flugente: poison settings
 	INT32	ubPoisonBaseMedicalSkillToCure;

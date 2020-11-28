@@ -280,9 +280,7 @@ BOOLEAN LoadGameSettings()
 		if (!IsHiSpeedClockMode())
 			gGameSettings.fOptions[TOPTION_AUTO_FAST_FORWARD_MODE]		= FALSE;
 
-#ifdef ENABLE_ZOMBIES
 		gGameSettings.fOptions[TOPTION_ZOMBIES]							= iniReader.ReadBoolean("JA2 Game Settings","TOPTION_ZOMBIES"						   ,  FALSE  );
-#endif
 
 		gGameSettings.fOptions[TOPTION_ENABLE_INVENTORY_POPUPS]         = iniReader.ReadBoolean("JA2 Game Settings","TOPTION_ENABLE_INVENTORY_POPUPS"          ,  TRUE ); // the_bob : enable popups for picking items from sector inv
 		
@@ -455,9 +453,7 @@ BOOLEAN	SaveGameSettings()
 		settings << "TOPTION_INVERT_WHEEL					  = " << (gGameSettings.fOptions[TOPTION_INVERT_WHEEL]						?	 "TRUE"	: "FALSE" ) << endl;
 		settings << "TOPTION_NEW_VISION						  = " << (gGameSettings.fOptions[TOPTION_NEW_VISION]						? "TRUE" : "FALSE") << endl;
 
-#ifdef ENABLE_ZOMBIES
 		settings << "TOPTION_ZOMBIES						  = " << (gGameSettings.fOptions[TOPTION_ZOMBIES]							?    "TRUE" : "FALSE" ) << endl;
-#endif
 		settings << "TOPTION_ENABLE_INVENTORY_POPUPS          = " << (gGameSettings.fOptions[TOPTION_ENABLE_INVENTORY_POPUPS]			?    "TRUE" : "FALSE" ) << endl; // the_bob : enable popups for picking items from sector inv
 		settings << "TOPTION_MERCENARY_FORMATIONS			  = " << (gGameSettings.fOptions[TOPTION_MERCENARY_FORMATIONS]				?    "TRUE" : "FALSE" ) << endl;
 
@@ -590,9 +586,7 @@ void InitGameSettings()
 
 	gGameSettings.fOptions[ TOPTION_AUTO_FAST_FORWARD_MODE ]			= FALSE;
 
-#ifdef ENABLE_ZOMBIES
 	gGameSettings.fOptions[ TOPTION_ZOMBIES ]							= FALSE;	// Flugente Zombies 1.0	
-#endif
 
 	gGameSettings.fOptions[ TOPTION_ENABLE_INVENTORY_POPUPS ]			= TRUE;	// the_bob : enable popups for picking items from sector inv
 	
@@ -1642,7 +1636,6 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubOverheatThermometerRedOffset					= iniReader.ReadInteger("Tactical Weapon Overheating Settings","OVERHEATING_DISPLAY_THERMOMETER_RED_OFFSET", 100, 0, 255);
 	gGameExternalOptions.iCooldownModificatorLonelyBarrel			    = iniReader.ReadFloat  ("Tactical Weapon Overheating Settings","OVERHEATING_COOLDOWN_MODIFICATOR_LONELYBARREL", 1.15f, 1.0f, 10.0f);
 		
-#ifdef ENABLE_ZOMBIES
 	//################# Tactical Zombie Settings ##################
 	gGameExternalOptions.sZombieRiseBehaviour							= iniReader.ReadInteger("Tactical Zombie Settings", "ZOMBIE_RISE_BEHAVIOUR", 0, 0, 3);
 	gGameExternalOptions.fZombieSpawnWaves								= iniReader.ReadInteger("Tactical Zombie Settings", "ZOMBIE_SPAWN_WAVES", FALSE);
@@ -1656,7 +1649,6 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.sZombieDifficultyLevel 						= iniReader.ReadInteger("Tactical Zombie Settings", "ZOMBIE_DIFFICULTY_LEVEL", 2, 1, 4);
 	gGameExternalOptions.fZombieRiseWithArmour							= iniReader.ReadBoolean("Tactical Zombie Settings", "ZOMBIE_RISE_WITH_ARMOUR", TRUE);
 	gGameExternalOptions.fZombieOnlyHeadShotsPermanentlyKill			= iniReader.ReadBoolean("Tactical Zombie Settings", "ZOMBIE_ONLY_HEADSHOTS_PERMANENTLY_KILL", TRUE);
-#endif
 
 	//################# Tactical Poison Settings ##################
 	gGameExternalOptions.ubPoisonBaseMedicalSkillToCure					= iniReader.ReadInteger("Tactical Poison Settings", "POISON_BASE_MEDICAL_SKILL_TO_CURE", 50, 1, 100);

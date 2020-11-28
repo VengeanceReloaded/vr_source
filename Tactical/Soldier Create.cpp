@@ -2063,12 +2063,10 @@ BOOLEAN TacticalCopySoldierFromCreateStruct( SOLDIERTYPE *pSoldier, SOLDIERCREAT
 			{
 				swprintf( pSoldier->name, gzLateLocalizedString[ 36 ] );
 			}
-#ifdef ENABLE_ZOMBIES
 			else if ( pSoldier->IsZombie() )
 			{
 				swprintf( pSoldier->name, TacticalStr[ ZOMBIE_TEAM_MERC_NAME ] );
 			}
-#endif
 			else
 			{
 				swprintf( pSoldier->name, TacticalStr[ CREATURE_TEAM_MERC_NAME ] );	break;
@@ -2532,9 +2530,7 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 	switch( ubSoldierClass )
 	{
 		case SOLDIER_CLASS_ADMINISTRATOR:
-#ifdef ENABLE_ZOMBIES
 		case SOLDIER_CLASS_ZOMBIE:
-#endif
 			pp->bExpLevel = (INT8) 2 + bExpLevelModifier;
 			break;
 		case SOLDIER_CLASS_ARMY:
@@ -2657,11 +2653,7 @@ void CreateDetailedPlacementGivenBasicPlacementInfo( SOLDIERCREATE_STRUCT *pp, B
 	//If it is a detailed placement, don't do this yet, as detailed placements may have their
 	//own equipment.
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("CreateDetailedPlacementGivenBasicPlacementInfo: generate random equipment"));
-#ifdef ENABLE_ZOMBIES
 	if( !bp->fDetailedPlacement && ubSoldierClass != SOLDIER_CLASS_NONE && ubSoldierClass != SOLDIER_CLASS_CREATURE && ubSoldierClass != SOLDIER_CLASS_MINER && ubSoldierClass != SOLDIER_CLASS_ZOMBIE )
-#else
-	if( !bp->fDetailedPlacement && ubSoldierClass != SOLDIER_CLASS_NONE && ubSoldierClass != SOLDIER_CLASS_CREATURE && ubSoldierClass != SOLDIER_CLASS_MINER )
-#endif
 	{
 			GenerateRandomEquipment( pp, ubSoldierClass, bp->bRelativeEquipmentLevel);
 
@@ -2842,11 +2834,7 @@ void CreateDetailedPlacementGivenStaticDetailedPlacementAndBasicPlacementInfo(
 	//	ReplaceExtendedGuns( pp, bp->ubSoldierClass );
 	//}
 
-#ifdef ENABLE_ZOMBIES
 	if( bp->ubSoldierClass != SOLDIER_CLASS_NONE && bp->ubSoldierClass != SOLDIER_CLASS_CREATURE && bp->ubSoldierClass != SOLDIER_CLASS_MINER && bp->ubSoldierClass != SOLDIER_CLASS_ZOMBIE )
-#else
-	if( bp->ubSoldierClass != SOLDIER_CLASS_NONE && bp->ubSoldierClass != SOLDIER_CLASS_CREATURE && bp->ubSoldierClass != SOLDIER_CLASS_MINER )
-#endif
 	{
 		GenerateRandomEquipment( pp, bp->ubSoldierClass, bp->bRelativeEquipmentLevel);
 
@@ -3060,11 +3048,7 @@ SOLDIERTYPE* ReserveTacticalSoldierForAutoresolve( UINT8 ubSoldierClass )
 	//returns the pointer to that soldier.	This is used when copying the exact status of
 	//all remaining enemy troops (or creatures) to finish the battle in autoresolve.	To
 	//signify that the troop has already been reserved, we simply set their gridno to NOWHERE.
-#ifdef ENABLE_ZOMBIES
 	if( ubSoldierClass != SOLDIER_CLASS_CREATURE && ubSoldierClass != SOLDIER_CLASS_ZOMBIE )
-#else
-	if( ubSoldierClass != SOLDIER_CLASS_CREATURE )
-#endif
 	{ //use the enemy team
 		iStart = gTacticalStatus.Team[ ENEMY_TEAM ].bFirstID;
 		iEnd = gTacticalStatus.Team[ ENEMY_TEAM ].bLastID;
@@ -3204,7 +3188,6 @@ SOLDIERTYPE* TacticalCreateEliteEnemy()
 	return( pSoldier );
 }
 
-#ifdef ENABLE_ZOMBIES
 	//USED BY STRATEGIC AI and AUTORESOLVE
 	SOLDIERTYPE* TacticalCreateZombie()
 	{
@@ -3238,7 +3221,6 @@ SOLDIERTYPE* TacticalCreateEliteEnemy()
 
 		return( pSoldier );
 	}
-#endif
 
 SOLDIERTYPE* ReserveTacticalMilitiaSoldierForAutoresolve( UINT8 ubSoldierClass )
 {
@@ -4963,10 +4945,8 @@ BOOLEAN AssignTraitsToSoldier( SOLDIERTYPE *pSoldier, SOLDIERCREATE_STRUCT *pCre
 				iChance = 10 + ubProgress/4; // 10-35% chance
 			else if( ubSolClass == SOLDIER_CLASS_ADMINISTRATOR || ubSolClass == SOLDIER_CLASS_GREEN_MILITIA )  
 				iChance = ubProgress/4; // 0-25% chance
-#ifdef ENABLE_ZOMBIES
 			else if (ubSolClass == SOLDIER_CLASS_ZOMBIE )  
 				iChance = 100; // 100% chance
-#endif
 
 			if( foundHtH ) // if found brass knuckless, increase the chance (doesn't happen often)
 				iChance += 35;
@@ -5010,10 +4990,8 @@ BOOLEAN AssignTraitsToSoldier( SOLDIERTYPE *pSoldier, SOLDIERCREATE_STRUCT *pCre
 				iChance = 25 + ubProgress*2/5; // 25-65% chance
 			else if( ubSolClass == SOLDIER_CLASS_ADMINISTRATOR || ubSolClass == SOLDIER_CLASS_GREEN_MILITIA )  
 				iChance = 10 + ubProgress*2/5; // 10-50% chance
-#ifdef ENABLE_ZOMBIES
 			else if (ubSolClass == SOLDIER_CLASS_ZOMBIE )  
 				iChance = 100; // 100% chance
-#endif
 
 			// modify the chance by preset ini setting
 			if( gGameExternalOptions.bAssignedTraitsRarity != 0 )

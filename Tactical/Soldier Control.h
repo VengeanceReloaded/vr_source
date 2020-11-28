@@ -1697,10 +1697,8 @@ public:
 
 	INT16	GetSoldierCriticalDamageBonus( void );	// Flugente: determines critical damage bonus depending on class, skill, etc.
 
-#ifdef ENABLE_ZOMBIES
 	// Flugente: Zombies
 	BOOLEAN IsZombie( void );
-#endif
 	
 	// Flugente: poison system
 	// These functions might one day be modified by traits etc. We'll keep that in these functions and not clutter the rest of the code

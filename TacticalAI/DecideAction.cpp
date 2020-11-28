@@ -53,12 +53,10 @@ extern void IncrementWatchedLoc(UINT8 ubID, INT32 sGridNo, INT8 bLevel);
 
 #define CENTER_OF_RING 11237//dnl!!!
 
-#ifdef ENABLE_ZOMBIES
-	INT8 ZombieDecideActionGreen(SOLDIERTYPE *pSoldier);
-	INT8 ZombieDecideActionYellow(SOLDIERTYPE *pSoldier);
-	INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier);
-	INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier);
-#endif
+INT8 ZombieDecideActionGreen(SOLDIERTYPE *pSoldier);
+INT8 ZombieDecideActionYellow(SOLDIERTYPE *pSoldier);
+INT8 ZombieDecideActionRed(SOLDIERTYPE *pSoldier);
+INT8 ZombieDecideActionBlack(SOLDIERTYPE *pSoldier);
 
 void DoneScheduleAction( SOLDIERTYPE * pSoldier )
 {
@@ -5413,7 +5411,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		//////////////////////////////////////////////////////////////////////////
 		DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"CHOOSE THE BEST TYPE OF ATTACK OUT OF THOSE FOUND TO BE POSSIBLE");
 
-#ifdef ENABLE_ZOMBIES
 		// sevenfm: special code to attack zombies, disable shooting since we cannot kill lying zombie with bullets
 		if (BestShot.ubPossible &&
 			BestShot.ubOpponent != NOBODY &&
@@ -5426,7 +5423,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		{
 			BestShot.ubPossible = FALSE;
 		}
-#endif
 
 		if (BestShot.ubPossible)
 		{
@@ -5849,7 +5845,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 								ubChanceHead += ubRealCTH / 4;
 							}
 
-#ifdef ENABLE_ZOMBIES
 							if (MercPtrs[BestAttack.ubOpponent]->IsZombie())
 							{
 								if (gGameExternalOptions.fZombieOnlyHeadshotsWork)
@@ -5857,7 +5852,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 								else if (gGameExternalOptions.fZombieOnlyHeadShotsPermanentlyKill)
 									ubChanceHead += 25;
 							}
-#endif
 
 							// don't waste bullets shooting at heads with low CTH
 							ubChanceHead = ubChanceHead * (100 + ubRealCTH) / 200;
@@ -6843,10 +6837,6 @@ void DecideAlertStatus( SOLDIERTYPE *pSoldier )
 
 }
 
-
-
-
-#ifdef ENABLE_ZOMBIES
 // ------------------------------ ZOMBIE AI --------------------------
 INT8 ZombieDecideActionGreen(SOLDIERTYPE *pSoldier)
 {
@@ -8146,8 +8136,6 @@ void ZombieDecideAlertStatus( SOLDIERTYPE *pSoldier )
 	}
 }
 
-#endif
-
 INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance, BOOLEAN fAbortSeek)
 {
 	if (pSoldier->numFlanks == 0 &&
@@ -8939,118 +8927,3 @@ INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 
 	return -1;
 }
-
-/*
-if (CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) > 2)
-{
-fOvercrowded = TRUE;
-}
-
-// sevenfm: possibly start RED flanking
-if (//!pSoldier->IsFlanking() &&
-pSoldier->numFlanks == 0 &&
-pSoldier->aiData.bLastAction != AI_ACTION_FLANK_LEFT &&
-pSoldier->aiData.bLastAction != AI_ACTION_FLANK_RIGHT &&
-(pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ||
-(pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID) && fOvercrowded) &&
-pSoldier->bTeam == ENEMY_TEAM &&
-pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
-pSoldier->CheckInitialAP() &&
-pSoldier->ubSoldierClass != SOLDIER_CLASS_ADMINISTRATOR &&
-!AICheckIsCommander(pSoldier) &&
-!AICheckIsSniper(pSoldier) &&
-!AICheckIsMachinegunner(pSoldier) &&
-!AICheckIsMortarOperator(pSoldier) &&
-(gAnimControl[pSoldier->usAnimState].ubHeight != ANIM_PRONE || fOvercrowded) &&
-!pSoldier->aiData.bUnderFire &&
-pSoldier->pathing.bLevel == 0 &&
-(pSoldier->aiData.bOrders == SEEKENEMY || pSoldier->aiData.bOrders == FARPATROL || pSoldier->aiData.bOrders == CLOSEPATROL && NightTime()) &&
-(!GuySawEnemy(pSoldier) || fOvercrowded || fAbortSeek) &&
-!Water(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
-(fAbortSeek || CountFriendsFlankSameSpot(pSoldier, sClosestDisturbance) < CountNearbyFriends(pSoldier, sClosestDisturbance, MAX_FLANK_DIST_RED) / 2) &&
-PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) > MIN_FLANK_DIST_RED &&
-(PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) < MAX_FLANK_DIST_RED || fAbortSeek ) &&
-(fAbortSeek || CountFriendsBetweenMeAndSpotFromSpot(pSoldier, sClosestDisturbance) > 0 || NightTime() || fOvercrowded))
-{
-UINT8 ubFriends, ubFriendsLeft, ubFriendsRight;
-UINT8 ubDirection = AIDirection(sClosestDisturbance, pSoldier->sGridNo);
-
-ubFriends = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, ubDirection, VISION_RANGE * 2);
-ubFriendsLeft = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gOneCDirection[ubDirection], VISION_RANGE * 2) +
-CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gTwoCDirection[ubDirection], VISION_RANGE * 2);
-ubFriendsRight = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gOneCCDirection[ubDirection], VISION_RANGE * 2) +
-CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gTwoCCDirection[ubDirection], VISION_RANGE * 2);
-
-BOOLEAN fLeftFlankPossible = FALSE;
-BOOLEAN fRightFlankPossible = FALSE;
-
-if (ubFriendsLeft < ubFriends)
-{
-fLeftFlankPossible = TRUE;
-}
-
-if (ubFriendsRight < ubFriends)
-{
-fRightFlankPossible = TRUE;
-}
-
-INT32 sFlankingSpot = NOWHERE;
-INT8 bAction = AI_ACTION_NONE;
-
-// decide flanking direction
-if (fLeftFlankPossible && !fRightFlankPossible)
-{
-bAction = AI_ACTION_FLANK_LEFT;
-}
-else if (fRightFlankPossible && !fLeftFlankPossible)
-{
-bAction = AI_ACTION_FLANK_RIGHT;
-}
-else if (fLeftFlankPossible && fRightFlankPossible)
-{
-if (Random(6) < 3)
-bAction = AI_ACTION_FLANK_LEFT;
-else
-bAction = AI_ACTION_FLANK_RIGHT;
-}
-
-if (bAction != AI_ACTION_NONE)
-{
-sFlankingSpot = FindFlankingSpot(pSoldier, sClosestDisturbance, bAction);
-
-// if found good flank spot, start flanking
-if (!TileIsOutOfBounds(sFlankingSpot))
-{
-INT8 bTacticalOrder;
-if (bAction == AI_ACTION_FLANK_LEFT)
-bTacticalOrder = TACTICAL_ORDER_FLANK_LEFT;
-else
-bTacticalOrder = TACTICAL_ORDER_FLANK_RIGHT;
-
-pSoldier->aiData.usActionData = sFlankingSpot;
-
-// start flanking order
-pSoldier->StartTacticalOrder(bTacticalOrder, sClosestDisturbance, bClosestDisturbanceLevel, AIDirection(pSoldier->sGridNo, sClosestDisturbance), 0, FLANKING_DURATION);
-
-// prevent this soldier from flanking in the future
-pSoldier->usSoldierFlagMask2 |= SOLDIER_DISABLE_FLANKING;
-
-// sevenfm: change orders when starting to flank
-if (pSoldier->aiData.bOrders == CLOSEPATROL)
-{
-pSoldier->aiData.bOrders = FARPATROL;
-}
-
-return(bAction);
-}
-else
-{
-//DebugAI(AI_MSG_INFO, pSoldier, String("cannot find flanking spot"));
-}
-}
-else
-{
-//DebugAI(AI_MSG_INFO, pSoldier, String("no valid flanking direction"));
-}
-}
-*/

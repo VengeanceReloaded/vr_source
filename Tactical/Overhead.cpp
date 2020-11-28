@@ -6139,9 +6139,7 @@ void ExitCombatMode( )
     // unused
     //gfForceMusicToTense = TRUE;
 
-#ifdef ENABLE_ZOMBIES
     UseCreatureMusic(HostileZombiesPresent());
-#endif
 
 	#ifdef NEWMUSIC
 	GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
@@ -6207,10 +6205,8 @@ void SetEnemyPresence( )
 
 #endif
             {
-
-#ifdef ENABLE_ZOMBIES
                 UseCreatureMusic(HostileZombiesPresent());
-#endif
+
 				#ifdef NEWMUSIC
 				GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
 				if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] != -1 )
@@ -6555,9 +6551,7 @@ BOOLEAN CheckForEndOfCombatMode( BOOLEAN fIncrementTurnsNotSeen )
         // Begin tense music....
         // unused
         //gfForceMusicToTense = TRUE;
-#ifdef ENABLE_ZOMBIES
         UseCreatureMusic(HostileZombiesPresent());
-#endif
 		#ifdef NEWMUSIC
 		GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
 		if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] != -1 )
@@ -6968,10 +6962,8 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
         return( FALSE );
     }
 
-#ifdef ENABLE_ZOMBIES
     if ( HostileZombiesPresent() ) //Madd: got tired of the victory music playing right after the zombies arose
         return FALSE;
-#endif
 
     // OK, this is to releave infinate looping...becasue we can kill guys in this function
     if ( gfKillingGuysForLosingBattle )
@@ -7753,7 +7745,6 @@ UINT8 NumEnemyInSector( )
 
 }
 
-#ifdef ENABLE_ZOMBIES
 UINT8 NumZombiesInSector( )
 {
     SOLDIERTYPE *pTeamSoldier;
@@ -7773,7 +7764,6 @@ UINT8 NumZombiesInSector( )
 
     return( ubNumZombies );
 }
-#endif
 
 UINT8 NumEnemyInSectorExceptCreatures()
 {
@@ -8382,11 +8372,9 @@ void HandleSuppressionFire( UINT8 ubTargetedMerc, UINT8 ubCausedAttacker )
         DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("HandleSuppressionFire: loop = %d, numslots = %d ",uiLoop, guiNumMercSlots));
         pSoldier = MercSlots[uiLoop];
 
-#ifdef ENABLE_ZOMBIES
         // Flugente: zombies do not receive any suppression at all!
         if ( pSoldier != NULL && pSoldier->IsZombie() )
             continue;
-#endif
 
         // Has this character received any Suppression Points since the last attack?
         // HEADROCK: Suppression Points accumulate by bullets flying near the character. It includes
@@ -10033,7 +10021,6 @@ BOOLEAN HostileBloodcatsPresent( )
     return( FALSE );
 }
 
-#ifdef ENABLE_ZOMBIES
 BOOLEAN HostileZombiesPresent( )
 {
     INT32                       iLoop;
@@ -10056,7 +10043,6 @@ BOOLEAN HostileZombiesPresent( )
 
     return( FALSE );
 }
-#endif
 
 void HandleCreatureTenseQuote( )
 {

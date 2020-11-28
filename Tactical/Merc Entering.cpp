@@ -902,9 +902,8 @@ void HandleFirstHeliDropOfGame( )
 			SayQuoteFromAnyBodyInSector( QUOTE_ENEMY_PRESENCE );
 			
 			// Start music
-#ifdef ENABLE_ZOMBIES
 			UseCreatureMusic(HostileZombiesPresent());
-#endif
+
 			#ifdef NEWMUSIC
 			GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
 			if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] != -1 )

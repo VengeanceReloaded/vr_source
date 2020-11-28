@@ -585,11 +585,9 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 	pCorpse->pAniTile->uiUserData								= iIndex;
 	pCorpse->iID																= iIndex;
 
-#ifdef ENABLE_ZOMBIES
 	// copy name of corpse definition...
 	memcpy( &(pCorpse->name), &(pCorpseDef->name), sizeof(CHAR16) * 10 );
 	pCorpse->name[9] = '\0';
-#endif
 
 	pCorpse->fActivated = TRUE;
 
@@ -872,7 +870,6 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 			Corpse.usFlags |= ROTTING_CORPSE_USE_SNOW_CAMO_PALETTE;
 	}
 
-#ifdef ENABLE_ZOMBIES
 	// Flugente Zombies: Determine if a zombie can rise from this corpse
 	switch ( gGameExternalOptions.sZombieRiseBehaviour )
 	{	
@@ -907,7 +904,6 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	// Flugente: copy name of soldier...
 	memcpy( &(Corpse.name), &(pSoldier->name), sizeof(CHAR16) * 10 );
 	Corpse.name[9] = '\0';
-#endif
 		
 	// if this soldier's uniform was damaged (gunfire, blade attacks, explosions) then don't allow to take the uniform. We can't stay hidden if we're covered in blood :-)
 	if ( pSoldier->usSoldierFlagMask & SOLDIER_DAMAGED_VEST )
@@ -2142,10 +2138,8 @@ BOOLEAN TakeCorpse( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel )
 					if ( pCorpse->def.usFlags & ROTTING_CORPSE_NO_PANTS )
 						gTempObject[0]->data.sObjectFlag |= CORPSE_NO_PANTS;
 
-#ifdef ENABLE_ZOMBIES
 					if ( pCorpse->def.usFlags & ROTTING_CORPSE_NEVER_RISE_AGAIN )
 						gTempObject[0]->data.sObjectFlag |= CORPSE_NO_ZOMBIE_RISE;
-#endif
 				
 					// now we have to get the correct flags for the object from the corpse, so that upon recreating the corpse, it looks the same
 					UINT8 headpal = 0, skinpal = 0, vestpal = 0, pantspal = 0;
@@ -2393,11 +2387,9 @@ BOOLEAN AddCorpseFromObject(OBJECTTYPE* pObj, INT32 sGridNo, INT8 bLevel )
 	Corpse.fHeadTaken = FALSE;
 	Corpse.ubAIWarningValue = 20;
 
-#ifdef ENABLE_ZOMBIES
 	// Flugente: use zombie name (it's the only way this will ever be relevant again anyway)
 	swprintf( Corpse.name, TacticalStr[ ZOMBIE_TEAM_MERC_NAME ] );
 	Corpse.name[9] = '\0';
-#endif
 	
 	INT32 iCorpseID = AddRottingCorpse( &Corpse );
 
@@ -2414,10 +2406,8 @@ BOOLEAN AddCorpseFromObject(OBJECTTYPE* pObj, INT32 sGridNo, INT8 bLevel )
 		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_PANTS )
 			gRottingCorpse[ iCorpseID ].def.usFlags |= ROTTING_CORPSE_NO_PANTS;
 				
-#ifdef ENABLE_ZOMBIES
 		if ( (*pObj)[0]->data.sObjectFlag & CORPSE_NO_ZOMBIE_RISE )
 			gRottingCorpse[ iCorpseID ].def.usFlags |= ROTTING_CORPSE_NEVER_RISE_AGAIN;
-#endif
 
 		return TRUE;
 	}
@@ -2649,7 +2639,6 @@ UINT8 GetNearestRottingCorpseAIWarning( INT32 sGridNo )
 
 extern UNDERGROUND_SECTORINFO* FindUnderGroundSector(INT16 sMapX, INT16 sMapY, UINT8 bMapZ);
 
-#ifdef ENABLE_ZOMBIES
 	// Flugente Zombies: resurrect zombies
 	void RaiseZombies( void )
 	{
@@ -2889,7 +2878,6 @@ extern UNDERGROUND_SECTORINFO* FindUnderGroundSector(INT16 sMapX, INT16 sMapY, U
 			pNewSoldier->bPoisonAbsorption		= 0;	// Flugente: Screw this, we use GetPoisonAbsorption() instead... I declare this variable dead until further notice
 			//////////////////////////////////////////////////////////////////////
 
-#ifdef ENABLE_ZOMBIES
 			if (   !memcmp( pCorpse->name, TacticalStr[ CIV_TEAM_MINER_NAME ], sizeof(pCorpse->name) ) 
 				|| !memcmp( pCorpse->name, TacticalStr[ MILITIA_TEAM_MERC_NAME ], sizeof(pCorpse->name) )
 				|| !memcmp( pCorpse->name, TacticalStr[ CREATURE_TEAM_MERC_NAME ], sizeof(pCorpse->name) ) 
@@ -2904,10 +2892,6 @@ extern UNDERGROUND_SECTORINFO* FindUnderGroundSector(INT16 sMapX, INT16 sMapY, U
 				memcpy( &(pNewSoldier->name), &(pCorpse->name), sizeof(CHAR16) * 10 );
 				pNewSoldier->name[9] = '\0';
 			}
-#else
-			memcpy( &(pNewSoldier->name), &(pCorpse->name), sizeof(CHAR16) * 10 );
-			pNewSoldier->name[9] = '\0';
-#endif
 			
 			// add skills according to difficulty level
 			switch( gGameExternalOptions.sZombieDifficultyLevel )
@@ -3007,7 +2991,6 @@ extern UNDERGROUND_SECTORINFO* FindUnderGroundSector(INT16 sMapX, INT16 sMapY, U
 			// Set a pending animation to change stance first...
 			//SendChangeSoldierStanceEvent( pNewSoldier, ANIM_CROUCH );
 
-#ifdef ENABLE_ZOMBIES
 			// search for armour and equip if found
 			if ( gGameExternalOptions.fZombieRiseWithArmour )
 			{
@@ -3067,7 +3050,6 @@ extern UNDERGROUND_SECTORINFO* FindUnderGroundSector(INT16 sMapX, INT16 sMapY, U
 					pItemPool = pItemPoolNext;
 				}
 			}
-#endif
 
 			// Change to standing,unless we can getup with an animation
 			pNewSoldier->EVENT_InitNewSoldierAnim( STANDING, 0, TRUE );
@@ -3143,7 +3125,6 @@ extern UNDERGROUND_SECTORINFO* FindUnderGroundSector(INT16 sMapX, INT16 sMapY, U
 
 		return( canbezombie );
 	}
-#endif
 
 // Flugente: can we take the clothes of this corpse?
 // calling this with NULL for soldier will give a general answer for any bodytype

@@ -436,7 +436,6 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 		pHim->dYPos = dHisY;					// and the 'y'
 	}
 
-#ifdef ENABLE_ZOMBIES
 	// sevenfm: special calculations for zombies: zombie is very dangerous at close range
 	if( pHim->IsZombie() )
 	{
@@ -453,7 +452,6 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 		}
 		//ubHisCTH = 100;
 	}
-#endif
 
 	// sevenfm: if soldier has no gun, use different calculation
 	if( !AICheckHasGun(pMe) )
@@ -476,9 +474,7 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 
 	// add penalty to enemy position, bonus to my position if soldier has cover at spot
 	// max 25% at DAY_VISION_RANGE/2, 0 at zero range
-#ifdef ENABLE_ZOMBIES
 	if( !pHim->IsZombie() )
-#endif
 	{
 		if( AnyCoverFromSpot(sMyGridNo, bMyLevel, sHisGridNo, bHisLevel) )
 		{
@@ -540,12 +536,10 @@ INT32 CalcCoverValue(SOLDIERTYPE *pMe, INT32 sMyGridNo, INT32 iMyThreat, INT32 i
 		fAdvance = FALSE;
 	}
 
-#ifdef ENABLE_ZOMBIES
 	if( pMe->IsZombie() || pHim->IsZombie() )
 	{
 		fAdvance = FALSE;
 	}
-#endif
 
 //	if (bHisCTGT < 100 || (morale - 1 < 0))
 	{
@@ -1154,13 +1148,11 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 				//PopMessage(tempstr);
 			}
 
-#ifdef ENABLE_ZOMBIES
 			// zombies only try to hide
 			if ( pSoldier->IsZombie() && !fSightCover )
 			{
 				continue;
 			}
-#endif
 
 			// reduce cover for each person adjacent to this gridno who is on our team,
 			// by 10% (so locations next to several people will be very much frowned upon

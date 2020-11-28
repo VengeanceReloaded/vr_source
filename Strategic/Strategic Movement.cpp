@@ -960,9 +960,8 @@ void PrepareForPreBattleInterface( GROUP *pPlayerDialogGroup, GROUP *pInitiating
 	}
 
 	//Set music
-#ifdef ENABLE_ZOMBIES
 	UseCreatureMusic(HostileZombiesPresent());
-#endif
+
 	#ifdef NEWMUSIC
 	GlobalSoundID  = MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ];
 	if ( MusicSoundValues[ SECTOR( gWorldSectorX, gWorldSectorY ) ].SoundTacticalTensor[gbWorldSectorZ] != -1 )

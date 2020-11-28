@@ -8697,7 +8697,6 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, BULLET *pBullet, SOLDIERTYPE * pTarget,
 	INT8					bStatLoss = 0;
 	UINT8					ubAmmoType;
 
-#ifdef ENABLE_ZOMBIES
 	if ( pTarget->IsZombie() )
 	{
 		// if bullet does not hits anything other than the head, it doesn't do any damage
@@ -8713,7 +8712,6 @@ INT32 BulletImpact( SOLDIERTYPE *pFirer, BULLET *pBullet, SOLDIERTYPE * pTarget,
 				pTarget->usSoldierFlagMask &= ~SOLDIER_HEADSHOT;
 		}
 	}
-#endif
 
 	// NOTE: reduction of bullet impact due to range and obstacles is handled
 	// in MoveBullet.
@@ -9601,7 +9599,6 @@ INT32 HTHImpact( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pTarget, INT32 iHitBy, BO
 	BOOLEAN autoresolve = IsAutoResolveActive();		
 	iImpact = max( 1, (INT32)(iImpact * (100 - pTarget->GetDamageResistance(autoresolve, FALSE)) / 100 ) );
 
-#ifdef ENABLE_ZOMBIES
 	// Flugente: if the target is a zombie, any melee attack, regardless of hit location, will set the headshot flag. Thus any zombie killed in melee will stay dead (if you play with that option)
 	if ( pTarget->IsZombie() )
 	{
@@ -9611,7 +9608,6 @@ INT32 HTHImpact( SOLDIERTYPE * pSoldier, SOLDIERTYPE * pTarget, INT32 iHitBy, BO
 			pTarget->usSoldierFlagMask |= SOLDIER_HEADSHOT;
 		}
 	}
-#endif
 
 	return( iImpact );
 }

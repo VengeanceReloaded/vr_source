@@ -1300,8 +1300,6 @@ INT16 ActionInProgress(SOLDIERTYPE *pSoldier)
 
 void TurnBasedHandleNPCAI(SOLDIERTYPE *pSoldier)
 {
-#ifdef ENABLE_ZOMBIES
-
 	// added by Flugente: static pointers, used to break out of an endless circles (currently only used for zombie AI)
 	static SOLDIERTYPE* pLastDecisionSoldier = NULL;
 	static INT16	lastdecisioncount = 0;
@@ -1328,7 +1326,7 @@ void TurnBasedHandleNPCAI(SOLDIERTYPE *pSoldier)
 		pLastDecisionSoldier = pSoldier;
 		lastdecisioncount = 0;
 	}
-#endif
+
 	// yikes, this shouldn't occur! we should be trying to finish our move!
 	// pSoldier->flags.fNoAPToFinishMove = FALSE;
 
@@ -1492,9 +1490,7 @@ void TurnBasedHandleNPCAI(SOLDIERTYPE *pSoldier)
 			{
 				// turn based... abort this guy's turn
 				EndAIGuysTurn( pSoldier );
-#ifdef ENABLE_ZOMBIES
 				lastdecisioncount = 0;
-#endif
 			}
 		}
 		else
@@ -1747,14 +1743,13 @@ INT8 ExecuteAction(SOLDIERTYPE *pSoldier)
 						PossiblyStartEnemyTaunt( pSoldier, TAUNT_SEEK_NOISE );
 					else if (pSoldier->aiData.bAction == AI_ACTION_RUN_AWAY )
 						PossiblyStartEnemyTaunt( pSoldier, TAUNT_RUN_AWAY );
-	#ifdef ENABLE_ZOMBIES
+
 					if ( Random( 5 ) == 0 )
 					{
 						if ( pSoldier->IsZombie() ) // Madd:  Zombies randomly moan...
 							pSoldier->DoMercBattleSound( (INT8)( BATTLE_SOUND_LAUGH1 ) );
 
 					}
-	#endif
 				}
 			}
         case AI_ACTION_APPROACH_MERC:				 // walk up to someone to talk
