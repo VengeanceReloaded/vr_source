@@ -1153,6 +1153,7 @@ void HandleTankCorpses(void)
 {
 	INT32	cnt;
 	ROTTING_CORPSE	*pCorpse;
+	UINT8 ubRadius;
 
 	if (!NightLight())
 		return;
@@ -1167,8 +1168,13 @@ void HandleTankCorpses(void)
 			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
 			pCorpse->def.bLevel == 0)
 		{
+			ubRadius = 2;
+
+			if (GetWorldTotalMin() - pCorpse->def.uiTimeOfDeath > DELAY_UNTIL_ROTTING)
+				ubRadius = 1;
+
 			if (NightLight() && !IsLightEffectAtTile(pCorpse->def.sGridNo))
-				NewLightEffect(pCorpse->def.sGridNo, 255, 2);
+				NewLightEffect(pCorpse->def.sGridNo, 255, ubRadius);
 			else if (!NightLight() && IsLightEffectAtTile(pCorpse->def.sGridNo))
 				RemoveLightEffectFromTile(pCorpse->def.sGridNo);
 		}

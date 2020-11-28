@@ -150,7 +150,7 @@ void HandleTacticalEndTurn( )
 	SetFastForwardMode(FALSE); // Cancel FF at end of battle
 	SetClockSpeedPercent(gGameExternalOptions.fClockSpeedPercent);	// sevenfm: set default clock speed
 
-	// Get time elasped
+	// Get time elapsed
 	uiTime = GetWorldTotalSeconds( );
 
 	if ( ( uiTimeSinceLastStrategicUpdate - uiTime ) > 1200 )
