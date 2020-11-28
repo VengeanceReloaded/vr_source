@@ -156,13 +156,13 @@ void HandleTacticalEndTurn( )
 	if ( ( uiTimeSinceLastStrategicUpdate - uiTime ) > 1200 )
 	{
 		HandleRottingCorpses( );
-		//DecayTacticalMoraleModifiers();
-
-		// sevenfm: create light for tanks
-		HandleTankCorpses();
+		//DecayTacticalMoraleModifiers();		
 
 		uiTimeSinceLastStrategicUpdate = uiTime;
 	}
+
+	// sevenfm: create light for tanks, remove tank corpse
+	HandleTankCorpses();
 
 	DecayBombTimers( );
 	DecayLightEffects(uiTime);

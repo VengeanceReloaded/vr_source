@@ -2397,10 +2397,14 @@ BOOLEAN InLightAtNight( INT32 sGridNo, INT8 bLevel )
 	}
 	
 	// could've been placed here, ignore the light
-	if ( InARoom( sGridNo, NULL ) )	
+	//UINT16 usRoom;
+	//UINT16 usOriginalRoom;
+	//if (InARoom(sGridNo, usRoom) && InARoom(pSoldier->aiData.sPatrolGrid[0], &usOriginalRoom) && usRoom == usOriginalRoom && (pSoldier->aiData.bOrders == STATIONARY))
+	// sevenfm: always check light in a room
+	/*if (InARoom(sGridNo, NULL))
 	{
 		return( FALSE );
-	}
+	}*/
 
 	// NB light levels are backwards, so a lower light level means the
 	// spot in question is BRIGHTER

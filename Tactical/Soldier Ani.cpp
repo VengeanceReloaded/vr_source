@@ -579,9 +579,10 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				{
 					break;
 				}
-
-				if ( !pSoldier->flags.fMuzzleFlash )
-				{
+				
+				//if ( !pSoldier->flags.fMuzzleFlash )
+				if (IsFlashSuppressor(pSoldier->GetUsedWeapon(&pSoldier->inv[pSoldier->ubAttackingHand]), pSoldier))
+				{					
 					break;
 				}
 

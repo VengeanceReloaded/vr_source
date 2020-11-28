@@ -11494,6 +11494,10 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 	INT16	sItemBonus;
 	BOOLEAN fTurnbased = FALSE;	
 	
+	// sevenfm: temporarily disable <VisionRangeBonus> when using new vision mode
+	if (UsingNewVisionSystem())
+		return 0;
+
 	if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT))
 		fTurnbased = TRUE;
 

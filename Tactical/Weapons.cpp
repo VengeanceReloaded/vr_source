@@ -2443,7 +2443,7 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 	// Deduct points!
  	sAPCost = CalcTotalAPsToAttack( pSoldier, sTargetGridNo, FALSE, pSoldier->aiData.bAimTime );
 	// SANDRO: get BP cost for weapon manipulating
-	if ( gGameExternalOptions.ubEnergyCostForWeaponWeight && !IsAutoResolveActive() ) // rather not in atuoresolve, since we can't choose stance there
+	if ( gGameExternalOptions.ubEnergyCostForWeaponWeight && !IsAutoResolveActive() ) // rather not in autoresolve, since we can't choose stance there
 		iBPCost = sAPCost * GetBPCostPer10APsForGunHolding( pSoldier ) / 10;
 	else 
 		iBPCost = 0;
@@ -2951,7 +2951,7 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 
 		  return( FALSE );
 		}
-	}
+	}	
 	//hayden
 	if((is_server && pSoldier->ubID<120) || (!is_server && is_client && pSoldier->ubID<20) || (!is_server && !is_client) )
 	{

@@ -6405,7 +6405,7 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 
 	// ignore muzzle flashes when turning head to see noise
 	if ( ubNoiseType == NOISE_GUNFIRE && ubNoiseMaker != NOBODY && MercPtrs[ ubNoiseMaker ]->flags.fMuzzleFlash )
-	{
+	{		
 		sNoiseX = CenterX(sGridNo);
 		sNoiseY = CenterY(sGridNo);
 		bDirection = atan8(pSoldier->sX,pSoldier->sY,sNoiseX,sNoiseY);

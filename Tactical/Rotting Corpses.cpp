@@ -1151,9 +1151,6 @@ void HandleTankCorpses(void)
 	ROTTING_CORPSE	*pCorpse;
 	UINT8 ubRadius;
 
-	if (!NightLight())
-		return;
-
 	// OK, loop through our current listing of bodies
 	for (cnt = 0; cnt < giNumRottingCorpse; cnt++)
 	{
@@ -1166,8 +1163,13 @@ void HandleTankCorpses(void)
 		{
 			ubRadius = 2;
 
-			if (GetWorldTotalMin() - pCorpse->def.uiTimeOfDeath > DELAY_UNTIL_ROTTING)
+			//if (GetWorldTotalMin() - pCorpse->def.uiTimeOfDeath > DELAY_UNTIL_ROTTING)
+			if (GetWorldTotalMin() - pCorpse->def.uiTimeOfDeath > 60)
+			{
+				//RemoveLightEffectFromTile(pCorpse->def.sGridNo);
+				//RemoveCorpse(cnt);				
 				ubRadius = 1;
+			}
 
 			if (NightLight() && !IsLightEffectAtTile(pCorpse->def.sGridNo))
 				NewLightEffect(pCorpse->def.sGridNo, 255, ubRadius);

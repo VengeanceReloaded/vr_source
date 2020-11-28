@@ -3389,35 +3389,33 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 
 			// sevenfm: penalize watching if some friends see enemy at watched location
 			bHighestWatchLoc = GetHighestVisibleWatchedLoc(pSoldier->ubID);
-			if (bHighestWatchLoc != -1 && !TileIsOutOfBounds(gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc]))
+			if (bHighestWatchLoc != -1)
 			{
-				if (pSoldier->aiData.bOrders != STATIONARY &&
-					pSoldier->aiData.bOrders != SNIPER)
+				INT32 sWatchSpot = gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc];
+				INT8 bWatchLevel = gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc];
+
+				if (!TileIsOutOfBounds(sWatchSpot))
 				{
-					bWatchPts -= CountFriendsBlack(pSoldier, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc]);
-
-					// penalize watching at night if soldier has no NVG and watched location is not in light
-					if (NightLight() &&
-						!InLightAtNight(gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc]) &&
-						!AICheckNVG(pSoldier) &&
-						!InARoom(pSoldier->sGridNo, NULL))
+					if (pSoldier->aiData.bOrders != STATIONARY && pSoldier->aiData.bOrders != SNIPER)
 					{
-						bWatchPts -= 1;
-					}
+						bWatchPts -= CountFriendsBlack(pSoldier, sWatchSpot);
 
-					if (AIGunRange(pSoldier) < PythSpacesAway(pSoldier->sGridNo, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc]))
-					{
-						bWatchPts -= (PythSpacesAway(pSoldier->sGridNo, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc]) - AIGunRange(pSoldier)) / 4;
-					}
+						// penalize watching at night if soldier has no NVG and watched location is not in light
+						if (NightLight() &&
+							!InLightAtNight(sWatchSpot, bWatchLevel) &&
+							!AICheckNVG(pSoldier) &&
+							!InARoom(pSoldier->sGridNo, NULL))
+						{
+							bWatchPts -= 1;
+						}
 
-					INT8 bMaxEnemyLevel = FindMaxEnemyInterruptLevel(pSoldier, gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], DAY_VISION_RANGE / 8);
-					if (bMaxEnemyLevel > AIEstimateInterruptLevel(pSoldier) + CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8) &&
-						LocationToLocationLineOfSightTest(gsWatchedLoc[pSoldier->ubID][bHighestWatchLoc], gbWatchedLocLevel[pSoldier->ubID][bHighestWatchLoc], pSoldier->sGridNo, pSoldier->pathing.bLevel, TRUE, CALC_FROM_ALL_DIRS, STANDING_LOS_POS, PRONE_LOS_POS))
-					{
-						bWatchPts -= bMaxEnemyLevel - (AIEstimateInterruptLevel(pSoldier) + CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8));
+						if (AIGunRange(pSoldier) < PythSpacesAway(pSoldier->sGridNo, sWatchSpot))
+						{
+							bWatchPts -= 1;
+						}
 					}
 				}
-			}			
+			}
 
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: hide = %d, seek = %d, watch = %d, help = %d",bHidePts,bSeekPts,bWatchPts,bHelpPts));
 			// while one of the three main RED REACTIONS remains viable
