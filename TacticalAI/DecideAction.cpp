@@ -1529,8 +1529,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 	}
 
 	// determine the most important noise heard, and its relative value
-	sNoiseGridNo = MostImportantNoiseHeard(pSoldier,&iNoiseValue, &fClimb, &fReachable);
-	//NumMessage("iNoiseValue = ",iNoiseValue);
+	sNoiseGridNo = MostImportantNoiseHeard(pSoldier, &iNoiseValue, &fClimb, &fReachable);
 	
 	if( !fCivilian &&
 		pSoldier->bTeam == ENEMY_TEAM &&
@@ -1770,7 +1769,6 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		}
 	}
 
-
 	////////////////////////////////////////////////////////////////////////////
 	// RADIO YELLOW ALERT: determine %chance to call others and report noise
 	////////////////////////////////////////////////////////////////////////////
@@ -1851,67 +1849,6 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		return(AI_ACTION_NONE);
 	}
 
-	//continue flanking
-	INT32 tempGridNo;
-	
-	if (TileIsOutOfBounds(sNoiseGridNo))
-		tempGridNo = pSoldier->lastFlankSpot;
-	else
-		tempGridNo = sNoiseGridNo;
-
-	if ( pSoldier->numFlanks > 0 && 
-		pSoldier->numFlanks < MAX_FLANKS_YELLOW )
-	{
-		INT16 currDir = GetDirectionFromGridNo ( tempGridNo, pSoldier );
-		INT16 origDir = pSoldier->origDir;
-		pSoldier->numFlanks += 1;
-		if ( pSoldier->flags.lastFlankLeft )
-		{
-			if ( origDir > currDir )
-				origDir -= 8;
-
-			// stop flanking
-			if ( (currDir - origDir) >= MinFlankDirections(pSoldier) )
-			{
-				pSoldier->numFlanks = MAX_FLANKS_YELLOW;
-			}
-			else
-			{
-				pSoldier->aiData.usActionData = FindFlankingSpot (pSoldier, tempGridNo , AI_ACTION_FLANK_LEFT);				
-				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
-					return AI_ACTION_FLANK_LEFT ;
-				else
-					pSoldier->numFlanks = MAX_FLANKS_YELLOW;
-			}
-		}
-		else
-		{
-			if ( origDir < currDir )
-				origDir += 8;
-
-			// stop flanking
-			if ( (origDir - currDir) >= MinFlankDirections(pSoldier) )
-			{
-				pSoldier->numFlanks = MAX_FLANKS_YELLOW;
-			}
-			else
-			{
-				pSoldier->aiData.usActionData = FindFlankingSpot (pSoldier, tempGridNo , AI_ACTION_FLANK_RIGHT);				
-				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
-					return AI_ACTION_FLANK_RIGHT ;
-				else
-					pSoldier->numFlanks = MAX_FLANKS_YELLOW;
-			}
-		}
-	}
-
-	if ( pSoldier->numFlanks == MAX_FLANKS_YELLOW )
-	{
-		pSoldier->numFlanks += 1;
-		pSoldier->aiData.usActionData = GoAsFarAsPossibleTowards(pSoldier,tempGridNo,AI_ACTION_SEEK_NOISE);
-		return AI_ACTION_SEEK_NOISE ;
-	}
-
 	// Hmmm, I don't think this check is doing what is intended.  But then I see no comment about what is intended.
 	// However, civilians with no profile (and likely no weapons) do not need to be seeking out noises.  Most don't
 	// even have the body type for it (can't climb or jump).
@@ -1981,7 +1918,6 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 			case ATTACKSLAYONLY:	iChance +=  20;  iSneaky += -10;  break;
 			}
 
-
 			// reduce chance if breath is down, less likely to wander around when tired
 			iChance -= (100 - pSoldier->bBreath);
 
@@ -1997,25 +1933,16 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 			if ((INT16) PreRandom(100) < iChance  )
 			{
-
 				pSoldier->aiData.usActionData = GoAsFarAsPossibleTowards(pSoldier,sNoiseGridNo,AI_ACTION_SEEK_NOISE);
 				
 				if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 				{
-					if ( fClimb )//&& pSoldier->aiData.usActionData == sNoiseGridNo)
+					if ( fClimb )
 					{
 						// need to climb AND have enough APs to get there this turn
-						BOOLEAN fUp = TRUE;
-						if (pSoldier->pathing.bLevel > 0 )
-							fUp = FALSE;
-
-						if (!fUp)
-							DebugMsg ( TOPIC_JA2AI , DBG_LEVEL_3 , String("Soldier %d, is climbing down",pSoldier->ubID) );
-
 						// 0verhaul:  the Closest Noise call returns the location of a climb.  So 1) it's not necessary to
 						// ask if we can climb from here.  And 2) It's not necessary to look for the climb point.  We already
 						// have it.
-//						if ( CanClimbFromHere ( pSoldier, fUp ) )
 						if ( pSoldier->sGridNo == sNoiseGridNo)
 						{
 							if (IsActionAffordable(pSoldier) && pSoldier->bActionPoints >= ( APBPConstants[AP_CLIMBROOF] + MinAPsToAttack( pSoldier, sNoiseGridNo, ADDTURNCOST,0)))
@@ -2025,86 +1952,15 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 						}
 						else
 						{
-//							pSoldier->aiData.usActionData = FindClosestClimbPoint(pSoldier, pSoldier->sGridNo , sNoiseGridNo , fUp );
 							pSoldier->aiData.usActionData = sNoiseGridNo;							
-							//if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
-							{
-								return( AI_ACTION_MOVE_TO_CLIMB  );
-							}
+							return AI_ACTION_MOVE_TO_CLIMB;
 						}
 					}
 
-					// possibly start YELLOW flanking
-					if ( ( pSoldier->aiData.bAttitude == CUNNINGAID || 	pSoldier->aiData.bAttitude == CUNNINGSOLO ) &&
-						pSoldier->bTeam == ENEMY_TEAM &&
-						( CountFriendsInDirection( pSoldier, sNoiseGridNo ) > 0 || NightTime() ) &&
-						( pSoldier->aiData.bOrders == SEEKENEMY ||
-						pSoldier->aiData.bOrders == FARPATROL ||
-						pSoldier->aiData.bOrders == CLOSEPATROL && NightTime() ) )
-					{
-						INT8 action = AI_ACTION_SEEK_NOISE;
-						INT16 dist = PythSpacesAway ( pSoldier->sGridNo, sNoiseGridNo );
-						if ( dist > MIN_FLANK_DIST_YELLOW && dist < MAX_FLANK_DIST_YELLOW  )
-						{
-							INT16 rdm = Random(6);
-
-							switch (rdm)
-							{
-							case 1:
-							case 2:
-							case 3:
-								if ( pSoldier->aiData.bLastAction != AI_ACTION_FLANK_LEFT && pSoldier->aiData.bLastAction != AI_ACTION_FLANK_RIGHT )
-									action = AI_ACTION_FLANK_LEFT ;
-								break;
-							default:
-								if ( pSoldier->aiData.bLastAction != AI_ACTION_FLANK_LEFT && pSoldier->aiData.bLastAction != AI_ACTION_FLANK_RIGHT )
-									action = AI_ACTION_FLANK_RIGHT ;
-								break;
-							}
-						}
-						else
-							return AI_ACTION_SEEK_NOISE ;
-
-						pSoldier->aiData.usActionData = FindFlankingSpot (pSoldier, sNoiseGridNo, action );
-						
-						if (TileIsOutOfBounds(pSoldier->aiData.usActionData) || pSoldier->numFlanks >= MAX_FLANKS_YELLOW  )
-						{
-							pSoldier->aiData.usActionData = GoAsFarAsPossibleTowards(pSoldier,sNoiseGridNo,AI_ACTION_SEEK_NOISE);
-							//pSoldier->numFlanks = 0;
-							return(AI_ACTION_SEEK_NOISE);
-						}
-						else
-						{
-							if ( action == AI_ACTION_FLANK_LEFT )
-								pSoldier->flags.lastFlankLeft = TRUE;
-							else
-								pSoldier->flags.lastFlankLeft = FALSE;
-
-							if ( pSoldier->lastFlankSpot != sNoiseGridNo)
-								pSoldier->numFlanks = 0;
-
-							pSoldier->origDir = GetDirectionFromGridNo ( sNoiseGridNo, pSoldier);
-							pSoldier->lastFlankSpot = sNoiseGridNo;
-							pSoldier->numFlanks++;
-							
-							// sevenfm: change orders CLOSEPATROL -> FARPATROL
-							if( pSoldier->aiData.bOrders == CLOSEPATROL )
-							{
-								pSoldier->aiData.bOrders = FARPATROL;
-							}
-
-							return(action);
-						}
-					}
-					else
-					{
-						return(AI_ACTION_SEEK_NOISE);
-					}
-
+					return(AI_ACTION_SEEK_NOISE);
 				}
 			}
 		}
-
 
 		////////////////////////////////////////////////////////////////////////////
 		// SEEK FRIEND WHO LAST RADIOED IN TO REPORT NOISE
@@ -2163,16 +2019,8 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 					if ( fClimb )//&& pSoldier->aiData.usActionData == sClosestFriend)
 					{
 						// need to climb AND have enough APs to get there this turn
-						BOOLEAN fUp = TRUE;
-						if (pSoldier->pathing.bLevel > 0 )
-							fUp = FALSE;
-
-						if (!fUp)
-							DebugMsg ( TOPIC_JA2AI , DBG_LEVEL_3 , String("Soldier %d is climbing down",pSoldier->ubID) );
-
 						// 0verhaul:  Closest Friend call also returns the climb point if climbing is necessary.  So don't
 						// climb the wrong building and don't search again
-						//if ( CanClimbFromHere ( pSoldier, fUp ) )
 						if (pSoldier->sGridNo == sClosestFriend)
 						{
 							if (IsActionAffordable(pSoldier) )
@@ -2182,26 +2030,15 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 						}
 						else
 						{
-							//pSoldier->aiData.usActionData = FindClosestClimbPoint(pSoldier, pSoldier->sGridNo , sClosestFriend , fUp );
 							pSoldier->aiData.usActionData = sClosestFriend;							
-							//if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
-							{
-								return( AI_ACTION_MOVE_TO_CLIMB  );
-							}
+							return( AI_ACTION_MOVE_TO_CLIMB  );
 						}
 					}
-
-					//if (fClimb && pSoldier->aiData.usActionData == sClosestFriend)
-					//{
-					//// need to climb AND have enough APs to get there this turn
-					//return( AI_ACTION_CLIMB_ROOF );
-					//}
 
 					return(AI_ACTION_SEEK_FRIEND);
 				}
 			}
 		}
-
 
 		////////////////////////////////////////////////////////////////////////////
 		// TAKE BEST NEARBY COVER FROM THE NOISE GENERATING GRIDNO
@@ -2270,7 +2107,6 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		return(DecideActionGreen(pSoldier));
 	}
 
-
 	////////////////////////////////////////////////////////////////////////////
 	// CROUCH IF NOT CROUCHING ALREADY
 	////////////////////////////////////////////////////////////////////////////
@@ -2325,7 +2161,6 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		}
 		////////////////////////////////////////////////////////////////////////////	
 	}
-
 
 	////////////////////////////////////////////////////////////////////////////
 	// DO NOTHING: Not enough points left to move, so save them for next turn
@@ -8331,7 +8166,7 @@ INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 	{
 		INT8 action = AI_ACTION_SEEK_OPPONENT;
 		INT16 dist = PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance);
-		if (dist > MIN_FLANK_DIST_RED  && dist < MAX_FLANK_DIST_RED)
+		if (dist > MIN_FLANK_DIST  && dist < MAX_FLANK_DIST)
 		{
 			INT16 rdm = Random(6);
 

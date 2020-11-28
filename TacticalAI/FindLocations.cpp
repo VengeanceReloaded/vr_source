@@ -2775,7 +2775,7 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 			}
 
 			// sevenfm: penalize locations too far from noise gridno
-			if( PythSpacesAway( sGridNo, sPos) > MAX_FLANK_DIST_RED )
+			if( PythSpacesAway( sGridNo, sPos) > MAX_FLANK_DIST )
 			{
 				sTempDist = sTempDist / 2;
 			}

@@ -355,10 +355,8 @@ INT16 NightVisionRange(void);
 #define BOMB_DETECTION_RANGE (TACTICAL_RANGE / 4)
 
 // sevenfm: limit min/max flank distance depending on sight range and time of day
-#define MIN_FLANK_DIST_YELLOW (DAY_VISION_RANGE / 2)
-#define MAX_FLANK_DIST_YELLOW (VISION_RANGE * 2 + TACTICAL_RANGE / 2)
-#define MIN_FLANK_DIST_RED (DAY_VISION_RANGE / 2)
-#define MAX_FLANK_DIST_RED (VISION_RANGE + TACTICAL_RANGE)
+#define MIN_FLANK_DIST (DAY_VISION_RANGE / 2)
+#define MAX_FLANK_DIST (VISION_RANGE + TACTICAL_RANGE)
 
 UINT8 RedSmokeDanger( INT32 sGridNo, INT8 bLevel );
 BOOLEAN CheckArtilleryStrike( void );
