@@ -47,6 +47,7 @@
 	#include "Campaign Types.h"	
 	#include "text.h"		// added by Flugente
 	#include "Vehicles.h"	// added by silversurfer
+	#include "LightEffects.h"	// sevenfm
 #endif
 
 #include "Animation Control.h"
@@ -454,6 +455,7 @@ UINT16 GetCorpseStructIndex( ROTTING_CORPSE_DEFINITION *pCorpseDef, BOOLEAN fFor
 	return( bDirection );
 }
 
+extern BOOLEAN NightLight(void);
 
 INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 {
@@ -490,7 +492,7 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 	
 	uiDirectionUseFlag = ANITILE_USE_DIRECTION_FOR_START_FRAME;
 
-	// If we are a soecial type...
+	// If we are a special type...
 	switch( pCorpseDef->ubType )
 	{
 		case SMERC_FALL:
@@ -513,24 +515,24 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 	if ( pCorpseDef->fHeadTaken )
 		pCorpse->def.usFlags |= ROTTING_CORPSE_HEAD_TAKEN;
 
-	if( !(gTacticalStatus.uiFlags & LOADING_SAVED_GAME ) )
+	if (!(gTacticalStatus.uiFlags & LOADING_SAVED_GAME))
 	{
 		// OK, AS WE ADD, CHECK FOR TOD AND DECAY APPROPRIATELY
-		if ( ( ( GetWorldTotalMin( ) - pCorpse->def.uiTimeOfDeath ) > DELAY_UNTIL_ROTTING ) && ( pCorpse->def.ubType < ROTTING_STAGE2 ) )
+		if (((GetWorldTotalMin() - pCorpse->def.uiTimeOfDeath) > DELAY_UNTIL_ROTTING) && (pCorpse->def.ubType < ROTTING_STAGE2))
 		{
-		if ( pCorpse->def.ubType <= FMERC_FALLF )
-		{
-			// Rott!
-			pCorpse->def.ubType = ROTTING_STAGE2;
-		}
+			if (pCorpse->def.ubType <= FMERC_FALLF)
+			{
+				// Rott!
+				pCorpse->def.ubType = ROTTING_STAGE2;
+			}
 		}
 
-	// If time of death is a few days, now, don't add at all!
-		if ( ( ( GetWorldTotalMin( ) - pCorpse->def.uiTimeOfDeath ) > DELAY_UNTIL_DONE_ROTTING ) )
-	{
+		// If time of death is a few days, now, don't add at all!
+		if (((GetWorldTotalMin() - pCorpse->def.uiTimeOfDeath) > DELAY_UNTIL_DONE_ROTTING))
+		{
 
-		return( -1 );
-	}
+			return(-1);
+		}
 	}
 
 	// Check if on roof or not...
@@ -544,7 +546,6 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 		ubLevelID = ANI_ONROOF_LEVEL;
 	}
 
-
 	memset( &AniParams, 0, sizeof( ANITILE_PARAMS ) );
 	AniParams.sGridNo							= pCorpse->def.sGridNo;
 	AniParams.ubLevelID						= ubLevelID;
@@ -555,7 +556,6 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 	AniParams.sY									= CenterY( pCorpse->def.sGridNo );
 	AniParams.sZ									= (INT16)pCorpse->def.sHeightAdjustment;
 	AniParams.uiUserData3					= pCorpse->def.ubDirection;
-
 
 	if ( !gGameSettings.fOptions[ TOPTION_BLOOD_N_GORE ] )
 	{
@@ -619,6 +619,12 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 		return( -1 );
 	}
 
+	// sevenfm: add light for tanks
+	if ((pCorpse->def.ubBodyType == TANK_NE || pCorpse->def.ubBodyType == TANK_NW) && pCorpse->def.bLevel == 0 && NightLight())
+	{
+		NewLightEffect(pCorpse->def.sGridNo, 255, 2);
+	}
+
 	SetRenderFlags(RENDER_FLAG_FULL);
 
 	if ( pCorpse->def.usFlags & ROTTING_CORPSE_VEHICLE )
@@ -651,11 +657,7 @@ INT32	AddRottingCorpse( ROTTING_CORPSE_DEFINITION *pCorpseDef )
 		for (ubLoop = 0; ubLoop < pDBStructureRef->pDBStructure->ubNumberOfTiles; ubLoop++)
 		{
 			ppTile = pDBStructureRef->ppTile;
-#if 0//dnl ch83 080114
-			sTileGridNo = pCorpseDef->sGridNo + ppTile[ ubLoop ]->sPosRelToBase;
-#else
 			sTileGridNo = AddPosRelToBase(pCorpseDef->sGridNo, ppTile[ubLoop]);
-#endif
 			//Remove blood
 			RemoveBlood( sTileGridNo, pCorpseDef->bLevel );
 		}
@@ -1147,6 +1149,31 @@ INT16 FindNearestRottingCorpse( SOLDIERTYPE *pSoldier )
 	return( sLowestGridNo );
 }
 
+void HandleTankCorpses(void)
+{
+	INT32	cnt;
+	ROTTING_CORPSE	*pCorpse;
+
+	if (!NightLight())
+		return;
+
+	// OK, loop through our current listing of bodies
+	for (cnt = 0; cnt < giNumRottingCorpse; cnt++)
+	{
+		pCorpse = &(gRottingCorpse[cnt]);
+
+		if (pCorpse->fActivated && 
+			(pCorpse->def.ubBodyType == TANK_NE || pCorpse->def.ubBodyType == TANK_NW) &&
+			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
+			pCorpse->def.bLevel == 0)
+		{
+			if (NightLight() && !IsLightEffectAtTile(pCorpse->def.sGridNo))
+				NewLightEffect(pCorpse->def.sGridNo, 255, 2);
+			else if (!NightLight() && IsLightEffectAtTile(pCorpse->def.sGridNo))
+				RemoveLightEffectFromTile(pCorpse->def.sGridNo);
+		}
+	}
+}
 
 void AddCrowToCorpse( ROTTING_CORPSE *pCorpse )
 {
@@ -1246,28 +1273,27 @@ void HandleCrowFlyAway( SOLDIERTYPE *pSoldier )
 }
 
 
-void HandleRottingCorpses( )
+void HandleRottingCorpses()
 {
 	ROTTING_CORPSE		*pCorpse;
 	INT8							bNumCrows = 0;
 	UINT32			uiChosenCorpseID;
 
-
 	// Don't allow crows here if flags not set
-	if ( !gTacticalStatus.fGoodToAllowCrows )
+	if (!gTacticalStatus.fGoodToAllowCrows)
 	{
 		return;
 	}
 
 	// ATE: If it's too late, don't!
-	if( NightTime() )
+	if (NightTime())
 	{
 		return;
 	}
 
-	if ( gbWorldSectorZ > 0 )
+	if (gbWorldSectorZ > 0)
 	{
-	return;
+		return;
 	}
 
 	// ATE: Check for multiple crows.....
@@ -1276,11 +1302,11 @@ void HandleRottingCorpses( )
 		UINT8 bLoop;
 		SOLDIERTYPE * pSoldier;
 
-		for (bLoop=gTacticalStatus.Team[ CIV_TEAM ].bFirstID, pSoldier=MercPtrs[bLoop]; bLoop <= gTacticalStatus.Team[ CIV_TEAM ].bLastID; bLoop++, pSoldier++)
+		for (bLoop = gTacticalStatus.Team[CIV_TEAM].bFirstID, pSoldier = MercPtrs[bLoop]; bLoop <= gTacticalStatus.Team[CIV_TEAM].bLastID; bLoop++, pSoldier++)
 		{
-			if (pSoldier->bActive && pSoldier->bInSector && (pSoldier->stats.bLife >= OKLIFE) && !( pSoldier->flags.uiStatusFlags & SOLDIER_GASSED ) )
+			if (pSoldier->bActive && pSoldier->bInSector && (pSoldier->stats.bLife >= OKLIFE) && !(pSoldier->flags.uiStatusFlags & SOLDIER_GASSED))
 			{
-				if ( pSoldier->ubBodyType == CROW )
+				if (pSoldier->ubBodyType == CROW)
 				{
 					bNumCrows++;
 				}
@@ -1289,23 +1315,23 @@ void HandleRottingCorpses( )
 	}
 
 	// Once population gets down to 0, we can add more again....
-	if ( bNumCrows == 0 )
+	if (bNumCrows == 0)
 	{
-	gTacticalStatus.fDontAddNewCrows = FALSE;
+		gTacticalStatus.fDontAddNewCrows = FALSE;
 	}
 
-	if ( gTacticalStatus.fDontAddNewCrows )
+	if (gTacticalStatus.fDontAddNewCrows)
 	{
-	return;
-	}
-
-	if ( bNumCrows >= gTacticalStatus.ubNumCrowsPossible )
-	{
-	gTacticalStatus.fDontAddNewCrows = TRUE;
 		return;
 	}
 
-	if ( gTacticalStatus.Team[ CREATURE_TEAM ].bTeamActive )
+	if (bNumCrows >= gTacticalStatus.ubNumCrowsPossible)
+	{
+		gTacticalStatus.fDontAddNewCrows = TRUE;
+		return;
+	}
+
+	if (gTacticalStatus.Team[CREATURE_TEAM].bTeamActive)
 	{
 		// don't add any crows while there are predators around
 		return;
@@ -1313,26 +1339,26 @@ void HandleRottingCorpses( )
 
 	// Pick one to attact a crow...
 	{
-	uiChosenCorpseID = Random( giNumRottingCorpse );
+		uiChosenCorpseID = Random(giNumRottingCorpse);
 
-		pCorpse = &(gRottingCorpse[ uiChosenCorpseID ] );
+		pCorpse = &(gRottingCorpse[uiChosenCorpseID]);
 
-	if ( pCorpse->fActivated )
-	{
-		if ( !( pCorpse->def.usFlags & ROTTING_CORPSE_VEHICLE ) )
+		if (pCorpse->fActivated)
 		{
-			if ( pCorpse->def.ubType == ROTTING_STAGE2 )
+			if (!(pCorpse->def.usFlags & ROTTING_CORPSE_VEHICLE))
 			{
-		 if ( GridNoOnScreen( pCorpse->def.sGridNo ) )
-		 {
-			 return;
-		 }
+				if (pCorpse->def.ubType == ROTTING_STAGE2)
+				{
+					if (GridNoOnScreen(pCorpse->def.sGridNo))
+					{
+						return;
+					}
 
-					AddCrowToCorpse( pCorpse );
-					AddCrowToCorpse( pCorpse );
+					AddCrowToCorpse(pCorpse);
+					AddCrowToCorpse(pCorpse);
+				}
+			}
 		}
-		}
-	}
 	}
 }
 

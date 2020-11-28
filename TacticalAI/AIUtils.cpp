@@ -4399,7 +4399,7 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 
 BOOLEAN NightLight( void )
 {
-	if( GetTimeOfDayAmbientLightLevel() < NORMAL_LIGHTLEVEL_DAY + 2 )
+	if (gubEnvLightValue >= NORMAL_LIGHTLEVEL_NIGHT - 3)
 	{
 		return TRUE;
 	}

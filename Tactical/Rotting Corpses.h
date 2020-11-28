@@ -184,6 +184,7 @@ void MakeCorpseVisible(SOLDIERTYPE *pSoldier, ROTTING_CORPSE *pCorpse);
 
 void HandleRottingCorpses( );
 void AddCrowToCorpse( ROTTING_CORPSE *pCorpse );
+void HandleTankCorpses(void);
 
 void VaporizeCorpse( INT32 sGridNo, UINT16 usStructureID );
 void CorpseHit( INT32 sGridNo, UINT16 usStructureID );

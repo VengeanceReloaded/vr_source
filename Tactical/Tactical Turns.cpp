@@ -158,7 +158,10 @@ void HandleTacticalEndTurn( )
 		HandleRottingCorpses( );
 		//DecayTacticalMoraleModifiers();
 
-	uiTimeSinceLastStrategicUpdate = uiTime;
+		// sevenfm: create light for tanks
+		HandleTankCorpses();
+
+		uiTimeSinceLastStrategicUpdate = uiTime;
 	}
 
 	DecayBombTimers( );
