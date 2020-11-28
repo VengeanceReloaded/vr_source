@@ -3675,7 +3675,72 @@ INT16 MaxNormalVisionDistance( void )
 
 // sevenfm: check friendly soldiers between me and noise gridno
 // count only friends that are active and not stationary/onguard/sniper
-UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
+UINT8 CountFriendsInDirection(SOLDIERTYPE *pSoldier, UINT8 ubDirection, INT16 sDistance, BOOLEAN fCheckSight)
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriends = 0;
+
+	CHECKF(pSoldier);
+
+	if (ubDirection == DIRECTION_IRRELEVANT)
+	{
+		return 0;
+	}
+
+	// Run through each friendly.
+	for (UINT8 iCounter = gTacticalStatus.Team[pSoldier->bTeam].bFirstID; iCounter <= gTacticalStatus.Team[pSoldier->bTeam].bLastID; iCounter++)
+	{
+		pFriend = MercPtrs[iCounter];
+
+		if (pFriend &&
+			pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			AIDirection(pSoldier->sGridNo, pFriend->sGridNo) == ubDirection &&
+			PythSpacesAway(pSoldier->sGridNo, pFriend->sGridNo) <= sDistance &&
+			(!fCheckSight || LocationToLocationLineOfSightTest(pSoldier->sGridNo, pSoldier->pathing.bLevel, pFriend->sGridNo, pFriend->pathing.bLevel, TRUE, MAX_VISION_RANGE)))
+		{
+			ubFriends++;
+		}
+	}
+
+	return ubFriends;
+}
+
+UINT8 CountFriendsInDirectionFromSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, UINT8 ubDirection, INT16 sDistance)
+{
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriends = 0;
+
+	CHECKF(pSoldier);
+
+	if (ubDirection == DIRECTION_IRRELEVANT)
+	{
+		return 0;
+	}
+
+	// Run through each friendly.
+	for (UINT8 iCounter = gTacticalStatus.Team[pSoldier->bTeam].bFirstID; iCounter <= gTacticalStatus.Team[pSoldier->bTeam].bLastID; iCounter++)
+	{
+		pFriend = MercPtrs[iCounter];
+
+		if (pFriend &&
+			pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			AIDirection(sSpot, pFriend->sGridNo) == ubDirection &&
+			PythSpacesAway(sSpot, pFriend->sGridNo) <= sDistance)
+		{
+			ubFriends++;
+		}
+	}
+
+	return ubFriends;
+}
+
+// sevenfm: check friendly soldiers between me and noise gridno
+// count only friends that are active and not stationary/onguard/sniper
+UINT8 CountFriendsBetweenMeAndSpotFromSpot(SOLDIERTYPE *pSoldier, INT32 sTargetGridNo)
 {
 	SOLDIERTYPE * pFriend;
 	UINT8 ubFriendDir, ubMyDir;
@@ -3683,22 +3748,32 @@ UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo )
 
 	CHECKF(pSoldier);
 
-	ubMyDir = atan8(CenterX(sTargetGridNo),CenterY(sTargetGridNo),CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo));
+	if (TileIsOutOfBounds(sTargetGridNo))
+	{
+		return 0;
+	}
+
+	ubMyDir = AIDirection(sTargetGridNo, pSoldier->sGridNo);
 
 	// Run through each friendly.
-	for ( UINT8 iCounter = gTacticalStatus.Team[ pSoldier->bTeam ].bFirstID ; iCounter <= gTacticalStatus.Team[ pSoldier->bTeam ].bLastID ; iCounter ++ )
+	for (UINT8 iCounter = gTacticalStatus.Team[pSoldier->bTeam].bFirstID; iCounter <= gTacticalStatus.Team[pSoldier->bTeam].bLastID; iCounter++)
 	{
-		pFriend = MercPtrs[ iCounter ];
-		ubFriendDir = atan8(CenterX(sTargetGridNo),CenterY(sTargetGridNo),CenterX(pFriend->sGridNo),CenterY(pFriend->sGridNo));
+		pFriend = MercPtrs[iCounter];
+
+		if (!pFriend)
+		{
+			continue;
+		}
+
+		ubFriendDir = AIDirection(sTargetGridNo, pFriend->sGridNo);
 
 		if (pFriend != pSoldier &&
 			pFriend->bActive &&
 			pFriend->stats.bLife >= OKLIFE &&
-			pFriend->stats.bLife >= pFriend->stats.bLifeMax/2 &&
+			pFriend->stats.bLife >= pFriend->stats.bLifeMax / 2 &&
 			pFriend->aiData.bOrders > ONGUARD &&
-			pFriend->aiData.bOrders != SNIPER &&
 			(ubFriendDir == ubMyDir || ubFriendDir == gOneCDirection[ubMyDir] || ubFriendDir == gOneCCDirection[ubMyDir]) &&
-			PythSpacesAway( sTargetGridNo, pFriend->sGridNo) < PythSpacesAway(sTargetGridNo, pSoldier->sGridNo) )
+			PythSpacesAway(sTargetGridNo, pFriend->sGridNo) < PythSpacesAway(sTargetGridNo, pSoldier->sGridNo))
 		{
 			ubFriends++;
 		}
@@ -3890,20 +3965,6 @@ void AlertFriends(INT8 bTeam, UINT8 ubCivGroup)
 			pFriend->aiData.bAlertStatus = max(pFriend->aiData.bAlertStatus, STATUS_RED);
 		}
 	}
-}
-
-// sevenfm: determine minimum flanking directions to stop flanking depending on soldier's attitude
-UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier )
-{
-	CHECKF(pSoldier);
-
-	switch(pSoldier->aiData.bAttitude)
-	{
-	case CUNNINGAID:
-	case CUNNINGSOLO:
-		return 4;		
-	}
-	return 2;
 }
 
 UINT8 CountFriendsFlankSameSpot(SOLDIERTYPE *pSoldier, INT32 sSpot)

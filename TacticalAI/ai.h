@@ -272,7 +272,6 @@ UINT8 GetClosestFlaggedSoldierID( SOLDIERTYPE * pSoldier, INT16 aRange, UINT8 au
 INT16 MaxNormalVisionDistance( void );
 BOOLEAN GuySawEnemy( SOLDIERTYPE * pSoldier, UINT8 ubMax = SEEN_3_TURNS_AGO );
 BOOLEAN GuyHeardEnemy(SOLDIERTYPE * pSoldier, UINT8 ubMax = HEARD_2_TURNS_AGO);
-UINT8 MinFlankDirections( SOLDIERTYPE *pSoldier );
 INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLevel);
 UINT8 CountSeenEnemiesLastTurn( SOLDIERTYPE *pSoldier );
 BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier );
@@ -289,7 +288,9 @@ BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier );
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountNearbyNeutrals(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance);
-UINT8 CountFriendsInDirection( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo );
+UINT8 CountFriendsInDirection(SOLDIERTYPE *pSoldier, UINT8 ubDirection, INT16 sDistance, BOOLEAN fCheckSight);
+UINT8 CountFriendsInDirectionFromSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, UINT8 ubDirection, INT16 sDistance);
+UINT8 CountFriendsBetweenMeAndSpotFromSpot(SOLDIERTYPE *pSoldier, INT32 sTargetGridNo);
 UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent = NOWHERE );
 UINT8 CountNearbyFriendsOnRoof( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountFriendsFlankSameSpot(SOLDIERTYPE *pSoldier, INT32 sSpot = NOWHERE);
@@ -425,7 +426,7 @@ BOOLEAN CorpseEnemyTeam(ROTTING_CORPSE *pCorpse);
 BOOLEAN CorpseMilitiaTeam(ROTTING_CORPSE *pCorpse);
 
 void PrepareMainRedAIWeights(SOLDIERTYPE *pSoldier, INT8 &bSeekPts, INT8 &bHelpPts, INT8 &bHidePts, INT8 &bWatchPts);
-INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
+INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance, BOOLEAN fAbortSeek);
 INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
 INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
 INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);

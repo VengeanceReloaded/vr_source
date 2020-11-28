@@ -3660,7 +3660,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 								}
 
 								// possibly start flanking
-								bActionReturned = DecideStartFlanking(pSoldier, sClosestDisturbance);
+								bActionReturned = DecideStartFlanking(pSoldier, sClosestDisturbance, fAbortSeek);
 								if (bActionReturned != -1)
 									return bActionReturned;
 									
@@ -8148,72 +8148,96 @@ void ZombieDecideAlertStatus( SOLDIERTYPE *pSoldier )
 
 #endif
 
-INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
+INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance, BOOLEAN fAbortSeek)
 {
 	if (pSoldier->numFlanks == 0 &&
+		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
+		pSoldier->CheckInitialAP() &&
 		(pSoldier->aiData.bAttitude == CUNNINGAID || pSoldier->aiData.bAttitude == CUNNINGSOLO ||
 		(pSoldier->aiData.bAttitude == BRAVESOLO || pSoldier->aiData.bAttitude == BRAVEAID) && CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) > 2) &&
 		pSoldier->bTeam == ENEMY_TEAM &&
+		pSoldier->ubSoldierClass != SOLDIER_CLASS_ADMINISTRATOR &&
+		!AICheckSpecialRole(pSoldier) &&		
 		gAnimControl[pSoldier->usAnimState].ubHeight != ANIM_PRONE &&
 		!pSoldier->aiData.bUnderFire &&
 		pSoldier->pathing.bLevel == 0 &&
-		(pSoldier->aiData.bOrders == SEEKENEMY ||
-		pSoldier->aiData.bOrders == FARPATROL ||
-		pSoldier->aiData.bOrders == CLOSEPATROL && NightTime()) &&
+		!Water(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+		(pSoldier->aiData.bOrders == SEEKENEMY || pSoldier->aiData.bOrders == FARPATROL || pSoldier->aiData.bOrders == CLOSEPATROL && NightTime()) &&
 		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
-		(!GuySawEnemy(pSoldier) || CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) > 2) &&
-		(CountFriendsInDirection(pSoldier, sClosestDisturbance) > 1 || NightTime() || CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) > 2))
+		PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) > MIN_FLANK_DIST &&
+		(PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance) < MAX_FLANK_DIST || fAbortSeek) &&
+		(!GuySawEnemy(pSoldier) || CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) > 2 || fAbortSeek) &&
+		(fAbortSeek || CountFriendsBetweenMeAndSpotFromSpot(pSoldier, sClosestDisturbance) > 0 || NightTime() || CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4) > 2))
 	{
-		INT8 action = AI_ACTION_SEEK_OPPONENT;
-		INT16 dist = PythSpacesAway(pSoldier->sGridNo, sClosestDisturbance);
-		if (dist > MIN_FLANK_DIST  && dist < MAX_FLANK_DIST)
+		UINT8 ubFriends, ubFriendsLeft, ubFriendsRight;
+		UINT8 ubDirection = AIDirection(sClosestDisturbance, pSoldier->sGridNo);
+
+		ubFriends = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, ubDirection, VISION_RANGE * 2);
+		ubFriendsLeft = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gOneCDirection[ubDirection], VISION_RANGE * 2) +
+			CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gTwoCDirection[ubDirection], VISION_RANGE * 2);
+		ubFriendsRight = CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gOneCCDirection[ubDirection], VISION_RANGE * 2) +
+			CountFriendsInDirectionFromSpot(pSoldier, sClosestDisturbance, gTwoCCDirection[ubDirection], VISION_RANGE * 2);
+
+		BOOLEAN fLeftFlankPossible = FALSE;
+		BOOLEAN fRightFlankPossible = FALSE;
+
+		if (ubFriendsLeft < ubFriends)
 		{
-			INT16 rdm = Random(6);
-
-			switch (rdm)
-			{
-			case 1:
-			case 2:
-			case 3:
-				if (pSoldier->aiData.bLastAction != AI_ACTION_FLANK_LEFT && pSoldier->aiData.bLastAction != AI_ACTION_FLANK_RIGHT)
-					action = AI_ACTION_FLANK_LEFT;
-				break;
-			default:
-				if (pSoldier->aiData.bLastAction != AI_ACTION_FLANK_LEFT && pSoldier->aiData.bLastAction != AI_ACTION_FLANK_RIGHT)
-					action = AI_ACTION_FLANK_RIGHT;
-				break;
-			}
-
-			if (action == AI_ACTION_SEEK_OPPONENT) {
-				return action;
-			}
+			fLeftFlankPossible = TRUE;
 		}
-		else
-			return AI_ACTION_SEEK_OPPONENT;
 
-		pSoldier->aiData.usActionData = FindFlankingSpot(pSoldier, sClosestDisturbance, action);
-
-		if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
+		if (ubFriendsRight < ubFriends)
 		{
-			if (action == AI_ACTION_FLANK_LEFT)
-				pSoldier->flags.lastFlankLeft = TRUE;
+			fRightFlankPossible = TRUE;
+		}
+
+		INT32 sFlankingSpot = NOWHERE;
+		INT8 bAction = AI_ACTION_NONE;
+
+		// decide flanking direction
+		if (fLeftFlankPossible && !fRightFlankPossible)
+		{
+			bAction = AI_ACTION_FLANK_LEFT;
+		}
+		else if (fRightFlankPossible && !fLeftFlankPossible)
+		{
+			bAction = AI_ACTION_FLANK_RIGHT;
+		}
+		else if (fLeftFlankPossible && fRightFlankPossible)
+		{
+			if (Random(6) < 3)
+				bAction = AI_ACTION_FLANK_LEFT;
 			else
-				pSoldier->flags.lastFlankLeft = FALSE;
+				bAction = AI_ACTION_FLANK_RIGHT;
+		}
 
-			//if ( pSoldier->lastFlankSpot != sClosestDisturbance)
-			//pSoldier->numFlanks=0;
+		// if left or right flanking is possible, search for flanking spot
+		if (bAction != AI_ACTION_NONE)
+		{
+			pSoldier->aiData.usActionData = FindFlankingSpot(pSoldier, sClosestDisturbance, bAction);
 
-			pSoldier->origDir = GetDirectionFromGridNo(sClosestDisturbance, pSoldier);
-			pSoldier->lastFlankSpot = sClosestDisturbance;
-			pSoldier->numFlanks++;
-
-			// sevenfm: change orders when starting to flank
-			if (pSoldier->aiData.bOrders == CLOSEPATROL)
+			if (!TileIsOutOfBounds(pSoldier->aiData.usActionData))
 			{
-				pSoldier->aiData.bOrders = FARPATROL;
-			}
+				if (bAction == AI_ACTION_FLANK_LEFT)
+					pSoldier->flags.lastFlankLeft = TRUE;
+				else
+					pSoldier->flags.lastFlankLeft = FALSE;
 
-			return(action);
+				//if ( pSoldier->lastFlankSpot != sClosestDisturbance)
+				//pSoldier->numFlanks=0;
+
+				pSoldier->origDir = GetDirectionFromGridNo(sClosestDisturbance, pSoldier);
+				pSoldier->lastFlankSpot = sClosestDisturbance;
+				pSoldier->numFlanks++;
+
+				// sevenfm: change orders when starting to flank
+				if (pSoldier->aiData.bOrders == CLOSEPATROL)
+				{
+					pSoldier->aiData.bOrders = FARPATROL;
+				}
+
+				return(bAction);
+			}
 		}
 	}
 
@@ -8285,8 +8309,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 				origDir -= 8;
 
 			// stop flanking condition
-			if ((currDir - origDir) >= MinFlankDirections(pSoldier) ||
-				!NightTime() && CountFriendsInDirection(pSoldier, tempGridNo) == 0 && (currDir - origDir) >= MinFlankDirections(pSoldier) / 2)
+			if (currDir - origDir >= 2 && (currDir - origDir > 3 || pSoldier->aiData.bAttitude != CUNNINGSOLO || CountFriendsBetweenMeAndSpotFromSpot(pSoldier, pSoldier->lastFlankSpot) == 0))
 			{
 				pSoldier->numFlanks = MAX_FLANKS_RED;
 			}
@@ -8496,8 +8519,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 				origDir += 8;
 
 			// stop flanking condition
-			if ((origDir - currDir) >= MinFlankDirections(pSoldier) ||
-				!NightTime() && CountFriendsInDirection(pSoldier, tempGridNo) == 0 && (currDir - origDir) >= MinFlankDirections(pSoldier) / 2)
+			if (origDir - currDir >= 2 && (origDir - currDir > 3 || pSoldier->aiData.bAttitude != CUNNINGSOLO || CountFriendsBetweenMeAndSpotFromSpot(pSoldier, pSoldier->lastFlankSpot) == 0))
 			{
 				pSoldier->numFlanks = MAX_FLANKS_RED;
 			}
