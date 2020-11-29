@@ -574,6 +574,8 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				break;
 
 			case 441:
+				//ScreenMsg(FONT_LTBLUE, MSG_INTERFACE, L"[%d]: muzzleflash %d",pSoldier->ubID, pSoldier->flags.fMuzzleFlash);
+
 				// CODE: Show muzzle flash
 				if ( pSoldier->bVisible == -1 )
 				{
@@ -581,7 +583,8 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				}
 				
 				//if ( !pSoldier->flags.fMuzzleFlash )
-				if (IsFlashSuppressor(pSoldier->GetUsedWeapon(&pSoldier->inv[pSoldier->ubAttackingHand]), pSoldier))
+				if (IsFlashSuppressor(pSoldier->GetUsedWeapon(&pSoldier->inv[pSoldier->ubAttackingHand]), pSoldier) ||
+					(*(pSoldier->GetUsedWeapon(&pSoldier->inv[pSoldier->ubAttackingHand])))[0]->data.gun.bGunAmmoStatus < 0)
 				{					
 					break;
 				}

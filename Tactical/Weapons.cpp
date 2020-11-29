@@ -2840,6 +2840,8 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 		fBuckshot = FALSE;
 		if (!CREATURE_OR_BLOODCAT( pSoldier ) )
 		{
+			//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] UseGun: start muzzleflash", pSoldier->ubID);
+
 			if ( IsFlashSuppressor( pObjUsed, pSoldier ) )
 				pSoldier->flags.fMuzzleFlash = FALSE;
 			else
@@ -2849,18 +2851,6 @@ BOOLEAN UseGun( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 						
 			if ( AmmoTypes[(*pObjUsed)[0]->data.gun.ubGunAmmoType].numberOfBullets > 1 )
 				fBuckshot = TRUE;
-
-			//switch ( pSoldier->inv[ pSoldier->ubAttackingHand ][0]->data.gun.ubGunAmmoType )
-			//{
-			//	case AMMO_BUCKSHOT:
-			//		fBuckshot = TRUE;
-			//		break;
-			//	case AMMO_SLEEP_DART:
-			//		pSoldier->flags.fMuzzleFlash = FALSE;
-			//		break;
-			//	default:
-			//		break;
-			//}
 		}
 	}
 	else	//  throwing knife
@@ -3471,14 +3461,10 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 			// Do we have the chance to steal more than 1 item?
 			// SANDRO - taking items from collapsed soldiers is treated differently
 			// Flugente: if we are on the same team, allow guaranteed full access
-			// otherwise, if we are the player, we can steal multiple items if the other guy is collapsed, or we are succesful, and
+			// otherwise, if we are the player, we can steal multiple items if the other guy is collapsed, or we are successful, and
 			// if using fEnhancedCloseCombatSystem, only allow this if the other guy is not alerted
 			if (AllowedToStealFromTeamMate(pSoldier->ubID, pTargetSoldier->ubID) ||
-				(pSoldier->bTeam == gbPlayerNum &&
-				(fSoldierCollapsed ||
-				(iDiceRoll < (iHitChance * 2 / 3) &&
-				(!gGameExternalOptions.fEnhancedCloseCombatSystem ||
-				pTargetSoldier->aiData.bAlertStatus < STATUS_RED)))))
+				(pSoldier->bTeam == gbPlayerNum && (fSoldierCollapsed || (iDiceRoll < (iHitChance * 2 / 3) && (!gGameExternalOptions.fEnhancedCloseCombatSystem || pTargetSoldier->aiData.bAlertStatus < STATUS_RED)))))
 			{
 				fStealAttempt = TRUE;
 
@@ -3494,7 +3480,7 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 				// We have only stolen 1 item, because the enemy has not more than one item.
 				if ( sNumStolenItems == 1)
 				{
-					// charge Aps
+					// charge APs
 					if (gGameExternalOptions.fEnhancedCloseCombatSystem)
 						DeductPoints( pSoldier, GetBasicAPsToPickupItem( pSoldier ), 0, AFTERACTION_INTERRUPT );
 
@@ -3725,14 +3711,14 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 					// SANDRO - Enhanced Close Combat System - experience for stealing changed
 					if (gGameExternalOptions.fEnhancedCloseCombatSystem)
 					{
-						// stealing from unconsious opponents is not rewarded much
+						// stealing from unconscious opponents is not rewarded much
 						if (fSoldierCollapsed)
 						{
 							StatChange( pSoldier, DEXTAMT, 1, FALSE );
 						}
 						else
 						{
-							// We were successfull in stealing. Give some experience
+							// We were successful in stealing. Give some experience
 							StatChange( pSoldier, STRAMT, 6, FALSE );
 							StatChange( pSoldier, DEXTAMT, 10, FALSE );
 							StatChange( pSoldier, AGILAMT, 10, FALSE );
@@ -3862,16 +3848,20 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 					// SANDRO - Enhanced Close Combat System
 					if ( gGameExternalOptions.fEnhancedCloseCombatSystem && pTargetSoldier->bCollapsed)
 					{
-						// beating unconscious enemy is a matter of brute strength, so give exp mostly to Stregnth 
-						StatChange( pSoldier, DEXTAMT, (ubExpGain+1)/3, FALSE );
-						StatChange( pSoldier, STRAMT,  ubExpGain + 1, FALSE );
-						StatChange( pSoldier, AGILAMT, (ubExpGain+1)/3, FALSE );
+						// beating unconscious enemy is a matter of brute strength, so give exp mostly to strength 
+						StatChange( pSoldier, DEXTAMT, (ubExpGain+1) / 3, FALSE );
+						// sevenfm: no bonus to strength when using taser
+						if (!(pSoldier->inv[HANDPOS].exists() && HasItemFlag(pSoldier->inv[HANDPOS].usItem, TASER)))
+							StatChange(pSoldier, STRAMT, ubExpGain + 1, FALSE);							
+						StatChange(pSoldier, AGILAMT, (ubExpGain + 1) / 3, FALSE);
 					}
 					else
 					{
 						StatChange( pSoldier, DEXTAMT, ubExpGain, FALSE );
-						StatChange( pSoldier, STRAMT,  (ubExpGain+1)/3, FALSE );
-						StatChange( pSoldier, AGILAMT, (ubExpGain+1)/3, FALSE );
+						// sevenfm: no bonus to strength when using taser
+						if (!(pSoldier->inv[HANDPOS].exists() && HasItemFlag(pSoldier->inv[HANDPOS].usItem, TASER)))
+							StatChange(pSoldier, STRAMT, (ubExpGain + 1) / 3, FALSE);
+						StatChange(pSoldier, AGILAMT, (ubExpGain + 1) / 3, FALSE);
 					}
 				}
 				else
@@ -3910,7 +3900,9 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 					}
 
 					StatChange( pSoldier, DEXTAMT, ubExpGain, FALSE );
-					StatChange( pSoldier, STRAMT,  (ubExpGain+1)/3, FALSE );
+					// sevenfm: no bonus to strength when using taser
+					if (!(pSoldier->inv[HANDPOS].exists() && HasItemFlag(pSoldier->inv[HANDPOS].usItem, TASER)))
+						StatChange( pSoldier, STRAMT,  (ubExpGain+1)/3, FALSE );
 					StatChange( pSoldier, AGILAMT, (ubExpGain+1)/3, FALSE );
 				}
 			}
@@ -3923,13 +3915,17 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 					if (gGameExternalOptions.fEnhancedCloseCombatSystem)
 					{ 
 						StatChange( pTargetSoldier, DEXTAMT, 5, FALSE ); // 4 istead of 8
-						StatChange( pTargetSoldier, STRAMT, 2, FALSE ); // 2 instead of 3
+						// sevenfm: no bonus to strength when using taser
+						if (!(pSoldier->inv[HANDPOS].exists() && HasItemFlag(pSoldier->inv[HANDPOS].usItem, TASER)))
+							StatChange( pTargetSoldier, STRAMT, 2, FALSE ); // 2 instead of 3
 						StatChange( pTargetSoldier, AGILAMT, 8, FALSE ); // 8 instead of 3
 					}
 					else
 					{
 						StatChange( pTargetSoldier, DEXTAMT, 8, FALSE );
-						StatChange( pTargetSoldier, STRAMT, 3, FALSE );
+						// sevenfm: no bonus to strength when using taser
+						if (!(pSoldier->inv[HANDPOS].exists() && HasItemFlag(pSoldier->inv[HANDPOS].usItem, TASER)))
+							StatChange( pTargetSoldier, STRAMT, 3, FALSE );
 						StatChange( pTargetSoldier, AGILAMT, 3, FALSE );
 					}
 				}

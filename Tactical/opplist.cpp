@@ -1476,18 +1476,8 @@ void EndMuzzleFlash( SOLDIERTYPE * pSoldier )
 	SOLDIERTYPE *		pOtherSoldier;
 
 	pSoldier->flags.fMuzzleFlash = FALSE;
-/*comm by ddd
-#ifdef WE_SEE_WHAT_MILITIA_SEES_AND_VICE_VERSA
-	if ( pSoldier->bTeam != gbPlayerNum && pSoldier->bTeam != MILITIA_TEAM )
-#else
-	if ( pSoldier->bTeam != gbPlayerNum )
-#endif
 
-	{
-		pSoldier->bVisible = 0; // indeterminate state
-	}
-*/	
-
+	//ScreenMsg(FONT_LTRED, MSG_INTERFACE, L"[%d] EndMuzzleFlash", pSoldier->ubID);
 
 #ifdef ENABLE_MP_FRIENDLY_PLAYERS_SHARE_SAME_FOV
 //haydent
@@ -6375,8 +6365,7 @@ UINT8 CalcEffVolume(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT8 ubN
 
 
 
-void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume,
-		UINT8 ubNoiseType, UINT8 *ubSeen)
+void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bLevel, UINT8 ubVolume, UINT8 ubNoiseType, UINT8 *ubSeen)
 {
 	INT16	sNoiseX, sNoiseY;
 	INT8	bHadToTurn = FALSE, bSourceSeen = FALSE;
@@ -6390,7 +6379,9 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 		CrowsFlyAway( pSoldier->bTeam );
 		return;
 	}
-//	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "%d hears noise from %d (%d/%d) volume %d", pSoldier->ubID, ubNoiseMaker, sGridNo, bLevel, ubVolume ) );
+
+	//	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String( "%d hears noise from %d (%d/%d) volume %d", pSoldier->ubID, ubNoiseMaker, sGridNo, bLevel, ubVolume ) );
+	//ScreenMsg(FONT_BURGUNDY, MSG_INTERFACE, L"HearNoise: muzzleflash %d", MercPtrs[ubNoiseMaker]->flags.fMuzzleFlash);
 
 	// "Turn head" towards the source of the noise and try to see what's there
 
@@ -6401,8 +6392,7 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 	// max sighting distance (varies based on realtime/turnbased), call
 	// the function with the new DIRECTION_IRRELEVANT define
 
-	// is he close enough to see that gridno if he turns his head?
-
+	// is he close enough to see that gridno if he turns his head?	
 	// ignore muzzle flashes when turning head to see noise
 	if ( ubNoiseType == NOISE_GUNFIRE && ubNoiseMaker != NOBODY && MercPtrs[ ubNoiseMaker ]->flags.fMuzzleFlash )
 	{		

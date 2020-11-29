@@ -6058,7 +6058,9 @@ UINT32 UIHandleLAEndLockOurTurn( UI_EVENT *pUIEvent )
 		guiPendingOverrideEvent = M_ON_TERRAIN;
 		HandleTacticalUI( );
 
-		TurnOffTeamsMuzzleFlashes( gbPlayerNum );
+		// sevenfm: stop muzzleflash in InternalReduceAttackBusyCount instead
+		//ScreenMsg(FONT_LTGREEN, MSG_INTERFACE, L"UIHandleLAEndLockOurTurn: stop muzzleflash");
+		//TurnOffTeamsMuzzleFlashes( gbPlayerNum );
 
 		// UnPause time!
 		UnLockPauseState();

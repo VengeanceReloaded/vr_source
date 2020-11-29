@@ -9066,39 +9066,6 @@ SOLDIERTYPE *InternalReduceAttackBusyCount( )
     UINT32                      cnt;
     UINT8                       ubID;
 
-#if 0
-    // 0verhaul:    None of this is necessary anymore with the new attack busy system
-    if (ubID == NOBODY)
-    {
-        pSoldier = NULL;
-        pTarget = NULL;
-    }
-    else
-    {
-        pSoldier = MercPtrs[ ubID ];
-        if ( ubTargetID != NOBODY)
-        {
-            pTarget = MercPtrs[ ubTargetID ];
-        }
-        else
-        {
-            pTarget = NULL;
-            DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String(">>Target ptr is null!" ) );
-        }
-    }
-
-    if (fCalledByAttacker)
-    {
-        if (pSoldier && Item[pSoldier->inv[HANDPOS].usItem].usItemClass & IC_GUN)
-        {
-            if (pSoldier->bBulletsLeft > 0)
-            {
-                return( pTarget );
-            }
-        }
-    }
-#endif
-
     //  if ((gTacticalStatus.uiFlags & TURNBASED) && (gTacticalStatus.uiFlags & INCOMBAT))
     //  {
 
@@ -9201,7 +9168,6 @@ SOLDIERTYPE *InternalReduceAttackBusyCount( )
             HandleSuppressionFire( NOBODY, ubID );
         }
 
-
         //HandleAfterShootingGuy( pSoldier, pTarget );
 
         // suppression fire might cause the count to be increased, so check it again
@@ -9221,15 +9187,6 @@ SOLDIERTYPE *InternalReduceAttackBusyCount( )
     if ( AreInMeanwhile( ) && pSoldier != NULL && pSoldier->ubProfile != QUEEN )
     {
         return( NULL );
-    }
-#endif
-#if 0
-    // 0verhaul:    This is moved to the end loop where everybody's state is reset for the next action
-    if (pTarget)
-    {
-        // reset # of shotgun pellets hit by
-        pTarget->bNumPelletsHitBy = 0;
-        // reset flag for making "ow" sound on being shot
     }
 #endif
 
@@ -9301,7 +9258,6 @@ SOLDIERTYPE *InternalReduceAttackBusyCount( )
                 }
             }
 
-
             // if soldier and target were not both players and target was not under fire before...
             if ( ( pSoldier->bTeam != gbPlayerNum || pTarget->bTeam != gbPlayerNum ) )
             {
@@ -9357,7 +9313,6 @@ SOLDIERTYPE *InternalReduceAttackBusyCount( )
             DebugMsg( TOPIC_JA2, DBG_LEVEL_3, ">>Not to enter combat from this attack" );
         }
 
-
         if ( fEnterCombat && !( gTacticalStatus.uiFlags & INCOMBAT ) )
         {
             // Go into combat!
@@ -9385,7 +9340,6 @@ SOLDIERTYPE *InternalReduceAttackBusyCount( )
 
     // ATE: Check for stat changes....
     HandleAnyStatChangesAfterAttack( );
-
 
     if ( gTacticalStatus.fItemsSeenOnAttack && gTacticalStatus.ubCurrentTeam == gbPlayerNum )
     {
@@ -9429,10 +9383,17 @@ SOLDIERTYPE *InternalReduceAttackBusyCount( )
     DequeueAllDemandGameEvents( TRUE );
 
     // if we're in realtime, turn off the attacker's muzzle flash at this point
-    if ( !(gTacticalStatus.uiFlags & INCOMBAT) && pSoldier )
+    /*if ( !(gTacticalStatus.uiFlags & INCOMBAT) && pSoldier )
     {
+		ScreenMsg(FONT_DKGREEN, MSG_INTERFACE, L"InternalReduceAttackBusyCount (not in combat): stop muzzleflash");
         EndMuzzleFlash( pSoldier );
-    }
+    }*/
+	// sevenfm: always stop muzzle flash at the end of attack
+	if (pSoldier)
+	{
+		//ScreenMsg(FONT_DKGREEN, MSG_INTERFACE, L"[%d] InternalReduceAttackBusyCount", pSoldier->ubID);
+		EndMuzzleFlash(pSoldier);
+	}	
 
     if ( pSoldier && (pSoldier->bWeaponMode == WM_ATTACHED_GL || pSoldier->bWeaponMode == WM_ATTACHED_GL_BURST || pSoldier->bWeaponMode == WM_ATTACHED_GL_AUTO ))
     {

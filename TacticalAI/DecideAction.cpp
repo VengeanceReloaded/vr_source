@@ -3415,6 +3415,16 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 						}
 					}
 				}
+
+				// sevenfm: prefer hiding if soldier cannot interrupt
+				if (pSoldier->CheckInitialAP() &&
+					!pSoldier->CanInterrupt())
+				{
+					if (bHidePts > -90)
+					{
+						bWatchPts = min(bWatchPts, bHidePts - 1);
+					}
+				}
 			}
 
 			DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("decideactionred: hide = %d, seek = %d, watch = %d, help = %d",bHidePts,bSeekPts,bWatchPts,bHelpPts));
