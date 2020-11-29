@@ -3007,7 +3007,33 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 	if (usNewState == THROW_GRENADE_STANCE || usNewState == LOB_GRENADE_STANCE || usNewState == THROW_ITEM || usNewState == THROW_ITEM_CROUCHED)
 	{		
 		UINT16 usItem = this->usGrenadeItem;
+		UINT16 usBuddyItem = Item[usItem].usBuddyItem;
 		UINT8 ubVolume = Weapon[usItem].ubAttackVolume;
+
+		// sevenfm: enable muzzle flash for flare/molotov
+		if (Item[usItem].flare || Explosive[Item[usItem].ubClassIndex].ubType == EXPLOSV_FLARE || usItem == 979 ||
+			usBuddyItem &&
+			Item[usBuddyItem].usItemClass & IC_EXPLOSV &&
+			(Item[usBuddyItem].flare || Explosive[Item[usBuddyItem].ubClassIndex].ubType == EXPLOSV_FLARE))
+		{
+			this->flags.fMuzzleFlash = TRUE;
+			if ((this->iMuzFlash = LightSpriteCreate("L-R03.LHT", 0)) != -1)
+			{
+				LightSpritePower(this->iMuzFlash, TRUE);
+
+				INT32	usNewGridNo;
+				INT16 sXPos, sYPos;
+
+				usNewGridNo = NewGridNo(this->sGridNo, DirectionInc(this->ubDirection));
+				ConvertGridNoToCenterCellXY(usNewGridNo, &sXPos, &sYPos);
+				LightSpritePosition(this->iMuzFlash, (INT16)(sXPos / CELL_X_SIZE), (INT16)(sYPos / CELL_Y_SIZE));
+
+				// Start count
+				this->bMuzFlashCount = 1;
+			}			
+
+			//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] start muzzle flash", this->ubID);
+		}
 
 		// play grenade pin sound
 		if (usItem && Item[usItem].usItemClass == IC_GRENADE)
