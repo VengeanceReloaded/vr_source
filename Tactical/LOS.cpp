@@ -5153,7 +5153,7 @@ INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOA
 				ddVerticAngle += ddAdjustedVerticAngle;
 
 				//Logging for debugging
-				//#ifdef JA2TESTVERSION
+				#ifdef JA2TESTVERSION
 				if(!fFake)
 				{
 					FILE      *OutFile;
@@ -5172,7 +5172,7 @@ INT8 FireBulletGivenTarget( SOLDIERTYPE * pFirer, FLOAT dEndX, FLOAT dEndY, FLOA
 						fclose(OutFile);
 					}
 				}
-				//#endif
+				#endif
 			}
 
 			//Just calculate the increments the bullet will use, not any of the to-hit adjustments, because we already did.
@@ -5797,7 +5797,7 @@ INT8 FireBulletGivenTargetTrapOnly( SOLDIERTYPE* pThrower, OBJECTTYPE* pObj, INT
 				ddVerticAngle += ddAdjustedVerticAngle;
 
 				//Logging for debugging
-				//#ifdef JA2TESTVERSION
+				#ifdef JA2TESTVERSION
 				if( TRUE )
 				{
 					FILE      *OutFile;
@@ -5816,7 +5816,7 @@ INT8 FireBulletGivenTargetTrapOnly( SOLDIERTYPE* pThrower, OBJECTTYPE* pObj, INT
 						fclose(OutFile);
 					}
 				}
-				//#endif
+				#endif
 			}
 
 			//Just calculate the increments the bullet will use, not any of the to-hit adjustments, because we already did.
