@@ -315,6 +315,7 @@ BOOLEAN AICheckIsRadioOperator(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsMedic(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsMortarOperator(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsOfficer(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckIsGLOperator(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier);
 
 BOOLEAN AICheckSpecialRole(SOLDIERTYPE *pSoldier);

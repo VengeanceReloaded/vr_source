@@ -2430,6 +2430,12 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 	INT8	*pbPersOL, *pbPublOL;
 	SOLDIERTYPE *pOpponent,*pFriend;
 
+	// zombies always have high morale
+	if (pSoldier->IsZombie())
+	{
+		return MORALE_FEARLESS;
+	}
+
 	// if army guy has NO weapons left then panic!
 	if ( pSoldier->bTeam == ENEMY_TEAM || !pSoldier->aiData.bNeutral )
 	{
@@ -2456,18 +2462,11 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, dead, unconscious
-		if (!pOpponent || (pOpponent->stats.bLife < OKLIFE))
+		if (!pOpponent)
 			continue;			// next merc
 
-		// if this merc is neutral/on same side, he's not an opponent, skip him!
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
-			continue;			// next merc
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
-		{
-			continue;	// next opponent
-		}
+		if (!ValidOpponent(pSoldier, pOpponent))
+			continue;
 
 		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
 		pbPublOL = gbPublicOpplist[pSoldier->bTeam] + pOpponent->ubID;
@@ -2678,6 +2677,23 @@ INT8 CalcMorale(SOLDIERTYPE *pSoldier)
 		bMoraleCategory = min(bMoraleCategory, MORALE_CONFIDENT);
 	else if (ShockLevelPercent(pSoldier) > 50)
 		bMoraleCategory = min(bMoraleCategory, MORALE_NORMAL);
+
+	// limit AI morale if can attack enemy from spot
+	if (pSoldier->bTeam == ENEMY_TEAM &&
+		!TileIsOutOfBounds(sClosestOpponent) &&
+		AICheckHasGun(pSoldier) &&
+		!AICheckShortWeaponRange(pSoldier) &&
+		PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) <= AIGunRange(pSoldier) &&
+		GuySawEnemy(pSoldier) &&
+			(InARoom(pSoldier->sGridNo, NULL) && pSoldier->pathing.bLevel == 0 || 
+			CountFriendsInDirection(pSoldier, AIDirection(pSoldier->sGridNo, sClosestOpponent), PythSpacesAway(sClosestOpponent, pSoldier->sGridNo), FALSE) ||
+			CountFriendsInDirectionFromSpot(pSoldier, sClosestOpponent, AIDirection(sClosestOpponent, pSoldier->sGridNo), PythSpacesAway(sClosestOpponent, pSoldier->sGridNo)) || 			
+			CountNearbyFriends(pSoldier, pSoldier->sGridNo, TACTICAL_RANGE / 2)) &&
+		(AICheckSpecialRole(pSoldier) || pSoldier->aiData.bOrders != SEEKENEMY && !pSoldier->aiData.bLastAttackHit) &&
+		AnyCoverAtSpot(pSoldier, pSoldier->sGridNo))
+	{
+		bMoraleCategory = min(bMoraleCategory, MORALE_CONFIDENT);
+	}
 
 	// prevent hopeless morale when not under attack
 	if (bMoraleCategory == MORALE_HOPELESS && !pSoldier->aiData.bUnderFire)
@@ -5084,6 +5100,39 @@ BOOLEAN AICheckIsOfficer(SOLDIERTYPE *pSoldier)
 	return FALSE;
 }
 
+BOOLEAN AICheckIsGLOperator(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	if (!SoldierAI(pSoldier))
+	{
+		return FALSE;
+	}
+
+	// find GL
+	INT8 bWeaponIn = FindAIUsableObjClass(pSoldier, IC_LAUNCHER);
+	if (bWeaponIn != NO_SLOT &&
+		(EnoughAmmo(pSoldier, FALSE, bWeaponIn) || FindAmmoToReload(pSoldier, bWeaponIn, NO_SLOT) != NO_SLOT))
+	{
+		return TRUE;
+	}
+
+	// check for attached GL
+	INT8 bGunSlot = FindAIUsableObjClass(pSoldier, IC_GUN);
+	INT8 bRealWeaponMode = pSoldier->bWeaponMode;
+	pSoldier->bWeaponMode = WM_ATTACHED_GL;		// So that EnoughAmmo will check for a grenade not a bullet
+	if (bGunSlot != NO_SLOT &&
+		IsGrenadeLauncherAttached(&pSoldier->inv[bGunSlot]) &&
+		(EnoughAmmo(pSoldier, FALSE, bGunSlot) || FindAmmoToReload(pSoldier, bGunSlot, NO_SLOT) != NO_SLOT))
+	{
+		pSoldier->bWeaponMode = bRealWeaponMode;
+		return TRUE;
+	}
+	pSoldier->bWeaponMode = bRealWeaponMode;
+
+	return FALSE;
+}
+
 BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier)
 {
 	CHECKF(pSoldier);
@@ -6421,7 +6470,7 @@ BOOLEAN InSmoke(INT32 sGridNo, INT8 bLevel)
 
 BOOLEAN AICheckSpecialRole(SOLDIERTYPE *pSoldier)
 {
-	if (AICheckIsSniper(pSoldier) || AICheckIsMachinegunner(pSoldier) || AICheckIsMortarOperator(pSoldier) || AICheckIsRadioOperator(pSoldier) || AICheckIsCommander(pSoldier))
+	if (AICheckIsSniper(pSoldier) || AICheckIsMachinegunner(pSoldier) || AICheckIsMortarOperator(pSoldier) || AICheckIsRadioOperator(pSoldier) || AICheckIsCommander(pSoldier) || AICheckIsGLOperator(pSoldier))
 		return TRUE;
 
 	return FALSE;
