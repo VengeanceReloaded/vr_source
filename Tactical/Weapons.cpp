@@ -7221,12 +7221,26 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, 
 	iPenalty = ((iMaxRange - (iRange-iAccRangeMod) * 3) * 10) / (17 * CELL_X_SIZE);
 	if ( iPenalty < 0 )
 		iChance += iPenalty;
+
 	if ( TANK( pSoldier ) && ( iRange / CELL_X_SIZE < MaxNormalDistanceVisible() ) )
 		iChance -= 2 * ( MaxNormalDistanceVisible() - (iRange / CELL_X_SIZE) );
-	// Like the above modifier, only this applies to long range weapons trying to be used in close quater.  Penalty will result when within 10% of max range
+
+	// Like the above modifier, only this applies to long range weapons trying to be used in close quarter.  Penalty will result when within 10% of max range
 	iPenalty = (((iRange - iMinRange - iAccRangeMod) * 12) * 10) / (17 * CELL_X_SIZE);
 	if ( iPenalty < 0 )
 		iChance += iPenalty;
+
+	// sevenfm: penalty when shooting at long distance, which can be compensated at second shot at the same spot
+	if (gGameExternalOptions.fOCTHNewCode)
+	{
+		iPenalty = AIM_BONUS_SAME_TARGET * min(iRange, 2 * DAY_VISION_RANGE * CELL_X_SIZE) / (DAY_VISION_RANGE * CELL_X_SIZE);
+		// halve penalty when shooting at adjacent tile
+		if (!TileIsOutOfBounds(sGridNo) && !TileIsOutOfBounds(pSoldier->sLastTarget) && SpacesAway(sGridNo, pSoldier->sLastTarget))
+		{
+			iPenalty = iPenalty / 2;
+		}
+		iChance -= iPenalty;
+	}	
 	
 	// Effects of visual range
 	// From for JA2.5:  3% bonus/penalty for each tile different from range NORMAL_RANGE.
@@ -7285,7 +7299,7 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, 
 		iChance -= iPenalty;
 	}
 	//CHRISL: A target's stance should have no impact on an aimed, headshot.  The head doesn't get any smaller just because the target is crouching down.
-	if (pTarget != NULL && ubAimPos != AIM_SHOT_HEAD)
+	if (pTarget != NULL && (ubAimPos != AIM_SHOT_HEAD || gGameExternalOptions.fOCTHNewCode))
 	{
 		// targeting a merc
 		// adjust for crouched/prone target
@@ -7300,14 +7314,36 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, 
 				else
 				{
 					// at anything other than point-blank range
-					if (iRange > POINT_BLANK_RANGE + 10 * (AIM_PENALTY_TARGET_CROUCHED / 3) )
+					if (iRange > POINT_BLANK_RANGE)
 					{
-						iChance -= (INT32)(AIM_PENALTY_TARGET_CROUCHED);
-					}
-					else if (iRange > POINT_BLANK_RANGE)
-					{
-						// at close range give same bonus as prone, up to maximum of AIM_PENALTY_TARGET_CROUCHED
-						iChance -= (INT32)(3 * ((iRange - POINT_BLANK_RANGE) / CELL_X_SIZE));	 // penalty -3%/tile
+						if (gGameExternalOptions.fOCTHNewCode)
+						{
+							iPenalty = min(AIM_PENALTY_TARGET_CROUCHED, 2 * (iRange - POINT_BLANK_RANGE) / CELL_X_SIZE);	 // penalty -3%/tile
+
+							// sevenfm: additional penalty for cover, 1%/tile
+							if (AnyCoverFromSpot(pTarget->sGridNo, pTarget->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel))
+							{
+								INT32 iCoverPenalty = min(AIM_PENALTY_TARGET_CROUCHED, (iRange - POINT_BLANK_RANGE) / CELL_X_SIZE);
+								if (pSoldier->pathing.bLevel > pTarget->pathing.bLevel)
+									iCoverPenalty = iCoverPenalty / 2;
+
+								iPenalty += iCoverPenalty;
+							}
+							iChance -= iPenalty;
+						}
+						else
+						{
+							// at anything other than point-blank range
+							if (iRange > POINT_BLANK_RANGE + 10 * (AIM_PENALTY_TARGET_CROUCHED / 3))
+							{
+								iChance -= (INT32)(AIM_PENALTY_TARGET_CROUCHED);
+							}
+							else// if (iRange > POINT_BLANK_RANGE)
+							{
+								// at close range give same bonus as prone, up to maximum of AIM_PENALTY_TARGET_CROUCHED
+								iChance -= (INT32)(3 * ((iRange - POINT_BLANK_RANGE) / CELL_X_SIZE));	 // penalty -3%/tile
+							}
+						}
 					}
 				}
 				break;
@@ -7322,11 +7358,31 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, 
 					// at anything other than point-blank range
 					if (iRange > POINT_BLANK_RANGE)
 					{
-						// reduce chance to hit with distance to the prone/immersed target
-						iPenalty = 3 * ((iRange - POINT_BLANK_RANGE) / CELL_X_SIZE); // penalty -3%/tile
-						iPenalty = __min( iPenalty, AIM_PENALTY_TARGET_PRONE );
+						if (gGameExternalOptions.fOCTHNewCode)
+						{
+							// reduce chance to hit with distance to the prone/immersed target
+							iPenalty = min(AIM_PENALTY_TARGET_PRONE, 3 * (iRange - POINT_BLANK_RANGE) / CELL_X_SIZE); // penalty -3%/tile
 
-						iChance -= iPenalty;
+							// sevenfm: additional penalty for cover, 2%/tile
+							if (AnyCoverFromSpot(pTarget->sGridNo, pTarget->pathing.bLevel, pSoldier->sGridNo, pSoldier->pathing.bLevel))
+							{
+								INT32 iCoverPenalty = min(AIM_PENALTY_TARGET_PRONE, 2 * (iRange - POINT_BLANK_RANGE) / CELL_X_SIZE);
+								if (pSoldier->pathing.bLevel > pTarget->pathing.bLevel)
+									iCoverPenalty = iCoverPenalty / 2;
+
+								iPenalty += iCoverPenalty;
+							}
+
+							iChance -= iPenalty;
+						}
+						else
+						{
+							// reduce chance to hit with distance to the prone/immersed target
+							iPenalty = 3 * ((iRange - POINT_BLANK_RANGE) / CELL_X_SIZE); // penalty -3%/tile
+							iPenalty = __min(iPenalty, AIM_PENALTY_TARGET_PRONE);
+
+							iChance -= iPenalty;
+						}						
 					}
 				}
 				break;
@@ -7441,15 +7497,11 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, 
 
 	if (pTarget != NULL)
 	{
-		// penalty for amount that enemy has moved
-		// HEADROCK HAM B2.6: Externalized the value
-		// sevenfm: r7878 fix
-		//iPenalty = __min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), 30 );
-		iPenalty = __min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), gGameExternalOptions.usMaxCTHPenaltyForMovingTarget );
+		// penalty for amount that enemy has moved		
 
 		// sevenfm: penalty for target animation
 		if (gGameExternalOptions.fOCTHNewCode)
-		{			
+		{		
 			if (!gGameExternalOptions.fNoStandingAnimAdjustInCombat || !(pTarget->flags.uiStatusFlags & SOLDIER_PC))
 			{
 				iPenalty = 0;
@@ -7533,6 +7585,11 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, 
 			}			
 		}
 
+		// HEADROCK HAM B2.6: Externalized the value
+		// sevenfm: r7878 fix
+		//iPenalty = min( (UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), 30 );
+		iPenalty = min((UINT16)((float)pTarget->bTilesMoved * (float)gGameExternalOptions.iMovementEffectOnAiming), gGameExternalOptions.usMaxCTHPenaltyForMovingTarget);
+
 		///////////////////////////////////////////////////////////////////////////////////
 		// SANDRO - fearless characters do not even take their head down no matter what
 		if ( gGameOptions.fNewTraitSystem && pTarget->ubProfile != NO_PROFILE )
@@ -7541,6 +7598,26 @@ UINT32 CalcChanceToHitGun(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sAimTime, 
 				iPenalty -= (iPenalty * 2 / 3);	// two thirds only
 		}
 		///////////////////////////////////////////////////////////////////////////////////
+		
+		if (gGameExternalOptions.fOCTHNewCode)
+		{
+			// sevenfm: increase penalty when using scope
+			if (dScopeMagFactor > 1.0f)
+			{
+				iPenalty += (INT32)(iPenalty * dScopeMagFactor / 10.0f);
+			}
+
+			// sevenfm: reduce penalty at close range or at very long range
+			if (iRange < iLongRange)
+			{
+				iPenalty = iPenalty * iRange / iLongRange;
+			}
+			else if (iRange > iLongRange)
+			{
+				iPenalty = iPenalty * iLongRange / iRange;
+			}
+		}
+
 		iChance -= iPenalty;
 
 		// if target sees us, he may have a chance to dodge before the gun goes off
