@@ -515,11 +515,10 @@ INT8 GetTerrainTypeForGrid( const INT32& sGridNo, const INT16& bLevel )
 */
 INT8 GetSightAdjustmentCamouflageOnTerrain( SOLDIERTYPE* pSoldier, const UINT8& ubStance, const UINT8& ubTerrainType )
 {
-	if (gGameExternalOptions.ubCamouflageEffectiveness == 0) {
+	if (gGameExternalOptions.ubCamouflageEffectiveness == 0)
 		return 0;
-	}
 
-	INT8 scaler = -(ANIM_STAND+1 - ubStance); // stand = 7-6 => 10%, crouch = 7-3 => 66%, prone = 7-1 => 100%;
+	INT8 scaler = -(ANIM_STAND + 1 - ubStance); // stand = 7-6 => 10%, crouch = 7-3 => 66%, prone = 7-1 => 100%;
 
 	UINT8 effectiveness = gGameExternalOptions.ubCamouflageEffectiveness;
 	
@@ -557,9 +556,8 @@ INT8 GetSightAdjustmentCamouflageOnTerrain( SOLDIERTYPE* pSoldier, const UINT8& 
 */
 INT8 GetSightAdjustmentThroughMovement( SOLDIERTYPE* pSoldier, const INT8& bTilesMoved, const UINT8& ubLightLevel  )
 {
-	if (gGameExternalOptions.ubMovementEffectiveness == 0) {
+	if (gGameExternalOptions.ubMovementEffectiveness == 0)
 		return 0;
-	}
 
 	INT8 stealth = GetStealth(pSoldier);
 
@@ -576,9 +574,8 @@ INT8 GetSightAdjustmentThroughMovement( SOLDIERTYPE* pSoldier, const INT8& bTile
 
 INT8 GetSightAdjustmentThroughStance( const UINT8& ubStance )
 {
-	if (gGameExternalOptions.ubStanceEffectiveness == 0) {
+	if (gGameExternalOptions.ubStanceEffectiveness == 0)
 		return 0;
-	}
 
 	INT8 bStanceAdjustment = -(ANIM_STAND - ubStance) * 20; // stand = 6-6 => 0%, crouch = 6-3 => 60%, prone = 6-1 => 100%;
 
@@ -727,16 +724,31 @@ INT16 GetSightAdjustment(SOLDIERTYPE* pStartSoldier, SOLDIERTYPE* pEndSoldier, I
 
 	INT16 iSightAdjustment = 0;
 
+	INT16 iSightAdjustmentThroughStance = GetSightAdjustmentThroughStance(bStance);
+	INT16 iSightAdjustmentBasedOnLBE = GetSightAdjustmentBasedOnLBE(pEndSoldier);
+	INT16 iSightAdjustmentThroughMovement = GetSightAdjustmentThroughMovement(pEndSoldier, pEndSoldier->bTilesMoved, ubLightLevel);
+	INT16 iSightAdjustmentStealthAtLightLevel = GetSightAdjustmentStealthAtLightLevel(pEndSoldier, ubLightLevel);
+	INT16 iSightAdjustmentCamouflageOnTerrain = GetSightAdjustmentCamouflageOnTerrain(pEndSoldier, bStance, ubTerrainType);
+
 	// general stuff (independent of soldier)
-	iSightAdjustment += GetSightAdjustmentThroughStance( bStance );
+	iSightAdjustment += iSightAdjustmentThroughStance;
 
 	// context sensitive (needs soldier)
-	iSightAdjustment += GetSightAdjustmentBasedOnLBE(pEndSoldier);
+	iSightAdjustment += iSightAdjustmentBasedOnLBE;
 
 	// context sensitive stuff with 2nd parameter (needs soldier for attributes but can be given a second parameter)
-	iSightAdjustment += GetSightAdjustmentThroughMovement(pEndSoldier, pEndSoldier->bTilesMoved, ubLightLevel);
-	iSightAdjustment += GetSightAdjustmentStealthAtLightLevel(pEndSoldier, ubLightLevel);
-	iSightAdjustment += GetSightAdjustmentCamouflageOnTerrain(pEndSoldier, bStance, ubTerrainType);
+	iSightAdjustment += iSightAdjustmentThroughMovement;
+
+	// sevenfm: with new vision system, use max from camo/stealth penalty
+	if (UsingNewVisionSystem() && iSightAdjustmentStealthAtLightLevel < 0 && iSightAdjustmentCamouflageOnTerrain < 0)
+	{
+		iSightAdjustment += min(iSightAdjustmentStealthAtLightLevel, iSightAdjustmentCamouflageOnTerrain);
+	}
+	else
+	{
+		iSightAdjustment += iSightAdjustmentStealthAtLightLevel;
+		iSightAdjustment += iSightAdjustmentCamouflageOnTerrain;
+	}
 	
 	if (UsingNewVisionSystem())
 	{

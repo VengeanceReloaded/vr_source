@@ -11627,7 +11627,7 @@ INT16 GetVisionRangeBonus(SOLDIERTYPE * pSoldier, INT32 sSpot, INT8 bLevel)
 			if (sScopebonus <= 0 && sHandBonus <= 0 || sItemBonus <= 0)
 				sBonus += sItemBonus;
 		}
-	}	
+	}
 
 	return( sBonus );
 }
@@ -12309,6 +12309,10 @@ INT16 GetTotalVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 
 	// Flugente: add sight range bonus due to disabilities, traits etc. (not equipment)
 	sBonus += pSoldier->GetSightRangeBonus();
+
+	// sevenfm: limit vision bonus to 100%
+	//if (UsingNewVisionSystem() && !gbForceWeaponReady && !gbForceWeaponReady)
+		//sBonus = min(sBonus, 100);
 
 	return sBonus;
 }
