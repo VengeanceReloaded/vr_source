@@ -3374,23 +3374,25 @@ UINT8 UnderFire::Chance(INT8 bTeam, INT8 bSide, BOOLEAN fCheckNeutral)
 
 // Flugente AI functions
 // determine a gridno that would allow us to hit as many enemies as possible given an effect with radius aRadius tiles
-// return true if sufficent gridno is found
+// return true if sufficient gridno is found
 // pGridNo will be the GridNo
 // aRadius is the area effect radius to use
 // uCheckFriends: 0 - do not consider friends at all 1 - consider with negative weight else: ignore any location that might also hit friends
-// sucess only if at a rating of at least aMinRating can be achieved
+// success only if at a rating of at least aMinRating can be achieved
 // any enemy soldiers not fulfilling cond will be excluded from this calculation
-// if an enemy soldier fulfils taboo, make sure to not hit him at all!
+// if an enemy soldier fulfills taboo, make sure to not hit him at all!
+#define MAX_EXCLUDE_TILES 100
 BOOLEAN GetBestAoEGridNo(SOLDIERTYPE *pSoldier, INT32* pGridNo, INT16 aRadius, UINT8 uCheckFriends, UINT8 aMinRating, SOLDIER_CONDITION cond, SOLDIER_CONDITION taboo)
 {
-	UINT8 ubLoop, ubLoop2;
-	INT32 sGridNo, sFriendTile[MAXMERCS], sOpponentTile[MAXMERCS], sTabooTile[MAXMERCS];
-	UINT8 ubFriendCnt = 0,ubOpponentCnt = 0, ubTabooCnt = 0, ubOpponentID[MAXMERCS];
+	UINT8	ubLoop, ubLoop2;
+	INT32	sGridNo, sFriendTile[MAXMERCS], sOpponentTile[MAXMERCS], sTabooTile[MAXMERCS];
+	UINT8	ubFriendCnt = 0,ubOpponentCnt = 0, ubTabooCnt = 0, ubOpponentID[MAXMERCS];
 	INT32	bMaxLeft,bMaxRight,bMaxUp,bMaxDown, i, j;
-	INT8	bPersOL, bPublOL;
+	//INT8	bPersOL, bPublOL;
+	INT8	bKnowledge;
 	SOLDIERTYPE *pFriend;
-	static INT16	sExcludeTile[100]; // This array is for storing tiles that we have
-	UINT8 ubNumExcludedTiles = 0;		// already considered, to prevent duplication of effort
+	static INT16	sExcludeTile[MAX_EXCLUDE_TILES]; // This array is for storing tiles that we have already considered, to prevent duplication of effort
+	UINT8	ubNumExcludedTiles = 0;
 
 	INT32 lowestX  = 999999;
 	INT32 highestX = 0;
@@ -3426,30 +3428,38 @@ BOOLEAN GetBestAoEGridNo(SOLDIERTYPE *pSoldier, INT32* pGridNo, INT16 aRadius, U
 				continue;
 			}
 
+			// sevenfm: checked in ValidOpponent()
 			// Special stuff for Carmen the bounty hunter
-			if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pFriend->ubProfile != 64)
+			//if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pFriend->ubProfile != 64)
+			//	continue;
+
+			// check whether this guy fulfills the target condition
+			if (!cond(pFriend))
 				continue;
 
-			// check wether this guy fulfills the target condition
-			if ( !cond(pFriend) )
+			if (!ValidOpponent(pSoldier, pFriend))
 				continue;
-			
-			bPersOL = pSoldier->aiData.bOppList[pFriend->ubID];
-			bPublOL = gbPublicOpplist[pSoldier->bTeam][pFriend->ubID];
 
-			if ( bPersOL == SEEN_CURRENTLY || bPublOL == SEEN_CURRENTLY )
+			//bPersOL = pSoldier->aiData.bOppList[pFriend->ubID];
+			//bPublOL = gbPublicOpplist[pSoldier->bTeam][pFriend->ubID];
+			bKnowledge = Knowledge(pSoldier, pFriend->ubID);
+
+			if (bKnowledge == SEEN_CURRENTLY)
 			{
 				// active KNOWN opponent, remember where he is so that we DO blow him up!
 				sOpponentTile[ubOpponentCnt] = pFriend->sGridNo;
 			}
-			else if ( bPersOL == SEEN_LAST_TURN || bPersOL == HEARD_LAST_TURN )
+			//else if ( bKnowledge == SEEN_LAST_TURN || bKnowledge == HEARD_LAST_TURN || bKnowledge == HEARD_THIS_TURN || bKnowledge == SEEN_THIS_TURN)
+			else if (bKnowledge >= HEARD_2_TURNS_AGO && bKnowledge <= SEEN_2_TURNS_AGO)
 			{
+				sOpponentTile[ubOpponentCnt] = KnownLocation(pSoldier, pFriend->ubID);
+				/*sOpponentTile[ubOpponentCnt] = gsLastKnownOppLoc[pSoldier->ubID][pFriend->ubID];
 				// cheat; only allow throw if person is REALLY within 2 tiles of where last seen
 				if ( SpacesAway( pFriend->sGridNo, gsLastKnownOppLoc[ pSoldier->ubID ][ pFriend->ubID ] ) < 3 )
 				{
-					sOpponentTile[ubOpponentCnt] = gsLastKnownOppLoc[ pSoldier->ubID ][ pFriend->ubID ];
-				}
-			}			
+				sOpponentTile[ubOpponentCnt] = gsLastKnownOppLoc[ pSoldier->ubID ][ pFriend->ubID ];
+				}*/
+			}
 			else
 			{
 				continue;
@@ -3510,11 +3520,9 @@ BOOLEAN GetBestAoEGridNo(SOLDIERTYPE *pSoldier, INT32* pGridNo, INT16 aRadius, U
 
 				// sevenfm: avoid attacking spots outside of visible world to prevent possible bugs
 				if (!GridNoOnVisibleWorldTile(sGridNo))
-				{
 					continue;
-				}
 
-				if ( PythSpacesAway( currentSoldierGridNo, sGridNo ) > aRadius )
+				if (PythSpacesAway(currentSoldierGridNo, sGridNo) > aRadius)
 					continue;
 
 				// if this tile is taboo, don't even think about targeting it!
@@ -3531,8 +3539,8 @@ BOOLEAN GetBestAoEGridNo(SOLDIERTYPE *pSoldier, INT32* pGridNo, INT16 aRadius, U
 						continue;
 				}
 
-				// add this tile to the list of alreay checked tiles
-				if ( ubNumExcludedTiles < 100 )
+				// add this tile to the list of already checked tiles
+				if (ubNumExcludedTiles < MAX_EXCLUDE_TILES)
 				{
 					sExcludeTile[ubNumExcludedTiles] = sGridNo;
 					++ubNumExcludedTiles;

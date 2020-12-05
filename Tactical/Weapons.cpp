@@ -3733,7 +3733,7 @@ BOOLEAN UseHandToHand( SOLDIERTYPE *pSoldier, INT32 sTargetGridNo, BOOLEAN fStea
 					}
 					else
 					{
-						// We were successfull in stealing. Give some experience
+						// We were successful in stealing. Give some experience
 						StatChange( pSoldier, STRAMT, 8, FALSE );
 						StatChange( pSoldier, DEXTAMT, 3, FALSE );
 						StatChange( pSoldier, AGILAMT, 3, FALSE );
