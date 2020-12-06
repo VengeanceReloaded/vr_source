@@ -1413,7 +1413,7 @@ void NPCDoesNothing(SOLDIERTYPE *pSoldier)
 
 void CancelAIAction(SOLDIERTYPE *pSoldier, UINT8 ubForce)
 {
-	DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIActionm force %d", ubForce));
+	DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction, force %d", ubForce));
 #ifdef DEBUGDECISIONS
 	if (SkipCoverCheck)
 	{

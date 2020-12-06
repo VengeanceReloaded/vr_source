@@ -5896,7 +5896,7 @@ void CommonEnterCombatModeCode( )
     ResetInterfaceAndUI( );
     ResetMultiSelection( );
 
-    // OK, loop thorugh all guys and stop them!
+    // OK, loop through all guys and stop them!
     // Loop through all mercs and make go
     for ( pSoldier = Menptr, cnt = 0; cnt < TOTAL_SOLDIERS; pSoldier++, ++cnt )
     {
@@ -5912,7 +5912,7 @@ void CommonEnterCombatModeCode( )
                 pSoldier->EVENT_StopMerc( pSoldier->sGridNo, pSoldier->ubDirection );
 
                 // END AI actions
-				DebugAI(AI_MSG_INFO, MercPtrs[pSoldier->ubAutoBandagingMedic], String("CancelAIAction: enter combat mode"));
+				DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: enter combat mode"));
                 CancelAIAction( pSoldier, TRUE );
 
                 // turn off AI controlled flag
