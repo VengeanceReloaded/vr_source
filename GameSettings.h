@@ -1471,6 +1471,8 @@ typedef struct
 	UINT8	ubDefeatMode;
 	BOOLEAN fNewStatGainMode;
 	BOOLEAN fOCTHNewCode;
+	BOOLEAN fAIDecisionInfo;
+	BOOLEAN fAIDebugInfo;
 
 } GAME_EXTERNAL_OPTIONS;
 

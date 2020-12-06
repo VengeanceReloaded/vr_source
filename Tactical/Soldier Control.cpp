@@ -12236,6 +12236,7 @@ void SOLDIERTYPE::EVENT_SoldierBeginBladeAttack( INT32 sGridNo, UINT8 ubDirectio
 
 						if ( pTSoldier->bTeam != gbPlayerNum )
 						{
+							DebugAI(AI_MSG_INFO, pTSoldier, String("CancelAIAction: begin blade attack"));
 							CancelAIAction( pTSoldier, TRUE );
 						}
 
@@ -12567,6 +12568,7 @@ void SOLDIERTYPE::EVENT_SoldierBeginPunchAttack( INT32 sGridNo, UINT8 ubDirectio
 
 						if ( pTSoldier->bTeam != gbPlayerNum )
 						{
+							DebugAI(AI_MSG_INFO, pTSoldier, String("CancelAIAction: begin punch attack"));
 							CancelAIAction( pTSoldier, TRUE );
 						}
 
@@ -20608,6 +20610,7 @@ BOOLEAN SOLDIERTYPE::PlayerSoldierStartTalking( UINT8 ubTargetID, BOOLEAN fValid
 		{
 			// Start combat etc
 			DeleteTalkingMenu();
+			DebugAI(AI_MSG_INFO, pTSoldier, String("CancelAIAction: assassin: start talking"));
 			CancelAIAction( pTSoldier, TRUE );
 			AddToShouldBecomeHostileOrSayQuoteList( pTSoldier->ubID );
 		}

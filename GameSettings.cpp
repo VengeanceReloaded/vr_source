@@ -2277,6 +2277,8 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.ubDefeatMode				= iniReader.ReadInteger("Extended Options", "DEFEAT_MODE", 0, 0, 4);
 	gGameExternalOptions.fNewStatGainMode			= iniReader.ReadBoolean("Extended Options", "NEW_STAT_GAIN_MODE", true, false);
 	gGameExternalOptions.fOCTHNewCode				= iniReader.ReadBoolean("Extended Options", "OCTH_NEW_CODE", true, false);
+	gGameExternalOptions.fAIDecisionInfo			= iniReader.ReadBoolean("Extended Options", "AI_DECISION_INFO", false, false);
+	gGameExternalOptions.fAIDebugInfo				= iniReader.ReadBoolean("Extended Options", "AI_DEBUG_INFO", false, false);
 }
 
 

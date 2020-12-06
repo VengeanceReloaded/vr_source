@@ -131,6 +131,7 @@ int TryToResumeMovement(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 	UINT8 ubGottaCancel = FALSE;
 	UINT8 ubSuccess = FALSE;
 
+	DebugAI(AI_MSG_INFO, pSoldier, String("TryToResumeMovement: sGridNo %d", sGridNo));
 
 	// have to make sure the old destination is still legal (somebody may
 	// have occupied the destination gridno in the meantime!)
@@ -168,6 +169,7 @@ int TryToResumeMovement(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 #endif
 
 			// must work even for escorted civs, can't just set the flag
+			DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: could not resume movement"));
 			CancelAIAction(pSoldier,FORCE);
 		}
 
@@ -193,6 +195,7 @@ int TryToResumeMovement(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 
 		if (!pSoldier->aiData.bUnderEscort)
 		{
+			DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: not under escort"));
 			CancelAIAction(pSoldier,DONTFORCE);	// no need to force this
 		}
 		else
@@ -227,6 +230,7 @@ int TryToResumeMovement(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 			if (ubGottaCancel)
 			{
 				// can't get close, gotta abort the movement!
+				DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: can't get close, abort movement"));
 				CancelAIAction(pSoldier,FORCE);
 
 				// tell the player doing the escorting that civilian has stopped
@@ -764,18 +768,21 @@ void SoldierTriesToContinueAlongPath(SOLDIERTYPE *pSoldier)
 
 	if (pSoldier->aiData.bNewSituation == IS_NEW_SITUATION)
 	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: IS_NEW_SITUATION"));
 		CancelAIAction(pSoldier,DONTFORCE);
 		return;
 	}
 
 	if (TileIsOutOfBounds(pSoldier->aiData.usActionData))
 	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: bad usActionData %d", pSoldier->aiData.usActionData));
 		CancelAIAction(pSoldier,DONTFORCE);
 		return;
 	}
 
 	if (!NewOKDestination( pSoldier,pSoldier->aiData.usActionData, TRUE, pSoldier->pathing.bLevel ))
 	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: !NewOKDestination spot %d level %d", pSoldier->aiData.usActionData, pSoldier->pathing.bLevel));
 		CancelAIAction(pSoldier,DONTFORCE);
 		return;
 	}
@@ -811,6 +818,7 @@ void SoldierTriesToContinueAlongPath(SOLDIERTYPE *pSoldier)
 	}
 	else
 	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: !IsActionAffordable"));
 		CancelAIAction(pSoldier,DONTFORCE);
 #ifdef TESTAI
 		DebugMsg( TOPIC_JA2AI, DBG_LEVEL_3,
@@ -836,6 +844,7 @@ void SoldierTriesToContinueAlongPath(SOLDIERTYPE *pSoldier)
 	}
 	else
 	{
+		DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: not enough AP"));
 		CancelAIAction(pSoldier,DONTFORCE);
 #ifdef TESTAI
 		DebugMsg( TOPIC_JA2AI, DBG_LEVEL_3,

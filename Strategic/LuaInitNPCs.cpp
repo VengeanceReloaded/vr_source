@@ -6413,7 +6413,7 @@ return 0;
 
 static int l_CancelAIAction(lua_State *L)
 {
-SOLDIERTYPE * pSoldier;
+	SOLDIERTYPE * pSoldier;
 
 	if ( lua_gettop(L) >= 1 )
 	{
@@ -6422,10 +6422,11 @@ SOLDIERTYPE * pSoldier;
 		pSoldier = FindSoldierByProfileID( ID, FALSE );
 		if (pSoldier)
 		{
+			DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: lua cancel action"));
 			CancelAIAction( pSoldier, TRUE );
 		}	
 	}		
-return 0;
+	return 0;
 }
 
 static int l_SoldierTo3DLocationLineOfSightTest(lua_State *L)

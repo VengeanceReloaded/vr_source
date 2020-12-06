@@ -109,6 +109,7 @@ typedef enum
 	AI_ACTION_FREE_PRISONER,		// added by Flugente: free a prisoner
 	AI_ACTION_USE_SKILL,			// added by Flugente: perform a skill, which one is stored in usAISkillUse
 	AI_ACTION_HANDLE_ITEM,			// sevenfm: use item in hand
+	AI_ACTION_LAST = AI_ACTION_HANDLE_ITEM
 } ActionType;
 
 
@@ -340,6 +341,9 @@ BOOLEAN TeamEnemyAlerted(INT8 bTeam);
 
 BOOLEAN ValidOpponent(SOLDIERTYPE* pSoldier, SOLDIERTYPE* pOpponent);
 BOOLEAN ValidTeamOpponent(INT8 bTeam, SOLDIERTYPE* pOpponent);
+
+enum {AI_MSG_START, AI_MSG_DECIDE, AI_MSG_INFO, AI_MSG_TOPIC};
+void DebugAI(INT8 bMsgType, SOLDIERTYPE *pSoldier, STR szOutput, INT8 bAction = -1);
 
 INT16 VisionRange(void);
 INT16 DayVisionRange(void);

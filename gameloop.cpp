@@ -121,8 +121,12 @@ BOOLEAN InitializeGame(void)
 	ClearAllDebugTopics();
 	//
 	// Now turn on the ones we are interested in watching
-	RegisterJA2DebugTopic( TOPIC_JA2OPPLIST, "Reg" );
-	RegisterJA2DebugTopic( TOPIC_JA2INTERRUPT, "Reg" );
+	RegisterJA2DebugTopic(TOPIC_JA2OPPLIST, "Reg");
+	RegisterJA2DebugTopic(TOPIC_JA2INTERRUPT, "Reg");
+	RegisterJA2DebugTopic(TOPIC_JA2AI, "Reg");
+	RegisterJA2DebugTopic(TOPIC_JA2, "Reg");
+	RegisterJA2DebugTopic(TOPIC_DECISIONS, "Reg");
+	RegisterJA2DebugTopic(TOPIC_GAME, "Reg");
 
 	// Snap: Read options from an INI file in the default of custom Data directory
 	// Moved this up because some settings are used during other inits

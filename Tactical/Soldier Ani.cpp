@@ -1998,6 +1998,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 
 									if ( pTSoldier->bTeam != gbPlayerNum )
 									{
+										DebugAI(AI_MSG_INFO, pTSoldier, String("CancelAIAction: dodge"));
 										CancelAIAction( pTSoldier, TRUE );
 									}
 
@@ -2497,6 +2498,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 							{								
 								if (!TileIsOutOfBounds(pSoldier->sAbsoluteFinalDestination))
 								{
+									DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: end door open code"));
 									CancelAIAction( pSoldier, FORCE );
 								}
 							}

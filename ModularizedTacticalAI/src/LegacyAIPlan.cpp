@@ -97,6 +97,7 @@ namespace AI
                         break;
                 }
             }
+			DebugAI(AI_MSG_DECIDE, get_npc(), String(""), get_npc()->aiData.bAction);
             DEBUGAIMSG("Deciding for guynum "<<(int)get_npc()->ubID<<" at gridno "<<get_npc()->sGridNo<<", APs "<<get_npc()->bActionPoints<<
                     ", decided action: "<<(int)get_npc()->aiData.bAction<<", data "<<(int)get_npc()->aiData.usActionData);
         }

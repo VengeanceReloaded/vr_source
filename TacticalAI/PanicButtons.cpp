@@ -254,16 +254,21 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 	INT8			bPanicTrigger;
 	INT32			sPanicTriggerGridNo;
 	#ifdef DEBUGDECISIONS
-		STR16 tempstr;
+	STR16 tempstr;
 	#endif
+
+	DebugAI(AI_MSG_TOPIC, pSoldier, String("[Panic AI]"));
 
 	// if there are panic bombs here
 	if (gTacticalStatus.fPanicFlags & PANIC_BOMBS_HERE)
 	{
+		DebugAI(AI_MSG_TOPIC, pSoldier, String("found panic bomb"));
+
 		// if enemy is holding a portable panic bomb detonator, he tries to use it
 		bSlot = FindTrigger( pSoldier );
 		if (bSlot != NO_SLOT)
 		{
+			DebugAI(AI_MSG_TOPIC, pSoldier, String("found trigger, slot %d", bSlot));
 			//////////////////////////////////////////////////////////////////////
 			// ACTIVATE DETONATOR: blow up sector's panic bombs
 			//////////////////////////////////////////////////////////////////////
@@ -276,10 +281,12 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 				PopMessage(tempstr);
 #endif
 				// blow up all the PANIC bombs!
+				DebugAI(AI_MSG_TOPIC, pSoldier, String("blow up panic bomb"));
 				return(AI_ACTION_USE_DETONATOR);
 			}
 			else	 // otherwise, wait a turn
 			{
+				DebugAI(AI_MSG_TOPIC, pSoldier, String("wait a turn"));
 				pSoldier->aiData.usActionData = NOWHERE;
 				return(AI_ACTION_NONE);
 			}
@@ -291,6 +298,7 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 	// if there's a panic trigger here (DOESN'T MATTER IF ANY PANIC BOMBS EXIST!)
 	if ( gTacticalStatus.fPanicFlags & PANIC_TRIGGERS_HERE )
 	{
+		DebugAI(AI_MSG_TOPIC, pSoldier, String("found panic trigger"));
 		// Have WE been chosen to go after the trigger?
 		if (pSoldier->ubID == gTacticalStatus.ubTheChosenOne)
 		{
@@ -300,7 +308,9 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 				// augh!
 				return( -1 );
 			}
+
 			sPanicTriggerGridNo = gTacticalStatus.sPanicTriggerGridNo[ bPanicTrigger ];
+			DebugAI(AI_MSG_TOPIC, pSoldier, String("closest panic trigger %d, spot %d", bPanicTrigger, sPanicTriggerGridNo));
 
 			// if not standing on the panic trigger
 			if (pSoldier->sGridNo != sPanicTriggerGridNo)
@@ -309,11 +319,13 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 				iPathCost = PlotPath( pSoldier, sPanicTriggerGridNo, FALSE, FALSE, FALSE, RUNNING, FALSE, FALSE, 0);
 				if (iPathCost != 0)
 				{
+					DebugAI(AI_MSG_TOPIC, pSoldier, String("found route to panic trigger, path cost %d", iPathCost));
 					fFoundRoute = TRUE;
 				}
 			}
 			else
 			{
+				DebugAI(AI_MSG_TOPIC, pSoldier, String("standing at panic trigger spot"));
 				fFoundRoute = TRUE;
 			}
 
@@ -339,6 +351,7 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 				// if we are at that spot now
 				if (pSoldier->sGridNo == sPanicTriggerGridNo)
 				{
+					DebugAI(AI_MSG_TOPIC, pSoldier, String("we are at the spot, activate the trigger!"));
 					////////////////////////////////////////////////////////////////
 					// PULL THE PANIC TRIGGER!
 					////////////////////////////////////////////////////////////////
@@ -354,11 +367,12 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 						pSoldier->name,pSoldier->aiData.usActionData);
 						PopMessage(tempstr);
 #endif
-
+						DebugAI(AI_MSG_TOPIC, pSoldier, String("enough AP, activate trigger!"));
 						return(AI_ACTION_PULL_TRIGGER);
 					}
 					else		// otherwise, wait a turn
 					{
+						DebugAI(AI_MSG_TOPIC, pSoldier, String("wait a turn, not enough AP"));
 						pSoldier->aiData.usActionData = NOWHERE;
 						return(AI_ACTION_NONE);
 					}
@@ -379,7 +393,7 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 							sprintf(tempstr,"%s - GETTING CLOSER to PANIC TRIGGER at grid %d (Trigger at %d)", pSoldier->name,pSoldier->aiData.usActionData,sPanicTriggerGridNo);
 							AIPopMessage(tempstr);
 #endif
-
+							DebugAI(AI_MSG_TOPIC, pSoldier, String("move closet to panic trigger %d", sPanicTriggerGridNo));
 							return(AI_ACTION_GET_CLOSER);
 						}
 						else		// Oh oh, the chosen one can't get to the trigger!
@@ -387,12 +401,14 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 #ifdef TESTVERSION
 							PopMessage("TEST MSG: Oh oh!	!legalDest - ChosenOne can't get to the trigger!");
 #endif
+							DebugAI(AI_MSG_TOPIC, pSoldier, String("cannot move to the trigger, find another chosen one"));
 							gTacticalStatus.ubTheChosenOne = NOBODY;	// strip him of his Chosen One status
 							MakeClosestEnemyChosenOne();	 // and replace him!
 						}
 					}
 					else		 // can't move, wait 1 turn
 					{
+						DebugAI(AI_MSG_TOPIC, pSoldier, String("cannot move, wait one turn"));
 						pSoldier->aiData.usActionData = NOWHERE;
 						return(AI_ACTION_NONE);
 					}
@@ -403,6 +419,7 @@ INT8 PanicAI(SOLDIERTYPE *pSoldier, UINT8 ubCanMove)
 #ifdef TESTVERSION
 				PopMessage("TEST MSG: Oh oh!	!adjacentFound - ChosenOne can't get to the trigger!");
 #endif
+				DebugAI(AI_MSG_TOPIC, pSoldier, String("cannot find route to the trigger, find another chosen one"));
 				gTacticalStatus.ubTheChosenOne = NOBODY; // strip him of his Chosen One status
 				MakeClosestEnemyChosenOne();	// and replace him!
 			}

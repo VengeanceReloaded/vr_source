@@ -6100,6 +6100,7 @@ void RemoveBlueFlag( INT32 sGridNo, INT8 bLevel )
 
 void MakeNPCGrumpyForMinorOffense( SOLDIERTYPE * pSoldier, SOLDIERTYPE *pOffendingSoldier )
 {
+	DebugAI(AI_MSG_INFO, pSoldier, String("CancelAIAction: MakeNPCGrumpyForMinorOffense"));
 	CancelAIAction( pSoldier, TRUE );
 
 	switch( pSoldier->ubProfile )
