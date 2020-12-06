@@ -5016,29 +5016,6 @@ void SOLDIERTYPE::EVENT_FireSoldierWeapon( INT32 sTargetGridNo )
 		return;
 	}
 
-	//switch ( this->inv[ this->ubAttackingHand ][0]->data.gun.ubGunAmmoType )
-	//{
-	//	case AMMO_SLEEP_DART:
-	//		this->flags.fMuzzleFlash = FALSE;
-	//		break;
-	//	default:
-	//		this->flags.fMuzzleFlash = TRUE;
-	//		break;
-	//}
-
-#if 0
-	// 0verhaul:  This does not go here!  In spite of this function's name, it is not the actual "fire" function.
-	// In fact this sets the muzzle flash even while the soldier may be turning to shoot, which can cause
-	// problems for real-time shooting.
-
-	// The correct place for this is UseGun, which already has code to set or reset the flash.
-
-	if ( IsFlashSuppressor (&this->inv[ this->ubAttackingHand ], this ) )
-		this->flags.fMuzzleFlash = FALSE;
-	else
-		this->flags.fMuzzleFlash = TRUE;
-#endif
-
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("EVENT_FireSoldierWeapon: Muzzle flash = %d",this->flags.fMuzzleFlash));
 
 	// Increment the number of people busy doing stuff because of an attack
@@ -5057,42 +5034,9 @@ void SOLDIERTYPE::EVENT_FireSoldierWeapon( INT32 sTargetGridNo )
 	//this->sLastTarget = sTargetGridNo;
 	this->ubTargetID = WhoIsThere2( sTargetGridNo, this->bTargetLevel );
 
-#if 0
-	//	if (Item[this->inv[HANDPOS].usItem].usItemClass & IC_GUN)
-	{
-		if (this->bDoBurst)
-		{
-			// This is NOT the bullets to fire.  That is done as a check of bDoBurst against the weapon burst count or
-			// bDoAutofire, or single-fire.  So let the bullet count be managed by the firing code.
-			// Set the TOTAL number of bullets to be fired
-			// Can't shoot more bullets than we have in our magazine!
-			if(this->bDoAutofire)
-				this->bBulletsLeft = __min( this->bDoAutofire, this->inv[ this->ubAttackingHand ][0]->data.gun.ubGunShotsLeft );
-			else
-			{
-				DebugMsg(TOPIC_JA2,DBG_LEVEL_3,"EVENT_FireSoldierWeapon: do burst");
-				if ( this->bWeaponMode == WM_ATTACHED_GL_BURST )
-					this->bBulletsLeft = __min( Weapon[GetAttachedGrenadeLauncher(&this->inv[this->ubAttackingHand])].ubShotsPerBurst, this->inv[ this->ubAttackingHand ][0]->data.gun.ubGunShotsLeft );
-				else
-					this->bBulletsLeft = __min( GetShotsPerBurst(&this->inv[ this->ubAttackingHand ]), this->inv[ this->ubAttackingHand ][0]->data.gun.ubGunShotsLeft );
-			}
-		}
-		else if ( IsValidSecondHandShot( this ) )
-		{
-			// two-pistol attack - two bullets!
-			this->bBulletsLeft = 2;
-		}
-		else
-		{
-			this->bBulletsLeft = 1;
-		}
+	// sevenfm: remember that this soldier has fired this turn
+	this->usSoldierFlagMask2 |= SOLDIER_FIRED_THIS_TURN;
 
-		if ( AmmoTypes[this->inv[ this->ubAttackingHand ][0]->data.gun.ubGunAmmoType].numberOfBullets > 1 )
-		{
-			this->bBulletsLeft *= AmmoTypes[this->inv[ this->ubAttackingHand ][0]->data.gun.ubGunAmmoType].numberOfBullets;
-		}
-	}
-#endif
 	DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("!!!!!!! Starting attack, bullets left %d", this->bBulletsLeft) );
 
 	// Convert our grid-not into an XY
@@ -5817,50 +5761,16 @@ void SOLDIERTYPE::EVENT_SoldierGotHit( UINT16 usWeaponIndex, INT16 sDamage, INT1
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3 , "EVENT_SoldierGotHit");
 
-#if 0
-	// 0verhaul: Under the new ABC system this is no longer necessary.
-	// ATE: If we have gotten hit, but are still in our attack animation, reduce count!
-	switch ( this->usAnimState )
-	{
-		case SHOOT_ROCKET:
-		case SHOOT_MORTAR:
-		case THROW_ITEM:
-		// <SB> crouch throwing
-		case THROW_ITEM_CROUCHED:
-		// <SB> crouch throwing
-		case LOB_ITEM:
-
-			DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("@@@@@@@ Freeing up attacker - ATTACK ANIMATION %s ENDED BY HIT ANIMATION, Now %d", gAnimControl[ this->usAnimState ].zAnimStr, gTacticalStatus.ubAttackBusyCount ) );
-			ReduceAttackBusyCount( this->ubID, FALSE );
-			break;
-	}
-#endif
-
 	// DO STUFF COMMON FOR ALL TYPES
-	if (	ubAttackerID != NOBODY)
+	if (ubAttackerID != NOBODY)
 	{
 		MercPtrs[ubAttackerID]->aiData.bLastAttackHit = TRUE;
+		// sevenfm: flag for AI
+		MercPtrs[ubAttackerID]->usSoldierFlagMask2 |= SOLDIER_SUCCESSFUL_ATTACK;
 	}
 
 	// Set attacker's ID
 	this->ubAttackerID = ubAttackerID;
-
-#if 0
-	// 0verhaul:  Slashing out more unnecessary and reworked code
-	if ( !( this->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
-	{
-		// Increment  being attacked count
-		this->bBeingAttackedCount++;
-	}
-
-	// if defender is a vehicle, there will be no hit animation played!
-	if ( !( this->flags.uiStatusFlags & SOLDIER_VEHICLE ) )
-	{
-		// Increment the number of people busy doing stuff because of an attack (busy doing hit anim!)
-		gTacticalStatus.ubAttackBusyCount++;
-		DebugMsg( TOPIC_JA2, DBG_LEVEL_3, String("!!!!!!! Person got hit, attack count now %d", gTacticalStatus.ubAttackBusyCount) );
-	}
-#endif
 
 	// ATE; Save hit location info...( for later anim determination stuff )
 	this->ubHitLocation = ubHitLocation;
@@ -7737,6 +7647,9 @@ void SOLDIERTYPE::EVENT_BeginMercTurn( BOOLEAN fFromRealTime, INT32 iRealTimeCou
 
 	// sevenfm: reset soldier flags
 	this->usSoldierFlagMask2 &= ~SOLDIER_USED_CANTEEN;
+	this->usSoldierFlagMask2 &= ~SOLDIER_SUCCESSFUL_ATTACK;
+	this->usSoldierFlagMask2 &= ~SOLDIER_FIRED_THIS_TURN;
+	this->usSoldierFlagMask2 &= ~SOLDIER_ATTACKED_THIS_TURN;
 
 	// Flugente: reset extra stats. Currently they only depend on drug effects, and those are reset every turn
 	this->ResetExtraStats();
@@ -19119,6 +19032,85 @@ BOOLEAN SOLDIERTYPE::CheckInitialAP(void)
 	}
 
 	return TRUE;
+}
+
+BOOLEAN SOLDIERTYPE::LastAttackHit(void)
+{
+	if (this->aiData.bLastAttackHit && this->sLastTarget != NOWHERE)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::FiredThisTurn(void)
+{
+	if (this->usSoldierFlagMask2 & SOLDIER_FIRED_THIS_TURN)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::LastTargetCollapsed(void)
+{
+	UINT8 ubTarget;
+
+	if (TileIsOutOfBounds(this->sLastTarget))
+	{
+		return FALSE;
+	}
+
+	// since we don't know the level of target, check both ground and roof levels
+	ubTarget = WhoIsThere2(this->sLastTarget, 0);
+	if (ubTarget == NOBODY)
+	{
+		ubTarget = WhoIsThere2(this->sLastTarget, 1);
+	}
+
+	// if still cannot find somebody, return FALSE
+	if (ubTarget == NOBODY)
+	{
+		return FALSE;
+	}
+
+	// now check target state
+	if (MercPtrs[ubTarget]->stats.bLife < OKLIFE ||
+		MercPtrs[ubTarget]->IsUnconscious())
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::LastTargetSuppressed(void)
+{
+	UINT8 ubTarget;
+
+	if (TileIsOutOfBounds(this->sLastTarget))
+	{
+		return FALSE;
+	}
+
+	// since we don't know the level of target, check both ground and roof levels
+	ubTarget = WhoIsThere2(this->sLastTarget, 0);
+	if (ubTarget == NOBODY)
+	{
+		ubTarget = WhoIsThere2(this->sLastTarget, 1);
+	}
+
+	// if still cannot find somebody, return FALSE
+	if (ubTarget == NOBODY)
+	{
+		return FALSE;
+	}
+
+	// now check target state
+	if (MercPtrs[ubTarget]->IsCowering())
+	{
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 // Flugente: boxing fix: this shall be the only location where the boxing flag gets removed (easier debugging)

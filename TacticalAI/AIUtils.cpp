@@ -3844,18 +3844,21 @@ UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent )
 		// Make sure that character is alive, not too shocked, and conscious
 		if (pFriend != pSoldier && 
 			pFriend->bActive && 
-			pFriend->stats.bLife >= OKLIFE)
+			pFriend->stats.bLife >= OKLIFE &&
+			!pFriend->IsCowering() &&
+			!pFriend->IsUnconscious())
 		{
-			//sFriendClosestOpponent = ClosestKnownOpponent( pFriend, NULL, NULL );
 			sFriendClosestOpponent = ClosestSeenOpponent( pFriend, NULL, NULL );
 			if(!TileIsOutOfBounds(sFriendClosestOpponent) &&
 				PythSpacesAway( sClosestOpponent, sFriendClosestOpponent ) < DAY_VISION_RANGE / 4 &&
 				pFriend->aiData.bAlertStatus == STATUS_BLACK &&
 				pFriend->stats.bLife > pFriend->stats.bLifeMax / 2 &&
-				( GetNearestRottingCorpseAIWarning( pFriend->sGridNo ) == 0 && !InLightAtNight(pFriend->sGridNo, pFriend->pathing.bLevel) ||
-				pFriend->bActionPoints > 3*pFriend->bInitialActionPoints/4 || 
-				pFriend->aiData.bLastAttackHit )
-				)
+				pFriend->bInitialActionPoints > APBPConstants[AP_MINIMUM] &&
+				(pFriend->bActionPoints == pFriend->bInitialActionPoints ||
+				pFriend->LastAttackHit() ||
+				pFriend->usSoldierFlagMask2 & SOLDIER_SUCCESSFUL_ATTACK ||
+				pFriend->LastTargetSuppressed() ||
+				!CorpseWarning(pFriend, pFriend->sGridNo, pFriend->pathing.bLevel, TRUE) && !InLightAtNight(pFriend->sGridNo, pFriend->pathing.bLevel) && !pFriend->aiData.bUnderFire))
 			{
 				ubFriendCount++;
 			}
@@ -5519,6 +5522,61 @@ BOOLEAN CheckArtilleryStrike( void )
 				return TRUE;
 			}
 		}
+	}
+
+	return FALSE;
+}
+
+UINT8 CountFriendsLastAttackHit(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance)
+{
+	CHECKF(pSoldier);
+
+	SOLDIERTYPE * pFriend;
+	UINT8 ubFriendCount = 0;
+
+	// Run through each friendly.
+	for (UINT8 iCounter = gTacticalStatus.Team[pSoldier->bTeam].bFirstID; iCounter <= gTacticalStatus.Team[pSoldier->bTeam].bLastID; iCounter++)
+	{
+		pFriend = MercPtrs[iCounter];
+
+		if (pFriend &&
+			pFriend != pSoldier &&
+			pFriend->bActive &&
+			pFriend->stats.bLife >= OKLIFE &&
+			pFriend->aiData.bOrders > ONGUARD &&
+			PythSpacesAway(sGridNo, pFriend->sGridNo) <= sDistance &&
+			(pFriend->LastAttackHit() != NOWHERE || pFriend->usSoldierFlagMask2 & SOLDIER_SUCCESSFUL_ATTACK || pFriend->LastTargetSuppressed()))
+		{
+			ubFriendCount++;
+		}
+	}
+
+	return ubFriendCount;
+}
+
+BOOLEAN AICheckSuccessfulAttack(SOLDIERTYPE *pSoldier, BOOLEAN fGroup)
+{
+	CHECKF(pSoldier);
+
+	if (pSoldier->LastAttackHit() && pSoldier->sLastTarget != NOWHERE || pSoldier->usSoldierFlagMask2 & SOLDIER_SUCCESSFUL_ATTACK)
+	{
+		return TRUE;
+	}
+	if (pSoldier->LastTargetCollapsed() || pSoldier->LastTargetSuppressed())
+	{
+		return TRUE;
+	}
+	if (fGroup && CountFriendsLastAttackHit(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4))
+	{
+		return TRUE;
+	}
+
+	INT32 sClosestOpponent = ClosestKnownOpponent(pSoldier, NULL, NULL);
+	if (fGroup &&
+		!TileIsOutOfBounds(sClosestOpponent) &&
+		CountFriendsLastAttackHit(pSoldier, sClosestOpponent, DAY_VISION_RANGE))
+	{
+		return TRUE;
 	}
 
 	return FALSE;

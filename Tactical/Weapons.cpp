@@ -1517,6 +1517,9 @@ BOOLEAN FireWeapon( SOLDIERTYPE *pSoldier , INT32 sTargetGridNo )
 	if ( pSoldier->bWeaponMode == WM_ATTACHED_BAYONET )
 		usItemClass = IC_BLADE;
 
+	// sevenfm: set flag indicating that soldier attacked this turn
+	pSoldier->usSoldierFlagMask2 |= SOLDIER_ATTACKED_THIS_TURN;
+
 	switch( usItemClass )
 	{
 		case IC_THROWING_KNIFE:

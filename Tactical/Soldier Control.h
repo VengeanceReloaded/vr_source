@@ -400,9 +400,13 @@ enum
 
 // ------------------- more flags for soldiers --------------------
 #define SOLDIER_SNITCHING_OFF				0x00000001	//1				// isn't allowed to snitch
-#define SOLDIER_PREVENT_MISBEHAVIOUR_OFF	0x00000002	//2				// isn't allowed to prevent misbehaviour
+#define SOLDIER_PREVENT_MISBEHAVIOUR_OFF	0x00000002	//2				// isn't allowed to prevent misbehavior
 
 #define SOLDIER_COVERT_AUTO_DISGUISE		0x00001000					// auto disguise soldier
+#define SOLDIER_SUCCESSFUL_ATTACK			0x00002000					// soldier hit enemy this turn
+#define SOLDIER_FIRED_THIS_TURN				0x00004000					// soldier used gun this turn
+#define SOLDIER_ATTACKED_THIS_TURN			0x00008000					// soldier used any weapon
+
 #define SOLDIER_USED_CANTEEN				0x00100000					// prevent multiple canteen use in combat
 // ----------------------------------------------------------------
 // -------- added by Flugente: background property flags --------
@@ -1879,6 +1883,10 @@ public:
 	BOOLEAN CanWatch(INT32 sTargetGridNo = -1);
 	BOOLEAN CanFocus(INT32 sTargetGridNo = -1);
 	BOOLEAN CheckInitialAP(void);
+	BOOLEAN LastAttackHit(void);
+	BOOLEAN FiredThisTurn(void);
+	BOOLEAN LastTargetCollapsed(void);
+	BOOLEAN LastTargetSuppressed(void);
 	//////////////////////////////////////////////////////////////////////////////
 
 }; // SOLDIERTYPE;	

@@ -3710,10 +3710,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 										// let's be a bit cautious about going right up to a location without enough APs to shoot
 										if (!fSkipCautiousMove &&
 											!TileIsOutOfBounds(sCautiousMoveSpot) &&
-											PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < 5 ||
+											(PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < 5 ||
 											SightCoverAtSpot(pSoldier, pSoldier->sGridNo, TRUE) &&
 											!SightCoverAtSpot(pSoldier, pSoldier->aiData.usActionData, FALSE) &&
-											PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < TACTICAL_RANGE / 2 &&
+											PythSpacesAway(pSoldier->aiData.usActionData, sClosestDisturbance) < TACTICAL_RANGE / 2) &&
 											CountFriendsBlack(pSoldier, sClosestDisturbance) == 0)
 										{
 											ubOpponentDir = AIDirection(pSoldier->sGridNo, sClosestDisturbance);

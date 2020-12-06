@@ -285,6 +285,7 @@ INT16 DistanceToClosestNotSeekEnemyFriend( SOLDIERTYPE *pSoldier, INT32 sGridNo 
 BOOLEAN LastTargetCollapsed( SOLDIERTYPE *pSoldier );
 BOOLEAN LastTargetSuppressed( SOLDIERTYPE *pSoldier );
 BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier );
+BOOLEAN AICheckSuccessfulAttack(SOLDIERTYPE *pSoldier, BOOLEAN fGroup);
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountNearbyNeutrals(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance);
@@ -298,6 +299,7 @@ UINT8 CountNearbyFriendsLastAttackHit( SOLDIERTYPE *pSoldier, INT32 sGridNo, UIN
 UINT8 CountFriendsNeedHelp( SOLDIERTYPE *pSoldier );
 UINT8 CountPublicKnownEnemies( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountSeenCovertOpponents( SOLDIERTYPE *pSoldier );
+UINT8 CountFriendsLastAttackHit(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance);
 
 UINT8 CountTeamCombat(SOLDIERTYPE *pSoldier);
 UINT8 CountTeamSeeSoldier(INT8 bTeam, SOLDIERTYPE *pSoldier);
