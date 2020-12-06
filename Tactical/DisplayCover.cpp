@@ -594,6 +594,7 @@ void CalculateCoverFromSoldier(SOLDIERTYPE* pFromSoldier, const INT32& sTargetGr
 	INT32 sMyRealGridNo = NOWHERE;
 	INT8 bMyRealLevel;
 	BOOLEAN fMoveSoldier = FALSE;
+	INT32 usAdjustedSight;
 
 	GetMouseMapPos(&usGridNo);
 	sMyRealGridNo = pFromSoldier->sGridNo;
@@ -619,19 +620,22 @@ void CalculateCoverFromSoldier(SOLDIERTYPE* pFromSoldier, const INT32& sTargetGr
 	{
 		const UINT8& ubStance = animArr[i];
 
-		INT32 usAdjustedSight;
+		usAdjustedSight = 0;
 
 		if (pToSoldier == NULL)
 		{
-			//usAdjustedSight = usSightLimit;
 			if (gfUIFullTargetFound && gusUIFullTargetID != NOBODY && MercPtrs[gusUIFullTargetID]->bVisible != -1)
-				usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pFromSoldier, MercPtrs[gusUIFullTargetID], sTargetGridNo, (INT8)fRoof, ubStance) / 100;
+			{
+				usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * GetSightAdjustment(pFromSoldier, MercPtrs[gusUIFullTargetID], sTargetGridNo, (INT8)fRoof, ubStance) / 100);
+			}
 			else
-				usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustmentThroughStance(ubStance) / 100;
+			{
+				usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * GetSightAdjustmentThroughStance(ubStance) / 100);
+			}
 		}
 		else
 		{
-			usAdjustedSight = usSightLimit + usSightLimit * GetSightAdjustment(pFromSoldier, pToSoldier, sTargetGridNo, (INT8)fRoof, ubStance) / 100;
+			usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * GetSightAdjustment(pFromSoldier, pToSoldier, sTargetGridNo, (INT8)fRoof, ubStance) / 100);
 		}
 
 		if (SoldierToVirtualSoldierLineOfSightTest(pFromSoldier, sTargetGridNo, (INT8)fRoof, ubStance, FALSE, usAdjustedSight) != 0)

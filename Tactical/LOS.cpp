@@ -2178,22 +2178,22 @@ INT32 SoldierToSoldierLineOfSightTest( SOLDIERTYPE * pStartSoldier, SOLDIERTYPE 
 	if (iTileSightLimit == CALC_FROM_ALL_DIRS || iTileSightLimit == CALC_FROM_WANTED_DIR)
 	{
 		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible(pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, iTileSightLimit);
-		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100;
+		iTileSightLimit = max(min(1, iTileSightLimit), iTileSightLimit + iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100);
 	}
 
 	// needed for gun hit calculation (can you even hit him)
 	else if (iTileSightLimit == NO_DISTANCE_LIMIT)
 	{
 		iTileSightLimit = pStartSoldier->GetMaxDistanceVisible(pEndSoldier->sGridNo, pEndSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
-		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100;
+		iTileSightLimit = max(min(1, iTileSightLimit), iTileSightLimit + iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100);
 		iTileSightLimit += 255; // this shifts the limit for something special (we don't know yet)
 	}
 
 	// we assume that if we are given a limit it doesn't include stealth or similar stuff
 	// for other function we assume the opposite but not this one, as we here are given the needed target soldier information to calculate sight adjustment
-	else 
+	else
 	{
-		iTileSightLimit += iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100;
+		iTileSightLimit = max(min(1, iTileSightLimit), iTileSightLimit + iTileSightLimit * GetSightAdjustment(pStartSoldier, pEndSoldier) / 100);
 	}
 
 	// anv: special check for vehicles - since they're no longer transparent, we need to check for visibility 
