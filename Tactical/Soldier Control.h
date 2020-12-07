@@ -1869,6 +1869,7 @@ public:
 	BOOLEAN IsCovertSoldier(void);
 	BOOLEAN IsCovertCivSpecial(void);
 	BOOLEAN IsUnconscious(void);
+	BOOLEAN IsGivingAid(void);
 	BOOLEAN IsBoxer(void);
 	BOOLEAN IsEmptyVehicle(void);
 	BOOLEAN LaserActive(void);

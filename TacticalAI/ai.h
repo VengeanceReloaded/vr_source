@@ -331,7 +331,13 @@ BOOLEAN FindFenceAroundSpot(INT32 sSpot);
 BOOLEAN AIGunScoped(SOLDIERTYPE *pSoldier);
 BOOLEAN AIGunInHandScoped(SOLDIERTYPE *pSoldier);
 UINT16 AIGunRange(SOLDIERTYPE *pSoldier);
+UINT16 AIGunClass(SOLDIERTYPE *pSoldier);
 UINT16 AIGunType(SOLDIERTYPE *pSoldier);
+INT16 AIGunMinAPsToShoot(SOLDIERTYPE *pSoldier, BOOLEAN fRaiseCost = TRUE);
+FLOAT AIGunScopeMagFactor(SOLDIERTYPE *pSoldier);
+UINT16 AIGunAmmo(SOLDIERTYPE *pSoldier);
+BOOLEAN AIGunAutofireCapable(SOLDIERTYPE *pSoldier);
+UINT8 AIGunDeadliness(SOLDIERTYPE *pSoldier);
 
 #define MAX_SUSPICION 100
 UINT32 CountSuspicionValue( SOLDIERTYPE *pSoldier );
@@ -422,6 +428,7 @@ UINT8 ArmyPercentKilled(void);
 UINT8 ArmyPercentKilledTolerance(void);
 UINT8 SectorCurfew(BOOLEAN fNight);
 BOOLEAN AICheckDefense(SOLDIERTYPE *pSoldier);
+BOOLEAN AICheckInterrupt(void);
 UINT8 CountTeamUnderAttack(INT8 bTeam, INT32 sGridNo, INT16 sDistance);
 INT32 FindAdvanceSpot(SOLDIERTYPE *pSoldier, INT32 sTargetSpot, INT8 bAction, UINT8 ubType, BOOLEAN fUnlimited);
 BOOLEAN FindObstacleNearSpot(INT32 sSpot, INT8 bLevel);

@@ -18767,6 +18767,14 @@ BOOLEAN SOLDIERTYPE::IsUnconscious(void)
 	return FALSE;
 }
 
+BOOLEAN SOLDIERTYPE::IsGivingAid(void)
+{
+	if (this->usAnimState == GIVING_AID || this->usAnimState == GIVING_AID_PRN)
+		return TRUE;
+
+	return FALSE;
+}
+
 BOOLEAN SOLDIERTYPE::IsBoxer(void)
 {
 	if (this->flags.uiStatusFlags & SOLDIER_BOXER)

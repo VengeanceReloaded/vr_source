@@ -32,6 +32,7 @@
 	#include "Sound Control.h"
 	#include "SmokeEffects.h"
 	#include "Structure Wrap.h"
+	#include "Interface.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -5179,6 +5180,153 @@ UINT16 AIGunType(SOLDIERTYPE *pSoldier)
 	return 0;
 }
 
+UINT16 AIGunAmmo(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	INT8 bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN);
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return 0;
+	}
+
+	if (pSoldier->inv[bWeaponIn].exists())
+	{
+		return pSoldier->inv[bWeaponIn][0]->data.gun.ubGunShotsLeft;
+	}
+
+	return 0;
+}
+
+BOOLEAN AIGunAutofireCapable(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	INT8 bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN);
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return FALSE;
+	}
+
+	if (pSoldier->inv[bWeaponIn].exists())
+	{
+		return IsGunAutofireCapable(&pSoldier->inv[bWeaponIn]);
+	}
+
+	return FALSE;
+}
+
+UINT8 AIGunDeadliness(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	INT8 bWeaponIn;
+
+	bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN);
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return 0;
+	}
+
+	if (pSoldier->inv[bWeaponIn].exists())
+	{
+		return Weapon[pSoldier->inv[bWeaponIn].usItem].ubDeadliness;
+	}
+
+	return 0;
+}
+
+UINT16 AIGunClass(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	INT8 bWeaponIn;
+
+	bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN);
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return 0;
+	}
+
+	if (pSoldier->inv[bWeaponIn].exists())
+	{
+		return Weapon[pSoldier->inv[bWeaponIn].usItem].ubWeaponClass;
+	}
+	return 0;
+}
+
+INT16 AIGunMinAPsToShoot(SOLDIERTYPE *pSoldier, BOOLEAN fRaiseCost)
+{
+	CHECKF(pSoldier);
+
+	INT8 bWeaponIn;
+	INT16 sShootAP;
+
+	bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN);
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return 0;
+	}
+
+	// temporarily move to handpos to call MinAPsToAttack
+	if (bWeaponIn != HANDPOS)
+	{
+		RearrangePocket(pSoldier, HANDPOS, bWeaponIn, TEMPORARILY);
+	}
+
+	//sShootAP = MinAPsToAttack(pSoldier, pSoldier->sLastTarget, ADDTURNCOST, 0, bWeaponIn != HANDPOS ? TRUE: FALSE);
+	sShootAP = MinAPsToAttack(pSoldier, pSoldier->sLastTarget, ADDTURNCOST, 0, fRaiseCost);
+
+	// return to original position
+	if (bWeaponIn != HANDPOS)
+	{
+		RearrangePocket(pSoldier, HANDPOS, bWeaponIn, TEMPORARILY);
+	}
+
+	return sShootAP;
+}
+
+FLOAT AIGunScopeMagFactor(SOLDIERTYPE *pSoldier)
+{
+	if (!pSoldier)
+	{
+		return 1.0f;
+	}
+
+	INT8 bWeaponIn;
+	OBJECTTYPE *pObj;
+	FLOAT BestFactor = 1.0;
+
+	bWeaponIn = FindAIUsableObjClass(pSoldier, IC_GUN);
+
+	if (bWeaponIn == NO_SLOT)
+	{
+		return 1.0f;
+	}
+
+	pObj = &pSoldier->inv[bWeaponIn];
+
+	if (pObj->exists())
+	{
+		BestFactor = Item[pObj->usItem].scopemagfactor;
+
+		for (attachmentList::iterator iter = (*pObj)[0]->attachments.begin(); iter != (*pObj)[0]->attachments.end(); ++iter)
+		{
+			if (iter->exists())
+			{
+				BestFactor = max(BestFactor, Item[iter->usItem].scopemagfactor);
+			}
+		}
+	}
+
+	return(BestFactor);
+}
+
 BOOLEAN CheckDoorAtGridno( UINT32 usGridNo )
 {
 	STRUCTURE *pStructure;
@@ -6958,6 +7106,18 @@ BOOLEAN AICheckDefense(SOLDIERTYPE *pSoldier)
 	}
 
 	return TRUE;
+}
+
+BOOLEAN AICheckInterrupt(void)
+{
+	if (gTacticalStatus.ubTopMessageType == COMPUTER_INTERRUPT_MESSAGE ||
+		gTacticalStatus.ubTopMessageType == PLAYER_INTERRUPT_MESSAGE ||
+		gTacticalStatus.ubTopMessageType == MILITIA_INTERRUPT_MESSAGE)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 // count friends under fire or with shock

@@ -18,6 +18,12 @@ class SOLDIERTYPE;
 
 extern INT8 STRAIGHT; //lal
 
+extern STR8 gStr8AlertStatus[];
+extern STR8 gStr8Attitude[];
+extern STR8 gStr8Orders[];
+extern STR8 gStr8Team[];
+extern STR8 gStr8Class[];
+
 #define CAN_CALL( s ) (s->ubBodyType != BLOODCAT && s->ubBodyType != LARVAE_MONSTER && s->ubBodyType != INFANT_MONSTER)
 #define CAN_LISTEN_TO_CALL( s ) (s->ubBodyType != BLOODCAT && s->ubBodyType != LARVAE_MONSTER)
 
@@ -154,7 +160,9 @@ INT8 CreatureDecideActionGreen( SOLDIERTYPE * pSoldier )
 	//INT8		bInWater;
 	INT8		bInGas;
 
-	//bInWater = pSoldier->MercInWater();
+	DebugAI(AI_MSG_START, pSoldier, String("[Green Creature]"));
+	DebugAI(AI_MSG_INFO, pSoldier, String("AP=%d / %d %s %s %s %s %s", pSoldier->bActionPoints, pSoldier->bInitialActionPoints, gStr8AlertStatus[pSoldier->aiData.bAlertStatus], gStr8Orders[pSoldier->aiData.bOrders], gStr8Attitude[pSoldier->aiData.bAttitude], gStr8Team[pSoldier->bTeam], gStr8Class[pSoldier->ubSoldierClass]));
+	DebugAI(AI_MSG_INFO, pSoldier, String("Health %d/%d Breath %d/%d Shock %d Tolerance %d AI Morale %d", pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pSoldier->aiData.bShock, CalcSuppressionTolerance(pSoldier), pSoldier->aiData.bAIMorale));
 
 	// NB creatures would ignore smoke completely :-)
 
@@ -450,6 +458,10 @@ INT8 CreatureDecideActionYellow( SOLDIERTYPE * pSoldier )
 	BOOLEAN fReachable;
 //	INT16 sClosestFriend;
 
+	DebugAI(AI_MSG_START, pSoldier, String("[Yellow Creature]"));
+	DebugAI(AI_MSG_INFO, pSoldier, String("AP=%d / %d %s %s %s %s %s", pSoldier->bActionPoints, pSoldier->bInitialActionPoints, gStr8AlertStatus[pSoldier->aiData.bAlertStatus], gStr8Orders[pSoldier->aiData.bOrders], gStr8Attitude[pSoldier->aiData.bAttitude], gStr8Team[pSoldier->bTeam], gStr8Class[pSoldier->ubSoldierClass]));
+	DebugAI(AI_MSG_INFO, pSoldier, String("Health %d/%d Breath %d/%d Shock %d Tolerance %d AI Morale %d", pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pSoldier->aiData.bShock, CalcSuppressionTolerance(pSoldier), pSoldier->aiData.bAIMorale));
+
 	if ( pSoldier->aiData.bMobility == CREATURE_CRAWLER && pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
 	{
 		return( AI_ACTION_NONE );
@@ -602,16 +614,20 @@ INT8 CreatureDecideActionYellow( SOLDIERTYPE * pSoldier )
 
 INT8 CreatureDecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 {
- // monster AI - hostile mammals somewhere around!
- INT32 iChance, sClosestOpponent /*,sClosestOpponent,sClosestFriend*/;
- INT32 sClosestDisturbance;
- INT32 sDistVisible;
- UINT8 ubCanMove,ubOpponentDir;
- //INT8 bInWater;
- INT8 bInGas;
- INT8 bSeekPts = 0, bHelpPts = 0, bHidePts = 0;
- INT32 sAdjustedGridNo;
- BOOLEAN fChangeLevel;
+	// monster AI - hostile mammals somewhere around!
+	INT32 iChance, sClosestOpponent /*,sClosestOpponent,sClosestFriend*/;
+	INT32 sClosestDisturbance;
+	INT32 sDistVisible;
+	UINT8 ubCanMove, ubOpponentDir;
+	//INT8 bInWater;
+	INT8 bInGas;
+	INT8 bSeekPts = 0, bHelpPts = 0, bHidePts = 0;
+	INT32 sAdjustedGridNo;
+	BOOLEAN fChangeLevel;
+
+	DebugAI(AI_MSG_START, pSoldier, String("[Red Creature]"));
+	DebugAI(AI_MSG_INFO, pSoldier, String("AP=%d / %d %s %s %s %s %s", pSoldier->bActionPoints, pSoldier->bInitialActionPoints, gStr8AlertStatus[pSoldier->aiData.bAlertStatus], gStr8Orders[pSoldier->aiData.bOrders], gStr8Attitude[pSoldier->aiData.bAttitude], gStr8Team[pSoldier->bTeam], gStr8Class[pSoldier->ubSoldierClass]));
+	DebugAI(AI_MSG_INFO, pSoldier, String("Health %d/%d Breath %d/%d Shock %d Tolerance %d AI Morale %d", pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pSoldier->aiData.bShock, CalcSuppressionTolerance(pSoldier), pSoldier->aiData.bAIMorale));
 
  // if we have absolutely no action points, we can't do a thing under RED!
  if (!pSoldier->bActionPoints)
@@ -907,18 +923,22 @@ INT8 CreatureDecideActionRed(SOLDIERTYPE *pSoldier, UINT8 ubUnconsciousOK)
 INT8 CreatureDecideActionBlack( SOLDIERTYPE * pSoldier )
 {
 	// monster AI - hostile mammals in sense range
- INT32		sClosestOpponent,sBestCover = NOWHERE;
- INT32		sClosestDisturbance;
- INT16		ubMinAPCost;
- UINT8		ubCanMove/*,bInWater*/,bInGas;
- INT8			bDirection;
- UINT8		ubBestAttackAction;
- INT8			bCanAttack;
- INT8			bSpitIn, bWeaponIn;
- UINT32		uiChance;
- ATTACKTYPE BestShot, BestStab, BestAttack, CurrStab;//dnl ch69 150913
- BOOLEAN	fRunAway = FALSE;
- BOOLEAN	fChangeLevel;
+	INT32		sClosestOpponent, sBestCover = NOWHERE;
+	INT32		sClosestDisturbance;
+	INT16		ubMinAPCost;
+	UINT8		ubCanMove/*,bInWater*/, bInGas;
+	INT8			bDirection;
+	UINT8		ubBestAttackAction;
+	INT8			bCanAttack;
+	INT8			bSpitIn, bWeaponIn;
+	UINT32		uiChance;
+	ATTACKTYPE BestShot, BestStab, BestAttack, CurrStab;//dnl ch69 150913
+	BOOLEAN	fRunAway = FALSE;
+	BOOLEAN	fChangeLevel;
+
+	DebugAI(AI_MSG_START, pSoldier, String("[Black Creature]"));
+	DebugAI(AI_MSG_INFO, pSoldier, String("AP=%d / %d %s %s %s %s %s", pSoldier->bActionPoints, pSoldier->bInitialActionPoints, gStr8AlertStatus[pSoldier->aiData.bAlertStatus], gStr8Orders[pSoldier->aiData.bOrders], gStr8Attitude[pSoldier->aiData.bAttitude], gStr8Team[pSoldier->bTeam], gStr8Class[pSoldier->ubSoldierClass]));
+	DebugAI(AI_MSG_INFO, pSoldier, String("Health %d/%d Breath %d/%d Shock %d Tolerance %d AI Morale %d", pSoldier->stats.bLife, pSoldier->stats.bLifeMax, pSoldier->bBreath, pSoldier->bBreathMax, pSoldier->aiData.bShock, CalcSuppressionTolerance(pSoldier), pSoldier->aiData.bAIMorale));
 
  // if we have absolutely no action points, we can't do a thing under BLACK!
  if (!pSoldier->bActionPoints)
