@@ -5641,7 +5641,6 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	// sevenfm: decide to advance
 	if( pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
 		ubBestAttackAction == AI_ACTION_FIRE_GUN && 
-		//!pSoldier->aiData.bUnderFire &&
 		pSoldier->aiData.bShock < 2 * RangeChangeDesire(pSoldier) &&
 		pSoldier->stats.bLife > pSoldier->stats.bLifeMax / 2 && 
 		(20 + MercPtrs[BestAttack.ubOpponent]->aiData.bShock) > BestAttack.ubChanceToReallyHit &&
@@ -5676,6 +5675,24 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 			// screw the attack!
 			ubBestAttackAction = AI_ACTION_NONE;
 		}
+	}
+
+	// sevenfm: allow to take cover
+	if ((pSoldier->bActionPoints == pSoldier->bInitialActionPoints || pSoldier->usSoldierFlagMask2 & SOLDIER_ATTACKED_THIS_TURN) &&
+		ubBestAttackAction == AI_ACTION_FIRE_GUN &&
+		ubCanMove &&
+		!gfHiddenInterrupt &&
+		//!SkipCoverCheck &&
+		!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) &&
+		pSoldier->aiData.bAIMorale < MORALE_FEARLESS &&
+		RangeChangeDesire(pSoldier) < 4 &&
+		!AnyCoverAtSpot(pSoldier, pSoldier->sGridNo) &&
+		BestAttack.ubChanceToReallyHit < 25 &&
+		Chance(100 - BestAttack.ubChanceToReallyHit) &&
+		!TileIsOutOfBounds(sClosestOpponent) &&
+		PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > TACTICAL_RANGE / 4)
+	{
+		fAllowCoverCheck = TRUE;
 	}
 
 	/*if ( (pSoldier->bActionPoints == pSoldier->bInitialActionPoints) &&
@@ -5719,9 +5736,11 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	// and either he can't attack any more, or his attack did wound someone
 	iCoverPercentBetter = 0;
 
-	if ( (ubCanMove && !SkipCoverCheck && !gfHiddenInterrupt &&
-		((ubBestAttackAction == AI_ACTION_NONE) || pSoldier->aiData.bLastAttackHit) &&
-		(pSoldier->bTeam != gbPlayerNum || pSoldier->aiData.fAIFlags & AI_RTP_OPTION_CAN_SEEK_COVER) &&
+	if ( (ubCanMove && 
+		!SkipCoverCheck && 
+		!gfHiddenInterrupt &&
+		(ubBestAttackAction == AI_ACTION_NONE || pSoldier->aiData.bLastAttackHit) &&
+		//(pSoldier->bTeam != gbPlayerNum || pSoldier->aiData.fAIFlags & AI_RTP_OPTION_CAN_SEEK_COVER) &&
 		!(pSoldier->flags.uiStatusFlags & SOLDIER_BOXER) )
 		|| fAllowCoverCheck )
 	{
@@ -6450,7 +6469,8 @@ L_NEWAIM:
 	////////////////////////////////////////////////////////////////////////////
 
 	// if soldier has enough APs left to move at least 1 square's worth
-	if ( ubCanMove && (pSoldier->bTeam != gbPlayerNum || pSoldier->aiData.fAIFlags & AI_RTP_OPTION_CAN_RETREAT) )
+	//if ( ubCanMove && (pSoldier->bTeam != gbPlayerNum || pSoldier->aiData.fAIFlags & AI_RTP_OPTION_CAN_RETREAT) )
+	if (ubCanMove && pSoldier->bTeam != gbPlayerNum)
 	{
 		if ((pSoldier->aiData.bAIMorale == MORALE_HOPELESS) || !bCanAttack)
 		{
