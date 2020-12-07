@@ -3017,21 +3017,6 @@ BOOLEAN SOLDIERTYPE::EVENT_InitNewSoldierAnim( UINT16 usNewState, UINT16 usStart
 			(Item[usBuddyItem].flare || Explosive[Item[usBuddyItem].ubClassIndex].ubType == EXPLOSV_FLARE))
 		{
 			this->flags.fMuzzleFlash = TRUE;
-			if ((this->iMuzFlash = LightSpriteCreate("L-R03.LHT", 0)) != -1)
-			{
-				LightSpritePower(this->iMuzFlash, TRUE);
-
-				INT32	usNewGridNo;
-				INT16 sXPos, sYPos;
-
-				usNewGridNo = NewGridNo(this->sGridNo, DirectionInc(this->ubDirection));
-				ConvertGridNoToCenterCellXY(usNewGridNo, &sXPos, &sYPos);
-				LightSpritePosition(this->iMuzFlash, (INT16)(sXPos / CELL_X_SIZE), (INT16)(sYPos / CELL_Y_SIZE));
-
-				// Start count
-				this->bMuzFlashCount = 1;
-			}			
-
 			//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] start muzzle flash", this->ubID);
 		}
 

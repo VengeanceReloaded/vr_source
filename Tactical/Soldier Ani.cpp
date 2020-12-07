@@ -1096,7 +1096,26 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 						DeductPoints( pSoldier, APBPConstants[AP_TOSS_ITEM], 0, AFTERACTION_INTERRUPT );
 					}
 
-					INT32 iRealObjectID = CreatePhysicalObject( pSoldier->pTempObject, pSoldier->pThrowParams->dLifeSpan,	pSoldier->pThrowParams->dX, pSoldier->pThrowParams->dY, pSoldier->pThrowParams->dZ, pSoldier->pThrowParams->dForceX, pSoldier->pThrowParams->dForceY, pSoldier->pThrowParams->dForceZ, pSoldier->ubID, pSoldier->pThrowParams->ubActionCode, pSoldier->pThrowParams->uiActionData, FALSE );
+					// sevenfm: enable muzzle flash
+					if (pSoldier->flags.fMuzzleFlash)
+					{
+						if ((pSoldier->iMuzFlash = LightSpriteCreate("L-R03.LHT", 0)) != -1)
+						{
+							LightSpritePower(pSoldier->iMuzFlash, TRUE);
+
+							INT32	usNewGridNo;
+							INT16 sXPos, sYPos;
+
+							usNewGridNo = NewGridNo(pSoldier->sGridNo, DirectionInc(pSoldier->ubDirection));
+							ConvertGridNoToCenterCellXY(usNewGridNo, &sXPos, &sYPos);
+							LightSpritePosition(pSoldier->iMuzFlash, (INT16)(sXPos / CELL_X_SIZE), (INT16)(sYPos / CELL_Y_SIZE));
+
+							// Start count
+							pSoldier->bMuzFlashCount = 1;
+						}
+					}
+
+					INT32 iRealObjectID = CreatePhysicalObject( pSoldier->pTempObject, pSoldier->pThrowParams->dLifeSpan, pSoldier->pThrowParams->dX, pSoldier->pThrowParams->dY, pSoldier->pThrowParams->dZ, pSoldier->pThrowParams->dForceX, pSoldier->pThrowParams->dForceY, pSoldier->pThrowParams->dForceZ, pSoldier->ubID, pSoldier->pThrowParams->ubActionCode, pSoldier->pThrowParams->uiActionData, FALSE );
 
 					// OJW - 20091002 - Explosives
 					if (is_networked && is_client)
