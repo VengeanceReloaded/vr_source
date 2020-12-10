@@ -11203,6 +11203,8 @@ void SnitchSectorMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason )
 		{
 			if ( CanCharacterSpreadPropaganda( pSoldier ) )
 			{
+				pSoldier->bOldAssignment = pSoldier->bAssignment;
+
 				fShowSnitchSectorMenu = FALSE;
 
 				// stop showing menu
@@ -11233,6 +11235,8 @@ void SnitchSectorMenuBtnCallback( MOUSE_REGION * pRegion, INT32 iReason )
 		{
 			if ( CanCharacterGatherInformation( pSoldier ) )
 			{
+				pSoldier->bOldAssignment = pSoldier->bAssignment;
+
 				fShowSnitchSectorMenu = FALSE;
 
 				// stop showing menu
