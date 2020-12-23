@@ -281,7 +281,7 @@ BOOLEAN EnemyHeardSoldierRecently( SOLDIERTYPE *pSoldier, UINT8 ubMax, BOOLEAN f
 BOOLEAN NightLight( void );
 BOOLEAN CheckDoorAtGridno( UINT32 usGridNo );
 BOOLEAN CheckDoorNearGridno( UINT32 usGridNo );
-BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, BOOLEAN fCheckSight );
+BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance);
 INT16 DistanceToClosestNotSeekEnemyFriend( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 BOOLEAN LastTargetCollapsed( SOLDIERTYPE *pSoldier );
 BOOLEAN LastTargetSuppressed( SOLDIERTYPE *pSoldier );
@@ -443,6 +443,6 @@ void PrepareMainRedAIWeights(SOLDIERTYPE *pSoldier, INT8 &bSeekPts, INT8 &bHelpP
 INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance, BOOLEAN fAbortSeek);
 INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
 INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
-INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
+INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier);
 
 #endif

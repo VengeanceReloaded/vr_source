@@ -1105,7 +1105,7 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			}
 
 			// sevenfm: avoid tiles near bombs
-			if( FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE / 8, FALSE))
+			if (FindBombNearby(pSoldier, sGridNo, BOMB_DETECTION_RANGE))
 			{
 				continue;
 			}
@@ -1524,7 +1524,7 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 				continue;
 
 			// sevenfm: avoid bombs:
-			if( FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8, TRUE) )
+			if (FindBombNearby(pSoldier, pSoldier->sGridNo, BOMB_DETECTION_RANGE))
 			{
 				continue;
 			}
@@ -1690,7 +1690,7 @@ INT32 FindNearestUngassedLand(SOLDIERTYPE *pSoldier)
 				}
 
 				// check for bombs nearby
-				if( FindBombNearby(pSoldier, sGridNo, DAY_VISION_RANGE/8, FALSE) )
+				if (FindBombNearby(pSoldier, sGridNo, BOMB_DETECTION_RANGE))
 				{
 					continue;
 				}

@@ -1079,7 +1079,7 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 			case 460:
 			case 461:
 
-				//CODE: THORW ITEM
+				//CODE: THROW ITEM
 				// Launch ITem!
 				if ( pSoldier->pTempObject != NULL && pSoldier->pThrowParams != NULL )
 				{

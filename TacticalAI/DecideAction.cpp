@@ -918,7 +918,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) &&
 			!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&
 			pSoldier->aiData.bAlertStatus < STATUS_RED &&
-			FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4, TRUE))
+			FindBombNearby(pSoldier, pSoldier->sGridNo, BOMB_DETECTION_RANGE))
 		{
 			ScreenMsg( FONT_ORANGE, MSG_INTERFACE, L"%s found bomb!", pSoldier->GetName() );
 			return( AI_ACTION_RED_ALERT );
@@ -1027,7 +1027,7 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionGreen: get out of water and gas"));
 
-	if (bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
+	if (bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, BOMB_DETECTION_RANGE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 		
@@ -1603,7 +1603,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 		if( !(pSoldier->usSoldierFlagMask & SOLDIER_RAISED_REDALERT) &&
 			!gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition &&
 			pSoldier->aiData.bAlertStatus < STATUS_RED &&
-			FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 4, TRUE))
+			FindBombNearby(pSoldier, pSoldier->sGridNo, BOMB_DETECTION_RANGE))
 		{
 			ScreenMsg( FONT_ORANGE, MSG_INTERFACE, L"%s found bomb!", pSoldier->GetName() );
 			return( AI_ACTION_RED_ALERT );
@@ -1703,7 +1703,7 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 
 	DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionYellow: get out of water and gas"));
 
-	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
+	if (bInWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, BOMB_DETECTION_RANGE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel))
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 
@@ -2337,7 +2337,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		}
 	}
 
-	if ( ubCanMove && (bInGas || bInDeepWater || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)) )
+	if (ubCanMove && (bInGas || bInDeepWater || FindBombNearby(pSoldier, pSoldier->sGridNo, BOMB_DETECTION_RANGE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)))
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 
@@ -3272,7 +3272,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		}
 
 		// try to use grenade for special purpose
-		bActionReturned = DecideUseGrenadeSpecial(pSoldier, sClosestDisturbance);
+		bActionReturned = DecideUseGrenadeSpecial(pSoldier);
 		if (bActionReturned != -1)
 			return bActionReturned;		
 
@@ -3716,7 +3716,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 											InLightAtNight(sCautiousMoveSpot, pSoldier->pathing.bLevel) ||
 											CountFriendsBlack(pSoldier, sClosestDisturbance) > 0 ||
 											pSoldier->aiData.bUnderFire && !GuySawEnemy(pSoldier) ||
-											FindBombNearby(pSoldier, sCautiousMoveSpot, BOMB_DETECTION_RANGE, FALSE) ||
+											FindBombNearby(pSoldier, sCautiousMoveSpot, BOMB_DETECTION_RANGE) ||
 											CorpseWarning(pSoldier, sCautiousMoveSpot, pSoldier->pathing.bLevel, TRUE) ||
 											EnemyCanAttackSpot(pSoldier, sCautiousMoveSpot, pSoldier->pathing.bLevel) ||
 											!SightCoverAtSpot(pSoldier, sCautiousMoveSpot, FALSE)))
@@ -4609,7 +4609,7 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 	}
 
 	// if soldier in water/gas has enough APs left to move at least 1 square
-	if ( ( bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE/8, TRUE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)) && ubCanMove)
+	if ((bInDeepWater || bInGas || FindBombNearby(pSoldier, pSoldier->sGridNo, BOMB_DETECTION_RANGE) || RedSmokeDanger(pSoldier->sGridNo, pSoldier->pathing.bLevel)) && ubCanMove)
 	{
 		pSoldier->aiData.usActionData = FindNearestUngassedLand(pSoldier);
 		
@@ -5037,68 +5037,10 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 
 	//DebugAI(AI_MSG_TOPIC, pSoldier, String("[Grenade for special purpose]"));
 	// try to use regular grenade for special purpose
-	if (gfTurnBasedAI &&
-		!gfHiddenInterrupt &&
-		!gTacticalStatus.fInterruptOccurred &&
-		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
-		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
-		pSoldier->aiData.bOrders != STATIONARY &&
-		(ubBestAttackAction == AI_ACTION_NONE || ubBestAttackAction == AI_ACTION_FIRE_GUN && Random(25) > (UINT8)BestAttack.ubChanceToReallyHit) &&
-		(//pSoldier->RushAttackPrepare() ||
-		//pSoldier->aiData.bOrders == SEEKENEMY && TileIsOutOfBounds(sClosestDisturbance) ||
-		Chance(10 * SoldierDifficultyLevel(pSoldier) + 10 * (CountThrowableGrenades(pSoldier, EXPLOSV_NORMAL, 10)))))
-	{
-		CheckTossGrenadeSpecial(pSoldier, &BestThrow);
-
-		if (BestThrow.ubPossible && Chance(BestThrow.iAttackValue))
-		{
-			//DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
-
-			// if necessary, swap the usItem from holster into the hand position
-			if (BestThrow.bWeaponIn != HANDPOS)
-			{
-				//DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
-				RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
-			}
-
-			INT16 sTooCloseDistance = DAY_VISION_RANGE / 4;
-			if (PythSpacesAway(pSoldier->sGridNo, BestThrow.sTarget) < sTooCloseDistance ||
-				CountNearbyFriends(pSoldier, BestThrow.sTarget, sTooCloseDistance) > 0 ||
-				CountNearbyNeutrals(pSoldier, BestThrow.sTarget, sTooCloseDistance) > 0)
-			{
-				// too close to soldier or any friend, set grenade as delayed
-				if (Explosive[Item[pSoldier->inv[HANDPOS].usItem].ubClassIndex].ubType == EXPLOSV_NORMAL)
-				{
-					pSoldier->inv[HANDPOS][0]->data.sObjectFlag |= DELAYED_GRENADE_EXPLOSION;
-				}
-			}
-
-			// stand up before throwing if needed
-			if (gAnimControl[pSoldier->usAnimState].ubEndHeight < BestThrow.ubStance &&
-				pSoldier->InternalIsValidStance(AIDirection(pSoldier->sGridNo, BestThrow.sTarget), BestThrow.ubStance))
-			{
-				pSoldier->aiData.usActionData = BestThrow.ubStance;
-				pSoldier->aiData.bNextAction = AI_ACTION_TOSS_PROJECTILE;
-				pSoldier->aiData.usNextActionData = BestThrow.sTarget;
-				pSoldier->aiData.bNextTargetLevel = BestThrow.bTargetLevel;
-				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
-				return AI_ACTION_CHANGE_STANCE;
-			}
-			else
-			{
-				pSoldier->aiData.usActionData = BestThrow.sTarget;
-				pSoldier->bTargetLevel = BestThrow.bTargetLevel;
-				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
-			}
-
-			//DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
-
-			//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] throw grenade at %d", pSoldier->ubID, BestThrow.sTarget);
-			//BeginMultiPurposeLocator(BestThrow.sTarget, BestThrow.bTargetLevel, FALSE);
-
-			return(AI_ACTION_TOSS_PROJECTILE);
-		}
-	}
+	// try to use grenade for special purpose
+	bActionReturned = DecideUseGrenadeSpecial(pSoldier);
+	if (bActionReturned != -1)
+		return bActionReturned;
 
 	// Flugente: trait skills
 	// if we are a radio operator
@@ -8924,17 +8866,19 @@ INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 	return -1;
 }
 
-INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
+INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier)
 {
 	ATTACKTYPE BestThrow;
 
 	//DebugAI(AI_MSG_TOPIC, pSoldier, String("[Grenade for special purpose]"));		
 	if (gfTurnBasedAI &&
+		!gfHiddenInterrupt &&
+		!gTacticalStatus.fInterruptOccurred &&
 		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
 		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
 		pSoldier->aiData.bOrders != STATIONARY &&
-		(pSoldier->aiData.bOrders == SEEKENEMY && TileIsOutOfBounds(sClosestDisturbance) ||
-		Chance(10 * SoldierDifficultyLevel(pSoldier) + 10 * (CountThrowableGrenades(pSoldier, EXPLOSV_NORMAL, 10)))))
+		pSoldier->aiData.bAIMorale >= MORALE_CONFIDENT &&
+		Chance(20 * SoldierDifficultyLevel(pSoldier) + 10 * CountThrowableGrenades(pSoldier, EXPLOSV_NORMAL, 10)))
 	{
 		CheckTossGrenadeSpecial(pSoldier, &BestThrow);
 

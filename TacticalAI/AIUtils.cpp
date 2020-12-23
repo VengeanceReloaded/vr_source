@@ -1124,7 +1124,7 @@ INT32 RandDestWithinRange(SOLDIERTYPE *pSoldier)
 			}
 
 			// sevenfm: avoid going too close to known bombs
-			if( FindBombNearby(pSoldier, sRandDest, DAY_VISION_RANGE/8, FALSE ) )
+			if (FindBombNearby(pSoldier, sRandDest, BOMB_DETECTION_RANGE))
 			{
 				sRandDest = NOWHERE;
 				continue;
@@ -5364,7 +5364,7 @@ BOOLEAN CheckDoorNearGridno( UINT32 usGridNo )
 	return FALSE;
 }
 
-BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, BOOLEAN fCheckSight )
+BOOLEAN FindBombNearby(SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance)
 {
 	UINT32	uiBombIndex;
 	INT32	sCheckGridno;
@@ -5394,19 +5394,17 @@ BOOLEAN FindBombNearby( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance, 
 			// search all bombs that we can see
 			for (uiBombIndex = 0; uiBombIndex < guiNumWorldBombs; uiBombIndex++)
 			{
-				if (gWorldBombs[ uiBombIndex ].fExists &&
-					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].sGridNo == sCheckGridno &&
-					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].ubLevel == pSoldier->pathing.bLevel &&
-					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].bVisible == VISIBLE &&
-					gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].usFlags & WORLD_ITEM_ARMED_BOMB ) //&&
-					//(gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].soldierID == -1 ||
-					//MercPtrs[ gWorldItems[ gWorldBombs[ uiBombIndex ].iItemIndex ].soldierID ]->bSide != pSoldier->bSide ))
+				if (gWorldBombs[uiBombIndex].fExists &&					
+					gWorldItems[gWorldBombs[uiBombIndex].iItemIndex].sGridNo == sCheckGridno &&
+					gWorldItems[gWorldBombs[uiBombIndex].iItemIndex].ubLevel == pSoldier->pathing.bLevel &&					
+					gWorldItems[gWorldBombs[uiBombIndex].iItemIndex].bVisible == VISIBLE &&
+					gWorldItems[gWorldBombs[uiBombIndex].iItemIndex].usFlags & WORLD_ITEM_ARMED_BOMB)
 				{
-					pObj = &( gWorldItems[ gWorldBombs[uiBombIndex].iItemIndex ].object );
-
-					if( pObj && pObj->exists() && HasAttachmentOfClass( pObj, AC_REMOTEDET | AC_DETONATOR ) &&
-						SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, fCheckSight ? CALC_FROM_WANTED_DIR : CALC_FROM_ALL_DIRS) )
-						//(!fCheckSight || SoldierTo3DLocationLineOfSightTest( pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, CALC_FROM_WANTED_DIR )) )
+					if (pSoldier->aiData.bNeutral ||
+						pSoldier->aiData.bAlertStatus >= STATUS_RED ||
+						!TileIsOutOfBounds(gWorldItems[gWorldBombs[uiBombIndex].iItemIndex].sGridNo) &&
+						PythSpacesAway(pSoldier->sGridNo, gWorldItems[gWorldBombs[uiBombIndex].iItemIndex].sGridNo) <= (INT16)MAX_VISION_RANGE &&
+						SoldierTo3DLocationLineOfSightTest(pSoldier, sCheckGridno, pSoldier->pathing.bLevel, 1, FALSE, CALC_FROM_WANTED_DIR))
 					{
 						return TRUE;
 					}

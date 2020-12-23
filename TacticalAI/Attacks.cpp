@@ -4147,7 +4147,7 @@ void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 						}
 
 						// if there's already active grenade there
-						if (FindBombNearby(pSoldier, sSpot, 1, FALSE))
+						if (FindBombNearby(pSoldier, sSpot, 1))
 						{
 							continue;
 						}
@@ -4186,12 +4186,8 @@ void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 						if (sObstaclePercent > 25 &&
 							bSoldierLevel == 0 &&
 							pSoldier->aiData.bOrders == SEEKENEMY &&
-							pSoldier->aiData.bAIMorale == MORALE_FEARLESS &&
-							iRCD >= 4 &&
-							//WeAttack(pSoldier->bTeam) &&
 							!TileIsOutOfBounds(sEnemySpot) &&
 							ubType == EXPLOSV_NORMAL &&
-							//CountSeenEnemiesLastTurn(pSoldier) == 0 &&
 							(FindStruct(sSpot, bLevel, BLUEFLAG_GRAPHIC) || FindConcertina(sSpot) || IsCuttableWireFenceAtGridNo(sSpot)))
 						{
 							INT32	sTempSpot;
@@ -4203,16 +4199,19 @@ void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 							{
 								sTempSpot = NewGridNo(sSpot, DirectionInc(ubDirection));
 
-								if (sTempSpot != sSpot && FindStruct(sSpot, bLevel, BLUEFLAG_GRAPHIC) || FindConcertina(sSpot) || IsCuttableWireFenceAtGridNo(sSpot))
+								if (sTempSpot != sSpot && (FindStruct(sTempSpot, bLevel, BLUEFLAG_GRAPHIC) || FindConcertina(sTempSpot) || IsCuttableWireFenceAtGridNo(sTempSpot)))
 								{
 									ubCount++;
 								}
 							}
 
-							ubSpotDir = AIDirection(pSoldier->sGridNo, sSpot);
-							iValue = max(iValue, sObstaclePercent * (10 * (CountKnownEnemiesInDirection(pSoldier, ubSpotDir, sMaxEnemyDistance, FALSE) > 0) +
-								5 * (CountKnownEnemiesInDirection(pSoldier, gOneCDirection[ubSpotDir], sMaxEnemyDistance, FALSE) > 0) +
-								5 * (CountKnownEnemiesInDirection(pSoldier, gOneCCDirection[ubSpotDir], sMaxEnemyDistance, FALSE) > 0)) / 100);
+							if(ubCount >= 2)
+							{
+								ubSpotDir = AIDirection(pSoldier->sGridNo, sSpot);
+								iValue = max(iValue, sObstaclePercent * min(100, 10 * CountKnownEnemiesInDirection(pSoldier, ubSpotDir, sMaxEnemyDistance, FALSE) +
+									5 * CountKnownEnemiesInDirection(pSoldier, gOneCDirection[ubSpotDir], sMaxEnemyDistance, FALSE) +
+									5 * CountKnownEnemiesInDirection(pSoldier, gOneCCDirection[ubSpotDir], sMaxEnemyDistance, FALSE)) / 100);
+							}							
 
 							//DebugShot(pSoldier, String("spot %d, found obstacle and %d nearby! value %d opponents in dir %d", sSpot, ubCount, iValue, CountKnownEnemiesInDirection(pSoldier, ubSpotDir, sMaxEnemyDistance, TRUE)));
 						}
@@ -4234,7 +4233,7 @@ void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 						{
 							CheckTossAt(pSoldier, pBestThrow, sSpot, bLevel, NOBODY);
 
-							if (ubType == EXPLOSV_NORMAL || ubType == EXPLOSV_BURNABLEGAS)
+							/*if (ubType == EXPLOSV_NORMAL || ubType == EXPLOSV_BURNABLEGAS)
 							{
 								// check adjacent tiles
 								if (!pBestThrow->ubPossible)
@@ -4253,7 +4252,7 @@ void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 										}
 									}
 								}
-							}
+							}*/
 
 							// can throw, set best spot
 							if (pBestThrow->ubPossible)
