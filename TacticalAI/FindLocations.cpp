@@ -792,16 +792,9 @@ INT32 FindBestNearbyCover(SOLDIERTYPE *pSoldier, INT32 morale, INT32 *piPercentB
 			continue;			// next merc
 		}
 
-		// if this man is neutral / on the same side, he's not an opponent
- 		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next merc
-		}
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
-		{
-			continue;	// next opponent
+			continue;
 		}
 
 		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
@@ -1319,10 +1312,9 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 			continue;			// next merc
 		}
 
-		// if this man is neutral / on the same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next merc
+			continue;
 		}
 
 		pbPersOL = &(pSoldier->aiData.bOppList[pOpponent->ubID]);
@@ -1334,12 +1326,6 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 			continue;			// check next opponent
 		}
 
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
-		{
-			continue;	// next opponent
-		}
-
 		// if the opponent is no threat at all for some reason
 		if (CalcManThreatValue(pOpponent,pSoldier->sGridNo,FALSE,pSoldier) == -999)
 		{
@@ -1347,8 +1333,7 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 		}
 
 		// if personal knowledge is more up to date or at least equal
-		if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) ||
-		(*pbPersOL == *pbPublOL))
+		if ((gubKnowledgeValue[*pbPublOL - OLDEST_HEARD_VALUE][*pbPersOL - OLDEST_HEARD_VALUE] > 0) || (*pbPersOL == *pbPublOL))
 		{
 			// using personal knowledge, obtain opponent's "best guess" gridno
 			sThreatLoc = gsLastKnownOppLoc[pSoldier->ubID][pOpponent->ubID];

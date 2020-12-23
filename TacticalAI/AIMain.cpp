@@ -1111,26 +1111,13 @@ UINT8 GetMostThreateningOpponent( SOLDIERTYPE *pSoldier )
 			continue;
 		}
 
-		// if this soldier is on same team as me, skip him
-		if (CONSIDERED_ALLIES(pSoldier, pTargetSoldier))
-		{
-			continue;
-		}
-
-		// if potential opponent is dead, skip him
-		if (!pTargetSoldier->stats.bLife)
+		if (!ValidOpponent(pSoldier, pTargetSoldier))
 		{
 			continue;
 		}
 
 		if (pSoldier->aiData.bOppList[pTargetSoldier->ubID] != SEEN_CURRENTLY)
 			continue;
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pTargetSoldier->ubProfile != SLAY)
-		{
-			continue;  // next opponent
-		}
 
 		iThreatVal = CalcManThreatValue(pTargetSoldier, pSoldier->sGridNo, TRUE, pSoldier);
 		if (iThreatVal < iMinThreat)

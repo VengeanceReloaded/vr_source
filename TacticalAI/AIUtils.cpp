@@ -1199,14 +1199,7 @@ INT32 ClosestReachableDisturbance(SOLDIERTYPE *pSoldier, BOOLEAN * pfChangeLevel
 			continue;			// next merc
 		}
 
-		// if this merc is neutral/on same side, he's not an opponent
-		if (CONSIDERED_NEUTRAL(pSoldier, pOpponent) || (pSoldier->bSide == pOpponent->bSide))
-		{
-			continue;			// next merc
-		}
-
-		// silversurfer: ignore empty vehicles
-		if (pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle(pOpponent->bVehicleID) == 0)
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
 			continue;
 		}
@@ -1441,20 +1434,9 @@ INT32 ClosestKnownOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLev
 			continue;			// next merc
 		}
 
-		// if this merc is neutral/on same side, he's not an opponent
-		if (CONSIDERED_NEUTRAL(pSoldier, pOpponent) || (pSoldier->bSide == pOpponent->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next merc
-		}
-
-		// silversurfer: ignore empty vehicles
-		if (pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle(pOpponent->bVehicleID) == 0)
 			continue;
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
-		{
-			continue;	// next opponent
 		}
 
 		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
@@ -1536,38 +1518,27 @@ INT32 ClosestSeenOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLeve
 	INT32 iRange, iClosestRange = 1500;
 	INT8	*pbPersOL;
 	INT8	bLevel, bClosestLevel;
-	SOLDIERTYPE * pOpp;
+	SOLDIERTYPE * pOpponent;
 
 	bClosestLevel = -1;
 
 	// look through this man's personal & public opplists for opponents known
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
-		pOpp = MercSlots[ uiLoop ];
+		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpp)
+		if (!pOpponent)
 		{
 			continue;			// next merc
 		}
 
-		// if this merc is neutral/on same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpp ) || (pSoldier->bSide == pOpp->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next merc
-		}
-
-		// silversurfer: ignore empty vehicles
-		if ( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
 			continue;
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != SLAY)
-		{
-			continue;	// next opponent
 		}
 
-		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
 
 		// if this opponent is not seen personally
 		if (*pbPersOL != SEEN_CURRENTLY)
@@ -1576,8 +1547,8 @@ INT32 ClosestSeenOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 * pbLeve
 		}
 
 		// since we're dealing with seen people, use exact gridnos
-		sGridNo = pOpp->sGridNo;
-		bLevel = pOpp->pathing.bLevel;
+		sGridNo = pOpponent->sGridNo;
+		bLevel = pOpponent->pathing.bLevel;
 
 		// if we are standing at that gridno(!, obviously our info is old...)
 		if (sGridNo == pSoldier->sGridNo)
@@ -1632,38 +1603,27 @@ INT32 ClosestSeenOpponentWithRoof(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 
 	INT32 iRange, iClosestRange = 1500;
 	INT8	*pbPersOL;
 	INT8	bLevel, bClosestLevel;
-	SOLDIERTYPE * pOpp;
+	SOLDIERTYPE * pOpponent;
 
 	bClosestLevel = -1;
 
 	// look through this man's personal & public opplists for opponents known
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
-		pOpp = MercSlots[ uiLoop ];
+		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpp)
+		if (!pOpponent)
 		{
 			continue;			// next merc
 		}
 
-		// if this merc is neutral/on same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpp ) || (pSoldier->bSide == pOpp->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next merc
-		}
-
-		// silversurfer: ignore empty vehicles
-		if ( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
 			continue;
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != SLAY)
-		{
-			continue;	// next opponent
 		}
 
-		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
 
 		// if this opponent is not seen personally
 		if (*pbPersOL != SEEN_CURRENTLY)
@@ -1672,8 +1632,8 @@ INT32 ClosestSeenOpponentWithRoof(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 
 		}
 
 		// since we're dealing with seen people, use exact gridnos
-		sGridNo = pOpp->sGridNo;
-		bLevel = pOpp->pathing.bLevel;
+		sGridNo = pOpponent->sGridNo;
+		bLevel = pOpponent->pathing.bLevel;
 
 		// if we are standing at that gridno(!, obviously our info is old...)
 		if (sGridNo == pSoldier->sGridNo)
@@ -4181,38 +4141,27 @@ INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 
 	INT32 iRange, iClosestRange = 1500;
 	INT8	*pbPersOL;
 	INT8	bLevel, bClosestLevel;
-	SOLDIERTYPE * pOpp;
+	SOLDIERTYPE * pOpponent;
 
 	bClosestLevel = -1;
 
 	// look through this man's personal & public opplists for opponents known
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
 	{
-		pOpp = MercSlots[ uiLoop ];
+		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpp)
+		if (!pOpponent)
 		{
 			continue;			// next merc
 		}
 
-		// if this merc is neutral/on same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpp ) || (pSoldier->bSide == pOpp->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next merc
-		}
-
-		// silversurfer: ignore empty vehicles
-		if ( pOpp->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpp->bVehicleID ) == 0 )
 			continue;
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != SLAY)
-		{
-			continue;	// next opponent
 		}
 
-		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
 
 		// if this opponent is not seen currently or last turn
 		if (*pbPersOL < SEEN_CURRENTLY || *pbPersOL > SEEN_LAST_TURN)
@@ -4221,8 +4170,8 @@ INT32 ClosestSeenLastTurnOpponent(SOLDIERTYPE *pSoldier, INT32 * psGridNo, INT8 
 		}
 
 		// since we're dealing with seen people, use exact gridnos
-		sGridNo = pOpp->sGridNo;
-		bLevel = pOpp->pathing.bLevel;
+		sGridNo = pOpponent->sGridNo;
+		bLevel = pOpponent->pathing.bLevel;
 
 		// if we are standing at that gridno(!, obviously our info is old...)
 		if (sGridNo == pSoldier->sGridNo)
@@ -4981,19 +4930,12 @@ BOOLEAN GuyKnowsEnemyPosition( SOLDIERTYPE * pSoldier )
 		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpponent || !pOpponent->bActive|| !pOpponent->bInSector)
+		if (!pOpponent)
 		{
 			continue;
 		}
 
-		// if this merc is neutral/on same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide) )
-		{
-			continue;
-		}
-
-		// sevenfm: ignore empty vehicles
-		if( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
 			continue;
 		}

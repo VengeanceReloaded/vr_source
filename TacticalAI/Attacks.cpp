@@ -1026,20 +1026,9 @@ void CalcBestThrow(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 			continue;
 		}
 
-		// if this man is neutral / on the same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next soldier
-		}
-
-		// silversurfer: ignore empty vehicles
-		if ( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
 			continue;
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
-		{
-			continue;	// next opponent
 		}
 
 		// sevenfm: additional restrictions
@@ -1710,9 +1699,10 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 		if (!pOpponent || !pOpponent->stats.bLife)
 			continue;			// next merc
 
-		// if this man is neutral / on the same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpponent ) || (pSoldier->bSide == pOpponent->bSide) )
-			continue;			// next merc
+		if (!ValidOpponent(pSoldier, pOpponent))
+		{
+			continue;
+		}
 
 		// if this opponent is not currently in sight (ignore known but unseen!)
 		// sevenfm: allow stabbing recently seen opponents or public known opponents
@@ -1723,19 +1713,7 @@ void CalcBestStab(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestStab, BOOLEAN fBladeAt
 
 		// if this opponent is not on the same level
 		if (pSoldier->pathing.bLevel != pOpponent->pathing.bLevel)
-			continue;			// next merc
-
-		// silversurfer: ignore empty vehicles
-		if ( pOpponent->ubWhatKindOfMercAmI == MERC_TYPE__VEHICLE && GetNumberInVehicle( pOpponent->bVehicleID ) == 0 )
-			continue;
-
-		// the_bob: don't stab the bird!
-		if (pOpponent->ubBodyType == CROW)
-			continue;
-
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpponent->ubProfile != SLAY)
-			continue;	// next opponent
+			continue;			// next merc		
 
 #ifdef DEBUGATTACKS
 		DebugAI( String( "%s can see %s\n",pSoldier->name,ExtMen[pOpponent->ubID].name ) );
@@ -3428,11 +3406,6 @@ BOOLEAN GetBestAoEGridNo(SOLDIERTYPE *pSoldier, INT32* pGridNo, INT16 aRadius, U
 				continue;
 			}
 
-			// sevenfm: checked in ValidOpponent()
-			// Special stuff for Carmen the bounty hunter
-			//if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pFriend->ubProfile != 64)
-			//	continue;
-
 			// check whether this guy fulfills the target condition
 			if (!cond(pFriend))
 				continue;
@@ -3595,7 +3568,7 @@ BOOLEAN GetFarthestOpponent(SOLDIERTYPE *pSoldier, UINT8* puID, INT16 sRange)
 	UINT32 uiLoop;
 	INT32 iRange = 0;;
 	INT8	*pbPersOL;
-	SOLDIERTYPE * pOpp;
+	SOLDIERTYPE * pOpponent;
 	BOOLEAN found = FALSE;
 	
 	*puID = NOBODY;
@@ -3603,27 +3576,20 @@ BOOLEAN GetFarthestOpponent(SOLDIERTYPE *pSoldier, UINT8* puID, INT16 sRange)
 	// look through this man's personal & public opplists for opponents known
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
 	{
-		pOpp = MercSlots[ uiLoop ];
+		pOpponent = MercSlots[ uiLoop ];
 
 		// if this merc is inactive, at base, on assignment, or dead
-		if (!pOpp)
+		if (!pOpponent)
 		{
 			continue;			// next merc
 		}
 
-		// if this merc is neutral/on same side, he's not an opponent
-		if ( CONSIDERED_NEUTRAL( pSoldier, pOpp ) || (pSoldier->bSide == pOpp->bSide))
+		if (!ValidOpponent(pSoldier, pOpponent))
 		{
-			continue;			// next merc
+			continue;
 		}
 
-		// Special stuff for Carmen the bounty hunter
-		if (pSoldier->aiData.bAttitude == ATTACKSLAYONLY && pOpp->ubProfile != 64)
-		{
-			continue;	// next opponent
-		}
-
-		pbPersOL = pSoldier->aiData.bOppList + pOpp->ubID;
+		pbPersOL = pSoldier->aiData.bOppList + pOpponent->ubID;
 
 		// if this opponent is not seen personally
 		if (*pbPersOL != SEEN_CURRENTLY)
@@ -3632,7 +3598,7 @@ BOOLEAN GetFarthestOpponent(SOLDIERTYPE *pSoldier, UINT8* puID, INT16 sRange)
 		}
 
 		// since we're dealing with seen people, use exact gridnos
-		sGridNo = pOpp->sGridNo;
+		sGridNo = pOpponent->sGridNo;
 
 		// if we are standing at that gridno(!, obviously our info is old...)
 		if (sGridNo == pSoldier->sGridNo)
