@@ -442,7 +442,7 @@ BOOLEAN CorpseMilitiaTeam(ROTTING_CORPSE *pCorpse);
 void PrepareMainRedAIWeights(SOLDIERTYPE *pSoldier, INT8 &bSeekPts, INT8 &bHelpPts, INT8 &bHidePts, INT8 &bWatchPts);
 INT8 DecideStartFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance, BOOLEAN fAbortSeek);
 INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
-INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance);
+INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier);
 INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier);
 
 #endif
