@@ -4272,3 +4272,69 @@ void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow)
 	pSoldier->bWeaponMode = WM_NORMAL;
 	//ScreenMsg(FONT_MCOLOR_LTGREEN, MSG_INTERFACE, L"Check Toss Grenade Special end");
 }
+
+void CheckTossGrenadeAt(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow, INT32 sTargetSpot, INT8 bTargetLevel, UINT8 ubGrenadeType)
+{
+	//DebugShot( pSoldier, String("\nCheckTossGrenadeAt"));
+
+	INT16 ubMinAPcost;
+	INT8 bGrenadeIn = NO_SLOT;
+
+	// initialize
+	pBestThrow->ubPossible = FALSE;
+	pBestThrow->ubChanceToReallyHit = 0;
+	pBestThrow->iAttackValue = 0;
+
+	if (!IS_MERC_BODY_TYPE(pSoldier))
+	{
+		//DebugShot( pSoldier, String("not merc body type"));
+		return;
+	}
+
+	if (TileIsOutOfBounds(sTargetSpot) || !GridNoOnVisibleWorldTile(sTargetSpot))
+	{
+		//DebugShot( pSoldier, String("bad sTargetSpot %d", sTargetSpot));
+		return;
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+
+	bGrenadeIn = FindThrowableGrenade(pSoldier, ubGrenadeType);
+
+	if (bGrenadeIn != NO_SLOT)
+	{
+		pBestThrow->bWeaponIn = bGrenadeIn;
+		//DebugShot(pSoldier, String("found grenade in slot %d", pBestThrow->bWeaponIn));
+
+		// if it's in his holster, swap it into his hand temporarily
+		if (pBestThrow->bWeaponIn != HANDPOS)
+		{
+			//DebugShot(pSoldier, String("rearrange pocket"));
+			RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+		}
+
+		// get the minimum cost to attack with this tossable item
+		ubMinAPcost = MinAPsToAttack(pSoldier, pSoldier->sGridNo, DONTADDTURNCOST, 0);
+		//DebugShot(pSoldier, String("min APs to attack %d", ubMinAPcost));
+
+		// if we can afford the minimum AP cost to throw this tossable item
+		if (pSoldier->bActionPoints >= ubMinAPcost)
+		{
+			//DebugShot(pSoldier, String("check if can throw grenade"));
+			CheckTossAt(pSoldier, pBestThrow, sTargetSpot, bTargetLevel, NOBODY);
+		}
+
+		// if it was in his holster, swap it back into his holster for now
+		if (pBestThrow->bWeaponIn != HANDPOS)
+		{
+			//DebugShot(pSoldier, String("rearrange pocket"));
+			RearrangePocket(pSoldier, HANDPOS, pBestThrow->bWeaponIn, TEMPORARILY);
+		}
+	}
+	else
+	{
+		//DebugShot( pSoldier, String("not found grenade"));
+	}
+
+	pSoldier->bWeaponMode = WM_NORMAL;
+}

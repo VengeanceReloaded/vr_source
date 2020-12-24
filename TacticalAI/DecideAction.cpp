@@ -3232,12 +3232,12 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 
 			if (BestThrow.ubPossible)
 			{
-				//DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
+				DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
 
 				// if necessary, swap the usItem from holster into the hand position
 				if (BestThrow.bWeaponIn != HANDPOS)
 				{
-					//DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
+					DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
 					RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
 				}
 
@@ -3262,10 +3262,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 					pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
 				}
 
-				//DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
-
-				//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] flank: throw grenade at fence %d", pSoldier->ubID, BestThrow.sTarget);
-				//BeginMultiPurposeLocator(BestThrow.sTarget, BestThrow.bTargetLevel, FALSE);
+				DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
 
 				return(AI_ACTION_TOSS_PROJECTILE);
 			}
@@ -3273,6 +3270,11 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 
 		// try to use grenade for special purpose
 		bActionReturned = DecideUseGrenadeSpecial(pSoldier);
+		if (bActionReturned != -1)
+			return bActionReturned;
+
+		// use smoke to cover movement when advancing to enemy
+		bActionReturned = DecideSmokeCoverMovement(pSoldier, sClosestDisturbance);
 		if (bActionReturned != -1)
 			return bActionReturned;		
 
@@ -4424,14 +4426,17 @@ BOOLEAN SoldierCondFalse(SOLDIERTYPE *pSoldier)			{ return FALSE; }
 INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 {
 	INT32	iCoverPercentBetter, iOffense, iDefense, iChance;
-	INT32	sClosestOpponent = NOWHERE,sBestCover = NOWHERE;//dnl ch58 160813
-	INT32	sClosestDisturbance;
+	INT32	sBestCover = NOWHERE;
+	INT32	sClosestOpponent = NOWHERE;
+	INT32	sClosestSeenOpponent;
+	INT32	sClosestDisturbance = NOWHERE;
 	INT16	ubMinAPCost;
 	UINT8	ubCanMove;
-	INT8	bInWater,bInDeepWater,bInGas;
+	INT8	bInWater, bInDeepWater, bInGas;
 	INT8	bDirection;
 	UINT8	ubBestAttackAction = AI_ACTION_NONE;
-	INT8	bCanAttack,bActionReturned;
+	INT8	bCanAttack;
+	INT8	bActionReturned;
 	INT8	bWeaponIn;
 	BOOLEAN	fTryPunching = FALSE;
 
@@ -4467,6 +4472,15 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		pSoldier->aiData.usActionData = NOWHERE;
 		return(AI_ACTION_NONE);
 	}
+
+	// sevenfm: prepare data
+	sClosestOpponent = ClosestKnownOpponent(pSoldier, NULL, NULL);
+	sClosestSeenOpponent = ClosestSeenOpponent(pSoldier, NULL, NULL);
+
+	if(SoldierAI(pSoldier))
+	{
+		sClosestDisturbance = ClosestReachableDisturbance(pSoldier, &fClimb);
+	}	
 
 	// can this guy move to any of the neighbouring squares ? (sets TRUE/FALSE)
 	ubCanMove = (pSoldier->bActionPoints >= MinPtsToMove(pSoldier));
@@ -4797,75 +4811,19 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 		}
 	}
 
-	//DebugAI(AI_MSG_TOPIC, pSoldier, String("[use wirecutters to cut fence]"));	
+	DebugAI(AI_MSG_TOPIC, pSoldier, String("[use wirecutters to cut fence]"));	
 	bActionReturned = DecideUseWirecutters(pSoldier);
 	if (bActionReturned != -1)
-		return bActionReturned;
+		return bActionReturned;	
 
-	if (SoldierAI(pSoldier) &&
-		gfTurnBasedAI &&
-		!gfHiddenInterrupt &&
-		!gTacticalStatus.fInterruptOccurred &&
-		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
-		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
-		!pSoldier->aiData.bUnderFire &&
-		pSoldier->pathing.bLevel == 0 &&
-		pSoldier->aiData.bOrders == SEEKENEMY &&
-		pSoldier->aiData.bAIMorale >= MORALE_CONFIDENT &&
-		RangeChangeDesire(pSoldier) >= 4 &&
-		!TileIsOutOfBounds(sClosestOpponent) &&
-		PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > TACTICAL_RANGE / 4 &&		
-		(ubBestAttackAction == AI_ACTION_NONE || ubBestAttackAction == AI_ACTION_FIRE_GUN && Random(25) > (UINT8)BestAttack.ubChanceToReallyHit) &&
-		(Chance(10 * SoldierDifficultyLevel(pSoldier) + 10 * (CountThrowableGrenades(pSoldier, EXPLOSV_NORMAL, 10)))) &&
-		FindFenceAroundSpot(pSoldier->sGridNo))
-	{
-		CheckTossOpponentFence(pSoldier, &BestThrow);
-
-		if (BestThrow.ubPossible)
-		{
-			//DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
-
-			// if necessary, swap the usItem from holster into the hand position
-			if (BestThrow.bWeaponIn != HANDPOS)
-			{
-				//DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
-				RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
-			}
-
-			// set grenade as delayed
-			pSoldier->inv[HANDPOS][0]->data.sObjectFlag |= DELAYED_GRENADE_EXPLOSION;
-
-			// stand up before throwing if needed
-			if (gAnimControl[pSoldier->usAnimState].ubEndHeight < BestThrow.ubStance &&
-				pSoldier->InternalIsValidStance(AIDirection(pSoldier->sGridNo, BestThrow.sTarget), BestThrow.ubStance))
-			{
-				pSoldier->aiData.usActionData = BestThrow.ubStance;
-				pSoldier->aiData.bNextAction = AI_ACTION_TOSS_PROJECTILE;
-				pSoldier->aiData.usNextActionData = BestThrow.sTarget;
-				pSoldier->aiData.bNextTargetLevel = BestThrow.bTargetLevel;
-				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
-				return AI_ACTION_CHANGE_STANCE;
-			}
-			else
-			{
-				pSoldier->aiData.usActionData = BestThrow.sTarget;
-				pSoldier->bTargetLevel = BestThrow.bTargetLevel;
-				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
-			}
-
-			//DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
-
-			//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] flank: throw grenade at fence %d", pSoldier->ubID, BestThrow.sTarget);
-			//BeginMultiPurposeLocator(BestThrow.sTarget, BestThrow.bTargetLevel, FALSE);
-
-			return(AI_ACTION_TOSS_PROJECTILE);
-		}
-	}
-
-	//DebugAI(AI_MSG_TOPIC, pSoldier, String("[Grenade for special purpose]"));
+	DebugAI(AI_MSG_TOPIC, pSoldier, String("[Grenade for special purpose]"));
 	// try to use regular grenade for special purpose
 	// try to use grenade for special purpose
 	bActionReturned = DecideUseGrenadeSpecial(pSoldier);
+	if (bActionReturned != -1)
+		return bActionReturned;
+
+	bActionReturned = DecideSmokeCoverMovement(pSoldier, sClosestDisturbance);
 	if (bActionReturned != -1)
 		return bActionReturned;
 
@@ -5396,6 +5354,62 @@ INT8 DecideActionBlack(SOLDIERTYPE *pSoldier)
 			{
 				return( AI_ACTION_CLIMB_ROOF );
 			}
+		}
+	}
+
+	if (SoldierAI(pSoldier) &&
+		gfTurnBasedAI &&
+		!gfHiddenInterrupt &&
+		!gTacticalStatus.fInterruptOccurred &&
+		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
+		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
+		!pSoldier->aiData.bUnderFire &&
+		pSoldier->pathing.bLevel == 0 &&
+		pSoldier->aiData.bOrders == SEEKENEMY &&
+		pSoldier->aiData.bAIMorale >= MORALE_CONFIDENT &&
+		RangeChangeDesire(pSoldier) >= 4 &&
+		!TileIsOutOfBounds(sClosestOpponent) &&
+		PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > TACTICAL_RANGE / 4 &&
+		(ubBestAttackAction == AI_ACTION_NONE || ubBestAttackAction == AI_ACTION_FIRE_GUN && Random(25) > (UINT8)BestAttack.ubChanceToReallyHit) &&
+		(Chance(10 * SoldierDifficultyLevel(pSoldier) + 10 * (CountThrowableGrenades(pSoldier, EXPLOSV_NORMAL, 10)))) &&
+		FindFenceAroundSpot(pSoldier->sGridNo))
+	{
+		CheckTossOpponentFence(pSoldier, &BestThrow);
+
+		if (BestThrow.ubPossible)
+		{
+			DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
+
+			// if necessary, swap the usItem from holster into the hand position
+			if (BestThrow.bWeaponIn != HANDPOS)
+			{
+				DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
+				RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
+			}
+
+			// set grenade as delayed
+			pSoldier->inv[HANDPOS][0]->data.sObjectFlag |= DELAYED_GRENADE_EXPLOSION;
+
+			// stand up before throwing if needed
+			if (gAnimControl[pSoldier->usAnimState].ubEndHeight < BestThrow.ubStance &&
+				pSoldier->InternalIsValidStance(AIDirection(pSoldier->sGridNo, BestThrow.sTarget), BestThrow.ubStance))
+			{
+				pSoldier->aiData.usActionData = BestThrow.ubStance;
+				pSoldier->aiData.bNextAction = AI_ACTION_TOSS_PROJECTILE;
+				pSoldier->aiData.usNextActionData = BestThrow.sTarget;
+				pSoldier->aiData.bNextTargetLevel = BestThrow.bTargetLevel;
+				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
+				return AI_ACTION_CHANGE_STANCE;
+			}
+			else
+			{
+				pSoldier->aiData.usActionData = BestThrow.sTarget;
+				pSoldier->bTargetLevel = BestThrow.bTargetLevel;
+				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
+			}
+			DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
+
+			return(AI_ACTION_TOSS_PROJECTILE);
 		}
 	}
 
@@ -6290,11 +6304,9 @@ L_NEWAIM:
 		if ( !fCivilian && !gfHiddenInterrupt && IsValidStance( pSoldier, ANIM_CROUCH ) && ubBestAttackAction != AI_ACTION_KNIFE_MOVE && ubBestAttackAction != AI_ACTION_KNIFE_STAB && ubBestAttackAction != AI_ACTION_STEAL_MOVE) // SANDRO - if knife attack don't crouch
 		{
 			// determine the location of the known closest opponent
-			// (don't care if he's conscious, don't care if he's reachable at all)
-
-			sClosestOpponent = ClosestSeenOpponent(pSoldier, NULL, NULL);
+			// (don't care if he's conscious, don't care if he's reachable at all)			
 			// SANDRO - don't crouch if in close combat distance (we got penalties that way)
-			if (PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > 1 )
+			if (PythSpacesAway(pSoldier->sGridNo, sClosestSeenOpponent) > 1 )
 			{
 				pSoldier->aiData.usActionData = StanceChange( pSoldier, BestAttack.ubAPCost );
 				if (pSoldier->aiData.usActionData != 0)
@@ -6306,9 +6318,9 @@ L_NEWAIM:
 							(((pSoldier->aiData.bAIMorale > MORALE_HOPELESS) || ubCanMove) && !AimingGun(pSoldier)) )
 						{
 							// if we have a closest seen opponent						
-							if (!TileIsOutOfBounds(sClosestOpponent))
+							if (!TileIsOutOfBounds(sClosestSeenOpponent))
 							{
-								bDirection = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(sClosestOpponent),CenterY(sClosestOpponent));
+								bDirection = atan8(CenterX(pSoldier->sGridNo),CenterY(pSoldier->sGridNo),CenterX(sClosestSeenOpponent),CenterY(sClosestSeenOpponent));
 
 								// if we're not facing towards him
 								if (pSoldier->ubDirection != bDirection)
@@ -8144,7 +8156,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 					if (gfTurnBasedAI &&
 						pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
 					{
-						//DebugAI(AI_MSG_INFO, pSoldier, String("cannot flank, wait for the next turn"));
+						DebugAI(AI_MSG_INFO, pSoldier, String("cannot flank, wait for the next turn"));
 						return(AI_ACTION_END_TURN);
 					}
 
@@ -8178,7 +8190,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 
 						if (bWirecutterSlot != NO_SLOT)
 						{
-							//DebugAI(AI_MSG_INFO, pSoldier, String("found wirecutter, check if we can find fence to cut"));
+							DebugAI(AI_MSG_INFO, pSoldier, String("found wirecutter, check if we can find fence to cut"));
 
 							UINT8 ubDir = AIDirection(pSoldier->sGridNo, pSoldier->lastFlankSpot);
 							UINT8 ubDesiredDir;
@@ -8204,7 +8216,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									IsCuttableWireFenceAtGridNo(sNewSpot) &&
 									IsLocationSittableExcludingPeople(sNextSpot, pSoldier->pathing.bLevel))
 								{
-									//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
+									DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
 									if (pSoldier->ubDirection == ubCheckDir)
 									{
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
@@ -8213,7 +8225,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									}
 									else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 									{
-										//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+										DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
 										pSoldier->aiData.usActionData = ubCheckDir;
 										pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
@@ -8234,7 +8246,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									IsCuttableWireFenceAtGridNo(sNewSpot) &&
 									IsLocationSittableExcludingPeople(sNextSpot, pSoldier->pathing.bLevel))
 								{
-									//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
+									DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
 									if (pSoldier->ubDirection == ubCheckDir)
 									{
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
@@ -8243,7 +8255,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									}
 									else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 									{
-										//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+										DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
 										pSoldier->aiData.usActionData = ubCheckDir;
 										pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
@@ -8261,7 +8273,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									IsCuttableWireFenceAtGridNo(sNewSpot) &&
 									IsLocationSittableExcludingPeople(sNextSpot, pSoldier->pathing.bLevel))
 								{
-									//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
+									DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
 									if (pSoldier->ubDirection == ubCheckDir)
 									{
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
@@ -8270,7 +8282,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									}
 									else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 									{
-										//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+										DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
 										pSoldier->aiData.usActionData = ubCheckDir;
 										pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
@@ -8290,12 +8302,12 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 
 						if (BestThrow.ubPossible)
 						{
-							//DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
+							DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
 
 							// if necessary, swap the usItem from holster into the hand position
 							if (BestThrow.bWeaponIn != HANDPOS)
 							{
-								//DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
+								DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
 								RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
 							}
 
@@ -8320,7 +8332,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 								pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
 							}
 
-							//DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
+							DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
 
 							return(AI_ACTION_TOSS_PROJECTILE);
 						}
@@ -8354,7 +8366,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 					if (gfTurnBasedAI &&
 						pSoldier->bActionPoints < pSoldier->bInitialActionPoints)
 					{
-						//DebugAI(AI_MSG_INFO, pSoldier, String("cannot flank, wait for the next turn"));
+						DebugAI(AI_MSG_INFO, pSoldier, String("cannot flank, wait for the next turn"));
 						return(AI_ACTION_END_TURN);
 					}
 
@@ -8388,7 +8400,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 
 						if (bWirecutterSlot != NO_SLOT)
 						{
-							//DebugAI(AI_MSG_INFO, pSoldier, String("found wirecutter, check if we can find fence to cut"));
+							DebugAI(AI_MSG_INFO, pSoldier, String("found wirecutter, check if we can find fence to cut"));
 
 							UINT8 ubDir = AIDirection(pSoldier->sGridNo, pSoldier->lastFlankSpot);
 							UINT8 ubFlankDir;
@@ -8414,7 +8426,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									IsCuttableWireFenceAtGridNo(sNewSpot) &&
 									IsLocationSittableExcludingPeople(sNextSpot, pSoldier->pathing.bLevel))
 								{
-									//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
+									DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
 									if (pSoldier->ubDirection == ubCheckDir)
 									{
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
@@ -8423,7 +8435,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									}
 									else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 									{
-										//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+										DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
 										pSoldier->aiData.usActionData = ubCheckDir;
 										pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
@@ -8444,7 +8456,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									IsCuttableWireFenceAtGridNo(sNewSpot) &&
 									IsLocationSittableExcludingPeople(sNextSpot, pSoldier->pathing.bLevel))
 								{
-									//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
+									DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
 									if (pSoldier->ubDirection == ubCheckDir)
 									{
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
@@ -8453,7 +8465,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									}
 									else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 									{
-										//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+										DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
 										pSoldier->aiData.usActionData = ubCheckDir;
 										pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
@@ -8471,7 +8483,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									IsCuttableWireFenceAtGridNo(sNewSpot) &&
 									IsLocationSittableExcludingPeople(sNextSpot, pSoldier->pathing.bLevel))
 								{
-									//DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
+									DebugAI(AI_MSG_INFO, pSoldier, String("found cuttable fence at %d", sNewSpot));
 									if (pSoldier->ubDirection == ubCheckDir)
 									{
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
@@ -8480,7 +8492,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 									}
 									else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 									{
-										//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+										DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
 										RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
 										pSoldier->aiData.usActionData = ubCheckDir;
 										pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
@@ -8500,12 +8512,12 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 
 						if (BestThrow.ubPossible)
 						{
-							//DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
+							DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
 
 							// if necessary, swap the usItem from holster into the hand position
 							if (BestThrow.bWeaponIn != HANDPOS)
 							{
-								//DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
+								DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
 								RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
 							}
 
@@ -8530,10 +8542,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 								pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
 							}
 
-							//DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
-
-							//ScreenMsg(FONT_ORANGE, MSG_INTERFACE, L"[%d] flank: throw grenade at fence %d", pSoldier->ubID, BestThrow.sTarget);
-							//BeginMultiPurposeLocator(BestThrow.sTarget, BestThrow.bTargetLevel, FALSE);
+							DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
 
 							return(AI_ACTION_TOSS_PROJECTILE);
 						}
@@ -8604,7 +8613,7 @@ INT8 DecideUseWirecutters(SOLDIERTYPE *pSoldier)
 					}
 					else if (pSoldier->InternalIsValidStance(ubCheckDir, gAnimControl[pSoldier->usAnimState].ubEndHeight))
 					{
-						//DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
+						DebugAI(AI_MSG_INFO, pSoldier, String("turn before cutting fence"));
 						RearrangePocket(pSoldier, HANDPOS, bWirecutterSlot, FOREVER);
 						pSoldier->aiData.usActionData = ubCheckDir;
 						pSoldier->aiData.bNextAction = AI_ACTION_HANDLE_ITEM;
@@ -8696,7 +8705,7 @@ INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier)
 {
 	ATTACKTYPE BestThrow;
 
-	//DebugAI(AI_MSG_TOPIC, pSoldier, String("[Grenade for special purpose]"));		
+	DebugAI(AI_MSG_TOPIC, pSoldier, String("[Grenade for special purpose]"));		
 	if (gfTurnBasedAI &&
 		!gfHiddenInterrupt &&
 		!gTacticalStatus.fInterruptOccurred &&
@@ -8710,12 +8719,12 @@ INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier)
 
 		if (BestThrow.ubPossible  && Chance(BestThrow.iAttackValue))
 		{
-			//DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
+			DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
 
 			// if necessary, swap the usItem from holster into the hand position
 			if (BestThrow.bWeaponIn != HANDPOS)
 			{
-				//DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
+				DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
 				RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
 			}
 
@@ -8749,10 +8758,118 @@ INT8 DecideUseGrenadeSpecial(SOLDIERTYPE *pSoldier)
 				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
 			}
 
-			//DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
+			DebugAI(AI_MSG_INFO, pSoldier, String("throw grenade at spot %d level %d", BestThrow.sTarget, BestThrow.bTargetLevel));
 
 			return(AI_ACTION_TOSS_PROJECTILE);
 		}
+	}
+
+	return -1;
+}
+
+INT8 DecideSmokeCoverMovement(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
+{
+	DebugAI(AI_MSG_TOPIC, pSoldier, String("[Smoke to cover movement]"));
+
+	ATTACKTYPE BestThrow;
+
+	// try to use smoke to cover movement
+	if (gfTurnBasedAI &&
+		SoldierAI(pSoldier) &&
+		FindThrowableGrenade(pSoldier, EXPLOSV_SMOKE) != EXPLOSV_SMOKE &&
+		pSoldier->bActionPoints >= APBPConstants[AP_MINIMUM] &&
+		pSoldier->bActionPoints == pSoldier->bInitialActionPoints &&
+		!TileIsOutOfBounds(sClosestDisturbance) &&
+		pSoldier->aiData.bAIMorale >= MORALE_CONFIDENT &&
+		!AICheckIsSniper(pSoldier) &&
+		!AICheckIsMachinegunner(pSoldier) &&
+		pSoldier->aiData.bOrders != STATIONARY &&
+		!AICheckSuccessfulAttack(pSoldier, TRUE) &&
+		(pSoldier->aiData.bUnderFire ||
+		CountSeenEnemiesLastTurn(pSoldier) > CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE / 2) ||
+		CountTeamUnderAttack(pSoldier->bTeam, pSoldier->sGridNo, DAY_VISION_RANGE) > CountFriendsLastAttackHit(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE) ||
+		CountCorpses(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE, TRUE, TRUE) > CountNearbyFriends(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE)) &&
+		(InSmoke(pSoldier->sGridNo, pSoldier->pathing.bLevel) ||
+		Chance(SoldierDifficultyLevel(pSoldier) * 10) ||
+		Chance(TeamPercentKilled(pSoldier->bTeam)) ||
+		Chance(10 * CountTeamUnderAttack(pSoldier->bTeam, pSoldier->sGridNo, DAY_VISION_RANGE)) ||
+		Chance(10 * CountCorpses(pSoldier, pSoldier->sGridNo, DAY_VISION_RANGE, TRUE, TRUE))))
+	{
+		gubNPCAPBudget = 0;
+		gubNPCDistLimit = 0;
+
+		BestThrow.ubPossible = FALSE;
+
+		// check path to closest disturbance
+		if (FindBestPath(pSoldier, sClosestDisturbance, pSoldier->pathing.bLevel, RUNNING, COPYROUTE, 0))
+		{
+			DebugAI(AI_MSG_INFO, pSoldier, String("found path to %d, path size %d ", sClosestDisturbance, pSoldier->pathing.usPathDataSize));
+
+			INT32 sCheckGridNo = pSoldier->sGridNo;
+			INT32 sSmokeSpot = NOWHERE;
+
+			for (INT16 sLoop = pSoldier->pathing.usPathIndex; sLoop < pSoldier->pathing.usPathDataSize; sLoop++)
+			{
+				sCheckGridNo = NewGridNo(sCheckGridNo, DirectionInc((UINT8)(pSoldier->pathing.usPathingData[sLoop])));
+
+				// find last dangerous spot or last spot seen by enemy if rushing
+				if (!TileIsOutOfBounds(sCheckGridNo) &&
+					PythSpacesAway(pSoldier->sGridNo, sCheckGridNo) < TACTICAL_RANGE / 2 &&
+					PythSpacesAway(pSoldier->sGridNo, sCheckGridNo) > TACTICAL_RANGE / 4 &&
+					!Water(sCheckGridNo, pSoldier->pathing.bLevel) &&
+					!InSmoke(sCheckGridNo, pSoldier->pathing.bLevel) &&
+					/*(pSoldier->RushAttackPrepare() ||
+					fSectorAttack ||
+					CorpseWarning(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel, TRUE) ||
+					InLightAtNight(sCheckGridNo, pSoldier->pathing.bLevel)) &&*/
+					!SightCoverAtSpot(pSoldier, sCheckGridNo, FALSE))
+				{
+					CheckTossGrenadeAt(pSoldier, &BestThrow, sCheckGridNo, pSoldier->pathing.bLevel, EXPLOSV_SMOKE);
+					if (BestThrow.ubPossible)
+					{
+						sSmokeSpot = sCheckGridNo;
+					}
+				}
+			}
+
+			if (!TileIsOutOfBounds(sSmokeSpot))
+			{
+				DebugAI(AI_MSG_INFO, pSoldier, String("found smoke spot %d ", sSmokeSpot));
+				CheckTossGrenadeAt(pSoldier, &BestThrow, sSmokeSpot, pSoldier->pathing.bLevel, EXPLOSV_SMOKE);
+			}
+
+			// found throw spot
+			if (BestThrow.ubPossible)
+			{
+				DebugAI(AI_MSG_INFO, pSoldier, String("prepare throw at spot %d level %d aimtime %d", BestThrow.sTarget, BestThrow.bTargetLevel, BestThrow.ubAimTime));
+
+				// if necessary, swap the usItem from holster into the hand position
+				if (BestThrow.bWeaponIn != HANDPOS)
+				{
+					DebugAI(AI_MSG_INFO, pSoldier, String("rearrange pocket"));
+					RearrangePocket(pSoldier, HANDPOS, BestThrow.bWeaponIn, FOREVER);
+				}
+
+				// stand up before throwing if needed
+				if (gAnimControl[pSoldier->usAnimState].ubEndHeight < BestThrow.ubStance &&
+					pSoldier->InternalIsValidStance(AIDirection(pSoldier->sGridNo, BestThrow.sTarget), BestThrow.ubStance))
+				{
+					pSoldier->aiData.usActionData = BestThrow.ubStance;
+					pSoldier->aiData.bNextAction = AI_ACTION_TOSS_PROJECTILE;
+					pSoldier->aiData.usNextActionData = BestThrow.sTarget;
+					pSoldier->aiData.bNextTargetLevel = BestThrow.bTargetLevel;
+					pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
+					return AI_ACTION_CHANGE_STANCE;
+				}
+
+				pSoldier->aiData.usActionData = BestThrow.sTarget;
+				pSoldier->bTargetLevel = BestThrow.bTargetLevel;
+				pSoldier->aiData.bAimTime = BestThrow.ubAimTime;
+
+				return AI_ACTION_TOSS_PROJECTILE;
+			}
+		}
+		gubNPCAPBudget = 0;
 	}
 
 	return -1;

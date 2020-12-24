@@ -203,6 +203,7 @@ void CheckTossFlankFence(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow);
 void CheckTossOpponentFence(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow);
 void CheckTossAt(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow, INT32 sTargetSpot, INT8 bTargetLevel, UINT8 ubOpponentID);
 void CheckTossGrenadeSpecial(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow);
+void CheckTossGrenadeAt(SOLDIERTYPE *pSoldier, ATTACKTYPE *pBestThrow, INT32 sTargetSpot, INT8 bTargetLevel, UINT8 ubGrenadeType);
 
 INT16 CalcSpreadBurst( SOLDIERTYPE * pSoldier, INT16 sFirstTarget, INT8 bTargetLevel );
 INT32 CalcManThreatValue(SOLDIERTYPE *pSoldier, INT32 sMyGrid, UINT8 ubReduceForCover, SOLDIERTYPE * pMe );
