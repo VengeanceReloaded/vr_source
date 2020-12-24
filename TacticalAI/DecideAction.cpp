@@ -3037,13 +3037,10 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		// sevenfm: avoid light if spot is dangerous
 		if (ubCanMove &&
 			InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
-			pSoldier->aiData.bOrders != STATIONARY &&			
+			//pSoldier->aiData.bOrders != STATIONARY &&			
 			!InSmoke(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
-			(pSoldier->aiData.bUnderFire || 
-			pSoldier->aiData.bOrders != SEEKENEMY || 
-			!SightCoverAtSpot(pSoldier, pSoldier->sGridNo, FALSE) || 
-			GetNearestRottingCorpseAIWarning(pSoldier->sGridNo) > 0) &&
-			(CountFriendsFlankSameSpot(pSoldier, sClosestDisturbance) > 0 || pSoldier->aiData.bOrders != SEEKENEMY) &&
+			(pSoldier->aiData.bUnderFire || pSoldier->aiData.bOrders != SEEKENEMY || !SightCoverAtSpot(pSoldier, pSoldier->sGridNo, FALSE) || GetNearestRottingCorpseAIWarning(pSoldier->sGridNo) > 0) &&
+			(CountFriendsFlankSameSpot(pSoldier, sClosestDisturbance) > 0 || !AICheckSuccessfulAttack(pSoldier, TRUE) || pSoldier->aiData.bOrders != SEEKENEMY) &&
 			CountFriendsBlack(pSoldier, sClosestDisturbance) == 0)
 		{
 			pSoldier->aiData.usActionData = FindNearbyDarkerSpot(pSoldier);

@@ -6666,6 +6666,7 @@ BOOLEAN AbortFinalSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bAction, INT32 s
 	BOOLEAN fSuccessfulAttack = AICheckSuccessfulAttack(pSoldier, TRUE);
 	BOOLEAN fFriendsBlack = (CountFriendsBlack(pSoldier, sClosestDisturbance) > 0);
 	BOOLEAN fSafeSpot = SafeSpot(pSoldier);
+	BOOLEAN fSightCover = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, FALSE);
 
 	// abort seek if we see bomb
 	if (FindBombNearby(pSoldier, sSpot, BOMB_DETECTION_RANGE))
@@ -6686,7 +6687,7 @@ BOOLEAN AbortFinalSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bAction, INT32 s
 	if (InLightAtNight(sSpot, bLevel) &&
 		!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
 		!InSmoke(sSpot, bLevel) &&
-		(!fSeekEnemy || !SightCoverAtSpot(pSoldier, sSpot, FALSE) || CountCorpses(pSoldier, sSpot, TACTICAL_RANGE / 2, FALSE, TRUE) > 0) &&
+		(pSoldier->aiData.bUnderFire || !fSeekEnemy || !fSightCover || GetNearestRottingCorpseAIWarning(pSoldier->sGridNo) > 0) &&
 		(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy) &&
 		!fFriendsBlack)
 	{
@@ -6711,8 +6712,7 @@ BOOLEAN AbortFinalSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bAction, INT32 s
 		return TRUE;
 	}
 
-	/*
-	BOOLEAN fSightCover = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_STAND, FALSE);
+	/*	
 	BOOLEAN fSightCoverUnlimited = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_STAND, TRUE);
 	BOOLEAN fProneSightCover = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_PRONE, FALSE);
 	BOOLEAN fProneSightCoverUnlimited = SightCoverAtSpot(pSoldier, pSoldier->sGridNo, ANIM_PRONE, TRUE);
@@ -6783,7 +6783,7 @@ BOOLEAN AbortPath(SOLDIERTYPE *pSoldier, INT8 bAction, INT32 sClosestDisturbance
 		if (InLightAtNight(sCheckGridNo, bLevel) &&
 			!InLightAtNight(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
 			!InSmoke(sCheckGridNo, bLevel) &&
-			(!fSeekEnemy || !SightCoverAtSpot(pSoldier, sCheckGridNo, FALSE) || CountCorpses(pSoldier, sCheckGridNo, DAY_VISION_RANGE / 2, FALSE, TRUE) > 0) &&
+			(pSoldier->aiData.bUnderFire || !fSeekEnemy || !SightCoverAtSpot(pSoldier, sCheckGridNo, FALSE) || GetNearestRottingCorpseAIWarning(sCheckGridNo) > 0) &&
 			(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy) &&
 			!fFriendsBlack)
 		{
