@@ -2726,7 +2726,9 @@ INT32 FindFlankingSpot(SOLDIERTYPE *pSoldier, INT32 sPos, INT8 bAction )
 
 			// sevenfm: don't go into deep water for flanking
 			if (DeepWater(sGridNo, pSoldier->pathing.bLevel) &&
-				!DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel))
+				!DeepWater(pSoldier->sGridNo, pSoldier->pathing.bLevel) &&
+				pSoldier->aiData.bAttitude != CUNNINGSOLO &&
+				pSoldier->aiData.bAttitude != CUNNINGAID)
 			{
 				continue;
 			}
