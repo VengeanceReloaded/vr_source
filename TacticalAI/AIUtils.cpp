@@ -5830,6 +5830,7 @@ BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThre
 	UINT8	ubDirection;
 	INT32	sCoverSpot;
 	INT8	bCoverHeight;
+	UINT8	ubMovementCost;
 
 	if( TileIsOutOfBounds( sSpot ) || TileIsOutOfBounds(sThreatLoc) )
 	{
@@ -5839,7 +5840,7 @@ BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThre
 	ubDirection = atan8(CenterX(sSpot), CenterY(sSpot), CenterX(sThreatLoc), CenterY(sThreatLoc));
 	sCoverSpot = NewGridNo( sSpot, DirectionInc( ubDirection ) );
 
-	if ( TileIsOutOfBounds( sCoverSpot ) )
+	if (sCoverSpot == sSpot || TileIsOutOfBounds(sCoverSpot))
 	{
 		return FALSE;
 	}
@@ -5860,17 +5861,18 @@ BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThre
 		return FALSE;
 	}
 
-	// check that structure can provide enough cover
-	if (StructureDensity(sCoverSpot, bLevel) < 25)
-	{
-		return FALSE;
-	}
-
 	bCoverHeight = GetTallestStructureHeight( sCoverSpot, bLevel );
 
-	if ( bCoverHeight >= 2 )
+	if (bCoverHeight > 0 && StructureDensity(sCoverSpot, bLevel) >= 25)
 	{
 		return TRUE;
+	}
+
+	// check wall/door
+	ubMovementCost = gubWorldMovementCosts[sCoverSpot][ubDirection][bLevel];
+	if (ubMovementCost >= TRAVELCOST_BLOCKED && !LocationToLocationLineOfSightTest(sSpot, bLevel, sCoverSpot, bLevel, TRUE, NO_DISTANCE_LIMIT, PRONE_LOS_POS, PRONE_LOS_POS))
+	{
+		return(TRUE);
 	}
 
 	return FALSE;
