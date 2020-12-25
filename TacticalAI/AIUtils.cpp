@@ -5735,7 +5735,7 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 	INT32		sThreatLoc;
 	INT8		bThreatLevel;
 	INT8		bKnowledge;
-	BOOLEAN		fFoundCover = FALSE;
+	INT16		sDistanceVisible;
 
 	// for adjacent tiles check
 	UINT8	ubMovementCost;
@@ -5783,17 +5783,13 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 			continue;
 		}
 
+		sDistanceVisible = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
+
 		if (!AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sThreatLoc, bThreatLevel) &&
-			PythSpacesAway(sSpot, sThreatLoc) <= MAX_VISION_RANGE &&
+			PythSpacesAway(sSpot, sThreatLoc) <= sDistanceVisible &&
 			LocationToLocationLineOfSightTest(sThreatLoc, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, MAX_VISION_RANGE, STANDING_LOS_POS, PRONE_LOS_POS))
 		{
 			return FALSE;
-		}
-
-		// check if we have cover from at least one threat
-		if (!fFoundCover && AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sThreatLoc, bThreatLevel))
-		{
-			fFoundCover = TRUE;
 		}
 
 		// check adjacent spots
@@ -5811,7 +5807,7 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 						NewOKDestination(pOpponent, sTempGridNo, FALSE, bThreatLevel))
 					{
 						if (!AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sTempGridNo, bThreatLevel) &&
-							PythSpacesAway(sSpot, sTempGridNo) <= MAX_VISION_RANGE &&
+							PythSpacesAway(sSpot, sTempGridNo) <= sDistanceVisible &&
 							LocationToLocationLineOfSightTest(sTempGridNo, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, MAX_VISION_RANGE, STANDING_LOS_POS, PRONE_LOS_POS))
 						{
 							return FALSE;
@@ -5822,7 +5818,7 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 		}
 	}
 
-	return fFoundCover;
+	return TRUE;
 }
 
 BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThreatLevel )
