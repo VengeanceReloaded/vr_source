@@ -271,7 +271,7 @@ void SoldierTooltip( SOLDIERTYPE* pSoldier )
 				swprintf( pStrInfo, L"%s|A|I |Morale/|Range |Change: %d/%d\n", pStrInfo, pSoldier->aiData.bAIMorale, RangeChangeDesire(pSoldier) );
 				swprintf( pStrInfo, L"%s|Last |Action: %s\n", pStrInfo, gStrAction[pSoldier->aiData.bLastAction] );
 				// sevenfm: show flank info
-				if( AICheckIsFlanking(pSoldier) )
+				if( pSoldier->IsFlanking() )
 				{
 					swprintf( pStrInfo, L"%s|Flank %s\n", pStrInfo, pSoldier->flags.lastFlankLeft ? L"left" : L"right" );
 					swprintf( pStrInfo, L"%s|Flank Num %d\n", pStrInfo, pSoldier->numFlanks );

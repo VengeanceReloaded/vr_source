@@ -6538,7 +6538,7 @@ void HearNoise(SOLDIERTYPE *pSoldier, UINT8 ubNoiseMaker, INT32 sGridNo, INT8 bL
 				!pSoldier->aiData.bNeutral &&
 				MercPtrs[ubNoiseMaker] &&
 				!MercPtrs[ubNoiseMaker]->aiData.bNeutral &&
-				!AICheckIsFlanking(pSoldier) &&
+				!pSoldier->IsFlanking() &&
 				PythSpacesAway(pSoldier->sGridNo, sGridNo) <= MAX_VISION_RANGE &&
 				SoldierToVirtualSoldierLineOfSightTest(pSoldier, sGridNo, bLevel, ANIM_STAND, TRUE, NO_DISTANCE_LIMIT))
 			{

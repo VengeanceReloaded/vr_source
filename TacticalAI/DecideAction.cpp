@@ -2660,7 +2660,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 			// check soldier and weapon
 			pSoldier->aiData.bOrders != SNIPER &&
 			BestShot.ubFriendlyFireChance <= MIN_CHANCE_TO_ACCIDENTALLY_HIT_SOMEONE &&
-			!AICheckIsFlanking(pSoldier) &&
+			!pSoldier->IsFlanking() &&
 			// check cover
 			(AnyCoverAtSpot(pSoldier, pSoldier->sGridNo) ||																				// safe position
 			NightLight() && CountFriendsFlankSameSpot(pSoldier) && Chance(50) ||
@@ -8120,8 +8120,7 @@ INT8 DecideContinueFlanking(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 		tempGridNo = sClosestDisturbance;
 
 	// continue flanking
-	if (pSoldier->numFlanks > 0 &&
-		pSoldier->numFlanks < MAX_FLANKS_RED &&
+	if (pSoldier->IsFlanking() &&
 		gAnimControl[pSoldier->usAnimState].ubHeight != ANIM_PRONE &&
 		!pSoldier->aiData.bUnderFire)
 	{

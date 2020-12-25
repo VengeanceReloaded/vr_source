@@ -48,6 +48,8 @@
 #include "connect.h"
 
 #include "LOS.h"  //ddd
+// sevenfm
+#include "Meanwhile.h"
 
 //forward declarations of common classes to eliminate includes
 class OBJECTTYPE;
@@ -2572,6 +2574,32 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 	UINT16		usCounter = 0;
 #endif
 
+	// sevenfm
+	BOOLEAN		fSneaking = FALSE;
+	BOOLEAN		fWornStealth = FALSE;
+	BOOLEAN		fWeAttack = FALSE;
+	//BOOLEAN		fAllowComplexAI = AllowComplexAI(s);
+	//UINT16		usRoom;
+
+	if (GetWornStealth(s) >= 65)
+		fWornStealth = TRUE;
+
+	if (WeAttack(s->bTeam))
+		fWeAttack = TRUE;
+
+	// sevenfm: sneaky behavior
+	if (s->bTeam == ENEMY_TEAM &&
+		s->IsMercBodyType() &&
+		s->aiData.bAlertStatus >= STATUS_RED &&
+		!s->IsBoxer() &&
+		s->aiData.bOrders != STATIONARY &&
+		s->aiData.bOrders != SNIPER &&
+		(s->aiData.bAttitude == CUNNINGSOLO || s->aiData.bAttitude == CUNNINGAID || s->aiData.bAttitude == DEFENSIVE || s->numFlanks == MAX_FLANKS_RED || s->aiData.bAIMorale < MORALE_FEARLESS))
+		//!GuySawEnemy(s, SEEN_THIS_TURN))
+	{
+		fSneaking = TRUE;
+	}
+
 	fVehicle = FALSE;
 	iOriginationX = iOriginationY = 0;
 	iOrigination = s->sGridNo;
@@ -3731,28 +3759,57 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 			{
 				// penalize moving backwards to encourage turning sooner
 				nextCost += 50;
-			}
-
-			newTotCost = curCost + nextCost;
+			}			
 
 			// sevenfm: experimental AI path tweaks
-			if (s->bTeam != gbPlayerNum && IS_MERC_BODY_TYPE(s))
+			if (s->bTeam != gbPlayerNum &&
+				!s->IsBoxer() &&
+				!AreInMeanwhile() &&
+				s->IsMercBodyType())
 			{
+				// common penalty
 				if (InGasSpot(s, newLoc, bLevel))
 				{
 					nextCost += 40;
 				}
-				else if (DeepWater(newLoc, bLevel) && (s->numFlanks == 0 || s->numFlanks >= MAX_FLANKS_RED))
+				// for enemy soldiers
+				else if (s->aiData.bAlertStatus >= STATUS_RED)
 				{
-					nextCost += 20;
-				}
-				else if (s->bTeam == ENEMY_TEAM &&
-					s->aiData.bAlertStatus >= STATUS_RED &&
-					(InLightAtNight(newLoc, bLevel) || GetNearestRottingCorpseAIWarning(newLoc) > 0))
-				{
-					nextCost += 20;
+					if (InLightAtNight(newLoc, bLevel) || GetNearestRottingCorpseAIWarning(newLoc) > 0)
+					{
+						nextCost += 30;
+					}
+					else if (s->bTeam == ENEMY_TEAM && fSneaking)
+					{
+						if (s->wornCamo >= 65 && !TerrainJungle(newLoc, bLevel))
+						{
+							nextCost += 20;
+						}
+						else if (s->wornDesertCamo >= 65 && !TerrainDesert(newLoc, bLevel))
+						{
+							nextCost += 20;
+						}
+						else if (s->wornUrbanCamo >= 65 && !TerrainUrban(newLoc, bLevel))
+						{
+							nextCost += 20;
+						}
+						else if (fWornStealth && !FindShadowAtSpot(newLoc, bLevel))
+						{
+							nextCost += 20;
+						}
+						else if (usMovementMode <= SWATTING && CountObstaclesNearSpot(newLoc, bLevel) == 0)
+						{
+							nextCost += 20;
+						}
+						else if (gfTurnBasedAI && (usMovementMode == CRAWLING && !ProneSightCoverAtSpot(s, newLoc, FALSE) || usMovementMode <= SWATTING && !AnyCoverAtSpot(s, newLoc)))
+						{
+							nextCost += 20;
+						}
+					}
 				}
 			}
+
+			newTotCost = curCost + nextCost;
 
 			// have we found a path to the current location that
 			// costs less than the best so far to the same location?

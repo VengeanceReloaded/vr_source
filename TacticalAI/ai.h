@@ -376,6 +376,12 @@ UINT8 RedSmokeDanger( INT32 sGridNo, INT8 bLevel );
 BOOLEAN CheckArtilleryStrike( void );
 BOOLEAN CheckRoof( INT32 sGridNo );
 
+BOOLEAN	TerrainJungle(INT32 sSpot, INT8 bLevel);
+BOOLEAN	TerrainDesert(INT32 sSpot, INT8 bLevel);
+BOOLEAN	TerrainUrban(INT32 sSpot, INT8 bLevel);
+BOOLEAN	TerrainSnow(INT32 sSpot, INT8 bLevel);
+BOOLEAN	TerrainDark(INT32 sSpot, INT8 bLevel);
+
 BOOLEAN AICheckHasGun( SOLDIERTYPE *pSoldier );
 BOOLEAN AICheckShortWeaponRange( SOLDIERTYPE *pSoldier );
 BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot );
@@ -432,6 +438,8 @@ BOOLEAN AICheckInterrupt(void);
 UINT8 CountTeamUnderAttack(INT8 bTeam, INT32 sGridNo, INT16 sDistance);
 INT32 FindAdvanceSpot(SOLDIERTYPE *pSoldier, INT32 sTargetSpot, INT8 bAction, UINT8 ubType, BOOLEAN fUnlimited);
 BOOLEAN FindObstacleNearSpot(INT32 sSpot, INT8 bLevel);
+UINT8 CountObstaclesNearSpot(INT32 sSpot, INT8 bLevel);
+BOOLEAN FindShadowAtSpot(INT32 sSpot, INT8 bLevel);
 BOOLEAN EnemyCanAttackSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bLevel);
 
 BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, BOOLEAN fFresh = FALSE);

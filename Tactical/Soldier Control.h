@@ -1876,6 +1876,8 @@ public:
 	BOOLEAN CanInterrupt();
 	BOOLEAN IsPOW(void);
 	BOOLEAN IsGassed(void);
+	BOOLEAN IsFlanking(void);
+	BOOLEAN IsMercBodyType(void);
 
 	// Flugente: boxing fix: this shall be the only location where the boxing flag gets removed (easier debugging)
 	void	DeleteBoxingFlag();

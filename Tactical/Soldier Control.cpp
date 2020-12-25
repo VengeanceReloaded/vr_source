@@ -18862,6 +18862,22 @@ BOOLEAN SOLDIERTYPE::IsGassed(void)
 	return FALSE;
 }
 
+BOOLEAN SOLDIERTYPE::IsMercBodyType(void)
+{
+	if (IS_MERC_BODY_TYPE(this))
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN SOLDIERTYPE::IsFlanking(void)
+{
+	if (this->numFlanks > 0 && this->numFlanks < MAX_FLANKS_RED)
+		return TRUE;
+
+	return FALSE;
+}
+
 // Flugente: spotter
 BOOLEAN SOLDIERTYPE::IsSpotting()
 {

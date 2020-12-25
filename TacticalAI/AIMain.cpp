@@ -910,7 +910,7 @@ void EndAIDeadlock(void)
 #endif
 
 				// sevenfm: abort flanking
-				if( AICheckIsFlanking(pSoldier) )
+				if( pSoldier->IsFlanking() )
 				{
 					DebugAI(AI_MSG_INFO, pSoldier, String("abort flanking"));
 					pSoldier->numFlanks = MAX_FLANKS_RED + 1;
