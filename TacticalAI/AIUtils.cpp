@@ -5732,11 +5732,10 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
-
 	INT32		sThreatLoc;
-	INT8		iThreatLevel;
+	INT8		bThreatLevel;
 	INT8		bKnowledge;
-	INT16		sSightAdjustment;
+	BOOLEAN		fFoundCover = FALSE;
 
 	// for adjacent tiles check
 	UINT8	ubMovementCost;
@@ -5752,6 +5751,9 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 
 	// always check cover from closest known opponent
 	if (!AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sOpponentSpot, bOpponentLevel))
+	{
+		return FALSE;
+	}
 
 	// look through all opponents for those we know of
 	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
@@ -5773,7 +5775,7 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 
 		// obtain opponent's location and level
 		sThreatLoc = KnownLocation(pSoldier, pOpponent->ubID);
-		iThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
+		bThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
 
 		// check that our knowledge is correct
 		if (TileIsOutOfBounds(sThreatLoc))
@@ -5781,15 +5783,20 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 			continue;
 		}
 
-		if (!AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sThreatLoc, iThreatLevel) &&
+		if (!AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sThreatLoc, bThreatLevel) &&
 			PythSpacesAway(sSpot, sThreatLoc) <= MAX_VISION_RANGE &&
-			LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, MAX_VISION_RANGE, STANDING_LOS_POS, PRONE_LOS_POS))
+			LocationToLocationLineOfSightTest(sThreatLoc, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, MAX_VISION_RANGE, STANDING_LOS_POS, PRONE_LOS_POS))
 		{
 			return FALSE;
 		}
 
-		// check adjacent spots
+		// check if we have cover from at least one threat
+		if (!fFoundCover && AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sThreatLoc, bThreatLevel))
+		{
+			fFoundCover = TRUE;
+		}
 
+		// check adjacent spots
 		if (gfTurnBasedAI)
 		{
 			for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
@@ -5798,14 +5805,14 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 
 				if (sTempGridNo != sThreatLoc)
 				{
-					ubMovementCost = gubWorldMovementCosts[sTempGridNo][ubDirection][iThreatLevel];
+					ubMovementCost = gubWorldMovementCosts[sTempGridNo][ubDirection][bThreatLevel];
 
 					if (ubMovementCost < TRAVELCOST_BLOCKED &&
-						NewOKDestination(pOpponent, sTempGridNo, FALSE, iThreatLevel))
+						NewOKDestination(pOpponent, sTempGridNo, FALSE, bThreatLevel))
 					{
-						if (!AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sTempGridNo, iThreatLevel) &&
+						if (!AnyCoverFromSpot(sSpot, pSoldier->pathing.bLevel, sTempGridNo, bThreatLevel) &&
 							PythSpacesAway(sSpot, sTempGridNo) <= MAX_VISION_RANGE &&
-							LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, MAX_VISION_RANGE, STANDING_LOS_POS, PRONE_LOS_POS))
+							LocationToLocationLineOfSightTest(sTempGridNo, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, MAX_VISION_RANGE, STANDING_LOS_POS, PRONE_LOS_POS))
 						{
 							return FALSE;
 						}
@@ -5815,7 +5822,7 @@ BOOLEAN AnyCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot )
 		}
 	}
 
-	return TRUE;
+	return fFoundCover;
 }
 
 BOOLEAN AnyCoverFromSpot( INT32 sSpot, INT8 bLevel, INT32 sThreatLoc, INT8 bThreatLevel )
