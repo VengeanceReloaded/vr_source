@@ -2578,6 +2578,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 	BOOLEAN		fSneaking = FALSE;
 	BOOLEAN		fWornStealth = FALSE;
 	BOOLEAN		fWeAttack = FALSE;
+	BOOLEAN		fSmartFlanking = FALSE;
 	//BOOLEAN		fAllowComplexAI = AllowComplexAI(s);
 	//UINT16		usRoom;
 
@@ -2598,6 +2599,12 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 		//!GuySawEnemy(s, SEEN_THIS_TURN))
 	{
 		fSneaking = TRUE;
+
+		if (!s->IsFlanking() &&
+			(s->aiData.bAttitude == CUNNINGSOLO || s->aiData.bAttitude == CUNNINGAID) &&
+			!GuySawEnemy(s, SEEN_LAST_TURN) &&
+			!AICheckSuccessfulAttack(s, TRUE))
+			fSmartFlanking = TRUE;
 	}
 
 	fVehicle = FALSE;
@@ -3797,12 +3804,18 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 						{
 							nextCost += 20;
 						}
-						else if (usMovementMode <= SWATTING && CountObstaclesNearSpot(newLoc, bLevel) == 0)
+						else if (!gfTurnBasedAI && usMovementMode <= SWATTING && CountObstaclesNearSpot(newLoc, bLevel) == 0)
 						{
 							nextCost += 20;
 						}
-						else if (gfTurnBasedAI && (usMovementMode == CRAWLING && !ProneSightCoverAtSpot(s, newLoc, FALSE) || usMovementMode <= SWATTING && !AnyCoverAtSpot(s, newLoc)))
+						else if (gfTurnBasedAI && (usMovementMode == CRAWLING && !ProneSightCoverAtSpot(s, newLoc, FALSE) || usMovementMode == SWATTING && !AnyCoverAtSpot(s, newLoc) && !CrouchedSightCoverAtSpot(s, newLoc, FALSE)))
 						{
+							nextCost += 20;
+						}
+						else if (fSmartFlanking &&
+								CheckDangerousDirection(s, newLoc, bLevel))
+						{
+							// smart flanking
 							nextCost += 20;
 						}
 					}

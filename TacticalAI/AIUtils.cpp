@@ -3748,21 +3748,6 @@ UINT8 CountFriendsBetweenMeAndSpotFromSpot(SOLDIERTYPE *pSoldier, INT32 sTargetG
 	return ubFriends;
 }
 
-// check that soldier is flanking
-BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier )
-{
-	CHECKF(pSoldier);
-
-	if( pSoldier->aiData.bAlertStatus < STATUS_YELLOW ||
-		pSoldier->numFlanks == 0 ||
-		pSoldier->numFlanks >= MAX_FLANKS_RED )
-	{
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
 // count mobile friends that are in BLACK state and not in a dangerous place or have 3/4 APs or hit enemy recently
 // this is mostly used to check if we can cross dangerous area (in light at night or fresh corpses)
 UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent )
@@ -4278,14 +4263,103 @@ BOOLEAN ProneSightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlim
 					if (ubMovementCost < TRAVELCOST_BLOCKED &&
 						NewOKDestination(pOpponent, sTempGridNo, FALSE, iThreatLevel))
 					{
-						gbForceWeaponReady = true;
-						usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
-						gbForceWeaponReady = false;
+						if (fUnlimited && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, PRONE_LOS_POS) ||
+							!fUnlimited && PythSpacesAway(sSpot, sTempGridNo) <= usAdjustedSight && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, PRONE_LOS_POS))
+						{
+							return FALSE;
+						}
+					}
+				}
+			}
+		}
+	}
 
-						usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * sSightAdjustment / 100);
+	return TRUE;
+}
 
-						if (fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, PRONE_LOS_POS) ||
-							!fUnlimited && PythSpacesAway(sSpot, sThreatLoc) <= usAdjustedSight && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, PRONE_LOS_POS))
+// check if we have a crouched sight cover from known enemies at spot
+BOOLEAN CrouchedSightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
+{
+	CHECKF(pSoldier);
+
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+	INT32		sThreatLoc;
+	INT8		iThreatLevel;
+	UINT16		usSightLimit;
+	UINT16		usAdjustedSight;
+	INT8		bKnowledge;
+	INT16		sSightAdjustment;
+
+	// for adjacent tiles check
+	UINT8	ubMovementCost;
+	INT32	sTempGridNo;
+	UINT8	ubDirection;
+
+	// look through all opponents for those we know of
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		if (!ValidOpponent(pSoldier, pOpponent))
+		{
+			continue;
+		}
+
+		bKnowledge = Knowledge(pSoldier, pOpponent->ubID);
+
+		// if this opponent is unknown personally and publicly
+		if (bKnowledge == NOT_HEARD_OR_SEEN)
+		{
+			continue;
+		}
+
+		// obtain opponent's location and level
+		sThreatLoc = KnownLocation(pSoldier, pOpponent->ubID);
+		iThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
+
+		// check that our knowledge is correct
+		if (TileIsOutOfBounds(sThreatLoc))
+		{
+			continue;
+		}
+
+		sSightAdjustment = GetSightAdjustment(pOpponent, pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_CROUCH);
+
+		gbForceWeaponReady = true;
+		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
+		gbForceWeaponReady = false;
+
+		usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * sSightAdjustment / 100);
+
+		if (fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, CROUCHED_LOS_POS) ||
+			!fUnlimited && PythSpacesAway(sSpot, sThreatLoc) <= usAdjustedSight && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, CROUCHED_LOS_POS))
+		{
+			return FALSE;
+		}
+
+		// check adjacent spots
+		if (gfTurnBasedAI)
+		{
+			for (ubDirection = 0; ubDirection < NUM_WORLD_DIRECTIONS; ubDirection++)
+			{
+				sTempGridNo = NewGridNo(sThreatLoc, DirectionInc(ubDirection));
+
+				if (sTempGridNo != sThreatLoc)
+				{
+					ubMovementCost = gubWorldMovementCosts[sTempGridNo][ubDirection][iThreatLevel];
+
+					if (ubMovementCost < TRAVELCOST_BLOCKED &&
+						NewOKDestination(pOpponent, sTempGridNo, FALSE, iThreatLevel))
+					{
+						if (fUnlimited && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, CROUCHED_LOS_POS) ||
+							!fUnlimited && PythSpacesAway(sSpot, sTempGridNo) <= usAdjustedSight && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, CROUCHED_LOS_POS))
 						{
 							return FALSE;
 						}
@@ -4379,8 +4453,6 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 					if (ubMovementCost < TRAVELCOST_BLOCKED &&
 						NewOKDestination(pOpponent, sTempGridNo, FALSE, iThreatLevel))
 					{
-						usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * sSightAdjustment / 100);
-
 						if (fUnlimited && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS) ||
 							!fUnlimited && PythSpacesAway(sSpot, sTempGridNo) <= usAdjustedSight && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, STANDING_LOS_POS))
 						{
@@ -4393,6 +4465,14 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 	}
 
 	return TRUE;
+}
+
+BOOLEAN CheckDangerousDirection(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bLevel)
+{
+	CHECKF(pSoldier);
+	CHECKF(!TileIsOutOfBounds(sSpot));
+	
+	return FALSE;
 }
 
 BOOLEAN NightLight( void )

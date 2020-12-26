@@ -517,7 +517,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 						{
 							//grenade launcher
 							fGrenadeLauncher = TRUE;
-							bGrenades = 3 + (INT8)(Random( 3 )); //3-5
+							bGrenades = 3 + (INT8)(Random(3 + gGameOptions.ubDifficultyLevel)); //3-5
 						}
 						break;
 
@@ -548,7 +548,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 							guiMortarsRolledByTeam++;
 
 							// the grenades will actually represent mortar shells in this case
-							bGrenades = 2 + (INT8)(Random( 3 )); //2-4
+							bGrenades = 2 + (INT8)(Random(3 + gGameOptions.ubDifficultyLevel)); //2-4
 							bGrenadeClass = MORTAR_GRENADE_CLASS;
 						}
 						break;
@@ -628,7 +628,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 						{
 							//grenade launcher
 							fGrenadeLauncher = TRUE;
-							bGrenades = 3 + (INT8)(Random( 3 )); //3-5
+							bGrenades = 3 + (INT8)(Random(3 + gGameOptions.ubDifficultyLevel)); //3-5
 						}
 						break;
 
@@ -716,7 +716,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 					case 2:
 						//grenade launcher
 						fGrenadeLauncher = TRUE;
-						bGrenades = 4 + (INT8)(Random( 4 )); //4-7
+						bGrenades = 4 + (INT8)(Random(4 + gGameOptions.ubDifficultyLevel)); //4-7
 						break;
 					case 3:
 					case 4:
@@ -738,7 +738,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 							guiMortarsRolledByTeam++;
 
 							// the grenades will actually represent mortar shells in this case
-							bGrenades = 3 + (INT8)(Random( 5 )); //3-7
+							bGrenades = 3 + (INT8)(Random(5 + gGameOptions.ubDifficultyLevel)); //3-7
 							bGrenadeClass = MORTAR_GRENADE_CLASS;
 						}
 						break;
@@ -808,7 +808,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 					case 0:
 						//grenade launcher
 						fGrenadeLauncher = TRUE;
-						bGrenades = 4 + (INT8)(Random( 4 )); //4-7
+						bGrenades = 4 + (INT8)(Random(4 + gGameOptions.ubDifficultyLevel)); //4-7
 						break;
 					case 1:
 					case 2:
@@ -830,7 +830,7 @@ void GenerateRandomEquipment( SOLDIERCREATE_STRUCT *pp, INT8 bSoldierClass, INT8
 							guiMortarsRolledByTeam++;
 
 							// the grenades will actually represent mortar shells in this case
-							bGrenades = 3 + (INT8)(Random( 5 )); //3-7
+							bGrenades = 3 + (INT8)(Random(5 + gGameOptions.ubDifficultyLevel)); //3-7
 							bGrenadeClass = MORTAR_GRENADE_CLASS;
 						}
 						else

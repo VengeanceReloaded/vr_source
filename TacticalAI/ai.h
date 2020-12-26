@@ -309,8 +309,6 @@ BOOLEAN TeamKnowsSoldier(INT8 bTeam, UINT8 ubID);
 UINT8 CountFriendsNotAlerted(SOLDIERTYPE *pSoldier);
 void AlertFriends(INT8 bTeam, UINT8 ubCivGroup);
 
-BOOLEAN AICheckIsFlanking( SOLDIERTYPE *pSoldier );
-
 BOOLEAN AICheckIsSniper(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsMarksman(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckIsMachinegunner(SOLDIERTYPE *pSoldier);
@@ -324,7 +322,10 @@ BOOLEAN AICheckIsCommander(SOLDIERTYPE *pSoldier);
 BOOLEAN AICheckSpecialRole(SOLDIERTYPE *pSoldier);
 
 BOOLEAN ProneSightCoverAtSpot( SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE );
+BOOLEAN CrouchedSightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE);
 BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited = FALSE);
+
+BOOLEAN CheckDangerousDirection(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bLevel);
 
 BOOLEAN FindFenceAroundSpot(INT32 sSpot);
 
