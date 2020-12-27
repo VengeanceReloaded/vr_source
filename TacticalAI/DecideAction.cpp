@@ -3631,7 +3631,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 								//PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) < DAY_VISION_RANGE * 2 &&
 								PythSpacesAway(sMoveSpot, sClosestOpponent) < (INT16)MAX_VISION_RANGE &&
 								PythSpacesAway(pSoldier->sGridNo, sClosestOpponent) > DAY_VISION_RANGE / 2 &&
-								(!ProneSightCoverAtSpot(pSoldier, sMoveSpot, FALSE) || InLightAtNight(sMoveSpot, pSoldier->pathing.bLevel) || CorpseWarning(pSoldier, sMoveSpot, pSoldier->pathing.bLevel, TRUE)) &&
+								(!ProneSightCoverAtSpot(pSoldier, sMoveSpot, FALSE) || InLightAtNight(sMoveSpot, pSoldier->pathing.bLevel) || CorpseWarning(pSoldier, sMoveSpot, pSoldier->pathing.bLevel)) &&
 								!AnyCoverAtSpot(pSoldier, sMoveSpot))
 							{
 								sAdvanceSpot = FindAdvanceSpot(pSoldier, sClosestDisturbance, AI_ACTION_SEEK_OPPONENT, ADVANCE_SPOT_ANY_COVER, FALSE);
@@ -3740,7 +3740,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 											CountFriendsBlack(pSoldier, sClosestDisturbance) > 0 ||
 											pSoldier->aiData.bUnderFire && !GuySawEnemy(pSoldier) ||
 											FindBombNearby(pSoldier, sCautiousMoveSpot, BOMB_DETECTION_RANGE) ||
-											CorpseWarning(pSoldier, sCautiousMoveSpot, pSoldier->pathing.bLevel, TRUE) ||
+											CorpseWarning(pSoldier, sCautiousMoveSpot, pSoldier->pathing.bLevel) ||
 											EnemyCanAttackSpot(pSoldier, sCautiousMoveSpot, pSoldier->pathing.bLevel) ||
 											!SightCoverAtSpot(pSoldier, sCautiousMoveSpot, FALSE)))
 										{
@@ -3766,7 +3766,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 												pSoldier->aiData.bLastAction != AI_ACTION_RAISE_GUN &&
 												fSlowMovement &&
 												!WeaponReady(pSoldier) &&
-												(pSoldier->bBreath > OKBREATH * 2 || GetBPCostPer10APsForGunHolding(pSoldier, TRUE) < 50))
+												(pSoldier->bBreath > OKBREATH * 2 || GetBPCostPer10APsForGunHolding(pSoldier, TRUE) < 30))
 											{
 												if (GetAPsToReadyWeapon(pSoldier, PickSoldierReadyAnimation(pSoldier, FALSE, FALSE)) <= pSoldier->bActionPoints)
 												{
@@ -3873,7 +3873,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 						// raise weapon if not raised
 						if( PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) != INVALID_ANIMATION &&
 							!WeaponReady(pSoldier) &&
-							(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 50) &&
+							(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 30) &&
 							pSoldier->bActionPoints >= GetAPsToReadyWeapon( pSoldier, PickSoldierReadyAnimation( pSoldier, FALSE, FALSE ) ) )
 						{
 							return AI_ACTION_RAISE_GUN;
@@ -4138,7 +4138,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 					if ( pSoldier->aiData.bOrders == SNIPER && 
 						!WeaponReady(pSoldier) && 
 						PickSoldierReadyAnimation(pSoldier, FALSE, FALSE) != INVALID_ANIMATION &&
-						(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 50) )
+						(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 30) )
 					{
 						if (!gfTurnBasedAI || GetAPsToReadyWeapon( pSoldier, READY_RIFLE_CROUCH ) <= pSoldier->bActionPoints)
 						{
@@ -4152,7 +4152,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 					{
 						if (!(WeaponReady(pSoldier)) && 
 							PickSoldierReadyAnimation(pSoldier, FALSE, FALSE) != INVALID_ANIMATION &&
-							(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 50))
+							(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 30))
 						{
 							if (!gfTurnBasedAI || GetAPsToReadyWeapon( pSoldier, READY_RIFLE_CROUCH ) <= pSoldier->bActionPoints)
 							{
@@ -4173,7 +4173,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 			else if (pSoldier->ubDirection == ubOpponentDir && !WeaponReady(pSoldier) && PickSoldierReadyAnimation(pSoldier, FALSE, FALSE) != INVALID_ANIMATION)
 			{
 				if ((!gfTurnBasedAI || GetAPsToReadyWeapon( pSoldier, pSoldier->usAnimState ) <= pSoldier->bActionPoints) && 
-					(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 50))
+					(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 30))
 				{
 					if ( pSoldier->aiData.bOrders == SNIPER )
 					{
@@ -4392,7 +4392,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		{
 			DebugMsg(TOPIC_JA2,DBG_LEVEL_3,String("DecideActionRed: sniper raising gun..."));
 			if ((!gfTurnBasedAI || GetAPsToReadyWeapon( pSoldier, READY_RIFLE_CROUCH ) <= pSoldier->bActionPoints) && 
-				(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 50))
+				(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 30))
 			{
 				if (!WeaponReady(pSoldier) && PickSoldierReadyAnimation(pSoldier, FALSE, FALSE) != INVALID_ANIMATION)
 				{
@@ -4413,7 +4413,7 @@ INT8 DecideActionRed(SOLDIERTYPE *pSoldier)
 		// SANDRO - raise weapon maybe
 		if (!WeaponReady(pSoldier) && 
 			PickSoldierReadyAnimation(pSoldier, FALSE, FALSE) != INVALID_ANIMATION &&
-			(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 50)) // if we are facing the direction of where the noise came from
+			(pSoldier->bBreath > 15 || GetBPCostPer10APsForGunHolding( pSoldier, TRUE ) < 30)) // if we are facing the direction of where the noise came from
 		{
 			if (!gfTurnBasedAI || GetAPsToReadyWeapon( pSoldier, pSoldier->usAnimState ) <= pSoldier->bActionPoints)
 			{
@@ -8895,7 +8895,7 @@ INT8 DecideSmokeCoverMovement(SOLDIERTYPE *pSoldier, INT32 sClosestDisturbance)
 					!InSmoke(sCheckGridNo, pSoldier->pathing.bLevel) &&
 					/*(pSoldier->RushAttackPrepare() ||
 					fSectorAttack ||
-					CorpseWarning(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel, TRUE) ||
+					CorpseWarning(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel) ||
 					InLightAtNight(sCheckGridNo, pSoldier->pathing.bLevel)) &&*/
 					!SightCoverAtSpot(pSoldier, sCheckGridNo, FALSE))
 				{

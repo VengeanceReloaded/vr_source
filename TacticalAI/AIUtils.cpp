@@ -3791,7 +3791,7 @@ UINT8 CountFriendsBlack( SOLDIERTYPE *pSoldier, INT32 sClosestOpponent )
 				pFriend->LastAttackHit() ||
 				pFriend->usSoldierFlagMask2 & SOLDIER_SUCCESSFUL_ATTACK ||
 				pFriend->LastTargetSuppressed() ||
-				!CorpseWarning(pFriend, pFriend->sGridNo, pFriend->pathing.bLevel, TRUE) && !InLightAtNight(pFriend->sGridNo, pFriend->pathing.bLevel) && !pFriend->aiData.bUnderFire))
+				!CorpseWarning(pFriend, pFriend->sGridNo, pFriend->pathing.bLevel) && !InLightAtNight(pFriend->sGridNo, pFriend->pathing.bLevel) && !pFriend->aiData.bUnderFire))
 			{
 				ubFriendCount++;
 			}
@@ -6986,7 +6986,7 @@ BOOLEAN AbortFinalSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bAction, INT32 s
 		CorpseWarning(pSoldier, sSpot, bLevel) &&
 		!InSmoke(sSpot, bLevel) &&
 		!fFriendsBlack &&
-		(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy || EnemyCanAttackSpot(pSoldier, sSpot, bLevel) || InARoom(sSpot, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sSpot, bLevel, TRUE)))
+		(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy || EnemyCanAttackSpot(pSoldier, sSpot, bLevel) || InARoom(sSpot, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sSpot, bLevel)))
 	{
 		DebugAI(AI_MSG_INFO, pSoldier, String("fresh corpse! abort!"));
 
@@ -7082,11 +7082,11 @@ BOOLEAN AbortPath(SOLDIERTYPE *pSoldier, INT8 bAction, INT32 sClosestDisturbance
 			CorpseWarning(pSoldier, sCheckGridNo, pSoldier->pathing.bLevel) &&
 			!InSmoke(sCheckGridNo, pSoldier->pathing.bLevel) &&
 			!fFriendsBlack &&
-			(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy || EnemyCanAttackSpot(pSoldier, sCheckGridNo, bLevel) || InARoom(sCheckGridNo, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sCheckGridNo, bLevel, TRUE)))
+			(fFlankingFriends || !fSuccessfulAttack || !fSeekEnemy || EnemyCanAttackSpot(pSoldier, sCheckGridNo, bLevel) || InARoom(sCheckGridNo, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sCheckGridNo, bLevel)))
 		{
 			DebugAI(AI_MSG_INFO, pSoldier, String("fresh corpse! abort!"));
 
-			if (!SightCoverAtSpot(pSoldier, sCheckGridNo, TRUE) || InARoom(sCheckGridNo, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sCheckGridNo, bLevel, TRUE))
+			if (!SightCoverAtSpot(pSoldier, sCheckGridNo, TRUE) || InARoom(sCheckGridNo, NULL) && bLevel == 0 || CorpseWarning(pSoldier, sCheckGridNo, bLevel))
 			{
 				sDangerousSpot = sCheckGridNo;
 			}
@@ -7112,13 +7112,14 @@ BOOLEAN AbortPath(SOLDIERTYPE *pSoldier, INT8 bAction, INT32 sClosestDisturbance
 	return FALSE;
 }
 
-BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, BOOLEAN fFresh)
+BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel)
 {
 	CHECKF(pSoldier);
 
 	INT32			cnt;
 	ROTTING_CORPSE *pCorpse;
 	UINT8			ubDistance = CORPSE_WARNING_DIST;
+	UINT8			ubWarning = 0;
 
 	for (cnt = 0; cnt < giNumRottingCorpse; ++cnt)
 	{
@@ -7128,18 +7129,18 @@ BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, BOOLEAN
 			pCorpse->fActivated &&
 			pCorpse->def.ubType < ROTTING_STAGE2 &&
 			pCorpse->def.ubBodyType <= REGFEMALE &&
-			(!fFresh || pCorpse->def.ubAIWarningValue > 0) &&
+			pCorpse->def.ubAIWarningValue > ubWarning &&
 			pCorpse->def.bLevel == bLevel &&
 			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
 			PythSpacesAway(sGridNo, pCorpse->def.sGridNo) <= ubDistance &&
 			(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam != ENEMY_TEAM && pSoldier->bTeam != MILITIA_TEAM))
 			//(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam == CIV_TEAM && !pSoldier->aiData.bNeutral))
 		{
-			return TRUE;
+			ubWarning = pCorpse->def.ubAIWarningValue;
 		}
 	}
 
-	return FALSE;
+	return ubWarning;
 }
 
 INT32	CountCorpses(SOLDIERTYPE *pSoldier, INT32 sSpot, INT16 sDistance, BOOLEAN fCheckSight, BOOLEAN fFresh)

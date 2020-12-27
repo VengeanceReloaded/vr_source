@@ -443,7 +443,7 @@ UINT8 CountObstaclesNearSpot(INT32 sSpot, INT8 bLevel);
 BOOLEAN FindShadowAtSpot(INT32 sSpot, INT8 bLevel);
 BOOLEAN EnemyCanAttackSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bLevel);
 
-BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, BOOLEAN fFresh = FALSE);
+UINT8 CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel);
 INT32	CountCorpses(SOLDIERTYPE *pSoldier, INT32 sSpot, INT16 sDistance, BOOLEAN fCheckSight, BOOLEAN fFresh);
 INT32	CountCorpsesInDirection(SOLDIERTYPE *pSoldier, INT32 sSpot, UINT8 ubDirection, INT16 sDistance, BOOLEAN fCheckSight, BOOLEAN fFresh);
 BOOLEAN CorpseEnemyTeam(ROTTING_CORPSE *pCorpse);

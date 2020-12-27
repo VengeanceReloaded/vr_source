@@ -3211,7 +3211,7 @@ INT32 FindAdvanceSpot(SOLDIERTYPE *pSoldier, INT32 sTargetSpot, INT8 bAction, UI
 
 			// avoid locations near fresh corpses
 			//if( GetNearestRottingCorpseAIWarning( sGridNo ) > 0 )
-			if (CorpseWarning(pSoldier, sGridNo, pSoldier->pathing.bLevel, TRUE))
+			if (CorpseWarning(pSoldier, sGridNo, pSoldier->pathing.bLevel))
 			{
 				continue;
 			}
