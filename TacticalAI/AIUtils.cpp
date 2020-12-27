@@ -4380,7 +4380,7 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 	UINT32		uiLoop;
 	SOLDIERTYPE *pOpponent;
 	INT32		sThreatLoc;
-	INT8		iThreatLevel;
+	INT8		bThreatLevel;
 	UINT16		usSightLimit;
 	UINT16		usAdjustedSight;
 	INT8		bKnowledge;
@@ -4417,7 +4417,7 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 
 		// obtain opponent's location and level
 		sThreatLoc = KnownLocation(pSoldier, pOpponent->ubID);
-		iThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
+		bThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
 
 		// check that our knowledge is correct
 		if (TileIsOutOfBounds(sThreatLoc))
@@ -4433,8 +4433,8 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 
 		usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * sSightAdjustment / 100);
 
-		if (fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS) ||
-			!fUnlimited && PythSpacesAway(sSpot, sThreatLoc) <= usAdjustedSight && LocationToLocationLineOfSightTest(sThreatLoc, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, STANDING_LOS_POS))
+		if (fUnlimited && LocationToLocationLineOfSightTest(sThreatLoc, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS) ||
+			!fUnlimited && PythSpacesAway(sSpot, sThreatLoc) <= usAdjustedSight && LocationToLocationLineOfSightTest(sThreatLoc, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, STANDING_LOS_POS))
 		{
 			return FALSE;
 		}
@@ -4448,13 +4448,13 @@ BOOLEAN SightCoverAtSpot(SOLDIERTYPE *pSoldier, INT32 sSpot, BOOLEAN fUnlimited)
 
 				if (sTempGridNo != sThreatLoc)
 				{
-					ubMovementCost = gubWorldMovementCosts[sTempGridNo][ubDirection][iThreatLevel];
+					ubMovementCost = gubWorldMovementCosts[sTempGridNo][ubDirection][bThreatLevel];
 
 					if (ubMovementCost < TRAVELCOST_BLOCKED &&
-						NewOKDestination(pOpponent, sTempGridNo, FALSE, iThreatLevel))
+						NewOKDestination(pOpponent, sTempGridNo, FALSE, bThreatLevel))
 					{
-						if (fUnlimited && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS) ||
-							!fUnlimited && PythSpacesAway(sSpot, sTempGridNo) <= usAdjustedSight && LocationToLocationLineOfSightTest(sTempGridNo, iThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, STANDING_LOS_POS))
+						if (fUnlimited && LocationToLocationLineOfSightTest(sTempGridNo, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS) ||
+							!fUnlimited && PythSpacesAway(sSpot, sTempGridNo) <= usAdjustedSight && LocationToLocationLineOfSightTest(sTempGridNo, bThreatLevel, sSpot, pSoldier->pathing.bLevel, TRUE, NO_DISTANCE_LIMIT, STANDING_LOS_POS, STANDING_LOS_POS))
 						{
 							return FALSE;
 						}
@@ -4472,6 +4472,75 @@ BOOLEAN CheckDangerousDirection(SOLDIERTYPE *pSoldier, INT32 sSpot, INT8 bLevel)
 	CHECKF(pSoldier);
 	CHECKF(!TileIsOutOfBounds(sSpot));
 	
+	UINT32		uiLoop;
+	SOLDIERTYPE *pOpponent;
+	INT32		sThreatLoc;
+	INT8		bThreatLevel;
+	UINT16		usSightLimit;
+	UINT16		usAdjustedSight;
+	INT8		bKnowledge;
+	INT16		sSightAdjustment;
+	UINT8		ubDirection;
+
+	// look through all opponents for those we know of
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; uiLoop++)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;			// next merc
+		}
+
+		if (!ValidOpponent(pSoldier, pOpponent))
+		{
+			continue;
+		}
+
+		if(pOpponent->IsUnconscious() || pOpponent->IsEmptyVehicle())
+		{
+			continue;
+		}
+
+		bKnowledge = Knowledge(pSoldier, pOpponent->ubID);
+
+		// if this opponent is unknown personally and publicly
+		if (bKnowledge == NOT_HEARD_OR_SEEN)
+		{
+			continue;
+		}
+
+		// obtain opponent's location and level
+		sThreatLoc = KnownLocation(pSoldier, pOpponent->ubID);
+		bThreatLevel = KnownLevel(pSoldier, pOpponent->ubID);
+
+		// check that our knowledge is correct
+		if (TileIsOutOfBounds(sThreatLoc))
+		{
+			continue;
+		}
+
+		sSightAdjustment = GetSightAdjustment(pOpponent, pSoldier, sSpot, pSoldier->pathing.bLevel, ANIM_STAND);
+
+		gbForceWeaponNotReady = true;
+		usSightLimit = pOpponent->GetMaxDistanceVisible(sSpot, pSoldier->pathing.bLevel, CALC_FROM_ALL_DIRS);
+		gbForceWeaponNotReady = false;
+
+		usAdjustedSight = max(min(1, usSightLimit), usSightLimit + usSightLimit * sSightAdjustment / 100);
+		ubDirection = AIDirection(sThreatLoc, sSpot);
+
+		if (PythSpacesAway(sSpot, sThreatLoc) <= usAdjustedSight &&
+			(CountCorpsesInDirection(pSoldier, sThreatLoc, ubDirection, max(usAdjustedSight, DAY_VISION_RANGE), FALSE, TRUE) ||
+			CountCorpsesInDirection(pSoldier, sThreatLoc, gOneCDirection[ubDirection], max(usAdjustedSight, DAY_VISION_RANGE), FALSE, TRUE) ||
+			CountCorpsesInDirection(pSoldier, sThreatLoc, gOneCCDirection[ubDirection], max(usAdjustedSight, DAY_VISION_RANGE), FALSE, TRUE)) &&
+			!AnyCoverFromSpot(sSpot, bLevel, sThreatLoc, bThreatLevel) &&
+			LocationToLocationLineOfSightTest(sThreatLoc, bThreatLevel, sSpot, bLevel, TRUE, usAdjustedSight, STANDING_LOS_POS, STANDING_LOS_POS))
+		{
+			return TRUE;
+		}
+	}
+
 	return FALSE;
 }
 
@@ -7058,13 +7127,13 @@ BOOLEAN CorpseWarning(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, BOOLEAN
 		if (pCorpse &&
 			pCorpse->fActivated &&
 			pCorpse->def.ubType < ROTTING_STAGE2 &&
-			//pCorpse->def.ubType <= FMERC_FALLF &&
 			pCorpse->def.ubBodyType <= REGFEMALE &&
-			pCorpse->def.ubAIWarningValue >(fFresh ? 1 : 0) &&
+			(!fFresh || pCorpse->def.ubAIWarningValue > 0) &&
 			pCorpse->def.bLevel == bLevel &&
 			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
 			PythSpacesAway(sGridNo, pCorpse->def.sGridNo) <= ubDistance &&
-			(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam == CIV_TEAM && !pSoldier->aiData.bNeutral))
+			(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam != ENEMY_TEAM && pSoldier->bTeam != MILITIA_TEAM))
+			//(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam == CIV_TEAM && !pSoldier->aiData.bNeutral))
 		{
 			return TRUE;
 		}
@@ -7080,6 +7149,7 @@ INT32	CountCorpses(SOLDIERTYPE *pSoldier, INT32 sSpot, INT16 sDistance, BOOLEAN 
 	INT32			cnt;
 	ROTTING_CORPSE *pCorpse;
 	BOOLEAN			fCorpseOFAlly;
+	UINT16			usNum = 0;
 
 	for (cnt = 0; cnt < giNumRottingCorpse; ++cnt)
 	{
@@ -7089,51 +7159,46 @@ INT32	CountCorpses(SOLDIERTYPE *pSoldier, INT32 sSpot, INT16 sDistance, BOOLEAN 
 			pCorpse->fActivated &&
 			pCorpse->def.ubType < ROTTING_STAGE2 &&
 			pCorpse->def.ubBodyType <= REGFEMALE &&
-			pCorpse->def.ubAIWarningValue >(fFresh ? 1 : 0) &&
-			pCorpse->def.bLevel == pSoldier->pathing.bLevel &&
+			(!fFresh || pCorpse->def.ubAIWarningValue > 0) &&
 			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
 			PythSpacesAway(sSpot, pCorpse->def.sGridNo) <= sDistance &&
+			(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam != ENEMY_TEAM && pSoldier->bTeam != MILITIA_TEAM) &&
 			(!fCheckSight || SoldierToVirtualSoldierLineOfSightTest(pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, ANIM_PRONE, TRUE, CALC_FROM_ALL_DIRS)))
 		{
-			// test ally
-			fCorpseOFAlly = FALSE;
-
-			// check whether corpse was one of soldier's allies
-			if (pSoldier->bTeam == ENEMY_TEAM)
-			{
-				for (UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i)
-				{
-					if (COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[i].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[i].pants))
-					{
-						fCorpseOFAlly = TRUE;
-						break;
-					}
-				}
-			}
-			else if (pSoldier->bTeam == MILITIA_TEAM)
-			{
-				for (UINT8 i = UNIFORM_MILITIA_ROOKIE; i <= UNIFORM_MILITIA_ELITE; ++i)
-				{
-					if (COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[i].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[i].pants))
-					{
-						fCorpseOFAlly = TRUE;
-						break;
-					}
-				}
-			}
-			else
-			{
-				fCorpseOFAlly = TRUE;
-			}
-
-			if (fCorpseOFAlly)
-			{
-				return TRUE;
-			}
+			usNum++;
 		}
 	}
 
-	return FALSE;
+	return usNum;
+}
+
+INT32	CountCorpsesInDirection(SOLDIERTYPE *pSoldier, INT32 sSpot, UINT8 ubDirection, INT16 sDistance, BOOLEAN fCheckSight, BOOLEAN fFresh)
+{
+
+	INT32			cnt;
+	ROTTING_CORPSE *pCorpse;
+	BOOLEAN			fCorpseOFAlly;
+	UINT16			usNum = 0;
+
+	for (cnt = 0; cnt < giNumRottingCorpse; ++cnt)
+	{
+		pCorpse = &(gRottingCorpse[cnt]);
+
+		if (pCorpse &&
+			pCorpse->fActivated &&
+			pCorpse->def.ubType < ROTTING_STAGE2 &&
+			pCorpse->def.ubBodyType <= REGFEMALE &&
+			(!fFresh || pCorpse->def.ubAIWarningValue > 0) &&
+			!TileIsOutOfBounds(pCorpse->def.sGridNo) &&
+			PythSpacesAway(sSpot, pCorpse->def.sGridNo) <= sDistance &&
+			(pSoldier->bTeam == ENEMY_TEAM && CorpseEnemyTeam(pCorpse) || pSoldier->bTeam == MILITIA_TEAM && CorpseMilitiaTeam(pCorpse) || pSoldier->bTeam != ENEMY_TEAM && pSoldier->bTeam != MILITIA_TEAM) &&
+			(!fCheckSight || SoldierToVirtualSoldierLineOfSightTest(pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, ANIM_PRONE, TRUE, CALC_FROM_ALL_DIRS)))
+		{
+			usNum++;
+		}
+	}
+
+	return usNum;
 }
 
 BOOLEAN CorpseEnemyTeam(ROTTING_CORPSE *pCorpse)

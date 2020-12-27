@@ -3812,8 +3812,7 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 						{
 							nextCost += 20;
 						}
-						else if (fSmartFlanking &&
-								CheckDangerousDirection(s, newLoc, bLevel))
+						else if (fSmartFlanking && CheckDangerousDirection(s, newLoc, bLevel))
 						{
 							// smart flanking
 							nextCost += 20;

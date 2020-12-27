@@ -889,25 +889,12 @@ INT8 DecideActionGreen(SOLDIERTYPE *pSoldier)
 					pCorpse->def.ubAIWarningValue > 0 &&
 					!TileIsOutOfBounds(pCorpse->def.sGridNo) )
 				{
-					// test ally
-					BOOLEAN fCorpseOFAlly = FALSE;
-					// check whether corpse was one of soldier's allies
-					for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
-					{
-						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
-						{
-							fCorpseOFAlly = TRUE;
-							break;
-						}
-					}
-
-					// sevenfm: test vision (use only half of day vision range)
-					if( fCorpseOFAlly &&
+					// sevenfm: test vision
+					if( CorpseEnemyTeam(pCorpse) &&
 						SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
 					{
 						ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
 						//pCorpse->def.ubAIWarningValue=0;
-						gRottingCorpse[ cnt ].def.ubAIWarningValue=0;
 						return( AI_ACTION_RED_ALERT );
 					}
 				}
@@ -1573,26 +1560,13 @@ INT8 DecideActionYellow(SOLDIERTYPE *pSoldier)
 					pCorpse->def.ubAIWarningValue > 0 &&
 					!TileIsOutOfBounds(pCorpse->def.sGridNo) )
 				{
-					// test ally
-					BOOLEAN fCorpseOFAlly = FALSE;
-					// check whether corpse was one of soldier's allies
-					for ( UINT8 i = UNIFORM_ENEMY_ADMIN; i <= UNIFORM_ENEMY_ELITE; ++i )
-					{
-						if ( COMPARE_PALETTEREP_ID(pCorpse->def.VestPal, gUniformColors[ i ].vest) && COMPARE_PALETTEREP_ID(pCorpse->def.PantsPal, gUniformColors[ i ].pants) )
-						{
-							fCorpseOFAlly = TRUE;
-							break;
-						}
-					}
-
-					// sevenfm: test vision (use only half of day vision range)
-					if( fCorpseOFAlly &&
+					// sevenfm: test vision
+					if( CorpseEnemyTeam(pCorpse) &&
 						//PythSpacesAway( pSoldier->sGridNo, pCorpse->def.sGridNo ) <= DAY_VISION_RANGE / 2 &&
 						SoldierTo3DLocationLineOfSightTest( pSoldier, pCorpse->def.sGridNo, pCorpse->def.bLevel, 1, TRUE, CALC_FROM_WANTED_DIR ) )
 					{
 						ScreenMsg( MSG_FONT_YELLOW, MSG_INTERFACE, New113Message[MSG113_ENEMY_FOUND_DEAD_BODY]);
 						//pCorpse->def.ubAIWarningValue=0;
-						gRottingCorpse[ cnt ].def.ubAIWarningValue=0;
 						return( AI_ACTION_RED_ALERT );
 					}
 				}

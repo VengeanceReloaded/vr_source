@@ -834,8 +834,9 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	else
 		Corpse.bVisible = pSoldier->bVisible;
 
-	if ( pSoldier->bTeam != gbPlayerNum )
-		Corpse.ubAIWarningValue = 1;
+	//if ( pSoldier->bTeam != gbPlayerNum )
+	// sevenfm: set for all teams
+	Corpse.ubAIWarningValue = 20;
 	
 	if ( Corpse.bLevel > 0 )
 	{
@@ -1051,8 +1052,8 @@ BOOLEAN TurnSoldierIntoCorpse( SOLDIERTYPE *pSoldier, BOOLEAN fRemoveMerc, BOOLE
 	AllSoldiersLookforItems( TRUE );
 
 	//Madd: set warning value to signal other enemies
-	if( pSoldier->bTeam == ENEMY_TEAM )
-		Corpse.ubAIWarningValue = 20;
+	//if( pSoldier->bTeam == ENEMY_TEAM )
+		//Corpse.ubAIWarningValue = 20;
 
 	// This should free up ABC for death codes
 	if ( gAnimControl[ pSoldier->usAnimState ].uiFlags & ANIM_ATTACK )
@@ -2608,7 +2609,11 @@ void DecayRottingCorpseAIWarnings( void )
 
 		if ( pCorpse->fActivated && pCorpse->def.ubAIWarningValue > 0 )
 		{
-			pCorpse->def.ubAIWarningValue--;
+			// sevenfm: keep min value 1 when in combat
+			if (gTacticalStatus.uiFlags & INCOMBAT || gTacticalStatus.fEnemyInSector)
+				pCorpse->def.ubAIWarningValue = max(1, pCorpse->def.ubAIWarningValue - 1);
+			else
+				pCorpse->def.ubAIWarningValue--;
 		}
 	}
 
