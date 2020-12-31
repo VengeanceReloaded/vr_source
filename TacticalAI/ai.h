@@ -287,6 +287,10 @@ BOOLEAN LastTargetCollapsed( SOLDIERTYPE *pSoldier );
 BOOLEAN LastTargetSuppressed( SOLDIERTYPE *pSoldier );
 BOOLEAN SoldierAI( SOLDIERTYPE *pSoldier );
 BOOLEAN AICheckSuccessfulAttack(SOLDIERTYPE *pSoldier, BOOLEAN fGroup);
+BOOLEAN AICheckWeOutnumberPublic(SOLDIERTYPE *pSoldier, INT32 sSpot);
+BOOLEAN AICheckWeOutnumberLocal(SOLDIERTYPE *pSoldier, INT32 sSpot);
+BOOLEAN AICheckWeOutnumber(SOLDIERTYPE *pSoldier, INT32 sSpot);
+BOOLEAN AICheckWeOutnumberSector(SOLDIERTYPE *pSoldier);
 
 UINT8 CountNearbyFriends( SOLDIERTYPE *pSoldier, INT32 sGridNo, UINT8 ubDistance );
 UINT8 CountNearbyNeutrals(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT16 sDistance);

@@ -5845,6 +5845,99 @@ BOOLEAN AICheckSuccessfulAttack(SOLDIERTYPE *pSoldier, BOOLEAN fGroup)
 	return FALSE;
 }
 
+BOOLEAN AICheckWeOutnumberSector(SOLDIERTYPE *pSoldier)
+{
+	CHECKF(pSoldier);
+
+	UINT32	uiLoop;
+	SOLDIERTYPE *pOpponent;
+
+	UINT8	ubNumFriends = 0;
+	UINT8	ubNumOpponents = 0;
+
+	// loop through all soldiers in sector
+	for (uiLoop = 0; uiLoop < guiNumMercSlots; ++uiLoop)
+	{
+		pOpponent = MercSlots[uiLoop];
+
+		// if this merc is inactive, at base, on assignment, dead, unconscious
+		if (!pOpponent || pOpponent->stats.bLife < OKLIFE)
+		{
+			continue;
+		}
+
+		if (ValidOpponent(pSoldier, pOpponent))
+		{
+			ubNumOpponents++;
+		}
+
+		if (pOpponent->bTeam == pSoldier->bTeam || pOpponent->bSide == pSoldier->bSide)
+		{
+			ubNumFriends++;
+		}
+	}
+
+	if (ubNumFriends > ubNumOpponents * 2)
+		return TRUE;
+
+	return FALSE;
+}
+
+BOOLEAN AICheckWeOutnumberPublic(SOLDIERTYPE *pSoldier, INT32 sSpot)
+{
+	CHECKF(pSoldier);
+	if (TileIsOutOfBounds(sSpot))
+	{
+		return FALSE;
+	}
+
+	UINT8 ubFriends = CountNearbyFriends(pSoldier, sSpot, TACTICAL_RANGE);
+	UINT8 ubEnemies = CountPublicKnownEnemies(pSoldier, sSpot, TACTICAL_RANGE);
+
+	if (ubEnemies > 0 && ubFriends > 2 * ubEnemies)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckWeOutnumberLocal(SOLDIERTYPE *pSoldier, INT32 sSpot)
+{
+	CHECKF(pSoldier);
+	if (TileIsOutOfBounds(sSpot))
+	{
+		return FALSE;
+	}
+
+	UINT8 ubFriends = CountNearbyFriends(pSoldier, pSoldier->sGridNo, TACTICAL_RANGE / 2);
+	UINT8 ubEnemies = CountPublicKnownEnemies(pSoldier, sSpot, TACTICAL_RANGE);
+
+	if (ubEnemies > 0 && ubFriends > 2 * ubEnemies)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOLEAN AICheckWeOutnumber(SOLDIERTYPE *pSoldier, INT32 sSpot)
+{
+	CHECKF(pSoldier);
+	if (TileIsOutOfBounds(sSpot))
+	{
+		return FALSE;
+	}
+
+	if (AICheckWeOutnumberPublic(pSoldier, sSpot) || AICheckWeOutnumberLocal(pSoldier, sSpot))
+		//pSoldier->bTeam == ENEMY_TEAM && gTacticalStatus.Team[pSoldier->bTeam].bAwareOfOpposition < 10 && WeAttack(pSoldier->bTeam))
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 BOOLEAN AICheckHasGun( SOLDIERTYPE *pSoldier )
 {
 	CHECKF(pSoldier);

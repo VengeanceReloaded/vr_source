@@ -1565,7 +1565,7 @@ void ChooseGrenadesForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bGrena
 	sNumPoints = bGrenades * bGrenadeClass;
 
 	//no points, no grenades!
-	if( !sNumPoints )
+	if (!sNumPoints)
 		return;
 
 	// special mortar shell handling
@@ -1576,14 +1576,18 @@ void ChooseGrenadesForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bGrena
 		// 2) randomly chose not to supply a Mortar (always possible, even if choices exist).
 		// Since we should not go beyond this point in the case where Mortar Rounds are desired,
 		// return here in any case
-		if (itemMortar > 0 )
+		if (itemMortar > 0)
 		{
-			usItem = PickARandomLaunchable ( itemMortar );
-			if ( usItem > 0 )
+			// sevenfm: more variety for mortar shells
+			for (int i = 0; i < bGrenades; i++)
 			{
-				CreateItems( usItem, (INT8) (80 + Random(21)), bGrenades, &gTempObject );
-				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-				PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
+				usItem = PickARandomLaunchable(itemMortar);
+				if (usItem > 0)
+				{
+					CreateItems(usItem, (INT8)(80 + Random(21)), 1, &gTempObject);
+					gTempObject.fFlags |= OBJECT_UNDROPPABLE;
+					PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
+				}
 			}
 		}
 
@@ -1598,16 +1602,16 @@ void ChooseGrenadesForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bGrena
 		// 2) randomly chose not to supply an RPG (always possible, even if choices exist).
 		// Since we should not go beyond this point in the case where RPG grenades are desired,
 		// return here in any case
-		if (itemRPG > 0 )
+		if (itemRPG > 0)
 		{
-			usItem = PickARandomLaunchable ( itemRPG );
-			if ( usItem > 0 )
+			usItem = PickARandomLaunchable(itemRPG);
+			if (usItem > 0)
 			{
-				for ( int i = 0; i < bGrenades; i++ )
+				for (int i = 0; i < bGrenades; i++)
 				{
-					CreateItem( usItem, (INT8) (70 + Random(31)), &gTempObject ); 
+					CreateItem(usItem, (INT8)(70 + Random(31)), &gTempObject);
 					gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-					PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
+					PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
 				}
 
 			}
@@ -1623,21 +1627,19 @@ void ChooseGrenadesForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bGrena
 	ubQualityVariation = 101 - ubBaseQuality;
 
 	// Madd: GL guys don't get hand grenades anymore
-	if ( itemGrenadeLauncher > 0 )
+	if (itemGrenadeLauncher > 0)
 	{
 		//do this for every 1-2 grenades so that we can get more variety
-		while ( bGrenades > 0 )
+		while (bGrenades > 0)
 		{
-			count = Random(3);
-			if ( count > bGrenades )
-				count = bGrenades;
+			count = min(1 + Random(3), bGrenades);
 
-			usItem = PickARandomLaunchable ( itemGrenadeLauncher );
-			if ( usItem > 0 && count > 0 )
+			usItem = PickARandomLaunchable(itemGrenadeLauncher);
+			if (usItem > 0 && count > 0)
 			{
-				CreateItems( usItem, (INT8)(ubBaseQuality + Random( ubQualityVariation )), count, &gTempObject );
+				CreateItems(usItem, (INT8)(ubBaseQuality + Random(ubQualityVariation)), count, &gTempObject);
 				gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-				PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
+				PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
 			}
 			bGrenades -= count;
 		}
@@ -1648,219 +1650,21 @@ void ChooseGrenadesForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bGrena
 
 	//Madd: screw the original code; it's impossible to externalize and too complicated anyway
 	//do this for every 1-2 grenades so that we can get more variety
-	while ( bGrenades > 0 )
+	while (bGrenades > 0)
 	{
-		count = Random(3);
-		if ( count > bGrenades )
-			count = bGrenades;
+		count = min(1 + Random(3), bGrenades);
 
-		usItem = PickARandomItem ( GRENADE, pp->ubSoldierClass, bGrenadeClass, FALSE );
-		if ( usItem > 0 && count > 0 )
+		usItem = PickARandomItem(GRENADE, pp->ubSoldierClass, bGrenadeClass, FALSE);
+		if (usItem > 0 && count > 0)
 		{
-			CreateItems( usItem, (INT8)(ubBaseQuality + Random( ubQualityVariation )), count, &gTempObject );
+			CreateItems(usItem, (INT8)(ubBaseQuality + Random(ubQualityVariation)), count, &gTempObject);
 			gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-			PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
+			PlaceObjectInSoldierCreateStruct(pp, &gTempObject);
 		}
 		bGrenades -= count;
 	}
+
 	return;
-
-#ifdef obsoleteCode
-	////now, purchase the grenades.
-	//while( sNumPoints > 0 )
-	//{
-	//	if( sNumPoints >= 20 )
-	//	{ //Choose randomly between mustard and regular
-	//		if( Random( 2 ) && !fGrenadeLauncher )
-	//			ubNumMustard++, sNumPoints -= 10;
-	//		else
-	//			ubNumReg++, sNumPoints -= 9;
-	//	}
-
-	//	if( sNumPoints >= 10 )
-	//	{ //Choose randomly between any
-	//		switch( Random( 7 ) )
-	//		{
-	//			case 0:	if ( !fGrenadeLauncher )
-	//							{
-	//								ubNumMustard++;		sNumPoints -= 10;	break;
-	//							}
-	//							// if grenade launcher, pick regular instead
-	//			case 1: ubNumReg++;				sNumPoints -= 9;		break;
-	//			case 2: if ( !fGrenadeLauncher )
-	//							{
-	//								ubNumMini++;			sNumPoints -= 7;		break;
-	//							}
-	//							// if grenade launcher, pick tear instead
-	//			case 3: ubNumTear++;			sNumPoints -= 6;		break;
-	//			case 4: ubNumStun++;			sNumPoints -= 5;		break;
-	//			case 5: ubNumSmoke++;			sNumPoints -= 4;		break;
-	//			case 6: if (!fGrenadeLauncher )
-	//					{
-	//						ubNumFlare++;			sNumPoints -= 3;
-	//					}
-	//					break;
-	//		}
-	//	}
-
-	//	// JA2 Gold: don't make mini-grenades take all points available, and add chance of break lights
-	//	if( sNumPoints >= 1 && sNumPoints < 10 )
-	//	{
-	//		switch( Random( 10 ) )
-	//		{
-	//			case 0:
-	//			case 1:
-	//			case 2:
-	//				ubNumSmoke++;
-	//				sNumPoints -= 4;
-	//				break;
-	//			case 3:
-	//			case 4:
-	//				ubNumTear++;
-	//				sNumPoints -= 6;
-	//				break;
-	//			case 5:
-	//			case 6:
-	//				if (!fGrenadeLauncher)
-	//				{
-	//					ubNumFlare++;
-	//					sNumPoints -= 3;
-	//				}
-	//				break;
-	//			case 7:
-	//			case 8:
-	//				ubNumStun++;
-	//				sNumPoints -= 5;
-	//				break;
-	//			case 9:
-	//				if (!fGrenadeLauncher)
-	//				{
-	//					ubNumMini++;
-	//					sNumPoints -= 7;
-	//				}
-	//				break;
-	//		}
-	//	}
-	//	/*
-	//	if( usNumPoints >= 1 && usNumPoints < 10 )
-	//	{ //choose randomly between either stun or tear, (normal with rare chance)
-	//		switch( Random( 10 ) )
-	//		{
-	//			case 0:
-	//			case 1:
-	//			case 2:
-	//			case 3:
-	//				ubNumSmoke++;
-	//				if( usNumPoints > 4 )
-	//					usNumPoints -= 4;
-	//				else
-	//					usNumPoints = 0;
-	//				break;
-	//			case 4:
-	//			case 5:
-	//			case 6:
-	//				ubNumTear++;
-	//				if( usNumPoints > 6 )
-	//					usNumPoints -= 6;
-	//				else
-	//					usNumPoints = 0;
-	//				break;
-	//			case 7:
-	//			case 8:
-	//				ubNumStun++;
-	//				if( usNumPoints > 5 )
-	//					usNumPoints -= 5;
-	//				else
-	//					usNumPoints = 0;
-	//				break;
-	//			case 9:
-	//				ubNumMini++;
-	//				usNumPoints = 0;
-	//				break;
-	//		}
-	//	}
-	//	*/
-	//}
-
-
-	////Create the grenades and add them to the soldier
-
-	//if( ubNumSmoke )
-	//{
-	//	if ( fGrenadeLauncher )
-	//	{
-	//		usItem = GL_SMOKE_GRENADE;
-	//	}
-	//	else
-	//	{
-	//		usItem = SMOKE_GRENADE;
-	//	}
-	//	CreateItems( usItem, (INT8)(ubBaseQuality + Random( ubQualityVariation )), ubNumSmoke, &gTempObject );
-	//	gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-	//	PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-	//}
-	//if( ubNumTear )
-	//{
-	//	if ( fGrenadeLauncher )
-	//	{
-	//		usItem = GL_TEARGAS_GRENADE;
-	//	}
-	//	else
-	//	{
-	//		usItem = TEARGAS_GRENADE;
-	//	}
-	//	CreateItems( usItem, (INT8)(ubBaseQuality + Random( ubQualityVariation )), ubNumTear, &gTempObject );
-	//	gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-	//	PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-	//}
-	//if( ubNumStun )
-	//{
-	//	if ( fGrenadeLauncher )
-	//	{
-	//		usItem = GL_STUN_GRENADE;
-	//	}
-	//	else
-	//	{
-	//		usItem = STUN_GRENADE;
-	//	}
-	//	CreateItems( usItem, (INT8)(ubBaseQuality + Random( ubQualityVariation )), ubNumStun, &gTempObject );
-	//	gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-	//	PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-	//}
-	//if( ubNumReg )
-	//{
-	//	if ( fGrenadeLauncher )
-	//	{
-	//		usItem = GL_HE_GRENADE;
-	//	}
-	//	else
-	//	{
-	//		usItem = HAND_GRENADE;
-	//	}
-	//	CreateItems( usItem, (INT8)(ubBaseQuality + Random( ubQualityVariation )), ubNumReg, &gTempObject );
-	//	gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-	//	PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-	//}
-
-	//if( ubNumMini )
-	//{
-	//	CreateItems( MINI_GRENADE, (INT8)(ubBaseQuality + Random( ubQualityVariation )), ubNumMini, &gTempObject );
-	//	gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-	//	PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-	//}
-	//if( ubNumMustard )
-	//{
-	//	CreateItems( MUSTARD_GRENADE, (INT8)(ubBaseQuality + Random( ubQualityVariation )), ubNumMustard, &gTempObject );
-	//	gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-	//	PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-	//}
-	//if( ubNumFlare )
-	//{
-	//	CreateItems( BREAK_LIGHT, (INT8)(ubBaseQuality + Random( ubQualityVariation )), ubNumFlare, &gTempObject );
-	//	gTempObject.fFlags |= OBJECT_UNDROPPABLE;
-	//	PlaceObjectInSoldierCreateStruct( pp, &gTempObject );
-	//}
-#endif //obsoleteCode
 }
 
 void ChooseArmourForSoldierCreateStruct( SOLDIERCREATE_STRUCT *pp, INT8 bHelmetClass, INT8 bVestClass, INT8 bLeggingsClass )

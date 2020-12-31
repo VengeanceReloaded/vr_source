@@ -3774,17 +3774,17 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 				!AreInMeanwhile() &&
 				s->IsMercBodyType())
 			{
-				// common penalty
+				// leave gas using shortest route
 				if (InGasSpot(s, newLoc, bLevel))
 				{
 					nextCost += 40;
 				}
-				// for enemy soldiers
+				// when in combat
 				else if (s->aiData.bAlertStatus >= STATUS_RED)
 				{
 					if (InLightAtNight(newLoc, bLevel) || GetNearestRottingCorpseAIWarning(newLoc) > 0)
 					{
-						nextCost += 30;
+						nextCost += 40;
 					}
 					else if (s->bTeam == ENEMY_TEAM && fSneaking)
 					{
@@ -3814,7 +3814,6 @@ INT32 FindBestPath(SOLDIERTYPE *s, INT32 sDestination, INT8 bLevel, INT16 usMove
 						}
 						else if (fSmartFlanking && CheckDangerousDirection(s, newLoc, bLevel))
 						{
-							// smart flanking
 							nextCost += 20;
 						}
 					}
