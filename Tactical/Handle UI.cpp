@@ -2488,7 +2488,7 @@ void UIHandleMercAttack( SOLDIERTYPE *pSoldier , SOLDIERTYPE *pTargetSoldier, IN
 	INT32							sTargetGridNo;
 	INT8							bTargetLevel;
 	UINT16							usItem;
-	LEVELNODE*						pIntNode;
+	LEVELNODE*						pIntNode = NULL;
 	STRUCTURE*						pStructure;
 	INT32							sGridNo, sNewGridNo;
 	UINT8							ubItemCursor;
@@ -2513,9 +2513,6 @@ void UIHandleMercAttack( SOLDIERTYPE *pSoldier , SOLDIERTYPE *pTargetSoldier, IN
 		}
 	}
 
-	// ATE: Check if we are targeting an interactive tile, and adjust gridno accordingly...
-	pIntNode = GetCurInteractiveTileGridNoAndStructure( &sGridNo, &pStructure );
-
 	if ( pTargetSoldier != NULL )
 	{
 		sTargetGridNo		= pTargetSoldier->sGridNo;
@@ -2523,6 +2520,9 @@ void UIHandleMercAttack( SOLDIERTYPE *pSoldier , SOLDIERTYPE *pTargetSoldier, IN
 	}
 	else
 	{
+		// ATE: Check if we are targeting an interactive tile, and adjust gridno accordingly...
+		pIntNode = GetCurInteractiveTileGridNoAndStructure(&sGridNo, &pStructure);
+
 		sTargetGridNo = usMapPos;
 		bTargetLevel	= (INT8)gsInterfaceLevel;
 
