@@ -2318,7 +2318,7 @@ BOOLEAN PlayVoiceTaunt(SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTa
 	iRandomTaunt = Random(ubExtraTaunts + 1);
 	if (iRandomTaunt > 0)
 	{
-		sprintf(buf, " %d", iRandomTaunt);
+		sprintf(buf, " %d", iRandomTaunt - 1);
 		strcat(filename, buf);
 	}
 
