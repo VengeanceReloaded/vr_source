@@ -7423,7 +7423,8 @@ BOOLEAN CheckForEndOfBattle( BOOLEAN fAnEnemyRetreated )
 		ResetCreatureAttackVariables();
 		
 		// sevenfm: switch off radio
-		SwitchOffAllRadio();
+		if (gGameExternalOptions.fSwitchOffAllRadioBattleEnd)
+			SwitchOffAllRadio();
 
         // If we are the server, we escape this function at the top if we think the game should still be running
         // hence if we get here the game is over for all clients and we should report it

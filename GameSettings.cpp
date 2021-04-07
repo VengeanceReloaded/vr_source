@@ -1530,6 +1530,7 @@ void LoadGameExternalOptions()
 
 	gGameExternalOptions.fAccessOtherMercInventories		= iniReader.ReadBoolean("Tactical Gameplay Settings","ACCESS_OTHER_MERC_INVENTORIES", TRUE);
 	gGameExternalOptions.fBackPackWeightLowersAP			= iniReader.ReadBoolean("Tactical Gameplay Settings","BACKPACKWEIGHT_LOWERS_AP", TRUE);
+	gGameExternalOptions.fSwitchOffAllRadioBattleEnd		= iniReader.ReadBoolean("Tactical Gameplay Settings", "AUTO_SWITCH_OFF_ALL_RADIO_BATTLE_END", FALSE);
 
 	//################# Tactical Cover System Settings ##################
 
