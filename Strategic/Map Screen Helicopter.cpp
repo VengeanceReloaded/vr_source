@@ -3261,7 +3261,7 @@ void PaySkyriderBill( void)
 
 			// kick everyone out! (we know we're in a safe sector if we're paying)
 			//CHRISL: This may no longer be the case but I'm not sure of a better way to handle things.
-			MoveAllInHelicopterToFootMovementGroup(0, TRUE);
+			MoveAllInHelicopterToFootMovementGroup(0, FALSE);
 
 			MakeHeliReturnToBase( HELICOPTER_RETURN_REASON_NONE );
 		}
