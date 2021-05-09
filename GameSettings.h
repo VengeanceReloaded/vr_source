@@ -1449,6 +1449,9 @@ typedef struct
 	BOOLEAN fAlternativeHelicopterFuelSystem;
 	BOOLEAN fHelicopterPassengersCanGetHit;
 
+	// anv: VR
+	BOOLEAN fDisableTanksRespawnAlreadyControlledSectors;
+
 	UINT16 usHelicopterHoverCostOnGreenTile;
 	UINT16 usHelicopterHoverCostOnRedTile;
 

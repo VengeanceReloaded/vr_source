@@ -1196,10 +1196,15 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 					*/	
 					case TANK_NW:
 					case TANK_NE:
-
+						// anv: VR - don't spawn tanks in already conquered sectors
+						if (gGameExternalOptions.fDisableTanksRespawnAlreadyControlledSectors && 
+							Soldier.bTeam == ENEMY_TEAM && SectorInfo[SECTOR(Soldier.sSectorX, Soldier.sSectorY)].fSurfaceWasEverPlayerControlled)
+						{
+							ScreenMsg(FONT_YELLOW, MSG_MPSYSTEM, L"skipping tank");
+							return NULL;
+						}
 						ubVehicleID = TANK_CAR;
 						break;
-
 				}
 
 				if ( pCreateStruct->fUseGivenVehicle )

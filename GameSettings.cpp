@@ -1854,6 +1854,9 @@ void LoadGameExternalOptions()
 	gGameExternalOptions.fAlternativeHelicopterFuelSystem			= iniReader.ReadBoolean("Strategic Gameplay Settings","ALTERNATIVE_HELICOPTER_FUEL_SYSTEM", TRUE);
 	gGameExternalOptions.fHelicopterPassengersCanGetHit				= iniReader.ReadBoolean("Strategic Gameplay Settings","HELICOPTER_PASSENGERS_CAN_GET_HIT", TRUE);
 
+	// anv: VR
+	gGameExternalOptions.fDisableTanksRespawnAlreadyControlledSectors	= iniReader.ReadBoolean("Strategic Gameplay Settings", "DISABLE_TANKS_RESPAWN_ALREADY_CONTROLLED_SECTORS", TRUE);
+
 	//################# Morale Settings ##################
 	gGameExternalOptions.sMoraleModAppearance				= iniReader.ReadInteger("Morale Settings","MORALE_MOD_APPEARANCE",				1, 0, 5);
 	gGameExternalOptions.sMoraleModRefinement				= iniReader.ReadInteger("Morale Settings","MORALE_MOD_REFINEMENT",				2, 0, 5);
