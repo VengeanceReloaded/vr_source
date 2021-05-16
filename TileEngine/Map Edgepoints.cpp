@@ -76,9 +76,10 @@ BOOLEAN EdgepointsClose( SOLDIERTYPE *pSoldier, INT32 sEdgepoint1, INT32 sEdgepo
 extern UINT8 gubTacticalDirection;
 
 
-BOOLEAN GridNoValidForCenterEntryPoint(INT32 sGridNo)
+BOOLEAN GridNoValidForCenterEntryPoint(INT32 sGridNo, BOOLEAN fAllowIndoors)
 {
-	if ( GridNoOnVisibleWorldTile( sGridNo ) && gpWorldLevelData[gMapInformation.sCenterGridNo].sHeight == gpWorldLevelData[sGridNo].sHeight && !FindStructure( sGridNo, (STRUCTURE_SLANTED_ROOF|STRUCTURE_TALL_ROOF) ) )
+	if (GridNoOnVisibleWorldTile(sGridNo) && gpWorldLevelData[gMapInformation.sCenterGridNo].sHeight == gpWorldLevelData[sGridNo].sHeight && !FindStructure(sGridNo, (STRUCTURE_SLANTED_ROOF | STRUCTURE_TALL_ROOF)) 
+		&& (fAllowIndoors || !GridNoIndoors(sGridNo)))
 		return TRUE;
 	
 	return FALSE;
@@ -89,7 +90,7 @@ BOOLEAN GridNoValidForCenterEntryPoint(INT32 sGridNo)
 
 static INT32* statCentGrid = NULL;
 static INT32 numcentergridnos = 0;
-void FillCentreGridnos(BOOLEAN fCenterOnly)
+void FillCentreGridnos(BOOLEAN fCenterOnly, BOOLEAN fAllowIndoors)
 {
 	static INT16 sectorX = -1;
 	static INT16 sectorY = -1;
@@ -135,7 +136,7 @@ void FillCentreGridnos(BOOLEAN fCenterOnly)
 			INT32 gridno = y * WORLD_COLS + x;
 
 			// use gridno only if valid and if it does not have an inaccessible roof
-			if ( GridNoValidForCenterEntryPoint( gridno ) )
+			if (GridNoValidForCenterEntryPoint(gridno, fAllowIndoors))
 			{
 				statCentGrid[ cnt ] = gridno;
 				++cnt;
@@ -146,7 +147,7 @@ void FillCentreGridnos(BOOLEAN fCenterOnly)
 				for(UINT8 dir = NORTH; dir < NUM_WORLD_DIRECTIONS; ++dir)
 				{
 					INT32 newgridno = NewGridNo(gridno, dir);
-					if ( GridNoValidForCenterEntryPoint( newgridno ) )
+					if (GridNoValidForCenterEntryPoint(newgridno, fAllowIndoors))
 					{
 						statCentGrid[ cnt ] = newgridno;
 						++cnt;
@@ -162,14 +163,14 @@ void FillCentreGridnos(BOOLEAN fCenterOnly)
 }
 
 // WANNE - MP: Center
-void InitCenterEdgepoint(BOOLEAN fCenterOnly)
+void InitCenterEdgepoint(BOOLEAN fCenterOnly, BOOLEAN fAllowIndoors = TRUE)
 {
 	if (gps1stCenterEdgepointArray )
 		MemFree( gps1stCenterEdgepointArray );
 
 	gps1stCenterEdgepointArray = NULL;
 
-	FillCentreGridnos(fCenterOnly);
+	FillCentreGridnos(fCenterOnly, fAllowIndoors);
 
 	// Set some center points
 	gus1stCenterEdgepointArraySize = numcentergridnos;
@@ -1184,7 +1185,7 @@ void ChooseMapEdgepoints( MAPEDGEPOINTINFO *pMapEdgepointInfo, UINT8 ubStrategic
 			break;
 		// Lion Paratroops
 		case INSERTION_CODE_CHOPPER:
-			InitCenterEdgepoint( ubStrategicInsertionCode == INSERTION_CODE_CENTER );
+			InitCenterEdgepoint(ubStrategicInsertionCode == INSERTION_CODE_CENTER, FALSE);
 
 			psArray = gps1stCenterEdgepointArray;
 			usArraySize = gus1stCenterEdgepointArraySize;
