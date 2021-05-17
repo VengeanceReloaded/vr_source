@@ -2823,6 +2823,9 @@ STR16 gpStrategicString[] =
 	//%s is the sector location -- ex:  A9: Omerta
 	L"Creatures attack your mercs in sector %s.  None of your mercs are able to fight!",
 
+	// VR: Lion's paratroopers
+	L"AIRBORNE ASSAULT",							//STR_PB_ENEMYPARATROOPERS_HEADER
+
 };
 
 STR16 gpGameClockString[] = 

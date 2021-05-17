@@ -2816,6 +2816,8 @@ STR16 gpStrategicString[] =
 	//%s is the sector location -- ex:  A9: Omerta
 	L"I nemici attaccano i vostri mercenari nel settore %s. Nessuno dei vostri mercenari è in grado di combattere!",
 
+	// VR: Lion's paratroopers
+	L"ASSALTO AEREO",							//STR_PB_ENEMYPARATROOPERS_HEADER
 };
 
 STR16 gpGameClockString[] = 

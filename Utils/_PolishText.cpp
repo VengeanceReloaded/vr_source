@@ -2828,6 +2828,8 @@ STR16 gpStrategicString[] =
 	//%c%d is the sector -- ex:  A9
 	L"Stworzenia zatakowały twoich najemników w sektorze %s.  Żaden z twoich najemników nie może walczyć!",
 
+	// VR: Lion's paratroopers
+	L"ATAK SPADOCHRONIARZY",							//STR_PB_ENEMYPARATROOPERS_HEADER
 };
 
 STR16 gpGameClockString[] = 

@@ -6993,6 +6993,8 @@ void InitParatroopsAttack( UINT32 uiParam )
 	}
 
 	// Attack!
+	gubEnemyEncounterCode = ENEMY_PARATROOPERS_CODE;
+
 	sProgress = CurrentPlayerProgressPercentage();
 	sNumElites = 3 + Random(10) + gGameOptions.ubDifficultyLevel * sProgress / 7;
 	if( sNumElites > 32) sNumElites = 30;

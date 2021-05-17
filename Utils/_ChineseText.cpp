@@ -2823,6 +2823,8 @@ STR16 gpStrategicString[] =
 	//%s is the sector location -- ex:  A9: Omerta
 	L"异形向你在分区%s的佣兵发起了攻击。你的佣兵中没人能进行战斗。",
 
+	// VR: Lion's paratroopers
+	L"空中突击",							//STR_PB_ENEMYPARATROOPERS_HEADER
 };
 
 STR16 gpGameClockString[] = 

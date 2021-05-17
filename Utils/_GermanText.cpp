@@ -2832,6 +2832,8 @@ STR16 gpStrategicString[] =
 	//%s is the sector -- ex: A9
 	L"Monster attackieren Ihre Söldner im Sektor %s. Alle Söldner sind bewusstlos!",
 
+	// VR: Lion's paratroopers
+	L"LUFTANGRIFF",							//STR_PB_ENEMYPARATROOPERS_HEADER
 };
 
 STR16 gpGameClockString[] = 

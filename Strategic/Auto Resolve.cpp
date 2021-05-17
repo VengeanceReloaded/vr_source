@@ -631,6 +631,7 @@ DebugMsg (TOPIC_JA2,DBG_LEVEL_3,"Autoresolve1");
 			gpAR->ubPlayerDefenceAdvantage = 21; //Skewed to the player's advantage for convenience purposes.
 			break;
 		case ENEMY_INVASION_CODE:
+		case ENEMY_PARATROOPERS_CODE:
 			gpAR->ubPlayerDefenceAdvantage = 0;
 			break;
 		case CREATURE_ATTACK_CODE:
@@ -1975,6 +1976,7 @@ void RenderAutoResolve()
 			swprintf( str, gpStrategicString[STR_AR_ENCOUNTER_HEADER] );
 			break;
 		case ENEMY_INVASION_CODE:
+		case ENEMY_PARATROOPERS_CODE:
 		case CREATURE_ATTACK_CODE:
 			swprintf( str, gpStrategicString[STR_AR_DEFEND_HEADER] );
 			break;

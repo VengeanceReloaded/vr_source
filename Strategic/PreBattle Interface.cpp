@@ -414,7 +414,8 @@ void InitPreBattleInterface( GROUP *pBattleGroup, BOOLEAN fPersistantPBI )
 						gubEnemyEncounterCode == ENEMY_INVASION_CODE ||
 						gubEnemyEncounterCode == BLOODCAT_AMBUSH_CODE ||
 						gubEnemyEncounterCode == ENTERING_BLOODCAT_LAIR_CODE ||
-						gubEnemyEncounterCode == CREATURE_ATTACK_CODE )
+						gubEnemyEncounterCode == CREATURE_ATTACK_CODE ||
+						gubEnemyEncounterCode == ENEMY_PARATROOPERS_CODE )
 		{ //use same code
 			gubExplicitEnemyEncounterCode = gubEnemyEncounterCode;
 		}
@@ -695,8 +696,11 @@ void InitPreBattleInterface( GROUP *pBattleGroup, BOOLEAN fPersistantPBI )
 			}
 		}
 		else
-		{ //Are enemies invading a town, or just encountered the player.
-			if( GetTownIdForSector( gubPBSectorX, gubPBSectorY ) )
+		{ 
+			if (gubEnemyEncounterCode == ENEMY_PARATROOPERS_CODE)
+				gubEnemyEncounterCode = ENEMY_PARATROOPERS_CODE;
+			//Are enemies invading a town, or just encountered the player.
+			else if( GetTownIdForSector( gubPBSectorX, gubPBSectorY ) )
 				gubEnemyEncounterCode = ENEMY_INVASION_CODE;
 			//SAM sites not in towns will also be considered to be important
 			else if( pSector->uiFlags & SF_SAM_SITE )
@@ -829,6 +833,7 @@ void InitPreBattleInterface( GROUP *pBattleGroup, BOOLEAN fPersistantPBI )
 			case CREATURE_ATTACK_CODE:
 			case ENEMY_ENCOUNTER_CODE:
 			case ENEMY_INVASION_CODE:
+			case ENEMY_PARATROOPERS_CODE:
 				SetButtonFastHelpText( iPBButton[ 0 ], gzNonPersistantPBIText[ 2 ] );
 				break;
 			case ENTERING_ENEMY_SECTOR_CODE:
@@ -1088,6 +1093,9 @@ void RenderPBHeader( INT32 *piX, INT32 *piWidth)
 			break;
 		case ENTERING_BLOODCAT_LAIR_CODE:
 			swprintf( str, gpStrategicString[ STR_PB_ENTERINGBLOODCATLAIR_HEADER ] );
+			break;
+		case ENEMY_PARATROOPERS_CODE:
+			swprintf(str, gpStrategicString[STR_PB_ENEMYPARATROOPERS_HEADER]);
 			break;
 	}
 	width = StringPixLength( str, FONT10ARIALBOLD );
@@ -2124,6 +2132,7 @@ void LogBattleResults( UINT8 ubVictoryCode)
 		switch( gubEnemyEncounterCode )
 		{
 			case ENEMY_INVASION_CODE:
+			case ENEMY_PARATROOPERS_CODE:
 				AddHistoryToPlayersLog( HISTORY_DEFENDEDTOWNSECTOR, 0, GetWorldTotalMin(), sSectorX, sSectorY );
 				break;
 			case ENEMY_ENCOUNTER_CODE:
@@ -2152,6 +2161,7 @@ void LogBattleResults( UINT8 ubVictoryCode)
 		switch( gubEnemyEncounterCode )
 		{
 			case ENEMY_INVASION_CODE:
+			case ENEMY_PARATROOPERS_CODE:
 				AddHistoryToPlayersLog( HISTORY_LOSTTOWNSECTOR, 0, GetWorldTotalMin(), sSectorX, sSectorY );
 				break;
 			case ENEMY_ENCOUNTER_CODE:
@@ -2176,6 +2186,7 @@ void LogBattleResults( UINT8 ubVictoryCode)
 	switch( gubEnemyEncounterCode )
 	{
 		case ENEMY_INVASION_CODE:
+		case ENEMY_PARATROOPERS_CODE:
 			gCurrentIncident.usIncidentFlags |= INCIDENT_ATTACK_ENEMY;
 			break;
 		case ENEMY_ENCOUNTER_CODE:

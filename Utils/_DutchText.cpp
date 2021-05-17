@@ -2820,6 +2820,8 @@ STR16 gpStrategicString[] =
 	//%s is the sector location -- ex:  A9: Omerta
 	L"Beesten vallen je huurlingen aan in sector %s. Geen enkele huurling kan vechten!",
 
+	// VR: Lion's paratroopers
+	L"AANVAL IN DE LUCHT",							//STR_PB_ENEMYPARATROOPERS_HEADER
 };
 
 STR16 gpGameClockString[] = 
