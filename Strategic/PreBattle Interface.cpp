@@ -1275,7 +1275,7 @@ void RenderPreBattleInterface()
 
 		//Draw the top columns
 		//Draw from the top to uninvolved header
-		for (y = TOP_Y; y < iPrebattleInterfaceHeight - BOTTOM_HEIGHT - ubAllowedUninvolvedListHeight - ROW_HEIGHT; y += ROW_HEIGHT)
+		for (y = TOP_Y; y < iPrebattleInterfaceHeight - BOTTOM_HEIGHT - ubAllowedUninvolvedListHeight; y += ROW_HEIGHT)
 		{
 			BltVideoObject(guiSAVEBUFFER, hVObject, TOP_COLUMN, 186 + xResOffset, yResOffset + y, VO_BLT_SRCTRANSPARENCY, NULL);
 		}
