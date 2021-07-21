@@ -246,7 +246,7 @@ INT32 HandleItem( SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel, UINT16 usHa
 	{
 		pTargetSoldier = MercPtrs[ usSoldierIndex ];
 
-		if ( fFromUI )
+		if (fFromUI && Item[usHandItem].usItemClass != IC_MEDKIT)
 		{
 			INT32 sInteractiveGridNo;
 
