@@ -4728,8 +4728,10 @@ BOOLEAN NewOKDestination( SOLDIERTYPE * pCurrSoldier, INT32 sGridNo, BOOLEAN fPe
 		return FALSE;
 	}
 
+	// anv: allow traversing ai to go off screen
 	// sevenfm: allow civilians to go off screen
-	if ( !GridNoOnVisibleWorldTile( sGridNo ) && (pCurrSoldier->bTeam != CIV_TEAM || pCurrSoldier->ubProfile == NO_PROFILE) )
+	if (!(pCurrSoldier->ubQuoteActionID >= QUOTE_ACTION_ID_TRAVERSE_EAST && pCurrSoldier->ubQuoteActionID <= QUOTE_ACTION_ID_TRAVERSE_NORTH) &&
+		!GridNoOnVisibleWorldTile(sGridNo) && (pCurrSoldier->bTeam != CIV_TEAM || pCurrSoldier->ubProfile == NO_PROFILE))
 	{
 		// sevenfm: r8104 fix
 		return( FALSE );
