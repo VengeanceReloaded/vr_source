@@ -8193,7 +8193,7 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%% prison guard strength\n",
 	L" %s%d%% better prices when trading guns and ammo\n",
 	L" %s%d%% better prices when trading armour, lbe, blades, kits etc.\n",
-	L" %s%d%% team capitulation strength if we lead negotiations\n",
+	L" %s%d%% perceived team strength when offering surrender\n",
 	L" %s%d%% faster running\n",
 	L" %s%d%% bandaging speed\n",
 	L" %s%d%% breath regeneration\n",
