@@ -3034,7 +3034,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapScreen( SOLDIERTYPE *pSoldier, INT32 bInvPos
 				// don't consider for UI purposes
 				continue;
 			}
-#if 0//dnl ch76 091113
+#if 1//dnl ch76 091113
 			if ( ValidAttachment( pObject->usItem, pTestObject ) ||
 					 ValidAttachment( pTestObject->usItem, pObject ) ||
 					 ValidLaunchable( pTestObject->usItem, pObject->usItem ) ||
@@ -3146,7 +3146,7 @@ BOOLEAN HandleCompatibleAmmoUIForMapInventory( SOLDIERTYPE *pSoldier, INT32 bInv
 			// don't consider for UI purposes
 			continue;
 		}
-#if 0//dnl ch76 091113
+#if 1//dnl ch76 091113
 		if ( ValidAttachment( pObject->usItem, pTestObject ) ||
 				 ValidAttachment( pTestObject->usItem, pObject ) ||
 				 ValidLaunchable( pTestObject->usItem, pObject->usItem ) ||
