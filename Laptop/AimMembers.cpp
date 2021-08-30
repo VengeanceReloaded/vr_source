@@ -5934,7 +5934,7 @@ void WeaponKitSelectionUpdate(UINT8 selectedInventory = 0)
 		// Next, go through and assign everything but lbe gear
 		for(uiLoop=INV_START_POS; uiLoop<NUM_INV_SLOTS; uiLoop++)
 		{
-			if(gMercProfileGear[gbCurrentSoldier][selectedInventory].inv[uiLoop] != NONE)
+			if (gMercProfileGear[gbCurrentSoldier][selectedInventory].inv[uiLoop] != NONE && (Item[gMercProfileGear[gbCurrentSoldier][selectedInventory].inv[uiLoop]].usItemClass != IC_LBEGEAR || UsingNewInventorySystem() == true))
 			{
 				gMercProfiles[gbCurrentSoldier].inv[uiLoop] = gMercProfileGear[gbCurrentSoldier][selectedInventory].inv[uiLoop];
 				gMercProfiles[gbCurrentSoldier].bInvStatus[uiLoop] = gMercProfileGear[gbCurrentSoldier][selectedInventory].iStatus[uiLoop];
@@ -5947,6 +5947,18 @@ void WeaponKitSelectionUpdate(UINT8 selectedInventory = 0)
 		// Last, go through and assign LBE items.  Only needed for new inventory system
 		if((UsingNewInventorySystem() == true))
 		{
+			for (uiLoop = INV_START_POS; uiLoop<NUM_INV_SLOTS; uiLoop++)
+			{
+				if (gMercProfileGear[gbCurrentSoldier][selectedInventory].inv[uiLoop] != NONE && Item[gMercProfileGear[uiLoop][0].inv[uiLoop]].usItemClass == IC_LBEGEAR)
+				{
+					gMercProfiles[gbCurrentSoldier].inv[uiLoop] = gMercProfileGear[gbCurrentSoldier][selectedInventory].inv[uiLoop];
+					gMercProfiles[gbCurrentSoldier].bInvStatus[uiLoop] = gMercProfileGear[gbCurrentSoldier][selectedInventory].iStatus[uiLoop];
+					if (uiLoop > 5)
+						gMercProfiles[gbCurrentSoldier].bInvNumber[uiLoop] = gMercProfileGear[gbCurrentSoldier][selectedInventory].iNumber[uiLoop];
+					else
+						gMercProfiles[gbCurrentSoldier].bInvNumber[uiLoop] = 1;
+				}
+			}
 			for(uiLoop=0; uiLoop<5; uiLoop++)
 			{
 				UINT32 uiLoop2 = uiLoop + VESTPOCKPOS;

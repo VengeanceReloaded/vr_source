@@ -1225,7 +1225,14 @@ BOOLEAN CheckFact( UINT16 usFact, UINT8 ubProfileID )
 
 		case FACT_NO_CLUB_FIGHTING_ALLOWED:
 			// anv: added !BoxersAvailable, otherwise van Haussen would offer fight even when all boxers are dead
-			gubFact[usFact] = ( gubQuest[ QUEST_KINGPIN_MONEY ] == QUESTINPROGRESS || gfBoxersResting || !BoxersAvailable() );// plus other conditions
+			// silversurfer: additional fix - the check below failed when we killed all boxers because BoxersAvailable() returns 0 in this case.
+			// Added additional check for Kingpins location so that the three initial fights can be completed. As soon as Kingpin is gone the original check will apply again.
+			SOLDIERTYPE * pKingpin;
+			pKingpin = FindSoldierByProfileID(KINGPIN, FALSE);
+			if (pKingpin)
+				gubFact[usFact] = (gubQuest[QUEST_KINGPIN_MONEY] == QUESTINPROGRESS || gfBoxersResting || (!BoxersAvailable() && PythSpacesAway(pKingpin->sGridNo, gModSettings.iKingpinRingTile) > 2));// plus other conditions
+			else
+				gubFact[usFact] = TRUE;
 			break;
 
 		case FACT_MADDOG_IS_SPEAKER:

@@ -450,6 +450,11 @@ BOOLEAN BoxerAvailable( void )
 // SEQUEL FIGHT.   Maybe we could check Kingpin's location instead!
 UINT8 BoxersAvailable( void )
 {
+	if (CheckOnBoxers() == FALSE)
+	{
+		return 0;
+	}
+
 	UINT8			ubCount = 0;
 
 	for (UINT8 ubLoop = 0; ubLoop < NUM_BOXERS; ++ubLoop)
@@ -477,6 +482,7 @@ BOOLEAN AnotherFightPossible( void )
 	ubAvailable = BoxersAvailable();
 
 	if ( ubAvailable == NUM_BOXERS || ubAvailable == 0 )
+	//if (ubAvailable == 0)
 	{
 		return( FALSE );
 	}

@@ -1783,7 +1783,7 @@ void MercWeaponKitSelectionUpdate(UINT8 selectedInventory)
 			// Next, go through and assign everything but lbe gear
 			for(uiLoop=INV_START_POS; uiLoop<NUM_INV_SLOTS; uiLoop++)
 			{
-				if(gMercProfileGear[ubMercID][selectedInventory].inv[uiLoop] != NONE)
+				if (gMercProfileGear[ubMercID][selectedInventory].inv[uiLoop] != NONE && (Item[gMercProfileGear[ubMercID][selectedInventory].inv[uiLoop]].usItemClass != IC_LBEGEAR || UsingNewInventorySystem() == true))
 				{
 					gMercProfiles[ubMercID].inv[uiLoop] = gMercProfileGear[ubMercID][selectedInventory].inv[uiLoop];
 					gMercProfiles[ubMercID].bInvStatus[uiLoop] = gMercProfileGear[ubMercID][selectedInventory].iStatus[uiLoop];
