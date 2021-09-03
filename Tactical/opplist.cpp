@@ -2453,7 +2453,7 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 						}
 					}
 					// anv: VR - Tracona and CIA operatives go bonkers when they notice Conman
-					if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP || pSoldier->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
+					else if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP || pSoldier->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
 					{
 						// if Conman is in the sector and escorted, set fact that the escape has
 						// been noticed

@@ -1247,6 +1247,10 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 				case KINGPIN_CIV_GROUP:
 					Soldier.ubBattleSoundID = 105;
 					break;
+				// anv: VR - kingpin fort group
+				case KINGPIN_FORT_CIV_GROUP:
+					Soldier.ubBattleSoundID = 105;
+					break;
 				case TRACONA_OPERATIVES_GROUP:
 					Soldier.ubBattleSoundID = 108;
 					break;

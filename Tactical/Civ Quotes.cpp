@@ -667,6 +667,20 @@ UINT16 DetermineCivQuoteEntry( SOLDIERTYPE *pCiv, UINT16 *pubCivHintToUse, BOOLE
 		}
 	}
 
+	// anv: VR
+	if (pCiv->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP)
+	{
+		// Are they friendly?
+		if (pCiv->aiData.bNeutral)
+		{
+			return(CIV_QUOTE_GOONS_FORT_FRIENDLY);
+		}
+		else
+		{
+			return(CIV_QUOTE_GOONS_FORT_ENEMIES);
+		}
+	}
+
 	// ATE: Cowering people take precedence....
 	if ( ( pCiv->flags.uiStatusFlags & SOLDIER_COWERING ) || ( pCiv->bTeam == CIV_TEAM && ( gTacticalStatus.uiFlags & INCOMBAT ) ) )
 	{
@@ -1097,6 +1111,7 @@ void PossiblyStartEnemyTaunt( SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, UINT32 ui
 	if( pCiv->bTeam != ENEMY_TEAM &&
 		pCiv->bTeam != MILITIA_TEAM &&
 		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
+		!(pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP && gGameExternalOptions.fVoiceTaunts) &&
 		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == HICKS_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
 		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == WARDEN_CIV_GROUP && gGameExternalOptions.fVoiceTaunts ) &&
 		!( pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == UNNAMED_CIV_GROUP_16 && gGameExternalOptions.fVoiceTaunts ) &&
@@ -2208,7 +2223,12 @@ BOOLEAN PlayVoiceTaunt(SOLDIERTYPE *pCiv, TAUNTTYPE iTauntType, SOLDIERTYPE *pTa
 		else
 			strcat(filename, "Male\\");
 	}
-	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP)
+	else if (pCiv->bTeam == CIV_TEAM && pCiv->ubCivilianGroup == KINGPIN_CIV_GROUP || pCiv->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP)
+	{
+		strcat(filename, "\\Kingpin\\");
+	}
+	// anv: VR - kingpin fort group
+	else if (pCiv->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP)
 	{
 		strcat(filename, "\\Kingpin\\");
 	}

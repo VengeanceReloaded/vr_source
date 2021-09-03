@@ -2877,7 +2877,8 @@ BOOLEAN BulletHitMerc( BULLET * pBullet, STRUCTURE * pStructure, BOOLEAN fIntend
 	// check to see if someone was accidentally hit when no target was specified by the player
 	if ( pBullet->ubFirerID != NOBODY && pFirer->bTeam == gbPlayerNum && pFirer->ubTargetID == NOBODY && pTarget->aiData.bNeutral	)
 	{
-		if ( pTarget->ubCivilianGroup == KINGPIN_CIV_GROUP || pTarget->ubCivilianGroup == HICKS_CIV_GROUP )
+		// anv: VR - kingpin fort group
+		if (pTarget->ubCivilianGroup == KINGPIN_CIV_GROUP || pTarget->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP || pTarget->ubCivilianGroup == HICKS_CIV_GROUP)
 		{
 			// hicks and kingpin are touchy!
 			pFirer->ubTargetID = pTarget->ubID;
