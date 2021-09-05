@@ -658,6 +658,9 @@ enum Facts
 
 #define IN_KINGPIN_HOUSE( room ) ( gWorldSectorX == gModSettings.ubKingpinHouseSectorX && gWorldSectorY == gModSettings.ubKingpinHouseSectorY && gbWorldSectorZ == gModSettings.ubKingpinHouseSectorZ && (room) >= gModSettings.usKingpinRoomRangeStart && (room) <= gModSettings.usKingpinRoomRangeEnd ) //5, 4, 0, 30, 39
 
+// anv: VR - O9
+#define IN_KINGPIN_FORT( room ) ( gWorldSectorX == 9 && gWorldSectorY == MAP_ROW_O && gbWorldSectorZ == 0 ) // for now any rooms with assigned numbers are considered off limits
+
 #define LOYALTY_LOW_THRESHOLD		30
 #define LOYALTY_OK_THRESHOLD		50
 #define LOYALTY_HIGH_THRESHOLD	80

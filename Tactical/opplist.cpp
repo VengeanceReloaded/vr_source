@@ -2452,6 +2452,20 @@ void ManSeesMan(SOLDIERTYPE *pSoldier, SOLDIERTYPE *pOpponent, INT32 sOppGridNo,
 							}
 						}
 					}
+					// anv: VR - O9
+					else if (pSoldier->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP)
+					{
+						UINT16 usRoom;
+						if ((pOpponent->usSoldierFlagMask & (SOLDIER_COVERT_CIV | SOLDIER_COVERT_SOLDIER)) == 0 && InARoom(pOpponent->sGridNo, &usRoom) && IN_KINGPIN_FORT(usRoom))
+						{
+							// unauthorized!
+							MakeCivHostile(pSoldier);
+							if (!(gTacticalStatus.uiFlags & INCOMBAT))
+							{
+								EnterCombatMode(pSoldier->bTeam);
+							}
+						}
+					}
 					// anv: VR - Tracona and CIA operatives go bonkers when they notice Conman
 					else if ( pSoldier->ubCivilianGroup == CIA_OPERATIVES_GROUP || pSoldier->ubCivilianGroup == TRACONA_OPERATIVES_GROUP )
 					{

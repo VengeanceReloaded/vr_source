@@ -1266,7 +1266,31 @@ BOOLEAN ExplosiveDamageStructureAtGridNo( STRUCTURE * pCurrent, STRUCTURE **ppNe
 						}
 					}
 
+					// anv: VR - O9
+					if (gWorldSectorX == 9 && gWorldSectorY == MAP_ROW_O && gbWorldSectorZ == 0)
+					{
+						UINT16 usRoom;
+						BOOLEAN	fInRoom;
+
+						fInRoom = InARoom(sGridNo, &usRoom);
+						if (!fInRoom)
+						{
+							// try to south
+							fInRoom = InARoom(sGridNo + DirectionInc(SOUTH), &usRoom);
+							if (!fInRoom)
+							{
+								// try to east
+								fInRoom = InARoom(sGridNo + DirectionInc(EAST), &usRoom);
+							}
+						}
+
+						if (fInRoom && IN_KINGPIN_FORT(usRoom))
+						{
+							CivilianGroupChangesSides(KINGPIN_FORT_CIV_GROUP);
+						}
+					}
 				}
+
 
 				// OK, we need to remove the water from the fountain
 				// Lots of HARD CODING HERE :(

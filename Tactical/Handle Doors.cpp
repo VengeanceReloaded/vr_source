@@ -460,6 +460,26 @@ void ProcessImplicationsOfPCMessingWithDoor( SOLDIERTYPE * pSoldier )
 		}
 	}
 
+	// anv: VR - O9
+	if (InARoom(pSoldier->sGridNo, &usRoom) && IN_KINGPIN_FORT(usRoom))
+	{
+		UINT8		ubLoop;
+
+		// see if a kingpin goon can see us
+		for (ubLoop = gTacticalStatus.Team[CIV_TEAM].bFirstID; ubLoop <= gTacticalStatus.Team[CIV_TEAM].bLastID; ubLoop++)
+		{
+			pGoon = MercPtrs[ubLoop];
+			if (pGoon->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP && pGoon->bActive && pGoon->bInSector && pGoon->stats.bLife >= OKLIFE && pGoon->aiData.bOppList[pSoldier->ubID] == SEEN_CURRENTLY)
+			{
+				MakeCivHostile(pGoon);
+				if (!(gTacticalStatus.uiFlags & INCOMBAT))
+				{
+					EnterCombatMode(pGoon->bTeam);
+				}
+			}
+		}
+	}
+
 	if ( gWorldSectorX == TIXA_SECTOR_X && gWorldSectorY == TIXA_SECTOR_Y )
 	{
 		pGoon = FindSoldierByProfileID( WARDEN, FALSE );
