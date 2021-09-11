@@ -813,6 +813,30 @@ UINT16 DetermineCivQuoteEntry( SOLDIERTYPE *pCiv, UINT16 *pubCivHintToUse, BOOLE
 		// Are they working for us?
 		bMineId = GetIdOfMineForSector( gWorldSectorX, gWorldSectorY, gbWorldSectorZ );
 
+		// anv: VR - separate sets for oil rig workers and miners
+		UINT8 ubSector = SECTOR(gWorldSectorX, gWorldSectorY);
+		BOOLEAN bIsOilRig = FALSE;
+		for (UINT16 cnt = 0; cnt < NUM_FACILITY_TYPES; cnt++)
+		{
+			if (gFacilityLocations[ubSector][cnt].fFacilityHere && gFacilityTypes[cnt].AssignmentData[FAC_MANAGE_OIL_RIG].usMineIncomeModifier > 0)
+			{
+				bIsOilRig = TRUE;
+				break;
+			}
+		}
+
+		if (bIsOilRig)
+		{
+			if (PlayerControlsMine(bMineId))
+			{
+				return(CIV_QUOTE_MINERS_FOR_PLAYER_OIL_RIG);
+			}
+			else
+			{
+				return(CIV_QUOTE_MINERS_NOT_FOR_PLAYER_OIL_RIG);
+			}
+		}
+
 		if ( PlayerControlsMine( bMineId ) )
 		{
 		return( CIV_QUOTE_MINERS_FOR_PLAYER );
