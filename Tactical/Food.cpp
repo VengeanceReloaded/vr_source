@@ -666,21 +666,18 @@ void EatFromInventory( SOLDIERTYPE *pSoldier, BOOLEAN fcanteensonly )
 				}
 
 				// if we're thirsty or hungry, and this is nutritious, consume it
-				if ( ( pSoldier->bDrinkLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bDrinkPoints > 0 ) || ( pSoldier->bFoodLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bFoodPoints > 0 ) )
+				while ((pSoldier->bDrinkLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bDrinkPoints > 0) || (pSoldier->bFoodLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bFoodPoints > 0) && (*pObj)[0]->data.objectStatus > 1)
 				{
-					while ( (*pObj)[0]->data.objectStatus > 1 )
-					{
-						// if food is also a drug, ApplyDrugs will also call ApplyFood
-						if ( Item[pObj->usItem].drugtype > 0 )
-							ApplyDrugs( pSoldier, pObj );
-						else
-							ApplyFood( pSoldier, pObj, TRUE, FALSE );		// cannot reject to eat this, we chose to eat this ourself!
+					// if food is also a drug, ApplyDrugs will also call ApplyFood
+					if (Item[pObj->usItem].drugtype > 0)
+						ApplyDrugs(pSoldier, pObj);
+					else
+						ApplyFood(pSoldier, pObj, TRUE, FALSE);		// cannot reject to eat this, we chose to eat this ourself!
 
-						// if we're full, finish
-						if ( pSoldier->bFoodLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && pSoldier->bDrinkLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold )
-							return;
-					}
-				}					
+					// if we're full, finish
+					if (pSoldier->bFoodLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && pSoldier->bDrinkLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold)
+						return;
+				}
 			}
 		}
 	}
@@ -705,20 +702,17 @@ void EatFromInventory( SOLDIERTYPE *pSoldier, BOOLEAN fcanteensonly )
 				}
 
 				// if we're thirsty or hungry, and this is nutritious, consume it
-				if ( ( pSoldier->bDrinkLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bDrinkPoints > 0 ) || ( pSoldier->bFoodLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bFoodPoints > 0 ) )
+				while ((pSoldier->bDrinkLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bDrinkPoints > 0) || (pSoldier->bFoodLevel < FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold && Food[foodtype].bFoodPoints > 0) && (*pObj)[0]->data.objectStatus > 1)
 				{
-					while ( (*pObj)[0]->data.objectStatus > 1 )
-					{
-						// if food is also a drug, ApplyDrugs will also call ApplyFood
-						if ( Item[pObj->usItem].drugtype > 0 )
-							ApplyDrugs( pSoldier, pObj );
-						else
-							ApplyFood( pSoldier, pObj, TRUE, FALSE );		// cannot reject to eat this, we chose to eat this ourself!
+					// if food is also a drug, ApplyDrugs will also call ApplyFood
+					if ( Item[pObj->usItem].drugtype > 0 )
+						ApplyDrugs( pSoldier, pObj );
+					else
+						ApplyFood( pSoldier, pObj, TRUE, FALSE );		// cannot reject to eat this, we chose to eat this ourself!
 
-						// if we're full, finish
-						if ( ( pSoldier->bFoodLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold || Food[foodtype].bFoodPoints == 0 ) && ( pSoldier->bDrinkLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold|| Food[foodtype].bDrinkPoints == 0 ) )
-							return;
-					}
+					// if we're full, finish
+					if ( ( pSoldier->bFoodLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold || Food[foodtype].bFoodPoints == 0 ) && ( pSoldier->bDrinkLevel > FoodMoraleMods[FOOD_MERC_START_CONSUME].bThreshold|| Food[foodtype].bDrinkPoints == 0 ) )
+						return;
 				}
 			}
 		}
