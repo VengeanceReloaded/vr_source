@@ -31,6 +31,9 @@ static INT8 gbVictorySongCount = 0;
 static INT8 gbDeathSongCount = 0;
 
 #ifdef NEWMUSIC
+static INT32 bMainMenuModeSong = MENUMIX_MUSIC;
+static INT32 bLaptopModeSong = MARIMBAD2_MUSIC;
+static INT32 bCreditsModeSong = CREDITS_MUSIC;
 static INT32 bNothingModeSong = NOTHING_A_MUSIC;
 static INT32 bEnemyModeSong = TENSOR_A_MUSIC;
 static INT32 bBattleModeSong = BATTLE_A_MUSIC;
@@ -42,6 +45,9 @@ static BOOLEAN SetSoundID = FALSE;
 
 static INT32 gubOldMusicMode2 = 0;
 #else
+static INT8 bMainMenuModeSong;
+static INT8 bLaptopModeSong;
+static INT8 bCreditsModeSong;
 static INT8 bNothingModeSong;
 static INT8 bEnemyModeSong;
 static INT8 bBattleModeSong;
@@ -61,7 +67,17 @@ static BOOLEAN gfDontRestartSong = FALSE;
 CHAR8 *szMusicList[NUM_MUSIC]=
 {
 	"MUSIC\\marimbad 2",
+	"MUSIC\\marimbad 2 B",
+	"MUSIC\\marimbad 2 C",
+	"MUSIC\\marimbad 2 D",
+	"MUSIC\\marimbad 2 E",
+	"MUSIC\\marimbad 2 F",
+	"MUSIC\\marimbad 2 G",
+	"MUSIC\\marimbad 2 H",
 	"MUSIC\\menumix1",
+	"MUSIC\\menumix1 B",
+	"MUSIC\\menumix1 C",
+	"MUSIC\\menumix1 D",
 	"MUSIC\\nothing A",
 	"MUSIC\\nothing B",
 	"MUSIC\\nothing C",
@@ -120,6 +136,10 @@ CHAR8 *szMusicList[NUM_MUSIC]=
 	"MUSIC\\creature battle B",
 	"MUSIC\\creature battle C",
 	"MUSIC\\creature battle D",
+	"MUSIC\\credits",
+	"MUSIC\\credits B",
+	"MUSIC\\credits C",
+	"MUSIC\\credits D",
 	"MUSIC",
 };
 
@@ -640,12 +660,18 @@ static BOOLEAN StartMusicBasedOnMode(void)
 		fFirstTime = FALSE;
 
 		// anv: check for available tracks
+		ubMainMenuTracks = GetAmountOfTracksBetween(MENUMIX_MUSIC, MENUMIX_D_MUSIC);
+		ubLaptopTracks = GetAmountOfTracksBetween(MARIMBAD2_MUSIC, MARIMBAD2_H_MUSIC);
+		ubCreditsTracks = GetAmountOfTracksBetween(CREDITS_MUSIC, CREDITS_MUSIC_D);
 		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_P_MUSIC);
 		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_P_MUSIC);
 		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_P_MUSIC);
 		ubCreepyEnemyTracks = GetAmountOfTracksBetween(CREEPY_MUSIC, CREEPY_MUSIC_D);
 		ubCreepyBattleTracks = GetAmountOfTracksBetween(CREATURE_BATTLE_MUSIC, CREATURE_BATTLE_MUSIC_D);
 
+		bMainMenuModeSong = (INT8)(MENUMIX_MUSIC + Random(ubMainMenuTracks));
+		bLaptopModeSong = (INT8)(MARIMBAD2_MUSIC + Random(ubLaptopTracks));
+		bCreditsModeSong = (INT8)(CREDITS_MUSIC + Random(ubCreditsTracks));
 		bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(ubNothingTracks));
 		bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(ubEnemyTracks));
 		bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(ubBattleTracks));
@@ -662,12 +688,14 @@ static BOOLEAN StartMusicBasedOnMode(void)
 		case MUSIC_MAIN_MENU:
 			// ATE: Don't fade in
 			gbFadeSpeed = (INT8)uiMusicVolume;
-				MusicPlay(MENUMIX_MUSIC,MUSIC_OLD_TYPE,FALSE);
+			MusicPlay(bMainMenuModeSong,MUSIC_OLD_TYPE,FALSE);
+			bMainMenuModeSong = (INT8)(MENUMIX_MUSIC + Random(ubMainMenuTracks));
 			break;
 
 		case MUSIC_LAPTOP:
 			gbFadeSpeed = (INT8)uiMusicVolume;
-			MusicPlay(MARIMBAD2_MUSIC,MUSIC_OLD_TYPE,FALSE);
+			MusicPlay(bLaptopModeSong,MUSIC_OLD_TYPE,FALSE);
+			bLaptopModeSong = (INT8)(MARIMBAD2_MUSIC + Random(ubLaptopTracks));
 			break;
 
 		case MUSIC_TACTICAL_NOTHING:
@@ -809,6 +837,12 @@ static BOOLEAN StartMusicBasedOnMode(void)
 			gbDeathSongCount++;
 			break;
 
+		case MUSIC_CREDITS:
+			gbFadeSpeed = (INT8)uiMusicVolume;
+			MusicPlay(bCreditsModeSong);
+			bCreditsModeSong = (INT8)(CREDITS_MUSIC + Random(ubCreditsTracks));
+			break;
+
 		default:
 			MusicFadeOut();
 			break;
@@ -820,6 +854,9 @@ static BOOLEAN StartMusicBasedOnMode(void)
 static BOOLEAN StartMusicBasedOnMode(void)
 {
 	static BOOLEAN fFirstTime = TRUE;
+	static UINT8 ubMainMenuTracks = 0;
+	static UINT8 ubLaptopTracks = 0;
+	static UINT8 ubCreditsTracks = 0;
 	static UINT8 ubNothingTracks = 0;
 	static UINT8 ubEnemyTracks = 0;
 	static UINT8 ubBattleTracks = 0;
@@ -831,12 +868,18 @@ static BOOLEAN StartMusicBasedOnMode(void)
 		fFirstTime = FALSE;
 
 		// anv: check for available tracks
+		ubMainMenuTracks = GetAmountOfTracksBetween(MENUMIX_MUSIC, MENUMIX_D_MUSIC);
+		ubLaptopTracks = GetAmountOfTracksBetween(MARIMBAD2_MUSIC, MARIMBAD2_H_MUSIC);
+		ubCreditsTracks = GetAmountOfTracksBetween(CREDITS_MUSIC, CREDITS_MUSIC_D);
 		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_P_MUSIC);
 		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_P_MUSIC);
 		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_P_MUSIC);
 		ubCreepyEnemyTracks = GetAmountOfTracksBetween(CREEPY_MUSIC, CREEPY_MUSIC_D);
 		ubCreepyBattleTracks = GetAmountOfTracksBetween(CREATURE_BATTLE_MUSIC, CREATURE_BATTLE_MUSIC_D);
 
+		bMainMenuModeSong = (INT8)(MENUMIX_MUSIC + Random(ubMainMenuTracks));
+		bLaptopModeSong = (INT8)(MARIMBAD2_MUSIC + Random(ubLaptopTracks));
+		bCreditsModeSong = (INT8)(CREDITS_MUSIC + Random(ubCreditsTracks));
 		bNothingModeSong = (INT8) (NOTHING_A_MUSIC + Random(ubNothingTracks));
 		bEnemyModeSong = (INT8) (TENSOR_A_MUSIC + Random(ubEnemyTracks));
 		bBattleModeSong = (INT8) (BATTLE_A_MUSIC + Random(ubBattleTracks));
@@ -853,12 +896,14 @@ static BOOLEAN StartMusicBasedOnMode(void)
 		case MUSIC_MAIN_MENU:
 			// ATE: Don't fade in
 			gbFadeSpeed = (INT8)uiMusicVolume;
-			MusicPlay(MENUMIX_MUSIC);
+			MusicPlay(bMainMenuModeSong);
+			bMainMenuModeSong = (INT8)(MENUMIX_MUSIC + Random(ubMainMenuTracks));
 			break;
 
 		case MUSIC_LAPTOP:
 			gbFadeSpeed = (INT8)uiMusicVolume;
-			MusicPlay(MARIMBAD2_MUSIC);
+			MusicPlay(bLaptopModeSong);
+			bLaptopModeSong = (INT8)(MARIMBAD2_MUSIC + Random(ubLaptopTracks));
 			break;
 
 		case MUSIC_TACTICAL_NOTHING:
@@ -926,6 +971,12 @@ static BOOLEAN StartMusicBasedOnMode(void)
 			gbFadeSpeed = (INT8)uiMusicVolume;
 			MusicPlay(DEATH_MUSIC);
 			gbDeathSongCount++;
+			break;
+
+		case MUSIC_CREDITS:
+			gbFadeSpeed = (INT8)uiMusicVolume;
+			MusicPlay(bCreditsModeSong);
+			bCreditsModeSong = (INT8)(CREDITS_MUSIC + Random(ubCreditsTracks));
 			break;
 
 		default:

@@ -236,6 +236,7 @@ void HandleMainMenuScreen()
 				guiMainMenuExitScreen = CREDIT_SCREEN;
 				gbHandledMainMenu = 0;
 				gfMainMenuScreenExit = TRUE;
+				SetMusicMode(MUSIC_CREDITS);
 				break;
 		}
 	}
