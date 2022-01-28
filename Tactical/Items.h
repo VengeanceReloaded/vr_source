@@ -108,7 +108,7 @@ BOOLEAN AutoPlaceObjectAnywhere(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLE
 BOOLEAN AutoPlaceObjectToWorld(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT8 bVisible = TRUE);
 
 // Send fNewItem to true to set off new item glow in inv panel
-BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNewItem, INT8 bExcludeSlot = NO_SLOT, BOOLEAN fStackOrSingleSlot = FALSE );
+BOOLEAN AutoPlaceObject(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNewItem, INT8 bExcludeSlot = NO_SLOT, BOOLEAN fStackOrSingleSlot = FALSE, BOOLEAN fRenderBackpackButton = TRUE);
 
 //ADB
 bool FitsInSmallPocket(OBJECTTYPE* pObj);

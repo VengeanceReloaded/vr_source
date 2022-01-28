@@ -7191,7 +7191,7 @@ BOOLEAN AutoPlaceObjectToWorld(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, INT8 b
 }
 
 // CHRISL: Function needed for LBENODE
-BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNewItem, INT8 bExcludeSlot, BOOLEAN fStackOrSingleSlot )
+BOOLEAN AutoPlaceObject(SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNewItem, INT8 bExcludeSlot, BOOLEAN fStackOrSingleSlot, BOOLEAN fRenderBackpackButton)
 {
 	INVTYPE	* pItem;
 	UINT32			packCombo, backCombo;
@@ -7424,7 +7424,8 @@ BOOLEAN AutoPlaceObject( SOLDIERTYPE * pSoldier, OBJECTTYPE * pObj, BOOLEAN fNew
 						{
 							pSoldier->flags.DropPackFlag = FALSE;
 							pSoldier->flags.ZipperFlag = FALSE;
-							RenderBackpackButtons(ACTIVATE_BUTTON);	/* CHRISL: Needed for new inventory backpack buttons */
+							if(fRenderBackpackButton)
+								RenderBackpackButtons(ACTIVATE_BUTTON);	/* CHRISL: Needed for new inventory backpack buttons */
 							if(pObj->exists() == false || fStackOrSingleSlot)
 								return( TRUE );
 						}

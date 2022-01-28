@@ -242,7 +242,7 @@ INT8 HireMerc( MERC_HIRE_STRUCT *pHireMerc)
 		// make an objecttype
 		CreateItem(3001, Random(10) + 10, &gTempObject);
 		// Give it
-		fReturn = AutoPlaceObject( MercPtrs[iNewIndex], &gTempObject, FALSE );
+		fReturn = AutoPlaceObject(MercPtrs[iNewIndex], &gTempObject, FALSE, NO_SLOT, FALSE, FALSE);
 		// CHRISL: This condition should resolve the issue of the letter not being issued to the first merc
 		if(!fReturn && (UsingNewInventorySystem() == true))
 		{
