@@ -8200,6 +8200,10 @@ void GetMapKeyboardInput( UINT32 *puiNewEvent )
 											if ( HandleNailsVestFetish( pSoldier, i, NOTHING ) )
 												continue;
 
+											// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
+											if (HandleBabyfaceGlassesFetish(pSoldier, i, NOTHING))
+												continue;
+
 											AutoPlaceObjectInInventoryStash(&pSoldier->inv[i], pSoldier->sGridNo, pSoldier->pathing.bLevel);
 											DeleteObj(&pSoldier->inv[i]);
 										}										
@@ -9562,6 +9566,12 @@ void MAPInvClickCallback( MOUSE_REGION *pRegion, INT32 iReason )
 				return;
 			}
 
+			// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
+			if (HandleBabyfaceGlassesFetish(pSoldier, uiHandPos, NOTHING))
+			{
+				return;
+			}
+
 			/* CHRISL: For New Inventory system.  Are we removing an existing LBE item?  If so, we need to pull
 			all items in the relevant IC Group pockets out of the soldiers inventory and put them into the LBE items
 			inventory. But first, find out if we already have a LBE item inventory for this item and this merc.  If we 
@@ -9614,6 +9624,12 @@ void MAPInvClickCallback( MOUSE_REGION *pRegion, INT32 iReason )
 
 			//ATE: Put this here to handle Nails refusal....
 			if ( HandleNailsVestFetish( pSoldier, uiHandPos, usNewItemIndex ) )
+			{
+				return;
+			}
+
+			// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
+			if (HandleBabyfaceGlassesFetish(pSoldier, uiHandPos, usNewItemIndex))
 			{
 				return;
 			}

@@ -3923,13 +3923,7 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 			// Turn off new item glow!
 			gpSMCurrentMerc->inv.bNewItemCount[ uiHandPos ] = 0;
 
-				// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
-				if ( HandleBabyfaceGlassesFetish( gpSMCurrentMerc, uiHandPos, NOTHING ) )
-				{
-					return;
-				}
-
-				usOldItemIndex = gpSMCurrentMerc->inv[ uiHandPos ].usItem;
+			usOldItemIndex = gpSMCurrentMerc->inv[ uiHandPos ].usItem;
 
 			//Jenilee: remember our last selected slot
 			iLastHandPos = uiHandPos;
@@ -4034,6 +4028,12 @@ void SMInvClickCallback( MOUSE_REGION * pRegion, INT32 iReason )
 
 				// OK, check if this is Nails, and we're in the vest position , don't allow it to come off....
 				if ( HandleNailsVestFetish( gpSMCurrentMerc, uiHandPos, usNewItemIndex ) )
+				{
+					return;
+				}
+
+				// OK, check if this is Babyface, and we're in the head position , don't allow it to come off....
+				if (HandleBabyfaceGlassesFetish(gpSMCurrentMerc, uiHandPos, usNewItemIndex))
 				{
 					return;
 				}
