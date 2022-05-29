@@ -826,6 +826,8 @@ BOOLEAN PrepareEnemyForSectorBattle()
 	{
 		if (!pGroup->fPlayer && !pGroup->fVehicle && pGroup->ubSectorX == gWorldSectorX && pGroup->ubSectorY == gWorldSectorY && !gbWorldSectorZ)
 		{
+			firstSlot = gTacticalStatus.Team[ENEMY_TEAM].bFirstID;
+
 			ubNumAdmins = pGroup->pEnemyGroup->ubAdminsInBattle;
 			ubNumTroops = pGroup->pEnemyGroup->ubTroopsInBattle;
 			ubNumElites = pGroup->pEnemyGroup->ubElitesInBattle;
@@ -840,11 +842,6 @@ BOOLEAN PrepareEnemyForSectorBattle()
 				// Skip inactive and already grouped soldiers
 				if (!pSoldier->bActive || pSoldier->ubGroupID)
 				{
-					// if this guy already has an ID, reduce the number of people who still need one
-					num--;
-					sNumSlots--;
-					firstSlot = slot + 1;
-
 					continue;
 				}
 
