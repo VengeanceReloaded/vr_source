@@ -209,6 +209,7 @@ INT32	InitFace( UINT8 usMercProfileID, UINT8 ubSoldierID, UINT32 uiInitFlags );
 // INternal init face, called if you don;t want to give a profile ID ( send NO_PROFILE ) for ID
 INT32	InternalInitFace( UINT8 usMercProfileID, UINT8 ubSoldierID, UINT32 uiInitFlags, INT32 iFaceFileID, UINT32 uiBlinkFrequency, UINT32 uiExpressionFrequency );
 
+BOOLEAN FaceFileExists(STR fileName);
 
 // Removes the face from the internal table, deletes any memory allocated if any.
 void DeleteFace( INT32 iFaceIndex );
