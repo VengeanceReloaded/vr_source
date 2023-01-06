@@ -1704,6 +1704,8 @@ void LoadGameExternalOptions()
 
 	gGameExternalOptions.fDisableStrategicTransition			= iniReader.ReadBoolean("Strategic Interface Settings","DISABLE_STRATEGIC_TRANSITION", FALSE);
 
+	gGameExternalOptions.fDisableUninvolvedSectionInBattlePanel	= iniReader.ReadBoolean("Strategic Interface Settings", "DISABLE_UNINVOLVED_SECTION_IN_BATTLE_PANEL", FALSE);
+
 	//################# Strategic Progress Settings ##################
 
 	// WDS: Game progress 

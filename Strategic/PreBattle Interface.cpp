@@ -1187,7 +1187,7 @@ void RenderPreBattleInterface()
 		ubMinimumUninvolvedListHeight = UNINVOLVED_RELEVANT_HEIGHT + ROW_HEIGHT;
 
 		ubRecommendedParticipantsListHeight = guiNumInvolved * ROW_HEIGHT;
-		ubRecommendedUninvolvedListHeight = UNINVOLVED_RELEVANT_HEIGHT + max(guiNumUninvolved, 1) * ROW_HEIGHT;
+		ubRecommendedUninvolvedListHeight = UNINVOLVED_RELEVANT_HEIGHT + (gGameExternalOptions.fDisableUninvolvedSectionInBattlePanel ? 1 : max(guiNumUninvolved, 1)) * ROW_HEIGHT;
 
 		ubAllowedParticipantsListHeight = ubRecommendedParticipantsListHeight;
 		ubAllowedUninvolvedListHeight = ubRecommendedUninvolvedListHeight;
@@ -1266,11 +1266,14 @@ void RenderPreBattleInterface()
 		}
 		mprintf( 224 + xResOffset - width , 38 + yResOffset, str );
 
-		//Draw the bottom columns
-		//Draw from the bottom as long as there's enough allowed space
-		for (y = ROW_HEIGHT; y <= ubAllowedUninvolvedListHeight; y += ROW_HEIGHT)
+		if (!gGameExternalOptions.fDisableUninvolvedSectionInBattlePanel)
 		{
-			BltVideoObject(guiSAVEBUFFER, hVObject, BOTTOM_COLUMN, 161 + xResOffset, yResOffset + iPrebattleInterfaceHeight - BOTTOM_HEIGHT - y, VO_BLT_SRCTRANSPARENCY, NULL);
+			//Draw the bottom columns
+			//Draw from the bottom as long as there's enough allowed space
+			for (y = ROW_HEIGHT; y <= ubAllowedUninvolvedListHeight; y += ROW_HEIGHT)
+			{
+				BltVideoObject(guiSAVEBUFFER, hVObject, BOTTOM_COLUMN, 161 + xResOffset, yResOffset + iPrebattleInterfaceHeight - BOTTOM_HEIGHT - y, VO_BLT_SRCTRANSPARENCY, NULL);
+			}
 		}
 
 		//Draw the top columns
@@ -1281,10 +1284,20 @@ void RenderPreBattleInterface()
 		}
 
 		//Draw uninvolved header
-		y = iPrebattleInterfaceHeight - BOTTOM_HEIGHT - ubAllowedUninvolvedListHeight - UNINVOLVED_OFFSET_HEIGHT;
-		OutputDebugString((LPCSTR)String("y: %d\n", (UINT16)y));
-		BltVideoObject(guiSAVEBUFFER, hVObject, UNINVOLVED_HEADER, 8 + xResOffset, yResOffset + y, VO_BLT_SRCTRANSPARENCY, NULL);
-
+		if (!gGameExternalOptions.fDisableUninvolvedSectionInBattlePanel)
+		{
+			y = iPrebattleInterfaceHeight - BOTTOM_HEIGHT - ubAllowedUninvolvedListHeight - UNINVOLVED_OFFSET_HEIGHT;
+			OutputDebugString((LPCSTR)String("y: %d\n", (UINT16)y));
+			BltVideoObject(guiSAVEBUFFER, hVObject, UNINVOLVED_HEADER, 8 + xResOffset, yResOffset + y, VO_BLT_SRCTRANSPARENCY, NULL);
+		}
+		else
+		{
+			//Draw extra empty participants rows to close off bottom of the content area
+			for (y = ROW_HEIGHT; y < UNINVOLVED_RELEVANT_HEIGHT + UNINVOLVED_OFFSET_HEIGHT + ROW_HEIGHT; y += ROW_HEIGHT)
+			{
+				BltVideoObject(guiSAVEBUFFER, hVObject, TOP_COLUMN, 186 + xResOffset, yResOffset + iPrebattleInterfaceHeight - BOTTOM_HEIGHT - y, VO_BLT_SRCTRANSPARENCY, NULL);
+			}
+		}
 
 		//location
 		SetFont( FONT10ARIAL );
@@ -1382,7 +1395,11 @@ void RenderPreBattleInterface()
 		SetFontForeground(FONT_YELLOW);
 		//print out the uninvolved members of the battle
 		// |	NAME	| ASSIGN |	LOC	|	DEST	|	DEP	|
-		if( !guiNumUninvolved )
+		if (gGameExternalOptions.fDisableUninvolvedSectionInBattlePanel)
+		{
+			// do nothing
+		}
+		else if (!guiNumUninvolved)
 		{
 			wcscpy( str, gpStrategicString[ STR_PB_NONE ] );
 			x = 17 + (52-StringPixLength( str, BLOCKFONT2)) / 2;
