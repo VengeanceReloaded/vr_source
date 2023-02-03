@@ -1251,6 +1251,13 @@ typedef struct
 	BOOLEAN	fSoldierProfiles_Enemy;
 	BOOLEAN	fSoldierProfiles_Militia;
 	
+	// anv: light vegetation and projectiles
+	BOOLEAN fLightVegetationStopsMissiles;
+	BOOLEAN fLightVegetationStopsTankCannon;
+	BOOLEAN fLightVegetationStopsKnives;
+	BOOLEAN fLightVegetationStopsFlames;
+	BOOLEAN fLightVegetationStopsHEAmmo;
+
 	BOOLEAN fShowCamouflageFaces;
 
 	//BOOLEAN fHideEnemyHealthText;

@@ -1421,6 +1421,13 @@ void LoadGameExternalOptions()
 	else
 		gGameExternalOptions.fSoldierProfiles_Militia		= FALSE;
 
+	// anv: light vegetation and projectiles
+	gGameExternalOptions.fLightVegetationStopsMissiles = iniReader.ReadBoolean("Tactical Gameplay Settings", "LIGHT_VEGETATION_STOPS_MISSILES", TRUE);
+	gGameExternalOptions.fLightVegetationStopsTankCannon = iniReader.ReadBoolean("Tactical Gameplay Settings", "LIGHT_VEGETATION_STOPS_TANK_CANNON", TRUE);
+	gGameExternalOptions.fLightVegetationStopsKnives = iniReader.ReadBoolean("Tactical Gameplay Settings", "LIGHT_VEGETATION_STOPS_KNIVES", TRUE);
+	gGameExternalOptions.fLightVegetationStopsFlames = iniReader.ReadBoolean("Tactical Gameplay Settings", "LIGHT_VEGETATION_STOPS_FLAMES", TRUE);
+	gGameExternalOptions.fLightVegetationStopsHEAmmo = iniReader.ReadBoolean("Tactical Gameplay Settings", "LIGHT_VEGETATION_STOPS_HE_AMMO", TRUE);
+
 	// *** ddd - BEGIN
 	gGameExternalOptions.fExtMouseKeyEnabled				= iniReader.ReadBoolean("Tactical Interface Settings", "ENABLE_EXT_MOUSE_KEYS", FALSE);
 

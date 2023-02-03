@@ -3157,7 +3157,12 @@ INT32 HandleBulletStructureInteraction( BULLET * pBullet, STRUCTURE * pStructure
 
 	*pfHit = FALSE;
 
-	if (pBullet->usFlags & BULLET_FLAG_KNIFE || pBullet->usFlags & BULLET_FLAG_MISSILE || pBullet->usFlags & BULLET_FLAG_TANK_CANNON || pBullet->usFlags & BULLET_FLAG_FLAME )
+	BOOLEAN fIsLightVegetation = pStructure->pDBStructureRef->pDBStructure->ubArmour == MATERIAL_LIGHT_VEGETATION;
+
+	if ((pBullet->usFlags & BULLET_FLAG_KNIFE && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsKnives)) || 
+		(pBullet->usFlags & BULLET_FLAG_MISSILE && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsMissiles)) || 
+		(pBullet->usFlags & BULLET_FLAG_TANK_CANNON && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsTankCannon)) ||
+		(pBullet->usFlags & BULLET_FLAG_FLAME && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsFlames)))
 	{
 		// stops!
 		*pfHit = TRUE;
@@ -3166,7 +3171,7 @@ INT32 HandleBulletStructureInteraction( BULLET * pBullet, STRUCTURE * pStructure
 	//else if ( pBullet->usFlags & BULLET_FLAG_SMALL_MISSILE )
 	//{
 	// stops if using HE ammo
-	else if ( AmmoTypes[ubAmmoType].highExplosive && !AmmoTypes[ubAmmoType].antiTank )
+	else if (AmmoTypes[ubAmmoType].highExplosive && !AmmoTypes[ubAmmoType].antiTank && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsHEAmmo))
 	{
 		*pfHit = TRUE;
 		return( 0 );
@@ -3310,7 +3315,12 @@ INT32 CTGTHandleBulletStructureInteraction( BULLET * pBullet, STRUCTURE * pStruc
 	INT32 iCurrImpact;
 	INT32 iImpactReduction;
 
-	if (pBullet->usFlags & BULLET_FLAG_KNIFE || pBullet->usFlags & BULLET_FLAG_MISSILE || pBullet->usFlags & BULLET_FLAG_FLAME || pBullet->usFlags & BULLET_FLAG_TANK_CANNON )
+	BOOLEAN fIsLightVegetation = pStructure->pDBStructureRef->pDBStructure->ubArmour == MATERIAL_LIGHT_VEGETATION;
+
+	if ((pBullet->usFlags & BULLET_FLAG_KNIFE && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsKnives)) ||
+		(pBullet->usFlags & BULLET_FLAG_MISSILE && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsMissiles)) ||
+		(pBullet->usFlags & BULLET_FLAG_TANK_CANNON && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsTankCannon)) ||
+		(pBullet->usFlags & BULLET_FLAG_FLAME && (!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsFlames)))
 	{
 		// knife/rocket stops when it hits anything, and people block completely
 		return( pBullet->iImpact );
@@ -3318,7 +3328,9 @@ INT32 CTGTHandleBulletStructureInteraction( BULLET * pBullet, STRUCTURE * pStruc
 	//else if ( pBullet->usFlags & BULLET_FLAG_SMALL_MISSILE )
 	//{
 	// stops if using HE ammo
-	else if ( AmmoTypes[pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ][0]->data.gun.ubGunAmmoType].highExplosive && !AmmoTypes[pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ][0]->data.gun.ubGunAmmoType].antiTank )
+	else if (AmmoTypes[pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ][0]->data.gun.ubGunAmmoType].highExplosive && 
+		!AmmoTypes[pBullet->pFirer->inv[ pBullet->pFirer->ubAttackingHand ][0]->data.gun.ubGunAmmoType].antiTank &&
+		(!fIsLightVegetation || gGameExternalOptions.fLightVegetationStopsHEAmmo))
 	{
 		return( pBullet->iImpact );
 	}
