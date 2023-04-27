@@ -94,6 +94,16 @@ CHAR8 *szMusicList[NUM_MUSIC]=
 	"MUSIC\\nothing N",
 	"MUSIC\\nothing O",
 	"MUSIC\\nothing P",
+	"MUSIC\\nothing Q",
+	"MUSIC\\nothing R",
+	"MUSIC\\nothing S",
+	"MUSIC\\nothing T",
+	"MUSIC\\nothing U",
+	"MUSIC\\nothing V",
+	"MUSIC\\nothing W",
+	"MUSIC\\nothing X",
+	"MUSIC\\nothing Y",
+	"MUSIC\\nothing Z",
 	"MUSIC\\tensor A",
 	"MUSIC\\tensor B",
 	"MUSIC\\tensor C",
@@ -110,6 +120,16 @@ CHAR8 *szMusicList[NUM_MUSIC]=
 	"MUSIC\\tensor N",
 	"MUSIC\\tensor O",
 	"MUSIC\\tensor P",
+	"MUSIC\\tensor Q",
+	"MUSIC\\tensor R",
+	"MUSIC\\tensor S",
+	"MUSIC\\tensor T",
+	"MUSIC\\tensor U",
+	"MUSIC\\tensor V",
+	"MUSIC\\tensor W",
+	"MUSIC\\tensor X",
+	"MUSIC\\tensor Y",
+	"MUSIC\\tensor Z",
 	"MUSIC\\triumph",
 	"MUSIC\\death",
 	"MUSIC\\battle A",
@@ -128,6 +148,16 @@ CHAR8 *szMusicList[NUM_MUSIC]=
 	"MUSIC\\battle N",
 	"MUSIC\\battle O",
 	"MUSIC\\battle P",
+	"MUSIC\\battle Q",
+	"MUSIC\\battle R",
+	"MUSIC\\battle S",
+	"MUSIC\\battle T",
+	"MUSIC\\battle U",
+	"MUSIC\\battle V",
+	"MUSIC\\battle W",
+	"MUSIC\\battle X",
+	"MUSIC\\battle Y",
+	"MUSIC\\battle Z",
 	"MUSIC\\creepy",
 	"MUSIC\\creepy B",
 	"MUSIC\\creepy C",
@@ -663,9 +693,9 @@ static BOOLEAN StartMusicBasedOnMode(void)
 		ubMainMenuTracks = GetAmountOfTracksBetween(MENUMIX_MUSIC, MENUMIX_D_MUSIC);
 		ubLaptopTracks = GetAmountOfTracksBetween(MARIMBAD2_MUSIC, MARIMBAD2_H_MUSIC);
 		ubCreditsTracks = GetAmountOfTracksBetween(CREDITS_MUSIC, CREDITS_MUSIC_D);
-		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_P_MUSIC);
-		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_P_MUSIC);
-		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_P_MUSIC);
+		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_Z_MUSIC);
+		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_Z_MUSIC);
+		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_Z_MUSIC);
 		ubCreepyEnemyTracks = GetAmountOfTracksBetween(CREEPY_MUSIC, CREEPY_MUSIC_D);
 		ubCreepyBattleTracks = GetAmountOfTracksBetween(CREATURE_BATTLE_MUSIC, CREATURE_BATTLE_MUSIC_D);
 
@@ -871,9 +901,9 @@ static BOOLEAN StartMusicBasedOnMode(void)
 		ubMainMenuTracks = GetAmountOfTracksBetween(MENUMIX_MUSIC, MENUMIX_D_MUSIC);
 		ubLaptopTracks = GetAmountOfTracksBetween(MARIMBAD2_MUSIC, MARIMBAD2_H_MUSIC);
 		ubCreditsTracks = GetAmountOfTracksBetween(CREDITS_MUSIC, CREDITS_MUSIC_D);
-		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_P_MUSIC);
-		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_P_MUSIC);
-		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_P_MUSIC);
+		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_Z_MUSIC);
+		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_Z_MUSIC);
+		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_Z_MUSIC);
 		ubCreepyEnemyTracks = GetAmountOfTracksBetween(CREEPY_MUSIC, CREEPY_MUSIC_D);
 		ubCreepyBattleTracks = GetAmountOfTracksBetween(CREATURE_BATTLE_MUSIC, CREATURE_BATTLE_MUSIC_D);
 
