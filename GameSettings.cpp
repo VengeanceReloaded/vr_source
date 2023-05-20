@@ -1865,6 +1865,8 @@ void LoadGameExternalOptions()
 
 	// anv: VR
 	gGameExternalOptions.fDisableTanksRespawnAlreadyControlledSectors	= iniReader.ReadBoolean("Strategic Gameplay Settings", "DISABLE_TANKS_RESPAWN_ALREADY_CONTROLLED_SECTORS", TRUE);
+	gGameExternalOptions.fHeatIntolerantColdDesertNights				= iniReader.ReadBoolean("Strategic Gameplay Settings", "HEAT_INTOLERANT_COLD_DESERT_NIGHTS", TRUE);
+	gGameExternalOptions.fHeatIntolerantColdTropicalNights				= iniReader.ReadBoolean("Strategic Gameplay Settings", "HEAT_INTOLERANT_COLD_TROPICAL_NIGHTS", FALSE);
 
 	//################# Morale Settings ##################
 	gGameExternalOptions.sMoraleModAppearance				= iniReader.ReadInteger("Morale Settings","MORALE_MOD_APPEARANCE",				1, 0, 5);

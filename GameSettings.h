@@ -1461,6 +1461,8 @@ typedef struct
 
 	// anv: VR
 	BOOLEAN fDisableTanksRespawnAlreadyControlledSectors;
+	BOOLEAN fHeatIntolerantColdDesertNights;
+	BOOLEAN fHeatIntolerantColdTropicalNights;
 
 	UINT16 usHelicopterHoverCostOnGreenTile;
 	UINT16 usHelicopterHoverCostOnRedTile;

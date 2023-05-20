@@ -2339,12 +2339,14 @@ BOOLEAN MercIsHot( SOLDIERTYPE * pSoldier )
 			// cool underground or raining
 			return( FALSE );
 		}
-		else if ( IsSectorDesert( pSoldier->sSectorX, pSoldier->sSectorY ) ) // is desert
+		else if ( IsSectorDesert( pSoldier->sSectorX, pSoldier->sSectorY ) && 
+			(!gGameExternalOptions.fHeatIntolerantColdDesertNights || !NightTime())) // is desert
 		//if ( SectorTemperature( GetWorldMinutesInDay(), pSoldier->sSectorX, pSoldier->sSectorY, pSoldier->bSectorZ ) > 1 )
 		{
 			return( TRUE );
 		}
-		else if ( IsSectorTropical( pSoldier->sSectorX, pSoldier->sSectorY ) ) // is tropical
+		else if ( IsSectorTropical( pSoldier->sSectorX, pSoldier->sSectorY ) && 
+			(!gGameExternalOptions.fHeatIntolerantColdTropicalNights || !NightTime())) // is tropical
 		{
 			return( TRUE );
 		}
