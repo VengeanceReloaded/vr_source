@@ -1801,7 +1801,7 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 				AwardExperienceForTravelling( pGroup );
 			}
 		}
-		else if( !IsGroupTheHelicopterGroup( pGroup ) )
+		else if( !IsGroupTheHelicopterGroup( pGroup ) && !fNeverLeft )
 		{
 			SOLDIERTYPE *pSoldier;
 			INT32 iVehicleID;
@@ -1811,7 +1811,9 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 			pSoldier = GetSoldierStructureForVehicle( iVehicleID );
 			AssertMsg( pSoldier, "GroupArrival for vehicle group.	Invalid soldier pointer." );
 
-			// see if we have any driver in here
+			if (!fNeverLeft)
+			{
+							// see if we have any driver in here
 			UINT8 ubDriverHere = 0;
 			curr = pGroup->pPlayerList;
 			while( curr )
@@ -1834,6 +1836,8 @@ void GroupArrivedAtSector( UINT8 ubGroupID, BOOLEAN fCheckForBattle, BOOLEAN fNe
 				SpendVehicleFuel( pSoldier, (INT16)(pGroup->uiTraverseTime*(6 - ubDriverHere * gSkillTraitValues.ubDRFuelSavedWhileTravellingVehicle)) );
 			else
 				SpendVehicleFuel( pSoldier, (INT16)(pGroup->uiTraverseTime*6) );
+			}
+
 
 			if( !VehicleFuelRemaining( pSoldier ) )
 			{
