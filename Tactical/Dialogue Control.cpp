@@ -2397,7 +2397,7 @@ CHAR8 *GetDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN
 	return( zFileName );
 }
 
-CHAR8 *GetSnitchDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN fWavFile, BOOLEAN fName )
+CHAR8 *GetSnitchDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN fWavFile, BOOLEAN fName, BOOLEAN fAltName)
 {
 	static CHAR8 zFileName[164];
 	static CHAR8 zFileNameExists[164];
@@ -2408,12 +2408,23 @@ CHAR8 *GetSnitchDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, B
 		if ( gSoundProfileValue[ubCharacterNum].EnabledSound == TRUE )
 		{
 			// build name of wav file (characternum + quotenum)
-			if(fName)
+			if (fAltName)
 			{
-				sprintf( zFileName,"SPEECH\\SNITCH\\NAMES\\%03d_%03d.ogg",ubCharacterNum,usQuoteNum );
-				if ( !FileExists( zFileName ) )
+				sprintf(zFileName, "SPEECH\\SNITCH\\NAMES_ALT\\%03d_%03d.ogg", ubCharacterNum, usQuoteNum);
+				if (!FileExists(zFileName))
 				{
-					sprintf( zFileName,"SPEECH\\SNITCH\\NAMES\\%03d_%03d.wav",ubCharacterNum,usQuoteNum );
+					sprintf(zFileName, "SPEECH\\SNITCH\\NAMES_ALT\\%03d_%03d.wav", ubCharacterNum, usQuoteNum);
+				}
+			}
+			if (fName)
+			{
+				if (!fAltName || !FileExists(zFileName))
+				{
+					sprintf(zFileName, "SPEECH\\SNITCH\\NAMES\\%03d_%03d.ogg", ubCharacterNum, usQuoteNum);
+					if (!FileExists(zFileName))
+					{
+						sprintf(zFileName, "SPEECH\\SNITCH\\NAMES\\%03d_%03d.wav", ubCharacterNum, usQuoteNum);
+					}
 				}
 			}
 			else
@@ -2453,11 +2464,11 @@ BOOLEAN DialogueDataFileExistsForProfile( UINT8 ubCharacterNum, UINT16 usQuoteNu
 	return( FileExists( pFilename ) );
 }
 
-BOOLEAN SnitchDialogueDataFileExistsForProfile( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN fWavFile, STR8 *ppStr, BOOLEAN fName )
+BOOLEAN SnitchDialogueDataFileExistsForProfile( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN fWavFile, STR8 *ppStr, BOOLEAN fName, BOOLEAN fAltName)
 {
 	STR8 pFilename;
 
-	pFilename = GetSnitchDialogueDataFilename( ubCharacterNum, usQuoteNum, fWavFile, fName );
+	pFilename = GetSnitchDialogueDataFilename( ubCharacterNum, usQuoteNum, fWavFile, fName, fAltName);
 
 	if ( ppStr )
 	{
@@ -2650,7 +2661,7 @@ BOOLEAN GetSnitchDialogue( UINT8 ubCharacterNum, UINT16 usQuoteNum, UINT32 iData
 	//if ( gGameSettings.fOptions[ TOPTION_SUBTITLES ] )
 	{
 
-		if ( SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename1, FALSE ) )
+		if ( SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename1, FALSE, FALSE ) )
 			 //SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename, TRUE ) && 
 			 //SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename, TRUE ) && )
 		{
@@ -2701,9 +2712,9 @@ BOOLEAN GetSnitchDialogue( UINT8 ubCharacterNum, UINT16 usQuoteNum, UINT32 iData
 	//pFilename3 = GetSnitchDialogueDataFilename( ubCharacterNum, ubSecondarySnitchTargetID, TRUE, TRUE );
 
 	// Copy
-	strcpy( zSoundFiles[0], GetSnitchDialogueDataFilename( ubCharacterNum, ubTargetProfile, TRUE, TRUE ) );
-	strcpy( zSoundFiles[1], GetSnitchDialogueDataFilename( ubCharacterNum, usQuoteNum, TRUE, FALSE ) );
-	strcpy( zSoundFiles[2], GetSnitchDialogueDataFilename( ubCharacterNum, ubSecondaryTargetProfile, TRUE, TRUE ) );
+	strcpy( zSoundFiles[0], GetSnitchDialogueDataFilename( ubCharacterNum, ubTargetProfile, TRUE, TRUE, FALSE ) );
+	strcpy( zSoundFiles[1], GetSnitchDialogueDataFilename( ubCharacterNum, usQuoteNum, TRUE, FALSE, FALSE ) );
+	strcpy( zSoundFiles[2], GetSnitchDialogueDataFilename( ubCharacterNum, ubSecondaryTargetProfile, TRUE, TRUE, TRUE ) );
 
 	*puiSound1ID = NO_SAMPLE;
 	*puiSound2ID = NO_SAMPLE;
