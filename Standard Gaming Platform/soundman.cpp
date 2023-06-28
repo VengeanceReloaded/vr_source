@@ -958,6 +958,24 @@ UINT32 uiSound, uiTime, uiPosition;
 
 
 //*******************************************************************************
+// SoundGetLengthMs
+//
+//	Reports the length of the sample, sample needs to be currently played.
+//
+//	Returns:	The length of the sample in milliseconds.
+//
+//*******************************************************************************
+UINT32 SoundGetLengthMs(UINT32 uiSoundID)
+{
+	UINT32 uiSound;
+	if ((uiSound = SoundGetIndexByID(uiSoundID)) != NO_SAMPLE)
+	{
+		return FSOUND_Stream_GetLengthMs(pSoundList[uiSound].hStream);
+	}
+	return(0);
+}
+
+//*******************************************************************************
 // Cacheing Subsystem
 //*******************************************************************************
 

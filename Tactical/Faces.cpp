@@ -1300,18 +1300,18 @@ void HandleTalkingAutoFace( INT32 iFaceIndex )
 			if ( pFace->fValidSpeech )
 			{
 				// Check if we have finished, set some flags for the final delay down if so!
-				if ( !SoundIsPlaying( pFace->uiSoundID ) && !pFace->fFinishTalking )
+				if ((!SoundIsPlaying(pFace->uiSoundID) || (subsequentsounds.ubMaxSndCounter != 0 && GetJA2Clock() > subsequentsounds.uiCurrentSndEnd))
+					&& !pFace->fFinishTalking )
 				{
-					if( subsequentsounds.ubMaxSndCounter != 0 && subsequentsounds.ubSndCounter < subsequentsounds.ubMaxSndCounter )
+					if (subsequentsounds.ubMaxSndCounter != 0 && subsequentsounds.ubSndCounter < subsequentsounds.ubMaxSndCounter)
 					{	
-						
-						pFace->uiSoundID = PlayJA2GapSample( subsequentsounds.zSoundFiles[subsequentsounds.ubSndCounter], RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, &(pFace->GapList ) );
+						pFace->uiSoundID = PlayJA2NextGapSample(subsequentsounds.zSoundFiles[subsequentsounds.ubSndCounter], RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, &(pFace->GapList));
 						subsequentsounds.ubSndCounter++;
 					}
 					else
 					{
 						subsequentsounds.ubMaxSndCounter = 0;
-						SetupFinalTalkingDelay( pFace );
+						SetupFinalTalkingDelay(pFace);
 					}
 				}
 			}

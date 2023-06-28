@@ -88,6 +88,7 @@ extern BOOLEAN	SoundSetVolume(UINT32 uiSoundID, UINT32 uiVolume);
 extern BOOLEAN	SoundSetPan(UINT32 uiSoundID, UINT32 uiPan);
 extern UINT32	SoundGetVolume(UINT32 uiSoundID);
 extern UINT32	SoundGetPosition(UINT32 uiSoundID);
+extern UINT32	SoundGetLengthMs(UINT32 uiSoundID);
 
 extern void SoundSetSampleFlags( UINT32 uiSample, UINT32 uiFlags );
 extern void SoundRemoveSampleFlags( UINT32 uiSample, UINT32 uiFlags );

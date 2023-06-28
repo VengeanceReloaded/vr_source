@@ -282,10 +282,10 @@ UINT32 PlayJA2MultipleGapSample( CHAR8 zSoundFiles[][64], UINT8 ubSoundsCount, U
 	memset(&spParms, 0xff, sizeof(SOUNDPARMS));
 
 	spParms.uiSpeed = usRate;
-	spParms.uiVolume =	(UINT32) (	( ubVolume / (FLOAT) HIGHVOLUME ) * GetSpeechVolume( ) );
+	spParms.uiVolume =	(UINT32)((ubVolume / (FLOAT)HIGHVOLUME) * GetSpeechVolume());
 	spParms.uiLoop = ubLoops;
 	spParms.uiPan = uiPan;
-	spParms.uiPriority=GROUP_PLAYER;
+	spParms.uiPriority = GROUP_PLAYER;
 
 	subsequentsounds.ubSndCounter = 1;
 	subsequentsounds.ubMaxSndCounter = ubSoundsCount;
@@ -296,11 +296,38 @@ UINT32 PlayJA2MultipleGapSample( CHAR8 zSoundFiles[][64], UINT8 ubSoundsCount, U
 	subsequentsounds.spParams = spParms;
 
 	// Setup Gap Detection, if it is not null
-	if( pData != NULL )
-		AudioGapListInit( zSoundFiles[0], pData );
+	if(pData != NULL)
+		AudioGapListInit(zSoundFiles[0], pData);
 
-	return( SoundPlayStreamedFile( zSoundFiles[0], &spParms));
+	UINT32 uiSoundID = SoundPlay(zSoundFiles[0], &spParms);
+	UINT32 uiSoundLengthMs = SoundGetLengthMs(uiSoundID);
+
+	subsequentsounds.uiCurrentSndEnd = GetJA2Clock() + uiSoundLengthMs;
+
+	return(uiSoundID);
 	// rest of sounds (if there are any) will be called from HandleTalkingAutoFace when current one ends
 }
 
+UINT32 PlayJA2NextGapSample(CHAR8 *zSoundFile, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan, AudioGapList* pData)
+{
+	SOUNDPARMS spParms;
 
+	memset(&spParms, 0xff, sizeof(SOUNDPARMS));
+
+	spParms.uiSpeed = usRate;
+	spParms.uiVolume = (UINT32)((ubVolume / (FLOAT)HIGHVOLUME) * GetSpeechVolume());
+	spParms.uiLoop = ubLoops;
+	spParms.uiPan = uiPan;
+	spParms.uiPriority = GROUP_PLAYER;
+
+	// Setup Gap Detection, if it is not null
+	if (pData != NULL)
+		AudioGapListInit(zSoundFile, pData);
+
+	UINT32 uiSoundID = SoundPlay(zSoundFile, &spParms);
+	UINT32 uiSoundLengthMs = SoundGetLengthMs(uiSoundID);
+
+	subsequentsounds.uiCurrentSndEnd = GetJA2Clock() + uiSoundLengthMs;
+
+	return(uiSoundID);
+}
