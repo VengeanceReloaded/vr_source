@@ -124,7 +124,7 @@ typedef struct MoraleEvent
 
 typedef enum 
 {
-	SNITCH_INTRODUCTION= 0,
+	SNITCH_INTRODUCTION = 0,
 	SNITCH_DEATH_RATE, // current death rate higher than preferable
 	SNITCH_REPUTATION, // current reputation worse than preferable
 	SNITCH_LOW_MORALE, // merc's morale worse than preferable
@@ -139,6 +139,9 @@ typedef enum
 	NUM_SNITCH_EVENTS,
 
 } SnitchEventType;
+
+#define MAX_SNITCH_LINE_TYPES 10
+#define MAX_SNITCH_LINE_VARIANTS 10
 
 typedef struct SnitchEvent
 {

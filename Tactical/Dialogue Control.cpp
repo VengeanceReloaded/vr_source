@@ -2397,11 +2397,18 @@ CHAR8 *GetDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN
 	return( zFileName );
 }
 
-CHAR8 *GetSnitchDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN fWavFile, BOOLEAN fName, BOOLEAN fAltName)
+CHAR8 *GetSnitchDialogueDataFilename(UINT8 ubCharacterNum, UINT16 usQuoteNum, BOOLEAN fWavFile, BOOLEAN fName, BOOLEAN fAltName, UINT8 ubVariant = 0)
 {
 	static CHAR8 zFileName[164];
+	static CHAR8 zFileNameNoExtension[164];
 	static CHAR8 zFileNameExists[164];
 	UINT8		ubFileNumID;
+
+
+	if (ubVariant == 0)
+		sprintf(zFileNameNoExtension, "%03d_%03d", ubCharacterNum, usQuoteNum);
+	else
+		sprintf(zFileNameNoExtension, "%03d_%03d_%d", ubCharacterNum, usQuoteNum, ubVariant + 1);
 
 	if ( fWavFile )
 	{
@@ -2410,29 +2417,30 @@ CHAR8 *GetSnitchDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, B
 			// build name of wav file (characternum + quotenum)
 			if (fAltName)
 			{
-				sprintf(zFileName, "SPEECH\\SNITCH\\NAMES_ALT\\%03d_%03d.ogg", ubCharacterNum, usQuoteNum);
+
+				sprintf(zFileName, "SPEECH\\SNITCH\\NAMES_ALT\\%s.ogg", zFileNameNoExtension);
 				if (!FileExists(zFileName))
 				{
-					sprintf(zFileName, "SPEECH\\SNITCH\\NAMES_ALT\\%03d_%03d.wav", ubCharacterNum, usQuoteNum);
+					sprintf(zFileName, "SPEECH\\SNITCH\\NAMES_ALT\\%s.wav", zFileNameNoExtension);
 				}
 			}
 			if (fName)
 			{
 				if (!fAltName || !FileExists(zFileName))
 				{
-					sprintf(zFileName, "SPEECH\\SNITCH\\NAMES\\%03d_%03d.ogg", ubCharacterNum, usQuoteNum);
+					sprintf(zFileName, "SPEECH\\SNITCH\\NAMES\\%s.ogg", zFileNameNoExtension);
 					if (!FileExists(zFileName))
 					{
-						sprintf(zFileName, "SPEECH\\SNITCH\\NAMES\\%03d_%03d.wav", ubCharacterNum, usQuoteNum);
+						sprintf(zFileName, "SPEECH\\SNITCH\\NAMES\\%s.wav", zFileNameNoExtension);
 					}
 				}
 			}
 			else
 			{
-				sprintf( zFileName,"SPEECH\\SNITCH\\%03d_%03d.ogg",ubCharacterNum,usQuoteNum );
-				if ( !FileExists( zFileName ) )
+				sprintf(zFileName,"SPEECH\\SNITCH\\%s.ogg", zFileNameNoExtension);
+				if (!FileExists( zFileName ))
 				{
-					sprintf( zFileName,"SPEECH\\SNITCH\\%03d_%03d.wav",ubCharacterNum,usQuoteNum );
+					sprintf( zFileName,"SPEECH\\SNITCH\\%s.wav", zFileNameNoExtension);
 				}
 			}
 		}
@@ -2440,10 +2448,10 @@ CHAR8 *GetSnitchDialogueDataFilename( UINT8 ubCharacterNum, UINT16 usQuoteNum, B
 	else
 	{
 		// assume EDT files are in EDT directory on HARD DRIVE
-		if(fName)
-			sprintf( zFileName,"MERCEDT\\SNITCH\\NAMES\\%03d.EDT", ubCharacterNum );
+		if (fName)
+			sprintf(zFileName,"MERCEDT\\SNITCH\\NAMES\\%03d.EDT", ubCharacterNum);
 		else
-			sprintf( zFileName,"MERCEDT\\SNITCH\\%03d.EDT", ubCharacterNum );
+			sprintf(zFileName,"MERCEDT\\SNITCH\\%03d.EDT", ubCharacterNum);
 	}
 
 	return( zFileName );
@@ -2468,14 +2476,14 @@ BOOLEAN SnitchDialogueDataFileExistsForProfile( UINT8 ubCharacterNum, UINT16 usQ
 {
 	STR8 pFilename;
 
-	pFilename = GetSnitchDialogueDataFilename( ubCharacterNum, usQuoteNum, fWavFile, fName, fAltName);
+	pFilename = GetSnitchDialogueDataFilename(ubCharacterNum, usQuoteNum, fWavFile, fName, fAltName);
 
-	if ( ppStr )
+	if (ppStr)
 	{
-		(*ppStr ) = pFilename;
+		(*ppStr) = pFilename;
 	}
 
-	return( FileExists( pFilename ) );
+	return(FileExists(pFilename));
 }
 
 BOOLEAN GetDialogue( UINT8 ubCharacterNum, UINT16 usQuoteNum, UINT32 iDataSize, STR16 zDialogueText, UINT32 *puiSoundID, CHAR8 *zSoundString )
@@ -2652,69 +2660,55 @@ BOOLEAN SnitchDialogueReplaceMercNicksWithProperData( CHAR16 *pFinishedString, U
 BOOLEAN GetSnitchDialogue( UINT8 ubCharacterNum, UINT16 usQuoteNum, UINT32 iDataSize, STR16 zDialogueText, UINT32 *puiSound1ID, UINT32 *puiSound2ID, UINT32 *puiSound3ID, CHAR8 zSoundFiles[][64], UINT8 ubTargetProfile, UINT8 ubSecondaryTargetProfile )
 {
 	STR8 pFilename1;
-	STR8 pFilename2;
-	STR8 pFilename3;
 	CHAR16	zDialogueTextTemp[ QUOTE_MESSAGE_SIZE ];
 	BOOLEAN fTextAvailable = FALSE;
 
-	// first things first	- grab the text (if player has SUBTITLE PREFERENCE ON)
-	//if ( gGameSettings.fOptions[ TOPTION_SUBTITLES ] )
+	UINT8 ubAvailableLines = 0;
+	UINT8 ubVariant = 0;
+	if (SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename1, FALSE, FALSE ))
 	{
-
-		if ( SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename1, FALSE, FALSE ) )
-			 //SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename, TRUE ) && 
-			 //SnitchDialogueDataFileExistsForProfile( ubCharacterNum, 0, FALSE, &pFilename, TRUE ) && )
+		for (int i = 0; i < MAX_SNITCH_LINE_VARIANTS; i++)
 		{
-
-			LoadEncryptedDataFromFile( pFilename1, zDialogueText, usQuoteNum * iDataSize, iDataSize );
-			//LoadEncryptedDataFromFile( pFilename2, zDialogueText2, ubSnitchTarget * iDataSize, iDataSize );
-			//LoadEncryptedDataFromFile( pFilename3, zDialogueText3, ubSecondarySnitchTarget * iDataSize, iDataSize );
-			SnitchDialogueReplaceMercNicksWithProperData( zDialogueText, ubTargetProfile, ubSecondaryTargetProfile );
-			//if( ubSnitchTargetID != NOBODY )
-			//{
-			//	wcscpy( zDialogueTextTemp, gMercProfiles[ubTargetProfile].zNickname );
-			//	wcscat( zDialogueTextTemp, zDialogueText );
-			//}
-			//else
-			//{
-			//	wcscpy( zDialogueTextTemp, zDialogueText );
-			//}
-			//if( ubSecondarySnitchTargetID != NOBODY )
-			//{
-			//	wcscat( zDialogueTextTemp, gMercProfiles[ubSecondaryTargetProfile].zNickname );
-			//}
-			//wcscpy( zDialogueText, zDialogueTextTemp );
-			if(zDialogueText[0] == 0)
+			if (LoadEncryptedDataFromFile(pFilename1, zDialogueText, (usQuoteNum + i * MAX_SNITCH_LINE_TYPES) * iDataSize, iDataSize) && wcslen(zDialogueText) > 0)
 			{
-				swprintf( zDialogueText, L"I have no text in the EDT file ( %d ) %S", usQuoteNum, pFilename1 );
-
-#ifndef JA2BETAVERSION
-				return( FALSE );
-#endif
+				ubAvailableLines++;
 			}
 			else
-				fTextAvailable = TRUE;
+			{
+				break;
+			}
 		}
-		else
+		ubVariant = Random(ubAvailableLines);
+
+
+		LoadEncryptedDataFromFile(pFilename1, zDialogueText, (usQuoteNum + ubVariant * MAX_SNITCH_LINE_TYPES) * iDataSize, iDataSize);
+
+		SnitchDialogueReplaceMercNicksWithProperData( zDialogueText, ubTargetProfile, ubSecondaryTargetProfile );
+
+		if(zDialogueText[0] == 0)
 		{
-			swprintf( zDialogueText, L"I have no text in the file ( %d ) %S", usQuoteNum , pFilename1 );
+			swprintf( zDialogueText, L"I have no text in the EDT file ( %d ) %S", usQuoteNum, pFilename1 );
 
 #ifndef JA2BETAVERSION
 			return( FALSE );
 #endif
 		}
+		else
+			fTextAvailable = TRUE;
+	}
+	else
+	{
+		swprintf( zDialogueText, L"I have no text in the file ( %d ) %S", usQuoteNum , pFilename1 );
+
+#ifndef JA2BETAVERSION
+		return( FALSE );
+#endif
 	}
 
-
-	// CHECK IF THE FILE EXISTS, IF NOT, USE DEFAULT!
-	//pFilename1 = GetSnitchDialogueDataFilename( ubCharacterNum, usQuoteNum, TRUE, FALSE );
-	//pFilename2 = GetSnitchDialogueDataFilename( ubCharacterNum, ubSnitchTargetID, TRUE, TRUE );
-	//pFilename3 = GetSnitchDialogueDataFilename( ubCharacterNum, ubSecondarySnitchTargetID, TRUE, TRUE );
-
 	// Copy
-	strcpy( zSoundFiles[0], GetSnitchDialogueDataFilename( ubCharacterNum, ubTargetProfile, TRUE, TRUE, FALSE ) );
-	strcpy( zSoundFiles[1], GetSnitchDialogueDataFilename( ubCharacterNum, usQuoteNum, TRUE, FALSE, FALSE ) );
-	strcpy( zSoundFiles[2], GetSnitchDialogueDataFilename( ubCharacterNum, ubSecondaryTargetProfile, TRUE, TRUE, TRUE ) );
+	strcpy(zSoundFiles[0], GetSnitchDialogueDataFilename(ubCharacterNum, ubTargetProfile, TRUE, TRUE, FALSE));
+	strcpy(zSoundFiles[1], GetSnitchDialogueDataFilename(ubCharacterNum, usQuoteNum, TRUE, FALSE, FALSE, ubVariant));
+	strcpy(zSoundFiles[2], GetSnitchDialogueDataFilename(ubCharacterNum, ubSecondaryTargetProfile, TRUE, TRUE, TRUE));
 
 	*puiSound1ID = NO_SAMPLE;
 	*puiSound2ID = NO_SAMPLE;
