@@ -726,6 +726,20 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 			}
 		}
 
+		// anv: VR - don't spawn tanks in already conquered sectors
+		switch (Soldier.ubBodyType)
+		{
+			case TANK_NW:
+			case TANK_NE:
+				if (gGameExternalOptions.fDisableTanksRespawnAlreadyControlledSectors &&
+					Soldier.bTeam == ENEMY_TEAM && SectorInfo[SECTOR(pCreateStruct->sSectorX, pCreateStruct->sSectorY)].fSurfaceWasEverPlayerControlled)
+				{
+					ScreenMsg(FONT_YELLOW, MSG_MPSYSTEM, L"skipping tank");
+					Soldier.ubBodyType = BIGMALE;
+				}
+				break;
+		}
+
 		// Copy the items over for the soldier, only if we have a valid profile id!
 		if ( pCreateStruct->ubProfile != NO_PROFILE )
 		{
@@ -1196,13 +1210,6 @@ SOLDIERTYPE* TacticalCreateSoldier( SOLDIERCREATE_STRUCT *pCreateStruct, UINT8 *
 					*/	
 					case TANK_NW:
 					case TANK_NE:
-						// anv: VR - don't spawn tanks in already conquered sectors
-						if (gGameExternalOptions.fDisableTanksRespawnAlreadyControlledSectors && 
-							Soldier.bTeam == ENEMY_TEAM && SectorInfo[SECTOR(Soldier.sSectorX, Soldier.sSectorY)].fSurfaceWasEverPlayerControlled)
-						{
-							ScreenMsg(FONT_YELLOW, MSG_MPSYSTEM, L"skipping tank");
-							return NULL;
-						}
 						ubVehicleID = TANK_CAR;
 						break;
 				}
