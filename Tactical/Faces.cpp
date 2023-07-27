@@ -1509,7 +1509,7 @@ void GetXYForRightIconPlacement_FaceGera( FACETYPE *pFace, UINT16 ubIndex, INT16
 	usHeight				= pTrav->usHeight;
 	usWidth					= pTrav->usWidth;
 
-	sX = sFaceX + ( usWidth * bNumIcons ) + 1;
+	sX = sFaceX + (usWidth * bNumIcons);// +1;
 	sY = sFaceY + pFace->usFaceHeight - usHeight;// -1;
 
 	*psX = sX;
