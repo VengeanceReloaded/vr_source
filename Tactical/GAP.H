@@ -25,7 +25,7 @@ void PollAudioGap( UINT32 uiSampleNum, AudioGapList *pGapList );
 
 
 UINT32 PlayJA2GapSample( CHAR8 *zSoundFile, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan, AudioGapList* pData );
-UINT32 PlayJA2NextGapSample(CHAR8 *zSoundFile, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan, AudioGapList* pData);
+UINT32 PlayJA2NextGapSample(CHAR8 *zSoundFile, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan, AudioGapList* pData, BOOLEAN fIsLast);
 
 UINT32 PlayJA2MultipleGapSample( CHAR8 zSoundFiles[][64], UINT8 ubSoundsCount, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan, AudioGapList* pData );
 

@@ -13,6 +13,7 @@
 #endif
 
 SUBSEQUENTSOUNDS subsequentsounds;
+#define SUBSEQUENT_SOUNDS_OVERLAP_MS 50
 
 #if 0
 static void AILCALLBACK timer_func( UINT32 user )
@@ -302,13 +303,13 @@ UINT32 PlayJA2MultipleGapSample( CHAR8 zSoundFiles[][64], UINT8 ubSoundsCount, U
 	UINT32 uiSoundID = SoundPlay(zSoundFiles[0], &spParms);
 	UINT32 uiSoundLengthMs = SoundGetLengthMs(uiSoundID);
 
-	subsequentsounds.uiCurrentSndEnd = GetJA2Clock() + uiSoundLengthMs;
+	subsequentsounds.uiCurrentSndEnd = GetJA2Clock() + uiSoundLengthMs - SUBSEQUENT_SOUNDS_OVERLAP_MS;
 
 	return(uiSoundID);
 	// rest of sounds (if there are any) will be called from HandleTalkingAutoFace when current one ends
 }
 
-UINT32 PlayJA2NextGapSample(CHAR8 *zSoundFile, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan, AudioGapList* pData)
+UINT32 PlayJA2NextGapSample(CHAR8 *zSoundFile, UINT32 usRate, UINT32 ubVolume, UINT32 ubLoops, UINT32 uiPan, AudioGapList* pData, BOOLEAN fIsLast)
 {
 	SOUNDPARMS spParms;
 
@@ -327,7 +328,7 @@ UINT32 PlayJA2NextGapSample(CHAR8 *zSoundFile, UINT32 usRate, UINT32 ubVolume, U
 	UINT32 uiSoundID = SoundPlay(zSoundFile, &spParms);
 	UINT32 uiSoundLengthMs = SoundGetLengthMs(uiSoundID);
 
-	subsequentsounds.uiCurrentSndEnd = GetJA2Clock() + uiSoundLengthMs;
+	subsequentsounds.uiCurrentSndEnd = GetJA2Clock() + uiSoundLengthMs - (fIsLast ? 0 : SUBSEQUENT_SOUNDS_OVERLAP_MS);
 
 	return(uiSoundID);
 }

@@ -1305,7 +1305,8 @@ void HandleTalkingAutoFace( INT32 iFaceIndex )
 				{
 					if (subsequentsounds.ubMaxSndCounter != 0 && subsequentsounds.ubSndCounter < subsequentsounds.ubMaxSndCounter)
 					{	
-						pFace->uiSoundID = PlayJA2NextGapSample(subsequentsounds.zSoundFiles[subsequentsounds.ubSndCounter], RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, &(pFace->GapList));
+						pFace->uiSoundID = PlayJA2NextGapSample(subsequentsounds.zSoundFiles[subsequentsounds.ubSndCounter], RATE_11025, HIGHVOLUME, 1, MIDDLEPAN, &(pFace->GapList), 
+							subsequentsounds.ubSndCounter == subsequentsounds.ubMaxSndCounter - 1);
 						subsequentsounds.ubSndCounter++;
 					}
 					else
