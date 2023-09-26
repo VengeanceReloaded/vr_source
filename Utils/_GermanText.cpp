@@ -7735,15 +7735,6 @@ STR16 gzNCTHlabels[]=
 // HEADROCK HAM 4: End new UDB texts and tooltips
 //////////////////////////////////////////////////////
 
-// anv - extended panels
-STR16 pExtendedPanelStrings[] =
-{
-	// Battle stats
-	L"Battle Statistics",
-	L"Personal Info",
-	L"Employment",
-};
-
 // HEADROCK HAM 5: Screen messages for sector inventory sorting reports.
 STR16 gzMapInventorySortingMessage[] =
 {
