@@ -3189,7 +3189,7 @@ BOOLEAN CheckForMercContMove( SOLDIERTYPE *pSoldier )
 		return( FALSE );
 	}
 
-	if( pSoldier->stats.bLife >= OKLIFE )
+	if( pSoldier->stats.bLife >= OKLIFE && !(pSoldier->bCollapsed && pSoldier->bBreath < OKBREATH) )
 	{
 		if( pSoldier->sGridNo != pSoldier->pathing.sFinalDestination || pSoldier->bGoodContPath	)
 		{

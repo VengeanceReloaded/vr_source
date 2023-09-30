@@ -19305,7 +19305,8 @@ void SoldierCollapse( SOLDIERTYPE *pSoldier )
 		break;
 	}
 
-	pSoldier->bCollapsed			 = TRUE;
+	pSoldier->bCollapsed = TRUE;
+	pSoldier->usUIMovementMode = CRAWLING;
 
 	pSoldier->ReceivingSoldierCancelServices( );
 
