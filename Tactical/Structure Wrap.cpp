@@ -28,6 +28,16 @@ BOOLEAN	IsJumpableWindowPresentAtGridNo( INT32 sGridNo, INT8 direction2, BOOLEAN
 
 	if ( pStructure )
 	{
+		// anv: VR - quick fix in place of additional tile properties for now
+		LEVELNODE *pNode = FindLevelNodeBasedOnStructure(sGridNo, pStructure);
+		if (pNode != NULL)
+		{
+			if ((giCurrentTilesetID == 54 && pNode->usIndex >= 682 && pNode->usIndex <= 693) ||
+				((giCurrentTilesetID == 12 || giCurrentTilesetID == 22 || giCurrentTilesetID == 41 || giCurrentTilesetID == 44) && pNode->usIndex >= 877 && pNode->usIndex <= 888))
+				// special tag disables jumping through specific windows (e.g. barred windows in Tixa)
+				return(FALSE);
+		}
+
 		if ( ( direction2 == SOUTH || direction2 == NORTH ) && (pStructure->ubWallOrientation == OUTSIDE_TOP_LEFT || pStructure->ubWallOrientation == INSIDE_TOP_LEFT ) && pStructure->fFlags & STRUCTURE_WALLNWINDOW && !(pStructure->fFlags & STRUCTURE_SPECIAL) )
 	    {
 			if ( fIntactWindowsAlso || ( pStructure->fFlags & STRUCTURE_OPEN ) )
