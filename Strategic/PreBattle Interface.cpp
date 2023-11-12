@@ -487,9 +487,9 @@ void InitPreBattleInterface( GROUP *pBattleGroup, BOOLEAN fPersistantPBI )
 	iPBButton[1] = QuickCreateButton( iPBButtonImage[1], 98 + xResOffset, 54 + yResOffset, BUTTON_NO_TOGGLE, MSYS_PRIORITY_HIGHEST - 2, DEFAULT_MOVE_CALLBACK, GoToSectorCallback );
 	iPBButton[2] = QuickCreateButton( iPBButtonImage[2], 169 + xResOffset, 54 + yResOffset, BUTTON_NO_TOGGLE, MSYS_PRIORITY_HIGHEST - 2, DEFAULT_MOVE_CALLBACK, RetreatMercsCallback );
 
-	SpecifyGeneralButtonTextAttributes( iPBButton[0], gpStrategicString[ STR_PB_AUTORESOLVE_BTN ], BLOCKFONT, FONT_BEIGE, 141 );
-	SpecifyGeneralButtonTextAttributes( iPBButton[1], gpStrategicString[ STR_PB_GOTOSECTOR_BTN ], BLOCKFONT, FONT_BEIGE, 141 );
-	SpecifyGeneralButtonTextAttributes( iPBButton[2], gpStrategicString[ STR_PB_RETREATMERCS_BTN ], BLOCKFONT, FONT_BEIGE, 141 );
+	SpecifyGeneralButtonTextAttributes( iPBButton[0], gpStrategicString[ STR_PB_AUTORESOLVE_BTN ], BLOCKFONT, FONT_WHITE, 141 );
+	SpecifyGeneralButtonTextAttributes( iPBButton[1], gpStrategicString[ STR_PB_GOTOSECTOR_BTN ], BLOCKFONT, FONT_WHITE, 141 );
+	SpecifyGeneralButtonTextAttributes( iPBButton[2], gpStrategicString[ STR_PB_RETREATMERCS_BTN ], BLOCKFONT, FONT_WHITE, 141 );
 	SpecifyButtonHilitedTextColors( iPBButton[0], FONT_WHITE, FONT_NEARBLACK );
 	SpecifyButtonHilitedTextColors( iPBButton[1], FONT_WHITE, FONT_NEARBLACK );
 	SpecifyButtonHilitedTextColors( iPBButton[2], FONT_WHITE, FONT_NEARBLACK );
@@ -1083,7 +1083,7 @@ void RenderPBHeader( INT32 *piX, INT32 *piWidth)
 	}
 	else
 	{
-		SetFontForeground( FONT_BEIGE );
+		SetFontForeground( FONT_WHITE );
 	}
 	SetFontShadow( FONT_NEARBLACK );
 	if( !gfPersistantPBI )
@@ -1215,7 +1215,7 @@ void RenderPreBattleInterface()
 
 		// header
 		SetFont( BLOCKFONT );
-		SetFontForeground( FONT_BEIGE );
+		SetFontForeground( FONT_WHITE );
 		swprintf( str, gpStrategicString[ STR_PB_LOCATION ] );
 		width = StringPixLength( str, BLOCKFONT );
 		if( width > 64 )
@@ -1301,7 +1301,7 @@ void RenderPreBattleInterface()
 
 		//location
 		SetFont( FONT10ARIAL );
-		SetFontForeground( FONT_YELLOW );
+		SetFontForeground( FONT_WHITE );
 		SetFontShadow( FONT_NEARBLACK );
 
 		GetSectorIDString( gubPBSectorX, gubPBSectorY, gubPBSectorZ, pSectorName, TRUE );
@@ -1309,6 +1309,7 @@ void RenderPreBattleInterface()
 
 		//enemy
 		SetFont( FONT14ARIAL );
+		SetFontForeground(FONT_RED);
 		if( gubEnemyEncounterCode == CREATURE_ATTACK_CODE ||
 			gubEnemyEncounterCode == BLOODCAT_AMBUSH_CODE ||
 				gubEnemyEncounterCode == ENTERING_BLOODCAT_LAIR_CODE ||
@@ -1341,7 +1342,7 @@ void RenderPreBattleInterface()
 		SetFontShadow( FONT_NEARBLACK );
 
 		SetFont( BLOCKFONT2 );
-		SetFontForeground( FONT_YELLOW );
+		SetFontForeground( FONT_WHITE );
 		//print out the participants of the battle.
 		// |	NAME	| ASSIGN |	COND	|	HP	|	BP	|
 		line = 0;
@@ -1354,7 +1355,7 @@ void RenderPreBattleInterface()
 				{
 					if (ubAllowedParticipantsListHeight < ubRecommendedParticipantsListHeight && y + ROW_HEIGHT > TOP_Y + ubAllowedParticipantsListHeight - ROW_HEIGHT)
 					{
-						SetFontForeground(FONT_YELLOW);
+						SetFontForeground(FONT_WHITE);
 						wcscpy(str, L"...");
 						x = 17 + (52 - StringPixLength(str, BLOCKFONT2)) / 2;
 						mprintf(x + xResOffset, y + yResOffset, str);
@@ -1392,7 +1393,7 @@ void RenderPreBattleInterface()
 		}
 
 		SetFont(BLOCKFONT2);
-		SetFontForeground(FONT_YELLOW);
+		SetFontForeground(FONT_WHITE);
 		//print out the uninvolved members of the battle
 		// |	NAME	| ASSIGN |	LOC	|	DEST	|	DEP	|
 		if (gGameExternalOptions.fDisableUninvolvedSectionInBattlePanel)
@@ -1418,7 +1419,7 @@ void RenderPreBattleInterface()
 					{
 						if (ubAllowedUninvolvedListHeight < ubRecommendedUninvolvedListHeight && y + ROW_HEIGHT > iPrebattleInterfaceHeight - BOTTOM_HEIGHT - ROW_HEIGHT)
 						{
-							SetFontForeground(FONT_YELLOW);
+							SetFontForeground(FONT_WHITE);
 							wcscpy(str, L"...");
 							x = 17 + (52 - StringPixLength(str, BLOCKFONT2)) / 2;
 							mprintf(x + xResOffset, y + yResOffset, str);
