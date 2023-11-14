@@ -1680,6 +1680,21 @@ void HandleRenderFaceAdjustments( FACETYPE *pFace, BOOLEAN fDisplayBuffer, BOOLE
 		UINT8 faceProfileId = gMercProfiles[pSoldier->ubProfile].ubFaceIndex;
 		BOOLEAN isIMP = gProfilesIMP[MercPtrs[pFace->ubSoldierID]->ubProfile].ProfilId == MercPtrs[pFace->ubSoldierID]->ubProfile;
 
+		if ((MercPtrs[pFace->ubSoldierID]->stats.bLife < CONSCIOUSNESS || MercPtrs[pFace->ubSoldierID]->flags.fDeadPanel))
+		{
+			// Blit Closed eyes here!
+			BltVideoObjectFromIndex(uiRenderBuffer, pFace->uiVideoObject, 1, usEyesX, usEyesY, VO_BLT_SRCTRANSPARENCY, NULL);
+
+			// Blit hatch!
+			BltVideoObjectFromIndex(uiRenderBuffer, guiHATCH, 0, sFaceX, sFaceY, VO_BLT_SRCTRANSPARENCY, NULL);
+		}
+
+		if (MercPtrs[pFace->ubSoldierID]->flags.fMercAsleep == TRUE)
+		{
+			// blit eyes closed
+			BltVideoObjectFromIndex(uiRenderBuffer, pFace->uiVideoObject, 1, usEyesX, usEyesY, VO_BLT_SRCTRANSPARENCY, NULL);
+		}
+
 		if (gGameSettings.fOptions[TOPTION_SHOW_TACTICAL_FACE_GEAR] && MercPtrs[pFace->ubSoldierID]->stats.bLife > 0 && !(pFace->uiFlags & FACE_BIGFACE))
 		{
 			if (MercPtrs[pFace->ubSoldierID]->inv[HELMETPOS].usItem > 0)
@@ -1860,21 +1875,6 @@ void HandleRenderFaceAdjustments( FACETYPE *pFace, BOOLEAN fDisplayBuffer, BOOLE
 			}
 
 			//------------------------------------end of tactical face gear-----------------------------
-		}
-
-		if ( ( MercPtrs[ pFace->ubSoldierID ]->stats.bLife < CONSCIOUSNESS || MercPtrs[ pFace->ubSoldierID ]->flags.fDeadPanel ) )
-		{
-			// Blit Closed eyes here!
-			BltVideoObjectFromIndex( uiRenderBuffer, pFace->uiVideoObject, 1, usEyesX, usEyesY, VO_BLT_SRCTRANSPARENCY, NULL );
-
-			// Blit hatch!
-			BltVideoObjectFromIndex( uiRenderBuffer, guiHATCH, 0, sFaceX, sFaceY, VO_BLT_SRCTRANSPARENCY, NULL );
-		}
-
-		if( MercPtrs[ pFace->ubSoldierID ]->flags.fMercAsleep == TRUE )
-		{
-			// blit eyes closed
-			BltVideoObjectFromIndex( uiRenderBuffer, pFace->uiVideoObject, 1, usEyesX, usEyesY, VO_BLT_SRCTRANSPARENCY, NULL );
 		}
 
 		if ( ( pSoldier->flags.uiStatusFlags & SOLDIER_DEAD ) )
