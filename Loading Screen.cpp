@@ -1,8 +1,3 @@
-#ifdef PRECOMPILEDHEADERS
-	#include "JA2 All.h"
-	#include "Loading Screen.h"
-	#include "INIReader.h"
-#else
 	#include "vsurface.h"
 	#include "mapscreen.h"
 	#include "Loading Screen.h"
@@ -15,7 +10,6 @@
 	#include "Font Control.h"
 	#include "font.h"
 	#include "render dirty.h"
-#endif
 #include "Strategic Movement.h"
 #include "UndergroundInit.h"
 #include <string>
@@ -29,6 +23,7 @@ extern BOOLEAN gfSchedulesHosed;
 	#include "Ja25 Strategic Ai.h"
 #endif
 UINT8 gubLastLoadingScreenID = LOADINGSCREEN_NOTHING;
+FLOAT fLoadingScreenAspectRatio;
 //BOOLEAN bShowSmallImage = FALSE;
 SECTOR_LOADSCREENS gSectorLoadscreens[MAX_SECTOR_LOADSCREENS];
 
@@ -339,39 +334,6 @@ static void BuildLoadscreenFilename(std::string& dst, const char* path, int reso
 	if (path)
 		dst.append(path);
 
-	switch (resolution)
-	{
-		case _800x600:
-		case _1024x600:
-		case _1280x720:
-			dst.append("_800x600");
-			break;
-		case _1024x768:
-		case _1280x768:
-		case _1360x768:
-		case _1366x768:
-		case _1280x800:
-		case _1440x900:
-		case _1600x900:
-		case _1280x960:
-		case _1440x960:
-		case _1770x1000:
-		case _1280x1024:
-		case _1360x1024:
-		case _1600x1024:
-		case _1440x1050:
-		case _1680x1050:
-		case _1920x1080:
-		case _1600x1200:
-		case _1920x1200:
-		case _2560x1440:
-		case _2560x1600:
-			dst.append("_1024x768");
-			break;
-		default:
-			break;
-	}
-
 	if (ext)
 	{
 		dst.append(".");
@@ -380,6 +342,62 @@ static void BuildLoadscreenFilename(std::string& dst, const char* path, int reso
 	else
 		// This might suck later on. If it does, remove it.
 		dst.append(".sti");
+}
+
+std::string GetResolutionSuffix(SCREEN_RESOLUTION resolution)
+{
+	switch (resolution)
+	{
+		case _960x540: return "_960x540";
+		case _800x600: return "_800x600";
+		case _1024x600: return "_1024x600";
+		case _1280x720: return "_1280x720";
+		case _1024x768: return "_1024x768";
+		case _1280x768: return "_1280x768";
+		case _1360x768: return "_1360x768";
+		case _1366x768: return "_1366x768";
+		case _1280x800: return "_1280x800";
+		case _1440x900: return "_1440x900";
+		case _1600x900: return "_1600x900";
+		case _1280x960: return "_1280x960";
+		case _1440x960: return "_1440x960";
+		case _1770x1000: return "_1770x1000";
+		case _1280x1024: return "_1280x1024";
+		case _1360x1024: return "_1360x1024";
+		case _1600x1024: return "_1600x1024";
+		case _1440x1050: return "_1440x1050";
+		case _1680x1050: return "_1680x1050";
+		case _1920x1080: return "_1920x1080";
+		case _1600x1200: return "_1600x1200";
+		case _1920x1200: return "_1920x1200";
+		case _2560x1440: return "_2560x1440";
+		case _2560x1600: return "_2560x1600";
+		default: return "";
+	}
+}
+
+std::string FindBestFittingLoadscreenFilename(const std::string& baseName, SCREEN_RESOLUTION resolution)
+{
+	for (SCREEN_RESOLUTION res = resolution; res <= _2560x1600; res = (SCREEN_RESOLUTION)(res + 1))
+	{
+		std::string fileName = baseName + GetResolutionSuffix(res);
+		if (FileExists((CHAR8*)((fileName + ".png").c_str())))
+		{
+			return fileName + ".png";
+		}
+
+		if (FileExists((CHAR8*)((fileName + ".sti").c_str())))
+		{
+			return fileName + ".sti";
+		}
+	}
+
+	if (FileExists((CHAR8*)((baseName + ".png").c_str())))
+	{
+		return baseName + ".png";
+	}
+
+	return baseName + ".sti";
 }
 
 //sets up the loadscreen with specified ID, and draws it to the FRAME_BUFFER,
@@ -393,7 +411,7 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 	vs_desc.fCreateFlags = VSURFACE_CREATE_FROMFILE | VSURFACE_SYSTEM_MEM_USAGE | VSURFACE_CREATE_FROMPNG_FALLBACK;
 
 	szSector = szSectorMap [gWorldSectorY][gWorldSectorX];
-	const BOOLEAN fExternalLS = (szSector != NULL && szSector != "N") && ((DAY <= ubLoadScreenID && ubLoadScreenID <= NIGHT_ALT) || (ubLoadScreenID == UNDERGROUND));
+	const BOOLEAN fExternalLS = (szSector != NULL && strcmp(szSector, "N") != 0) && ((DAY <= ubLoadScreenID && ubLoadScreenID <= NIGHT_ALT) || (ubLoadScreenID == UNDERGROUND));
 	
 	if (fExternalLS)
 	{
@@ -424,6 +442,8 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 
 					if (fAlternate && (Random(2) > 0))
 					{
+						if (strlen(gSectorLoadscreens[i].szImageFormatAlt) > 0)
+							imageFormat = gSectorLoadscreens[i].szImageFormatAlt;
 						switch (ubLoadScreenID)
 						{
 							case DAY:
@@ -457,63 +477,8 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 			}
 		}
 
-		std::string strImage;
-
-		BuildLoadscreenFilename(strImage, imagePath.c_str(), iResolution, imageFormat.c_str());
-		strImage.copy(vs_desc.ImageFile, strImage.length());
-
-		// check ignoring resolution
-		if (!FileExists(vs_desc.ImageFile))
-		{
-			std::string strImage;
-			BuildLoadscreenFilename(strImage, imagePath.c_str(), 0, imageFormat.c_str());
-
-			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
-			strImage.copy(vs_desc.ImageFile, strImage.length());
-		}
-
-		// check in loadscreens
-		if (!FileExists(vs_desc.ImageFile))
-		{
-			std::string strImage("LOADSCREENS\\");
-			
-			BuildLoadscreenFilename(strImage, imagePath.c_str(), iResolution, imageFormat.c_str());
-
-			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
-			strImage.copy(vs_desc.ImageFile, strImage.length());
-		}
-
-		// check in loadscreens but ignore resolution
-		if (!FileExists(vs_desc.ImageFile))
-		{
-			std::string strImage("LOADSCREENS\\");
-
-			BuildLoadscreenFilename(strImage, imagePath.c_str(), 0, imageFormat.c_str());
-
-			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
-			strImage.copy(vs_desc.ImageFile, strImage.length());
-		}
-
-		// then use fallback
-		if ( !FileExists(vs_desc.ImageFile) )
-		{
-			std::string strImage;
-			BuildLoadscreenFilename(strImage, LoadScreenNames[1], 0, imageFormat.c_str());
-
-			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
-			strImage.copy(vs_desc.ImageFile, strImage.length());
-		}	
-		
-		// then use fallback in loadscreens
-		if ( !FileExists(vs_desc.ImageFile) )
-		{
-			std::string strImage("LOADSCREENS\\");
-			
-			BuildLoadscreenFilename(strImage, LoadScreenNames[1], 0, imageFormat.c_str());
-
-			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
-			strImage.copy(vs_desc.ImageFile, strImage.length());
-		}
+		std::string strImage = FindBestFittingLoadscreenFilename(imagePath, (SCREEN_RESOLUTION)iResolution);
+		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile) - 1);
 	}
 	else
 	{
@@ -521,31 +486,14 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 
 		if (LOADINGSCREEN_NOTHING <= ubLoadScreenID && ubLoadScreenID <= LOADINGSCREEN_NIGHTBALIME)
 		{
-			BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], iResolution, "sti");
+			BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
 		}
 		else
 		{
 			// for some reason the heli screen is the default
-			BuildLoadscreenFilename(strImage, LoadScreenNames[0], iResolution, "sti");
+			BuildLoadscreenFilename(strImage, LoadScreenNames[0], 0, "sti");
 		}
-		memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
-		strImage.copy(vs_desc.ImageFile, strImage.length());
-
-		if ( !FileExists(vs_desc.ImageFile) )
-		{
-			std::string strImage("LOADSCREENS\\");
-			if (LOADINGSCREEN_NOTHING <= ubLoadScreenID && ubLoadScreenID <= LOADINGSCREEN_NIGHTBALIME)
-			{
-				BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
-			}
-			else
-			{
-				// for some reason the heli screen is the default
-				BuildLoadscreenFilename(strImage, LoadScreenNames[0], 0, "sti");
-			}
-			memset(vs_desc.ImageFile, 0, sizeof(vs_desc.ImageFile));
-			strImage.copy(vs_desc.ImageFile, strImage.length());
-		}
+		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
 	}
 
 
@@ -566,33 +514,37 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 			//Blit the background image
 			GetVideoSurface(&hVSurface, uiLoadScreen);
 
-			if(gGameExternalOptions.ubLoadscreenStretchMode == 1)
+			fLoadingScreenAspectRatio = (FLOAT)hVSurface->usWidth / (FLOAT)hVSurface->usHeight;
+			FLOAT fScreenAspectRatio = (FLOAT)SCREEN_WIDTH / (FLOAT)SCREEN_HEIGHT;
+
+			if (gGameExternalOptions.ubLoadscreenStretchMode == 1 ||
+				(gGameExternalOptions.ubLoadscreenStretchMode == 2 && fLoadingScreenAspectRatio > fScreenAspectRatio))
 			{
-				// fit by image height, preserve aspect ratio (black bars on sides in wider resolutions)
-				FLOAT fImageAspectRatio = (FLOAT)hVSurface->usHeight / (FLOAT)hVSurface->usWidth;
-				INT32 iCalculatedWidth = INT32((FLOAT)SCREEN_WIDTH * fImageAspectRatio);
+				FLOAT fImageAspectRatio = (float)hVSurface->usWidth / (float)hVSurface->usHeight;
 
-				SrcRect.iLeft = 0;
-				SrcRect.iTop = 0;
-				SrcRect.iRight = hVSurface->usWidth;
-				SrcRect.iBottom = hVSurface->usHeight;
-
-				DstRect.iLeft = (SCREEN_WIDTH - iCalculatedWidth) / 2;
-				DstRect.iTop = 0;
-				DstRect.iRight = SCREEN_WIDTH - ((SCREEN_WIDTH - iCalculatedWidth) / 2);
-				DstRect.iBottom = SCREEN_HEIGHT;
-			}
-			else if(gGameExternalOptions.ubLoadscreenStretchMode == 2)
-			{
-				// fit by image width, preserve aspect ratio (might cut off top and bottom in wider resolutions)
-				FLOAT fScale = (FLOAT)SCREEN_WIDTH / (FLOAT)hVSurface->usWidth;
-				INT32 iDesiredHeight = (INT32)((FLOAT)hVSurface->usHeight * fScale);
-				INT32 iCalculatedHeight = (INT32)((FLOAT)hVSurface->usHeight * ((FLOAT)SCREEN_HEIGHT / (FLOAT)iDesiredHeight));
-
-				SrcRect.iLeft = 0;
-				SrcRect.iTop = (hVSurface->usHeight - iCalculatedHeight) / 2;
-				SrcRect.iRight = hVSurface->usWidth;
-				SrcRect.iBottom = hVSurface->usHeight - ((hVSurface->usHeight - iCalculatedHeight) / 2);
+				if (fImageAspectRatio > fScreenAspectRatio)
+				{
+					FLOAT fCropWidth = (float)hVSurface->usHeight * fScreenAspectRatio;
+					SrcRect.iLeft = (hVSurface->usWidth - (INT32)fCropWidth) / 2;
+					SrcRect.iRight = SrcRect.iLeft + (INT32)fCropWidth;
+					SrcRect.iTop = 0;
+					SrcRect.iBottom = hVSurface->usHeight;
+				}
+				else if (fImageAspectRatio < fScreenAspectRatio)
+				{
+					FLOAT fCropHeight = (float)hVSurface->usWidth / fScreenAspectRatio;
+					SrcRect.iTop = (hVSurface->usHeight - (INT32)fCropHeight) / 2;
+					SrcRect.iBottom = SrcRect.iTop + (INT32)fCropHeight;
+					SrcRect.iLeft = 0;
+					SrcRect.iRight = hVSurface->usWidth;
+				}
+				else 
+				{
+					SrcRect.iLeft = 0;
+					SrcRect.iTop = 0;
+					SrcRect.iRight = hVSurface->usWidth;
+					SrcRect.iBottom = hVSurface->usHeight;
+				}
 
 				DstRect.iLeft = 0;
 				DstRect.iTop = 0;

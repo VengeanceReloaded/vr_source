@@ -84,6 +84,8 @@ enum
 //For use by the game loader, before it can possibly know the situation.
 extern UINT8 gubLastLoadingScreenID;
 
+extern FLOAT fLoadingScreenAspectRatio;
+
 //returns the UINT8 ID for the specified sector.
 UINT8 GetLoadScreenID( INT16 sSectorX, INT16 sSectorY, INT8 bSectorZ );
 
@@ -106,6 +108,7 @@ typedef struct
 	CHAR8		szNight[MAX_IMAGE_PATH_CHARS];
 	CHAR8		szDayAlt[MAX_IMAGE_PATH_CHARS];
 	CHAR8		szNightAlt[MAX_IMAGE_PATH_CHARS];
+	CHAR8		szImageFormatAlt[MAX_IMAGE_FORMAT_CHARS];
 } SECTOR_LOADSCREENS;
 
 extern SECTOR_LOADSCREENS gSectorLoadscreens[MAX_SECTOR_LOADSCREENS];

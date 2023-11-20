@@ -6084,15 +6084,6 @@ BOOLEAN LoadSavedGame( int ubSavedGameID )
 	//Reset the Ai Timer clock
 	giRTAILastUpdateTime = 0;
 
-	//if we are in tactical
-	if( guiScreenToGotoAfterLoadingSavedGame == GAME_SCREEN )
-	{
-		//Initialize the current panel
-		InitializeCurrentPanel( );
-
-		SelectSoldier( gusSelectedSoldier, FALSE, TRUE );
-	}
-
 	uiRelEndPerc += 1;
 	SetRelativeStartAndEndPercentage( 0, uiRelStartPerc, uiRelEndPerc, L"Final Checks..." );
 	RenderProgressBar( 0, 100 );
@@ -6212,6 +6203,16 @@ BOOLEAN LoadSavedGame( int ubSavedGameID )
 	RenderProgressBar( 0, 100 );
 
 	RemoveLoadingScreenProgressBar();
+
+	//if we are in tactical
+	if (guiScreenToGotoAfterLoadingSavedGame == GAME_SCREEN)
+	{
+		//Initialize the current panel
+		InitializeCurrentPanel();
+
+		SelectSoldier(gusSelectedSoldier, FALSE, TRUE);
+	}
+
 
 	//if( SaveGameHeader.fWorldLoaded )
 	//{

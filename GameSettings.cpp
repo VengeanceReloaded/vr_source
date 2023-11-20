@@ -130,6 +130,11 @@ bool UsingNewCTHSystem()
 	return (gGameOptions.fUseNCTH == TRUE);
 }
 
+BOOLEAN UsingFoodSystem()
+{
+	return gGameOptions.fFoodSystem;
+}
+
 BOOLEAN UsingNewVisionSystem()
 {
 	return gGameSettings.fOptions[TOPTION_NEW_VISION];

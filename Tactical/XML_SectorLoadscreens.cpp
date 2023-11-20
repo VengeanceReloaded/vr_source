@@ -228,6 +228,25 @@ sectorLoadscreensEndElementHandle(void *userData, const XML_Char *name)
 				//DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("itemEndElementHandle: szNightAlt[%d] = %s, temp = %s",i,&pData->curSectorLoadscreens.szNightAlt[i],&temp));
 			}
 		}
+		else if (strcmp(name, "szImageFormatAlt") == 0)
+		{
+			pData->curElement = ELEMENT;
+
+			if (MAX_IMAGE_FORMAT_CHARS >= strlen(pData->szCharData))
+				strcpy(pData->curSectorLoadscreens.szImageFormatAlt, pData->szCharData);
+			else
+			{
+				strncpy(pData->curSectorLoadscreens.szImageFormatAlt, pData->szCharData, MAX_IMAGE_FORMAT_CHARS);
+				pData->curSectorLoadscreens.szImageFormatAlt[MAX_IMAGE_FORMAT_CHARS - 1] = '\0';
+			}
+
+			for (int i = 0; i < min((int)strlen(pData->szCharData), MAX_IMAGE_FORMAT_CHARS); i++)
+			{
+				temp = pData->szCharData[i];
+				pData->curSectorLoadscreens.szImageFormatAlt[i] = temp;
+				//DebugMsg (TOPIC_JA2,DBG_LEVEL_3,String("itemEndElementHandle: szImageFormatAlt[%d] = %s, temp = %s",i,&pData->curSectorLoadscreens.szImageFormatAlt[i],&temp));
+			}
+		}
 
 		pData->maxReadDepth--;
 	}

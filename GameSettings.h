@@ -250,6 +250,7 @@ typedef struct
 bool UsingNewInventorySystem();
 bool UsingNewAttachmentSystem();
 bool UsingNewCTHSystem();
+BOOLEAN UsingFoodSystem();
 BOOLEAN UsingNewVisionSystem();
 BOOLEAN IsNIVModeValid(bool checkRes = true);
 
