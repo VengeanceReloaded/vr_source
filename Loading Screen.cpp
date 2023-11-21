@@ -517,39 +517,65 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 			fLoadingScreenAspectRatio = (FLOAT)hVSurface->usWidth / (FLOAT)hVSurface->usHeight;
 			FLOAT fScreenAspectRatio = (FLOAT)SCREEN_WIDTH / (FLOAT)SCREEN_HEIGHT;
 
-			if (gGameExternalOptions.ubLoadscreenStretchMode == 1 ||
-				(gGameExternalOptions.ubLoadscreenStretchMode == 2 && fLoadingScreenAspectRatio > fScreenAspectRatio))
+			if (gGameExternalOptions.ubLoadscreenStretchMode == 1) 
 			{
-				FLOAT fImageAspectRatio = (float)hVSurface->usWidth / (float)hVSurface->usHeight;
-
-				if (fImageAspectRatio > fScreenAspectRatio)
+				if (fLoadingScreenAspectRatio > fScreenAspectRatio) 
 				{
-					FLOAT fCropWidth = (float)hVSurface->usHeight * fScreenAspectRatio;
+					FLOAT fCropWidth = (FLOAT)hVSurface->usHeight * fScreenAspectRatio;
 					SrcRect.iLeft = (hVSurface->usWidth - (INT32)fCropWidth) / 2;
 					SrcRect.iRight = SrcRect.iLeft + (INT32)fCropWidth;
 					SrcRect.iTop = 0;
 					SrcRect.iBottom = hVSurface->usHeight;
-				}
-				else if (fImageAspectRatio < fScreenAspectRatio)
-				{
-					FLOAT fCropHeight = (float)hVSurface->usWidth / fScreenAspectRatio;
-					SrcRect.iTop = (hVSurface->usHeight - (INT32)fCropHeight) / 2;
-					SrcRect.iBottom = SrcRect.iTop + (INT32)fCropHeight;
-					SrcRect.iLeft = 0;
-					SrcRect.iRight = hVSurface->usWidth;
+
+					DstRect.iLeft = 0;
+					DstRect.iTop = 0;
+					DstRect.iRight = SCREEN_WIDTH;
+					DstRect.iBottom = SCREEN_HEIGHT;
 				}
 				else 
 				{
 					SrcRect.iLeft = 0;
-					SrcRect.iTop = 0;
 					SrcRect.iRight = hVSurface->usWidth;
+					SrcRect.iTop = 0;
 					SrcRect.iBottom = hVSurface->usHeight;
+
+					INT32 newWidth = (INT32)(SCREEN_HEIGHT * fLoadingScreenAspectRatio);
+					DstRect.iLeft = (SCREEN_WIDTH - newWidth) / 2;
+					DstRect.iRight = DstRect.iLeft + newWidth;
+					DstRect.iTop = 0;
+					DstRect.iBottom = SCREEN_HEIGHT;
+
+				}
+			}
+			else if (gGameExternalOptions.ubLoadscreenStretchMode == 2) 
+			{
+				if (fLoadingScreenAspectRatio < fScreenAspectRatio) 
+				{
+					FLOAT cropHeight = (FLOAT)hVSurface->usWidth / fScreenAspectRatio;
+					SrcRect.iTop = (hVSurface->usHeight - (INT32)cropHeight) / 2;
+					SrcRect.iBottom = SrcRect.iTop + (INT32)cropHeight;
+					SrcRect.iLeft = 0;
+					SrcRect.iRight = hVSurface->usWidth;
+
+					DstRect.iLeft = 0;
+					DstRect.iTop = 0;
+					DstRect.iRight = SCREEN_WIDTH;
+					DstRect.iBottom = SCREEN_HEIGHT;
+				}
+				else 
+				{
+					SrcRect.iTop = 0;
+					SrcRect.iBottom = hVSurface->usHeight;
+					SrcRect.iLeft = 0;
+					SrcRect.iRight = hVSurface->usWidth;
+
+					INT32 newHeight = (INT32)(SCREEN_WIDTH / fLoadingScreenAspectRatio);
+					DstRect.iLeft = 0;
+					DstRect.iRight = 0;
+					DstRect.iTop = (SCREEN_HEIGHT - newHeight) / 2;
+					DstRect.iBottom = DstRect.iTop + newHeight;
 				}
 
-				DstRect.iLeft = 0;
-				DstRect.iTop = 0;
-				DstRect.iRight = SCREEN_WIDTH;
-				DstRect.iBottom = SCREEN_HEIGHT;
 			}
 			else
 			{
