@@ -104,6 +104,26 @@ CHAR8 *szMusicList[NUM_MUSIC]=
 	"MUSIC\\nothing X",
 	"MUSIC\\nothing Y",
 	"MUSIC\\nothing Z",
+	"MUSIC\\nothing Z1",
+	"MUSIC\\nothing Z2",
+	"MUSIC\\nothing Z3",
+	"MUSIC\\nothing Z4",
+	"MUSIC\\nothing Z5",
+	"MUSIC\\nothing Z6",
+	"MUSIC\\nothing Z7",
+	"MUSIC\\nothing Z8",
+	"MUSIC\\nothing Z9",
+	"MUSIC\\nothing Z10",
+	"MUSIC\\nothing Z11",
+	"MUSIC\\nothing Z12",
+	"MUSIC\\nothing Z13",
+	"MUSIC\\nothing Z14",
+	"MUSIC\\nothing Z15",
+	"MUSIC\\nothing Z16",
+	"MUSIC\\nothing Z17",
+	"MUSIC\\nothing Z18",
+	"MUSIC\\nothing Z19",
+	"MUSIC\\nothing Z20",
 	"MUSIC\\tensor A",
 	"MUSIC\\tensor B",
 	"MUSIC\\tensor C",
@@ -901,7 +921,7 @@ static BOOLEAN StartMusicBasedOnMode(void)
 		ubMainMenuTracks = GetAmountOfTracksBetween(MENUMIX_MUSIC, MENUMIX_D_MUSIC);
 		ubLaptopTracks = GetAmountOfTracksBetween(MARIMBAD2_MUSIC, MARIMBAD2_H_MUSIC);
 		ubCreditsTracks = GetAmountOfTracksBetween(CREDITS_MUSIC, CREDITS_MUSIC_D);
-		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_Z_MUSIC);
+		ubNothingTracks = GetAmountOfTracksBetween(NOTHING_A_MUSIC, NOTHING_Z20_MUSIC);
 		ubEnemyTracks = GetAmountOfTracksBetween(TENSOR_A_MUSIC, TENSOR_Z_MUSIC);
 		ubBattleTracks = GetAmountOfTracksBetween(BATTLE_A_MUSIC, BATTLE_Z_MUSIC);
 		ubCreepyEnemyTracks = GetAmountOfTracksBetween(CREEPY_MUSIC, CREEPY_MUSIC_D);
