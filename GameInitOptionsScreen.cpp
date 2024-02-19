@@ -4175,31 +4175,31 @@ BOOLEAN		EnterGIOScreen()
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	// NCTH ON/OFF SETTING
 
-	//guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ] = 	UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
-	//guiNCTHOptionToggles[ GIO_BUTTON_OFF ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ], gzGIOScreenText[ GIO_DROPALL_OFF_TEXT ], GIO_TOGGLE_TEXT_FONT,
-	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
-	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
-	//												TEXT_CJUSTIFIED,
-	//												(GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
-	//												DEFAULT_MOVE_CALLBACK, BtnGIONCTHOffCallback);
+	guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ] = 	UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
+	guiNCTHOptionToggles[ GIO_BUTTON_OFF ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_OFF ], gzGIOScreenText[ GIO_DROPALL_OFF_TEXT ], GIO_TOGGLE_TEXT_FONT,
+													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+													TEXT_CJUSTIFIED,
+													(GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
+													DEFAULT_MOVE_CALLBACK, BtnGIONCTHOffCallback);
 
-	//guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ] = UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
-	//guiNCTHOptionToggles[ GIO_BUTTON_ON ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ],  gzGIOScreenText[ GIO_DROPALL_ON_TEXT ], GIO_TOGGLE_TEXT_FONT,
-	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
-	//												GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
-	//												TEXT_CJUSTIFIED,
-	//												(GIO_NCTH_SETTING_X + 74), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
-	//												DEFAULT_MOVE_CALLBACK, BtnGIONCTHOnCallback );
+	guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ] = UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
+	guiNCTHOptionToggles[ GIO_BUTTON_ON ] =	CreateIconAndTextButton( guiNCTHOptionTogglesImage[ GIO_BUTTON_ON ],  gzGIOScreenText[ GIO_DROPALL_ON_TEXT ], GIO_TOGGLE_TEXT_FONT,
+													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
+													TEXT_CJUSTIFIED,
+													(GIO_NCTH_SETTING_X + 74), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
+													DEFAULT_MOVE_CALLBACK, BtnGIONCTHOnCallback );
 
-	//SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_OFF ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
-	//SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_ON ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
-	//MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_OFF ],0, 0 );
-	//MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_ON ],0, 1 );
+	SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_OFF ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
+	SpecifyButtonSoundScheme( guiNCTHOptionToggles[ GIO_BUTTON_ON ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
+	MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_OFF ],0, 0 );
+	MSYS_SetBtnUserData(guiNCTHOptionToggles[ GIO_BUTTON_ON ],0, 1 );
 
-	//if( gGameOptions.fUseNCTH )
-	//	ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_ON ] ]->uiFlags |= BUTTON_CLICKED_ON;
-	//else
-	//	ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_OFF ] ]->uiFlags |= BUTTON_CLICKED_ON;	
+	if( gGameOptions.fUseNCTH )
+		ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_ON ] ]->uiFlags |= BUTTON_CLICKED_ON;
+	else
+		ButtonList[ guiNCTHOptionToggles[ GIO_BUTTON_OFF ] ]->uiFlags |= BUTTON_CLICKED_ON;	
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	// anv: VR - DIE HARD MODE
@@ -4209,7 +4209,7 @@ BOOLEAN		EnterGIOScreen()
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													TEXT_CJUSTIFIED,
-													(GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
+													(GIO_IIS_SETTING_X), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
 													DEFAULT_MOVE_CALLBACK, BtnGIODieHardModeOffCallback);
 
 	guiDieHardModeTogglesImage[ GIO_BUTTON_ON ] = UseLoadedButtonImage( guiTraitsOptionTogglesImage[ GIO_TRAITS_OLD ], -1,1,-1,3,-1 );
@@ -4217,7 +4217,7 @@ BOOLEAN		EnterGIOScreen()
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													GIO_TOGGLE_TEXT_COLOR, NO_SHADOW,
 													TEXT_CJUSTIFIED,
-													(GIO_NCTH_SETTING_X + 74), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
+													(GIO_IIS_SETTING_X + 74), (GIO_NCTH_SETTING_Y + 10), BUTTON_TOGGLE, MSYS_PRIORITY_HIGH,
 													DEFAULT_MOVE_CALLBACK, BtnGIODieHardModeOnCallback );
 
 	SpecifyButtonSoundScheme( guiDieHardModeToggles[ GIO_BUTTON_OFF ], BUTTON_SOUND_SCHEME_BIGSWITCH3 );
@@ -5200,7 +5200,7 @@ void BtnGIODieHardModeOffCallback(GUI_BUTTON *btn,INT32 reason)
 
 	if( reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
 	{
-		RestoreExternBackgroundRect( (GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), 230, 40 );
+		RestoreExternBackgroundRect( (GIO_IIS_SETTING_X), (GIO_NCTH_SETTING_Y + 10), 230, 40 );
 
 		ButtonList[ guiDieHardModeToggles[ GIO_BUTTON_ON ] ]->uiFlags &= ~BUTTON_CLICKED_ON;
 		btn->uiFlags|=(BUTTON_CLICKED_ON);
@@ -5215,7 +5215,7 @@ void BtnGIODieHardModeOnCallback(GUI_BUTTON *btn,INT32 reason)
 
 	if( reason & MSYS_CALLBACK_REASON_LBUTTON_DWN )
 	{
-		RestoreExternBackgroundRect( (GIO_NCTH_SETTING_X), (GIO_NCTH_SETTING_Y + 10), 230, 40 );
+		RestoreExternBackgroundRect( (GIO_IIS_SETTING_X), (GIO_NCTH_SETTING_Y + 10), 230, 40 );
 
 		ButtonList[ guiDieHardModeToggles[ GIO_BUTTON_OFF ] ]->uiFlags &= ~BUTTON_CLICKED_ON;
 		btn->uiFlags|=(BUTTON_CLICKED_ON);
@@ -5433,12 +5433,12 @@ BOOLEAN		ExitGIOScreen()
 	}
 	
 	// Destroy NCTH Cost setting buttons
-	//for( cnt=0; cnt<GIO_NUM_ONOFF_BUTTONS; cnt++)
-	//{
-	//	RemoveButton( guiNCTHOptionToggles[ cnt ] );
-	//	UnloadButtonImage( guiNCTHOptionTogglesImage[ cnt ] );
-	//}
-	//
+	for( cnt=0; cnt<GIO_NUM_ONOFF_BUTTONS; cnt++)
+	{
+		RemoveButton( guiNCTHOptionToggles[ cnt ] );
+		UnloadButtonImage( guiNCTHOptionTogglesImage[ cnt ] );
+	}
+	
 	// anv: VR - Destroy Die Hard mode setting buttons
 	for( cnt=0; cnt<GIO_NUM_ONOFF_BUTTONS; cnt++)
 	{
@@ -5646,9 +5646,9 @@ BOOLEAN		RenderGIOScreen()
 	DisplayWrappedString( (UINT16)(GIO_SQUAD_SIZE_SETTING_X+GIO_OFFSET_TO_TEXT + 1), (GIO_SQUAD_SIZE_SETTING_Y+6), GIO_SQUAD_SIZE_SETTING_WIDTH, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ iCurrentSquadSize + (GIO_SQUAD_SIZE_TITLE_TEXT + 1) ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 
 	//Display the NCTH Settings Title Text
-	//DisplayWrappedString( (GIO_NCTH_SETTING_X - 6), (UINT16)(GIO_NCTH_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_NCTH_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_NCTH_TITLE_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+	DisplayWrappedString( (GIO_NCTH_SETTING_X - 6), (UINT16)(GIO_NCTH_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_NCTH_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_NCTH_TITLE_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	// anv: VR - Die Hard Mode
-	DisplayWrappedString( (GIO_NCTH_SETTING_X - 6), (UINT16)(GIO_NCTH_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_NCTH_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_DIE_HARD_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
+	DisplayWrappedString( (GIO_IIS_SETTING_X - 6), (UINT16)(GIO_NCTH_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_NCTH_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_DIE_HARD_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	//Display the Improved Interrupt System Settings Title Text
 	DisplayWrappedString( (GIO_IIS_SETTING_X - 6), (UINT16)(GIO_IIS_SETTING_Y-GIO_GAP_BN_SETTINGS + GIO_TITLE_DISTANCE), GIO_IIS_SETTING_WIDTH + 14, 2, GIO_TOGGLE_TEXT_FONT, GIO_TOGGLE_TEXT_COLOR, gzGIOScreenText[ GIO_IIS_TITLE_TEXT ], FONT_MCOLOR_BLACK, FALSE, CENTER_JUSTIFIED );
 	//Display the Weapon Overheating Settings Title Text
