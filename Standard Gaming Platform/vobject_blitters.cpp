@@ -104,6 +104,97 @@ BOOLEAN Blt32BPPTo16BPPTrans(UINT16 *pDest, UINT32 uiDestPitch, UINT32 *pSrc, UI
 	return ( TRUE );
 }
 
+BOOLEAN Blt32BPPTo16BPPTransClip(UINT16 *pDest, UINT32 uiDestPitch, UINT32 *pSrc, UINT32 uiSrcPitch, 
+	INT32 iDestXPos, INT32 iDestYPos, INT32 iSrcXPos, INT32 iSrcYPos, UINT32 uiWidth, UINT32 uiHeight, SGPRect *clipregion)
+{
+	UINT32 *pSrcPtr;
+	UINT16 *pDestPtr;
+	UINT32 uiLineSkipDest, uiLineSkipSrc;
+
+	Assert(pDest != NULL);
+	Assert(pSrc != NULL);
+	Assert(clipregion != NULL);
+
+	if (iDestXPos < clipregion->iLeft) 
+	{
+		INT32 diff = clipregion->iLeft - iDestXPos;
+		uiWidth -= diff;
+		iSrcXPos += diff;
+		iDestXPos = clipregion->iLeft;
+	}
+
+	if (iDestYPos < clipregion->iTop) 
+	{
+		INT32 diff = clipregion->iTop - iDestYPos;
+		uiHeight -= diff;
+		iSrcYPos += diff;
+		iDestYPos = clipregion->iTop;
+	}
+
+	if (iDestXPos + uiWidth > clipregion->iRight + 1) 
+	{
+		uiWidth = clipregion->iRight - iDestXPos + 1;
+	}
+
+	if (iDestYPos + uiHeight > clipregion->iBottom + 1) 
+	{
+		uiHeight = clipregion->iBottom - iDestYPos + 1;
+	}
+
+	if (uiWidth <= 0 || uiHeight <= 0) 
+	{
+		return FALSE;
+	}
+
+	pSrcPtr = (UINT32 *)((UINT8 *)pSrc + (iSrcYPos * uiSrcPitch) + (iSrcXPos * 4));
+	uiLineSkipSrc = uiSrcPitch - (uiWidth * 4);
+
+	pDestPtr = (UINT16 *)((UINT8 *)pDest + (iDestYPos * uiDestPitch) + (iDestXPos * 2));
+	uiLineSkipDest = uiDestPitch - (uiWidth * 2);
+
+	UINT8 alpha, dst_channel, src_channel;
+	UINT8 red, green, blue;
+	for (UINT32 y = 0; y < uiHeight; y++) 
+	{
+		for (UINT32 x = 0; x < uiWidth; x++) 
+		{
+			// a
+			alpha = (UINT8)((0xFF000000 & *pSrcPtr) >> 24);
+			//alpha = 255;
+			if (alpha > 0) 
+			{
+				// r
+				dst_channel = (UINT8)((0x1F & *pDestPtr) << 3);
+				src_channel = (UINT8)((0xFF & *pSrcPtr));
+				red = (UINT8)(g_AlphaTimesValueCache[255 - alpha][dst_channel] + g_AlphaTimesValueCache[alpha][src_channel]);
+				//red = (UINT8)( g_AlphaTimesValueCache[alpha][src_channel] );
+
+				// g
+				dst_channel = (UINT8)((0x7E0 & *pDestPtr) >> 3);
+				src_channel = (UINT8)((0xFF00 & *pSrcPtr) >> 8);
+				green = (UINT8)(g_AlphaTimesValueCache[255 - alpha][dst_channel] + g_AlphaTimesValueCache[alpha][src_channel]);
+				//green = (UINT8)( g_AlphaTimesValueCache[alpha][src_channel] );
+
+				// b
+				dst_channel = (UINT8)((0xF800 & *pDestPtr) >> 8);
+				src_channel = (UINT8)((0xFF0000 & *pSrcPtr) >> 16);
+				blue = (UINT8)(g_AlphaTimesValueCache[255 - alpha][dst_channel] + g_AlphaTimesValueCache[alpha][src_channel]);
+				//blue = (UINT8)( g_AlphaTimesValueCache[alpha][src_channel] );
+
+
+				UINT32 newcolor = FROMRGB(red, green, blue);
+				*pDestPtr = Get16BPPColor(newcolor);
+			}
+			++pSrcPtr;
+			++pDestPtr;
+		}
+		pSrcPtr = (UINT32 *)((UINT8 *)pSrcPtr + uiLineSkipSrc);
+		pDestPtr = (UINT16 *)((UINT8 *)pDestPtr + uiLineSkipDest);
+	}
+
+	return (TRUE);
+}
+
 BOOLEAN Blt32BPPTo16BPPTransShadow(UINT16 *pDst, UINT32 uiDstPitch, UINT32 *pSrc, UINT32 uiSrcPitch, INT32 iDstXPos, INT32 iDstYPos, INT32 iSrcXPos, INT32 iSrcYPos, UINT32 uiWidth, UINT32 uiHeight)
 {
 	UINT32 *pSrcPtr;

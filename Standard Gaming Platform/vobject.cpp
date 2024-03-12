@@ -935,10 +935,21 @@ BOOLEAN BltVideoObjectToBuffer( UINT16 *pBuffer, UINT32 uiDestPitchBYTES, HVOBJE
 					0, 0, image->usWidth, image->usHeight,
 					0 ); 
 #else
-				Blt32BPPTo16BPPTrans( pBuffer, uiDestPitchBYTES, 
-					(UINT32*)image->p16BPPData, image->usWidth * sizeof(UINT32),
-					iDestX, iDestY, 
-					0, 0, image->usWidth, image->usHeight); 
+				if (fBltFlags & VO_BLT_CLIP)
+				{
+					Blt32BPPTo16BPPTransClip(pBuffer, uiDestPitchBYTES,
+						(UINT32*)image->p16BPPData, image->usWidth * sizeof(UINT32),
+						iDestX, iDestY,
+						0, 0, image->usWidth, image->usHeight, &ClippingRect);
+				}
+				else
+				{
+					Blt32BPPTo16BPPTrans(pBuffer, uiDestPitchBYTES,
+						(UINT32*)image->p16BPPData, image->usWidth * sizeof(UINT32),
+						iDestX, iDestY,
+						0, 0, image->usWidth, image->usHeight);
+				}
+
 #endif
 				break;
 
