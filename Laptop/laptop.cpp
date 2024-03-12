@@ -958,7 +958,14 @@ INT32 EnterLaptop()
 
 	// load the laptop graphic and add it
 	VObjectDesc.fCreateFlags=VOBJECT_CREATE_FROMFILE;
-	FilenameForBPP("LAPTOP\\laptop3.sti", VObjectDesc.ImageFile);
+	if (FileExists("LAPTOP\\laptop3.png"))
+	{
+		FilenameForBPP("LAPTOP\\laptop3.png", VObjectDesc.ImageFile);
+	}
+	else
+	{
+		FilenameForBPP("LAPTOP\\laptop3.sti", VObjectDesc.ImageFile);
+	}
 	CHECKF(AddVideoObject(&VObjectDesc, &guiLAPTOP));
 
 	// background for panel
@@ -1216,8 +1223,19 @@ RenderLapTopImage()
 	}
 
 	GetVideoObject(&hLapTopHandle, guiLAPTOP);
-	BltVideoObject(FRAME_BUFFER, hLapTopHandle, 0,LAPTOP_X, LAPTOP_Y, VO_BLT_SRCTRANSPARENCY,NULL);
 
+	SGPRect ClipRect, OldClipRect;
+	GetClippingRect(&OldClipRect);
+	ClipRect.iLeft = 0;
+	ClipRect.iTop = 0;
+	ClipRect.iRight = SCREEN_WIDTH;
+	ClipRect.iBottom = SCREEN_HEIGHT;
+	SetClippingRect(&ClipRect);
+	UINT16 usWidth = hLapTopHandle->p16BPPObject != NULL ? hLapTopHandle->p16BPPObject->usWidth : hLapTopHandle->pETRLEObject->usWidth;
+	UINT16 usHeight = hLapTopHandle->p16BPPObject != NULL ? hLapTopHandle->p16BPPObject->usHeight : hLapTopHandle->pETRLEObject->usHeight;
+	BltVideoObject(FRAME_BUFFER, hLapTopHandle, 0, (SCREEN_WIDTH - usWidth) / 2, (SCREEN_HEIGHT - usHeight) / 2,
+		VO_BLT_SRCTRANSPARENCY | VO_BLT_CLIP, NULL);
+	SetClippingRect(&OldClipRect);
 
 	GetVideoObject(&hLapTopHandle, guiLaptopBACKGROUND);
 	BltVideoObject(FRAME_BUFFER, hLapTopHandle, 1,iScreenWidthOffset + 25, iScreenHeightOffset + 23, VO_BLT_SRCTRANSPARENCY,NULL);
