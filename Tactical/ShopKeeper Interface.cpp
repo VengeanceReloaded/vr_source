@@ -6738,7 +6738,14 @@ void ConfirmToDeductMoneyFromPlayersAccountMessageBoxCallBack( UINT8 bExitValue 
 		//Perform the transaction with the extra money from the players account
 		PerformTransaction( iMoneyToDeduct );
 
-		AddTransactionToPlayersBook( PURCHASED_ITEM_FROM_DEALER, armsDealerInfo[ gbSelectedArmsDealerID ].ubShopKeeperID, GetWorldTotalMin(), -iMoneyToDeduct );
+		if (armsDealerInfo[gbSelectedArmsDealerID].ubTypeOfArmsDealer == ARMS_DEALER_REPAIRS)
+		{
+			AddTransactionToPlayersBook(PAID_DEALER_FOR_REPAIRS, armsDealerInfo[gbSelectedArmsDealerID].ubShopKeeperID, GetWorldTotalMin(), -iMoneyToDeduct);
+		}
+		else
+		{
+			AddTransactionToPlayersBook(PURCHASED_ITEM_FROM_DEALER, armsDealerInfo[gbSelectedArmsDealerID].ubShopKeeperID, GetWorldTotalMin(), -iMoneyToDeduct);
+		}
 	}
 
 	// done, re-enable calls to PerformTransaction()

@@ -3881,7 +3881,8 @@ STR16 pTransactionText[] =
 	L"Sprzedano rzecz(y) miejscowym",
 	L"Wykorzystanie Placówki", // HEADROCK HAM 3.6	
 	L"Utrzymanie Samoobr.", // HEADROCK HAM 3.6
-	L"Ransom for released prisoners",	// Flugente: prisoner system TODO.Translate
+	L"Okup za uwolnionych jeńców",	// Flugente: prisoner system TODO.Translate
+	L"Naprawy u - %s.",	//is used for the Shop keeper interface (repairs only). The dealers name will be appended to the end of the string.
 };
 
 STR16 pTransactionAlternateText[] =

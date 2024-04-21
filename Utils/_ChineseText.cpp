@@ -3875,6 +3875,7 @@ STR16 pTransactionText[] =
 	L"工厂使用", // L"Facility Use", // HEADROCK HAM 3.6
 	L"民兵保养", // L"Militia upkeep", // HEADROCK HAM 3.6
 	L"释放俘虏所需的赎金", //L"Ransom for released prisoners",
+	L"已付款由%s修理的物品。",	//is used for the Shop keeper interface (repairs only). The dealers name will be appended to the end of the string.
 };
 
 STR16 pTransactionAlternateText[] =

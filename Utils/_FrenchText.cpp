@@ -3879,6 +3879,7 @@ STR16 pTransactionText[] =
 	L"Infrastucture utilisée", // HEADROCK HAM 3.6
 	L"Entretien de la milice", // HEADROCK HAM 3.6
 	L"Argent des prisonniers libérés",	// Flugente: prisoner system
+	L"Réparations payées à %s.",	//is used for the Shop keeper interface (repairs only). The dealers name will be appended to the end of the string.
 };
 
 STR16 pTransactionAlternateText[] =

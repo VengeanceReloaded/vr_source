@@ -1568,6 +1568,10 @@ void ProcessTransactionString(STR16 pString, FinanceUnitPtr pFinance)
 			swprintf(pString, pTransactionText[ PURCHASED_ITEM_FROM_DEALER ],	gMercProfiles[ pFinance->ubSecondCode ].zNickname );
 			break;
 
+		case( PAID_DEALER_FOR_REPAIRS ):
+			swprintf(pString, pTransactionText[ PAID_DEALER_FOR_REPAIRS ], gMercProfiles[pFinance->ubSecondCode].zNickname);
+			break;
+
 		case( MERC_DEPOSITED_MONEY_TO_PLAYER_ACCOUNT ):
 			swprintf(pString, pTransactionText[ MERC_DEPOSITED_MONEY_TO_PLAYER_ACCOUNT ],	gMercProfiles[ pFinance->ubSecondCode ].zNickname );
 			break;

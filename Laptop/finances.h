@@ -54,6 +54,7 @@ enum
 	FACILITY_OPERATIONS, // HEADROCK HAM 3.6: Facility costs (daily payment)
 	MILITIA_UPKEEP, // HEADROCK HAM 3.6: Militia Upkeep Costs (daily payment)
 	PRISONER_RANSOM,		// Flugente: ransom for released prisoners
+	PAID_DEALER_FOR_REPAIRS,
 	TEXT_NUM_FINCANCES
 };
 

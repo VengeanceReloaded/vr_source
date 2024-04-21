@@ -3870,6 +3870,7 @@ STR16 pTransactionText[] =
 	L"Оснащение персонала", // HEADROCK HAM 3.6		//Facility Use
 	L"Содержание ополчения", // HEADROCK HAM 3.6		//Militia upkeep
 	L"Выкуп за освобожденных заключенных",	// Ransom for released prisoners
+	L"Оплачено ремонт предметов %s.",	//is used for the Shop keeper interface (repairs only). The dealers name will be appended to the end of the string.
 };
 
 STR16 pTransactionAlternateText[] =

@@ -3875,6 +3875,7 @@ STR16 pTransactionText[] =
 	L"Facility Use", // HEADROCK HAM 3.6		// TODO.Translate
 	L"Militia upkeep", // HEADROCK HAM 3.6		// TODO.Translate
 	L"Ransom for released prisoners",	// Flugente: prisoner system TODO.Translate
+	L"Items gefixt door %s betaald.",	//is used for the Shop keeper interface (repairs only). The dealers name will be appended to the end of the string.
 };
 
 STR16 pTransactionAlternateText[] =
