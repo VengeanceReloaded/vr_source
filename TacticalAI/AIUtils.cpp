@@ -2267,6 +2267,21 @@ BOOLEAN InGasSpot(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel)
 	return FALSE;
 }
 
+BOOLEAN InWater(SOLDIERTYPE *pSoldier, INT32 sGridNo)
+{
+	CHECKF(pSoldier);
+
+	if (TileIsOutOfBounds(sGridNo))
+		return FALSE;
+
+	if (Water(sGridNo, pSoldier->pathing.bLevel))
+	{
+		return TRUE;
+	}
+
+	return(FALSE);
+}
+
 BOOLEAN InGas(SOLDIERTYPE *pSoldier, INT32 sGridNo)
 {
 	CHECKF(pSoldier);

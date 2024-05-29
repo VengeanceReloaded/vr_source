@@ -1467,6 +1467,10 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 	else if(!TileIsOutOfBounds(pSoldier->sLastTwoLocations[1]))
 		gpWorldLevelData[pSoldier->sLastTwoLocations[1]].uiFlags &= ~(MAPELEMENT_REACHABLE);
 
+	BOOLEAN fCivilian = (PTR_CIVILIAN && (pSoldier->ubCivilianGroup == NON_CIV_GROUP ||
+		(pSoldier->aiData.bNeutral && gTacticalStatus.fCivGroupHostile[pSoldier->ubCivilianGroup] == CIV_GROUP_NEUTRAL) ||
+		(pSoldier->ubBodyType >= FATCIV && pSoldier->ubBodyType <= CRIPPLECIV)));
+
 	for (sYOffset = -sMaxUp; sYOffset <= sMaxDown; sYOffset++)
 	{
 		for (sXOffset = -sMaxLeft; sXOffset <= sMaxRight; sXOffset++)
@@ -1496,6 +1500,12 @@ INT32 FindSpotMaxDistFromOpponents(SOLDIERTYPE *pSoldier)
 				{
 					continue;
 				}
+			}
+
+			// anv: VR - civvies avoid water due to lack of proper cower animations
+			if (fCivilian && InWater(pSoldier, sGridNo))
+			{
+				continue;
 			}
 
 			// exclude locations with tear/mustard gas (at this point, smoke is cool!)

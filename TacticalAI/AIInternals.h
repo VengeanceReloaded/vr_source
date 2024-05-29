@@ -249,6 +249,7 @@ BOOLEAN InGas( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 BOOLEAN InGasOrSmoke( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 BOOLEAN InWaterGasOrSmoke( SOLDIERTYPE *pSoldier, INT32 sGridNo );
 BOOLEAN InGasSpot(SOLDIERTYPE *pSoldier, INT32 sGridNo, INT8 bLevel);
+BOOLEAN InWater(SOLDIERTYPE *pSoldier, INT32 sGridNo);
 
 INT32 InternalGoAsFarAsPossibleTowards(SOLDIERTYPE *pSoldier, INT32 sDesGrid, INT16 bReserveAPs, INT8 bAction, INT8 fFlags );
 
