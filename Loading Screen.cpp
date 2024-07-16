@@ -486,13 +486,15 @@ void DisplayLoadScreenWithID( UINT8 ubLoadScreenID )
 
 		if (LOADINGSCREEN_NOTHING <= ubLoadScreenID && ubLoadScreenID <= LOADINGSCREEN_NIGHTBALIME)
 		{
-			BuildLoadscreenFilename(strImage, LoadScreenNames[ubLoadScreenID], 0, "sti");
+			strImage.append(LoadScreenNames[ubLoadScreenID]);
 		}
 		else
 		{
 			// for some reason the heli screen is the default
-			BuildLoadscreenFilename(strImage, LoadScreenNames[0], 0, "sti");
+			strImage.append(LoadScreenNames[0]);
 		}
+		strImage = FindBestFittingLoadscreenFilename(strImage, (SCREEN_RESOLUTION)iResolution);
+
 		strImage.copy(vs_desc.ImageFile, sizeof(vs_desc.ImageFile)-1);
 	}
 
