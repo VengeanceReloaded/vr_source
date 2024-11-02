@@ -1696,7 +1696,10 @@ void AddPossiblePendingEnemiesToBattle()
 		else
 		{
 			// The group has no movement orders.  Where did it come from?
-			Assert(0);
+			//Assert(0);
+			// anv: VR - quickfix? treat it like an empty group
+			pGroupInSectorList[ubGroupIndex] = pGroupInSectorList[--ubNumGroupsInSector];
+			continue;
 		}
 
 		if( pGroup->pEnemyGroup->ubElitesInBattle < pGroup->pEnemyGroup->ubNumElites )
