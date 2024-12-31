@@ -31,7 +31,7 @@
 	#elif defined (JA113DEMO)
 		CHAR16 zVersionLabel[256]		= { L"Debug: Jagged Alliance 2 Demo - v1.13.7609 (2014 Official Release)" }; 
 	#else
-		CHAR16 zVersionLabel[256]		= { L"Debug: JA2 Vengeance: Reloaded 1.13.7609+ (The Wanton Winter)" }; 
+		CHAR16 zVersionLabel[256]		= { L"Debug: JA2 Vengeance: Reloaded 1.13.7609+ (The Brainrot Barrage)" }; 
 	#endif
 
 #elif defined CRIPPLED_VERSION
@@ -50,7 +50,7 @@
 	#elif defined (JA113DEMO)
 		CHAR16		zVersionLabel[256]		= { L"Jagged Alliance 2 Demo - v1.13.7609 (2014 Official Release)" };
 	#else
-		CHAR16		zVersionLabel[256]		= { L"JA2 Vengeance: Reloaded 1.13.7609+ (The Wanton Winter)" };
+		CHAR16		zVersionLabel[256]		= { L"JA2 Vengeance: Reloaded 1.13.7609+ (The Brainrot Barrage)" };
 	#endif
 
 #endif
