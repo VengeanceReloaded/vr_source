@@ -674,7 +674,7 @@ STR16 iEditorOptionsToolbarText[]=
 	L"退出编辑模式", //L"Leave Editor mode",
 	L"退出游戏(|A|l|t+|X)", //L"Exit game (|A|l|t+|X)",
 	L"编辑雷达图", //L"Create radar map",
-	L"是否按照原版JA2的地图格式保存 Items with ID > 350 will be lost. \n该选项只对原版大小的地图有效，地图格数不应超过25600个", //L"When checked, the map will be saved in original JA2 map format.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",	// TODO.Translate
+	L"是否按照原版JA2的地图格式保存 Items with ID > 350 will be lost. \n该选项只对原版大小的地图有效，地图格数不应超过25600个", //L"When checked, the map will be saved in original JA2 map format. Items with ID > 350 will be lost.\nThis option is only valid on 'normal' size maps that do not reference grid numbers (e.g: exit grids) > 25600.",
 	L"是否自动根据选择的行列数多少来放大地图", //L"When checked and you load a map, the map will be enlarged automatically depending on the selected Rows and Cols.",
 };
 
@@ -707,9 +707,9 @@ STR16 iEditorTaskbarInternalText[]=
 	L"\n|./|,:切换width:xx选项大小\n \n|P|g|U|p/|P|g|D|n:智能模式选择前/后一个模板", //Terrain fasthelp text //L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method",
 	L"\n|./|,:切换width:xx选项大小\n \n|P|g|U|p/|P|g|D|n:智能模式选择前/后一个模板", //Buildings fasthelp text //L"|./|,: Cycle 'width: xx' dimensions\n|P|g |U|p/|P|g |D|n: Previous/Next tile for selected object(s)/in smart method",
 	L"|S|p|a|c|e: 选择后一个物品\n|C|t|r|l+|S|p|a|c|e: 选择前一个物品\n \n|/:光标下放置同样物品\n|C|t|r|l+|/:光标处放置新物品", //Items fasthelp text //L"|S|p|a|c|e: Select next item\n|C|t|r|l+|S|p|a|c|e: Select previous item\n \n|/: Place same item under mouse cursor\n|C|t|r|l+|/: Place new item under mouse cursor",
-	L"|1-|9:设置路标 \n|C|t|r|l+|C/|C|t|r|l+|V:复制/粘贴佣兵\n|P|g |U|p/|P|g |D|n: Toggle merc placement level", //Mercs fasthelp text L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc\n|P|g |U|p/|P|g |D|n: Toggle merc placement level",	// TODO.Translate
-	L"|C|t|r|l+|G:转到某格\n|S|h|i|f|t: Scroll beyond map boundary\n \n(|t|i|l|d|e): Toggle cursor level\n|I:查看小地图\n|J:切换房顶绘制\n|K:显示房顶标记\n|S|h|i|f|t+|L:显示地图边界\n|S|h|i|f|t+|T:显示树顶\n|U:切换地图高度\n \n|./|,:切换width:xx选项大小", //Map Info fasthelp text //L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n(|t|i|l|d|e): Toggle cursor level\n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions",	// TODO.Translate
-	L"|C|t|r|l+|N:创造新地图\n \n|F|5:显示总信息/大地图\n|F|1|0:移除所有光源\n|F|1|1:取消修改\n|F|1|2:清空所有\n \n|S|h|i|f|t+|R:随机放置选定数量的物品\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version", //Options fasthelp text //L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version",	// 
+	L"|1-|9:设置路标 \n|C|t|r|l+|C/|C|t|r|l+|V:复制/粘贴佣兵\n|P|g |U|p/|P|g |D|n: Toggle merc placement level", //Mercs fasthelp text L"|1-|9: Set waypoints\n|C|t|r|l+|C/|C|t|r|l+|V: Copy/Paste merc\n|P|g |U|p/|P|g |D|n: Toggle merc placement level",
+	L"|C|t|r|l+|G:转到某格\n|S|h|i|f|t: 滚动超出地图边界\n \n(|t|i|l|d|e): 切换光标级别\n|I:查看小地图\n|J:切换房顶绘制\n|K:显示房顶标记\n|S|h|i|f|t+|L:显示地图边界\n|S|h|i|f|t+|T:显示树顶\n|U:切换地图高度\n \n|./|,:切换width:xx选项大小", //Map Info fasthelp text //L"|C|t|r|l+|G: Go to grid no\n|S|h|i|f|t: Scroll beyond map boundary\n \n(|t|i|l|d|e): Toggle cursor level\n|I: Toggle overhead map\n|J: Toggle draw high ground\n|K: Toggle high ground markers\n|S|h|i|f|t+|L: Toggle map edge points\n|S|h|i|f|t+|T: Toggle treetops\n|U: Toggle world raise\n \n|./|,: Cycle 'width: xx' dimensions",
+	L"|C|t|r|l+|N:创造新地图\n \n|F|5:显示总信息/大地图\n|F|1|0:移除所有光源\n|F|1|1:取消修改\n|F|1|2:清空所有\n \n|S|h|i|f|t+|R:随机放置选定数量的物品\n \n命令行选项\n|-|D|O|M|A|P|S: 批量雷达图生成\n|-|D|O|M|A|P|S|C|N|V: 批量雷达图生成和将地图转换为最新版本", //Options fasthelp text //L"|C|t|r|l+|N: Create new map\n \n|F|5: Show Summary Info/Country Map\n|F|1|0: Remove all lights\n|F|1|1: Reverse schedules\n|F|1|2: Clear schedules\n \n|S|h|i|f|t+|R: Toggle random placement based on quantity of selected object(s)\n \nCommand Line options\n|-|D|O|M|A|P|S: Batch radarmap generation\n|-|D|O|M|A|P|S|C|N|V: Batch radarmap generation and covert maps to latest version",
 };
 
 //Editor Taskbar Utils.cpp
@@ -1496,6 +1496,7 @@ STR16 pDisplaySelectionWindowGraphicalInformationText[] =
 	L"文件：%S，副版本：%d(%d，%S)", //L"File: %S, subindex: %d (%d, %S)",
 	L"当前分区： %s", //L"Tileset:  %s",
 };
+
 STR16 pDisplaySelectionWindowButtonText[] =
 {
 	L"确认选择 (|E|n|t|e|r)",
@@ -1863,8 +1864,8 @@ STR16 pAssignmentStrings[] =
 	L"谣言",	// facility: gather information
 	L"造谣",	// spread propaganda
 	L"谣言",	// gather information
-	L"Foreman",	// anv: VR
-	L"Foreman",	// anv: VR
+	L"领班", //L"Foreman",	// anv: VR
+	L"领班", //L"Foreman",	// anv: VR
 };
 
 
@@ -1960,8 +1961,8 @@ STR16 pPersonnelAssignmentStrings[] =
 	L"搜集谣言",			// facility: gather rumours	
 	L"派发传单",	// spread propaganda
 	L"搜集谣言",			// gather information
-	L"Mining Foreman",	// anv: VR
-	L"Drilling Foreman",	// anv: VR
+	L"矿长", //L"Mining Foreman",	// anv: VR
+	L"钻井领班", //L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -2016,8 +2017,8 @@ STR16 pLongAssignmentStrings[] =
 	L"搜集谣言",			// facility: gather rumours	
 	L"派发传单",	// spread propaganda
 	L"搜集谣言",			// gather information
-	L"Mining Foreman",	// anv: VR
-	L"Drilling Foreman",	// anv: VR
+	L"矿长", //L"Mining Foreman",	// anv: VR
+	L"钻井领班", //L"Drilling Foreman",	// anv: VR
 };
 
 
@@ -2206,14 +2207,14 @@ STR16 pTraitSkillsDenialStrings[] =
 	L" - 恶魔的财产", //L" - posession by a demon"
 };
 
-STR16 pSkillMenuStrings[] =	// TODO.Translate
+STR16 pSkillMenuStrings[] =
 {
-	L"Militia",
-	L"Other Squads",
-	L"Cancel",
-	L"%d Militia",
+	L"民兵",
+	L"其他小队",
+	L"取消",
+	L"%d 民兵",
 
-	L"All Militia",
+	L"全部民兵",
 };
 
 STR16 pSnitchMenuStrings[] =
@@ -2289,7 +2290,6 @@ STR16 pSnitchGatheringRumoursResultStrings[] =
 	L"%s听到了在%d分区有敌军活动的谣言。",
 
 };
-
 
 STR16 pRemoveMercStrings[] =
 {
@@ -2501,8 +2501,8 @@ STR16 gzMercSkillTextNew[] =
 	L"无线电操作员",	// 21
 	L"告发",	// 22
 	// new VR minor traits
-	L"Driver",	// 23 // TODO.Translate
-	L"Flyboy",	// 24 // TODO.Translate
+	L"司机",	// 23
+	L"飞行员",	// 24
 
 	// second names for major skills
 	L"机枪手",
@@ -2528,8 +2528,8 @@ STR16 gzMercSkillTextNew[] =
 	L"间谍",				// 42
 	L"Placeholder",		// for radio operator (minor trait)
 	L"Placeholder",		// for snitch (minor trait)
-	L"Placeholder",		// for VR driver(minor trait) // TODO.Translate
-	L"Ace Pilot",		// TODO.Translate
+	L"Placeholder",		// for VR driver(minor trait)
+	L"王牌飞行员",
 	L"更多...",
 	L"多种技能",			// for VARIOUSSKILLS
 };
@@ -2825,6 +2825,7 @@ STR16 gpStrategicString[] =
 
 	// VR: Lion's paratroopers
 	L"空中突击",							//STR_PB_ENEMYPARATROOPERS_HEADER
+
 };
 
 STR16 gpGameClockString[] = 
@@ -2947,7 +2948,7 @@ STR16		gzMiscItemStatsFasthelp[ 35 ] =
 	L"洞穴视距修正",
 	L"隧道视野百分比（越低越好）",
 	L"精瞄加成所需最小距离",
-	L"Hold |C|t|r|l to compare items", // item compare help text // TODO.Translate
+	L"按住|C|t|r|l比较物品", // item compare help text
 };
 
 // HEADROCK: End new tooltip text
@@ -3330,7 +3331,6 @@ CHAR16 TacticalStr[][ MED_STRING_LENGTH ] =
 	L"劝降", //L"Offer surrender",
 	L"交谈",
 
-
     // added by sevenfm: disarm messagebox options, messages when arming wrong bomb
     L"拆除陷阱",
     L"查看陷阱",
@@ -3540,7 +3540,7 @@ STR16 pwTownInfoStrings[] =
 	L"民兵",			// the state of the trained civilians in the town
 	L"巡逻民兵",	// L"Mobile Training",			// HEADROCK HAM 3.6: The stat of Mobile militia training in town
 	L"囚犯",				// Flugente: display number of prisoners
-	L"%d/%d - %dA %dR %dE %dO",		// TODO.Translate	// Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
+	L"%d/%d - %dA %dR %dE %dO",	// Info: Total # of prisoners/capacity - # of Admins # of Regulars # of Elites # of Officers
 };
 
 // Mine strings
@@ -4686,7 +4686,7 @@ STR16			MercInfo[] =
 	L"未结账单", //L"Unsettled Bills",
 	L"生平", //L"Bio",
 	L"物品", //L"Inv",
-	L"Missed In Action", // anv: VR - MIA
+	L"行动中失踪",//L"Missed In Action", // anv: VR - MIA
 };
 
 
@@ -5186,7 +5186,7 @@ STR16			AimPopUpText[] =
 
 	L"预录消息",	//"Pre-recorded message",
 	L"留言已记录",	//"Message recorded",
-	L"Missed In Action", // anv: VR - MIA
+	L"行动中失踪", //L"Missed In Action", // anv: VR - MIA
 };
 
 
@@ -5622,7 +5622,7 @@ STR16		zOptionsToggleText[] =
 	L"显示LBE(携行具)物品",
 	L"反转鼠标滚轮", 					//L"Invert mouse wheel",
 	L"保持佣兵间距",				// when multiple mercs are selected, they will try to keep their relative distances
-	L"New Vision Mode",					// new vision bonus mode
+	L"新视觉模式",					// new vision bonus mode
 	L"--作弊模式选项--",				// TOPTION_CHEAT_MODE_OPTIONS_HEADER,
 	L"强制 Bobby Ray 送货",				// force all pending Bobby Ray shipments
 	L"-----------------",				// TOPTION_CHEAT_MODE_OPTIONS_END
@@ -5738,7 +5738,7 @@ STR16	zOptionsScreenHelpText[] =
 	L"打开时，在区域物品栏界面，右键点击装有物品的携行具时可直接显示包含的物品。",
 	L"打开时，反转鼠标滚轮方向。",
 	L"当选择了多个佣兵，他们在前进时会保持彼此的间距。(|C|t|r|l+|A|l|t+|G)",	// L"When multiple mercs are selected, they will try to keep their relative distances while moving. (|C|t|r|l+|S|h|i|f|t+|G)",
-	L"When ON, disables instant bonus vision from scopes and binocs.\nEnables selectable vision spot.\nEnables focus feature for weapons.",
+	L"开启时，禁用来自瞄准镜和双筒望远镜的即时额外视野。\n启用可选择的视觉点。\n为武器启用对焦功能。", //L"When ON, disables instant bonus vision from scopes and binocs.\nEnables selectable vision spot.\nEnables focus feature for weapons.",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_HEADER",
 	L"强制 Bobby Ray 出货",
 	L"(text not rendered)TOPTION_CHEAT_MODE_OPTIONS_END",
@@ -5844,7 +5844,7 @@ STR16	gzGIOScreenText[] =
 	L"生存模式与食物系统",
 	L"Bobby Ray 供货量",
 
-	L"Die Hard Mode",// anv: VR - Die Hard Mode
+	L"绝地模式", //L"Die Hard Mode", // anv: VR - Die Hard Mode
 };
 
 STR16	gzMPJScreenText[] =
@@ -5870,7 +5870,7 @@ STR16	gzMPJScreenText[] =
 STR16 gzMPJHelpText[] =
 {
 	L"访问 http://webchat.quakenet.org/?channels=ja2-multiplayer 寻找其他玩家.",  //Visit http://webchat.quakenet.org/?channels=ja2-multiplayer to find other players
-	L"您可以按“Y”，打開遊戲中的聊天窗口，之後你一直連接到服務器.",	// TODO.Translate
+	L"您可以按“Y”，打開遊戲中的聊天窗口，之後你一直連接到服務器.",
 	
 	L"HOST",
 	L"输入IP地址，端口号必须大于60000",  //Enter '127.0.0.1' for the IP and the Port number should be greater than 60000.
@@ -6298,7 +6298,6 @@ STR16 pNewNoiseStr[] =
 	L"%s听到%s某人的说话声来自%s.", // anv: report enemy taunt to player
 };
 
-
 STR16 pTauntUnknownVoice[] =
 {
 	L"不明说话声",
@@ -6545,7 +6544,7 @@ STR16 gzLateLocalizedString[] =
 	L"没有找到铁血联盟2光盘，程序即将退出。", //The Jagged Alliance 2 v1.13 PLAY DISK was not found. Program will now exit.
 
 	L"物品组合成功。",
- 
+	
 	//58
 	//Displayed with the version information when cheats are enabled.
 	L"当前/最大进展:  %d%％/%d%％",		//"Current/Max Progress: %d%%/%d%%",//zww
@@ -6560,7 +6559,7 @@ STR16 gzLateLocalizedString[] =
 	L"%s多打了1发子弹！",	//"%s fires %d more round than intended!",
 
 	L"你得先关闭物品信息界面！",
-
+		
 	L"无法快进 - 该分区有敌对的市民和/或血猫。", // 65	//L"Cannot compress time - hostile civilians and/or bloodcats are in this sector.",
 };
 
@@ -7210,7 +7209,8 @@ STR16 gzFacilityErrorMessage[]=
 	L"%s在%s负了重伤。", //<--- This is a log message string.
 	L"现在这里有俘虏能认得出%s。", 
 	L"%s现在是人尽皆知的佣兵告发者。至少需要再等%小时。",
-	L"%s already has a foreman.",// anv: VR
+	L"%s已经有一个领班。", //L"%s already has a foreman.",// anv: VR
+
 
 };
 
@@ -7279,13 +7279,13 @@ STR16 gzFacilityAssignmentStrings[]=
 	L"传播谣言",
 	L"传播谣言",	// spread propaganda (globally)
 	L"搜集谣言",
-	L"Mining Foreman",	// anv: VR
-	L"Drilling Foreman",	// anv: VR
+	L"矿长",	//L"Mining Foreman",	// anv: VR
+	L"钻井领班", //L"Drilling Foreman",	// anv: VR
 };
 STR16 Additional113Text[]=
 {
 	L"Jagged Alliance 2 v1.13 窗口模式需要一个16bpp的颜色深度。",
-	L"Jagged Alliance 2 v1.13 fullscreen mode (%d x %d) is not supported by your primary screen.\nPlease either change the game resolution or use 16bpp windowed mode.",	// TODO.Translate
+	L"“Jagged Alliance 2 v1.13”全屏模式（%d x %d）不受您的主屏幕支持。\n请更改游戏分辨率或使用16bpp窗口模式。",
 	L"存盘文件内部读取错误：存盘文件的“%s”数量跟 Ja2_Options.ini 设置的（$d）不一致。",	//L"Internal error in reading %s slots from Savegame: Number of slots in Savegame (%d) differs from defined slots in ja2_options.ini settings (%d)",	
 	// WANNE: Savegame slots validation against INI file
 	L"佣兵 (MAX_NUMBER_PLAYER_MERCS) / 交通工具 (MAX_NUMBER_PLAYER_VEHICLES)", 
@@ -8197,7 +8197,7 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%％队伍劝降能力\n", //L" %s%d%% team capitulation strength if we lead negotiations\n",
 	L" %s%d%％跑步速度\n", //L" %s%d%% faster running\n", 
 	L" %s%d%％包扎速度\n", //L" %s%d%% bandaging speed\n",
-	L" %s%d%% breath regeneration\n",	// TODO.Translate
+	L" %s%d%% 呼吸恢复\n", //L" %s%d%% breath regeneration\n",
 	L" %s%d%％负重能力\n", //L" %s%d%% strength to carry items\n",
 	L" %s%d%％食物需求\n", //L" %s%d%% food consumption\n",
 	L" %s%d%％饮水需求\n", //L" %s%d%% water consumption\n",
@@ -8221,8 +8221,8 @@ STR16	szBackgroundText_Value[]=
 	L" %s%d%％医疗保证金\n", //L" %s%d%% insurance cost\n",
 	L" %s%d%％发现狙击手的成功率\n",
 
-	L" %s%d%% to mine income when assigned as mining foreman\n",
-	L" %s%d%% to oil rig income when assigned as drilling foreman\n",
+	L" %s%d%%分配给采矿领班时对我的收入\n", //L" %s%d%% to mine income when assigned as mining foreman\n",
+	L" %s%d%%分配给钻井领班时对石油钻塔收入的增加\n", //L" %s%d%% to oil rig income when assigned as drilling foreman\n",
 };
 
 STR16		szBackgroundTitleText[] =
@@ -8265,6 +8265,7 @@ STR16		szPersonalityHelpText[]=
 	L"你是哪个种族？你讨厌所有非本族人。", //L"What is your race? You will be\nracist against all other races.",
 	L"你的性别歧视程度如何？", //L"How sexist are you against the other gender?",
 };
+
 
 STR16		szRaceText[]=
 {
@@ -8435,7 +8436,7 @@ STR16	szCampaignHistoryDetail[]=
 	L"进攻了",
 	L"袭击了",
 	L"空袭了",
-
+		
 	L"敌人从%s攻入。",
 	L"%s获得了来自%s的支援。",
 	L"敌人从%s攻入,%s获得了来自%s的支援。",
@@ -8643,9 +8644,9 @@ STR16 ChineseSpecString12 = L"%s (%s) [%d%％]\n%s %d\n%s %d\n%s %d (%d)\n%s (%d
 STR16 pExtendedPanelStrings[] =
 {
     // Battle stats
-	L"Battle Statistics",
-	L"Personal Info",
-	L"Employment",
+	L"战斗统计数据", //L"Battle Statistics",
+	L"个人信息", //L"Personal Info",
+	L"雇佣", //L"Employment",
 };
 
 #endif //CHINESE
