@@ -668,6 +668,20 @@ UINT16 DetermineCivQuoteEntry( SOLDIERTYPE *pCiv, UINT16 *pubCivHintToUse, BOOLE
 	}
 
 	// anv: VR
+	if (pCiv->ubCivilianGroup == WARDEN_CIV_GROUP)
+	{
+		// Are they friendly?
+		if (pCiv->aiData.bNeutral)
+		{
+			return(CIV_QUOTE_WARDEN_FRIENDLY);
+		}
+		else
+		{
+			return(CIV_QUOTE_WARDEN_ENEMIES);
+		}
+	}
+
+	// anv: VR
 	if (pCiv->ubCivilianGroup == KINGPIN_FORT_CIV_GROUP)
 	{
 		// Are they friendly?
