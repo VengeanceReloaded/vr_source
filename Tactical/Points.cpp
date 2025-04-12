@@ -1030,7 +1030,7 @@ INT32 AdjustBreathPts( SOLDIERTYPE * pSoldier , INT32 iBPCost )
  sBreathFactor += (100 - pSoldier->bBreath);
 
  // adjust breath factor for current life deficiency (but add 1/2 bandaging)
- ubBandaged = pSoldier->stats.bLifeMax - pSoldier->stats.bLife - pSoldier->bBleeding;
+ ubBandaged = max(0, pSoldier->stats.bLifeMax - pSoldier->stats.bLife - pSoldier->bBleeding);
  //sBreathFactor += (pSoldier->stats.bLifeMax - (pSoldier->stats.bLife + (ubBandaged / 2)));
  sBreathFactor += 100 * (pSoldier->stats.bLifeMax - (pSoldier->stats.bLife + (ubBandaged / 2))) / pSoldier->stats.bLifeMax;
 

@@ -9941,7 +9941,7 @@ UINT32 CalcChanceHTH( SOLDIERTYPE * pAttacker,SOLDIERTYPE *pDefender, INT16 ubAi
 	if ((iAttRating > 0) && (pAttacker->stats.bLife < pAttacker->stats.bLifeMax))
 	{
 		// if bandaged, give 1/2 of the bandaged life points back into equation
-		ubBandaged = pAttacker->stats.bLifeMax - pAttacker->stats.bLife - pAttacker->bBleeding;
+		ubBandaged = max(0, pAttacker->stats.bLifeMax - pAttacker->stats.bLife - pAttacker->bBleeding);
 
 		iAttRating -= (2 * iAttRating * (pAttacker->stats.bLifeMax - pAttacker->stats.bLife + (ubBandaged / 2))) / (3 * pAttacker->stats.bLifeMax);
 	}
@@ -10121,7 +10121,7 @@ UINT32 CalcChanceHTH( SOLDIERTYPE * pAttacker,SOLDIERTYPE *pDefender, INT16 ubAi
 	if ((iDefRating > 0) && (pDefender->stats.bLife < pDefender->stats.bLifeMax))
 	{
 		// if bandaged, give 1/2 of the bandaged life points back into equation
-		ubBandaged = pDefender->stats.bLifeMax - pDefender->stats.bLife - pDefender->bBleeding;
+		ubBandaged = max(0, pDefender->stats.bLifeMax - pDefender->stats.bLife - pDefender->bBleeding);
 
 		iDefRating -= (2 * iDefRating * (pDefender->stats.bLifeMax - pDefender->stats.bLife + (ubBandaged / 2))) / (3 * pDefender->stats.bLifeMax);
 	}
