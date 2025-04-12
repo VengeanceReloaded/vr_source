@@ -16915,7 +16915,7 @@ UINT8 GetInventorySleepModifier( SOLDIERTYPE *pSoldier )
 
 void AttachDefaultAttachments(OBJECTTYPE *pObj, BOOLEAN fAllDefaultAttachments)//dnl ch75 261013
 {
-	if(pObj->usItem && gGameOptions.ubAttachmentSystem)
+	if(pObj->usItem)// && gGameOptions.ubAttachmentSystem)
 	{
 		RemoveProhibitedAttachments(NULL, pObj, pObj->usItem);
 		//Madd: ok, so this drives me nuts -- why bother with default attachments if the map isn't going to load them for you?  
