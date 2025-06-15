@@ -365,7 +365,7 @@ STRATEGICEVENT* AddAdvancedStrategicEvent( UINT8 ubEventType, UINT8 ubCallbackID
 {
 	STRATEGICEVENT		*pNode, *pNewNode, *pPrevNode;
 
-	if( gfProcessingGameEvents && uiTimeStamp <= guiTimeStampOfCurrentlyExecutingEvent )
+	if( gfProcessingGameEvents && uiTimeStamp <= guiTimeStampOfCurrentlyExecutingEvent && ubCallbackID != EVENT_GROUP_ARRIVAL)
 	{ //Prevents infinite loops of posting events that are the same time or earlier than the event
 		//currently being processed.
 		#ifdef JA2TESTVERSION
