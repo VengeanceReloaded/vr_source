@@ -4007,6 +4007,19 @@ void GetHelpTextForItemInLaptop( STR16 pzStr, UINT16 usItemNumber )
 			CHAR16		attachStr3[3900];
 			UINT16		usAttachment;
 
+			std::vector<std::wstring> addedNames;
+			addedNames.reserve(32);
+
+			auto WasNameAlreadyAdded = [&](const wchar_t* name) -> bool
+			{
+				for (const auto& s : addedNames)
+				{
+					if (s == name)
+						return true;
+				}
+				return false;
+			};
+
 			CreateItem(usItemNumber, 100, &pObject);
 			INT16		ubAttackAPs = BaseAPsToShootOrStab( APBPConstants[DEFAULT_APS], APBPConstants[DEFAULT_AIMSKILL], &pObject, NULL );
 
@@ -4062,8 +4075,12 @@ void GetHelpTextForItemInLaptop( STR16 pzStr, UINT16 usItemNumber )
 							else
 							{// Add the attachment's name to the list.
 								fAttachmentsFound = TRUE;
-								swprintf( attachStr2, L"\n%s", Item[ usAttachment ].szItemName );
-								wcscat( attachStr3, attachStr2);
+								if (!WasNameAlreadyAdded(Item[usAttachment].szItemName))
+								{
+									swprintf(attachStr2, L"\n%s", Item[usAttachment].szItemName);
+									wcscat(attachStr3, attachStr2);
+									addedNames.emplace_back(Item[usAttachment].szItemName);
+								}
 							}
 						}
 					}
@@ -4087,8 +4104,12 @@ void GetHelpTextForItemInLaptop( STR16 pzStr, UINT16 usItemNumber )
 						else
 						{// Add the attachment's name to the list.
 							fAttachmentsFound = TRUE;
-							swprintf( attachStr2, L"\n%s", Item[ usAttachment ].szItemName );
-							wcscat( attachStr3, attachStr2);
+							if (!WasNameAlreadyAdded(Item[usAttachment].szItemName))
+							{
+								swprintf(attachStr2, L"\n%s", Item[usAttachment].szItemName);
+								wcscat(attachStr3, attachStr2);
+								addedNames.emplace_back(Item[usAttachment].szItemName);
+							}
 						}
 					}
 
