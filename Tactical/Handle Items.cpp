@@ -6893,7 +6893,10 @@ BOOLEAN RemoveFortification( INT32 sGridNo )
 				UINT16 usIndex = pNode->usIndex;
 
 				// Check if we are a sandbag
-				if ( _strnicmp( gTilesets[ giCurrentTilesetID ].TileSurfaceFilenames[ uiTileType ], "sandbag.sti", 11) == 0 )
+				const char* pTileName = gTilesets[ giCurrentTilesetID ].TileSurfaceFilenames[ uiTileType ];
+				if ( !pTileName[0] )
+					pTileName = gTilesets[0].TileSurfaceFilenames[ uiTileType ];
+				if ( _strnicmp( pTileName, "sandbag.sti", 11) == 0 )
 				{
 					// Remove old graphic
 					ApplyMapChangesToMapTempFile( TRUE );
