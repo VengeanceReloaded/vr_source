@@ -3237,7 +3237,14 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 
 			case 770:
 
-				PlayJA2Sample( USE_WIRE_CUTTERS, RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
+				if ( HasItemFlag( pSoldier->inv[HANDPOS].usItem, (FULL_SANDBAG|CONCERTINA) ) )
+					PlayJA2Sample( BUILD_FORTIFICATION, RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
+				else if ( HasItemFlag( pSoldier->inv[HANDPOS].usItem, SHOVEL ) )
+					PlayJA2Sample( REMOVE_FORTIFICATION, RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
+				else if ( HasItemFlag( pSoldier->inv[HANDPOS].usItem, EMPTY_SANDBAG ) )
+					PlayJA2Sample( FILL_SANDBAG, RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
+				else
+					PlayJA2Sample( USE_WIRE_CUTTERS, RATE_11025, HIGHVOLUME, 1, MIDDLEPAN );
 				break;
 
 			case 771:
@@ -3362,8 +3369,9 @@ BOOLEAN AdjustToNextAnimationFrame( SOLDIERTYPE *pSoldier )
 				break;
 
 			case 791:
-
-				PlaySoldierJA2Sample( pSoldier->ubID, FENCE_OPEN, RATE_11025, SoundVolume( HIGHVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ), TRUE );
+				if (!HasItemFlag(pSoldier->inv[HANDPOS].usItem, (FULL_SANDBAG | CONCERTINA | SHOVEL | EMPTY_SANDBAG)))
+					PlaySoldierJA2Sample(pSoldier->ubID, FENCE_OPEN, RATE_11025, SoundVolume(HIGHVOLUME, pSoldier->sGridNo), 1, SoundDir(pSoldier->sGridNo), TRUE);
+				
 				break;
 
 			case 792:
