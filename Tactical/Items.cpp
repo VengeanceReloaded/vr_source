@@ -15994,8 +15994,15 @@ BOOLEAN OBJECTTYPE::TransformObject( SOLDIERTYPE * pSoldier, UINT8 ubStatusIndex
 		fSplit = TRUE;
 	}
 
-	// Play a gun-cocking sound, it's the best one we've got ATM.
-	PlayJA2Sample( ATTACH_TO_GUN, RATE_11025, SoundVolume( MIDVOLUME, pSoldier->sGridNo ), 1, SoundDir( pSoldier->sGridNo ) );		
+	if (HasItemFlag(usOrigItem, FULL_SANDBAG))
+	{
+		PlayJA2Sample(EMPTY_SANDBAG_SFX, RATE_11025, SoundVolume(MIDVOLUME, pSoldier->sGridNo), 1, SoundDir(pSoldier->sGridNo));
+	}
+	else
+	{
+		// Play a gun-cocking sound, it's the best one we've got ATM.
+		PlayJA2Sample(ATTACH_TO_GUN, RATE_11025, SoundVolume(MIDVOLUME, pSoldier->sGridNo), 1, SoundDir(pSoldier->sGridNo));
+	}
 
 	// Before we continue, lets check whether our object is in the sector inventory.
 	// Is the sector inventory open?
