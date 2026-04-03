@@ -65,7 +65,7 @@ void SetTileRangeRoomNum( SGPRect *pSelectRegion, UINT8 usRoomNum )
 BOOLEAN InARoom( INT32 sGridNo, UINT16 *pusRoomNo )
 {
 	// WANNE: Bugzilla #360: Crash when moving via helicopter from museum sector
-	if ( sGridNo >= 0 && gusWorldRoomInfo[ sGridNo ] != NO_ROOM )
+	if ( sGridNo >= 0 && gusWorldRoomInfo && gusWorldRoomInfo[ sGridNo ] != NO_ROOM )
     {
 		if ( pusRoomNo )
 		{
@@ -80,7 +80,7 @@ BOOLEAN InARoom( INT32 sGridNo, UINT16 *pusRoomNo )
 //DBrot: More Rooms
 BOOLEAN InAHiddenRoom( INT32 sGridNo, UINT16 *pusRoomNo )
 {
-	if ( sGridNo >= 0 && gusWorldRoomInfo[ sGridNo ] != NO_ROOM )
+	if ( sGridNo >= 0 && gusWorldRoomInfo && gusWorldRoomInfo[ sGridNo ] != NO_ROOM )
 	{
 		if ( (gubWorldRoomHidden[ gusWorldRoomInfo[ sGridNo ] ] ) )
 		{
