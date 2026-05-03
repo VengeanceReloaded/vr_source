@@ -32,7 +32,7 @@ BOOLEAN	IsJumpableWindowPresentAtGridNo( INT32 sGridNo, INT8 direction2, BOOLEAN
 		LEVELNODE *pNode = FindLevelNodeBasedOnStructure(sGridNo, pStructure);
 		if (pNode != NULL)
 		{
-			if ((giCurrentTilesetID == 54 && pNode->usIndex >= 682 && pNode->usIndex <= 693) ||
+			if (((giCurrentTilesetID == 54 || giCurrentTilesetID == 45) && pNode->usIndex >= 682 && pNode->usIndex <= 693) ||
 				((giCurrentTilesetID == 12 || giCurrentTilesetID == 22 || giCurrentTilesetID == 41 || giCurrentTilesetID == 44) && pNode->usIndex >= 877 && pNode->usIndex <= 888))
 				// special tag disables jumping through specific windows (e.g. barred windows in Tixa)
 				return(FALSE);
