@@ -11645,6 +11645,11 @@ INT16 NightBonusScale( INT16 bonus, UINT8 bLightLevel )
 	else return 0;
 }
 
+static BOOLEAN IsSightAttachment(UINT16 usItem)
+{
+	return IsAttachmentClass(usItem, AC_SCOPE | AC_SIGHT | AC_IRONSIGHT) || Item[usItem].percenttunnelvision > 0;
+}
+
 INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sSpot, INT8 bLevel)
 {
 	INT16	sBonus = 0;
@@ -11653,7 +11658,9 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 	INVTYPE	*pItem;
 
 	INT16	sScopebonus = 0;
+	INT16	sSightBonus = 0;
 	INT16	sHandBonus = 0;
+	INT16	sGearBonus = 0;
 	INT16	sItemBonus;
 	BOOLEAN fTurnbased = FALSE;
 
@@ -11682,9 +11689,12 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 					// add boni only from non-scope items
 					if (iter->exists() && !IsAttachmentClass(iter->usItem, AC_SCOPE | AC_SIGHT | AC_IRONSIGHT))
 					{
-						sScopebonus += BonusReduceMore(
+						sItemBonus = BonusReduceMore(
 							NightBonusScale(Item[iter->usItem].nightvisionrangebonus, bLightLevel),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 
@@ -11703,7 +11713,11 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 							gbForceWeaponReady ||
 							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
-							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].nightvisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+						{
+							sItemBonus = BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].nightvisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+							sScopebonus += sItemBonus;
+							sSightBonus += sItemBonus;
+						}
 					}
 				}
 			}
@@ -11713,9 +11727,12 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 				{
 					if (iter->exists())
 					{
-						sScopebonus += BonusReduceMore(
+						sItemBonus = BonusReduceMore(
 							NightBonusScale(Item[iter->usItem].nightvisionrangebonus, bLightLevel),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 			}
@@ -11752,13 +11769,12 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 			{
 				sItemBonus = BonusReduceMore(NightBonusScale(pItem->nightvisionrangebonus, bLightLevel), (*pObj)[0]->data.objectStatus);
 
-				// sevenfm: apply binocs bonus only if not using scope
-				if (sScopebonus <= 0 || sItemBonus <= 0)
+				if (sItemBonus > 0)
 					sHandBonus += sItemBonus;
+				else
+					sBonus += sItemBonus;
 			}
 		}
-
-		sBonus += sHandBonus;
 	}
 
 	// gear bonus
@@ -11786,10 +11802,14 @@ INT16 GetNightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 
 			sItemBonus = BonusReduceMore(NightBonusScale(pItem->nightvisionrangebonus, bLightLevel), (*pObj)[0]->data.objectStatus);
 
 			// sevenfm: apply gear bonus only if not using scope/binocs
-			if (sScopebonus <= 0 && sHandBonus <= 0 || sItemBonus <= 0)
+			if (sItemBonus > 0)
+				sGearBonus += sItemBonus;
+			else
 				sBonus += sItemBonus;
 		}
 	}
+
+	sBonus += __max(__max(sSightBonus, sHandBonus), sGearBonus) - __max(sSightBonus, 0);
 
 	return( sBonus );
 }
@@ -11802,7 +11822,9 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 	INVTYPE *pItem;
 
 	INT16 sScopebonus = 0;
+	INT16 sSightBonus = 0;
 	INT16 sHandBonus = 0;
+	INT16 sGearBonus = 0;
 	INT16	sItemBonus;
 	BOOLEAN fTurnbased = FALSE;
 
@@ -11830,9 +11852,12 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 					// add boni only from non-scope items
 					if (iter->exists() && !IsAttachmentClass(iter->usItem, AC_SCOPE | AC_SIGHT | AC_IRONSIGHT))
 					{
-						sScopebonus += BonusReduceMore(
+						sItemBonus = BonusReduceMore(
 							NightBonusScale(Item[iter->usItem].cavevisionrangebonus, bLightLevel),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 
@@ -11851,7 +11876,11 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 							gbForceWeaponReady ||
 							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
-							sScopebonus += BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].cavevisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+						{
+							sItemBonus = BonusReduceMore(NightBonusScale(Item[ObjList[pSoldier->bScopeMode]->usItem].cavevisionrangebonus, bLightLevel), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+							sScopebonus += sItemBonus;
+							sSightBonus += sItemBonus;
+						}
 					}
 				}
 			}
@@ -11861,9 +11890,12 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 				{
 					if (iter->exists())
 					{
-						sScopebonus += BonusReduceMore(
+						sItemBonus = BonusReduceMore(
 							NightBonusScale(Item[iter->usItem].cavevisionrangebonus, bLightLevel),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 			}
@@ -11899,13 +11931,12 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 			{
 				sItemBonus = BonusReduceMore(NightBonusScale(pItem->cavevisionrangebonus, bLightLevel), (*pObj)[0]->data.objectStatus);
 
-				// sevenfm: apply gear bonus only if not using night scope
-				if (sScopebonus <= 0 || sItemBonus <= 0)
+				if (sItemBonus > 0)
 					sHandBonus += sItemBonus;
+				else
+					sBonus += sItemBonus;
 			}
 		}
-
-		sBonus += sHandBonus;
 	}
 
 	// gear bonus
@@ -11933,13 +11964,14 @@ INT16 GetCaveVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 s
 
 			sItemBonus = BonusReduceMore(NightBonusScale(pItem->cavevisionrangebonus, bLightLevel), (*pObj)[0]->data.objectStatus);
 
-			// sevenfm: apply gear bonus only if not using scope/binocs
-			if (sScopebonus <= 0 && sHandBonus <= 0 || sItemBonus <= 0)
+			if (sItemBonus > 0)
+				sGearBonus += sItemBonus;
+			else
 				sBonus += sItemBonus;
 		}
 	}
 
-	sBonus += sScopebonus;
+	sBonus += __max(__max(sSightBonus, sHandBonus), sGearBonus) - __max(sSightBonus, 0);
 
 	return( sBonus );
 }
@@ -11952,7 +11984,9 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 	INVTYPE *pItem;
 	
 	INT16 sScopebonus = 0;
+	INT16 sSightBonus = 0;
 	INT16 sHandBonus = 0;
+	INT16 sGearBonus = 0;
 	INT16	sItemBonus;
 	BOOLEAN fTurnbased = FALSE;
 
@@ -11993,9 +12027,12 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 					// add boni only from non-scope items
 					if (iter->exists() && !IsAttachmentClass(iter->usItem, AC_SCOPE | AC_SIGHT | AC_IRONSIGHT))
 					{
-						sScopebonus += BonusReduceMore(idiv(Item[iter->usItem].dayvisionrangebonus
+						sItemBonus = BonusReduceMore(idiv(Item[iter->usItem].dayvisionrangebonus
 							* lightlevelmultiplier, lightleveldivisor),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 
@@ -12014,7 +12051,11 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 							gbForceWeaponReady ||
 							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
-							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].dayvisionrangebonus	* lightlevelmultiplier, lightleveldivisor), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+						{
+							sItemBonus = BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].dayvisionrangebonus * lightlevelmultiplier, lightleveldivisor), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+							sScopebonus += sItemBonus;
+							sSightBonus += sItemBonus;
+						}
 					}
 				}
 			}
@@ -12024,9 +12065,12 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 				{
 					if (iter->exists())
 					{
-						sScopebonus += BonusReduceMore(idiv(Item[iter->usItem].dayvisionrangebonus
+						sItemBonus = BonusReduceMore(idiv(Item[iter->usItem].dayvisionrangebonus
 							* lightlevelmultiplier, lightleveldivisor),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 			}
@@ -12071,13 +12115,12 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 					sItemBonus += sItemBonus * gSkillTraitValues.usSCSightRangebonusWithBinoculars / 100;
 				}
 
-				// sevenfm: apply binocs bonus only if not using scope
-				if (sScopebonus <= 0 || sItemBonus <= 0)
+				if (sItemBonus > 0)
 					sHandBonus += sItemBonus;
+				else
+					sBonus += sItemBonus;
 			}
 		}
-
-		sBonus += sHandBonus;
 	}
 
 	// gear bonus
@@ -12105,11 +12148,14 @@ INT16 GetDayVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, INT32 sS
 
 			sItemBonus = BonusReduceMore(idiv(pItem->dayvisionrangebonus * lightlevelmultiplier, lightleveldivisor), (*pObj)[0]->data.objectStatus);
 
-			// sevenfm: apply gear bonus only if not using scope/binocs
-			if (sScopebonus <= 0 && sHandBonus <= 0 || sItemBonus <= 0)
+			if (sItemBonus > 0)
+				sGearBonus += sItemBonus;
+			else
 				sBonus += sItemBonus;
 		}
 	}
+
+	sBonus += __max(__max(sSightBonus, sHandBonus), sGearBonus) - __max(sSightBonus, 0);
 
 	return( sBonus );
 }
@@ -12122,7 +12168,9 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 	INVTYPE *pItem;
 
 	INT16 sScopebonus = 0;
+	INT16 sSightBonus = 0;
 	INT16 sHandBonus = 0;
+	INT16 sGearBonus = 0;
 	INT16	sItemBonus;
 	BOOLEAN fTurnbased = FALSE;
 
@@ -12153,9 +12201,12 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 					// add boni only from non-scope items
 					if (iter->exists() && !IsAttachmentClass(iter->usItem, AC_SCOPE | AC_SIGHT | AC_IRONSIGHT))
 					{
-						sScopebonus += BonusReduceMore(idiv(Item[iter->usItem].brightlightvisionrangebonus
+						sItemBonus = BonusReduceMore(idiv(Item[iter->usItem].brightlightvisionrangebonus
 							* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 
@@ -12174,7 +12225,11 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 							gbForceWeaponReady ||
 							pSoldier->usSkillCounter[SOLDIER_COUNTER_FOCUS] >= ubActive && !TileIsOutOfBounds(sSpot) && !TileIsOutOfBounds(pSoldier->sMTActionGridNo) && SpacesAway(sSpot, pSoldier->sMTActionGridNo) <= 1 ||
 							pSoldier->bTeam != gbPlayerNum && !TileIsOutOfBounds(sSpot) && GetWatchedLocPoints(pSoldier->ubID, sSpot, bLevel) > 0)
-							sScopebonus += BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].brightlightvisionrangebonus	* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+						{
+							sItemBonus = BonusReduceMore(idiv(Item[ObjList[pSoldier->bScopeMode]->usItem].brightlightvisionrangebonus * (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY), (*ObjList[pSoldier->bScopeMode])[0]->data.objectStatus);
+							sScopebonus += sItemBonus;
+							sSightBonus += sItemBonus;
+						}
 					}
 				}
 			}
@@ -12184,9 +12239,12 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 				{
 					if (iter->exists())
 					{
-						sScopebonus += BonusReduceMore(idiv(Item[iter->usItem].brightlightvisionrangebonus
+						sItemBonus = BonusReduceMore(idiv(Item[iter->usItem].brightlightvisionrangebonus
 							* (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY),
 							(*iter)[0]->data.objectStatus);
+						sScopebonus += sItemBonus;
+						if (IsSightAttachment(iter->usItem))
+							sSightBonus += sItemBonus;
 					}
 				}
 			}
@@ -12231,13 +12289,12 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 					sItemBonus += sItemBonus * gSkillTraitValues.usSCSightRangebonusWithBinoculars / 100;
 				}
 
-				// sevenfm: apply gear bonus only if not using scope
-				if (sScopebonus <= 0 || sItemBonus <= 0)
+				if (sItemBonus > 0)
 					sHandBonus += sItemBonus;
+				else
+					sBonus += sItemBonus;
 			}
 		}
-
-		sBonus += sHandBonus;
 	}
 
 	// gear bonus
@@ -12264,11 +12321,14 @@ INT16 GetBrightLightVisionRangeBonus(SOLDIERTYPE * pSoldier, UINT8 bLightLevel, 
 
 			sItemBonus = BonusReduceMore(idiv(pItem->brightlightvisionrangebonus * (NORMAL_LIGHTLEVEL_DAY - bLightLevel), NORMAL_LIGHTLEVEL_DAY), (*pObj)[0]->data.objectStatus);
 
-			// sevenfm: apply gear bonus only if not using scope
-			if (sScopebonus <= 0 && sHandBonus <= 0 || sItemBonus <= 0)
+			if (sItemBonus > 0)
+				sGearBonus += sItemBonus;
+			else
 				sBonus += sItemBonus;
 		}
 	}
+
+	sBonus += __max(__max(sSightBonus, sHandBonus), sGearBonus) - __max(sSightBonus, 0);
 
 	return( sBonus );
 }
